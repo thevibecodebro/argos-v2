@@ -17,8 +17,12 @@ Current local dev assumptions:
 - web app runs on `http://127.0.0.1:3000`
 - Supabase local API on `http://127.0.0.1:54321`
 - local Postgres on `127.0.0.1:54322`
+- linked remote project ref: `mlluqkmmcfqjmjqoparf`
+- linked remote Postgres major version: `17`
 
 Current blocker:
 
-- no working Supabase access token or CLI is configured in this environment, so the
-  actual remote Supabase project has not been provisioned or linked yet
+- the repo is now linked to the remote Supabase project, but no remote schema push or
+  database pull has been run yet
+- applying the Argos V2 migrations to the linked remote requires an explicit go-ahead,
+  because it would change a real Supabase project rather than just local repo config
