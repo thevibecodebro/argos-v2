@@ -1,0 +1,13 @@
+{
+  "name": "@argos-v2/db",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.1",
+    "pg": "^8.13.3"
+  }
+}
+

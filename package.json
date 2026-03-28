@@ -1,0 +1,16 @@
+{
+  "name": "argos-v2",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev -w @argos-v2/web",
+    "dev:worker": "npm run dev -w @argos-v2/worker",
+    "test:web": "npm run test -w @argos-v2/web",
+    "test:worker": "npm run test -w @argos-v2/worker",
+    "typecheck:web": "npm run typecheck -w @argos-v2/web",
+    "typecheck:worker": "npm run typecheck -w @argos-v2/worker"
+  }
+}
