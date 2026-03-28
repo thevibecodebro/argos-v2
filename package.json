@@ -8,8 +8,11 @@
   "scripts": {
     "dev:web": "npm run dev -w @argos-v2/web",
     "dev:worker": "npm run dev -w @argos-v2/worker",
+    "db:generate": "npm run db:generate -w @argos-v2/db",
+    "db:studio": "npm run db:studio -w @argos-v2/db",
     "test:web": "npm run test -w @argos-v2/web",
     "test:worker": "npm run test -w @argos-v2/worker",
+    "typecheck:db": "npm run typecheck -w @argos-v2/db",
     "typecheck:web": "npm run typecheck -w @argos-v2/web",
     "typecheck:worker": "npm run typecheck -w @argos-v2/worker"
   }

@@ -3,7 +3,7 @@ import { organizationsTable } from "./organizations";
 
 export const usersTable = pgTable("users", {
   id: uuid("id").primaryKey(),
-  orgId: text("org_id").references(() => organizationsTable.id),
+  orgId: uuid("org_id").references(() => organizationsTable.id),
   role: text("role", { enum: ["rep", "manager", "executive", "admin"] }),
   email: text("email").notNull().unique(),
   firstName: text("first_name"),
@@ -14,4 +14,3 @@ export const usersTable = pgTable("users", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
-
