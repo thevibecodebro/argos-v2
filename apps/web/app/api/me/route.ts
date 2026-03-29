@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
-import { DrizzleDashboardRepository } from "@/lib/dashboard/repository";
+import { createDashboardRepository } from "@/lib/dashboard/create-repository";
 import { getCurrentUserProfile } from "@/lib/dashboard/service";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const profile = await getCurrentUserProfile(new DrizzleDashboardRepository(), authUser.id);
+    const profile = await getCurrentUserProfile(createDashboardRepository(), authUser.id);
 
     if (!profile) {
       return NextResponse.json({ error: "User is not provisioned in the app database" }, { status: 404 });

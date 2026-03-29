@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { buttonVariants } from "@argos-v2/ui";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
-import { DrizzleDashboardRepository } from "@/lib/dashboard/repository";
+import { createDashboardRepository } from "@/lib/dashboard/create-repository";
 import { getDashboardSummary } from "@/lib/dashboard/service";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ export default async function DashboardPage() {
 
   if (authUser) {
     try {
-      summary = await getDashboardSummary(new DrizzleDashboardRepository(), authUser.id);
+      summary = await getDashboardSummary(createDashboardRepository(), authUser.id);
     } catch (error) {
       setupError = error instanceof Error ? error.message : "Unknown dashboard error";
     }

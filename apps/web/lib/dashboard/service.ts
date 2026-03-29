@@ -1,7 +1,9 @@
+import type { AppUserRole } from "@/lib/users/roles";
+
 export type DashboardUserRecord = {
   id: string;
   email: string;
-  role: "rep" | "manager" | "executive" | "admin" | null;
+  role: AppUserRole | null;
   firstName: string | null;
   lastName: string | null;
   org: {
