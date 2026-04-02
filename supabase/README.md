@@ -19,10 +19,13 @@ Current local dev assumptions:
 - local Postgres on `127.0.0.1:54322`
 - linked remote project ref: `mlluqkmmcfqjmjqoparf`
 - linked remote Postgres major version: `17`
+- hosted auth is configured for magic link + Google sign-in
 
-Current blocker:
+Hosted project notes:
 
-- the repo is now linked to the remote Supabase project, but no remote schema push or
-  database pull has been run yet
-- applying the Argos V2 migrations to the linked remote requires an explicit go-ahead,
-  because it would change a real Supabase project rather than just local repo config
+- remote schema has already been pushed to the linked Supabase project
+- Google auth is backed by a dedicated Google Cloud project and OAuth client
+- `config.toml` currently allows localhost callbacks plus a temporary `https://**.vercel.app/**`
+  wildcard so preview deployments can complete auth before a stable production URL exists
+- once the first stable Vercel production URL exists, replace `auth.site_url` with that exact URL
+  and tighten the wildcard redirect allow-list if you want stricter redirect policy

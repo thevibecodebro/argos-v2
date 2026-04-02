@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@argos-v2/ui";
-import { getWebEnv } from "@/lib/env";
+import { buildAuthRedirectUrl } from "@/lib/env";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type LoginFormProps = {
@@ -20,8 +20,9 @@ export function LoginForm({ nextPath }: LoginFormProps) {
     setErrorMessage(null);
 
     const supabase = createSupabaseBrowserClient();
-    const { siteUrl } = getWebEnv();
-    const redirectTo = `${siteUrl}/auth/callback?next=${encodeURIComponent(nextPath)}`;
+    const redirectTo = buildAuthRedirectUrl(nextPath, {
+      runtimeOrigin: window.location.origin,
+    });
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
@@ -40,8 +41,9 @@ export function LoginForm({ nextPath }: LoginFormProps) {
 
   async function handleGoogleSignIn() {
     const supabase = createSupabaseBrowserClient();
-    const { siteUrl } = getWebEnv();
-    const redirectTo = `${siteUrl}/auth/callback?next=${encodeURIComponent(nextPath)}`;
+    const redirectTo = buildAuthRedirectUrl(nextPath, {
+      runtimeOrigin: window.location.origin,
+    });
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
