@@ -25,7 +25,7 @@ port = 54324
 
 [storage]
 enabled = true
-file_size_limit = "500MiB"
+file_size_limit = "50MiB"
 
 [auth]
 enabled = true
@@ -36,3 +36,14 @@ additional_redirect_urls = [
 ]
 jwt_expiry = 3600
 enable_signup = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false
+double_confirm_changes = true
+
+[auth.external.google]
+enabled = true
+client_id = "afd26d92c-b0d5-4899-a9ac-cad4e65e863b"
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET)"
+skip_nonce_check = false
