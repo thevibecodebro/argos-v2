@@ -1,9 +1,9 @@
 import { createBrowserClient } from "@supabase/ssr";
-import { getWebEnv } from "@/lib/env";
+import { getBrowserWebEnv } from "@/lib/env";
 import type { Database } from "@/lib/supabase/database.types";
 
 function buildBrowserClient() {
-  const { supabaseUrl, supabaseAnonKey } = getWebEnv();
+  const { supabaseUrl, supabaseAnonKey } = getBrowserWebEnv();
 
   return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
 }

@@ -1,4 +1,9 @@
 type WebEnvSource = Partial<Record<string, string | undefined>>;
+const requiredWebEnvKeys = [
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+] as const;
+type RequiredWebEnvKey = (typeof requiredWebEnvKeys)[number];
 
 export type WebEnv = {
   supabaseUrl: string;
@@ -34,6 +39,45 @@ function getResolvedSiteUrl(env: WebEnvSource): string {
   }
 
   return normalizeUrl(rawSiteUrl);
+}
+
+export function getMissingWebEnvKeys(
+  env: WebEnvSource = process.env,
+): RequiredWebEnvKey[] {
+  return requiredWebEnvKeys.filter((key) => !env[key]);
+}
+
+export function getWebEnvConfigurationError(
+  env: WebEnvSource = process.env,
+): string | null {
+  const missingKeys = getMissingWebEnvKeys(env);
+
+  if (missingKeys.length === 0) {
+    return null;
+  }
+
+  return `Auth is not configured for this environment. Missing: ${missingKeys.join(", ")}.`;
+}
+
+function getBrowserRuntimeEnvSource(): WebEnvSource {
+  return {
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+    NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL:
+      process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL,
+    NEXT_PUBLIC_VERCEL_URL: process.env.NEXT_PUBLIC_VERCEL_URL,
+    VERCEL_PROJECT_PRODUCTION_URL: process.env.VERCEL_PROJECT_PRODUCTION_URL,
+    VERCEL_URL: process.env.VERCEL_URL,
+  };
+}
+
+export function getBrowserWebEnv(): WebEnv {
+  return getWebEnv(getBrowserRuntimeEnvSource());
+}
+
+export function getBrowserWebEnvConfigurationError(): string | null {
+  return getWebEnvConfigurationError(getBrowserRuntimeEnvSource());
 }
 
 export function getWebEnv(env: WebEnvSource = process.env): WebEnv {
