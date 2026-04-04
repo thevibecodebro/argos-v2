@@ -1,6 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { getLoginHref, isProtectedPath } from "@/lib/auth-routing";
+import { getAuthenticatedEntryHref, getLoginHref, isProtectedPath } from "@/lib/auth-routing";
 import { getWebEnv } from "@/lib/env";
 
 type CookieToSet = {
@@ -43,6 +43,14 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   response.headers.set("Cache-Control", "private, no-store");
+
+  if (user && (request.nextUrl.pathname === "/" || request.nextUrl.pathname === "/login")) {
+    const redirectResponse = NextResponse.redirect(
+      new URL(getAuthenticatedEntryHref(true), request.url),
+    );
+    redirectResponse.headers.set("Cache-Control", "private, no-store");
+    return redirectResponse;
+  }
 
   if (!user && isProtectedPath(request.nextUrl.pathname)) {
     const redirectUrl = new URL(

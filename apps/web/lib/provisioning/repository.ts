@@ -4,7 +4,6 @@ import { parseAppUserRole } from "@/lib/users/roles";
 import type { ProvisioningRepository } from "./service";
 
 type ExistingUserRow = Pick<Tables<"users">, "id" | "org_id" | "email" | "role">;
-type OrganizationInsert = TablesInsert<"organizations">;
 type UserInsert = TablesInsert<"users">;
 
 export class SupabaseProvisioningRepository implements ProvisioningRepository {
@@ -35,26 +34,11 @@ export class SupabaseProvisioningRepository implements ProvisioningRepository {
     };
   }
 
-  async createOrganization(input: { name: string; slug: string; plan: string }) {
-    const organizationInsert: OrganizationInsert = input;
-    const { data, error } = await this.supabase
-      .from("organizations")
-      .insert(organizationInsert)
-      .select("id")
-      .single();
-
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    return data;
-  }
-
   async createUser(input: {
     id: string;
-    orgId: string;
+    orgId: string | null;
     email: string;
-    role: "admin";
+    role: "rep" | "manager" | "executive" | "admin" | null;
     firstName: string | null;
     lastName: string | null;
     displayNameSet: boolean;

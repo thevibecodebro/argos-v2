@@ -15,42 +15,15 @@ type SupabaseAuthUser = {
 
 export interface ProvisioningRepository {
   findUserById(userId: string): Promise<ExistingProvisionedUser | null>;
-  createOrganization(input: {
-    name: string;
-    slug: string;
-    plan: string;
-  }): Promise<{ id: string }>;
   createUser(input: {
     id: string;
-    orgId: string;
+    orgId: string | null;
     email: string;
-    role: "admin";
+    role: AppUserRole | null;
     firstName: string | null;
     lastName: string | null;
     displayNameSet: boolean;
   }): Promise<void>;
-}
-
-function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 40);
-}
-
-function getDisplayName(user: SupabaseAuthUser): string {
-  const rawFullName = user.user_metadata?.full_name;
-
-  if (typeof rawFullName === "string" && rawFullName.trim()) {
-    return rawFullName.trim();
-  }
-
-  if (!user.email) {
-    return "Argos Team";
-  }
-
-  return user.email.split("@")[0] || "Argos Team";
 }
 
 function getNameParts(user: SupabaseAuthUser) {
@@ -84,19 +57,21 @@ export async function ensureUserProvisioned(
     };
   }
 
-  const displayName = getDisplayName(user);
+  if (existingUser) {
+    return {
+      userId: existingUser.id,
+      orgId: null,
+      created: false,
+    };
+  }
+
   const { firstName, lastName } = getNameParts(user);
-  const organization = await repository.createOrganization({
-    name: `${displayName}'s Team`,
-    slug: `${slugify(displayName)}-${user.id.slice(0, 8)}`,
-    plan: "trial",
-  });
 
   await repository.createUser({
     id: user.id,
-    orgId: organization.id,
+    orgId: null,
     email: user.email,
-    role: "admin",
+    role: null,
     firstName,
     lastName,
     displayNameSet: Boolean(firstName || lastName),
@@ -104,7 +79,7 @@ export async function ensureUserProvisioned(
 
   return {
     userId: user.id,
-    orgId: organization.id,
+    orgId: null,
     created: true,
   };
 }
