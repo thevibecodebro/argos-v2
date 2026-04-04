@@ -6,7 +6,6 @@ function createRepository(
 ): ProvisioningRepository {
   return {
     findUserById: vi.fn(),
-    createOrganization: vi.fn(),
     createUser: vi.fn(),
     ...overrides,
   };
@@ -36,12 +35,32 @@ describe("ensureUserProvisioned", () => {
     });
   });
 
-  it("creates an org and admin user on first login", async () => {
+  it("returns an existing user without an org so onboarding can continue", async () => {
+    const repository = createRepository({
+      findUserById: vi.fn().mockResolvedValue({
+        id: "7f9cf8d3-0e1b-449b-aa26-8ebbbfd0843a",
+        orgId: null,
+        email: "rep@argos.ai",
+        role: null,
+      }),
+    });
+
+    const result = await ensureUserProvisioned(repository, {
+      id: "7f9cf8d3-0e1b-449b-aa26-8ebbbfd0843a",
+      email: "rep@argos.ai",
+      user_metadata: {},
+    });
+
+    expect(result).toEqual({
+      userId: "7f9cf8d3-0e1b-449b-aa26-8ebbbfd0843a",
+      orgId: null,
+      created: false,
+    });
+  });
+
+  it("creates only the user record on first login so onboarding can assign the org later", async () => {
     const repository = createRepository({
       findUserById: vi.fn().mockResolvedValue(null),
-      createOrganization: vi.fn().mockResolvedValue({
-        id: "50f0bd60-3d09-4d59-a1a6-a0bc8d3a53e9",
-      }),
       createUser: vi.fn().mockResolvedValue(undefined),
     });
 
@@ -57,21 +76,15 @@ describe("ensureUserProvisioned", () => {
 
     expect(result).toEqual({
       userId: "7f9cf8d3-0e1b-449b-aa26-8ebbbfd0843a",
-      orgId: "50f0bd60-3d09-4d59-a1a6-a0bc8d3a53e9",
+      orgId: null,
       created: true,
-    });
-
-    expect(repository.createOrganization).toHaveBeenCalledWith({
-      name: "Rep Riley's Team",
-      slug: expect.stringMatching(/^rep-riley-/),
-      plan: "trial",
     });
 
     expect(repository.createUser).toHaveBeenCalledWith({
       id: "7f9cf8d3-0e1b-449b-aa26-8ebbbfd0843a",
-      orgId: "50f0bd60-3d09-4d59-a1a6-a0bc8d3a53e9",
+      orgId: null,
       email: "rep@argos.ai",
-      role: "admin",
+      role: null,
       firstName: "Rep",
       lastName: "Riley",
       displayNameSet: true,

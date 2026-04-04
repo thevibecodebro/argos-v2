@@ -1,0 +1,34 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { createDashboardRepository } from "@/lib/dashboard/create-repository";
+import { DashboardServiceError, getRepDashboard } from "@/lib/dashboard/service";
+
+export const dynamic = "force-dynamic";
+
+export async function GET(request: NextRequest) {
+  try {
+    const authUser = await getAuthenticatedSupabaseUser();
+
+    if (!authUser) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const repId = request.nextUrl.searchParams.get("repId") ?? undefined;
+    const dashboard = await getRepDashboard(createDashboardRepository(), authUser.id, repId);
+
+    if (!dashboard) {
+      return NextResponse.json({ error: "User is not provisioned in the app database" }, { status: 404 });
+    }
+
+    return NextResponse.json(dashboard, {
+      headers: { "Cache-Control": "private, no-store" },
+    });
+  } catch (error) {
+    if (error instanceof DashboardServiceError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+
+    console.error("Failed to load rep dashboard", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}

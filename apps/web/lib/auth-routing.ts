@@ -1,4 +1,16 @@
-const PROTECTED_PATH_PREFIXES = ["/dashboard"] as const;
+const PROTECTED_PATH_PREFIXES = [
+  "/dashboard",
+  "/calls",
+  "/upload",
+  "/leaderboard",
+  "/team",
+  "/roleplay",
+  "/training",
+  "/highlights",
+  "/settings",
+  "/notifications",
+  "/onboarding",
+] as const;
 
 export function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PATH_PREFIXES.some(
@@ -11,4 +23,8 @@ export function getLoginHref(pathname: string, search = ""): string {
   const params = new URLSearchParams({ next });
 
   return `/login?${params.toString()}`;
+}
+
+export function getAuthenticatedEntryHref(hasOrganization: boolean): string {
+  return hasOrganization ? "/dashboard" : "/onboarding";
 }

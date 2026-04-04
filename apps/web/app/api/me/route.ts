@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
-import { createDashboardRepository } from "@/lib/dashboard/create-repository";
-import { getCurrentUserProfile } from "@/lib/dashboard/service";
+import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { createUsersRepository } from "@/lib/users/create-repository";
+import { getCurrentUserDetails, updateCurrentUserProfile } from "@/lib/users/service";
 
 export const dynamic = "force-dynamic";
 
@@ -10,25 +11,37 @@ export async function GET() {
     const authUser = await getAuthenticatedSupabaseUser();
 
     if (!authUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return unauthorizedJson();
     }
 
-    const profile = await getCurrentUserProfile(createDashboardRepository(), authUser.id);
-
-    if (!profile) {
-      return NextResponse.json({ error: "User is not provisioned in the app database" }, { status: 404 });
-    }
-
-    return NextResponse.json(
-      { user: profile },
-      {
-        headers: {
-          "Cache-Control": "private, no-store",
-        },
-      },
-    );
+    return fromServiceResult(await getCurrentUserDetails(createUsersRepository(), authUser.id));
   } catch (error) {
     console.error("Failed to load current user profile", error);
+
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Internal server error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const authUser = await getAuthenticatedSupabaseUser();
+
+    if (!authUser) {
+      return unauthorizedJson();
+    }
+
+    const payload = (await request.json()) as { firstName?: unknown; lastName?: unknown };
+
+    return fromServiceResult(
+      await updateCurrentUserProfile(createUsersRepository(), authUser.id, payload),
+    );
+  } catch (error) {
+    console.error("Failed to update current user profile", error);
 
     return NextResponse.json(
       {
