@@ -27,6 +27,7 @@ export function buildAccessContext(input: {
 
   const grantedTeamIdsByPermission = new Map<TeamPermissionKey, Set<string>>();
   for (const grant of input.grants) {
+    if (grant.userId !== input.actor.id) continue;
     const current = grantedTeamIdsByPermission.get(grant.permissionKey) ?? new Set<string>();
     current.add(grant.teamId);
     grantedTeamIdsByPermission.set(grant.permissionKey, current);
@@ -57,7 +58,7 @@ export function canActorUsePermissionForRep(
   repId: string,
 ) {
   if (access.actor.role === "admin" || access.actor.role === "executive") return true;
-  if (access.actor.role !== "manager") return access.actor.id === repId;
+  if (access.actor.role !== "manager") return false;
 
   const teamIds = access.grantedTeamIdsByPermission.get(permissionKey) ?? new Set<string>();
   for (const teamId of teamIds) {

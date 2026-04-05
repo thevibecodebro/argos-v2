@@ -52,4 +52,32 @@ describe("access service", () => {
     expect(canActorViewRep(access, "rep-1")).toBe(true);
     expect(canActorUsePermissionForRep(access, "view_team_calls", "rep-1")).toBe(true);
   });
+
+  it("does not allow a rep to use manager-only permissions for themselves", () => {
+    const access = buildAccessContext({
+      actor: { id: "rep-1", role: "rep", orgId: "org-1" },
+      memberships: [
+        { teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ],
+      grants: [],
+    });
+
+    expect(canActorUsePermissionForRep(access, "manage_team_roster", "rep-1")).toBe(false);
+  });
+
+  it("ignores grants that belong to another manager", () => {
+    const access = buildAccessContext({
+      actor: { id: "mgr-1", role: "manager", orgId: "org-1" },
+      memberships: [
+        { teamId: "team-a", userId: "mgr-1", membershipType: "manager" },
+        { teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+        { teamId: "team-b", userId: "rep-2", membershipType: "rep" },
+      ],
+      grants: [
+        { teamId: "team-a", userId: "mgr-2", permissionKey: "view_team_calls" },
+      ],
+    });
+
+    expect(canActorViewRep(access, "rep-1")).toBe(false);
+  });
 });
