@@ -1,3 +1,11 @@
+import { createAccessRepository } from "@/lib/access/create-repository";
+import {
+  buildAccessContext,
+  canActorUsePermissionForRep,
+  canActorViewRep,
+  type AccessContext,
+} from "@/lib/access/service";
+import type { AccessRepository } from "@/lib/access/repository.types";
 import type { DashboardUserRecord } from "@/lib/dashboard/service";
 import type { AppUserRole } from "@/lib/users/roles";
 
@@ -294,10 +302,29 @@ async function getViewer(
   return { ok: true, data: viewer };
 }
 
+async function resolveAccessContext(
+  accessRepository: AccessRepository,
+  authUserId: string,
+): Promise<AccessContext | null> {
+  const actor = await accessRepository.findActorByAuthUserId(authUserId);
+
+  if (!actor?.orgId) {
+    return null;
+  }
+
+  const [memberships, grants] = await Promise.all([
+    accessRepository.findMembershipsByOrgId(actor.orgId),
+    accessRepository.findGrantsByUserId(actor.id, actor.orgId),
+  ]);
+
+  return buildAccessContext({ actor, memberships, grants });
+}
+
 export async function listCalls(
   repository: CallsRepository,
   authUserId: string,
   filters: CallsFilters = {},
+  accessRepository: AccessRepository = createAccessRepository(),
 ): Promise<
   ServiceResult<{
     calls: CallSummary[];
@@ -324,27 +351,42 @@ export async function listCalls(
     };
   }
 
-  if (filters.repId && filters.repId !== viewer.id && !isManagerRole(viewer.role)) {
+  const access = await resolveAccessContext(accessRepository, authUserId);
+
+  if (!access) {
+    return {
+      ok: false,
+      status: 404,
+      code: "unprovisioned",
+      error: "User is not provisioned in the app database",
+    };
+  }
+
+  if (filters.repId && !canActorViewRep(access, filters.repId)) {
     return {
       ok: false,
       status: 403,
       code: "forbidden",
-      error: "Only managers can view other reps' calls",
+      error: "You do not have access to this rep",
     };
   }
 
-  const effectiveRepId =
-    viewer.role === "rep" ? viewer.id : filters.repId;
-
-  const result = effectiveRepId
-    ? await repository.findCallsByRepId(effectiveRepId, filters)
+  const result = filters.repId || viewer.role === "rep"
+    ? await repository.findCallsByRepId(filters.repId ?? viewer.id, filters)
     : await repository.findCallsByOrgId(viewer.org.id, filters);
+
+  const scopedCalls =
+    filters.repId || viewer.role === "rep" || viewer.role === "admin" || viewer.role === "executive"
+      ? result.calls
+      : result.calls.filter((call) => canActorViewRep(access, call.repId));
 
   return {
     ok: true,
     data: {
-      calls: result.calls.map(serializeCallSummary),
-      total: result.total,
+      calls: scopedCalls.map(serializeCallSummary),
+      total: filters.repId || viewer.role === "rep" || viewer.role === "admin" || viewer.role === "executive"
+        ? result.total
+        : scopedCalls.length,
       viewer: { fullName: buildViewerName(viewer), role: viewer.role },
     },
   };
@@ -354,6 +396,7 @@ export async function getCallDetail(
   repository: CallsRepository,
   authUserId: string,
   callId: string,
+  accessRepository: AccessRepository = createAccessRepository(),
 ): Promise<ServiceResult<CallDetail>> {
   const viewerResult = await getViewer(repository, authUserId);
 
@@ -373,12 +416,23 @@ export async function getCallDetail(
     };
   }
 
-  if (!isManagerRole(viewer.role) && call.repId !== viewer.id) {
+  const access = await resolveAccessContext(accessRepository, authUserId);
+
+  if (!access) {
+    return {
+      ok: false,
+      status: 404,
+      code: "unprovisioned",
+      error: "User is not provisioned in the app database",
+    };
+  }
+
+  if (!canActorViewRep(access, call.repId)) {
     return {
       ok: false,
       status: 403,
       code: "forbidden",
-      error: "You can only view your own calls",
+      error: "You do not have access to this rep",
     };
   }
 
@@ -392,8 +446,9 @@ export async function getCallStatus(
   repository: CallsRepository,
   authUserId: string,
   callId: string,
+  accessRepository: AccessRepository = createAccessRepository(),
 ): Promise<ServiceResult<{ id: string; status: string; overallScore: number | null }>> {
-  const detail = await getCallDetail(repository, authUserId, callId);
+  const detail = await getCallDetail(repository, authUserId, callId, accessRepository);
 
   if (!detail.ok) {
     return detail;
@@ -413,8 +468,9 @@ export async function listAnnotations(
   repository: CallsRepository,
   authUserId: string,
   callId: string,
+  accessRepository: AccessRepository = createAccessRepository(),
 ): Promise<ServiceResult<{ annotations: CallAnnotation[] }>> {
-  const detail = await getCallDetail(repository, authUserId, callId);
+  const detail = await getCallDetail(repository, authUserId, callId, accessRepository);
 
   if (!detail.ok) {
     return detail;
@@ -433,8 +489,9 @@ export async function createAnnotation(
   authUserId: string,
   callId: string,
   input: { note: string; timestampSeconds?: number | null },
+  accessRepository: AccessRepository = createAccessRepository(),
 ): Promise<ServiceResult<CallAnnotation>> {
-  const detail = await getCallDetail(repository, authUserId, callId);
+  const detail = await getCallDetail(repository, authUserId, callId, accessRepository);
 
   if (!detail.ok) {
     return detail;
@@ -480,8 +537,9 @@ export async function deleteAnnotation(
   authUserId: string,
   callId: string,
   annotationId: string,
+  accessRepository: AccessRepository = createAccessRepository(),
 ): Promise<ServiceResult<{ success: true }>> {
-  const annotations = await listAnnotations(repository, authUserId, callId);
+  const annotations = await listAnnotations(repository, authUserId, callId, accessRepository);
 
   if (!annotations.ok) {
     return annotations;
@@ -528,6 +586,7 @@ export async function renameCall(
   authUserId: string,
   callId: string,
   callTopic: string | null,
+  accessRepository: AccessRepository = createAccessRepository(),
 ): Promise<ServiceResult<{ id: string; callTopic: string | null }>> {
   const viewerResult = await getViewer(repository, authUserId);
 
@@ -535,7 +594,7 @@ export async function renameCall(
     return viewerResult;
   }
 
-  const detail = await getCallDetail(repository, authUserId, callId);
+  const detail = await getCallDetail(repository, authUserId, callId, accessRepository);
 
   if (!detail.ok) {
     return detail;
@@ -561,6 +620,7 @@ export async function toggleMomentHighlight(
   callId: string,
   momentId: string,
   input: { highlightNote?: string | null; isHighlight: boolean },
+  accessRepository: AccessRepository = createAccessRepository(),
 ): Promise<ServiceResult<CallMoment>> {
   const viewerResult = await getViewer(repository, authUserId);
 
@@ -577,7 +637,7 @@ export async function toggleMomentHighlight(
     };
   }
 
-  const detail = await getCallDetail(repository, authUserId, callId);
+  const detail = await getCallDetail(repository, authUserId, callId, accessRepository);
 
   if (!detail.ok) {
     return detail;
@@ -605,6 +665,7 @@ export async function toggleMomentHighlight(
 export async function listHighlights(
   repository: CallsRepository,
   authUserId: string,
+  accessRepository: AccessRepository = createAccessRepository(),
 ): Promise<ServiceResult<{ highlights: CallHighlight[] }>> {
   const viewerResult = await getViewer(repository, authUserId);
 
@@ -618,14 +679,30 @@ export async function listHighlights(
     return { ok: true, data: { highlights: [] } };
   }
 
+  const access = await resolveAccessContext(accessRepository, authUserId);
+
+  if (!access) {
+    return {
+      ok: false,
+      status: 404,
+      code: "unprovisioned",
+      error: "User is not provisioned in the app database",
+    };
+  }
+
   const highlights =
     viewer.role === "rep"
       ? await repository.findHighlightsByRepId(viewer.id)
       : await repository.findHighlightsByOrgId(viewer.org.id);
 
+  const scopedHighlights =
+    viewer.role === "admin" || viewer.role === "executive"
+      ? highlights
+      : highlights.filter((highlight) => canActorViewRep(access, highlight.repId ?? ""));
+
   return {
     ok: true,
-    data: { highlights: highlights.map(serializeHighlight) },
+    data: { highlights: scopedHighlights.map(serializeHighlight) },
   };
 }
 
@@ -633,6 +710,7 @@ export async function getScoreTrend(
   repository: CallsRepository,
   authUserId: string,
   params: { days?: number; repId?: string } = {},
+  accessRepository: AccessRepository = createAccessRepository(),
 ): Promise<ServiceResult<{ points: ScoreTrendPoint[] }>> {
   const viewerResult = await getViewer(repository, authUserId);
 
@@ -642,20 +720,32 @@ export async function getScoreTrend(
 
   const viewer = viewerResult.data;
 
-  if (params.repId && params.repId !== viewer.id && !isManagerRole(viewer.role)) {
+  const access = await resolveAccessContext(accessRepository, authUserId);
+
+  if (!access) {
+    return {
+      ok: false,
+      status: 404,
+      code: "unprovisioned",
+      error: "User is not provisioned in the app database",
+    };
+  }
+
+  const targetRepId = params.repId ?? viewer.id;
+
+  if (!canActorUsePermissionForRep(access, "view_team_calls", targetRepId) && targetRepId !== viewer.id) {
     return {
       ok: false,
       status: 403,
       code: "forbidden",
-      error: "Only managers can view other reps' score trends",
+      error: "You do not have access to this rep",
     };
   }
 
   const since = new Date();
   since.setUTCDate(since.getUTCDate() - Math.min(params.days ?? 90, 365));
 
-  const repId = viewer.role === "rep" ? viewer.id : params.repId ?? viewer.id;
-  const points = await repository.findScoreTrend(repId, since);
+  const points = await repository.findScoreTrend(targetRepId, since);
 
   return {
     ok: true,

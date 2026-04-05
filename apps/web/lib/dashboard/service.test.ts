@@ -4,11 +4,27 @@ import {
   getExecutiveDashboard,
   getManagerDashboard,
   getCurrentUserProfile,
+  getRepDashboard,
   getRepBadges,
   getDashboardSummary,
   getSetupStatus,
   type DashboardRepository,
 } from "./service";
+
+function createAccessRepository(
+  overrides: Partial<Record<string, unknown>> = {},
+) {
+  return {
+    findActorByAuthUserId: vi.fn(),
+    findMembershipsByOrgId: vi.fn(),
+    findGrantsByUserId: vi.fn(),
+    ...overrides,
+  } as {
+    findActorByAuthUserId: (authUserId: string) => Promise<{ id: string; role: "admin" | "executive" | "manager" | "rep" | null; orgId: string | null } | null>;
+    findMembershipsByOrgId: (orgId: string) => Promise<Array<{ orgId: string; teamId: string; userId: string; membershipType: "rep" | "manager" }>>;
+    findGrantsByUserId: (userId: string, orgId: string) => Promise<Array<{ orgId: string; teamId: string; userId: string; permissionKey: "view_team_calls" | "coach_team_calls" | "manage_call_highlights" | "view_team_training" | "manage_team_training" | "manage_team_roster" | "view_team_analytics" }>>;
+  };
+}
 
 function createRepository(
   overrides: Partial<DashboardRepository> = {},
@@ -178,7 +194,22 @@ describe("getDashboardSummary", () => {
 });
 
 describe("getManagerDashboard", () => {
-  it("builds team cards, monthly metrics, and coaching flags for managers", async () => {
+  it("scopes manager dashboards to granted teams", async () => {
+    const accessRepository = createAccessRepository({
+      findActorByAuthUserId: vi.fn().mockResolvedValue({
+        id: "manager-1",
+        role: "manager",
+        orgId: "org-1",
+      }),
+      findMembershipsByOrgId: vi.fn().mockResolvedValue([
+        { orgId: "org-1", teamId: "team-a", userId: "manager-1", membershipType: "manager" },
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+        { orgId: "org-1", teamId: "team-b", userId: "rep-2", membershipType: "rep" },
+      ]),
+      findGrantsByUserId: vi.fn().mockResolvedValue([
+        { orgId: "org-1", teamId: "team-a", userId: "manager-1", permissionKey: "view_team_calls" },
+      ]),
+    });
     const repository = createRepository({
       findCurrentUserByAuthId: vi.fn().mockResolvedValue({
         id: "manager-1",
@@ -280,20 +311,11 @@ describe("getManagerDashboard", () => {
       repository,
       "manager-1",
       new Date("2026-03-27T00:00:00.000Z"),
+      accessRepository as never,
     );
 
     expect(result).toEqual({
       reps: [
-        {
-          id: "rep-2",
-          firstName: "Taylor",
-          lastName: "Stone",
-          profileImageUrl: null,
-          compositeScore: 89,
-          weekOverWeekDelta: null,
-          needsCoaching: false,
-          callCount: 2,
-        },
         {
           id: "rep-1",
           firstName: "Jay",
@@ -305,10 +327,55 @@ describe("getManagerDashboard", () => {
           callCount: 2,
         },
       ],
-      teamAvgScore: 84,
-      totalCallsThisMonth: 6,
+      teamAvgScore: 80,
+      totalCallsThisMonth: 2,
       coachingFlagsCount: 1,
     });
+  });
+});
+
+describe("getRepDashboard", () => {
+  it("keeps leaderboard drilldown scoped to granted teams", async () => {
+    const accessRepository = createAccessRepository({
+      findActorByAuthUserId: vi.fn().mockResolvedValue({
+        id: "manager-1",
+        role: "manager",
+        orgId: "org-1",
+      }),
+      findMembershipsByOrgId: vi.fn().mockResolvedValue([
+        { orgId: "org-1", teamId: "team-a", userId: "manager-1", membershipType: "manager" },
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+        { orgId: "org-1", teamId: "team-b", userId: "rep-outside-scope", membershipType: "rep" },
+      ]),
+      findGrantsByUserId: vi.fn().mockResolvedValue([
+        { orgId: "org-1", teamId: "team-a", userId: "manager-1", permissionKey: "view_team_calls" },
+      ]),
+    });
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "manager-1",
+        email: "manager@argos.ai",
+        role: "manager",
+        firstName: "Morgan",
+        lastName: "Lane",
+        org: {
+          id: "org-1",
+          name: "Argos Demo Org",
+          slug: "argos-demo-org",
+          plan: "trial",
+        },
+      }),
+    });
+
+    await expect(
+      getRepDashboard(
+        repository,
+        "manager-1",
+        "rep-outside-scope",
+        new Date("2026-03-27T00:00:00.000Z"),
+        accessRepository as never,
+      ),
+    ).rejects.toMatchObject({ status: 403 });
   });
 });
 
@@ -616,6 +683,17 @@ describe("getExecutiveDashboard", () => {
 
 describe("getRepBadges", () => {
   it("marks badges as earned from completed calls, training, and roleplay activity", async () => {
+    const accessRepository = createAccessRepository({
+      findActorByAuthUserId: vi.fn().mockResolvedValue({
+        id: "rep-1",
+        role: "rep",
+        orgId: "org-1",
+      }),
+      findMembershipsByOrgId: vi.fn().mockResolvedValue([
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ]),
+      findGrantsByUserId: vi.fn().mockResolvedValue([]),
+    });
     const repository = createRepository({
       findCurrentUserByAuthId: vi.fn().mockResolvedValue({
         id: "rep-1",
@@ -659,7 +737,7 @@ describe("getRepBadges", () => {
       ]),
     });
 
-    const result = await getRepBadges(repository, "rep-1");
+    const result = await getRepBadges(repository, "rep-1", undefined, accessRepository as never);
 
     expect(result).not.toBeNull();
     if (!result) {

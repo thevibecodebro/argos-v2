@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createAccessRepository } from "@/lib/access/create-repository";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { createDashboardRepository } from "@/lib/dashboard/create-repository";
 import {
@@ -23,10 +24,11 @@ export async function GET(
 
     const { repId } = await context.params;
     const repository = createDashboardRepository();
+    const accessRepository = createAccessRepository();
     const [managerDashboard, repDashboard, badges] = await Promise.all([
-      getManagerDashboard(repository, authUser.id),
-      getRepDashboard(repository, authUser.id, repId),
-      getRepBadges(repository, authUser.id, repId),
+      getManagerDashboard(repository, authUser.id, new Date(), accessRepository),
+      getRepDashboard(repository, authUser.id, repId, new Date(), accessRepository),
+      getRepBadges(repository, authUser.id, repId, accessRepository),
     ]);
 
     if (!managerDashboard || !repDashboard || !badges) {
