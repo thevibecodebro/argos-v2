@@ -11,12 +11,17 @@ describe("access service", () => {
     const access = buildAccessContext({
       actor: { id: "mgr-1", role: "manager", orgId: "org-1" },
       memberships: [
-        { teamId: "team-a", userId: "mgr-1", membershipType: "manager" },
-        { teamId: "team-a", userId: "rep-1", membershipType: "rep" },
-        { teamId: "team-b", userId: "rep-2", membershipType: "rep" },
+        { orgId: "org-1", teamId: "team-a", userId: "mgr-1", membershipType: "manager" },
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+        { orgId: "org-1", teamId: "team-b", userId: "rep-2", membershipType: "rep" },
       ],
       grants: [
-        { teamId: "team-a", userId: "mgr-1", permissionKey: "view_team_calls" },
+        {
+          orgId: "org-1",
+          teamId: "team-a",
+          userId: "mgr-1",
+          permissionKey: "view_team_calls",
+        },
       ],
     });
 
@@ -28,12 +33,17 @@ describe("access service", () => {
     const access = buildAccessContext({
       actor: { id: "mgr-1", role: "manager", orgId: "org-1" },
       memberships: [
-        { teamId: "team-a", userId: "mgr-1", membershipType: "manager" },
-        { teamId: "team-a", userId: "rep-1", membershipType: "rep" },
-        { teamId: "team-b", userId: "rep-2", membershipType: "rep" },
+        { orgId: "org-1", teamId: "team-a", userId: "mgr-1", membershipType: "manager" },
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+        { orgId: "org-1", teamId: "team-b", userId: "rep-2", membershipType: "rep" },
       ],
       grants: [
-        { teamId: "team-a", userId: "mgr-1", permissionKey: "view_team_analytics" },
+        {
+          orgId: "org-1",
+          teamId: "team-a",
+          userId: "mgr-1",
+          permissionKey: "view_team_analytics",
+        },
       ],
     });
 
@@ -42,22 +52,50 @@ describe("access service", () => {
     expect(canActorDrillIntoLeaderboardRep(access, "rep-2")).toBe(false);
   });
 
-  it("treats executives as org-wide viewers", () => {
+  it("treats executives as org-wide viewers for read permissions", () => {
     const access = buildAccessContext({
       actor: { id: "exec-1", role: "executive", orgId: "org-1" },
-      memberships: [],
-      grants: [],
+      memberships: [
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ],
+      grants: [
+        {
+          orgId: "org-1",
+          teamId: "team-a",
+          userId: "exec-1",
+          permissionKey: "view_team_calls",
+        },
+      ],
     });
 
     expect(canActorViewRep(access, "rep-1")).toBe(true);
     expect(canActorUsePermissionForRep(access, "view_team_calls", "rep-1")).toBe(true);
   });
 
+  it("does not grant executives manage permissions", () => {
+    const access = buildAccessContext({
+      actor: { id: "exec-1", role: "executive", orgId: "org-1" },
+      memberships: [
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ],
+      grants: [
+        {
+          orgId: "org-1",
+          teamId: "team-a",
+          userId: "exec-1",
+          permissionKey: "manage_team_roster",
+        },
+      ],
+    });
+
+    expect(canActorUsePermissionForRep(access, "manage_team_roster", "rep-1")).toBe(false);
+  });
+
   it("does not allow a rep to use manager-only permissions for themselves", () => {
     const access = buildAccessContext({
       actor: { id: "rep-1", role: "rep", orgId: "org-1" },
       memberships: [
-        { teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
       ],
       grants: [],
     });
@@ -69,12 +107,37 @@ describe("access service", () => {
     const access = buildAccessContext({
       actor: { id: "mgr-1", role: "manager", orgId: "org-1" },
       memberships: [
-        { teamId: "team-a", userId: "mgr-1", membershipType: "manager" },
-        { teamId: "team-a", userId: "rep-1", membershipType: "rep" },
-        { teamId: "team-b", userId: "rep-2", membershipType: "rep" },
+        { orgId: "org-1", teamId: "team-a", userId: "mgr-1", membershipType: "manager" },
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+        { orgId: "org-1", teamId: "team-b", userId: "rep-2", membershipType: "rep" },
       ],
       grants: [
-        { teamId: "team-a", userId: "mgr-2", permissionKey: "view_team_calls" },
+        {
+          orgId: "org-1",
+          teamId: "team-a",
+          userId: "mgr-2",
+          permissionKey: "view_team_calls",
+        },
+      ],
+    });
+
+    expect(canActorViewRep(access, "rep-1")).toBe(false);
+  });
+
+  it("ignores foreign-org memberships and grants", () => {
+    const access = buildAccessContext({
+      actor: { id: "mgr-1", role: "manager", orgId: "org-1" },
+      memberships: [
+        { orgId: "org-2", teamId: "team-a", userId: "mgr-1", membershipType: "manager" },
+        { orgId: "org-2", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ],
+      grants: [
+        {
+          orgId: "org-2",
+          teamId: "team-a",
+          userId: "mgr-1",
+          permissionKey: "view_team_calls",
+        },
       ],
     });
 

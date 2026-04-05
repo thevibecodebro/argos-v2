@@ -1,9 +1,11 @@
 import type {
   AccessActor,
+  ExecutiveReadPermissionKey,
   TeamMembershipRecord,
   TeamPermissionGrantRecord,
   TeamPermissionKey,
 } from "./permissions";
+import { EXECUTIVE_READ_PERMISSION_KEYS } from "./permissions";
 
 export type AccessContext = {
   actor: AccessActor;
@@ -19,6 +21,7 @@ export function buildAccessContext(input: {
 }): AccessContext {
   const repIdsByTeamId = new Map<string, Set<string>>();
   for (const membership of input.memberships) {
+    if (membership.orgId !== input.actor.orgId) continue;
     if (membership.membershipType !== "rep") continue;
     const current = repIdsByTeamId.get(membership.teamId) ?? new Set<string>();
     current.add(membership.userId);
@@ -27,6 +30,7 @@ export function buildAccessContext(input: {
 
   const grantedTeamIdsByPermission = new Map<TeamPermissionKey, Set<string>>();
   for (const grant of input.grants) {
+    if (grant.orgId !== input.actor.orgId) continue;
     if (grant.userId !== input.actor.id) continue;
     const current = grantedTeamIdsByPermission.get(grant.permissionKey) ?? new Set<string>();
     current.add(grant.teamId);
@@ -57,7 +61,12 @@ export function canActorUsePermissionForRep(
   permissionKey: TeamPermissionKey,
   repId: string,
 ) {
-  if (access.actor.role === "admin" || access.actor.role === "executive") return true;
+  if (access.actor.role === "admin") return true;
+  if (access.actor.role === "executive") {
+    return EXECUTIVE_READ_PERMISSION_KEYS.includes(
+      permissionKey as ExecutiveReadPermissionKey,
+    );
+  }
   if (access.actor.role !== "manager") return false;
 
   const teamIds = access.grantedTeamIdsByPermission.get(permissionKey) ?? new Set<string>();
