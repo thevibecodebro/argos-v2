@@ -8,13 +8,23 @@ create table if not exists public.teams (
   updated_at timestamptz not null default now()
 );
 
-alter table public.users
-  drop constraint if exists users_id_org_id_unique,
-  add constraint users_id_org_id_unique unique (id, org_id);
+do $$
+begin
+  alter table public.users
+    add constraint users_id_org_id_unique unique (id, org_id);
+exception
+  when duplicate_object then null;
+end
+$$;
 
-alter table public.teams
-  drop constraint if exists teams_id_org_id_unique,
-  add constraint teams_id_org_id_unique unique (id, org_id);
+do $$
+begin
+  alter table public.teams
+    add constraint teams_id_org_id_unique unique (id, org_id);
+exception
+  when duplicate_object then null;
+end
+$$;
 
 create table if not exists public.team_memberships (
   id uuid primary key default gen_random_uuid(),
