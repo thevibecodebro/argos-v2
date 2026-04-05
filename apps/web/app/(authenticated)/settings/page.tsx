@@ -5,6 +5,8 @@ import { createComplianceRepository } from "@/lib/compliance/create-repository";
 import { getComplianceStatus } from "@/lib/compliance/service";
 import { createIntegrationsRepository } from "@/lib/integrations/create-repository";
 import { getIntegrationStatuses } from "@/lib/integrations/service";
+import { createTeamAccessRepository } from "@/lib/team-access/create-repository";
+import { getTeamAccessSnapshot } from "@/lib/team-access/service";
 import { createUsersRepository } from "@/lib/users/create-repository";
 import { getCurrentUserDetails, listOrganizationMembers } from "@/lib/users/service";
 
@@ -90,6 +92,10 @@ export default async function SettingsPage({
     authUser && profileResult.data.role === "admin"
       ? await listOrganizationMembers(createUsersRepository(), authUser.id)
       : null;
+  const teamAccessResult =
+    authUser && profileResult.data.role === "admin"
+      ? await getTeamAccessSnapshot(createTeamAccessRepository(), authUser.id)
+      : null;
 
   return (
     <PageFrame
@@ -107,7 +113,10 @@ export default async function SettingsPage({
           hasConsented: compliance?.ok ? compliance.data.hasConsented : false,
         }}
         initialIntegrations={integrations?.ok ? integrations.data : null}
+        initialManagers={teamAccessResult?.ok ? teamAccessResult.data.managers : []}
         initialMembers={membersResult?.ok ? membersResult.data : []}
+        initialReps={teamAccessResult?.ok ? teamAccessResult.data.reps : []}
+        initialTeams={teamAccessResult?.ok ? teamAccessResult.data.teams : []}
         initialUser={profileResult.data}
         notices={notices}
       />

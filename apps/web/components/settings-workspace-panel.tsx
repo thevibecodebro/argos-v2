@@ -4,13 +4,17 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ComplianceStatus } from "@/lib/compliance/service";
 import type { IntegrationStatusData } from "@/lib/integrations/service";
+import { TeamAccessPanel } from "./settings/team-access-panel";
 import { IntegrationsSettingsPanel } from "./integrations-settings-panel";
 import type { CurrentUserDetails, OrganizationMember } from "@/lib/users/service";
 
 type SettingsWorkspacePanelProps = {
   initialCompliance: ComplianceStatus & { canManage: boolean };
   initialIntegrations: IntegrationStatusData | null;
+  initialManagers: Array<{ id: string; name: string }>;
   initialMembers: OrganizationMember[];
+  initialReps: Array<{ id: string; name: string; primaryManagerId: string | null }>;
+  initialTeams: Array<{ id: string; name: string; description: string | null; status: string }>;
   initialUser: CurrentUserDetails;
   notices?: string[];
 };
@@ -37,7 +41,10 @@ function formatDate(value: string | null) {
 export function SettingsWorkspacePanel({
   initialCompliance,
   initialIntegrations,
+  initialManagers,
   initialMembers,
+  initialReps,
+  initialTeams,
   initialUser,
   notices = [],
 }: SettingsWorkspacePanelProps) {
@@ -408,6 +415,13 @@ export function SettingsWorkspacePanel({
           </div>
         </section>
       ) : null}
+
+      <TeamAccessPanel
+        canManage={canManageMembers}
+        managers={initialManagers}
+        reps={initialReps}
+        teams={initialTeams}
+      />
 
       <section className="rounded-[1.75rem] border border-slate-800/70 bg-[#0c1629] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
