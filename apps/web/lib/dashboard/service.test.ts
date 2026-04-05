@@ -207,7 +207,7 @@ describe("getManagerDashboard", () => {
         { orgId: "org-1", teamId: "team-b", userId: "rep-2", membershipType: "rep" },
       ]),
       findGrantsByUserId: vi.fn().mockResolvedValue([
-        { orgId: "org-1", teamId: "team-a", userId: "manager-1", permissionKey: "view_team_calls" },
+        { orgId: "org-1", teamId: "team-a", userId: "manager-1", permissionKey: "view_team_analytics" },
       ]),
     });
     const repository = createRepository({
@@ -348,7 +348,7 @@ describe("getRepDashboard", () => {
         { orgId: "org-1", teamId: "team-b", userId: "rep-outside-scope", membershipType: "rep" },
       ]),
       findGrantsByUserId: vi.fn().mockResolvedValue([
-        { orgId: "org-1", teamId: "team-a", userId: "manager-1", permissionKey: "view_team_calls" },
+        { orgId: "org-1", teamId: "team-a", userId: "manager-1", permissionKey: "view_team_analytics" },
       ]),
     });
     const repository = createRepository({
@@ -679,6 +679,32 @@ describe("getExecutiveDashboard", () => {
 
     expect(result.weeklyCallVolume).toHaveLength(12);
   });
+
+  it("returns null for managers without org-wide executive access", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "manager-1",
+        email: "manager@argos.ai",
+        role: "manager",
+        firstName: "Morgan",
+        lastName: "Lane",
+        org: {
+          id: "org-1",
+          name: "Argos Demo Org",
+          slug: "argos-demo-org",
+          plan: "trial",
+        },
+      }),
+    });
+
+    const result = await getExecutiveDashboard(
+      repository,
+      "manager-1",
+      new Date("2026-03-27T00:00:00.000Z"),
+    );
+
+    expect(result).toBeNull();
+  });
 });
 
 describe("getRepBadges", () => {
@@ -763,13 +789,13 @@ describe("getRepBadges", () => {
 });
 
 describe("getSetupStatus", () => {
-  it("returns org counts for manager onboarding widgets", async () => {
+  it("returns org counts for admin onboarding widgets", async () => {
     const repository = createRepository({
       findCurrentUserByAuthId: vi.fn().mockResolvedValue({
-        id: "manager-1",
-        email: "manager@argos.ai",
-        role: "manager",
-        firstName: "Morgan",
+        id: "admin-1",
+        email: "admin@argos.ai",
+        role: "admin",
+        firstName: "Jordan",
         lastName: "Lane",
         org: {
           id: "org-1",
@@ -787,7 +813,7 @@ describe("getSetupStatus", () => {
       findCompletedRoleplayCountByOrgId: vi.fn().mockResolvedValue(2),
     });
 
-    const result = await getSetupStatus(repository, "manager-1", new Date("2026-03-27T00:00:00.000Z"));
+    const result = await getSetupStatus(repository, "admin-1", new Date("2026-03-27T00:00:00.000Z"));
 
     expect(result).not.toBeNull();
     if (!result) {
@@ -800,5 +826,31 @@ describe("getSetupStatus", () => {
       callsCount: 5,
       roleplayCount: 2,
     });
+  });
+
+  it("returns null for managers without org-wide setup access", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "manager-1",
+        email: "manager@argos.ai",
+        role: "manager",
+        firstName: "Morgan",
+        lastName: "Lane",
+        org: {
+          id: "org-1",
+          name: "Argos Demo Org",
+          slug: "argos-demo-org",
+          plan: "trial",
+        },
+      }),
+    });
+
+    const result = await getSetupStatus(
+      repository,
+      "manager-1",
+      new Date("2026-03-27T00:00:00.000Z"),
+    );
+
+    expect(result).toBeNull();
   });
 });

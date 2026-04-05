@@ -247,6 +247,10 @@ function isManagerRole(role: AppUserRole | null | undefined): boolean {
   return MANAGER_ROLES.includes((role ?? null) as AppUserRole);
 }
 
+function hasOrgWideDashboardAccess(role: AppUserRole | null | undefined) {
+  return role === "admin" || role === "executive";
+}
+
 function buildFullName(record: Pick<DashboardUserRecord, "email" | "firstName" | "lastName">): string {
   const fullName = [record.firstName, record.lastName].filter(Boolean).join(" ").trim();
   return fullName || record.email;
@@ -529,10 +533,10 @@ export async function getManagerDashboard(
   ]);
 
   const reps = users.filter(
-    (member) => member.role === "rep" && canActorUsePermissionForRep(access, "view_team_calls", member.id),
+    (member) => member.role === "rep" && canActorUsePermissionForRep(access, "view_team_analytics", member.id),
   );
   const scopedCalls = allCompletedCalls.filter((call) =>
-    canActorUsePermissionForRep(access, "view_team_calls", call.repId),
+    canActorUsePermissionForRep(access, "view_team_analytics", call.repId),
   );
 
   const repCards = reps
@@ -777,7 +781,9 @@ export async function getExecutiveDashboard(
     return null;
   }
 
-  assertManager(user);
+  if (!hasOrgWideDashboardAccess(user.role)) {
+    return null;
+  }
 
   if (!user.org) {
     return {
@@ -871,7 +877,9 @@ export async function getSetupStatus(
     return null;
   }
 
-  assertManager(user);
+  if (!hasOrgWideDashboardAccess(user.role)) {
+    return null;
+  }
 
   if (!user.org) {
     throw new DashboardServiceError("No organization", 403);

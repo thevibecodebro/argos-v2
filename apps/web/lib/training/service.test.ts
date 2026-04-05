@@ -101,6 +101,39 @@ describe("getTrainingModules", () => {
     expect(result.data.modules).toHaveLength(1);
     expect(result.data.modules[0].id).toBe("module-1");
   });
+
+  it("keeps executives read-only on training modules by default", async () => {
+    mockAccessRepository({
+      actor: { id: "exec-1", orgId: "org-1", role: "executive" },
+      memberships: [],
+      grants: [],
+    });
+
+    const repository = createRepository({
+      countModulesByOrgId: vi.fn().mockResolvedValue(1),
+      findModulesByOrgId: vi.fn().mockResolvedValue([
+        {
+          id: "module-1",
+          orgId: "org-1",
+          title: "Module One",
+          skillCategory: "Discovery",
+          videoUrl: null,
+          description: "Module description",
+          quizData: null,
+          orderIndex: 1,
+          createdAt: new Date("2026-04-03T00:00:00.000Z"),
+        },
+      ]),
+      findProgressByRepId: vi.fn().mockResolvedValue([]),
+    });
+
+    const result = await getTrainingModules(repository, "exec-1");
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected training modules");
+    expect(result.data.canManage).toBe(false);
+    expect(result.data.modules).toHaveLength(1);
+  });
 });
 
 describe("getTrainingTeamProgress", () => {

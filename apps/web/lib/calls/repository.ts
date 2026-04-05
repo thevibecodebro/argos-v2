@@ -155,6 +155,17 @@ export class DrizzleCallsRepository implements CallsRepository {
     return this.listCalls({ filters, repId });
   }
 
+  async findCallsByRepIds(repIds: string[], filters: CallsFilters) {
+    if (!repIds.length) {
+      return {
+        calls: [],
+        total: 0,
+      };
+    }
+
+    return this.listCalls({ filters, repIds });
+  }
+
   async findCurrentUserByAuthId(authUserId: string) {
     const [record] = await this.db
       .select({
@@ -420,8 +431,13 @@ export class DrizzleCallsRepository implements CallsRepository {
     return updated ?? null;
   }
 
-  private async listCalls(input: { filters: CallsFilters; orgId?: string; repId?: string }) {
-    const { filters, orgId, repId } = input;
+  private async listCalls(input: {
+    filters: CallsFilters;
+    orgId?: string;
+    repId?: string;
+    repIds?: string[];
+  }) {
+    const { filters, orgId, repId, repIds } = input;
     const limit = Math.min(filters.limit ?? 25, 100);
     const offset = filters.offset ?? 0;
     const sortBy = filters.sortBy ?? "createdAt";
@@ -435,6 +451,10 @@ export class DrizzleCallsRepository implements CallsRepository {
 
     if (repId) {
       conditions.push(eq(callsTable.repId, repId));
+    }
+
+    if (repIds?.length) {
+      conditions.push(inArray(callsTable.repId, repIds));
     }
 
     if (filters.search?.trim()) {

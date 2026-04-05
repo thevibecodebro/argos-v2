@@ -378,7 +378,6 @@ export async function getTrainingModules(
       })),
       canManage:
         access.actor.role === "admin" ||
-        access.actor.role === "executive" ||
         getAccessibleRepIds(access, ["manage_team_training"]).size > 0,
     },
   };

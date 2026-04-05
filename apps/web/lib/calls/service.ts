@@ -202,6 +202,10 @@ export type CallsRepository = {
     repId: string,
     filters: CallsFilters,
   ): Promise<{ calls: CallSummaryRecord[]; total: number }>;
+  findCallsByRepIds(
+    repIds: string[],
+    filters: CallsFilters,
+  ): Promise<{ calls: CallSummaryRecord[]; total: number }>;
   findCurrentUserByAuthId(authUserId: string): Promise<DashboardUserRecord | null>;
   findHighlightsByOrgId(orgId: string): Promise<CallHighlightRecord[]>;
   findHighlightsByRepId(repId: string): Promise<CallHighlightRecord[]>;
@@ -320,6 +324,49 @@ async function resolveAccessContext(
   return buildAccessContext({ actor, memberships, grants });
 }
 
+function getScopedCallRepIds(access: AccessContext) {
+  const repIds = new Set<string>();
+  for (const teamRepIds of access.repIdsByTeamId.values()) {
+    for (const repId of teamRepIds) {
+      if (!canActorViewRep(access, repId)) {
+        continue;
+      }
+
+      repIds.add(repId);
+    }
+  }
+
+  return repIds;
+}
+
+function canActorCoachRep(access: AccessContext, repId: string) {
+  if (access.actor.role === "admin") {
+    return true;
+  }
+
+  if (access.actor.role === "rep") {
+    return access.actor.id === repId;
+  }
+
+  return canActorUsePermissionForRep(access, "coach_team_calls", repId);
+}
+
+function canActorDeleteOthersAnnotationForRep(access: AccessContext, repId: string) {
+  if (access.actor.role === "admin") {
+    return true;
+  }
+
+  return canActorUsePermissionForRep(access, "coach_team_calls", repId);
+}
+
+function canActorManageHighlights(access: AccessContext, repId: string) {
+  if (access.actor.role === "admin") {
+    return true;
+  }
+
+  return canActorUsePermissionForRep(access, "manage_call_highlights", repId);
+}
+
 export async function listCalls(
   repository: CallsRepository,
   authUserId: string,
@@ -371,14 +418,17 @@ export async function listCalls(
     };
   }
 
-  const result = filters.repId || viewer.role === "rep"
-    ? await repository.findCallsByRepId(filters.repId ?? viewer.id, filters)
-    : await repository.findCallsByOrgId(viewer.org.id, filters);
+  const result =
+    filters.repId || viewer.role === "rep"
+      ? await repository.findCallsByRepId(filters.repId ?? viewer.id, filters)
+      : viewer.role === "admin" || viewer.role === "executive"
+        ? await repository.findCallsByOrgId(viewer.org.id, filters)
+        : await repository.findCallsByRepIds([...getScopedCallRepIds(access)], filters);
 
   const scopedCalls =
     filters.repId || viewer.role === "rep" || viewer.role === "admin" || viewer.role === "executive"
       ? result.calls
-      : result.calls.filter((call) => canActorViewRep(access, call.repId));
+      : result.calls;
 
   return {
     ok: true,
@@ -386,7 +436,7 @@ export async function listCalls(
       calls: scopedCalls.map(serializeCallSummary),
       total: filters.repId || viewer.role === "rep" || viewer.role === "admin" || viewer.role === "executive"
         ? result.total
-        : scopedCalls.length,
+        : result.total,
       viewer: { fullName: buildViewerName(viewer), role: viewer.role },
     },
   };
@@ -497,6 +547,26 @@ export async function createAnnotation(
     return detail;
   }
 
+  const access = await resolveAccessContext(accessRepository, authUserId);
+
+  if (!access) {
+    return {
+      ok: false,
+      status: 404,
+      code: "unprovisioned",
+      error: "User is not provisioned in the app database",
+    };
+  }
+
+  if (!canActorCoachRep(access, detail.data.repId)) {
+    return {
+      ok: false,
+      status: 403,
+      code: "forbidden",
+      error: "You do not have permission to coach this rep",
+    };
+  }
+
   const note = input.note.trim();
 
   if (!note) {
@@ -539,15 +609,17 @@ export async function deleteAnnotation(
   annotationId: string,
   accessRepository: AccessRepository = createAccessRepository(),
 ): Promise<ServiceResult<{ success: true }>> {
-  const annotations = await listAnnotations(repository, authUserId, callId, accessRepository);
+  const detail = await getCallDetail(repository, authUserId, callId, accessRepository);
 
-  if (!annotations.ok) {
-    return annotations;
+  if (!detail.ok) {
+    return detail;
   }
 
-  const targetAnnotation = annotations.data.annotations.find(
-    (annotation) => annotation.id === annotationId,
-  );
+  const annotations = await repository.findAnnotations(callId);
+
+  const targetAnnotation = annotations
+    .map(serializeAnnotation)
+    .find((annotation) => annotation.id === annotationId);
 
   if (!targetAnnotation) {
     return {
@@ -558,22 +630,26 @@ export async function deleteAnnotation(
     };
   }
 
-  const viewerResult = await getViewer(repository, authUserId);
+  if (targetAnnotation.authorId !== authUserId) {
+    const access = await resolveAccessContext(accessRepository, authUserId);
 
-  if (!viewerResult.ok) {
-    return viewerResult;
-  }
+    if (!access) {
+      return {
+        ok: false,
+        status: 404,
+        code: "unprovisioned",
+        error: "User is not provisioned in the app database",
+      };
+    }
 
-  if (
-    targetAnnotation.authorId !== authUserId &&
-    !isManagerRole(viewerResult.data.role)
-  ) {
-    return {
-      ok: false,
-      status: 403,
-      code: "forbidden",
-      error: "Only the annotation author or a manager can delete this note",
-    };
+    if (!canActorDeleteOthersAnnotationForRep(access, detail.data.repId)) {
+      return {
+        ok: false,
+        status: 403,
+        code: "forbidden",
+        error: "Only the annotation author or a manager with coaching access can delete this note",
+      };
+    }
   }
 
   const deleted = await repository.deleteAnnotation(annotationId, callId);
@@ -622,25 +698,30 @@ export async function toggleMomentHighlight(
   input: { highlightNote?: string | null; isHighlight: boolean },
   accessRepository: AccessRepository = createAccessRepository(),
 ): Promise<ServiceResult<CallMoment>> {
-  const viewerResult = await getViewer(repository, authUserId);
-
-  if (!viewerResult.ok) {
-    return viewerResult;
-  }
-
-  if (!isManagerRole(viewerResult.data.role)) {
-    return {
-      ok: false,
-      status: 403,
-      code: "forbidden",
-      error: "Only managers can highlight moments",
-    };
-  }
-
   const detail = await getCallDetail(repository, authUserId, callId, accessRepository);
 
   if (!detail.ok) {
     return detail;
+  }
+
+  const access = await resolveAccessContext(accessRepository, authUserId);
+
+  if (!access) {
+    return {
+      ok: false,
+      status: 404,
+      code: "unprovisioned",
+      error: "User is not provisioned in the app database",
+    };
+  }
+
+  if (!canActorManageHighlights(access, detail.data.repId)) {
+    return {
+      ok: false,
+      status: 403,
+      code: "forbidden",
+      error: "Only managers with highlight access can update moments",
+    };
   }
 
   const updated = await repository.updateMomentHighlight(
