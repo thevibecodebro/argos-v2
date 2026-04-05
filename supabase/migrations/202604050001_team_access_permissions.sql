@@ -9,9 +9,11 @@ create table if not exists public.teams (
 );
 
 alter table public.users
+  drop constraint if exists users_id_org_id_unique,
   add constraint users_id_org_id_unique unique (id, org_id);
 
 alter table public.teams
+  drop constraint if exists teams_id_org_id_unique,
   add constraint teams_id_org_id_unique unique (id, org_id);
 
 create table if not exists public.team_memberships (
