@@ -61,6 +61,7 @@ type ServiceResult<T> =
 
 export type TeamAccessRepository = {
   findCurrentUserByAuthId(authUserId: string): Promise<TeamAccessViewer | null>;
+  findOrganizationUserRole(orgId: string, userId: string): Promise<string | null>;
   createTeam(input: { orgId: string; name: string; description: string | null }): Promise<unknown>;
   upsertPrimaryManagerAssignment(
     orgId: string,
@@ -96,6 +97,14 @@ function normalizeString(value: unknown) {
 
 function isPreset(value: unknown): value is ManagerPermissionPreset {
   return typeof value === "string" && Object.prototype.hasOwnProperty.call(PRESET_GRANTS, value);
+}
+
+async function findValidatedRole(
+  repository: TeamAccessRepository,
+  orgId: string,
+  userId: string,
+) {
+  return repository.findOrganizationUserRole(orgId, userId);
 }
 
 export async function createTeam(
@@ -149,6 +158,17 @@ export async function assignPrimaryManager(
     return { ok: false, status: 400, error: "repId and managerId are required" };
   }
 
+  const [repRole, managerRole] = await Promise.all([
+    findValidatedRole(repository, adminCheck.orgId, repId),
+    findValidatedRole(repository, adminCheck.orgId, managerId),
+  ]);
+  if (repRole !== "rep") {
+    return { ok: false, status: 400, error: "repId must belong to a rep" };
+  }
+  if (managerRole !== "manager") {
+    return { ok: false, status: 400, error: "managerId must belong to a manager" };
+  }
+
   const assignment = await repository.upsertPrimaryManagerAssignment(adminCheck.orgId, repId, managerId);
   return { ok: true, data: assignment };
 }
@@ -172,6 +192,11 @@ export async function setManagerPermissionPreset(
   const managerId = normalizeString(input.managerId);
   if (!teamId || !managerId || !isPreset(input.preset)) {
     return { ok: false, status: 400, error: "teamId, managerId, and preset are required" };
+  }
+
+  const managerRole = await findValidatedRole(repository, adminCheck.orgId, managerId);
+  if (managerRole !== "manager") {
+    return { ok: false, status: 400, error: "managerId must belong to a manager" };
   }
 
   const grants = await repository.replaceManagerTeamPermissionGrants({

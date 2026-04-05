@@ -24,6 +24,11 @@ const repository = {
     org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
   }),
   upsertPrimaryManagerAssignment: vi.fn().mockResolvedValue({ repId: "rep-1", managerId: "mgr-1" }),
+  findOrganizationUserRole: vi.fn(async (_orgId: string, userId: string) => {
+    if (userId === "rep-1") return "rep";
+    if (userId === "mgr-1") return "manager";
+    return null;
+  }),
   replaceManagerTeamPermissionGrants: vi
     .fn()
     .mockResolvedValue(["view_team_calls", "coach_team_calls", "view_team_analytics"]),
@@ -58,5 +63,32 @@ describe("team access service", () => {
 
     expect(result.ok).toBe(true);
     expect(repository.replaceManagerTeamPermissionGrants).toHaveBeenCalled();
+  });
+
+  it("rejects assigning a non-manager as primary manager", async () => {
+    const result = await assignPrimaryManager(repository as any, "admin-1", {
+      repId: "rep-1",
+      managerId: "rep-1",
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      status: 400,
+      error: "managerId must belong to a manager",
+    });
+  });
+
+  it("rejects presets for non-manager users", async () => {
+    const result = await setManagerPermissionPreset(repository as any, "admin-1", {
+      teamId: "team-a",
+      managerId: "rep-1",
+      preset: "Coach",
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      status: 400,
+      error: "managerId must belong to a manager",
+    });
   });
 });

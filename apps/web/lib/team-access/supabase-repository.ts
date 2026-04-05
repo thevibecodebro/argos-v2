@@ -79,6 +79,22 @@ export class SupabaseTeamAccessRepository implements TeamAccessRepository {
     };
   }
 
+  async findOrganizationUserRole(orgId: string, userId: string) {
+    const supabase: any = this.supabase;
+    const { data, error } = await supabase
+      .from("users")
+      .select("role")
+      .eq("org_id", orgId)
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data?.role ?? null;
+  }
+
   async createTeam(input: { orgId: string; name: string; description: string | null }) {
     const supabase: any = this.supabase;
     const { data, error } = await supabase

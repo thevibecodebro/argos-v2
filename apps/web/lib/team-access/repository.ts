@@ -104,6 +104,18 @@ export class DrizzleTeamAccessRepository implements TeamAccessRepository {
     };
   }
 
+  async findOrganizationUserRole(orgId: string, userId: string) {
+    const [record] = await this.db
+      .select({
+        role: usersTable.role,
+      })
+      .from(usersTable)
+      .where(and(eq(usersTable.orgId, orgId), eq(usersTable.id, userId)))
+      .limit(1);
+
+    return parseAppUserRole(record?.role ?? null);
+  }
+
   async createTeam(input: { orgId: string; name: string; description: string | null }) {
     const [team] = await this.db
       .insert(teamsTable)
