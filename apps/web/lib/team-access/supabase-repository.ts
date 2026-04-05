@@ -19,6 +19,10 @@ function toDate(value: string | null | undefined) {
   return value ? new Date(value) : null;
 }
 
+function toSupabaseInList(values: string[]) {
+  return `(${values.map((value) => JSON.stringify(value)).join(",")})`;
+}
+
 export class SupabaseTeamAccessRepository implements TeamAccessRepository {
   constructor(private readonly supabase = createSupabaseAdminClient()) {}
 
@@ -106,11 +110,14 @@ export class SupabaseTeamAccessRepository implements TeamAccessRepository {
     const supabase: any = this.supabase;
     const { data, error } = await supabase
       .from("rep_manager_assignments")
-      .upsert({
-        org_id: orgId,
-        rep_id: repId,
-        manager_id: managerId,
-      })
+      .upsert(
+        {
+          org_id: orgId,
+          rep_id: repId,
+          manager_id: managerId,
+        },
+        { onConflict: "rep_id" },
+      )
       .select("rep_id, manager_id")
       .single();
 
@@ -134,24 +141,24 @@ export class SupabaseTeamAccessRepository implements TeamAccessRepository {
     const supabase: any = this.supabase;
     const permissionKeys = Array.from(new Set(input.permissionKeys));
 
-    const { error: deleteError } = await supabase
-      .from("team_permission_grants")
-      .delete()
-      .eq("org_id", input.orgId)
-      .eq("team_id", input.teamId)
-      .eq("user_id", input.managerId);
-
-    if (deleteError) {
-      throw new Error(deleteError.message);
-    }
-
     if (!permissionKeys.length) {
+      const { error: deleteError } = await supabase
+        .from("team_permission_grants")
+        .delete()
+        .eq("org_id", input.orgId)
+        .eq("team_id", input.teamId)
+        .eq("user_id", input.managerId);
+
+      if (deleteError) {
+        throw new Error(deleteError.message);
+      }
+
       return [];
     }
 
-    const { data, error } = await supabase
+    const { error: upsertError } = await supabase
       .from("team_permission_grants")
-      .insert(
+      .upsert(
         permissionKeys.map((permissionKey) => ({
           org_id: input.orgId,
           team_id: input.teamId,
@@ -159,14 +166,29 @@ export class SupabaseTeamAccessRepository implements TeamAccessRepository {
           permission_key: permissionKey,
           granted_by: input.grantedBy,
         })),
+        {
+          onConflict: "team_id,user_id,permission_key",
+        },
       )
       .select("permission_key");
 
-    if (error) {
-      throw new Error(error.message);
+    if (upsertError) {
+      throw new Error(upsertError.message);
     }
 
-    return (data ?? []).map((row: SupabaseRow) => row.permission_key as TeamPermissionKey);
+    const { error: deleteError } = await supabase
+      .from("team_permission_grants")
+      .delete()
+      .eq("org_id", input.orgId)
+      .eq("team_id", input.teamId)
+      .eq("user_id", input.managerId)
+      .not("permission_key", "in", toSupabaseInList(permissionKeys));
+
+    if (deleteError) {
+      throw new Error(deleteError.message);
+    }
+
+    return permissionKeys;
   }
 
   async findTeamAccessSnapshot(orgId: string): Promise<TeamAccessSnapshot> {
@@ -186,7 +208,7 @@ export class SupabaseTeamAccessRepository implements TeamAccessRepository {
         .from("users")
         .select("id, first_name, last_name, email")
         .eq("org_id", orgId)
-        .in("role", ["admin", "executive", "manager"])
+        .eq("role", "manager")
         .order("first_name", { ascending: true }),
       supabase
         .from("users")

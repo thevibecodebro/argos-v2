@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, notInArray } from "drizzle-orm";
 import {
   getDb,
   organizationsTable,
@@ -164,37 +164,56 @@ export class DrizzleTeamAccessRepository implements TeamAccessRepository {
     grantedBy: string;
   }) {
     const permissionKeys = Array.from(new Set(input.permissionKeys));
+    return this.db.transaction(async (tx) => {
+      if (!permissionKeys.length) {
+        await tx
+          .delete(teamPermissionGrantsTable)
+          .where(
+            and(
+              eq(teamPermissionGrantsTable.orgId, input.orgId),
+              eq(teamPermissionGrantsTable.teamId, input.teamId),
+              eq(teamPermissionGrantsTable.userId, input.managerId),
+            ),
+          );
 
-    await this.db
-      .delete(teamPermissionGrantsTable)
-      .where(
-        and(
-          eq(teamPermissionGrantsTable.orgId, input.orgId),
-          eq(teamPermissionGrantsTable.teamId, input.teamId),
-          eq(teamPermissionGrantsTable.userId, input.managerId),
-        ),
-      );
+        return [];
+      }
 
-    if (!permissionKeys.length) {
-      return [];
-    }
+      await tx
+        .insert(teamPermissionGrantsTable)
+        .values(
+          permissionKeys.map((permissionKey) => ({
+            orgId: input.orgId,
+            teamId: input.teamId,
+            userId: input.managerId,
+            permissionKey,
+            grantedBy: input.grantedBy,
+          })),
+        )
+        .onConflictDoUpdate({
+          target: [
+            teamPermissionGrantsTable.teamId,
+            teamPermissionGrantsTable.userId,
+            teamPermissionGrantsTable.permissionKey,
+          ],
+          set: {
+            grantedBy: input.grantedBy,
+          },
+        });
 
-    const inserted = await this.db
-      .insert(teamPermissionGrantsTable)
-      .values(
-        permissionKeys.map((permissionKey) => ({
-          orgId: input.orgId,
-          teamId: input.teamId,
-          userId: input.managerId,
-          permissionKey,
-          grantedBy: input.grantedBy,
-        })),
-      )
-      .returning({
-        permissionKey: teamPermissionGrantsTable.permissionKey,
-      });
+      await tx
+        .delete(teamPermissionGrantsTable)
+        .where(
+          and(
+            eq(teamPermissionGrantsTable.orgId, input.orgId),
+            eq(teamPermissionGrantsTable.teamId, input.teamId),
+            eq(teamPermissionGrantsTable.userId, input.managerId),
+            notInArray(teamPermissionGrantsTable.permissionKey, permissionKeys),
+          ),
+        );
 
-    return inserted.map((grant) => grant.permissionKey);
+      return permissionKeys;
+    });
   }
 
   async findTeamAccessSnapshot(orgId: string): Promise<TeamAccessSnapshot> {
@@ -217,12 +236,7 @@ export class DrizzleTeamAccessRepository implements TeamAccessRepository {
           email: usersTable.email,
         })
         .from(usersTable)
-        .where(
-          and(
-            eq(usersTable.orgId, orgId),
-            inArray(usersTable.role, ["admin", "executive", "manager"]),
-          ),
-        )
+        .where(and(eq(usersTable.orgId, orgId), eq(usersTable.role, "manager")))
         .orderBy(asc(usersTable.firstName), asc(usersTable.lastName), asc(usersTable.email)),
       this.db
         .select({
