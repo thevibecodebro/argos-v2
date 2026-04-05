@@ -119,6 +119,15 @@ export class DrizzleTrainingRepository implements TrainingRepository {
       .where(eq(trainingProgressTable.repId, repId));
   }
 
+  async findRepIdsByOrgId(orgId: string) {
+    const rows = await this.db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(and(eq(usersTable.orgId, orgId), eq(usersTable.role, "rep")));
+
+    return rows.map((row) => row.id);
+  }
+
   async findTeamProgressByOrgId(orgId: string) {
     const [members, modules] = await Promise.all([
       this.db

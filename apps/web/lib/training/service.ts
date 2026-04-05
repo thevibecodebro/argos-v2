@@ -1,5 +1,11 @@
+import { createAccessRepository } from "@/lib/access/create-repository";
+import type { TeamPermissionKey } from "@/lib/access/permissions";
+import {
+  buildAccessContext,
+  canActorUsePermissionForRep,
+  type AccessContext,
+} from "@/lib/access/service";
 import type { DashboardUserRecord } from "@/lib/dashboard/service";
-import type { AppUserRole } from "@/lib/users/roles";
 
 type TrainingModuleRecord = {
   id: string;
@@ -79,6 +85,7 @@ export type TrainingRepository = {
   findCurrentUserByAuthId(authUserId: string): Promise<DashboardUserRecord | null>;
   findModulesByOrgId(orgId: string): Promise<TrainingModuleRecord[]>;
   findProgressByRepId(repId: string): Promise<TrainingProgressRecord[]>;
+  findRepIdsByOrgId(orgId: string): Promise<string[]>;
   findTeamProgressByOrgId(orgId: string): Promise<TrainingTeamProgress[]>;
   upsertProgress(input: {
     moduleId: string;
@@ -208,10 +215,6 @@ const STARTER_MODULES = [
   },
 ];
 
-function isManagerRole(role: AppUserRole | null) {
-  return role === "admin" || role === "manager" || role === "executive";
-}
-
 function serializeProgress(progress: TrainingProgressRecord | undefined | null) {
   if (!progress) {
     return null;
@@ -227,13 +230,11 @@ function serializeProgress(progress: TrainingProgressRecord | undefined | null) 
   };
 }
 
-async function getViewer(
-  repository: TrainingRepository,
-  authUserId: string,
-): Promise<ServiceResult<DashboardUserRecord>> {
-  const viewer = await repository.findCurrentUserByAuthId(authUserId);
+async function getAccessContext(authUserId: string): Promise<ServiceResult<AccessContext>> {
+  const accessRepository = createAccessRepository();
+  const actor = await accessRepository.findActorByAuthUserId(authUserId);
 
-  if (!viewer) {
+  if (!actor) {
     return {
       ok: false,
       status: 404,
@@ -241,7 +242,64 @@ async function getViewer(
     };
   }
 
-  return { ok: true, data: viewer };
+  if (!actor.orgId) {
+    return {
+      ok: false,
+      status: 403,
+      error: "User must belong to an organization",
+    };
+  }
+
+  const [memberships, grants] = await Promise.all([
+    accessRepository.findMembershipsByOrgId(actor.orgId),
+    accessRepository.findGrantsByUserId(actor.id, actor.orgId),
+  ]);
+
+  return {
+    ok: true,
+    data: buildAccessContext({
+      actor,
+      memberships,
+      grants,
+    }),
+  };
+}
+
+function getAllRepIds(access: AccessContext) {
+  const repIds = new Set<string>();
+
+  for (const ids of access.repIdsByTeamId.values()) {
+    for (const repId of ids) {
+      repIds.add(repId);
+    }
+  }
+
+  return repIds;
+}
+
+function getAccessibleRepIds(access: AccessContext, permissionKeys: TeamPermissionKey[]) {
+  if (access.actor.role === "admin" || access.actor.role === "executive") {
+    return getAllRepIds(access);
+  }
+
+  const repIds = new Set<string>();
+  for (const permissionKey of permissionKeys) {
+    for (const repId of getAllRepIds(access)) {
+      if (canActorUsePermissionForRep(access, permissionKey, repId)) {
+        repIds.add(repId);
+      }
+    }
+  }
+
+  return repIds;
+}
+
+function hasTrainingAccess(access: AccessContext) {
+  if (access.actor.role === "admin" || access.actor.role === "executive" || access.actor.role === "rep") {
+    return true;
+  }
+
+  return getAccessibleRepIds(access, ["view_team_training", "manage_team_training"]).size > 0;
 }
 
 async function ensureStarterModules(repository: TrainingRepository, orgId: string) {
@@ -268,15 +326,16 @@ export async function getTrainingModules(
   repository: TrainingRepository,
   authUserId: string,
 ): Promise<ServiceResult<{ modules: TrainingModuleSummary[]; canManage: boolean }>> {
-  const viewerResult = await getViewer(repository, authUserId);
+  const accessResult = await getAccessContext(authUserId);
 
-  if (!viewerResult.ok) {
-    return viewerResult;
+  if (!accessResult.ok) {
+    return accessResult;
   }
 
-  const viewer = viewerResult.data;
+  const access = accessResult.data;
+  const orgId = access.actor.orgId;
 
-  if (!viewer.org) {
+  if (!orgId) {
     return {
       ok: false,
       status: 403,
@@ -284,11 +343,19 @@ export async function getTrainingModules(
     };
   }
 
-  await ensureStarterModules(repository, viewer.org.id);
+  if (!hasTrainingAccess(access)) {
+    return {
+      ok: false,
+      status: 403,
+      error: "Managers only",
+    };
+  }
+
+  await ensureStarterModules(repository, orgId);
 
   const [modules, progress] = await Promise.all([
-    repository.findModulesByOrgId(viewer.org.id),
-    repository.findProgressByRepId(viewer.id),
+    repository.findModulesByOrgId(orgId),
+    repository.findProgressByRepId(access.actor.id),
   ]);
 
   const progressByModuleId = new Map(progress.map((entry) => [entry.moduleId, entry]));
@@ -309,7 +376,10 @@ export async function getTrainingModules(
         createdAt: module.createdAt.toISOString(),
         progress: serializeProgress(progressByModuleId.get(module.id)),
       })),
-      canManage: isManagerRole(viewer.role),
+      canManage:
+        access.actor.role === "admin" ||
+        access.actor.role === "executive" ||
+        getAccessibleRepIds(access, ["manage_team_training"]).size > 0,
     },
   };
 }
@@ -318,15 +388,24 @@ export async function getTrainingTeamProgress(
   repository: TrainingRepository,
   authUserId: string,
 ): Promise<ServiceResult<{ rows: TrainingTeamProgress[] }>> {
-  const viewerResult = await getViewer(repository, authUserId);
+  const accessResult = await getAccessContext(authUserId);
 
-  if (!viewerResult.ok) {
-    return viewerResult;
+  if (!accessResult.ok) {
+    return accessResult;
   }
 
-  const viewer = viewerResult.data;
+  const access = accessResult.data;
+  const orgId = access.actor.orgId;
 
-  if (!viewer.org || !isManagerRole(viewer.role)) {
+  if (!orgId) {
+    return {
+      ok: false,
+      status: 403,
+      error: "User must belong to an organization",
+    };
+  }
+
+  if (access.actor.role === "rep" || !hasTrainingAccess(access)) {
     return {
       ok: false,
       status: 403,
@@ -334,9 +413,18 @@ export async function getTrainingTeamProgress(
     };
   }
 
-  const rows = await repository.findTeamProgressByOrgId(viewer.org.id);
+  const rows = await repository.findTeamProgressByOrgId(orgId);
+  const accessibleRepIds =
+    access.actor.role === "admin" || access.actor.role === "executive"
+      ? new Set(await repository.findRepIdsByOrgId(orgId))
+      : getAccessibleRepIds(access, ["view_team_training", "manage_team_training"]);
 
-  return { ok: true, data: { rows } };
+  return {
+    ok: true,
+    data: {
+      rows: rows.filter((row) => accessibleRepIds.has(row.repId)),
+    },
+  };
 }
 
 export async function submitTrainingProgress(
@@ -345,15 +433,24 @@ export async function submitTrainingProgress(
   moduleId: string,
   quizAnswers?: number[],
 ): Promise<ServiceResult<{ status: string; score: number | null; attempts: number }>> {
-  const viewerResult = await getViewer(repository, authUserId);
+  const accessResult = await getAccessContext(authUserId);
 
-  if (!viewerResult.ok) {
-    return viewerResult;
+  if (!accessResult.ok) {
+    return accessResult;
   }
 
-  const viewer = viewerResult.data;
+  const access = accessResult.data;
+  const orgId = access.actor.orgId;
 
-  if (!viewer.org || isManagerRole(viewer.role)) {
+  if (!orgId) {
+    return {
+      ok: false,
+      status: 403,
+      error: "User must belong to an organization",
+    };
+  }
+
+  if (access.actor.role !== "rep") {
     return {
       ok: false,
       status: 403,
@@ -361,8 +458,8 @@ export async function submitTrainingProgress(
     };
   }
 
-  await ensureStarterModules(repository, viewer.org.id);
-  const modules = await repository.findModulesByOrgId(viewer.org.id);
+  await ensureStarterModules(repository, orgId);
+  const modules = await repository.findModulesByOrgId(orgId);
   const module = modules.find((entry) => entry.id === moduleId);
 
   if (!module) {
@@ -389,7 +486,7 @@ export async function submitTrainingProgress(
 
   const progress = await repository.upsertProgress({
     moduleId,
-    repId: viewer.id,
+    repId: access.actor.id,
     score,
     status,
   });
