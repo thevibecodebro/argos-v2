@@ -46,6 +46,6 @@ double_confirm_changes = true
 
 [auth.external.google]
 enabled = true
-client_id = "afd26d92c-b0d5-4899-a9ac-cad4e65e863b"
+client_id = "1032844026608-0s5sqk0ghgpjrgtjkm21c5tbveusrv7u.apps.googleusercontent.com"
 secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET)"
 skip_nonce_check = false

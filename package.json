@@ -6,6 +6,7 @@
     "packages/*"
   ],
   "scripts": {
+    "dev": "npm run dev:web",
     "dev:web": "npm run dev -w @argos-v2/web",
     "dev:worker": "npm run dev -w @argos-v2/worker",
     "db:generate": "npm run db:generate -w @argos-v2/db",

@@ -13,8 +13,8 @@ const bodyFont = Source_Sans_3({
 });
 
 export const metadata: Metadata = {
-  title: "Argos V2",
-  description: "Next.js 15 + Supabase replatform foundation for Argos.",
+  title: "Argos",
+  description: "Revenue Command Platform",
 };
 
 export default function RootLayout({

@@ -11,6 +11,13 @@
   --secondary-foreground: #0f172a;
   --font-display: "Space Grotesk", sans-serif;
   --font-body: "Source Sans 3", sans-serif;
+  --legacy-bg: #040b18;
+  --legacy-surface: #101a30;
+  --legacy-panel: #0b1428;
+  --legacy-border: #182748;
+  --legacy-text: #eef4ff;
+  --legacy-muted: #8091b5;
+  --legacy-accent: #2c63f6;
 }
 
 * {
