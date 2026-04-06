@@ -58,6 +58,10 @@ export async function GET(request: Request) {
     return settingsRedirect(request, "ghl_error", "not_provisioned");
   }
 
+  if (viewer.role !== "admin") {
+    return settingsRedirect(request, "ghl_error", "forbidden", true);
+  }
+
   const decoded = decodeIntegrationOAuthState(state);
 
   if (!decoded) {

@@ -16,6 +16,20 @@ function createRepository(
   };
 }
 
+const adminUser = {
+  id: "user-9",
+  email: "admin@argos.ai",
+  role: "admin" as const,
+  firstName: "Jared",
+  lastName: "Newman",
+  org: {
+    id: "org-1",
+    name: "Argos",
+    slug: "argos",
+    plan: "trial",
+  },
+};
+
 const managerUser = {
   id: "user-1",
   email: "manager@argos.ai",
@@ -91,15 +105,35 @@ describe("activateRecordingConsent", () => {
     });
   });
 
-  it("records consent for managers and executives", async () => {
+  it("rejects managers from activating org-level recording consent", async () => {
     const repository = createRepository({
       findCurrentUserByAuthId: vi.fn().mockResolvedValue(managerUser),
+    });
+
+    const result = await activateRecordingConsent(repository, "user-1", {
+      eventType: "recording_consent_acknowledged",
+      tosVersion: "2026-04-03",
+      ipAddress: "127.0.0.1",
+      userAgent: "Vitest",
+      metadata: { source: "settings" },
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      status: 403,
+      error: "Only organization admins can activate call recording consent",
+    });
+  });
+
+  it("records consent for admins", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue(adminUser),
       createConsentRecord: vi.fn().mockResolvedValue({
         acknowledgedAt: new Date("2026-04-03T00:00:00.000Z"),
       }),
     });
 
-    const result = await activateRecordingConsent(repository, "user-1", {
+    const result = await activateRecordingConsent(repository, "user-9", {
       eventType: "recording_consent_acknowledged",
       tosVersion: "2026-04-03",
       ipAddress: "127.0.0.1",
@@ -115,7 +149,7 @@ describe("activateRecordingConsent", () => {
       },
     });
     expect(repository.createConsentRecord).toHaveBeenCalledWith({
-      acknowledgedBy: "user-1",
+      acknowledgedBy: "user-9",
       eventType: "recording_consent_acknowledged",
       ipAddress: "127.0.0.1",
       metadata: { source: "settings" },

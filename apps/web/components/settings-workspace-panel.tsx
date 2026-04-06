@@ -446,7 +446,7 @@ export function SettingsWorkspacePanel({
               Recording consent not acknowledged yet
             </p>
             <p className="mt-2 text-sm text-amber-100/80">
-              Managers and admins should acknowledge the recording policy before Zoom auto-ingest is enabled in production.
+              An org admin should acknowledge the recording policy before Zoom auto-ingest is enabled in production.
             </p>
           </div>
         )}

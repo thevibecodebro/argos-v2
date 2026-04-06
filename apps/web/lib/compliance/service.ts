@@ -25,7 +25,7 @@ export interface ComplianceRepository {
 }
 
 function canManageCompliance(role: AppUserRole | null | undefined) {
-  return role === "admin" || role === "manager" || role === "executive";
+  return role === "admin";
 }
 
 export async function getComplianceStatus(

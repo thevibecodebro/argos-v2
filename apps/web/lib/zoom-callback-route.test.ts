@@ -45,6 +45,7 @@ describe("zoom callback route", () => {
     const repository = {
       findCurrentUserByAuthId: vi.fn().mockResolvedValue({
         id: "user-1",
+        role: "admin",
         org: { id: "org-1", slug: "argos" },
       }),
       upsertZoomIntegration: vi.fn().mockResolvedValue(undefined),
@@ -101,6 +102,7 @@ describe("zoom callback route", () => {
     const repository = {
       findCurrentUserByAuthId: vi.fn().mockResolvedValue({
         id: "user-1",
+        role: "admin",
         org: { id: "org-1", slug: "argos" },
       }),
       upsertZoomIntegration: vi.fn().mockResolvedValue(undefined),

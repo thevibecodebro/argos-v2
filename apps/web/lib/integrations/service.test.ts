@@ -19,7 +19,7 @@ function createRepository(
 }
 
 describe("getIntegrationStatuses", () => {
-  it("exposes connection metadata, action paths, and provider availability for managers", async () => {
+  it("exposes connection metadata but keeps org-level integration controls admin-only", async () => {
     const repository = createRepository({
       findCurrentUserByAuthId: vi.fn().mockResolvedValue({
         id: "manager-1",
@@ -49,7 +49,7 @@ describe("getIntegrationStatuses", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("Expected integration statuses");
-    expect(result.data.canManage).toBe(true);
+    expect(result.data.canManage).toBe(false);
     expect(result.data.zoom).toMatchObject({
       available: true,
       connectPath: "/api/integrations/zoom/connect",
@@ -67,30 +67,8 @@ describe("getIntegrationStatuses", () => {
 });
 
 describe("disconnectIntegration", () => {
-  it("rejects disconnect attempts from reps", async () => {
+  it("rejects disconnect attempts from non-admins", async () => {
     const repository = createRepository({
-      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
-        id: "rep-1",
-        email: "rep@argos.ai",
-        role: "rep",
-        firstName: "Riley",
-        lastName: "Stone",
-        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
-      }),
-    });
-
-    const result = await disconnectIntegration(repository, "rep-1", "zoom");
-
-    expect(result).toEqual({
-      ok: false,
-      status: 403,
-      error: "Only managers and admins can manage integrations",
-    });
-  });
-
-  it("deletes the provider row for managers", async () => {
-    const repository = createRepository({
-      deleteZoomIntegration: vi.fn().mockResolvedValue(true),
       findCurrentUserByAuthId: vi.fn().mockResolvedValue({
         id: "manager-1",
         email: "manager@argos.ai",
@@ -102,6 +80,28 @@ describe("disconnectIntegration", () => {
     });
 
     const result = await disconnectIntegration(repository, "manager-1", "zoom");
+
+    expect(result).toEqual({
+      ok: false,
+      status: 403,
+      error: "Only organization admins can manage integrations",
+    });
+  });
+
+  it("deletes the provider row for admins", async () => {
+    const repository = createRepository({
+      deleteZoomIntegration: vi.fn().mockResolvedValue(true),
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "admin-1",
+        email: "admin@argos.ai",
+        role: "admin",
+        firstName: "Jared",
+        lastName: "Newman",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+    });
+
+    const result = await disconnectIntegration(repository, "admin-1", "zoom");
 
     expect(result).toEqual({
       ok: true,

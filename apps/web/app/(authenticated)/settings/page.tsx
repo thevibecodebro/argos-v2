@@ -35,7 +35,7 @@ function buildNotices(searchParams?: Record<string, string | string[] | undefine
       case "not_configured":
         return "The provider is not configured yet. Add the OAuth credentials to enable connect flows.";
       case "forbidden":
-        return "Only managers, executives, and admins can manage integrations.";
+        return "Only admins can manage integrations.";
       case "callback_failed":
         return "The provider returned to Argos, but token exchange or persistence failed during callback.";
       case "webhook_registration_failed":
@@ -105,10 +105,7 @@ export default async function SettingsPage({
     >
       <SettingsWorkspacePanel
         initialCompliance={{
-          canManage:
-            profileResult.data.role === "admin" ||
-            profileResult.data.role === "manager" ||
-            profileResult.data.role === "executive",
+          canManage: profileResult.data.role === "admin",
           consentedAt: compliance?.ok ? compliance.data.consentedAt : null,
           hasConsented: compliance?.ok ? compliance.data.hasConsented : false,
         }}

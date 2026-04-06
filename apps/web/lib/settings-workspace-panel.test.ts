@@ -47,6 +47,7 @@ describe("SettingsWorkspacePanel", () => {
             firstName: "Riley",
             lastName: "Stone",
             profileImageUrl: null,
+            primaryManagerId: "manager-1",
             role: "rep",
             callCount: 3,
             joinedAt: "2026-04-03T00:00:00.000Z",
