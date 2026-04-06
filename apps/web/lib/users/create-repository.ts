@@ -1,5 +1,10 @@
 import { DrizzleUsersRepository } from "./repository";
+import { SupabaseUsersRepository } from "./supabase-repository";
 
 export function createUsersRepository() {
-  return new DrizzleUsersRepository();
+  if (process.env.DATABASE_URL) {
+    return new DrizzleUsersRepository();
+  }
+
+  return new SupabaseUsersRepository();
 }

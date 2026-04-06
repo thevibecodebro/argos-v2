@@ -1,5 +1,77 @@
 @import "tailwindcss";
 
+/* ── Shell design tokens (Material Design 3 dark) ───────────────── */
+@theme {
+  --color-shell-bg: #0b0e14;
+  --color-shell-surface: #10131a;
+  --color-shell-surface-container: #161a21;
+  --color-shell-surface-high: #1c2028;
+  --color-shell-surface-highest: #22262f;
+  --color-shell-on-surface: #ecedf6;
+  --color-shell-on-surface-variant: #a9abb3;
+  --color-shell-outline-variant: #45484f;
+  --color-shell-primary: #74b1ff;
+  --color-shell-tertiary: #6dddff;
+}
+
+/* ── Material Symbols ────────────────────────────────────────────── */
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Auth page design tokens ──────────────────────────────────── */
+.auth-page {
+  --auth-surface: #0b0e14;
+  --auth-on-surface: #ecedf6;
+  --auth-on-surface-variant: #a9abb3;
+  --auth-outline-variant: #45484f;
+  --auth-surface-container: #161a21;
+  --auth-surface-container-lowest: #000000;
+  --auth-surface-variant: #22262f;
+  --auth-primary: #74b1ff;
+  --auth-primary-container: #54a3ff;
+  --auth-primary-dim: #4da0ff;
+  --auth-on-primary: #002f59;
+}
+
+.auth-glass {
+  background: rgba(34, 38, 47, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.auth-glow-button {
+  box-shadow: 0px 8px 32px 0px rgba(116, 177, 255, 0.15);
+}
+
+.auth-primary-glow {
+  box-shadow: 0px 4px 20px 0px rgba(116, 177, 255, 0.4);
+}
+
+.auth-globe-gradient {
+  background: radial-gradient(circle at center, #002d55 0%, #0b0e14 70%);
+}
+
+.auth-footer-link {
+  color: rgba(236, 237, 246, 0.4);
+  transition: color 0.3s;
+}
+.auth-footer-link:hover {
+  color: #74b1ff;
+}
+
 :root {
   --background: #f7fbff;
   --foreground: #0f172a;
