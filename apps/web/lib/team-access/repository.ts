@@ -3,6 +3,7 @@ import {
   getDb,
   organizationsTable,
   repManagerAssignmentsTable,
+  teamMembershipsTable,
   teamPermissionGrantsTable,
   teamsTable,
   usersTable,
@@ -12,6 +13,7 @@ import { parseAppUserRole } from "@/lib/users/roles";
 import type { TeamPermissionKey } from "@/lib/access/permissions";
 import type {
   TeamAccessManager,
+  TeamAccessMembership,
   TeamAccessRep,
   TeamAccessRepository,
   TeamAccessSnapshot,
@@ -60,6 +62,18 @@ function mapRep(row: {
     id: row.id,
     name: buildFullName(row.firstName, row.lastName, row.email),
     primaryManagerId: row.primaryManagerId,
+  };
+}
+
+function mapMembership(row: {
+  teamId: string;
+  userId: string;
+  membershipType: "rep" | "manager";
+}): TeamAccessMembership {
+  return {
+    teamId: row.teamId,
+    userId: row.userId,
+    membershipType: row.membershipType,
   };
 }
 
@@ -141,6 +155,37 @@ export class DrizzleTeamAccessRepository implements TeamAccessRepository {
     return team;
   }
 
+  async updateTeam(
+    orgId: string,
+    teamId: string,
+    patch: { name?: string; description?: string | null; status?: "active" | "archived" },
+  ) {
+    const [team] = await this.db
+      .update(teamsTable)
+      .set({
+        ...patch,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(teamsTable.orgId, orgId), eq(teamsTable.id, teamId)))
+      .returning({
+        id: teamsTable.id,
+        name: teamsTable.name,
+        description: teamsTable.description,
+        status: teamsTable.status,
+      });
+
+    if (!team) {
+      throw new Error("Failed to update team");
+    }
+
+    return {
+      id: team.id,
+      name: team.name,
+      description: team.description,
+      status: team.status,
+    };
+  }
+
   async upsertPrimaryManagerAssignment(orgId: string, repId: string, managerId: string) {
     const [assignment] = await this.db
       .insert(repManagerAssignmentsTable)
@@ -166,6 +211,62 @@ export class DrizzleTeamAccessRepository implements TeamAccessRepository {
     }
 
     return assignment;
+  }
+
+  async addTeamMembership(
+    orgId: string,
+    teamId: string,
+    userId: string,
+    membershipType: "rep" | "manager",
+  ) {
+    const [membership] = await this.db
+      .insert(teamMembershipsTable)
+      .values({
+        orgId,
+        teamId,
+        userId,
+        membershipType,
+      })
+      .onConflictDoUpdate({
+        target: [
+          teamMembershipsTable.teamId,
+          teamMembershipsTable.userId,
+          teamMembershipsTable.membershipType,
+        ],
+        set: {
+          orgId,
+        },
+      })
+      .returning({
+        id: teamMembershipsTable.id,
+      });
+
+    if (!membership) {
+      throw new Error("Failed to add team membership");
+    }
+
+    return true;
+  }
+
+  async removeTeamMembership(
+    orgId: string,
+    teamId: string,
+    userId: string,
+    membershipType: "rep" | "manager",
+  ) {
+    const removed = await this.db
+      .delete(teamMembershipsTable)
+      .where(
+        and(
+          eq(teamMembershipsTable.orgId, orgId),
+          eq(teamMembershipsTable.teamId, teamId),
+          eq(teamMembershipsTable.userId, userId),
+          eq(teamMembershipsTable.membershipType, membershipType),
+        ),
+      )
+      .returning({ id: teamMembershipsTable.id });
+
+    return removed.length > 0;
   }
 
   async replaceManagerTeamPermissionGrants(input: {
@@ -229,7 +330,7 @@ export class DrizzleTeamAccessRepository implements TeamAccessRepository {
   }
 
   async findTeamAccessSnapshot(orgId: string): Promise<TeamAccessSnapshot> {
-    const [teams, managers, reps, assignments] = await Promise.all([
+    const [teams, managers, reps, memberships, assignments] = await Promise.all([
       this.db
         .select({
           id: teamsTable.id,
@@ -262,6 +363,14 @@ export class DrizzleTeamAccessRepository implements TeamAccessRepository {
         .orderBy(asc(usersTable.firstName), asc(usersTable.lastName), asc(usersTable.email)),
       this.db
         .select({
+          teamId: teamMembershipsTable.teamId,
+          userId: teamMembershipsTable.userId,
+          membershipType: teamMembershipsTable.membershipType,
+        })
+        .from(teamMembershipsTable)
+        .where(eq(teamMembershipsTable.orgId, orgId)),
+      this.db
+        .select({
           repId: repManagerAssignmentsTable.repId,
           managerId: repManagerAssignmentsTable.managerId,
         })
@@ -280,6 +389,7 @@ export class DrizzleTeamAccessRepository implements TeamAccessRepository {
           primaryManagerId: primaryManagerByRepId.get(row.id) ?? null,
         }),
       ),
+      memberships: memberships.map(mapMembership),
     };
   }
 }

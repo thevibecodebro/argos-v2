@@ -2,6 +2,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { TeamPermissionKey } from "@/lib/access/permissions";
 import type {
   TeamAccessManager,
+  TeamAccessMembership,
   TeamAccessRep,
   TeamAccessRepository,
   TeamAccessSnapshot,
@@ -122,6 +123,35 @@ export class SupabaseTeamAccessRepository implements TeamAccessRepository {
     };
   }
 
+  async updateTeam(
+    orgId: string,
+    teamId: string,
+    patch: { name?: string; description?: string | null; status?: "active" | "archived" },
+  ) {
+    const supabase: any = this.supabase;
+    const { data, error } = await supabase
+      .from("teams")
+      .update({
+        ...patch,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("org_id", orgId)
+      .eq("id", teamId)
+      .select("id, name, description, status")
+      .single();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return {
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      status: data.status,
+    };
+  }
+
   async upsertPrimaryManagerAssignment(orgId: string, repId: string, managerId: string) {
     const supabase: any = this.supabase;
     const { data, error } = await supabase
@@ -145,6 +175,55 @@ export class SupabaseTeamAccessRepository implements TeamAccessRepository {
       repId: data.rep_id,
       managerId: data.manager_id,
     };
+  }
+
+  async addTeamMembership(
+    orgId: string,
+    teamId: string,
+    userId: string,
+    membershipType: "rep" | "manager",
+  ) {
+    const supabase: any = this.supabase;
+    const { error } = await supabase
+      .from("team_memberships")
+      .upsert(
+        {
+          org_id: orgId,
+          team_id: teamId,
+          user_id: userId,
+          membership_type: membershipType,
+        },
+        { onConflict: "team_id,user_id,membership_type" },
+      )
+      .select("id");
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return true;
+  }
+
+  async removeTeamMembership(
+    orgId: string,
+    teamId: string,
+    userId: string,
+    membershipType: "rep" | "manager",
+  ) {
+    const supabase: any = this.supabase;
+    const { error } = await supabase
+      .from("team_memberships")
+      .delete()
+      .eq("org_id", orgId)
+      .eq("team_id", teamId)
+      .eq("user_id", userId)
+      .eq("membership_type", membershipType);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return true;
   }
 
   async replaceManagerTeamPermissionGrants(input: {
@@ -213,6 +292,7 @@ export class SupabaseTeamAccessRepository implements TeamAccessRepository {
       { data: teams, error: teamsError },
       { data: managers, error: managersError },
       { data: reps, error: repsError },
+      { data: memberships, error: membershipsError },
       { data: assignments, error: assignmentsError },
     ] = await Promise.all([
       supabase
@@ -236,6 +316,10 @@ export class SupabaseTeamAccessRepository implements TeamAccessRepository {
         .from("rep_manager_assignments")
         .select("rep_id, manager_id")
         .eq("org_id", orgId),
+      supabase
+        .from("team_memberships")
+        .select("team_id, user_id, membership_type")
+        .eq("org_id", orgId),
     ]);
 
     if (teamsError) {
@@ -247,6 +331,9 @@ export class SupabaseTeamAccessRepository implements TeamAccessRepository {
     if (repsError) {
       throw new Error(repsError.message);
     }
+    if (membershipsError) {
+      throw new Error(membershipsError.message);
+    }
     if (assignmentsError) {
       throw new Error(assignmentsError.message);
     }
@@ -255,6 +342,14 @@ export class SupabaseTeamAccessRepository implements TeamAccessRepository {
     for (const row of assignments ?? []) {
       primaryManagerByRepId.set((row as SupabaseRow).rep_id, (row as SupabaseRow).manager_id);
     }
+
+    const teamMemberships = (memberships ?? []).map(
+      (row: SupabaseRow): TeamAccessMembership => ({
+        teamId: row.team_id,
+        userId: row.user_id,
+        membershipType: row.membership_type,
+      }),
+    );
 
     return {
       teams: (teams ?? []).map(
@@ -278,6 +373,7 @@ export class SupabaseTeamAccessRepository implements TeamAccessRepository {
           primaryManagerId: primaryManagerByRepId.get(row.id) ?? null,
         }),
       ),
+      memberships: teamMemberships,
     };
   }
 }
