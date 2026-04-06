@@ -1,5 +1,6 @@
+import { createAccessRepository } from "@/lib/access/create-repository";
+import { buildAccessContext, canActorViewRep, type AccessContext } from "@/lib/access/service";
 import type { DashboardUserRecord } from "@/lib/dashboard/service";
-import type { AppUserRole } from "@/lib/users/roles";
 
 export type RoleplayPersona = {
   id: string;
@@ -104,6 +105,7 @@ export type RoleplayRepository = {
   }): Promise<RoleplaySessionRecord>;
   findCurrentUserByAuthId(authUserId: string): Promise<DashboardUserRecord | null>;
   findSessionById(sessionId: string): Promise<RoleplaySessionRecord | null>;
+  findSessionsByOrgId(orgId: string): Promise<RoleplaySessionRecord[]>;
   findSessionsByRepId(repId: string): Promise<RoleplaySessionRecord[]>;
   updateSession(
     sessionId: string,
@@ -115,8 +117,6 @@ export type RoleplayRepository = {
     }>,
   ): Promise<RoleplaySessionRecord>;
 };
-
-const MANAGER_ROLES = ["admin", "manager", "executive"] as const;
 
 const PERSONAS: RoleplayPersona[] = [
   {
@@ -190,10 +190,6 @@ const PERSONA_OPENERS: Record<string, string> = {
   "technical-buyer":
     "Before I evaluate this seriously, I need to understand how your architecture, security, and integrations hold up.",
 };
-
-function isManagerRole(role: AppUserRole | null | undefined): boolean {
-  return MANAGER_ROLES.includes((role ?? null) as (typeof MANAGER_ROLES)[number]);
-}
 
 function serializeSession(session: RoleplaySessionRecord): RoleplaySession {
   const personaDetails = session.persona ? getRoleplayPersona(session.persona) : null;
@@ -436,12 +432,12 @@ function buildScorecard(transcript: RoleplayMessage[]): {
 }
 
 async function getViewer(
-  repository: RoleplayRepository,
   authUserId: string,
-): Promise<ServiceResult<DashboardUserRecord>> {
-  const viewer = await repository.findCurrentUserByAuthId(authUserId);
+): Promise<ServiceResult<AccessContext>> {
+  const accessRepository = createAccessRepository();
+  const actor = await accessRepository.findActorByAuthUserId(authUserId);
 
-  if (!viewer) {
+  if (!actor) {
     return {
       ok: false,
       status: 404,
@@ -449,7 +445,7 @@ async function getViewer(
     };
   }
 
-  if (!viewer.org) {
+  if (!actor.orgId) {
     return {
       ok: false,
       status: 403,
@@ -457,9 +453,18 @@ async function getViewer(
     };
   }
 
+  const [memberships, grants] = await Promise.all([
+    accessRepository.findMembershipsByOrgId(actor.orgId),
+    accessRepository.findGrantsByUserId(actor.id, actor.orgId),
+  ]);
+
   return {
     ok: true,
-    data: viewer,
+    data: buildAccessContext({
+      actor,
+      memberships,
+      grants,
+    }),
   };
 }
 
@@ -467,11 +472,11 @@ async function getAuthorizedSession(
   repository: RoleplayRepository,
   authUserId: string,
   sessionId: string,
-): Promise<ServiceResult<{ session: RoleplaySessionRecord; viewer: DashboardUserRecord }>> {
-  const viewerResult = await getViewer(repository, authUserId);
+): Promise<ServiceResult<RoleplaySessionRecord>> {
+  const accessResult = await getViewer(authUserId);
 
-  if (!viewerResult.ok) {
-    return viewerResult;
+  if (!accessResult.ok) {
+    return accessResult;
   }
 
   const session = await repository.findSessionById(sessionId);
@@ -484,7 +489,7 @@ async function getAuthorizedSession(
     };
   }
 
-  if (session.repId !== viewerResult.data.id && !isManagerRole(viewerResult.data.role)) {
+  if (!canActorViewRep(accessResult.data, session.repId)) {
     return {
       ok: false,
       status: 403,
@@ -492,13 +497,33 @@ async function getAuthorizedSession(
     };
   }
 
-  return {
-    ok: true,
-    data: {
-      session,
-      viewer: viewerResult.data,
-    },
-  };
+  return { ok: true, data: session };
+}
+
+function getAllRepIds(access: AccessContext) {
+  const repIds = new Set<string>();
+
+  for (const ids of access.repIdsByTeamId.values()) {
+    for (const repId of ids) {
+      repIds.add(repId);
+    }
+  }
+
+  repIds.add(access.actor.id);
+
+  return repIds;
+}
+
+function getVisibleRepIds(access: AccessContext) {
+  const visibleRepIds = new Set<string>();
+
+  for (const repId of getAllRepIds(access)) {
+    if (canActorViewRep(access, repId)) {
+      visibleRepIds.add(repId);
+    }
+  }
+
+  return visibleRepIds;
 }
 
 export function getRoleplayPersonas() {
@@ -513,13 +538,48 @@ export async function listRoleplaySessions(
   repository: RoleplayRepository,
   authUserId: string,
 ): Promise<ServiceResult<{ personas: RoleplayPersona[]; sessions: RoleplaySession[] }>> {
-  const viewerResult = await getViewer(repository, authUserId);
+  const accessResult = await getViewer(authUserId);
 
-  if (!viewerResult.ok) {
-    return viewerResult;
+  if (!accessResult.ok) {
+    return accessResult;
   }
 
-  const sessions = await repository.findSessionsByRepId(viewerResult.data.id);
+  const access = accessResult.data;
+  if (access.actor.role === "admin" || access.actor.role === "executive") {
+    const orgId = access.actor.orgId;
+
+    if (!orgId) {
+      return {
+        ok: false,
+        status: 403,
+        error: "User must belong to an organization",
+      };
+    }
+
+    const sessions = await repository.findSessionsByOrgId(orgId);
+
+    return {
+      ok: true,
+      data: {
+        personas: getRoleplayPersonas(),
+        sessions: sessions.map(serializeSession),
+      },
+    };
+  }
+
+  const visibleRepIds = getVisibleRepIds(access);
+
+  if (visibleRepIds.size === 0) {
+    return {
+      ok: false,
+      status: 403,
+      error: "You do not have access to any roleplay sessions",
+    };
+  }
+
+  const sessions = (
+    await Promise.all([...visibleRepIds].map((repId) => repository.findSessionsByRepId(repId)))
+  ).flat();
 
   return {
     ok: true,
@@ -543,7 +603,7 @@ export async function getRoleplaySession(
 
   return {
     ok: true,
-    data: serializeSession(sessionResult.data.session),
+    data: serializeSession(sessionResult.data),
   };
 }
 
@@ -552,10 +612,20 @@ export async function createRoleplaySession(
   authUserId: string,
   personaId: string,
 ): Promise<ServiceResult<RoleplaySession>> {
-  const viewerResult = await getViewer(repository, authUserId);
+  const accessResult = await getViewer(authUserId);
 
-  if (!viewerResult.ok) {
-    return viewerResult;
+  if (!accessResult.ok) {
+    return accessResult;
+  }
+
+  const orgId = accessResult.data.actor.orgId;
+
+  if (!orgId) {
+    return {
+      ok: false,
+      status: 403,
+      error: "User must belong to an organization",
+    };
   }
 
   const persona = getRoleplayPersona(personaId);
@@ -578,9 +648,9 @@ export async function createRoleplaySession(
   const session = await repository.createSession({
     difficulty: persona.difficulty,
     industry: persona.industry,
-    orgId: viewerResult.data.org!.id,
+    orgId,
     persona: persona.id,
-    repId: viewerResult.data.id,
+    repId: accessResult.data.actor.id,
     scorecard: null,
     status: "active",
     transcript,
@@ -614,7 +684,7 @@ export async function appendRoleplayMessage(
     };
   }
 
-  if (sessionResult.data.session.status !== "active") {
+  if (sessionResult.data.status !== "active") {
     return {
       ok: false,
       status: 409,
@@ -622,11 +692,11 @@ export async function appendRoleplayMessage(
     };
   }
 
-  const persona = sessionResult.data.session.persona
-    ? getRoleplayPersona(sessionResult.data.session.persona)
+  const persona = sessionResult.data.persona
+    ? getRoleplayPersona(sessionResult.data.persona)
     : null;
 
-  const transcript = normalizeTranscript(sessionResult.data.session.transcript);
+  const transcript = normalizeTranscript(sessionResult.data.transcript);
   const nextTranscript: RoleplayMessage[] = [
     ...transcript,
     { role: "user", content: trimmed },
@@ -661,7 +731,7 @@ export async function completeRoleplaySession(
     return sessionResult;
   }
 
-  const transcript = normalizeTranscript(sessionResult.data.session.transcript);
+  const transcript = normalizeTranscript(sessionResult.data.transcript);
 
   if (transcript.length < 2) {
     return {

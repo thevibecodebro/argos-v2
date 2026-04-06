@@ -133,9 +133,29 @@ describe("listOrganizationMembers", () => {
     });
   });
 
-  it("returns the org member roster for admins and managers", async () => {
+  it("rejects managers from listing the org roster", async () => {
     const repository = createRepository({
-      findCurrentUserByAuthId: vi.fn().mockResolvedValue(adminUser),
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        ...adminUser,
+        role: "manager",
+      }),
+    });
+
+    const result = await listOrganizationMembers(repository, "user-1");
+
+    expect(result).toEqual({
+      ok: false,
+      status: 403,
+      error: "Forbidden",
+    });
+  });
+
+  it("returns the org member roster for org-wide roles", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        ...adminUser,
+        role: "executive",
+      }),
       findOrganizationMembers: vi.fn().mockResolvedValue([
         {
           id: "user-2",
@@ -146,6 +166,7 @@ describe("listOrganizationMembers", () => {
           role: "rep",
           callCount: 3,
           joinedAt: new Date("2026-04-01T00:00:00.000Z"),
+          primaryManagerId: "manager-1",
         },
       ]),
     });
@@ -164,6 +185,7 @@ describe("listOrganizationMembers", () => {
           role: "rep",
           callCount: 3,
           joinedAt: "2026-04-01T00:00:00.000Z",
+          primaryManagerId: "manager-1",
         },
       ],
     });

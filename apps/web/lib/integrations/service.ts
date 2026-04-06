@@ -46,7 +46,7 @@ export type IntegrationsRepository = {
 };
 
 function canManage(role: AppUserRole | null) {
-  return role === "admin" || role === "manager" || role === "executive";
+  return role === "admin";
 }
 
 function getAvailability(input: IntegrationAvailability = {
@@ -150,7 +150,7 @@ export async function disconnectIntegration(
     return {
       ok: false,
       status: 403,
-      error: "Only managers and admins can manage integrations",
+      error: "Only organization admins can manage integrations",
     };
   }
 

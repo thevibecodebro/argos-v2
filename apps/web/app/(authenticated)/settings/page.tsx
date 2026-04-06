@@ -5,6 +5,8 @@ import { createComplianceRepository } from "@/lib/compliance/create-repository";
 import { getComplianceStatus } from "@/lib/compliance/service";
 import { createIntegrationsRepository } from "@/lib/integrations/create-repository";
 import { getIntegrationStatuses } from "@/lib/integrations/service";
+import { createTeamAccessRepository } from "@/lib/team-access/create-repository";
+import { getTeamAccessSnapshot } from "@/lib/team-access/service";
 import { createUsersRepository } from "@/lib/users/create-repository";
 import { getCurrentUserDetails, listOrganizationMembers } from "@/lib/users/service";
 
@@ -33,7 +35,7 @@ function buildNotices(searchParams?: Record<string, string | string[] | undefine
       case "not_configured":
         return "The provider is not configured yet. Add the OAuth credentials to enable connect flows.";
       case "forbidden":
-        return "Only managers, executives, and admins can manage integrations.";
+        return "Only admins can manage integrations.";
       case "callback_failed":
         return "The provider returned to Argos, but token exchange or persistence failed during callback.";
       case "webhook_registration_failed":
@@ -90,6 +92,10 @@ export default async function SettingsPage({
     authUser && profileResult.data.role === "admin"
       ? await listOrganizationMembers(createUsersRepository(), authUser.id)
       : null;
+  const teamAccessResult =
+    authUser && profileResult.data.role === "admin"
+      ? await getTeamAccessSnapshot(createTeamAccessRepository(), authUser.id)
+      : null;
 
   return (
     <PageFrame
@@ -99,15 +105,16 @@ export default async function SettingsPage({
     >
       <SettingsWorkspacePanel
         initialCompliance={{
-          canManage:
-            profileResult.data.role === "admin" ||
-            profileResult.data.role === "manager" ||
-            profileResult.data.role === "executive",
+          canManage: profileResult.data.role === "admin",
           consentedAt: compliance?.ok ? compliance.data.consentedAt : null,
           hasConsented: compliance?.ok ? compliance.data.hasConsented : false,
         }}
         initialIntegrations={integrations?.ok ? integrations.data : null}
+        initialManagers={teamAccessResult?.ok ? teamAccessResult.data.managers : []}
+        initialMemberships={teamAccessResult?.ok ? teamAccessResult.data.memberships : []}
         initialMembers={membersResult?.ok ? membersResult.data : []}
+        initialReps={teamAccessResult?.ok ? teamAccessResult.data.reps : []}
+        initialTeams={teamAccessResult?.ok ? teamAccessResult.data.teams : []}
         initialUser={profileResult.data}
         notices={notices}
       />

@@ -19,7 +19,9 @@ export async function GET() {
       return NextResponse.json({ error: "User is not provisioned in the app database" }, { status: 404 });
     }
 
-    return NextResponse.json(leaderboard, {
+    // Leaderboard visibility is intentionally org-wide. Drilldown stays scoped elsewhere.
+    // Leaderboard visibility is org-wide by product rule. Rep drilldown stays scoped elsewhere.
+    return NextResponse.json({ leaderboard }, {
       headers: { "Cache-Control": "private, no-store" },
     });
   } catch (error) {

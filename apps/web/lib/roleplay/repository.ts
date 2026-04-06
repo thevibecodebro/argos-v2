@@ -123,6 +123,28 @@ export class DrizzleRoleplayRepository implements RoleplayRepository {
     return session ? normalizeSessionRecord(session) : null;
   }
 
+  async findSessionsByOrgId(orgId: string) {
+    const rows = await this.db
+      .select({
+        id: roleplaySessionsTable.id,
+        repId: roleplaySessionsTable.repId,
+        orgId: roleplaySessionsTable.orgId,
+        persona: roleplaySessionsTable.persona,
+        industry: roleplaySessionsTable.industry,
+        difficulty: roleplaySessionsTable.difficulty,
+        overallScore: roleplaySessionsTable.overallScore,
+        transcript: roleplaySessionsTable.transcript,
+        scorecard: roleplaySessionsTable.scorecard,
+        status: roleplaySessionsTable.status,
+        createdAt: roleplaySessionsTable.createdAt,
+      })
+      .from(roleplaySessionsTable)
+      .where(eq(roleplaySessionsTable.orgId, orgId))
+      .orderBy(desc(roleplaySessionsTable.createdAt));
+
+    return rows.map(normalizeSessionRecord);
+  }
+
   async findSessionsByRepId(repId: string) {
     const rows = await this.db
       .select({

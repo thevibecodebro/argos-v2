@@ -39,6 +39,11 @@ describe("SettingsWorkspacePanel", () => {
             zoomUserId: "zoom-user-7",
           },
         },
+        initialManagers: [{ id: "manager-1", name: "Morgan Lane" }],
+        initialMemberships: [
+          { teamId: "team-1", userId: "manager-1", membershipType: "manager" },
+          { teamId: "team-1", userId: "user-2", membershipType: "rep" },
+        ],
         initialMembers: [
           {
             id: "user-2",
@@ -46,10 +51,17 @@ describe("SettingsWorkspacePanel", () => {
             firstName: "Riley",
             lastName: "Stone",
             profileImageUrl: null,
+            primaryManagerId: "manager-1",
             role: "rep",
             callCount: 3,
             joinedAt: "2026-04-03T00:00:00.000Z",
           },
+        ],
+        initialReps: [
+          { id: "user-2", name: "Riley Stone", primaryManagerId: "manager-1" },
+        ],
+        initialTeams: [
+          { id: "team-1", name: "Closers", description: null, status: "active" },
         ],
         initialUser: {
           id: "user-1",
@@ -75,6 +87,7 @@ describe("SettingsWorkspacePanel", () => {
     expect(html).toContain("Your Profile");
     expect(html).toContain("Organization");
     expect(html).toContain("Team Members");
+    expect(html).toContain("Team Access");
     expect(html).toContain("Compliance &amp; Recording");
     expect(html).toContain("Integration connected successfully.");
     expect(html).toContain("Zoom");

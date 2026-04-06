@@ -29,6 +29,7 @@ type OrganizationMemberRecord = {
   role: AppUserRole | null;
   callCount: number;
   joinedAt: Date;
+  primaryManagerId: string | null;
 };
 
 type OrganizationMemberLookup = {
@@ -68,6 +69,7 @@ export type OrganizationMember = {
   role: AppUserRole | null;
   callCount: number;
   joinedAt: string;
+  primaryManagerId: string | null;
 };
 
 export interface UsersRepository {
@@ -86,10 +88,8 @@ export interface UsersRepository {
   ): Promise<{ id: string; role: AppUserRole } | null>;
 }
 
-const MANAGER_ROLES: AppUserRole[] = ["admin", "manager", "executive"];
-
-function isManagerRole(role: AppUserRole | null | undefined): boolean {
-  return MANAGER_ROLES.includes((role ?? null) as AppUserRole);
+function canViewOrganizationMembers(role: AppUserRole | null | undefined): boolean {
+  return role === "admin" || role === "executive";
 }
 
 function serializeCurrentUser(user: CurrentUserRecord): CurrentUserDetails {
@@ -199,7 +199,7 @@ export async function listOrganizationMembers(
     };
   }
 
-  if (!isManagerRole(viewer.role)) {
+  if (!canViewOrganizationMembers(viewer.role)) {
     return {
       ok: false,
       status: 403,

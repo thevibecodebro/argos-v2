@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createAccessRepository } from "@/lib/access/create-repository";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { createDashboardRepository } from "@/lib/dashboard/create-repository";
 import {
@@ -23,17 +24,36 @@ export async function GET(
 
     const { repId } = await context.params;
     const repository = createDashboardRepository();
+    const accessRepository = createAccessRepository();
     const [managerDashboard, repDashboard, badges] = await Promise.all([
-      getManagerDashboard(repository, authUser.id),
-      getRepDashboard(repository, authUser.id, repId),
-      getRepBadges(repository, authUser.id, repId),
+      getManagerDashboard(repository, authUser.id, new Date(), accessRepository),
+      getRepDashboard(repository, authUser.id, repId, new Date(), accessRepository),
+      getRepBadges(repository, authUser.id, repId, accessRepository),
     ]);
 
     if (!managerDashboard || !repDashboard || !badges) {
       return NextResponse.json({ error: "Team member not found" }, { status: 404 });
     }
 
-    const member = managerDashboard.reps.find((entry) => entry.id === repId);
+    const managerCard = managerDashboard.reps.find((entry) => entry.id === repId);
+    const viewer = await repository.findCurrentUserByAuthId(authUser.id);
+    const orgUsers = viewer?.org ? await repository.findOrgUsersByOrgId(viewer.org.id) : [];
+    const repRecord = orgUsers.find((entry) => entry.id === repId);
+    const latestCall = repDashboard.recentCalls[0];
+    const member = managerCard ?? (
+      repRecord || latestCall
+        ? {
+            id: repId,
+            firstName: repRecord?.firstName ?? latestCall?.repFirstName ?? null,
+            lastName: repRecord?.lastName ?? latestCall?.repLastName ?? null,
+            profileImageUrl: repRecord?.profileImageUrl ?? null,
+            compositeScore: repDashboard.monthlyAvgScore,
+            weekOverWeekDelta: null,
+            needsCoaching: false,
+            callCount: repDashboard.recentCalls.length,
+          }
+        : null
+    );
 
     if (!member) {
       return NextResponse.json({ error: "Team member not found" }, { status: 404 });

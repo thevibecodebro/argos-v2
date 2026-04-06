@@ -1,3 +1,10 @@
+import { createAccessRepository } from "@/lib/access/create-repository";
+import {
+  buildAccessContext,
+  canActorDrillIntoLeaderboardRep,
+  canActorUsePermissionForRep,
+} from "@/lib/access/service";
+import type { AccessRepository } from "@/lib/access/repository.types";
 import type { AppUserRole } from "@/lib/users/roles";
 
 export type DashboardUserRecord = {
@@ -240,6 +247,10 @@ function isManagerRole(role: AppUserRole | null | undefined): boolean {
   return MANAGER_ROLES.includes((role ?? null) as AppUserRole);
 }
 
+function hasOrgWideDashboardAccess(role: AppUserRole | null | undefined) {
+  return role === "admin" || role === "executive";
+}
+
 function buildFullName(record: Pick<DashboardUserRecord, "email" | "firstName" | "lastName">): string {
   const fullName = [record.firstName, record.lastName].filter(Boolean).join(" ").trim();
   return fullName || record.email;
@@ -291,15 +302,27 @@ function serializeRecentCall(call: DashboardRecentCallRecord) {
   };
 }
 
+async function resolveAccessContext(
+  accessRepository: AccessRepository,
+  authUserId: string,
+) {
+  const actor = await accessRepository.findActorByAuthUserId(authUserId);
+
+  if (!actor?.orgId) {
+    return null;
+  }
+
+  const [memberships, grants] = await Promise.all([
+    accessRepository.findMembershipsByOrgId(actor.orgId),
+    accessRepository.findGrantsByUserId(actor.id, actor.orgId),
+  ]);
+
+  return buildAccessContext({ actor, memberships, grants });
+}
+
 function assertManager(user: DashboardUserRecord) {
   if (!isManagerRole(user.role)) {
     throw new DashboardServiceError("Manager or admin role required", 403);
-  }
-}
-
-function assertRepAccess(user: DashboardUserRecord, requestedRepId?: string) {
-  if (requestedRepId && requestedRepId !== user.id && !isManagerRole(user.role)) {
-    throw new DashboardServiceError("Only managers can view other reps' dashboards", 403);
   }
 }
 
@@ -378,14 +401,13 @@ export async function getRepDashboard(
   authUserId: string,
   requestedRepId?: string,
   now = new Date(),
+  accessRepository: AccessRepository = createAccessRepository(),
 ): Promise<RepDashboard | null> {
   const user = await repository.findCurrentUserByAuthId(authUserId);
 
   if (!user) {
     return null;
   }
-
-  assertRepAccess(user, requestedRepId);
 
   if (!user.org) {
     return {
@@ -394,6 +416,16 @@ export async function getRepDashboard(
       lowestCategories: [],
       recentCalls: [],
     };
+  }
+
+  const access = await resolveAccessContext(accessRepository, authUserId);
+
+  if (!access) {
+    return null;
+  }
+
+  if (requestedRepId && requestedRepId !== user.id && !canActorDrillIntoLeaderboardRep(access, requestedRepId)) {
+    throw new DashboardServiceError("Only authorized team managers can view this rep", 403);
   }
 
   const targetRepId = requestedRepId ?? user.id;
@@ -470,6 +502,7 @@ export async function getManagerDashboard(
   repository: DashboardRepository,
   authUserId: string,
   now = new Date(),
+  accessRepository: AccessRepository = createAccessRepository(),
 ): Promise<ManagerDashboard | null> {
   const user = await repository.findCurrentUserByAuthId(authUserId);
 
@@ -483,22 +516,32 @@ export async function getManagerDashboard(
     return { reps: [], teamAvgScore: null, totalCallsThisMonth: 0, coachingFlagsCount: 0 };
   }
 
+  const access = await resolveAccessContext(accessRepository, authUserId);
+
+  if (!access) {
+    return null;
+  }
+
   const monthStart = startOfMonth(now);
   const thisWeekStart = new Date(now.getTime() - now.getDay() * 24 * 60 * 60 * 1000);
   thisWeekStart.setHours(0, 0, 0, 0);
   const lastWeekStart = new Date(thisWeekStart.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-  const [users, allCompletedCalls, totalCallsThisMonth] = await Promise.all([
+  const [users, allCompletedCalls] = await Promise.all([
     repository.findOrgUsersByOrgId(user.org.id),
     repository.findCompletedCallsByOrgId(user.org.id),
-    repository.findCallCountByOrgIdSince(user.org.id, monthStart),
   ]);
 
-  const reps = users.filter((member) => member.role === "rep");
+  const reps = users.filter(
+    (member) => member.role === "rep" && canActorUsePermissionForRep(access, "view_team_analytics", member.id),
+  );
+  const scopedCalls = allCompletedCalls.filter((call) =>
+    canActorUsePermissionForRep(access, "view_team_analytics", call.repId),
+  );
 
   const repCards = reps
     .map((rep) => {
-      const repCalls = allCompletedCalls.filter((call) => call.repId === rep.id);
+      const repCalls = scopedCalls.filter((call) => call.repId === rep.id);
       const compositeScore = averageScore(repCalls.map((call) => call.overallScore));
       const thisWeekAvg = averageScore(
         repCalls
@@ -528,16 +571,13 @@ export async function getManagerDashboard(
     })
     .sort((left, right) => (right.compositeScore ?? -1) - (left.compositeScore ?? -1));
 
-  const teamAvgScore = averageScore(
-    allCompletedCalls
-      .filter((call) => call.createdAt >= monthStart)
-      .map((call) => call.overallScore),
-  );
+  const monthScopedCalls = scopedCalls.filter((call) => call.createdAt >= monthStart);
+  const teamAvgScore = averageScore(monthScopedCalls.map((call) => call.overallScore));
 
   return {
     reps: repCards,
     teamAvgScore,
-    totalCallsThisMonth,
+    totalCallsThisMonth: monthScopedCalls.length,
     coachingFlagsCount: repCards.filter((rep) => rep.needsCoaching).length,
   };
 }
@@ -619,6 +659,7 @@ export async function getRepBadges(
   repository: DashboardRepository,
   authUserId: string,
   requestedRepId?: string,
+  accessRepository: AccessRepository = createAccessRepository(),
 ): Promise<RepBadges | null> {
   const user = await repository.findCurrentUserByAuthId(authUserId);
 
@@ -626,10 +667,18 @@ export async function getRepBadges(
     return null;
   }
 
-  assertRepAccess(user, requestedRepId);
-
   if (!user.org) {
     return { badges: [] };
+  }
+
+  const access = await resolveAccessContext(accessRepository, authUserId);
+
+  if (!access) {
+    return null;
+  }
+
+  if (requestedRepId && requestedRepId !== user.id && !canActorDrillIntoLeaderboardRep(access, requestedRepId)) {
+    throw new DashboardServiceError("Only authorized team managers can view this rep", 403);
   }
 
   const targetRepId = requestedRepId ?? user.id;
@@ -732,7 +781,9 @@ export async function getExecutiveDashboard(
     return null;
   }
 
-  assertManager(user);
+  if (!hasOrgWideDashboardAccess(user.role)) {
+    return null;
+  }
 
   if (!user.org) {
     return {
@@ -826,7 +877,9 @@ export async function getSetupStatus(
     return null;
   }
 
-  assertManager(user);
+  if (!hasOrgWideDashboardAccess(user.role)) {
+    return null;
+  }
 
   if (!user.org) {
     throw new DashboardServiceError("No organization", 403);

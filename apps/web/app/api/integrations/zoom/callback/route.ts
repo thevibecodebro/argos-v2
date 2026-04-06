@@ -86,6 +86,10 @@ export async function GET(request: Request) {
     return settingsRedirect(request, "zoom_error", "not_provisioned");
   }
 
+  if (viewer.role !== "admin") {
+    return settingsRedirect(request, "zoom_error", "forbidden", true);
+  }
+
   const decoded = decodeIntegrationOAuthState(state);
 
   if (!decoded) {

@@ -87,7 +87,7 @@ function ProviderCard({
       </div>
 
       {!canManage ? (
-        <p className="mt-3 text-sm text-slate-500">Only managers, executives, and admins can change integrations.</p>
+        <p className="mt-3 text-sm text-slate-500">Only admins can change integrations.</p>
       ) : null}
       {!provider.available ? (
         <p className="mt-3 text-sm text-amber-200">OAuth credentials are still missing for this provider.</p>

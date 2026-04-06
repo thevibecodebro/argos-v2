@@ -3,6 +3,7 @@ import {
   callsTable,
   getDb,
   organizationsTable,
+  repManagerAssignmentsTable,
   usersTable,
   type ArgosDb,
 } from "@argos-v2/db";
@@ -94,8 +95,16 @@ export class DrizzleUsersRepository implements UsersRepository {
           profileImageUrl: usersTable.profileImageUrl,
           role: usersTable.role,
           joinedAt: usersTable.createdAt,
+          primaryManagerId: repManagerAssignmentsTable.managerId,
         })
         .from(usersTable)
+        .leftJoin(
+          repManagerAssignmentsTable,
+          and(
+            eq(repManagerAssignmentsTable.repId, usersTable.id),
+            eq(repManagerAssignmentsTable.orgId, usersTable.orgId),
+          ),
+        )
         .where(eq(usersTable.orgId, orgId)),
       this.db
         .select({
@@ -120,6 +129,7 @@ export class DrizzleUsersRepository implements UsersRepository {
       role: parseAppUserRole(member.role),
       callCount: callCountMap.get(member.id) ?? 0,
       joinedAt: member.joinedAt,
+      primaryManagerId: member.primaryManagerId,
     }));
   }
 

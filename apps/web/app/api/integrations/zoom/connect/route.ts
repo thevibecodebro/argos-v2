@@ -27,7 +27,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/settings?zoom_error=not_provisioned", request.url));
   }
 
-  if (!viewer.role || !["admin", "manager", "executive"].includes(viewer.role)) {
+  if (viewer.role !== "admin") {
     return NextResponse.redirect(new URL("/settings?zoom_error=forbidden", request.url));
   }
 
