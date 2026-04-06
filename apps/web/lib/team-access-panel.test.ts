@@ -10,6 +10,10 @@ describe("TeamAccessPanel", () => {
         canManage: true,
         teams: [{ id: "team-a", name: "Closers", description: null, status: "active" }],
         managers: [{ id: "mgr-1", name: "Morgan Lane" }],
+        memberships: [
+          { teamId: "team-a", userId: "mgr-1", membershipType: "manager" },
+          { teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+        ],
         reps: [{ id: "rep-1", name: "Riley Stone", primaryManagerId: "mgr-1" }],
       }),
     );
@@ -18,5 +22,7 @@ describe("TeamAccessPanel", () => {
     expect(html).toContain("Closers");
     expect(html).toContain("Primary manager");
     expect(html).toContain("Coach");
+    expect(html).toContain("Create team");
+    expect(html).toContain("Add manager");
   });
 });

@@ -111,6 +111,7 @@ export default async function SettingsPage({
         }}
         initialIntegrations={integrations?.ok ? integrations.data : null}
         initialManagers={teamAccessResult?.ok ? teamAccessResult.data.managers : []}
+        initialMemberships={teamAccessResult?.ok ? teamAccessResult.data.memberships : []}
         initialMembers={membersResult?.ok ? membersResult.data : []}
         initialReps={teamAccessResult?.ok ? teamAccessResult.data.reps : []}
         initialTeams={teamAccessResult?.ok ? teamAccessResult.data.teams : []}

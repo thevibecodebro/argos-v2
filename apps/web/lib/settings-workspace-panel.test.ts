@@ -40,6 +40,10 @@ describe("SettingsWorkspacePanel", () => {
           },
         },
         initialManagers: [{ id: "manager-1", name: "Morgan Lane" }],
+        initialMemberships: [
+          { teamId: "team-1", userId: "manager-1", membershipType: "manager" },
+          { teamId: "team-1", userId: "user-2", membershipType: "rep" },
+        ],
         initialMembers: [
           {
             id: "user-2",

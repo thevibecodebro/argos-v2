@@ -12,6 +12,7 @@ type SettingsWorkspacePanelProps = {
   initialCompliance: ComplianceStatus & { canManage: boolean };
   initialIntegrations: IntegrationStatusData | null;
   initialManagers: Array<{ id: string; name: string }>;
+  initialMemberships: Array<{ teamId: string; userId: string; membershipType: "manager" | "rep" }>;
   initialMembers: OrganizationMember[];
   initialReps: Array<{ id: string; name: string; primaryManagerId: string | null }>;
   initialTeams: Array<{ id: string; name: string; description: string | null; status: string }>;
@@ -42,6 +43,7 @@ export function SettingsWorkspacePanel({
   initialCompliance,
   initialIntegrations,
   initialManagers,
+  initialMemberships,
   initialMembers,
   initialReps,
   initialTeams,
@@ -418,6 +420,7 @@ export function SettingsWorkspacePanel({
 
       <TeamAccessPanel
         canManage={canManageMembers}
+        memberships={initialMemberships}
         managers={initialManagers}
         reps={initialReps}
         teams={initialTeams}
