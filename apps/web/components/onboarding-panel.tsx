@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-type Step = "choose" | "create" | "join";
+type Step = "choose" | "create" | "join" | "invite";
 
 function autoSlug(value: string) {
   return value
@@ -20,8 +20,18 @@ export function OnboardingPanel() {
   const [joinSlug, setJoinSlug] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isMutating, setIsMutating] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<"rep" | "manager" | "executive" | "admin">("rep");
+  const [inviteTeamIds, setInviteTeamIds] = useState<string[]>([]);
+  const [teams, setTeams] = useState<{ id: string; name: string }[]>([]);
+  const [teamsLoaded, setTeamsLoaded] = useState(false);
+  const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
 
-  async function submit(path: string, payload: Record<string, unknown>) {
+  async function submit(
+    path: string,
+    payload: Record<string, unknown>,
+    onSuccess?: () => void,
+  ) {
     setError(null);
     setIsMutating(true);
 
@@ -39,8 +49,22 @@ export function OnboardingPanel() {
       return;
     }
 
-    router.push("/dashboard");
-    router.refresh();
+    if (onSuccess) {
+      onSuccess();
+    } else {
+      router.push("/dashboard");
+      router.refresh();
+    }
+  }
+
+  async function loadTeams() {
+    if (teamsLoaded) return;
+    const response = await fetch("/api/teams");
+    if (response.ok) {
+      const data = (await response.json()) as { id: string; name: string }[];
+      setTeams(data);
+    }
+    setTeamsLoaded(true);
   }
 
   return (
@@ -132,7 +156,9 @@ export function OnboardingPanel() {
               className="flex-1 rounded-[1.1rem] bg-[#2c63f6] px-4 py-3 text-base font-semibold text-white transition hover:bg-[#4476ff] disabled:opacity-50"
               disabled={!name.trim() || !slug.trim() || isMutating}
               onClick={() => {
-                void submit("/api/organizations", { name, slug });
+                void submit("/api/organizations", { name, slug }, () => {
+                  setStep("invite");
+                });
               }}
               type="button"
             >
@@ -182,6 +208,124 @@ export function OnboardingPanel() {
               type="button"
             >
               {isMutating ? "Joining..." : "Join"}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {step === "invite" ? (
+        <div className="rounded-[1.75rem] border border-[#182748] bg-[#101a30] px-6 py-7 shadow-[0_18px_50px_rgba(2,8,23,0.35)]">
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#4f96ff]">
+            Invite Your Team
+          </p>
+          <div className="mt-6 space-y-4">
+            <label className="block text-left">
+              <span className="text-sm font-medium text-[#a8b8da]">Email</span>
+              <input
+                className="mt-2 w-full rounded-[1rem] border border-[#1f335d] bg-[#0b1428] px-4 py-3 text-lg text-white outline-none transition placeholder:text-[#4c5d85] focus:border-[#4f96ff]"
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="teammate@company.com"
+                type="email"
+                value={inviteEmail}
+              />
+            </label>
+
+            <label className="block text-left">
+              <span className="text-sm font-medium text-[#a8b8da]">Role</span>
+              <select
+                className="mt-2 w-full rounded-[1rem] border border-[#1f335d] bg-[#0b1428] px-4 py-3 text-lg text-white outline-none transition focus:border-[#4f96ff]"
+                onChange={(e) => {
+                  const role = e.target.value as typeof inviteRole;
+                  setInviteRole(role);
+                  setInviteTeamIds([]);
+                  if (role === "rep" || role === "manager") {
+                    void loadTeams();
+                  }
+                }}
+                value={inviteRole}
+              >
+                <option value="rep">Rep</option>
+                <option value="manager">Manager</option>
+                <option value="executive">Executive</option>
+                <option value="admin">Admin</option>
+              </select>
+            </label>
+
+            {(inviteRole === "rep" || inviteRole === "manager") ? (
+              <div className="block text-left">
+                <span className="text-sm font-medium text-[#a8b8da]">Teams (optional)</span>
+                {teams.length === 0 ? (
+                  <p className="mt-2 text-sm text-[#4c5d85]">
+                    You can assign teams later from settings.
+                  </p>
+                ) : (
+                  <div className="mt-2 space-y-2">
+                    {teams.map((team) => (
+                      <label key={team.id} className="flex items-center gap-2 text-white">
+                        <input
+                          checked={inviteTeamIds.includes(team.id)}
+                          className="accent-[#2c63f6]"
+                          onChange={(e) => {
+                            setInviteTeamIds(prev =>
+                              e.target.checked
+                                ? [...prev, team.id]
+                                : prev.filter(id => id !== team.id),
+                            );
+                          }}
+                          type="checkbox"
+                        />
+                        {team.name}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
+
+          {error ? <p className="mt-4 text-sm text-[#ff7f7f]">{error}</p> : null}
+          {inviteSuccess ? <p className="mt-4 text-sm text-green-400">{inviteSuccess}</p> : null}
+
+          <div className="mt-6 flex gap-3">
+            <button
+              className="flex-1 rounded-[1.1rem] bg-[#2c63f6] px-4 py-3 text-base font-semibold text-white transition hover:bg-[#4476ff] disabled:opacity-50"
+              disabled={!inviteEmail.trim() || isMutating}
+              onClick={async () => {
+                setError(null);
+                setInviteSuccess(null);
+                setIsMutating(true);
+                const response = await fetch("/api/invites", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    email: inviteEmail,
+                    role: inviteRole,
+                    teamIds: inviteTeamIds.length > 0 ? inviteTeamIds : undefined,
+                  }),
+                });
+                const data = (await response.json()) as { error?: string };
+                setIsMutating(false);
+                if (!response.ok) {
+                  setError(data.error ?? "Unable to send invite.");
+                } else {
+                  setInviteSuccess(`Invite sent to ${inviteEmail}`);
+                  setInviteEmail("");
+                  setInviteTeamIds([]);
+                }
+              }}
+              type="button"
+            >
+              {isMutating ? "Sending..." : "Send Invite"}
+            </button>
+            <button
+              className="flex-1 rounded-[1.1rem] border border-[#1f335d] px-4 py-3 text-base font-medium text-[#a8b8da] transition hover:border-[#4f96ff] hover:text-white"
+              onClick={() => {
+                router.push("/dashboard");
+                router.refresh();
+              }}
+              type="button"
+            >
+              Go to Dashboard
             </button>
           </div>
         </div>
