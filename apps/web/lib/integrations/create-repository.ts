@@ -1,5 +1,10 @@
 import { DrizzleIntegrationsRepository } from "./repository";
+import { SupabaseIntegrationsRepository } from "./supabase-repository";
 
 export function createIntegrationsRepository() {
-  return new DrizzleIntegrationsRepository();
+  if (process.env.DATABASE_URL) {
+    return new DrizzleIntegrationsRepository();
+  }
+
+  return new SupabaseIntegrationsRepository();
 }

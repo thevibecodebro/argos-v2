@@ -1,0 +1,147 @@
+import { renderToStaticMarkup } from "react-dom/server";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const {
+  getAuthenticatedSupabaseUserMock,
+  createDashboardRepositoryMock,
+  getCurrentUserProfileMock,
+  getDashboardLeaderboardMock,
+  getExecutiveDashboardMock,
+  getManagerDashboardMock,
+  getRepBadgesMock,
+  getRepDashboardMock,
+  getSetupStatusMock,
+} = vi.hoisted(() => ({
+  getAuthenticatedSupabaseUserMock: vi.fn(),
+  createDashboardRepositoryMock: vi.fn(),
+  getCurrentUserProfileMock: vi.fn(),
+  getDashboardLeaderboardMock: vi.fn(),
+  getExecutiveDashboardMock: vi.fn(),
+  getManagerDashboardMock: vi.fn(),
+  getRepBadgesMock: vi.fn(),
+  getRepDashboardMock: vi.fn(),
+  getSetupStatusMock: vi.fn(),
+}));
+
+vi.mock("@/lib/auth/get-authenticated-user", () => ({
+  getAuthenticatedSupabaseUser: getAuthenticatedSupabaseUserMock,
+}));
+
+vi.mock("@/lib/dashboard/create-repository", () => ({
+  createDashboardRepository: createDashboardRepositoryMock,
+}));
+
+vi.mock("@/lib/dashboard/service", () => ({
+  getCurrentUserProfile: getCurrentUserProfileMock,
+  getDashboardLeaderboard: getDashboardLeaderboardMock,
+  getExecutiveDashboard: getExecutiveDashboardMock,
+  getManagerDashboard: getManagerDashboardMock,
+  getRepBadges: getRepBadgesMock,
+  getRepDashboard: getRepDashboardMock,
+  getSetupStatus: getSetupStatusMock,
+}));
+
+import HomePage from "../app/page";
+import LoginPage from "../app/login/page";
+import DashboardPage from "../app/(authenticated)/dashboard/page";
+
+describe("legacy UI shell", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    createDashboardRepositoryMock.mockReturnValue({});
+  });
+
+  it("renders the legacy-style sign-in shell on the landing page", () => {
+    const html = renderToStaticMarkup(HomePage());
+
+    expect(html).toContain("Revenue Command Platform");
+    expect(html).toContain("AI Scorecards");
+    expect(html).toContain("Coaching Flags");
+    expect(html).toContain("Instant Insights");
+  });
+
+  it("renders the login page with the restored dark auth shell", async () => {
+    const html = renderToStaticMarkup(
+      await LoginPage({
+        searchParams: Promise.resolve({ next: "/dashboard" }),
+      }),
+    );
+
+    expect(html).toContain("Revenue Command Platform");
+    expect(html).toContain("Continue with Google");
+    expect(html).toContain("Send magic link");
+  });
+
+  it("renders the executive dashboard shell with legacy navigation labels", async () => {
+    getAuthenticatedSupabaseUserMock.mockResolvedValue({ id: "auth-user-1" });
+    getCurrentUserProfileMock.mockResolvedValue({
+      id: "user-1",
+      email: "jay@argos.ai",
+      fullName: "Jay Newman",
+      role: "executive",
+      org: {
+        id: "org-1",
+        name: "Argos",
+        slug: "argos",
+        plan: "pro",
+      },
+    });
+    getRepDashboardMock.mockResolvedValue(null);
+    getRepBadgesMock.mockResolvedValue({ badges: [] });
+    getManagerDashboardMock.mockResolvedValue({
+      reps: [],
+      teamAvgScore: 80,
+      totalCallsThisMonth: 12,
+      coachingFlagsCount: 2,
+    });
+    getExecutiveDashboardMock.mockResolvedValue({
+      skillAverages: [
+        { category: "Closing", avgScore: 80 },
+        { category: "Objection Handling", avgScore: 76 },
+      ],
+      weeklyCallVolume: [{ week: "2026-03-24T00:00:00.000Z", callCount: 12 }],
+      trainingStats: {
+        totalAssigned: 4,
+        totalPassed: 3,
+        completionRate: 75,
+      },
+      repSkillBreakdown: [
+        {
+          repId: "rep-1",
+          firstName: "Jay",
+          lastName: "Newman",
+          profileImageUrl: null,
+          compositeScore: 82,
+          callCount: 6,
+          skills: {
+            frameControl: 80,
+            rapport: 78,
+            discovery: 76,
+            painExpansion: 74,
+            solution: 82,
+            objection: 79,
+            closing: 85,
+          },
+        },
+      ],
+    });
+    getDashboardLeaderboardMock.mockResolvedValue({
+      topQuality: [],
+      topVolume: [],
+      mostImproved: [],
+    });
+    getSetupStatusMock.mockResolvedValue({
+      orgSlug: "argos",
+      repsCount: 1,
+      callsCount: 12,
+      roleplayCount: 3,
+    });
+
+    const html = renderToStaticMarkup(await DashboardPage());
+
+    expect(html).toContain("Executive Dashboard");
+    expect(html).toContain("Open call library");
+    expect(html).toContain("Upload call");
+    expect(html).toContain("Rep Skill Matrix");
+  });
+});

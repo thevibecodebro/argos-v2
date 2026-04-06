@@ -1,5 +1,10 @@
 import { DrizzleRoleplayRepository } from "./repository";
+import { SupabaseRoleplayRepository } from "./supabase-repository";
 
 export function createRoleplayRepository() {
-  return new DrizzleRoleplayRepository();
+  if (process.env.DATABASE_URL) {
+    return new DrizzleRoleplayRepository();
+  }
+
+  return new SupabaseRoleplayRepository();
 }

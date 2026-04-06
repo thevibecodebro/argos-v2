@@ -1,5 +1,5 @@
 import { LoginForm } from "@/components/auth/login-form";
-import { LegacyAuthShell } from "@/components/legacy-shell";
+import { AuthShell } from "@/components/legacy-shell";
 
 type LoginPageProps = {
   searchParams?: Promise<{
@@ -15,8 +15,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       : "/dashboard";
 
   return (
-    <LegacyAuthShell note="Secure login via Google or magic link. No password required.">
+    <AuthShell>
       <LoginForm nextPath={nextPath} />
-    </LegacyAuthShell>
+    </AuthShell>
   );
 }

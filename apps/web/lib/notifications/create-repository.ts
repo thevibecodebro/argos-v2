@@ -1,5 +1,10 @@
 import { DrizzleNotificationsRepository } from "./repository";
+import { SupabaseNotificationsRepository } from "./supabase-repository";
 
 export function createNotificationsRepository() {
-  return new DrizzleNotificationsRepository();
+  if (process.env.DATABASE_URL) {
+    return new DrizzleNotificationsRepository();
+  }
+
+  return new SupabaseNotificationsRepository();
 }

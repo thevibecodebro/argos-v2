@@ -1,5 +1,10 @@
 import { DrizzleTrainingRepository } from "./repository";
+import { SupabaseTrainingRepository } from "./supabase-repository";
 
 export function createTrainingRepository() {
-  return new DrizzleTrainingRepository();
+  if (process.env.DATABASE_URL) {
+    return new DrizzleTrainingRepository();
+  }
+
+  return new SupabaseTrainingRepository();
 }

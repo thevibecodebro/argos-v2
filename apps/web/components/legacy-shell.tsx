@@ -1,5 +1,169 @@
 import Link from "next/link";
 
+// ─── Auth shell: split-screen design ─────────────────────────────────────────
+
+type AuthShellProps = {
+  children: React.ReactNode;
+};
+
+export function AuthShell({ children }: AuthShellProps) {
+  return (
+    <div
+      className="auth-page selection:text-[#74b1ff] min-h-screen overflow-hidden"
+      style={{ background: "#0b0e14", color: "#ecedf6", fontFamily: "var(--font-manrope, Manrope, sans-serif)" }}
+    >
+      {/* ── Fixed header ── */}
+      <header className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-8 py-6">
+        <div
+          className="tracking-tighter text-2xl font-bold text-[#ecedf6]"
+          style={{ fontFamily: "var(--font-display, 'Space Grotesk', sans-serif)" }}
+        >
+          Argos
+        </div>
+        <div className="flex items-center space-x-6">
+          <LanguageIcon />
+          <HelpIcon />
+        </div>
+      </header>
+
+      <main className="flex min-h-screen">
+        {/* ── Left section: Luminous Visuals ── */}
+        <section className="auth-globe-gradient hidden lg:flex lg:w-1/2 items-center justify-center relative overflow-hidden">
+          {/* Background art */}
+          <div className="absolute inset-0 opacity-40">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              alt="high-tech globe with data lines"
+              className="w-full h-full object-cover mix-blend-screen"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuDrlEfPdTn6nBT7qNhHh5S6M2-5aMemMqWRS0zKEHEfFvx08UiCZu4zt_e-PK0NcYwuUNeycywPWGWwICaO8VrnLtDT1h5GOcNBIdezwjyI8SrfTDnq32qsxKfcWtvQaZ3ZXBCVrFq9pMOtKYTm9cvPQHTA5MIWKBEGXHRSSKkOU4_3drNq8FlE4p2NMKDLn55EWes-oNE08o71JukVsSmXc3sNM_w3DGESVPWgC-tDHcHrDEkrFX-T3Qpzf-ASRqqZNlcvSBqHsSk9"
+            />
+          </div>
+
+          <div className="relative z-10 w-full max-w-xl p-12 space-y-12">
+            {/* Bar chart + headline */}
+            <div className="space-y-4">
+              {/* Abstract bar chart */}
+              <div className="flex items-end space-x-2 h-48 px-8">
+                <div className="w-4 rounded-t-full h-1/4 opacity-40" style={{ background: "#74b1ff" }} />
+                <div className="w-4 rounded-t-full h-1/2 opacity-60" style={{ background: "#2695ff" }} />
+                <div className="w-4 rounded-t-full h-2/3 opacity-80" style={{ background: "#74b1ff" }} />
+                <div
+                  className="w-4 rounded-t-full h-full"
+                  style={{
+                    background: "#6dddff",
+                    boxShadow: "0px 4px 20px 0px rgba(116, 177, 255, 0.4)",
+                  }}
+                />
+                <div className="w-4 rounded-t-full h-3/4" style={{ background: "#54a3ff" }} />
+                <div className="w-4 rounded-t-full h-1/2 opacity-50" style={{ background: "#74b1ff" }} />
+              </div>
+
+              <div className="px-8">
+                <h2
+                  className="text-4xl font-bold tracking-tight leading-tight text-[#ecedf6]"
+                  style={{ fontFamily: "var(--font-display, 'Space Grotesk', sans-serif)" }}
+                >
+                  Intelligence <br />
+                  <span style={{ color: "#74b1ff" }}>Defined by Precision.</span>
+                </h2>
+                <p className="mt-4 text-lg max-w-md" style={{ color: "#a9abb3" }}>
+                  Access the command center of your global logistics operations with encrypted, luminescent clarity.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right-edge tonal fade */}
+          <div
+            className="absolute right-0 top-0 h-full w-24"
+            style={{ background: "linear-gradient(to left, #0b0e14, transparent)" }}
+          />
+        </section>
+
+        {/* ── Right section: Interaction Zone ── */}
+        <section
+          className="w-full lg:w-1/2 flex items-center justify-center px-6 md:px-12"
+          style={{ background: "#0b0e14" }}
+        >
+          <div className="w-full max-w-md space-y-10">
+            {children}
+          </div>
+        </section>
+      </main>
+
+      {/* ── Fixed footer ── */}
+      <footer className="fixed bottom-0 right-0 w-full lg:w-1/2 flex justify-center space-x-8 py-8 px-12 pointer-events-none">
+        <div className="flex space-x-8 pointer-events-auto">
+          <a
+            href="#"
+            className="auth-footer-link text-[10px] uppercase tracking-[0.2em]"
+            style={{ fontFamily: "var(--font-manrope, sans-serif)" }}
+          >
+            Privacy Policy
+          </a>
+          <a
+            href="#"
+            className="auth-footer-link text-[10px] uppercase tracking-[0.2em]"
+            style={{ fontFamily: "var(--font-manrope, sans-serif)" }}
+          >
+            Terms of Service
+          </a>
+          <a
+            href="#"
+            className="auth-footer-link text-[10px] uppercase tracking-[0.2em]"
+            style={{ fontFamily: "var(--font-manrope, sans-serif)" }}
+          >
+            Security
+          </a>
+        </div>
+        <div
+          className="hidden lg:block absolute bottom-8 left-[-100%] text-[10px] uppercase tracking-[0.2em] px-8"
+          style={{ color: "rgba(236,237,246,0.2)" }}
+        >
+          © 2026 Argos Intelligence. All rights reserved.
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+function LanguageIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className="w-6 h-6 cursor-pointer transition-colors duration-300 text-[rgba(236,237,246,0.6)] hover:text-[#74b1ff]"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <ellipse cx="12" cy="12" rx="4" ry="10" />
+      <path d="M2 12h20" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+  );
+}
+
+function HelpIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className="w-6 h-6 cursor-pointer transition-colors duration-300 text-[rgba(236,237,246,0.6)] hover:text-[#74b1ff]"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+      <path d="M12 17h.01" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 type LegacyAuthShellProps = {
   children: React.ReactNode;
   note?: string;
