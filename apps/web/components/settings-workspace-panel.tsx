@@ -7,6 +7,7 @@ import type { IntegrationStatusData } from "@/lib/integrations/service";
 import { TeamAccessPanel } from "./settings/team-access-panel";
 import { IntegrationsSettingsPanel } from "./integrations-settings-panel";
 import type { CurrentUserDetails, OrganizationMember } from "@/lib/users/service";
+import type { InviteRecord } from "@/lib/invites/repository";
 
 type SettingsWorkspacePanelProps = {
   initialCompliance: ComplianceStatus & { canManage: boolean };
@@ -14,6 +15,7 @@ type SettingsWorkspacePanelProps = {
   initialManagers: Array<{ id: string; name: string }>;
   initialMemberships: Array<{ teamId: string; userId: string; membershipType: "manager" | "rep" }>;
   initialMembers: OrganizationMember[];
+  initialPendingInvites: InviteRecord[];
   initialReps: Array<{ id: string; name: string; primaryManagerId: string | null }>;
   initialTeams: Array<{ id: string; name: string; description: string | null; status: string }>;
   initialUser: CurrentUserDetails;
@@ -45,6 +47,7 @@ export function SettingsWorkspacePanel({
   initialManagers,
   initialMemberships,
   initialMembers,
+  initialPendingInvites,
   initialReps,
   initialTeams,
   initialUser,
@@ -64,6 +67,16 @@ export function SettingsWorkspacePanel({
   const [mutatingMemberId, setMutatingMemberId] = useState<string | null>(null);
   const [isUpdatingCompliance, setIsUpdatingCompliance] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [pendingInvites, setPendingInvites] = useState(initialPendingInvites);
+  const [showInviteForm, setShowInviteForm] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<"rep" | "manager" | "executive" | "admin">("rep");
+  const [inviteTeamIds, setInviteTeamIds] = useState<string[]>([]);
+  const [teams, setTeams] = useState<{ id: string; name: string }[]>([]);
+  const [teamsLoaded, setTeamsLoaded] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
+  const [inviteSending, setInviteSending] = useState(false);
 
   const displayName = useMemo(() => {
     return [currentUser.firstName, currentUser.lastName].filter(Boolean).join(" ").trim() || currentUser.email;
@@ -154,6 +167,16 @@ export function SettingsWorkspacePanel({
     await navigator.clipboard.writeText(currentUser.org.slug);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
+  }
+
+  async function loadTeams() {
+    if (teamsLoaded) return;
+    const response = await fetch("/api/teams");
+    if (response.ok) {
+      const data = (await response.json()) as { id: string; name: string }[];
+      setTeams(data);
+    }
+    setTeamsLoaded(true);
   }
 
   async function acknowledgeConsent() {
@@ -480,6 +503,147 @@ export function SettingsWorkspacePanel({
 
       {initialIntegrations ? (
         <IntegrationsSettingsPanel initialStatuses={initialIntegrations} notices={notices} />
+      ) : null}
+
+      {initialUser.role === "admin" ? (
+        <section className="mt-8">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-white">Invites</h2>
+            <button
+              className="rounded-[1rem] bg-[#2c63f6] px-4 py-2 text-sm font-semibold text-white hover:bg-[#4476ff]"
+              onClick={() => setShowInviteForm((prev) => !prev)}
+              type="button"
+            >
+              {showInviteForm ? "Cancel" : "Invite Member"}
+            </button>
+          </div>
+
+          {showInviteForm ? (
+            <div className="mt-4 rounded-[1.5rem] border border-[#182748] bg-[#101a30] p-6">
+              <div className="space-y-4">
+                <label className="block text-left">
+                  <span className="text-sm font-medium text-[#a8b8da]">Email</span>
+                  <input
+                    className="mt-2 w-full rounded-[1rem] border border-[#1f335d] bg-[#0b1428] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#4c5d85] focus:border-[#4f96ff]"
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    placeholder="teammate@company.com"
+                    type="email"
+                    value={inviteEmail}
+                  />
+                </label>
+
+                <label className="block text-left">
+                  <span className="text-sm font-medium text-[#a8b8da]">Role</span>
+                  <select
+                    className="mt-2 w-full rounded-[1rem] border border-[#1f335d] bg-[#0b1428] px-4 py-3 text-sm text-white outline-none transition focus:border-[#4f96ff]"
+                    onChange={(e) => {
+                      const role = e.target.value as typeof inviteRole;
+                      setInviteRole(role);
+                      setInviteTeamIds([]);
+                      if (role === "rep" || role === "manager") {
+                        void loadTeams();
+                      }
+                    }}
+                    value={inviteRole}
+                  >
+                    <option value="rep">Rep</option>
+                    <option value="manager">Manager</option>
+                    <option value="executive">Executive</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </label>
+
+                {(inviteRole === "rep" || inviteRole === "manager") ? (
+                  <div className="block text-left">
+                    <span className="text-sm font-medium text-[#a8b8da]">Teams (optional)</span>
+                    {teams.length === 0 ? (
+                      <p className="mt-2 text-sm text-[#4c5d85]">You can assign teams later from settings.</p>
+                    ) : (
+                      <div className="mt-2 space-y-2">
+                        {teams.map((team) => (
+                          <label key={team.id} className="flex items-center gap-2 text-white text-sm">
+                            <input
+                              checked={inviteTeamIds.includes(team.id)}
+                              className="accent-[#2c63f6]"
+                              onChange={(e) => {
+                                setInviteTeamIds(prev =>
+                                  e.target.checked
+                                    ? [...prev, team.id]
+                                    : prev.filter(id => id !== team.id),
+                                );
+                              }}
+                              type="checkbox"
+                            />
+                            {team.name}
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+
+              {inviteError ? <p className="mt-3 text-sm text-[#ff7f7f]">{inviteError}</p> : null}
+              {inviteSuccess ? <p className="mt-3 text-sm text-green-400">{inviteSuccess}</p> : null}
+
+              <button
+                className="mt-4 rounded-[1.1rem] bg-[#2c63f6] px-4 py-3 text-base font-semibold text-white transition hover:bg-[#4476ff] disabled:opacity-50"
+                disabled={!inviteEmail.trim() || inviteSending}
+                onClick={async () => {
+                  setInviteError(null);
+                  setInviteSuccess(null);
+                  setInviteSending(true);
+                  const response = await fetch("/api/invites", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      email: inviteEmail,
+                      role: inviteRole,
+                      teamIds: inviteTeamIds.length > 0 ? inviteTeamIds : undefined,
+                    }),
+                  });
+                  const data = (await response.json()) as { error?: string; id?: string };
+                  setInviteSending(false);
+                  if (!response.ok) {
+                    setInviteError(data.error ?? "Unable to send invite.");
+                  } else {
+                    setInviteSuccess(`Invite sent to ${inviteEmail}`);
+                    setInviteEmail("");
+                    setInviteTeamIds([]);
+                    // Refresh invite list
+                    const listRes = await fetch("/api/invites");
+                    if (listRes.ok) {
+                      setPendingInvites(await listRes.json() as InviteRecord[]);
+                    }
+                  }
+                }}
+                type="button"
+              >
+                {inviteSending ? "Sending..." : "Send Invite"}
+              </button>
+            </div>
+          ) : null}
+
+          {pendingInvites.length > 0 ? (
+            <ul className="mt-4 space-y-2">
+              {pendingInvites.map((invite) => (
+                <li
+                  key={invite.id}
+                  className="flex items-center justify-between rounded-[1rem] border border-[#182748] bg-[#101a30] px-4 py-3"
+                >
+                  <div>
+                    <p className="text-sm text-white">{invite.email}</p>
+                    <p className="text-xs text-[#7283a9]">
+                      {invite.role} · expires {new Date(invite.expiresAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-4 text-sm text-[#4c5d85]">No pending invites.</p>
+          )}
+        </section>
       ) : null}
     </div>
   );

@@ -57,6 +57,7 @@ describe("SettingsWorkspacePanel", () => {
             joinedAt: "2026-04-03T00:00:00.000Z",
           },
         ],
+        initialPendingInvites: [],
         initialReps: [
           { id: "user-2", name: "Riley Stone", primaryManagerId: "manager-1" },
         ],

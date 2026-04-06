@@ -5,6 +5,9 @@ import { createComplianceRepository } from "@/lib/compliance/create-repository";
 import { getComplianceStatus } from "@/lib/compliance/service";
 import { createIntegrationsRepository } from "@/lib/integrations/create-repository";
 import { getIntegrationStatuses } from "@/lib/integrations/service";
+import { createInvitesRepository } from "@/lib/invites/create-repository";
+import { listPendingInvites } from "@/lib/invites/service";
+import type { InviteRecord } from "@/lib/invites/repository";
 import { createTeamAccessRepository } from "@/lib/team-access/create-repository";
 import { getTeamAccessSnapshot } from "@/lib/team-access/service";
 import { createUsersRepository } from "@/lib/users/create-repository";
@@ -96,6 +99,10 @@ export default async function SettingsPage({
     authUser && profileResult.data.role === "admin"
       ? await getTeamAccessSnapshot(createTeamAccessRepository(), authUser.id)
       : null;
+  const pendingInvitesResult =
+    authUser && profileResult.data.role === "admin"
+      ? await listPendingInvites(createInvitesRepository(), createUsersRepository(), authUser.id)
+      : null;
 
   return (
     <PageFrame
@@ -113,6 +120,7 @@ export default async function SettingsPage({
         initialManagers={teamAccessResult?.ok ? teamAccessResult.data.managers : []}
         initialMemberships={teamAccessResult?.ok ? teamAccessResult.data.memberships : []}
         initialMembers={membersResult?.ok ? membersResult.data : []}
+        initialPendingInvites={pendingInvitesResult?.ok ? pendingInvitesResult.data : []}
         initialReps={teamAccessResult?.ok ? teamAccessResult.data.reps : []}
         initialTeams={teamAccessResult?.ok ? teamAccessResult.data.teams : []}
         initialUser={profileResult.data}
