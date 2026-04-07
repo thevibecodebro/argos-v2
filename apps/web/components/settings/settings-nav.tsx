@@ -3,32 +3,34 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@argos-v2/ui";
+import type { AppUserRole } from "@/lib/users/roles";
 
 type SettingsNavItem = {
   href: string;
   label: string;
   icon: string;
-  adminOnly?: boolean;
+  visibleTo?: AppUserRole[];
 };
 
 const NAV_ITEMS: SettingsNavItem[] = [
   { href: "/settings",              label: "Account",      icon: "person"        },
-  { href: "/settings/people",       label: "People",       icon: "group",        adminOnly: true },
-  { href: "/settings/teams",        label: "Teams",        icon: "groups",       adminOnly: true },
-  { href: "/settings/permissions",  label: "Permissions",  icon: "lock",         adminOnly: true },
-  { href: "/settings/integrations", label: "Integrations", icon: "power",        adminOnly: true },
-  { href: "/settings/compliance",   label: "Compliance",   icon: "verified_user", adminOnly: true },
+  { href: "/settings/people",       label: "People",       icon: "group",        visibleTo: ["admin"] },
+  { href: "/settings/teams",        label: "Teams",        icon: "groups",       visibleTo: ["admin"] },
+  { href: "/settings/permissions",  label: "Permissions",  icon: "lock",         visibleTo: ["admin"] },
+  { href: "/settings/integrations", label: "Integrations", icon: "power",        visibleTo: ["admin"] },
+  { href: "/settings/compliance",   label: "Compliance",   icon: "verified_user", visibleTo: ["admin"] },
 ];
 
 type SettingsNavProps = {
-  role: "rep" | "manager" | "executive" | "admin" | null;
+  role: AppUserRole | null;
 };
 
 export function SettingsNav({ role }: SettingsNavProps) {
   const pathname = usePathname();
-  const isAdmin = role === "admin";
 
-  const visibleItems = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin);
+  const visibleItems = NAV_ITEMS.filter(
+    (item) => !item.visibleTo || (role !== null && item.visibleTo.includes(role))
+  );
 
   return (
     <nav aria-label="Settings navigation">
