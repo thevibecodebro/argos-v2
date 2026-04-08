@@ -203,7 +203,12 @@ describe("training routes", () => {
       new Request("http://localhost:3100/api/training/modules/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic: "Discovery" }),
+        body: JSON.stringify({
+          topic: "Discovery",
+          targetRole: "manager",
+          moduleCount: 2,
+          skillFocus: "objection handling",
+        }),
       }),
     );
 

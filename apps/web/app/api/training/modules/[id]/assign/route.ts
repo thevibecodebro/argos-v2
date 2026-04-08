@@ -9,6 +9,28 @@ function isNonEmptyStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((entry) => typeof entry === "string" && entry.trim().length > 0);
 }
 
+function parseDueDate(value: unknown): string | null | undefined {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  const parsed = Date.parse(trimmed);
+  if (Number.isNaN(parsed)) {
+    return undefined;
+  }
+
+  return trimmed;
+}
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -30,10 +52,15 @@ export async function POST(
     return Response.json({ error: "repIds must be non-empty strings" }, { status: 400 });
   }
 
+  const dueDate = parseDueDate(body.dueDate);
+  if (dueDate === undefined) {
+    return Response.json({ error: "dueDate must be a valid ISO date string" }, { status: 400 });
+  }
+
   const { id } = await params;
   const result = await assignTrainingModule(createTrainingRepository(), authUser.id, id, {
     repIds: body.repIds.map((repId) => repId.trim()),
-    dueDate: typeof body.dueDate === "string" ? body.dueDate : null,
+    dueDate,
   });
 
   return fromServiceResult(result);

@@ -95,7 +95,14 @@ export type TrainingAiStatus = {
 
 type ServiceResult<T> =
   | { ok: true; data: T }
-  | { ok: false; status: 403 | 404 | 409 | 501; error: string };
+  | { ok: false; status: 403 | 404 | 409 | 422 | 501; error: string };
+
+export type TrainingModuleGenerationInput = {
+  topic: string;
+  targetRole: string;
+  moduleCount: number;
+  skillFocus: string;
+};
 
 export type TrainingRepository = {
   countModulesByOrgId(orgId: string): Promise<number>;
@@ -725,6 +732,40 @@ export function getTrainingAiStatus(): TrainingAiStatus {
   return {
     available: true,
     reason: null,
+  };
+}
+
+export async function generateTrainingModules(
+  authUserId: string,
+  _input: TrainingModuleGenerationInput,
+): Promise<ServiceResult<{ modules: Array<{ title: string; skillCategory: string; description: string; quizData: TrainingModuleRecord["quizData"] }> }>> {
+  const accessResult = await getAccessContext(authUserId);
+
+  if (!accessResult.ok) {
+    return accessResult;
+  }
+
+  if (!canManageTrainingModule(accessResult.data)) {
+    return {
+      ok: false,
+      status: 403,
+      error: "Managers only",
+    };
+  }
+
+  const aiStatus = getTrainingAiStatus();
+  if (!aiStatus.available) {
+    return {
+      ok: false,
+      status: 422,
+      error: "AI curriculum generation is unavailable until OpenAI is configured",
+    };
+  }
+
+  return {
+    ok: false,
+    status: 501,
+    error: "AI curriculum generation is not implemented yet",
   };
 }
 
