@@ -447,7 +447,62 @@ describe("getTrainingAiStatus", () => {
 });
 
 describe("assignTrainingModule", () => {
-  it("scopes assignment to reps the manager can access", async () => {
+  it("returns rejected reps alongside the assigned reps", async () => {
+    mockAccessRepository({
+      actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
+      memberships: [
+        { orgId: "org-1", teamId: "team-a", userId: "mgr-1", membershipType: "manager" },
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+        { orgId: "org-1", teamId: "team-b", userId: "rep-2", membershipType: "rep" },
+      ],
+      grants: [
+        {
+          orgId: "org-1",
+          teamId: "team-a",
+          userId: "mgr-1",
+          permissionKey: "manage_team_training",
+        },
+      ],
+    });
+
+    const repository = createRepository({
+      findRepIdsByOrgId: vi.fn().mockResolvedValue(["rep-1", "rep-2"]),
+      findModuleById: vi.fn().mockResolvedValue({
+        id: "module-1",
+        orgId: "org-1",
+        title: "Module",
+        skillCategory: "Discovery",
+        videoUrl: null,
+        description: "Description",
+        quizData: null,
+        orderIndex: 1,
+        createdAt: new Date("2026-04-03T00:00:00.000Z"),
+      }),
+      assignModuleToRepIds: vi.fn().mockResolvedValue(undefined),
+    });
+
+    const result = await assignTrainingModule(repository, "mgr-1", "module-1", {
+      repIds: ["rep-1", "rep-2"],
+      dueDate: null,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected assignment");
+    expect(repository.assignModuleToRepIds).toHaveBeenCalledWith(
+      expect.objectContaining({
+        moduleId: "module-1",
+        repIds: ["rep-1"],
+      }),
+    );
+    expect(result.data.assignedRepIds).toEqual(["rep-1"]);
+    expect(result.data.rejectedRepIds).toEqual([
+      { repId: "rep-2", reason: "out_of_scope" },
+    ]);
+  });
+});
+
+describe("unassignTrainingModule", () => {
+  it("blocks unassignment for reps outside the manager's granted teams", async () => {
     mockAccessRepository({
       actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
       memberships: [
@@ -477,26 +532,31 @@ describe("assignTrainingModule", () => {
         orderIndex: 1,
         createdAt: new Date("2026-04-03T00:00:00.000Z"),
       }),
-      assignModuleToRepIds: vi.fn().mockResolvedValue(undefined),
+      findProgressByModuleId: vi.fn().mockResolvedValue([
+        {
+          id: "progress-1",
+          repId: "rep-2",
+          moduleId: "module-1",
+          status: "assigned",
+          score: null,
+          attempts: 1,
+          completedAt: null,
+          assignedBy: "mgr-1",
+          assignedAt: new Date("2026-04-03T00:00:00.000Z"),
+          dueDate: null,
+        },
+      ]),
+      removeModuleAssignmentsForRepIds: vi.fn(),
     });
 
-    const result = await assignTrainingModule(repository, "mgr-1", "module-1", {
-      repIds: ["rep-1", "rep-2"],
-      dueDate: null,
-    });
+    const result = await unassignTrainingModule(repository, "mgr-1", "module-1", "rep-2");
 
-    expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error("Expected assignment");
-    expect(repository.assignModuleToRepIds).toHaveBeenCalledWith(
-      expect.objectContaining({
-        moduleId: "module-1",
-        repIds: ["rep-1"],
-      }),
-    );
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("Expected unassign to be blocked");
+    expect(result.status).toBe(403);
+    expect(repository.removeModuleAssignmentsForRepIds).not.toHaveBeenCalled();
   });
-});
 
-describe("unassignTrainingModule", () => {
   it("blocks unassignment after progress has started", async () => {
     mockAccessRepository({
       actor: { id: "mgr-1", orgId: "org-1", role: "manager" },

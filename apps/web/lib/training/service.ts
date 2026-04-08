@@ -78,6 +78,16 @@ export type TrainingModuleAssignmentInput = {
   dueDate: string | null;
 };
 
+export type TrainingModuleAssignmentRejection = {
+  repId: string;
+  reason: "out_of_scope" | "not_found";
+};
+
+export type TrainingModuleAssignmentResult = {
+  assignedRepIds: string[];
+  rejectedRepIds: TrainingModuleAssignmentRejection[];
+};
+
 export type TrainingAiStatus = {
   available: boolean;
   reason: string | null;
@@ -723,7 +733,7 @@ export async function assignTrainingModule(
   authUserId: string,
   moduleId: string,
   input: TrainingModuleAssignmentInput,
-): Promise<ServiceResult<{ assignedRepIds: string[] }>> {
+): Promise<ServiceResult<TrainingModuleAssignmentResult>> {
   const accessResult = await getAccessContext(authUserId);
 
   if (!accessResult.ok) {
@@ -758,9 +768,26 @@ export async function assignTrainingModule(
     };
   }
 
+  const orgRepIds = new Set(await repository.findRepIdsByOrgId(orgId));
   const accessibleRepIds = getManagedRepIds(access);
-  const requestedRepIds = new Set(input.repIds);
-  const assignedRepIds = [...accessibleRepIds].filter((repId) => requestedRepIds.has(repId));
+  const assignedRepIds: string[] = [];
+  const rejectedRepIds: TrainingModuleAssignmentRejection[] = [];
+
+  for (const repId of input.repIds) {
+    if (!orgRepIds.has(repId)) {
+      rejectedRepIds.push({ repId, reason: "not_found" });
+      continue;
+    }
+
+    if (!accessibleRepIds.has(repId)) {
+      rejectedRepIds.push({ repId, reason: "out_of_scope" });
+      continue;
+    }
+
+    if (!assignedRepIds.includes(repId)) {
+      assignedRepIds.push(repId);
+    }
+  }
 
   await repository.assignModuleToRepIds({
     moduleId,
@@ -773,6 +800,7 @@ export async function assignTrainingModule(
     ok: true,
     data: {
       assignedRepIds,
+      rejectedRepIds,
     },
   };
 }
@@ -814,6 +842,15 @@ export async function unassignTrainingModule(
       ok: false,
       status: 404,
       error: "Module not found",
+    };
+  }
+
+  const managedRepIds = getManagedRepIds(access);
+  if (!managedRepIds.has(repId)) {
+    return {
+      ok: false,
+      status: 403,
+      error: "Managers can only manage reps on their granted teams",
     };
   }
 
