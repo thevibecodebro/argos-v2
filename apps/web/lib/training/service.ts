@@ -100,7 +100,7 @@ export type TrainingRepository = {
       orderIndex: number;
     }>,
   ): Promise<void>;
-  createModule?: (
+  createModule: (
     input: {
       orgId: string;
       title: string;
@@ -112,13 +112,13 @@ export type TrainingRepository = {
     },
   ) => Promise<TrainingModuleRecord>;
   findCurrentUserByAuthId(authUserId: string): Promise<DashboardUserRecord | null>;
-  findModuleById?: (moduleId: string) => Promise<TrainingModuleRecord | null>;
+  findModuleById: (moduleId: string) => Promise<TrainingModuleRecord | null>;
   findModulesByOrgId(orgId: string): Promise<TrainingModuleRecord[]>;
-  findProgressByModuleId?: (moduleId: string) => Promise<TrainingProgressRecord[]>;
+  findProgressByModuleId: (moduleId: string) => Promise<TrainingProgressRecord[]>;
   findProgressByRepId(repId: string): Promise<TrainingProgressRecord[]>;
   findRepIdsByOrgId(orgId: string): Promise<string[]>;
   findTeamProgressByOrgId(orgId: string): Promise<TrainingTeamProgress[]>;
-  updateModule?: (
+  updateModule: (
     moduleId: string,
     input: {
       title: string;
@@ -128,13 +128,13 @@ export type TrainingRepository = {
       quizData: TrainingModuleRecord["quizData"];
     },
   ) => Promise<TrainingModuleRecord>;
-  assignModuleToRepIds?: (input: {
+  assignModuleToRepIds: (input: {
     moduleId: string;
     repIds: string[];
     assignedBy: string;
     dueDate: Date | null;
   }) => Promise<void>;
-  removeModuleAssignmentsForRepIds?: (input: {
+  removeModuleAssignmentsForRepIds: (input: {
     moduleId: string;
     repIds: string[];
   }) => Promise<void>;
@@ -602,9 +602,18 @@ export async function getTrainingModuleDetail(
 }
 
 export function getTrainingAiStatus(): TrainingAiStatus {
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+
+  if (!apiKey) {
+    return {
+      available: false,
+      reason: "OPENAI_API_KEY is missing",
+    };
+  }
+
   return {
     available: true,
-    reason: "placeholder",
+    reason: null,
   };
 }
 
