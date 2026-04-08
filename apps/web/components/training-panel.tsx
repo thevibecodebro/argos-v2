@@ -188,6 +188,7 @@ export function TrainingPanel({
                 </button>
                 <button
                   className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-describedby={!aiAvailable ? "training-ai-unavailable" : undefined}
                   disabled={!aiAvailable}
                   onClick={() => {
                     if (!aiAvailable) {
@@ -210,7 +211,7 @@ export function TrainingPanel({
                 <span>Use the toolbar to open the manager modal shell.</span>
               )}
               {!aiAvailable ? (
-                <p className="mt-2 text-xs text-[#a9abb3]">
+                <p className="mt-2 text-xs text-[#a9abb3]" id="training-ai-unavailable">
                   AI curriculum generation is unavailable until OpenAI is configured.
                 </p>
               ) : null}
