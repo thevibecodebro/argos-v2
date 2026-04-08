@@ -413,6 +413,21 @@ describe("training routes", () => {
     expect(assignTrainingModule).not.toHaveBeenCalled();
   });
 
+  it("rejects impossible calendar dueDate values during assignment", async () => {
+    const route = await import("../../app/api/training/modules/[id]/assign/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/training/modules/module-1/assign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repIds: ["rep-1"], dueDate: "2026-02-31" }),
+      }),
+      { params: Promise.resolve({ id: "module-1" }) },
+    );
+
+    expect(response.status).toBe(400);
+    expect(assignTrainingModule).not.toHaveBeenCalled();
+  });
+
   it("calls unassign with the module and rep path params", async () => {
     unassignTrainingModule.mockResolvedValue({
       ok: true,

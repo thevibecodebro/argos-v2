@@ -31,8 +31,18 @@ function parseDueDate(value: unknown): string | null | undefined {
     return undefined;
   }
 
-  const parsed = Date.parse(trimmed);
-  if (Number.isNaN(parsed)) {
+  const [yearText, monthText, dayText] = trimmed.split("-");
+  const year = Number.parseInt(yearText, 10);
+  const month = Number.parseInt(monthText, 10);
+  const day = Number.parseInt(dayText, 10);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    Number.isNaN(parsed.getTime()) ||
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
     return undefined;
   }
 

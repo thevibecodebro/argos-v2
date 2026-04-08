@@ -3,6 +3,7 @@ import { createAccessRepository } from "@/lib/access/create-repository";
 import {
   assignTrainingModule,
   createTrainingModule,
+  generateTrainingModules,
   getTrainingAiStatus,
   unassignTrainingModule,
   updateTrainingModule,
@@ -20,9 +21,9 @@ function createRepository(
   overrides: Partial<TrainingRepository> = {},
 ): TrainingRepository {
   return {
-    countModulesByOrgId: vi.fn(),
+    countModulesByOrgId: vi.fn().mockResolvedValue(1),
     createModule: vi.fn(),
-    createModules: vi.fn(),
+    createModules: vi.fn().mockResolvedValue(undefined),
     findCurrentUserByAuthId: vi.fn(),
     findModuleById: vi.fn(),
     findModulesByOrgId: vi.fn(),
@@ -153,6 +154,60 @@ describe("getTrainingModules", () => {
 });
 
 describe("getTrainingTeamProgress", () => {
+  it("provisions starter modules before reading manager progress when the org is empty", async () => {
+    mockAccessRepository({
+      actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
+      memberships: [
+        { orgId: "org-1", teamId: "team-a", userId: "mgr-1", membershipType: "manager" },
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ],
+      grants: [
+        {
+          orgId: "org-1",
+          teamId: "team-a",
+          userId: "mgr-1",
+          permissionKey: "view_team_training",
+        },
+      ],
+    });
+
+    const repository = createRepository({
+      countModulesByOrgId: vi.fn().mockResolvedValue(0),
+      createModules: vi.fn().mockResolvedValue(undefined),
+      findModulesByOrgId: vi.fn().mockResolvedValue([
+        {
+          id: "module-1",
+          orgId: "org-1",
+          title: "Starter module",
+          skillCategory: "Discovery",
+          videoUrl: null,
+          description: "Desc",
+          quizData: null,
+          orderIndex: 1,
+          createdAt: new Date("2026-04-08T00:00:00.000Z"),
+        },
+      ]),
+      findProgressByModuleId: vi.fn().mockResolvedValue([]),
+      findTeamProgressByOrgId: vi.fn().mockResolvedValue([
+        {
+          repId: "rep-1",
+          firstName: "Riley",
+          lastName: "Stone",
+          email: "riley@example.com",
+          assigned: 0,
+          passed: 0,
+          completionRate: 0,
+        },
+      ]),
+    });
+
+    const result = await getTrainingTeamProgress(repository, "mgr-1");
+
+    expect(result.ok).toBe(true);
+    expect(repository.createModules).toHaveBeenCalledOnce();
+    expect(repository.findModulesByOrgId).toHaveBeenCalledWith("org-1");
+  });
+
   it("returns only team-scoped rep progress for managers", async () => {
     mockAccessRepository({
       actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
@@ -541,6 +596,84 @@ describe("getTrainingAiStatus", () => {
     const result = getTrainingAiStatus();
 
     expect(result.available).toBe(false);
+  });
+});
+
+describe("generateTrainingModules", () => {
+  it("returns generated draft modules when AI is configured", async () => {
+    mockAccessRepository({
+      actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
+      memberships: [{ orgId: "org-1", teamId: "team-a", userId: "mgr-1", membershipType: "manager" }],
+      grants: [
+        {
+          orgId: "org-1",
+          teamId: "team-a",
+          userId: "mgr-1",
+          permissionKey: "manage_team_training",
+        },
+      ],
+    });
+    vi.stubEnv("OPENAI_API_KEY", "test-openai-key");
+
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  modules: [
+                    {
+                      title: "Generated Discovery Deep Dive",
+                      skillCategory: "Discovery",
+                      description: "Teaches reps to uncover operational pain quickly.",
+                      quizData: {
+                        questions: [
+                          {
+                            question: "Why ask layered follow-ups?",
+                            options: ["To fill time", "To reveal root causes"],
+                            correctIndex: 1,
+                          },
+                        ],
+                      },
+                    },
+                  ],
+                }),
+              },
+            },
+          ],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await generateTrainingModules("mgr-1", {
+      topic: "Discovery",
+      targetRole: "Account Executive",
+      moduleCount: 1,
+      skillFocus: "Root-cause questioning",
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected generated modules");
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(result.data.modules).toEqual([
+      {
+        title: "Generated Discovery Deep Dive",
+        skillCategory: "Discovery",
+        description: "Teaches reps to uncover operational pain quickly.",
+        quizData: {
+          questions: [
+            {
+              question: "Why ask layered follow-ups?",
+              options: ["To fill time", "To reveal root causes"],
+              correctIndex: 1,
+            },
+          ],
+        },
+      },
+    ]);
   });
 });
 

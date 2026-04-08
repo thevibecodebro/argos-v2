@@ -44,6 +44,12 @@ type JsonResponse<T> =
   | { ok: true; data: T }
   | { ok: false; error: string; status: number };
 
+type ModuleSubmitTarget = {
+  endpoint: string;
+  method: "PATCH" | "POST";
+  moduleId: string | null;
+};
+
 const EMPTY_MODULE_FORM: ModuleFormState = {
   title: "",
   description: "",
@@ -133,6 +139,25 @@ async function readJsonResponse<T>(response: Response): Promise<JsonResponse<T>>
   };
 }
 
+export function getModuleSubmitTarget(
+  activeManagerModal: ManagerModal,
+  editingModuleId: string | null,
+): ModuleSubmitTarget {
+  if (activeManagerModal === "edit" && editingModuleId) {
+    return {
+      endpoint: `/api/training/modules/${editingModuleId}`,
+      method: "PATCH",
+      moduleId: editingModuleId,
+    };
+  }
+
+  return {
+    endpoint: "/api/training/modules",
+    method: "POST",
+    moduleId: null,
+  };
+}
+
 export function TrainingPanel({
   canManage,
   aiAvailable,
@@ -153,6 +178,7 @@ export function TrainingPanel({
   const [isManagerBusy, setIsManagerBusy] = useState(false);
   const [moduleForm, setModuleForm] = useState<ModuleFormState>(EMPTY_MODULE_FORM);
   const [generateForm, setGenerateForm] = useState<GenerateFormState>(EMPTY_GENERATE_FORM);
+  const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
   const [assigningModuleId, setAssigningModuleId] = useState<string | null>(null);
   const [assignRepIds, setAssignRepIds] = useState<string[]>([]);
   const [assignDueDate, setAssignDueDate] = useState("");
@@ -190,12 +216,14 @@ export function TrainingPanel({
     resetManagerFeedback();
     setGeneratedDrafts([]);
     setModuleForm(EMPTY_MODULE_FORM);
+    setEditingModuleId(null);
     setActiveManagerModal("create");
   }
 
   function openEditModal(module: TrainingModuleSummary) {
     resetManagerFeedback();
     setGeneratedDrafts([]);
+    setEditingModuleId(module.id);
     setModuleForm(moduleToFormState(module));
     setActiveManagerModal("edit");
   }
@@ -217,6 +245,7 @@ export function TrainingPanel({
 
   function closeManagerModal() {
     setActiveManagerModal(null);
+    setEditingModuleId(null);
     setAssigningModuleId(null);
     setAssignRepIds([]);
     setAssignDueDate("");
@@ -318,11 +347,9 @@ export function TrainingPanel({
       return;
     }
 
-    const selectedId = activeManagerModal === "edit" ? selectedModuleId : null;
-    const endpoint = selectedId ? `/api/training/modules/${selectedId}` : "/api/training/modules";
-    const method = selectedId ? "PATCH" : "POST";
-    const response = await fetch(endpoint, {
-      method,
+    const submitTarget = getModuleSubmitTarget(activeManagerModal, editingModuleId);
+    const response = await fetch(submitTarget.endpoint, {
+      method: submitTarget.method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title,
@@ -342,14 +369,14 @@ export function TrainingPanel({
 
     const nextModule = payload.data.module;
     setModules((current) => {
-      if (selectedId) {
+      if (submitTarget.moduleId) {
         return current.map((module) => (module.id === nextModule.id ? nextModule : module));
       }
 
       return [...current, nextModule].sort((left, right) => left.orderIndex - right.orderIndex);
     });
     setSelectedModuleId(nextModule.id);
-    setManagerMessage(selectedId ? "Module updated." : "Module created.");
+    setManagerMessage(submitTarget.moduleId ? "Module updated." : "Module created.");
     setIsManagerBusy(false);
     closeManagerModal();
   }

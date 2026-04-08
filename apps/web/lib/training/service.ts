@@ -129,6 +129,13 @@ export type TrainingModuleGenerationInput = {
   skillFocus: string;
 };
 
+type TrainingGeneratedModule = {
+  title: string;
+  skillCategory: string;
+  description: string;
+  quizData: TrainingModuleRecord["quizData"];
+};
+
 export type TrainingRepository = {
   countModulesByOrgId(orgId: string): Promise<number>;
   createModules(
@@ -439,6 +446,84 @@ async function ensureStarterModules(repository: TrainingRepository, orgId: strin
   );
 }
 
+function isQuizData(value: unknown): value is TrainingModuleRecord["quizData"] {
+  if (value === null) {
+    return true;
+  }
+
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const payload = value as { questions?: unknown };
+  if (!Array.isArray(payload.questions) || payload.questions.length === 0) {
+    return false;
+  }
+
+  return payload.questions.every((question) => {
+    if (!question || typeof question !== "object") {
+      return false;
+    }
+
+    const entry = question as {
+      question?: unknown;
+      options?: unknown;
+      correctIndex?: unknown;
+    };
+
+    return (
+      typeof entry.question === "string" &&
+      entry.question.trim().length > 0 &&
+      Array.isArray(entry.options) &&
+      entry.options.length > 0 &&
+      entry.options.every((option) => typeof option === "string" && option.trim().length > 0) &&
+      typeof entry.correctIndex === "number" &&
+      Number.isInteger(entry.correctIndex) &&
+      entry.correctIndex >= 0 &&
+      entry.correctIndex < entry.options.length
+    );
+  });
+}
+
+function parseGeneratedModulesContent(
+  content: string,
+  moduleCount: number,
+): TrainingGeneratedModule[] {
+  const payload = JSON.parse(content) as { modules?: unknown };
+
+  if (!Array.isArray(payload.modules) || payload.modules.length === 0) {
+    throw new Error("AI response did not include modules");
+  }
+
+  return payload.modules.slice(0, moduleCount).map((entry) => {
+    if (!entry || typeof entry !== "object") {
+      throw new Error("AI returned an invalid module shape");
+    }
+
+    const module = entry as {
+      title?: unknown;
+      skillCategory?: unknown;
+      description?: unknown;
+      quizData?: unknown;
+    };
+    const title = typeof module.title === "string" ? module.title.trim() : "";
+    const skillCategory = typeof module.skillCategory === "string" ? module.skillCategory.trim() : "";
+    const description = typeof module.description === "string" ? module.description.trim() : "";
+    const quizData = module.quizData === undefined ? null : module.quizData;
+
+    if (!title || !skillCategory || !description || !isQuizData(quizData)) {
+      throw new Error("AI returned malformed training module content");
+    }
+
+    return {
+      title,
+      skillCategory,
+      description,
+      quizData,
+    };
+  });
+}
+
 export async function getTrainingModules(
   repository: TrainingRepository,
   authUserId: string,
@@ -526,6 +611,8 @@ export async function getTrainingTeamProgress(
       error: "Managers only",
     };
   }
+
+  await ensureStarterModules(repository, orgId);
 
   const [rows, modules] = await Promise.all([
     repository.findTeamProgressByOrgId(orgId),
@@ -800,8 +887,8 @@ export function getTrainingAiStatus(): TrainingAiStatus {
 
 export async function generateTrainingModules(
   authUserId: string,
-  _input: TrainingModuleGenerationInput,
-): Promise<ServiceResult<{ modules: Array<{ title: string; skillCategory: string; description: string; quizData: TrainingModuleRecord["quizData"] }> }>> {
+  input: TrainingModuleGenerationInput,
+): Promise<ServiceResult<{ modules: TrainingGeneratedModule[] }>> {
   const accessResult = await getAccessContext(authUserId);
 
   if (!accessResult.ok) {
@@ -825,11 +912,78 @@ export async function generateTrainingModules(
     };
   }
 
-  return {
-    ok: false,
-    status: 501,
-    error: "AI curriculum generation is not implemented yet",
-  };
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  const model = process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-4.1-mini";
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content:
+              "You create sales training modules. Return valid JSON only with shape {\"modules\":[{title,skillCategory,description,quizData}]}. quizData must be null or {questions:[{question,options,correctIndex}]}.",
+          },
+          {
+            role: "user",
+            content: [
+              `Topic: ${input.topic}`,
+              `Target role: ${input.targetRole}`,
+              `Skill focus: ${input.skillFocus}`,
+              `Module count: ${input.moduleCount}`,
+              "Make each module distinct, practical, and concise. Include at least one quiz question per module unless a module clearly should have no quiz.",
+            ].join("\n"),
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => "");
+      return {
+        ok: false,
+        status: 501,
+        error: `AI curriculum generation failed: ${response.status}${errorBody ? ` ${errorBody}` : ""}`,
+      };
+    }
+
+    const payload = (await response.json()) as {
+      choices?: Array<{
+        message?: {
+          content?: string | null;
+        };
+      }>;
+    };
+    const content = payload.choices?.[0]?.message?.content;
+
+    if (typeof content !== "string" || !content.trim()) {
+      return {
+        ok: false,
+        status: 501,
+        error: "AI curriculum generation returned an empty response",
+      };
+    }
+
+    return {
+      ok: true,
+      data: {
+        modules: parseGeneratedModulesContent(content, input.moduleCount),
+      },
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      status: 501,
+      error: error instanceof Error ? error.message : "AI curriculum generation failed",
+    };
+  }
 }
 
 export async function assignTrainingModule(

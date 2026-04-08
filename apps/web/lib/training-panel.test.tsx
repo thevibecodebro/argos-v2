@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { TrainingPanel } from "../components/training-panel";
+import { getModuleSubmitTarget, TrainingPanel } from "../components/training-panel";
 
 const baseModules = [
   {
@@ -69,6 +69,19 @@ const initialTeamRows = [
 ];
 
 describe("TrainingPanel", () => {
+  it("uses the persisted editing module id instead of the live selection", () => {
+    expect(getModuleSubmitTarget("edit", "module-2")).toEqual({
+      endpoint: "/api/training/modules/module-2",
+      method: "PATCH",
+      moduleId: "module-2",
+    });
+    expect(getModuleSubmitTarget("edit", null)).toEqual({
+      endpoint: "/api/training/modules",
+      method: "POST",
+      moduleId: null,
+    });
+  });
+
   it("does not show Create module to reps", () => {
     const html = renderToStaticMarkup(
       <TrainingPanel
