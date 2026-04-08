@@ -349,6 +349,7 @@ export class SupabaseTrainingRepository implements TrainingRepository {
     }
 
     const supabase: any = this.supabase;
+    const assignedAt = new Date().toISOString();
     const { error } = await supabase.from("training_progress").upsert(
       input.repIds.map((repId) => ({
         rep_id: repId,
@@ -358,10 +359,10 @@ export class SupabaseTrainingRepository implements TrainingRepository {
         attempts: 0,
         completed_at: null,
         assigned_by: input.assignedBy,
-        assigned_at: new Date().toISOString(),
+        assigned_at: assignedAt,
         due_date: input.dueDate ? input.dueDate.toISOString() : null,
       })),
-      { onConflict: "rep_id,module_id", ignoreDuplicates: true },
+      { onConflict: "rep_id,module_id", ignoreDuplicates: true, defaultToNull: false },
     );
 
     if (error) {
