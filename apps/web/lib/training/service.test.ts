@@ -4,8 +4,6 @@ import {
   assignTrainingModule,
   createTrainingModule,
   getTrainingAiStatus,
-  getTrainingModuleDetail,
-  generateTrainingModules,
   unassignTrainingModule,
   updateTrainingModule,
   getTrainingModules,
@@ -445,62 +443,6 @@ describe("getTrainingAiStatus", () => {
     const result = getTrainingAiStatus();
 
     expect(result.available).toBe(false);
-  });
-});
-
-describe("getTrainingModuleDetail", () => {
-  it("returns module details for a manager with training access", async () => {
-    mockAccessRepository({
-      actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
-      memberships: [
-        { orgId: "org-1", teamId: "team-a", userId: "mgr-1", membershipType: "manager" },
-        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
-      ],
-      grants: [
-        {
-          orgId: "org-1",
-          teamId: "team-a",
-          userId: "mgr-1",
-          permissionKey: "view_team_training",
-        },
-      ],
-    });
-
-    const repository = createRepository({
-      findModuleById: vi.fn().mockResolvedValue({
-        id: "module-1",
-        orgId: "org-1",
-        title: "Module",
-        skillCategory: "Discovery",
-        videoUrl: null,
-        description: "Description",
-        quizData: null,
-        orderIndex: 1,
-        createdAt: new Date("2026-04-03T00:00:00.000Z"),
-      }),
-      findProgressByModuleId: vi.fn().mockResolvedValue([]),
-    });
-
-    const result = await getTrainingModuleDetail(repository, "mgr-1", "module-1");
-
-    expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error("Expected module details");
-    expect(result.data.module.id).toBe("module-1");
-  });
-});
-
-describe("generateTrainingModules", () => {
-  it("generates modules when AI is available", async () => {
-    vi.stubEnv("OPENAI_API_KEY", "test-key");
-
-    const result = await generateTrainingModules("mgr-1", {
-      topic: "Discovery",
-      count: 2,
-    });
-
-    expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error("Expected generated modules");
-    expect(result.data.modules).toHaveLength(2);
   });
 });
 

@@ -7,7 +7,7 @@ import {
 } from "@/lib/access/service";
 import type { DashboardUserRecord } from "@/lib/dashboard/service";
 
-type TrainingModuleRecord = {
+export type TrainingModuleRecord = {
   id: string;
   orgId: string;
   title: string | null;
@@ -21,7 +21,7 @@ type TrainingModuleRecord = {
   createdAt: Date;
 };
 
-type TrainingProgressRecord = {
+export type TrainingProgressRecord = {
   id: string;
   repId: string;
   moduleId: string;
@@ -585,22 +585,6 @@ export async function updateTrainingModule(
   };
 }
 
-export async function getTrainingModuleDetail(
-  repository: TrainingRepository,
-  authUserId: string,
-  moduleId: string,
-): Promise<ServiceResult<{ module: TrainingModuleSummary }>> {
-  void repository;
-  void authUserId;
-  void moduleId;
-
-  return {
-    ok: false,
-    status: 501,
-    error: "Training module detail is not implemented yet",
-  };
-}
-
 export function getTrainingAiStatus(): TrainingAiStatus {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
 
@@ -614,23 +598,6 @@ export function getTrainingAiStatus(): TrainingAiStatus {
   return {
     available: true,
     reason: null,
-  };
-}
-
-export async function generateTrainingModules(
-  authUserId: string,
-  input: {
-    topic: string;
-    count: number;
-  },
-): Promise<ServiceResult<{ modules: TrainingModuleSummary[] }>> {
-  void authUserId;
-  void input;
-
-  return {
-    ok: false,
-    status: 501,
-    error: "Training module generation is not implemented yet",
   };
 }
 

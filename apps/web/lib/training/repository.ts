@@ -8,7 +8,11 @@ import {
   type ArgosDb,
 } from "@argos-v2/db";
 import { parseAppUserRole } from "@/lib/users/roles";
-import type { TrainingRepository } from "./service";
+import type {
+  TrainingModuleRecord,
+  TrainingProgressRecord,
+  TrainingRepository,
+} from "./service";
 
 export class DrizzleTrainingRepository implements TrainingRepository {
   constructor(private readonly db: ArgosDb = getDb()) {}
@@ -40,6 +44,21 @@ export class DrizzleTrainingRepository implements TrainingRepository {
     }
 
     await this.db.insert(trainingModulesTable).values(modules);
+  }
+
+  async createModule(input: {
+    orgId: string;
+    title: string;
+    description: string;
+    skillCategory: string;
+    videoUrl: string | null;
+    quizData: {
+      questions: Array<{ question: string; options: string[]; correctIndex: number }>;
+    } | null;
+    orderIndex: number;
+  }): Promise<TrainingModuleRecord> {
+    void input;
+    throw new Error("TrainingRepository.createModule is not implemented in DrizzleTrainingRepository");
   }
 
   async findCurrentUserByAuthId(authUserId: string) {
@@ -99,6 +118,16 @@ export class DrizzleTrainingRepository implements TrainingRepository {
               : null,
         })),
       );
+  }
+
+  async findModuleById(moduleId: string): Promise<TrainingModuleRecord | null> {
+    void moduleId;
+    throw new Error("TrainingRepository.findModuleById is not implemented in DrizzleTrainingRepository");
+  }
+
+  async findProgressByModuleId(moduleId: string): Promise<TrainingProgressRecord[]> {
+    void moduleId;
+    throw new Error("TrainingRepository.findProgressByModuleId is not implemented in DrizzleTrainingRepository");
   }
 
   async findProgressByRepId(repId: string) {
@@ -164,6 +193,41 @@ export class DrizzleTrainingRepository implements TrainingRepository {
         completionRate: assigned > 0 ? Math.round((passed / assigned) * 100) : 0,
       };
     });
+  }
+
+  async updateModule(
+    moduleId: string,
+    input: {
+      title: string;
+      description: string;
+      skillCategory: string;
+      videoUrl: string | null;
+      quizData: {
+        questions: Array<{ question: string; options: string[]; correctIndex: number }>;
+      } | null;
+    },
+  ): Promise<TrainingModuleRecord> {
+    void moduleId;
+    void input;
+    throw new Error("TrainingRepository.updateModule is not implemented in DrizzleTrainingRepository");
+  }
+
+  async assignModuleToRepIds(input: {
+    moduleId: string;
+    repIds: string[];
+    assignedBy: string;
+    dueDate: Date | null;
+  }): Promise<void> {
+    void input;
+    throw new Error("TrainingRepository.assignModuleToRepIds is not implemented in DrizzleTrainingRepository");
+  }
+
+  async removeModuleAssignmentsForRepIds(input: {
+    moduleId: string;
+    repIds: string[];
+  }): Promise<void> {
+    void input;
+    throw new Error("TrainingRepository.removeModuleAssignmentsForRepIds is not implemented in DrizzleTrainingRepository");
   }
 
   async upsertProgress(input: {

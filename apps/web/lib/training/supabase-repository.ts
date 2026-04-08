@@ -1,5 +1,9 @@
 import { findUserWithOrgByAuthId, getSupabaseAdminClient, toDate } from "@/lib/supabase/admin-repository-helpers";
-import type { TrainingRepository } from "./service";
+import type {
+  TrainingModuleRecord,
+  TrainingProgressRecord,
+  TrainingRepository,
+} from "./service";
 
 export class SupabaseTrainingRepository implements TrainingRepository {
   constructor(private readonly supabase = getSupabaseAdminClient()) {}
@@ -53,6 +57,21 @@ export class SupabaseTrainingRepository implements TrainingRepository {
     }
   }
 
+  async createModule(input: {
+    orgId: string;
+    title: string;
+    description: string;
+    skillCategory: string;
+    videoUrl: string | null;
+    quizData: {
+      questions: Array<{ question: string; options: string[]; correctIndex: number }>;
+    } | null;
+    orderIndex: number;
+  }): Promise<TrainingModuleRecord> {
+    void input;
+    throw new Error("TrainingRepository.createModule is not implemented in SupabaseTrainingRepository");
+  }
+
   async findCurrentUserByAuthId(authUserId: string) {
     const user = await findUserWithOrgByAuthId(authUserId, this.supabase);
 
@@ -103,6 +122,16 @@ export class SupabaseTrainingRepository implements TrainingRepository {
     }));
   }
 
+  async findModuleById(moduleId: string): Promise<TrainingModuleRecord | null> {
+    void moduleId;
+    throw new Error("TrainingRepository.findModuleById is not implemented in SupabaseTrainingRepository");
+  }
+
+  async findProgressByModuleId(moduleId: string): Promise<TrainingProgressRecord[]> {
+    void moduleId;
+    throw new Error("TrainingRepository.findProgressByModuleId is not implemented in SupabaseTrainingRepository");
+  }
+
   async findProgressByRepId(repId: string) {
     const supabase: any = this.supabase;
     const { data, error } = await supabase
@@ -126,6 +155,21 @@ export class SupabaseTrainingRepository implements TrainingRepository {
       assignedAt: toDate(row.assigned_at),
       dueDate: toDate(row.due_date),
     }));
+  }
+
+  async findRepIdsByOrgId(orgId: string) {
+    const supabase: any = this.supabase;
+    const { data, error } = await supabase
+      .from("users")
+      .select("id")
+      .eq("org_id", orgId)
+      .eq("role", "rep");
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return (data ?? []).map((row: any) => row.id);
   }
 
   async findTeamProgressByOrgId(orgId: string) {
@@ -172,6 +216,41 @@ export class SupabaseTrainingRepository implements TrainingRepository {
         completionRate: assigned > 0 ? Math.round((passed / assigned) * 100) : 0,
       };
     });
+  }
+
+  async updateModule(
+    moduleId: string,
+    input: {
+      title: string;
+      description: string;
+      skillCategory: string;
+      videoUrl: string | null;
+      quizData: {
+        questions: Array<{ question: string; options: string[]; correctIndex: number }>;
+      } | null;
+    },
+  ): Promise<TrainingModuleRecord> {
+    void moduleId;
+    void input;
+    throw new Error("TrainingRepository.updateModule is not implemented in SupabaseTrainingRepository");
+  }
+
+  async assignModuleToRepIds(input: {
+    moduleId: string;
+    repIds: string[];
+    assignedBy: string;
+    dueDate: Date | null;
+  }): Promise<void> {
+    void input;
+    throw new Error("TrainingRepository.assignModuleToRepIds is not implemented in SupabaseTrainingRepository");
+  }
+
+  async removeModuleAssignmentsForRepIds(input: {
+    moduleId: string;
+    repIds: string[];
+  }): Promise<void> {
+    void input;
+    throw new Error("TrainingRepository.removeModuleAssignmentsForRepIds is not implemented in SupabaseTrainingRepository");
   }
 
   async upsertProgress(input: {
