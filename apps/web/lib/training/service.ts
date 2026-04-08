@@ -345,6 +345,30 @@ function getAccessibleRepIds(access: AccessContext, permissionKeys: TeamPermissi
   return repIds;
 }
 
+function hasManagerTrainingGrant(access: AccessContext) {
+  if (access.actor.role === "admin") {
+    return true;
+  }
+
+  if (access.actor.role !== "manager") {
+    return false;
+  }
+
+  return (access.grantedTeamIdsByPermission.get("manage_team_training")?.size ?? 0) > 0;
+}
+
+function getManagedRepIds(access: AccessContext) {
+  if (access.actor.role === "admin") {
+    return getAllRepIds(access);
+  }
+
+  return getAccessibleRepIds(access, ["manage_team_training"]);
+}
+
+function canManageTrainingModule(access: AccessContext) {
+  return hasManagerTrainingGrant(access);
+}
+
 function hasTrainingAccess(access: AccessContext) {
   if (access.actor.role === "admin" || access.actor.role === "executive" || access.actor.role === "rep") {
     return true;
@@ -427,9 +451,7 @@ export async function getTrainingModules(
         createdAt: module.createdAt.toISOString(),
         progress: serializeProgress(progressByModuleId.get(module.id)),
       })),
-      canManage:
-        access.actor.role === "admin" ||
-        getAccessibleRepIds(access, ["manage_team_training"]).size > 0,
+      canManage: canManageTrainingModule(access),
     },
   };
 }
@@ -556,14 +578,59 @@ export async function createTrainingModule(
   authUserId: string,
   input: TrainingModuleUpsertInput,
 ): Promise<ServiceResult<{ module: TrainingModuleSummary }>> {
-  void repository;
-  void authUserId;
-  void input;
+  const accessResult = await getAccessContext(authUserId);
+
+  if (!accessResult.ok) {
+    return accessResult;
+  }
+
+  const access = accessResult.data;
+  const orgId = access.actor.orgId;
+
+  if (!orgId) {
+    return {
+      ok: false,
+      status: 403,
+      error: "User must belong to an organization",
+    };
+  }
+
+  if (!canManageTrainingModule(access)) {
+    return {
+      ok: false,
+      status: 403,
+      error: "Managers only",
+    };
+  }
+
+  const orderIndex = (await repository.countModulesByOrgId(orgId)) + 1;
+  const module = await repository.createModule({
+    orgId,
+    title: input.title,
+    description: input.description,
+    skillCategory: input.skillCategory,
+    videoUrl: input.videoUrl,
+    quizData: input.quizData,
+    orderIndex,
+  });
 
   return {
-    ok: false,
-    status: 501,
-    error: "Training module creation is not implemented yet",
+    ok: true,
+    data: {
+      module: {
+        id: module.id,
+        orgId: module.orgId,
+        title: module.title ?? "",
+        skillCategory: module.skillCategory ?? "",
+        videoUrl: module.videoUrl,
+        description: module.description,
+        hasQuiz: !!module.quizData,
+        quizData: module.quizData,
+        orderIndex: module.orderIndex ?? 0,
+        createdAt: module.createdAt.toISOString(),
+        progress: null,
+      },
+    },
   };
 }
 
@@ -573,15 +640,65 @@ export async function updateTrainingModule(
   moduleId: string,
   input: TrainingModuleUpsertInput,
 ): Promise<ServiceResult<{ module: TrainingModuleSummary }>> {
-  void repository;
-  void authUserId;
-  void moduleId;
-  void input;
+  const accessResult = await getAccessContext(authUserId);
+
+  if (!accessResult.ok) {
+    return accessResult;
+  }
+
+  const access = accessResult.data;
+  const orgId = access.actor.orgId;
+
+  if (!orgId) {
+    return {
+      ok: false,
+      status: 403,
+      error: "User must belong to an organization",
+    };
+  }
+
+  if (!canManageTrainingModule(access)) {
+    return {
+      ok: false,
+      status: 403,
+      error: "Managers only",
+    };
+  }
+
+  const module = await repository.findModuleById(moduleId);
+  if (!module || module.orgId !== orgId) {
+    return {
+      ok: false,
+      status: 404,
+      error: "Module not found",
+    };
+  }
+
+  const updatedModule = await repository.updateModule(moduleId, {
+    title: input.title,
+    description: input.description,
+    skillCategory: input.skillCategory,
+    videoUrl: input.videoUrl,
+    quizData: input.quizData,
+  });
 
   return {
-    ok: false,
-    status: 501,
-    error: "Training module update is not implemented yet",
+    ok: true,
+    data: {
+      module: {
+        id: updatedModule.id,
+        orgId: updatedModule.orgId,
+        title: updatedModule.title ?? "",
+        skillCategory: updatedModule.skillCategory ?? "",
+        videoUrl: updatedModule.videoUrl,
+        description: updatedModule.description,
+        hasQuiz: !!updatedModule.quizData,
+        quizData: updatedModule.quizData,
+        orderIndex: updatedModule.orderIndex ?? 0,
+        createdAt: updatedModule.createdAt.toISOString(),
+        progress: null,
+      },
+    },
   };
 }
 
@@ -607,15 +724,56 @@ export async function assignTrainingModule(
   moduleId: string,
   input: TrainingModuleAssignmentInput,
 ): Promise<ServiceResult<{ assignedRepIds: string[] }>> {
-  void repository;
-  void authUserId;
-  void moduleId;
-  void input;
+  const accessResult = await getAccessContext(authUserId);
+
+  if (!accessResult.ok) {
+    return accessResult;
+  }
+
+  const access = accessResult.data;
+  const orgId = access.actor.orgId;
+
+  if (!orgId) {
+    return {
+      ok: false,
+      status: 403,
+      error: "User must belong to an organization",
+    };
+  }
+
+  if (!canManageTrainingModule(access)) {
+    return {
+      ok: false,
+      status: 403,
+      error: "Managers only",
+    };
+  }
+
+  const module = await repository.findModuleById(moduleId);
+  if (!module || module.orgId !== orgId) {
+    return {
+      ok: false,
+      status: 404,
+      error: "Module not found",
+    };
+  }
+
+  const accessibleRepIds = getManagedRepIds(access);
+  const requestedRepIds = new Set(input.repIds);
+  const assignedRepIds = [...accessibleRepIds].filter((repId) => requestedRepIds.has(repId));
+
+  await repository.assignModuleToRepIds({
+    moduleId,
+    repIds: assignedRepIds,
+    assignedBy: access.actor.id,
+    dueDate: input.dueDate ? new Date(input.dueDate) : null,
+  });
 
   return {
-    ok: false,
-    status: 501,
-    error: "Training module assignment is not implemented yet",
+    ok: true,
+    data: {
+      assignedRepIds,
+    },
   };
 }
 
@@ -625,14 +783,68 @@ export async function unassignTrainingModule(
   moduleId: string,
   repId: string,
 ): Promise<ServiceResult<{ unassignedRepId: string }>> {
-  void repository;
-  void authUserId;
-  void moduleId;
-  void repId;
+  const accessResult = await getAccessContext(authUserId);
+
+  if (!accessResult.ok) {
+    return accessResult;
+  }
+
+  const access = accessResult.data;
+  const orgId = access.actor.orgId;
+
+  if (!orgId) {
+    return {
+      ok: false,
+      status: 403,
+      error: "User must belong to an organization",
+    };
+  }
+
+  if (!canManageTrainingModule(access)) {
+    return {
+      ok: false,
+      status: 403,
+      error: "Managers only",
+    };
+  }
+
+  const module = await repository.findModuleById(moduleId);
+  if (!module || module.orgId !== orgId) {
+    return {
+      ok: false,
+      status: 404,
+      error: "Module not found",
+    };
+  }
+
+  const progress = await repository.findProgressByModuleId(moduleId);
+  const targetProgress = progress.find((entry) => entry.repId === repId);
+
+  if (!targetProgress) {
+    return {
+      ok: false,
+      status: 404,
+      error: "Progress not found",
+    };
+  }
+
+  if (targetProgress.status !== "assigned") {
+    return {
+      ok: false,
+      status: 409,
+      error: "Training progress has already started",
+    };
+  }
+
+  await repository.removeModuleAssignmentsForRepIds({
+    moduleId,
+    repIds: [repId],
+  });
 
   return {
-    ok: false,
-    status: 501,
-    error: "Training module unassignment is not implemented yet",
+    ok: true,
+    data: {
+      unassignedRepId: repId,
+    },
   };
 }
