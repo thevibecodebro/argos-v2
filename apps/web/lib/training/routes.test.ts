@@ -5,6 +5,7 @@ const createTrainingRepository = vi.fn();
 const createTrainingModule = vi.fn();
 const updateTrainingModule = vi.fn();
 const getTrainingAiStatus = vi.fn();
+const generateTrainingModules = vi.fn();
 const assignTrainingModule = vi.fn();
 const unassignTrainingModule = vi.fn();
 
@@ -20,6 +21,7 @@ vi.mock("@/lib/training/service", () => ({
   createTrainingModule,
   updateTrainingModule,
   getTrainingAiStatus,
+  generateTrainingModules,
   assignTrainingModule,
   unassignTrainingModule,
 }));
@@ -33,6 +35,7 @@ describe("training routes", () => {
     createTrainingModule.mockReset();
     updateTrainingModule.mockReset();
     getTrainingAiStatus.mockReset();
+    generateTrainingModules.mockReset();
     assignTrainingModule.mockReset();
     unassignTrainingModule.mockReset();
     createTrainingRepository.mockReturnValue({});
@@ -78,6 +81,46 @@ describe("training routes", () => {
     expect(createTrainingModule).not.toHaveBeenCalled();
   });
 
+  it("rejects empty trimmed fields on module creation", async () => {
+    const route = await import("../../app/api/training/modules/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/training/modules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "   ",
+          skillCategory: "Discovery",
+          description: "Desc",
+          videoUrl: null,
+          quizData: null,
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(createTrainingModule).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed quiz payloads on module creation", async () => {
+    const route = await import("../../app/api/training/modules/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/training/modules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "New module",
+          skillCategory: "Discovery",
+          description: "Desc",
+          videoUrl: null,
+          quizData: { questions: [{ question: "?", options: "nope", correctIndex: 0 }] },
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(createTrainingModule).not.toHaveBeenCalled();
+  });
+
   it("validates the module patch body", async () => {
     const route = await import("../../app/api/training/modules/[id]/route");
     const response = await route.PATCH(
@@ -96,6 +139,48 @@ describe("training routes", () => {
     expect(updateTrainingModule).not.toHaveBeenCalled();
   });
 
+  it("rejects empty trimmed fields on module patch", async () => {
+    const route = await import("../../app/api/training/modules/[id]/route");
+    const response = await route.PATCH(
+      new Request("http://localhost:3100/api/training/modules/module-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "  ",
+          skillCategory: "Discovery",
+          description: "Desc",
+          videoUrl: null,
+          quizData: null,
+        }),
+      }),
+      { params: Promise.resolve({ id: "module-1" }) },
+    );
+
+    expect(response.status).toBe(400);
+    expect(updateTrainingModule).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed quiz payloads on module patch", async () => {
+    const route = await import("../../app/api/training/modules/[id]/route");
+    const response = await route.PATCH(
+      new Request("http://localhost:3100/api/training/modules/module-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Module",
+          skillCategory: "Discovery",
+          description: "Desc",
+          videoUrl: null,
+          quizData: { questions: [{ question: "?", options: [], correctIndex: "0" }] },
+        }),
+      }),
+      { params: Promise.resolve({ id: "module-1" }) },
+    );
+
+    expect(response.status).toBe(400);
+    expect(updateTrainingModule).not.toHaveBeenCalled();
+  });
+
   it("returns the AI availability payload", async () => {
     getTrainingAiStatus.mockReturnValueOnce({ available: false, reason: "OPENAI_API_KEY is missing" });
 
@@ -107,7 +192,11 @@ describe("training routes", () => {
   });
 
   it("returns 422 when training generation is unavailable", async () => {
-    getTrainingAiStatus.mockReturnValueOnce({ available: false, reason: "OPENAI_API_KEY is missing" });
+    generateTrainingModules.mockResolvedValueOnce({
+      ok: false,
+      status: 422,
+      error: "AI curriculum generation is unavailable until OpenAI is configured",
+    });
 
     const route = await import("../../app/api/training/modules/generate/route");
     const response = await route.POST(
@@ -119,8 +208,90 @@ describe("training routes", () => {
     );
 
     expect(response.status).toBe(422);
-    expect(createTrainingModule).not.toHaveBeenCalled();
-    expect(updateTrainingModule).not.toHaveBeenCalled();
+    expect(generateTrainingModules).toHaveBeenCalledWith("auth-user-1", {
+      topic: "Discovery",
+      targetRole: "manager",
+      moduleCount: 2,
+      skillFocus: "objection handling",
+    });
+  });
+
+  it("returns 401 for unauthorized generation requests", async () => {
+    getAuthenticatedSupabaseUser.mockResolvedValue(null);
+
+    const route = await import("../../app/api/training/modules/generate/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/training/modules/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic: "Discovery",
+          targetRole: "manager",
+          moduleCount: 2,
+          skillFocus: "objection handling",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(401);
+    expect(generateTrainingModules).not.toHaveBeenCalled();
+  });
+
+  it("validates the generate body before delegating", async () => {
+    const route = await import("../../app/api/training/modules/generate/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/training/modules/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic: "  ",
+          targetRole: "manager",
+          moduleCount: 0,
+          skillFocus: "",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(generateTrainingModules).not.toHaveBeenCalled();
+  });
+
+  it("delegates generate requests to the service layer", async () => {
+    generateTrainingModules.mockResolvedValue({
+      ok: true,
+      data: {
+        modules: [
+          {
+            title: "Discovery",
+            skillCategory: "Discovery",
+            description: "Draft module",
+            quizData: null,
+          },
+        ],
+      },
+    });
+
+    const route = await import("../../app/api/training/modules/generate/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/training/modules/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic: "Discovery",
+          targetRole: "manager",
+          moduleCount: 2,
+          skillFocus: "objection handling",
+        }),
+      }),
+    );
+
+    expect(generateTrainingModules).toHaveBeenCalledWith("auth-user-1", {
+      topic: "Discovery",
+      targetRole: "manager",
+      moduleCount: 2,
+      skillFocus: "objection handling",
+    });
+    expect(response.status).toBe(200);
   });
 
   it("rejects invalid repIds during assignment", async () => {
@@ -138,6 +309,21 @@ describe("training routes", () => {
     await expect(response.json()).resolves.toMatchObject({
       error: expect.stringContaining("repIds"),
     });
+    expect(assignTrainingModule).not.toHaveBeenCalled();
+  });
+
+  it("rejects invalid dueDate during assignment", async () => {
+    const route = await import("../../app/api/training/modules/[id]/assign/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/training/modules/module-1/assign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repIds: ["rep-1"], dueDate: "not-a-date" }),
+      }),
+      { params: Promise.resolve({ id: "module-1" }) },
+    );
+
+    expect(response.status).toBe(400);
     expect(assignTrainingModule).not.toHaveBeenCalled();
   });
 
