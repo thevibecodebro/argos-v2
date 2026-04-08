@@ -113,5 +113,7 @@ describe("TrainingPanel", () => {
 
     expect(html).toContain("AI curriculum generation is unavailable until OpenAI is configured.");
     expect(html).toContain('disabled=""');
+    expect(html).toContain('aria-describedby="training-ai-unavailable"');
+    expect(html).toContain('id="training-ai-unavailable"');
   });
 });
