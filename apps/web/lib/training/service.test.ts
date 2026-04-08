@@ -172,6 +172,33 @@ describe("getTrainingTeamProgress", () => {
     });
 
     const repository = createRepository({
+      findModulesByOrgId: vi.fn().mockResolvedValue([
+        {
+          id: "module-1",
+          orgId: "org-1",
+          title: "Discovery That Finds the Real Pain",
+          skillCategory: "Discovery",
+          videoUrl: null,
+          description: "Desc",
+          quizData: null,
+          orderIndex: 1,
+          createdAt: new Date("2026-04-08T00:00:00.000Z"),
+        },
+      ]),
+      findProgressByModuleId: vi.fn().mockResolvedValue([
+        {
+          id: "progress-1",
+          repId: "rep-1",
+          moduleId: "module-1",
+          status: "passed",
+          score: 93,
+          attempts: 1,
+          completedAt: new Date("2026-04-08T00:00:00.000Z"),
+          assignedBy: "mgr-1",
+          assignedAt: new Date("2026-04-07T00:00:00.000Z"),
+          dueDate: null,
+        },
+      ]),
       findTeamProgressByOrgId: vi.fn().mockResolvedValue([
         {
           repId: "rep-1",
@@ -209,6 +236,25 @@ describe("getTrainingTeamProgress", () => {
         completionRate: 67,
       },
     ]);
+    expect(result.data.progress).toEqual({
+      modules: [{ id: "module-1", title: "Discovery That Finds the Real Pain" }],
+      repProgress: [
+        {
+          repId: "rep-1",
+          firstName: "Riley",
+          lastName: "Stone",
+          moduleProgress: [
+            {
+              moduleId: "module-1",
+              moduleTitle: "Discovery That Finds the Real Pain",
+              status: "passed",
+              score: 93,
+              attempts: 1,
+            },
+          ],
+        },
+      ],
+    });
   });
 
   it("keeps executive team progress org-wide without requiring team memberships", async () => {
@@ -220,6 +266,33 @@ describe("getTrainingTeamProgress", () => {
 
     const repository = createRepository({
       findRepIdsByOrgId: vi.fn().mockResolvedValue(["rep-1", "rep-2"]),
+      findModulesByOrgId: vi.fn().mockResolvedValue([
+        {
+          id: "module-1",
+          orgId: "org-1",
+          title: "Discovery That Finds the Real Pain",
+          skillCategory: "Discovery",
+          videoUrl: null,
+          description: "Desc",
+          quizData: null,
+          orderIndex: 1,
+          createdAt: new Date("2026-04-08T00:00:00.000Z"),
+        },
+      ]),
+      findProgressByModuleId: vi.fn().mockResolvedValue([
+        {
+          id: "progress-1",
+          repId: "rep-2",
+          moduleId: "module-1",
+          status: "in_progress",
+          score: null,
+          attempts: 2,
+          completedAt: null,
+          assignedBy: "mgr-1",
+          assignedAt: new Date("2026-04-07T00:00:00.000Z"),
+          dueDate: null,
+        },
+      ]),
       findTeamProgressByOrgId: vi.fn().mockResolvedValue([
         {
           repId: "rep-1",
@@ -248,6 +321,31 @@ describe("getTrainingTeamProgress", () => {
     if (!result.ok) throw new Error("Expected org-wide team progress");
     expect(result.data.rows).toHaveLength(2);
     expect(result.data.rows.map((row) => row.repId)).toEqual(["rep-1", "rep-2"]);
+    expect(result.data.progress.modules).toEqual([
+      { id: "module-1", title: "Discovery That Finds the Real Pain" },
+    ]);
+    expect(result.data.progress.repProgress).toEqual([
+      {
+        repId: "rep-1",
+        firstName: "Riley",
+        lastName: "Stone",
+        moduleProgress: [],
+      },
+      {
+        repId: "rep-2",
+        firstName: "Taylor",
+        lastName: "Jones",
+        moduleProgress: [
+          {
+            moduleId: "module-1",
+            moduleTitle: "Discovery That Finds the Real Pain",
+            status: "in_progress",
+            score: null,
+            attempts: 2,
+          },
+        ],
+      },
+    ]);
   });
 });
 

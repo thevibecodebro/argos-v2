@@ -6,7 +6,11 @@ import { assignTrainingModule } from "@/lib/training/service";
 export const dynamic = "force-dynamic";
 
 function isNonEmptyStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((entry) => typeof entry === "string" && entry.trim().length > 0);
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every((entry) => typeof entry === "string" && entry.trim().length > 0)
+  );
 }
 
 function parseDueDate(value: unknown): string | null | undefined {
@@ -20,6 +24,10 @@ function parseDueDate(value: unknown): string | null | undefined {
 
   const trimmed = value.trim();
   if (!trimmed) {
+    return undefined;
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
     return undefined;
   }
 

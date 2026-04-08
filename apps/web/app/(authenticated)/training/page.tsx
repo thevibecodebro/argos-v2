@@ -2,18 +2,19 @@ import { PageFrame } from "@/components/page-frame";
 import { TrainingPanel } from "@/components/training-panel";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { createTrainingRepository } from "@/lib/training/create-repository";
-import { getTrainingModules, getTrainingTeamProgress } from "@/lib/training/service";
+import { getTrainingAiStatus, getTrainingModules, getTrainingTeamProgress } from "@/lib/training/service";
 
 export const dynamic = "force-dynamic";
 
 export default async function TrainingPage() {
   const authUser = await getAuthenticatedSupabaseUser();
-  const [modulesResult, teamProgressResult] = authUser
+  const [modulesResult, teamProgressResult, aiStatus] = authUser
     ? await Promise.all([
         getTrainingModules(createTrainingRepository(), authUser.id),
         getTrainingTeamProgress(createTrainingRepository(), authUser.id),
+        Promise.resolve(getTrainingAiStatus()),
       ])
-    : [null, null];
+    : [null, null, { available: false, reason: null }];
 
   return (
     <PageFrame
@@ -23,8 +24,10 @@ export default async function TrainingPage() {
       title="Training"
     >
       <TrainingPanel
+        aiAvailable={aiStatus.available}
         canManage={modulesResult?.ok ? modulesResult.data.canManage : false}
         initialModules={modulesResult?.ok ? modulesResult.data.modules : []}
+        initialTeamProgress={teamProgressResult?.ok ? teamProgressResult.data.progress : { modules: [], repProgress: [] }}
         initialTeamRows={teamProgressResult?.ok ? teamProgressResult.data.rows : []}
       />
     </PageFrame>

@@ -43,6 +43,7 @@ function isQuizData(value: unknown): value is TrainingModuleRecord["quizData"] {
       Array.isArray(entry.options) &&
       entry.options.length > 0 &&
       entry.options.every((option) => typeof option === "string" && option.trim().length > 0) &&
+      typeof entry.correctIndex === "number" &&
       Number.isInteger(entry.correctIndex) &&
       entry.correctIndex >= 0 &&
       entry.correctIndex < entry.options.length

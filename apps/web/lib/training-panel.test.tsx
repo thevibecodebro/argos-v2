@@ -56,6 +56,18 @@ const initialTeamProgress = {
   ],
 };
 
+const initialTeamRows = [
+  {
+    repId: "rep-1",
+    firstName: "Maya",
+    lastName: "Chen",
+    email: "maya@example.com",
+    assigned: 2,
+    passed: 1,
+    completionRate: 50,
+  },
+];
+
 describe("TrainingPanel", () => {
   it("does not show Create module to reps", () => {
     const html = renderToStaticMarkup(
@@ -64,6 +76,7 @@ describe("TrainingPanel", () => {
         canManage={false}
         initialModules={baseModules}
         initialTeamProgress={initialTeamProgress}
+        initialTeamRows={initialTeamRows}
       />,
     );
 
@@ -78,10 +91,13 @@ describe("TrainingPanel", () => {
         canManage
         initialModules={baseModules}
         initialTeamProgress={initialTeamProgress}
+        initialTeamRows={initialTeamRows}
       />,
     );
 
     expect(html).toContain("Create module");
+    expect(html).toContain("Edit module");
+    expect(html).toContain("Assign module");
     expect(html).toContain("Team Progress");
     expect(html).toContain("Discovery That Finds the Real Pain");
     expect(html).toContain("Maya Chen");
@@ -95,6 +111,7 @@ describe("TrainingPanel", () => {
         canManage
         initialModules={baseModules}
         initialTeamProgress={initialTeamProgress}
+        initialTeamRows={initialTeamRows}
       />,
     );
 
@@ -108,6 +125,7 @@ describe("TrainingPanel", () => {
         canManage
         initialModules={baseModules}
         initialTeamProgress={initialTeamProgress}
+        initialTeamRows={initialTeamRows}
       />,
     );
 

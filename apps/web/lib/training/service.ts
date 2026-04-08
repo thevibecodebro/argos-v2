@@ -65,6 +65,31 @@ export type TrainingTeamProgress = {
   completionRate: number;
 };
 
+export type TrainingProgressModuleSummary = {
+  id: string;
+  title: string;
+};
+
+export type TrainingRepModuleProgress = {
+  moduleId: string;
+  moduleTitle: string;
+  status: string;
+  score: number | null;
+  attempts: number;
+};
+
+export type TrainingRepProgress = {
+  repId: string;
+  firstName: string | null;
+  lastName: string | null;
+  moduleProgress: TrainingRepModuleProgress[];
+};
+
+export type TrainingTeamProgressShell = {
+  modules: TrainingProgressModuleSummary[];
+  repProgress: TrainingRepProgress[];
+};
+
 export type TrainingModuleUpsertInput = {
   title: string;
   description: string;
@@ -476,7 +501,7 @@ export async function getTrainingModules(
 export async function getTrainingTeamProgress(
   repository: TrainingRepository,
   authUserId: string,
-): Promise<ServiceResult<{ rows: TrainingTeamProgress[] }>> {
+): Promise<ServiceResult<{ rows: TrainingTeamProgress[]; progress: TrainingTeamProgressShell }>> {
   const accessResult = await getAccessContext(authUserId);
 
   if (!accessResult.ok) {
@@ -502,16 +527,54 @@ export async function getTrainingTeamProgress(
     };
   }
 
-  const rows = await repository.findTeamProgressByOrgId(orgId);
+  const [rows, modules] = await Promise.all([
+    repository.findTeamProgressByOrgId(orgId),
+    repository.findModulesByOrgId(orgId),
+  ]);
   const accessibleRepIds =
     access.actor.role === "admin" || access.actor.role === "executive"
       ? new Set(await repository.findRepIdsByOrgId(orgId))
       : getAccessibleRepIds(access, ["view_team_training", "manage_team_training"]);
+  const filteredRows = rows.filter((row) => accessibleRepIds.has(row.repId));
+  const progressByModule = await Promise.all(
+    modules.map(async (module) => ({
+      module,
+      progress: await repository.findProgressByModuleId(module.id),
+    })),
+  );
 
   return {
     ok: true,
     data: {
-      rows: rows.filter((row) => accessibleRepIds.has(row.repId)),
+      rows: filteredRows,
+      progress: {
+        modules: modules.map((module) => ({
+          id: module.id,
+          title: module.title ?? "",
+        })),
+        repProgress: filteredRows.map((row) => ({
+          repId: row.repId,
+          firstName: row.firstName,
+          lastName: row.lastName,
+          moduleProgress: progressByModule.flatMap(({ module, progress }) => {
+            const entry = progress.find((item) => item.repId === row.repId);
+
+            if (!entry) {
+              return [];
+            }
+
+            return [
+              {
+                moduleId: module.id,
+                moduleTitle: module.title ?? "",
+                status: entry.status,
+                score: entry.score,
+                attempts: entry.attempts,
+              },
+            ];
+          }),
+        })),
+      },
     },
   };
 }

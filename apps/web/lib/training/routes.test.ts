@@ -4,6 +4,7 @@ const getAuthenticatedSupabaseUser = vi.fn();
 const createTrainingRepository = vi.fn();
 const createTrainingModule = vi.fn();
 const updateTrainingModule = vi.fn();
+const getTrainingTeamProgress = vi.fn();
 const getTrainingAiStatus = vi.fn();
 const generateTrainingModules = vi.fn();
 const assignTrainingModule = vi.fn();
@@ -20,6 +21,7 @@ vi.mock("@/lib/training/create-repository", () => ({
 vi.mock("@/lib/training/service", () => ({
   createTrainingModule,
   updateTrainingModule,
+  getTrainingTeamProgress,
   getTrainingAiStatus,
   generateTrainingModules,
   assignTrainingModule,
@@ -34,6 +36,7 @@ describe("training routes", () => {
     createTrainingRepository.mockReset();
     createTrainingModule.mockReset();
     updateTrainingModule.mockReset();
+    getTrainingTeamProgress.mockReset();
     getTrainingAiStatus.mockReset();
     generateTrainingModules.mockReset();
     assignTrainingModule.mockReset();
@@ -185,10 +188,58 @@ describe("training routes", () => {
     getTrainingAiStatus.mockReturnValueOnce({ available: false, reason: "OPENAI_API_KEY is missing" });
 
     const route = await import("../../app/api/training/ai-status/route");
-    const response = await route.GET(new Request("http://localhost:3100/api/training/ai-status"));
+    const response = await route.GET();
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ available: false });
+  });
+
+  it("returns the richer team progress payload", async () => {
+    getTrainingTeamProgress.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        rows: [
+          {
+            repId: "rep-1",
+            firstName: "Maya",
+            lastName: "Chen",
+            email: "maya@example.com",
+            assigned: 1,
+            passed: 1,
+            completionRate: 100,
+          },
+        ],
+        progress: {
+          modules: [{ id: "module-1", title: "Discovery" }],
+          repProgress: [
+            {
+              repId: "rep-1",
+              firstName: "Maya",
+              lastName: "Chen",
+              moduleProgress: [
+                {
+                  moduleId: "module-1",
+                  moduleTitle: "Discovery",
+                  status: "passed",
+                  score: 91,
+                  attempts: 1,
+                },
+              ],
+            },
+          ],
+        },
+      },
+    });
+
+    const route = await import("../../app/api/training/team-progress/route");
+    const response = await route.GET();
+
+    expect(getTrainingTeamProgress).toHaveBeenCalledWith({}, "auth-user-1");
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      rows: [{ repId: "rep-1" }],
+      progress: { modules: [{ id: "module-1" }] },
+    });
   });
 
   it("returns 422 when training generation is unavailable", async () => {
@@ -317,6 +368,21 @@ describe("training routes", () => {
     expect(assignTrainingModule).not.toHaveBeenCalled();
   });
 
+  it("rejects empty repIds during assignment", async () => {
+    const route = await import("../../app/api/training/modules/[id]/assign/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/training/modules/module-1/assign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repIds: [] }),
+      }),
+      { params: Promise.resolve({ id: "module-1" }) },
+    );
+
+    expect(response.status).toBe(400);
+    expect(assignTrainingModule).not.toHaveBeenCalled();
+  });
+
   it("rejects invalid dueDate during assignment", async () => {
     const route = await import("../../app/api/training/modules/[id]/assign/route");
     const response = await route.POST(
@@ -324,6 +390,21 @@ describe("training routes", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ repIds: ["rep-1"], dueDate: "not-a-date" }),
+      }),
+      { params: Promise.resolve({ id: "module-1" }) },
+    );
+
+    expect(response.status).toBe(400);
+    expect(assignTrainingModule).not.toHaveBeenCalled();
+  });
+
+  it("rejects non-ISO dueDate strings during assignment", async () => {
+    const route = await import("../../app/api/training/modules/[id]/assign/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/training/modules/module-1/assign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repIds: ["rep-1"], dueDate: "2026/04/08" }),
       }),
       { params: Promise.resolve({ id: "module-1" }) },
     );

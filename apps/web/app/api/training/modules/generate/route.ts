@@ -19,7 +19,7 @@ function parseGenerateBody(body: unknown) {
     return null;
   }
 
-  if (!Number.isInteger(moduleCount) || moduleCount <= 0) {
+  if (typeof moduleCount !== "number" || !Number.isInteger(moduleCount) || moduleCount <= 0) {
     return null;
   }
 
