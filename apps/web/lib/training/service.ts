@@ -65,9 +65,27 @@ export type TrainingTeamProgress = {
   completionRate: number;
 };
 
+export type TrainingModuleUpsertInput = {
+  title: string;
+  description: string;
+  skillCategory: string;
+  videoUrl: string | null;
+  quizData: TrainingModuleRecord["quizData"];
+};
+
+export type TrainingModuleAssignmentInput = {
+  repIds: string[];
+  dueDate: string | null;
+};
+
+export type TrainingAiStatus = {
+  available: boolean;
+  reason: string | null;
+};
+
 type ServiceResult<T> =
   | { ok: true; data: T }
-  | { ok: false; status: 403 | 404; error: string };
+  | { ok: false; status: 403 | 404 | 409 | 501; error: string };
 
 export type TrainingRepository = {
   countModulesByOrgId(orgId: string): Promise<number>;
@@ -82,11 +100,44 @@ export type TrainingRepository = {
       orderIndex: number;
     }>,
   ): Promise<void>;
+  createModule?: (
+    input: {
+      orgId: string;
+      title: string;
+      description: string;
+      skillCategory: string;
+      videoUrl: string | null;
+      quizData: TrainingModuleRecord["quizData"];
+      orderIndex: number;
+    },
+  ) => Promise<TrainingModuleRecord>;
   findCurrentUserByAuthId(authUserId: string): Promise<DashboardUserRecord | null>;
+  findModuleById?: (moduleId: string) => Promise<TrainingModuleRecord | null>;
   findModulesByOrgId(orgId: string): Promise<TrainingModuleRecord[]>;
+  findProgressByModuleId?: (moduleId: string) => Promise<TrainingProgressRecord[]>;
   findProgressByRepId(repId: string): Promise<TrainingProgressRecord[]>;
   findRepIdsByOrgId(orgId: string): Promise<string[]>;
   findTeamProgressByOrgId(orgId: string): Promise<TrainingTeamProgress[]>;
+  updateModule?: (
+    moduleId: string,
+    input: {
+      title: string;
+      description: string;
+      skillCategory: string;
+      videoUrl: string | null;
+      quizData: TrainingModuleRecord["quizData"];
+    },
+  ) => Promise<TrainingModuleRecord>;
+  assignModuleToRepIds?: (input: {
+    moduleId: string;
+    repIds: string[];
+    assignedBy: string;
+    dueDate: Date | null;
+  }) => Promise<void>;
+  removeModuleAssignmentsForRepIds?: (input: {
+    moduleId: string;
+    repIds: string[];
+  }) => Promise<void>;
   upsertProgress(input: {
     moduleId: string;
     repId: string;
@@ -497,5 +548,115 @@ export async function submitTrainingProgress(
       score: progress.score,
       attempts: progress.attempts,
     },
+  };
+}
+
+export async function createTrainingModule(
+  repository: TrainingRepository,
+  authUserId: string,
+  input: TrainingModuleUpsertInput,
+): Promise<ServiceResult<{ module: TrainingModuleSummary }>> {
+  void repository;
+  void authUserId;
+  void input;
+
+  return {
+    ok: false,
+    status: 501,
+    error: "Training module creation is not implemented yet",
+  };
+}
+
+export async function updateTrainingModule(
+  repository: TrainingRepository,
+  authUserId: string,
+  moduleId: string,
+  input: TrainingModuleUpsertInput,
+): Promise<ServiceResult<{ module: TrainingModuleSummary }>> {
+  void repository;
+  void authUserId;
+  void moduleId;
+  void input;
+
+  return {
+    ok: false,
+    status: 501,
+    error: "Training module update is not implemented yet",
+  };
+}
+
+export async function getTrainingModuleDetail(
+  repository: TrainingRepository,
+  authUserId: string,
+  moduleId: string,
+): Promise<ServiceResult<{ module: TrainingModuleSummary }>> {
+  void repository;
+  void authUserId;
+  void moduleId;
+
+  return {
+    ok: false,
+    status: 501,
+    error: "Training module detail is not implemented yet",
+  };
+}
+
+export function getTrainingAiStatus(): TrainingAiStatus {
+  return {
+    available: true,
+    reason: "placeholder",
+  };
+}
+
+export async function generateTrainingModules(
+  authUserId: string,
+  input: {
+    topic: string;
+    count: number;
+  },
+): Promise<ServiceResult<{ modules: TrainingModuleSummary[] }>> {
+  void authUserId;
+  void input;
+
+  return {
+    ok: false,
+    status: 501,
+    error: "Training module generation is not implemented yet",
+  };
+}
+
+export async function assignTrainingModule(
+  repository: TrainingRepository,
+  authUserId: string,
+  moduleId: string,
+  input: TrainingModuleAssignmentInput,
+): Promise<ServiceResult<{ assignedRepIds: string[] }>> {
+  void repository;
+  void authUserId;
+  void moduleId;
+  void input;
+
+  return {
+    ok: false,
+    status: 501,
+    error: "Training module assignment is not implemented yet",
+  };
+}
+
+export async function unassignTrainingModule(
+  repository: TrainingRepository,
+  authUserId: string,
+  moduleId: string,
+  repId: string,
+): Promise<ServiceResult<{ unassignedRepId: string }>> {
+  void repository;
+  void authUserId;
+  void moduleId;
+  void repId;
+
+  return {
+    ok: false,
+    status: 501,
+    error: "Training module unassignment is not implemented yet",
   };
 }

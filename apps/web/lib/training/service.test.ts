@@ -1,6 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createAccessRepository } from "@/lib/access/create-repository";
 import {
+  assignTrainingModule,
+  createTrainingModule,
+  getTrainingAiStatus,
+  unassignTrainingModule,
+  updateTrainingModule,
   getTrainingModules,
   getTrainingTeamProgress,
   submitTrainingProgress,
@@ -16,16 +21,27 @@ function createRepository(
 ): TrainingRepository {
   return {
     countModulesByOrgId: vi.fn(),
+    createModule: vi.fn(),
     createModules: vi.fn(),
     findCurrentUserByAuthId: vi.fn(),
+    findModuleById: vi.fn(),
     findModulesByOrgId: vi.fn(),
+    findProgressByModuleId: vi.fn(),
     findProgressByRepId: vi.fn(),
     findRepIdsByOrgId: vi.fn().mockResolvedValue([]),
     findTeamProgressByOrgId: vi.fn(),
+    updateModule: vi.fn(),
+    assignModuleToRepIds: vi.fn(),
+    removeModuleAssignmentsForRepIds: vi.fn(),
     upsertProgress: vi.fn(),
     ...overrides,
   };
 }
+
+afterEach(() => {
+  vi.clearAllMocks();
+  vi.unstubAllEnvs();
+});
 
 function mockAccessRepository(input: {
   actor: { id: string; orgId: string; role: "admin" | "executive" | "manager" | "rep" | null };
@@ -289,5 +305,249 @@ describe("submitTrainingProgress", () => {
     expect(result.data.status).toBe("passed");
     expect(result.data.score).toBe(100);
     expect(result.data.attempts).toBe(1);
+  });
+});
+
+describe("createTrainingModule", () => {
+  it("allows a manager with manage_team_training to create a module", async () => {
+    mockAccessRepository({
+      actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
+      memberships: [
+        { orgId: "org-1", teamId: "team-a", userId: "mgr-1", membershipType: "manager" },
+      ],
+      grants: [
+        {
+          orgId: "org-1",
+          teamId: "team-a",
+          userId: "mgr-1",
+          permissionKey: "manage_team_training",
+        },
+      ],
+    });
+
+    const repository = createRepository({
+      countModulesByOrgId: vi.fn().mockResolvedValue(0),
+      createModule: vi.fn().mockResolvedValue({
+        id: "module-1",
+        orgId: "org-1",
+        title: "New Module",
+        skillCategory: "Discovery",
+        videoUrl: null,
+        description: "Module description",
+        quizData: null,
+        orderIndex: 1,
+        createdAt: new Date("2026-04-03T00:00:00.000Z"),
+      }),
+    });
+
+    const result = await createTrainingModule(repository, "mgr-1", {
+      title: "New Module",
+      description: "Module description",
+      skillCategory: "Discovery",
+      videoUrl: null,
+      quizData: null,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected module creation");
+    expect(repository.createModule).toHaveBeenCalled();
+    expect(result.data.module.title).toBe("New Module");
+  });
+
+  it("denies a rep from creating a module", async () => {
+    mockAccessRepository({
+      actor: { id: "rep-1", orgId: "org-1", role: "rep" },
+      memberships: [
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ],
+      grants: [],
+    });
+
+    const repository = createRepository();
+
+    const result = await createTrainingModule(repository, "rep-1", {
+      title: "New Module",
+      description: "Module description",
+      skillCategory: "Discovery",
+      videoUrl: null,
+      quizData: null,
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("Expected create to be denied");
+    expect(result.status).toBe(403);
+  });
+});
+
+describe("updateTrainingModule", () => {
+  it("allows a manager with manage_team_training to update a module", async () => {
+    mockAccessRepository({
+      actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
+      memberships: [
+        { orgId: "org-1", teamId: "team-a", userId: "mgr-1", membershipType: "manager" },
+      ],
+      grants: [
+        {
+          orgId: "org-1",
+          teamId: "team-a",
+          userId: "mgr-1",
+          permissionKey: "manage_team_training",
+        },
+      ],
+    });
+
+    const repository = createRepository({
+      findModuleById: vi.fn().mockResolvedValue({
+        id: "module-1",
+        orgId: "org-1",
+        title: "Old Title",
+        skillCategory: "Discovery",
+        videoUrl: null,
+        description: "Old description",
+        quizData: null,
+        orderIndex: 1,
+        createdAt: new Date("2026-04-03T00:00:00.000Z"),
+      }),
+      updateModule: vi.fn().mockResolvedValue({
+        id: "module-1",
+        orgId: "org-1",
+        title: "Updated Title",
+        skillCategory: "Discovery",
+        videoUrl: null,
+        description: "Updated description",
+        quizData: null,
+        orderIndex: 1,
+        createdAt: new Date("2026-04-03T00:00:00.000Z"),
+      }),
+    });
+
+    const result = await updateTrainingModule(repository, "mgr-1", "module-1", {
+      title: "Updated Title",
+      description: "Updated description",
+      skillCategory: "Discovery",
+      videoUrl: null,
+      quizData: null,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected module update");
+    expect(repository.updateModule).toHaveBeenCalled();
+    expect(result.data.module.title).toBe("Updated Title");
+  });
+});
+
+describe("getTrainingAiStatus", () => {
+  it("reports AI as unavailable when the API key env is missing", () => {
+    vi.stubEnv("OPENAI_API_KEY", "");
+
+    const result = getTrainingAiStatus();
+
+    expect(result.available).toBe(false);
+  });
+});
+
+describe("assignTrainingModule", () => {
+  it("scopes assignment to reps the manager can access", async () => {
+    mockAccessRepository({
+      actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
+      memberships: [
+        { orgId: "org-1", teamId: "team-a", userId: "mgr-1", membershipType: "manager" },
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+        { orgId: "org-1", teamId: "team-b", userId: "rep-2", membershipType: "rep" },
+      ],
+      grants: [
+        {
+          orgId: "org-1",
+          teamId: "team-a",
+          userId: "mgr-1",
+          permissionKey: "manage_team_training",
+        },
+      ],
+    });
+
+    const repository = createRepository({
+      findModuleById: vi.fn().mockResolvedValue({
+        id: "module-1",
+        orgId: "org-1",
+        title: "Module",
+        skillCategory: "Discovery",
+        videoUrl: null,
+        description: "Description",
+        quizData: null,
+        orderIndex: 1,
+        createdAt: new Date("2026-04-03T00:00:00.000Z"),
+      }),
+      assignModuleToRepIds: vi.fn().mockResolvedValue(undefined),
+    });
+
+    const result = await assignTrainingModule(repository, "mgr-1", "module-1", {
+      repIds: ["rep-1", "rep-2"],
+      dueDate: null,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected assignment");
+    expect(repository.assignModuleToRepIds).toHaveBeenCalledWith(
+      expect.objectContaining({
+        moduleId: "module-1",
+        repIds: ["rep-1"],
+      }),
+    );
+  });
+});
+
+describe("unassignTrainingModule", () => {
+  it("blocks unassignment after progress has started", async () => {
+    mockAccessRepository({
+      actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
+      memberships: [
+        { orgId: "org-1", teamId: "team-a", userId: "mgr-1", membershipType: "manager" },
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ],
+      grants: [
+        {
+          orgId: "org-1",
+          teamId: "team-a",
+          userId: "mgr-1",
+          permissionKey: "manage_team_training",
+        },
+      ],
+    });
+
+    const repository = createRepository({
+      findModuleById: vi.fn().mockResolvedValue({
+        id: "module-1",
+        orgId: "org-1",
+        title: "Module",
+        skillCategory: "Discovery",
+        videoUrl: null,
+        description: "Description",
+        quizData: null,
+        orderIndex: 1,
+        createdAt: new Date("2026-04-03T00:00:00.000Z"),
+      }),
+      findProgressByModuleId: vi.fn().mockResolvedValue([
+        {
+          id: "progress-1",
+          repId: "rep-1",
+          moduleId: "module-1",
+          status: "in_progress",
+          score: null,
+          attempts: 1,
+          completedAt: null,
+          assignedBy: "mgr-1",
+          assignedAt: new Date("2026-04-03T00:00:00.000Z"),
+          dueDate: null,
+        },
+      ]),
+      removeModuleAssignmentsForRepIds: vi.fn(),
+    });
+
+    const result = await unassignTrainingModule(repository, "mgr-1", "module-1", "rep-1");
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("Expected unassign to be blocked");
+    expect(result.status).toBe(409);
+    expect(repository.removeModuleAssignmentsForRepIds).not.toHaveBeenCalled();
   });
 });
