@@ -158,6 +158,25 @@ export function getModuleSubmitTarget(
   };
 }
 
+export function mergeTeamProgressModule(
+  progress: TrainingTeamProgressShell,
+  module: TrainingModuleSummary,
+): TrainingTeamProgressShell {
+  const modules = progress.modules.some((entry) => entry.id === module.id)
+    ? progress.modules.map((entry) => (entry.id === module.id ? { ...entry, title: module.title } : entry))
+    : [...progress.modules, { id: module.id, title: module.title }];
+
+  return {
+    modules,
+    repProgress: progress.repProgress.map((rep) => ({
+      ...rep,
+      moduleProgress: rep.moduleProgress.map((entry) =>
+        entry.moduleId === module.id ? { ...entry, moduleTitle: module.title } : entry,
+      ),
+    })),
+  };
+}
+
 export function TrainingPanel({
   canManage,
   aiAvailable,
@@ -348,89 +367,99 @@ export function TrainingPanel({
     }
 
     const submitTarget = getModuleSubmitTarget(activeManagerModal, editingModuleId);
-    const response = await fetch(submitTarget.endpoint, {
-      method: submitTarget.method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title,
-        description: moduleForm.description.trim(),
-        skillCategory,
-        videoUrl: moduleForm.videoUrl.trim() || null,
-        quizData,
-      }),
-    });
-    const payload = await readJsonResponse<{ module: TrainingModuleSummary }>(response);
+    try {
+      const response = await fetch(submitTarget.endpoint, {
+        method: submitTarget.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          description: moduleForm.description.trim(),
+          skillCategory,
+          videoUrl: moduleForm.videoUrl.trim() || null,
+          quizData,
+        }),
+      });
+      const payload = await readJsonResponse<{ module: TrainingModuleSummary }>(response);
 
-    if (!payload.ok) {
-      setManagerError(payload.error);
-      setIsManagerBusy(false);
-      return;
-    }
-
-    const nextModule = payload.data.module;
-    setModules((current) => {
-      if (submitTarget.moduleId) {
-        return current.map((module) => (module.id === nextModule.id ? nextModule : module));
+      if (!payload.ok) {
+        setManagerError(payload.error);
+        return;
       }
 
-      return [...current, nextModule].sort((left, right) => left.orderIndex - right.orderIndex);
-    });
-    setSelectedModuleId(nextModule.id);
-    setManagerMessage(submitTarget.moduleId ? "Module updated." : "Module created.");
-    setIsManagerBusy(false);
-    closeManagerModal();
+      const nextModule = payload.data.module;
+      setModules((current) => {
+        if (submitTarget.moduleId) {
+          return current.map((module) => (module.id === nextModule.id ? nextModule : module));
+        }
+
+        return [...current, nextModule].sort((left, right) => left.orderIndex - right.orderIndex);
+      });
+      setTeamProgress((current) => mergeTeamProgressModule(current, nextModule));
+      setSelectedModuleId(nextModule.id);
+      setManagerMessage(submitTarget.moduleId ? "Module updated." : "Module created.");
+      closeManagerModal();
+    } finally {
+      setIsManagerBusy(false);
+    }
   }
 
   async function submitGenerate() {
     resetManagerFeedback();
     setIsManagerBusy(true);
 
-    const response = await fetch("/api/training/modules/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(generateForm),
-    });
-    const payload = await readJsonResponse<{ modules: GeneratedModuleDraft[] }>(response);
+    try {
+      const response = await fetch("/api/training/modules/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(generateForm),
+      });
+      const payload = await readJsonResponse<{ modules: GeneratedModuleDraft[] }>(response);
 
-    if (!payload.ok) {
-      setManagerError(payload.error);
+      if (!payload.ok) {
+        setManagerError(payload.error);
+        return;
+      }
+
+      setGeneratedDrafts(payload.data.modules);
+      setManagerMessage(
+        `Generated ${payload.data.modules.length} draft module${payload.data.modules.length === 1 ? "" : "s"}.`,
+      );
+    } finally {
       setIsManagerBusy(false);
-      return;
     }
-
-    setGeneratedDrafts(payload.data.modules);
-    setManagerMessage(`Generated ${payload.data.modules.length} draft module${payload.data.modules.length === 1 ? "" : "s"}.`);
-    setIsManagerBusy(false);
   }
 
   async function saveGeneratedDraft(draft: GeneratedModuleDraft) {
     resetManagerFeedback();
     setIsManagerBusy(true);
 
-    const response = await fetch("/api/training/modules", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: draft.title,
-        description: draft.description,
-        skillCategory: draft.skillCategory,
-        videoUrl: null,
-        quizData: draft.quizData,
-      }),
-    });
-    const payload = await readJsonResponse<{ module: TrainingModuleSummary }>(response);
+    try {
+      const response = await fetch("/api/training/modules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: draft.title,
+          description: draft.description,
+          skillCategory: draft.skillCategory,
+          videoUrl: null,
+          quizData: draft.quizData,
+        }),
+      });
+      const payload = await readJsonResponse<{ module: TrainingModuleSummary }>(response);
 
-    if (!payload.ok) {
-      setManagerError(payload.error);
+      if (!payload.ok) {
+        setManagerError(payload.error);
+        return;
+      }
+
+      setModules((current) => [...current, payload.data.module].sort((left, right) => left.orderIndex - right.orderIndex));
+      setTeamProgress((current) => mergeTeamProgressModule(current, payload.data.module));
+      setSelectedModuleId(payload.data.module.id);
+      setGeneratedDrafts((current) => current.filter((entry) => entry !== draft));
+      setManagerMessage(`Saved "${payload.data.module.title}".`);
+    } finally {
       setIsManagerBusy(false);
-      return;
     }
-
-    setModules((current) => [...current, payload.data.module].sort((left, right) => left.orderIndex - right.orderIndex));
-    setSelectedModuleId(payload.data.module.id);
-    setGeneratedDrafts((current) => current.filter((entry) => entry !== draft));
-    setManagerMessage(`Saved "${payload.data.module.title}".`);
-    setIsManagerBusy(false);
   }
 
   async function submitAssignment() {
@@ -446,32 +475,34 @@ export function TrainingPanel({
     resetManagerFeedback();
     setIsManagerBusy(true);
 
-    const response = await fetch(`/api/training/modules/${assigningModuleId}/assign`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        repIds: assignRepIds,
-        dueDate: assignDueDate || null,
-      }),
-    });
-    const payload = await readJsonResponse<{
-      assignedRepIds: string[];
-      rejectedRepIds: Array<{ repId: string; reason: "not_found" | "out_of_scope" }>;
-    }>(response);
+    try {
+      const response = await fetch(`/api/training/modules/${assigningModuleId}/assign`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          repIds: assignRepIds,
+          dueDate: assignDueDate || null,
+        }),
+      });
+      const payload = await readJsonResponse<{
+        assignedRepIds: string[];
+        rejectedRepIds: Array<{ repId: string; reason: "not_found" | "out_of_scope" }>;
+      }>(response);
 
-    if (!payload.ok) {
-      setManagerError(payload.error);
+      if (!payload.ok) {
+        setManagerError(payload.error);
+        return;
+      }
+
+      await refreshTeamProgress();
+      const rejectedSummary =
+        payload.data.rejectedRepIds.length > 0
+          ? ` Rejected: ${payload.data.rejectedRepIds.map((entry) => entry.repId).join(", ")}.`
+          : "";
+      setManagerMessage(`Assigned to ${payload.data.assignedRepIds.length} rep(s).${rejectedSummary}`);
+    } finally {
       setIsManagerBusy(false);
-      return;
     }
-
-    await refreshTeamProgress();
-    const rejectedSummary =
-      payload.data.rejectedRepIds.length > 0
-        ? ` Rejected: ${payload.data.rejectedRepIds.map((entry) => entry.repId).join(", ")}.`
-        : "";
-    setManagerMessage(`Assigned to ${payload.data.assignedRepIds.length} rep(s).${rejectedSummary}`);
-    setIsManagerBusy(false);
   }
 
   async function unassignRep(repId: string) {
@@ -482,21 +513,23 @@ export function TrainingPanel({
     resetManagerFeedback();
     setIsManagerBusy(true);
 
-    const response = await fetch(`/api/training/modules/${assigningModuleId}/assign/${repId}`, {
-      method: "DELETE",
-      headers: { Accept: "application/json" },
-    });
-    const payload = await readJsonResponse<{ unassignedRepId: string }>(response);
+    try {
+      const response = await fetch(`/api/training/modules/${assigningModuleId}/assign/${repId}`, {
+        method: "DELETE",
+        headers: { Accept: "application/json" },
+      });
+      const payload = await readJsonResponse<{ unassignedRepId: string }>(response);
 
-    if (!payload.ok) {
-      setManagerError(payload.error);
+      if (!payload.ok) {
+        setManagerError(payload.error);
+        return;
+      }
+
+      await refreshTeamProgress();
+      setManagerMessage(`Removed assignment for ${repId}.`);
+    } finally {
       setIsManagerBusy(false);
-      return;
     }
-
-    await refreshTeamProgress();
-    setManagerMessage(`Removed assignment for ${repId}.`);
-    setIsManagerBusy(false);
   }
 
   return (

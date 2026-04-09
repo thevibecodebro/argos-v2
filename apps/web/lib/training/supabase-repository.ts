@@ -90,7 +90,7 @@ export class SupabaseTrainingRepository implements TrainingRepository {
     }
 
     const supabase: any = this.supabase;
-    const { error } = await supabase.from("training_modules").insert(
+    const { error } = await supabase.from("training_modules").upsert(
       modules.map((module) => ({
         org_id: module.orgId,
         title: module.title,
@@ -100,6 +100,7 @@ export class SupabaseTrainingRepository implements TrainingRepository {
         quiz_data: module.quizData,
         order_index: module.orderIndex,
       })),
+      { onConflict: "org_id,order_index", ignoreDuplicates: true, defaultToNull: false },
     );
 
     if (error) {

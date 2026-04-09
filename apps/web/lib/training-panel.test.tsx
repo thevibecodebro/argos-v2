@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { getModuleSubmitTarget, TrainingPanel } from "../components/training-panel";
+import { getModuleSubmitTarget, mergeTeamProgressModule, TrainingPanel } from "../components/training-panel";
 
 const baseModules = [
   {
@@ -69,6 +69,38 @@ const initialTeamRows = [
 ];
 
 describe("TrainingPanel", () => {
+  it("merges created modules into the team progress shell", () => {
+    const nextProgress = mergeTeamProgressModule(initialTeamProgress, {
+      ...baseModules[0],
+      id: "module-3",
+      title: "Competitive Positioning",
+      orderIndex: 3,
+    });
+
+    expect(nextProgress.modules).toEqual([
+      { id: "module-1", title: "Discovery That Finds the Real Pain" },
+      { id: "module-2", title: "Objection Handling Without Losing Control" },
+      { id: "module-3", title: "Competitive Positioning" },
+    ]);
+    expect(nextProgress.repProgress[0]?.moduleProgress).toHaveLength(2);
+  });
+
+  it("updates existing module titles inside the team progress shell", () => {
+    const nextProgress = mergeTeamProgressModule(initialTeamProgress, {
+      ...baseModules[0],
+      title: "Discovery That Finds Root Causes Fast",
+    });
+
+    expect(nextProgress.modules[0]).toEqual({
+      id: "module-1",
+      title: "Discovery That Finds Root Causes Fast",
+    });
+    expect(nextProgress.repProgress[0]?.moduleProgress[0]).toMatchObject({
+      moduleId: "module-1",
+      moduleTitle: "Discovery That Finds Root Causes Fast",
+    });
+  });
+
   it("uses the persisted editing module id instead of the live selection", () => {
     expect(getModuleSubmitTarget("edit", "module-2")).toEqual({
       endpoint: "/api/training/modules/module-2",

@@ -80,7 +80,12 @@ export class DrizzleTrainingRepository implements TrainingRepository {
       return;
     }
 
-    await this.db.insert(trainingModulesTable).values(modules);
+    await this.db
+      .insert(trainingModulesTable)
+      .values(modules)
+      .onConflictDoNothing({
+        target: [trainingModulesTable.orgId, trainingModulesTable.orderIndex],
+      });
   }
 
   async createModule(input: {
