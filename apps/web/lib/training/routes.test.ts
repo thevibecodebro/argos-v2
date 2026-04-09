@@ -7,6 +7,7 @@ const updateTrainingModule = vi.fn();
 const getTrainingTeamProgress = vi.fn();
 const getTrainingAiStatus = vi.fn();
 const generateTrainingModules = vi.fn();
+const normalizeTrainingModuleGenerationInput = vi.fn();
 const assignTrainingModule = vi.fn();
 const unassignTrainingModule = vi.fn();
 
@@ -24,6 +25,7 @@ vi.mock("@/lib/training/service", () => ({
   getTrainingTeamProgress,
   getTrainingAiStatus,
   generateTrainingModules,
+  normalizeTrainingModuleGenerationInput,
   assignTrainingModule,
   unassignTrainingModule,
 }));
@@ -39,11 +41,48 @@ describe("training routes", () => {
     getTrainingTeamProgress.mockReset();
     getTrainingAiStatus.mockReset();
     generateTrainingModules.mockReset();
+    normalizeTrainingModuleGenerationInput.mockReset();
     assignTrainingModule.mockReset();
     unassignTrainingModule.mockReset();
     createTrainingRepository.mockReturnValue({});
     getAuthenticatedSupabaseUser.mockResolvedValue({ id: "auth-user-1" });
     getTrainingAiStatus.mockReturnValue({ available: true, reason: null });
+    normalizeTrainingModuleGenerationInput.mockImplementation((body: unknown) => {
+      if (!body || typeof body !== "object") {
+        return { ok: false, error: "topic, targetRole, skillFocus, and moduleCount are required" };
+      }
+
+      const input = body as Record<string, unknown>;
+      const topic = typeof input.topic === "string" ? input.topic.trim() : "";
+      const targetRole = typeof input.targetRole === "string" ? input.targetRole.trim() : "";
+      const skillFocus = typeof input.skillFocus === "string" ? input.skillFocus.trim() : "";
+      const moduleCount = typeof input.moduleCount === "number" ? input.moduleCount : Number.NaN;
+
+      if (!topic || !targetRole || !skillFocus) {
+        return { ok: false, error: "topic, targetRole, skillFocus, and moduleCount are required" };
+      }
+
+      if (topic.length > 120 || targetRole.length > 120 || skillFocus.length > 120) {
+        return {
+          ok: false,
+          error: "topic, targetRole, and skillFocus must be 1-120 characters each",
+        };
+      }
+
+      if (!Number.isInteger(moduleCount) || moduleCount < 1 || moduleCount > 6) {
+        return { ok: false, error: "moduleCount must be between 1 and 6" };
+      }
+
+      return {
+        ok: true,
+        data: {
+          topic,
+          targetRole,
+          skillFocus,
+          moduleCount,
+        },
+      };
+    });
   });
 
   it("returns 401 for unauthorized module creation", async () => {
@@ -309,6 +348,28 @@ describe("training routes", () => {
     );
 
     expect(response.status).toBe(400);
+    expect(generateTrainingModules).not.toHaveBeenCalled();
+  });
+
+  it("rejects oversized generation requests before delegating", async () => {
+    const route = await import("../../app/api/training/modules/generate/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/training/modules/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic: "Discovery",
+          targetRole: "manager",
+          moduleCount: 7,
+          skillFocus: "objection handling",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: expect.stringContaining("moduleCount"),
+    });
     expect(generateTrainingModules).not.toHaveBeenCalled();
   });
 

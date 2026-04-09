@@ -41,6 +41,7 @@ function createRepository(
 
 afterEach(() => {
   vi.clearAllMocks();
+  vi.unstubAllGlobals();
   vi.unstubAllEnvs();
 });
 
@@ -206,6 +207,76 @@ describe("getTrainingTeamProgress", () => {
     expect(result.ok).toBe(true);
     expect(repository.createModules).toHaveBeenCalledOnce();
     expect(repository.findModulesByOrgId).toHaveBeenCalledWith("org-1");
+  });
+
+  it("only seeds starter modules once when the manager and team progress views load in parallel", async () => {
+    mockAccessRepository({
+      actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
+      memberships: [
+        { orgId: "org-1", teamId: "team-a", userId: "mgr-1", membershipType: "manager" },
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ],
+      grants: [
+        {
+          orgId: "org-1",
+          teamId: "team-a",
+          userId: "mgr-1",
+          permissionKey: "view_team_training",
+        },
+      ],
+    });
+
+    let resolveCount!: (value: number) => void;
+    const countPending = new Promise<number>((resolve) => {
+      resolveCount = resolve;
+    });
+
+    const repository = createRepository({
+      countModulesByOrgId: vi.fn().mockReturnValue(countPending),
+      createModules: vi.fn().mockResolvedValue(undefined),
+      findModulesByOrgId: vi.fn().mockResolvedValue([
+        {
+          id: "module-1",
+          orgId: "org-1",
+          title: "Starter module",
+          skillCategory: "Discovery",
+          videoUrl: null,
+          description: "Desc",
+          quizData: null,
+          orderIndex: 1,
+          createdAt: new Date("2026-04-08T00:00:00.000Z"),
+        },
+      ]),
+      findProgressByRepId: vi.fn().mockResolvedValue([]),
+      findTeamProgressByOrgId: vi.fn().mockResolvedValue([
+        {
+          repId: "rep-1",
+          firstName: "Riley",
+          lastName: "Stone",
+          email: "riley@example.com",
+          assigned: 0,
+          passed: 0,
+          completionRate: 0,
+        },
+      ]),
+      findProgressByModuleId: vi.fn().mockResolvedValue([]),
+    });
+
+    const modulesPromise = getTrainingModules(repository, "mgr-1");
+    const progressPromise = getTrainingTeamProgress(repository, "mgr-1");
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(repository.countModulesByOrgId).toHaveBeenCalledTimes(1);
+    expect(repository.createModules).not.toHaveBeenCalled();
+
+    resolveCount(0);
+
+    const [modulesResult, progressResult] = await Promise.all([modulesPromise, progressPromise]);
+
+    expect(modulesResult.ok).toBe(true);
+    expect(progressResult.ok).toBe(true);
+    expect(repository.createModules).toHaveBeenCalledOnce();
   });
 
   it("returns only team-scoped rep progress for managers", async () => {
@@ -600,6 +671,24 @@ describe("getTrainingAiStatus", () => {
 });
 
 describe("generateTrainingModules", () => {
+  it("rejects oversized generation inputs before calling OpenAI", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await generateTrainingModules("mgr-1", {
+      topic: "A".repeat(121),
+      targetRole: "Account Executive",
+      moduleCount: 7,
+      skillFocus: "B".repeat(121),
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("Expected generation validation to fail");
+    expect(result.status).toBe(422);
+    expect(result.error).toContain("topic, targetRole, and skillFocus");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("returns generated draft modules when AI is configured", async () => {
     mockAccessRepository({
       actor: { id: "mgr-1", orgId: "org-1", role: "manager" },

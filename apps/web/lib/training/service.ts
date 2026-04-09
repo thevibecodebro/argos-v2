@@ -129,6 +129,63 @@ export type TrainingModuleGenerationInput = {
   skillFocus: string;
 };
 
+const MAX_GENERATION_FIELD_LENGTH = 120;
+const MAX_GENERATION_MODULE_COUNT = 6;
+
+export function normalizeTrainingModuleGenerationInput(
+  input: unknown,
+):
+  | { ok: true; data: TrainingModuleGenerationInput }
+  | { ok: false; error: string } {
+  if (!input || typeof input !== "object") {
+    return {
+      ok: false,
+      error: "topic, targetRole, skillFocus, and moduleCount are required",
+    };
+  }
+
+  const candidate = input as Record<string, unknown>;
+  const topic = typeof candidate.topic === "string" ? candidate.topic.trim() : "";
+  const targetRole = typeof candidate.targetRole === "string" ? candidate.targetRole.trim() : "";
+  const skillFocus = typeof candidate.skillFocus === "string" ? candidate.skillFocus.trim() : "";
+  const moduleCount = typeof candidate.moduleCount === "number" ? candidate.moduleCount : Number.NaN;
+
+  if (!topic || !targetRole || !skillFocus) {
+    return {
+      ok: false,
+      error: "topic, targetRole, skillFocus, and moduleCount are required",
+    };
+  }
+
+  if (
+    topic.length > MAX_GENERATION_FIELD_LENGTH ||
+    targetRole.length > MAX_GENERATION_FIELD_LENGTH ||
+    skillFocus.length > MAX_GENERATION_FIELD_LENGTH
+  ) {
+    return {
+      ok: false,
+      error: `topic, targetRole, and skillFocus must be 1-${MAX_GENERATION_FIELD_LENGTH} characters each`,
+    };
+  }
+
+  if (!Number.isInteger(moduleCount) || moduleCount < 1 || moduleCount > MAX_GENERATION_MODULE_COUNT) {
+    return {
+      ok: false,
+      error: `moduleCount must be between 1 and ${MAX_GENERATION_MODULE_COUNT}`,
+    };
+  }
+
+  return {
+    ok: true,
+    data: {
+      topic,
+      targetRole,
+      skillFocus,
+      moduleCount,
+    },
+  };
+}
+
 type TrainingGeneratedModule = {
   title: string;
   skillCategory: string;
@@ -315,6 +372,8 @@ const STARTER_MODULES = [
   },
 ];
 
+const starterModuleSeedPromises = new Map<string, Promise<void>>();
+
 function serializeProgress(progress: TrainingProgressRecord | undefined | null) {
   if (!progress) {
     return null;
@@ -427,23 +486,41 @@ function hasTrainingAccess(access: AccessContext) {
 }
 
 async function ensureStarterModules(repository: TrainingRepository, orgId: string) {
-  const existingCount = await repository.countModulesByOrgId(orgId);
-
-  if (existingCount > 0) {
+  const existingPromise = starterModuleSeedPromises.get(orgId);
+  if (existingPromise) {
+    await existingPromise;
     return;
   }
 
-  await repository.createModules(
-    STARTER_MODULES.map((module, index) => ({
-      orgId,
-      title: module.title,
-      description: module.description,
-      skillCategory: module.skillCategory,
-      videoUrl: null,
-      quizData: module.quizData,
-      orderIndex: index + 1,
-    })),
-  );
+  const seedPromise = (async () => {
+    const existingCount = await repository.countModulesByOrgId(orgId);
+
+    if (existingCount > 0) {
+      return;
+    }
+
+    await repository.createModules(
+      STARTER_MODULES.map((module, index) => ({
+        orgId,
+        title: module.title,
+        description: module.description,
+        skillCategory: module.skillCategory,
+        videoUrl: null,
+        quizData: module.quizData,
+        orderIndex: index + 1,
+      })),
+    );
+  })();
+
+  starterModuleSeedPromises.set(orgId, seedPromise);
+
+  try {
+    await seedPromise;
+  } finally {
+    if (starterModuleSeedPromises.get(orgId) === seedPromise) {
+      starterModuleSeedPromises.delete(orgId);
+    }
+  }
 }
 
 function isQuizData(value: unknown): value is TrainingModuleRecord["quizData"] {
@@ -889,6 +966,17 @@ export async function generateTrainingModules(
   authUserId: string,
   input: TrainingModuleGenerationInput,
 ): Promise<ServiceResult<{ modules: TrainingGeneratedModule[] }>> {
+  const validation = normalizeTrainingModuleGenerationInput(input);
+  if (!validation.ok) {
+    return {
+      ok: false,
+      status: 422,
+      error: validation.error,
+    };
+  }
+
+  const normalizedInput = validation.data;
+
   const accessResult = await getAccessContext(authUserId);
 
   if (!accessResult.ok) {
@@ -934,10 +1022,10 @@ export async function generateTrainingModules(
           {
             role: "user",
             content: [
-              `Topic: ${input.topic}`,
-              `Target role: ${input.targetRole}`,
-              `Skill focus: ${input.skillFocus}`,
-              `Module count: ${input.moduleCount}`,
+              `Topic: ${normalizedInput.topic}`,
+              `Target role: ${normalizedInput.targetRole}`,
+              `Skill focus: ${normalizedInput.skillFocus}`,
+              `Module count: ${normalizedInput.moduleCount}`,
               "Make each module distinct, practical, and concise. Include at least one quiz question per module unless a module clearly should have no quiz.",
             ].join("\n"),
           },
@@ -974,7 +1062,7 @@ export async function generateTrainingModules(
     return {
       ok: true,
       data: {
-        modules: parseGeneratedModulesContent(content, input.moduleCount),
+        modules: parseGeneratedModulesContent(content, normalizedInput.moduleCount),
       },
     };
   } catch (error) {
