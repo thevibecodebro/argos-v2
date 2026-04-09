@@ -145,6 +145,16 @@ export function AuthenticatedAppShell({
             );
           })}
         </nav>
+
+        {/* Bottom nav */}
+        <div className="pt-3 border-t border-[#45484f]/10">
+          <NavLink
+            href="/settings"
+            label="Settings"
+            icon="settings"
+            active={isRouteActive(currentPath, "/settings")}
+          />
+        </div>
       </aside>
 
       {/* ── Main area ── */}

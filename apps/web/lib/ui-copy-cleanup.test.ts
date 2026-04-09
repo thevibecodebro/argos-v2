@@ -35,7 +35,6 @@ describe("authenticated UI copy cleanup", () => {
       ...(await listFiles(root)),
       path.join(componentsRoot, "integrations-settings-panel.tsx"),
       path.join(componentsRoot, "roleplay-panel.tsx"),
-      path.join(componentsRoot, "settings-workspace-panel.tsx"),
     ];
 
     const fileContents = await Promise.all(

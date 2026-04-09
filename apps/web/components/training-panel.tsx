@@ -1,29 +1,294 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { TrainingModuleSummary, TrainingTeamProgress } from "@/lib/training/service";
+import type {
+  TrainingModuleRecord,
+  TrainingModuleSummary,
+  TrainingTeamProgress,
+  TrainingTeamProgressShell,
+} from "@/lib/training/service";
+
+type ManagerModal = "assign" | "create" | "edit" | "generate" | null;
+
+type ModuleFormState = {
+  title: string;
+  description: string;
+  skillCategory: string;
+  videoUrl: string;
+  quizJson: string;
+};
+
+type GenerateFormState = {
+  topic: string;
+  targetRole: string;
+  moduleCount: number;
+  skillFocus: string;
+};
+
+type GeneratedModuleDraft = {
+  title: string;
+  skillCategory: string;
+  description: string;
+  quizData: TrainingModuleRecord["quizData"];
+};
 
 type TrainingPanelProps = {
   canManage: boolean;
+  aiAvailable: boolean;
   initialModules: TrainingModuleSummary[];
+  initialTeamProgress: TrainingTeamProgressShell;
   initialTeamRows: TrainingTeamProgress[];
 };
 
+type JsonResponse<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: string; status: number };
+
+type ModuleSubmitTarget = {
+  endpoint: string;
+  method: "PATCH" | "POST";
+  moduleId: string | null;
+};
+
+const EMPTY_MODULE_FORM: ModuleFormState = {
+  title: "",
+  description: "",
+  skillCategory: "",
+  videoUrl: "",
+  quizJson: "",
+};
+
+const EMPTY_GENERATE_FORM: GenerateFormState = {
+  topic: "",
+  targetRole: "",
+  moduleCount: 3,
+  skillFocus: "",
+};
+
+function formatQuizJson(quizData: TrainingModuleRecord["quizData"]) {
+  return quizData ? JSON.stringify(quizData, null, 2) : "";
+}
+
+function moduleToFormState(module: TrainingModuleSummary): ModuleFormState {
+  return {
+    title: module.title,
+    description: module.description ?? "",
+    skillCategory: module.skillCategory,
+    videoUrl: module.videoUrl ?? "",
+    quizJson: formatQuizJson(module.quizData),
+  };
+}
+
+function parseQuizJson(value: string): TrainingModuleRecord["quizData"] {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  const parsed = JSON.parse(trimmed) as TrainingModuleRecord["quizData"];
+
+  if (
+    !parsed ||
+    typeof parsed !== "object" ||
+    !Array.isArray(parsed.questions) ||
+    parsed.questions.length === 0
+  ) {
+    throw new Error("Quiz JSON must contain a non-empty questions array.");
+  }
+
+  for (const question of parsed.questions) {
+    if (
+      !question ||
+      typeof question.question !== "string" ||
+      !question.question.trim() ||
+      !Array.isArray(question.options) ||
+      question.options.length === 0 ||
+      question.options.some((option) => typeof option !== "string" || !option.trim()) ||
+      !Number.isInteger(question.correctIndex) ||
+      question.correctIndex < 0 ||
+      question.correctIndex >= question.options.length
+    ) {
+      throw new Error("Quiz JSON is malformed.");
+    }
+  }
+
+  return parsed;
+}
+
+async function readJsonResponse<T>(response: Response): Promise<JsonResponse<T>> {
+  let payload: Record<string, unknown> | null = null;
+
+  try {
+    payload = (await response.json()) as Record<string, unknown>;
+  } catch {
+    payload = null;
+  }
+
+  if (!response.ok) {
+    return {
+      ok: false,
+      error: typeof payload?.error === "string" ? payload.error : "Request failed",
+      status: response.status,
+    };
+  }
+
+  return {
+    ok: true,
+    data: payload as T,
+  };
+}
+
+export function getModuleSubmitTarget(
+  activeManagerModal: ManagerModal,
+  editingModuleId: string | null,
+): ModuleSubmitTarget {
+  if (activeManagerModal === "edit" && editingModuleId) {
+    return {
+      endpoint: `/api/training/modules/${editingModuleId}`,
+      method: "PATCH",
+      moduleId: editingModuleId,
+    };
+  }
+
+  return {
+    endpoint: "/api/training/modules",
+    method: "POST",
+    moduleId: null,
+  };
+}
+
+export function mergeTeamProgressModule(
+  progress: TrainingTeamProgressShell,
+  module: TrainingModuleSummary,
+): TrainingTeamProgressShell {
+  const modules = progress.modules.some((entry) => entry.id === module.id)
+    ? progress.modules.map((entry) => (entry.id === module.id ? { ...entry, title: module.title } : entry))
+    : [...progress.modules, { id: module.id, title: module.title }];
+
+  return {
+    modules,
+    repProgress: progress.repProgress.map((rep) => ({
+      ...rep,
+      moduleProgress: rep.moduleProgress.map((entry) =>
+        entry.moduleId === module.id ? { ...entry, moduleTitle: module.title } : entry,
+      ),
+    })),
+  };
+}
+
 export function TrainingPanel({
   canManage,
+  aiAvailable,
   initialModules,
+  initialTeamProgress,
   initialTeamRows,
 }: TrainingPanelProps) {
   const [modules, setModules] = useState(initialModules);
+  const [teamRows, setTeamRows] = useState(initialTeamRows);
+  const [teamProgress, setTeamProgress] = useState(initialTeamProgress);
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(initialModules[0]?.id ?? null);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [activeManagerModal, setActiveManagerModal] = useState<ManagerModal>(null);
+  const [managerError, setManagerError] = useState<string | null>(null);
+  const [managerMessage, setManagerMessage] = useState<string | null>(null);
+  const [isManagerBusy, setIsManagerBusy] = useState(false);
+  const [moduleForm, setModuleForm] = useState<ModuleFormState>(EMPTY_MODULE_FORM);
+  const [generateForm, setGenerateForm] = useState<GenerateFormState>(EMPTY_GENERATE_FORM);
+  const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
+  const [assigningModuleId, setAssigningModuleId] = useState<string | null>(null);
+  const [assignRepIds, setAssignRepIds] = useState<string[]>([]);
+  const [assignDueDate, setAssignDueDate] = useState("");
+  const [generatedDrafts, setGeneratedDrafts] = useState<GeneratedModuleDraft[]>([]);
 
   const selectedModule = useMemo(
     () => modules.find((module) => module.id === selectedModuleId) ?? null,
     [modules, selectedModuleId],
   );
+
+  const assigningModule = useMemo(
+    () => modules.find((module) => module.id === assigningModuleId) ?? null,
+    [assigningModuleId, modules],
+  );
+
+  const assignmentProgressByRepId = useMemo(() => {
+    if (!assigningModuleId) {
+      return new Map<string, TrainingTeamProgressShell["repProgress"][number]["moduleProgress"][number]>();
+    }
+
+    return new Map(
+      teamProgress.repProgress.flatMap((rep) => {
+        const entry = rep.moduleProgress.find((progress) => progress.moduleId === assigningModuleId);
+        return entry ? [[rep.repId, entry] as const] : [];
+      }),
+    );
+  }, [assigningModuleId, teamProgress.repProgress]);
+
+  function resetManagerFeedback() {
+    setManagerError(null);
+    setManagerMessage(null);
+  }
+
+  function openCreateModal() {
+    resetManagerFeedback();
+    setGeneratedDrafts([]);
+    setModuleForm(EMPTY_MODULE_FORM);
+    setEditingModuleId(null);
+    setActiveManagerModal("create");
+  }
+
+  function openEditModal(module: TrainingModuleSummary) {
+    resetManagerFeedback();
+    setGeneratedDrafts([]);
+    setEditingModuleId(module.id);
+    setModuleForm(moduleToFormState(module));
+    setActiveManagerModal("edit");
+  }
+
+  function openGenerateModal() {
+    resetManagerFeedback();
+    setGeneratedDrafts([]);
+    setGenerateForm(EMPTY_GENERATE_FORM);
+    setActiveManagerModal("generate");
+  }
+
+  function openAssignModal(module: TrainingModuleSummary) {
+    resetManagerFeedback();
+    setAssigningModuleId(module.id);
+    setAssignRepIds([]);
+    setAssignDueDate("");
+    setActiveManagerModal("assign");
+  }
+
+  function closeManagerModal() {
+    setActiveManagerModal(null);
+    setEditingModuleId(null);
+    setAssigningModuleId(null);
+    setAssignRepIds([]);
+    setAssignDueDate("");
+    setGeneratedDrafts([]);
+    setIsManagerBusy(false);
+  }
+
+  async function refreshTeamProgress() {
+    const response = await fetch("/api/training/team-progress", {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+    const payload = await readJsonResponse<{
+      rows: TrainingTeamProgress[];
+      progress: TrainingTeamProgressShell;
+    }>(response);
+
+    if (!payload.ok) {
+      throw new Error(payload.error);
+    }
+
+    setTeamRows(payload.data.rows);
+    setTeamProgress(payload.data.progress);
+  }
 
   async function submitProgress() {
     if (!selectedModule) {
@@ -40,7 +305,12 @@ export function TrainingPanel({
       body: JSON.stringify({ quizAnswers }),
     });
 
-    const payload = (await response.json()) as { error?: string; status?: string; score?: number | null; attempts?: number };
+    const payload = (await response.json()) as {
+      attempts?: number;
+      error?: string;
+      score?: number | null;
+      status?: string;
+    };
 
     if (!response.ok) {
       setStatusMessage(payload.error ?? "Failed to submit module progress");
@@ -75,17 +345,204 @@ export function TrainingPanel({
     setIsSubmitting(false);
   }
 
+  async function submitModuleForm() {
+    const title = moduleForm.title.trim();
+    const skillCategory = moduleForm.skillCategory.trim();
+
+    if (!title || !skillCategory) {
+      setManagerError("Title and skill category are required.");
+      return;
+    }
+
+    resetManagerFeedback();
+    setIsManagerBusy(true);
+
+    let quizData: TrainingModuleRecord["quizData"];
+    try {
+      quizData = parseQuizJson(moduleForm.quizJson);
+    } catch (error) {
+      setManagerError(error instanceof Error ? error.message : "Quiz JSON is invalid.");
+      setIsManagerBusy(false);
+      return;
+    }
+
+    const submitTarget = getModuleSubmitTarget(activeManagerModal, editingModuleId);
+    try {
+      const response = await fetch(submitTarget.endpoint, {
+        method: submitTarget.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          description: moduleForm.description.trim(),
+          skillCategory,
+          videoUrl: moduleForm.videoUrl.trim() || null,
+          quizData,
+        }),
+      });
+      const payload = await readJsonResponse<{ module: TrainingModuleSummary }>(response);
+
+      if (!payload.ok) {
+        setManagerError(payload.error);
+        return;
+      }
+
+      const nextModule = payload.data.module;
+      setModules((current) => {
+        if (submitTarget.moduleId) {
+          return current.map((module) => (module.id === nextModule.id ? nextModule : module));
+        }
+
+        return [...current, nextModule].sort((left, right) => left.orderIndex - right.orderIndex);
+      });
+      setTeamProgress((current) => mergeTeamProgressModule(current, nextModule));
+      setSelectedModuleId(nextModule.id);
+      setManagerMessage(submitTarget.moduleId ? "Module updated." : "Module created.");
+      closeManagerModal();
+    } finally {
+      setIsManagerBusy(false);
+    }
+  }
+
+  async function submitGenerate() {
+    resetManagerFeedback();
+    setIsManagerBusy(true);
+
+    try {
+      const response = await fetch("/api/training/modules/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(generateForm),
+      });
+      const payload = await readJsonResponse<{ modules: GeneratedModuleDraft[] }>(response);
+
+      if (!payload.ok) {
+        setManagerError(payload.error);
+        return;
+      }
+
+      setGeneratedDrafts(payload.data.modules);
+      setManagerMessage(
+        `Generated ${payload.data.modules.length} draft module${payload.data.modules.length === 1 ? "" : "s"}.`,
+      );
+    } finally {
+      setIsManagerBusy(false);
+    }
+  }
+
+  async function saveGeneratedDraft(draft: GeneratedModuleDraft) {
+    resetManagerFeedback();
+    setIsManagerBusy(true);
+
+    try {
+      const response = await fetch("/api/training/modules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: draft.title,
+          description: draft.description,
+          skillCategory: draft.skillCategory,
+          videoUrl: null,
+          quizData: draft.quizData,
+        }),
+      });
+      const payload = await readJsonResponse<{ module: TrainingModuleSummary }>(response);
+
+      if (!payload.ok) {
+        setManagerError(payload.error);
+        return;
+      }
+
+      setModules((current) => [...current, payload.data.module].sort((left, right) => left.orderIndex - right.orderIndex));
+      setTeamProgress((current) => mergeTeamProgressModule(current, payload.data.module));
+      setSelectedModuleId(payload.data.module.id);
+      setGeneratedDrafts((current) => current.filter((entry) => entry !== draft));
+      setManagerMessage(`Saved "${payload.data.module.title}".`);
+    } finally {
+      setIsManagerBusy(false);
+    }
+  }
+
+  async function submitAssignment() {
+    if (!assigningModuleId) {
+      return;
+    }
+
+    if (assignRepIds.length === 0) {
+      setManagerError("Select at least one rep to assign.");
+      return;
+    }
+
+    resetManagerFeedback();
+    setIsManagerBusy(true);
+
+    try {
+      const response = await fetch(`/api/training/modules/${assigningModuleId}/assign`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          repIds: assignRepIds,
+          dueDate: assignDueDate || null,
+        }),
+      });
+      const payload = await readJsonResponse<{
+        assignedRepIds: string[];
+        rejectedRepIds: Array<{ repId: string; reason: "not_found" | "out_of_scope" }>;
+      }>(response);
+
+      if (!payload.ok) {
+        setManagerError(payload.error);
+        return;
+      }
+
+      await refreshTeamProgress();
+      const rejectedSummary =
+        payload.data.rejectedRepIds.length > 0
+          ? ` Rejected: ${payload.data.rejectedRepIds.map((entry) => entry.repId).join(", ")}.`
+          : "";
+      setManagerMessage(`Assigned to ${payload.data.assignedRepIds.length} rep(s).${rejectedSummary}`);
+    } finally {
+      setIsManagerBusy(false);
+    }
+  }
+
+  async function unassignRep(repId: string) {
+    if (!assigningModuleId) {
+      return;
+    }
+
+    resetManagerFeedback();
+    setIsManagerBusy(true);
+
+    try {
+      const response = await fetch(`/api/training/modules/${assigningModuleId}/assign/${repId}`, {
+        method: "DELETE",
+        headers: { Accept: "application/json" },
+      });
+      const payload = await readJsonResponse<{ unassignedRepId: string }>(response);
+
+      if (!payload.ok) {
+        setManagerError(payload.error);
+        return;
+      }
+
+      await refreshTeamProgress();
+      setManagerMessage(`Removed assignment for ${repId}.`);
+    } finally {
+      setIsManagerBusy(false);
+    }
+  }
+
   return (
     <div className="grid gap-5 xl:grid-cols-[1.1fr_1.4fr]">
-      <section className="rounded-[1.75rem] border border-slate-800/70 bg-[#0c1629] p-5 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Modules</p>
+      <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-5 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+        <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Modules</p>
         <div className="mt-4 space-y-3">
           {modules.map((module) => (
             <button
-              className={`w-full rounded-[1.3rem] border px-4 py-4 text-left transition ${
+              className={`w-full rounded-xl border px-4 py-4 text-left transition ${
                 module.id === selectedModuleId
-                  ? "border-blue-500/30 bg-blue-600/10"
-                  : "border-slate-800/70 bg-slate-950/25 hover:border-slate-700"
+                  ? "border-[#74b1ff]/20 bg-[#74b1ff]/8"
+                  : "border-[#45484f]/10 bg-[#161a21]/50 hover:border-[#74b1ff]/30"
               }`}
               key={module.id}
               onClick={() => {
@@ -98,15 +555,13 @@ export function TrainingPanel({
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-sm font-semibold text-white">{module.title}</p>
-                  <p className="mt-1 text-xs uppercase tracking-[0.2em] text-blue-300">{module.skillCategory}</p>
+                  <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[#74b1ff]">{module.skillCategory}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs uppercase tracking-[0.22em] text-slate-500">
+                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">
                     {module.progress?.status ?? "assigned"}
                   </p>
-                  <p className="mt-1 text-sm font-semibold text-slate-200">
-                    {module.progress?.score ?? "—"}
-                  </p>
+                  <p className="mt-1 text-sm font-semibold text-[#ecedf6]">{module.progress?.score ?? "—"}</p>
                 </div>
               </div>
             </button>
@@ -115,22 +570,334 @@ export function TrainingPanel({
       </section>
 
       <div className="space-y-5">
-        <section className="rounded-[1.75rem] border border-slate-800/70 bg-[#0c1629] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+        {canManage ? (
+          <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-5 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Manager tools</p>
+                <p className="mt-2 text-sm text-[#a9abb3]">Create, revise, assign, and review training modules from the same workspace.</p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/70 px-4 py-3 text-sm font-semibold text-white transition hover:border-[#74b1ff]/30 hover:bg-[#74b1ff]/10"
+                  onClick={openCreateModal}
+                  type="button"
+                >
+                  Create module
+                </button>
+                <button
+                  className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-describedby={!aiAvailable ? "training-ai-unavailable" : undefined}
+                  disabled={!aiAvailable}
+                  onClick={() => {
+                    if (aiAvailable) {
+                      openGenerateModal();
+                    }
+                  }}
+                  type="button"
+                >
+                  Generate with AI
+                </button>
+              </div>
+            </div>
+            {!aiAvailable ? (
+              <p className="mt-4 text-xs text-[#a9abb3]" id="training-ai-unavailable">
+                AI curriculum generation is unavailable until OpenAI is configured.
+              </p>
+            ) : null}
+
+            {managerError ? (
+              <div className="mt-4 rounded-xl border border-[#f38ba8]/30 bg-[#f38ba8]/10 px-4 py-3 text-sm text-[#ffd7e3]">
+                {managerError}
+              </div>
+            ) : null}
+            {managerMessage ? (
+              <div className="mt-4 rounded-xl border border-[#74b1ff]/20 bg-[#74b1ff]/8 px-4 py-3 text-sm text-[#ecedf6]">
+                {managerMessage}
+              </div>
+            ) : null}
+
+            {activeManagerModal ? (
+              <div className="mt-4 rounded-2xl border border-[#45484f]/20 bg-[#161a21]/60 p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-white">
+                      {activeManagerModal === "create"
+                        ? "Create module"
+                        : activeManagerModal === "edit"
+                          ? "Edit module"
+                          : activeManagerModal === "assign"
+                            ? `Assign ${assigningModule?.title ?? "module"}`
+                            : "Generate draft modules"}
+                    </p>
+                    <p className="mt-1 text-xs text-[#a9abb3]">
+                      {activeManagerModal === "assign"
+                        ? "Select reps, set an optional due date, and remove unstarted assignments."
+                        : activeManagerModal === "generate"
+                          ? "Draft AI modules, then save only the ones you want to keep."
+                          : "Changes save directly into the training module catalog."}
+                    </p>
+                  </div>
+                  <button
+                    className="text-xs font-semibold uppercase tracking-[0.2em] text-[#a9abb3]"
+                    onClick={closeManagerModal}
+                    type="button"
+                  >
+                    Close
+                  </button>
+                </div>
+
+                {(activeManagerModal === "create" || activeManagerModal === "edit") && (
+                  <div className="mt-4 space-y-3">
+                    <input
+                      className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                      onChange={(event) => setModuleForm((current) => ({ ...current, title: event.target.value }))}
+                      placeholder="Module title"
+                      value={moduleForm.title}
+                    />
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <input
+                        className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                        onChange={(event) => setModuleForm((current) => ({ ...current, skillCategory: event.target.value }))}
+                        placeholder="Skill category"
+                        value={moduleForm.skillCategory}
+                      />
+                      <input
+                        className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                        onChange={(event) => setModuleForm((current) => ({ ...current, videoUrl: event.target.value }))}
+                        placeholder="Video URL (optional)"
+                        value={moduleForm.videoUrl}
+                      />
+                    </div>
+                    <textarea
+                      className="min-h-28 w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                      onChange={(event) => setModuleForm((current) => ({ ...current, description: event.target.value }))}
+                      placeholder="Module description"
+                      value={moduleForm.description}
+                    />
+                    <textarea
+                      className="min-h-48 w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 font-mono text-xs text-white outline-none"
+                      onChange={(event) => setModuleForm((current) => ({ ...current, quizJson: event.target.value }))}
+                      placeholder='Optional quiz JSON: {"questions":[{"question":"...","options":["A","B"],"correctIndex":0}]}'
+                      value={moduleForm.quizJson}
+                    />
+                    <div className="flex justify-end">
+                      <button
+                        className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
+                        disabled={isManagerBusy}
+                        onClick={() => {
+                          void submitModuleForm();
+                        }}
+                        type="button"
+                      >
+                        {isManagerBusy ? "Saving..." : activeManagerModal === "edit" ? "Save changes" : "Create module"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {activeManagerModal === "generate" && (
+                  <div className="mt-4 space-y-3">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <input
+                        className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                        onChange={(event) => setGenerateForm((current) => ({ ...current, topic: event.target.value }))}
+                        placeholder="Topic"
+                        value={generateForm.topic}
+                      />
+                      <input
+                        className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                        onChange={(event) => setGenerateForm((current) => ({ ...current, targetRole: event.target.value }))}
+                        placeholder="Target role"
+                        value={generateForm.targetRole}
+                      />
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-[1fr_160px]">
+                      <input
+                        className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                        onChange={(event) => setGenerateForm((current) => ({ ...current, skillFocus: event.target.value }))}
+                        placeholder="Skill focus"
+                        value={generateForm.skillFocus}
+                      />
+                      <input
+                        className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                        min={1}
+                        onChange={(event) =>
+                          setGenerateForm((current) => ({
+                            ...current,
+                            moduleCount: Number.parseInt(event.target.value || "0", 10) || 0,
+                          }))
+                        }
+                        placeholder="Count"
+                        type="number"
+                        value={generateForm.moduleCount}
+                      />
+                    </div>
+                    <div className="flex justify-end">
+                      <button
+                        className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
+                        disabled={isManagerBusy}
+                        onClick={() => {
+                          void submitGenerate();
+                        }}
+                        type="button"
+                      >
+                        {isManagerBusy ? "Generating..." : "Generate drafts"}
+                      </button>
+                    </div>
+
+                    {generatedDrafts.length > 0 ? (
+                      <div className="space-y-3 pt-2">
+                        {generatedDrafts.map((draft) => (
+                          <div
+                            className="rounded-xl border border-[#45484f]/20 bg-[#10131a]/80 p-4"
+                            key={`${draft.title}-${draft.skillCategory}`}
+                          >
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div>
+                                <p className="text-sm font-semibold text-white">{draft.title}</p>
+                                <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[#74b1ff]">
+                                  {draft.skillCategory}
+                                </p>
+                              </div>
+                              <button
+                                className="rounded-lg border border-[#74b1ff]/30 px-3 py-2 text-xs font-semibold text-[#ecedf6]"
+                                disabled={isManagerBusy}
+                                onClick={() => {
+                                  void saveGeneratedDraft(draft);
+                                }}
+                                type="button"
+                              >
+                                Save draft
+                              </button>
+                            </div>
+                            <p className="mt-3 text-sm text-[#a9abb3]">{draft.description}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+
+                {activeManagerModal === "assign" && assigningModule && (
+                  <div className="mt-4 space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <p className="text-sm text-[#a9abb3]">
+                        Use the checklist to assign this module. Existing assignments are shown inline.
+                      </p>
+                      <input
+                        className="rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                        onChange={(event) => setAssignDueDate(event.target.value)}
+                        type="date"
+                        value={assignDueDate}
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      {teamRows.map((row) => {
+                        const progress = assignmentProgressByRepId.get(row.repId);
+                        const checked = assignRepIds.includes(row.repId);
+
+                        return (
+                          <label
+                            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#45484f]/20 bg-[#10131a]/80 px-4 py-3"
+                            key={row.repId}
+                          >
+                            <div className="flex items-center gap-3">
+                              <input
+                                checked={checked}
+                                onChange={(event) =>
+                                  setAssignRepIds((current) =>
+                                    event.target.checked
+                                      ? [...current, row.repId]
+                                      : current.filter((repId) => repId !== row.repId),
+                                  )
+                                }
+                                type="checkbox"
+                              />
+                              <div>
+                                <p className="text-sm font-semibold text-white">
+                                  {[row.firstName, row.lastName].filter(Boolean).join(" ").trim() || row.email}
+                                </p>
+                                <p className="text-xs text-[#a9abb3]">{row.email}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <div className="text-right text-xs text-[#a9abb3]">
+                                <p>{progress ? progress.status : "not assigned"}</p>
+                                <p>{progress?.score === null || progress?.score === undefined ? "Score pending" : `${progress.score}% score`}</p>
+                              </div>
+                              {progress?.status === "assigned" ? (
+                                <button
+                                  className="rounded-lg border border-[#45484f]/30 px-3 py-2 text-xs font-semibold text-white"
+                                  disabled={isManagerBusy}
+                                  onClick={() => {
+                                    void unassignRep(row.repId);
+                                  }}
+                                  type="button"
+                                >
+                                  Remove
+                                </button>
+                              ) : null}
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <div className="flex justify-end">
+                      <button
+                        className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
+                        disabled={isManagerBusy}
+                        onClick={() => {
+                          void submitAssignment();
+                        }}
+                        type="button"
+                      >
+                        {isManagerBusy ? "Assigning..." : "Assign module"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </section>
+        ) : null}
+
+        <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
           {selectedModule ? (
             <div className="space-y-5">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-400">
-                  {selectedModule.skillCategory}
-                </p>
-                <h3 className="mt-2 text-2xl font-semibold text-white">{selectedModule.title}</h3>
-                <p className="mt-3 text-sm leading-7 text-slate-400">{selectedModule.description}</p>
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#74b1ff]">
+                    {selectedModule.skillCategory}
+                  </p>
+                  <h3 className="mt-2 text-2xl font-semibold text-white">{selectedModule.title}</h3>
+                  <p className="mt-3 text-sm leading-7 text-[#a9abb3]">{selectedModule.description}</p>
+                </div>
+                {canManage ? (
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      className="rounded-lg border border-[#45484f]/20 px-3 py-2 text-xs font-semibold text-white"
+                      onClick={() => openEditModal(selectedModule)}
+                      type="button"
+                    >
+                      Edit module
+                    </button>
+                    <button
+                      className="rounded-lg border border-[#45484f]/20 px-3 py-2 text-xs font-semibold text-white"
+                      onClick={() => openAssignModal(selectedModule)}
+                      type="button"
+                    >
+                      Assign module
+                    </button>
+                  </div>
+                ) : null}
               </div>
 
               {selectedModule.quizData?.questions?.length ? (
                 <div className="space-y-5">
                   {selectedModule.quizData.questions.map((question, questionIndex) => (
                     <div key={question.question}>
-                      <p className="text-sm font-medium text-slate-100">
+                      <p className="text-sm font-medium text-[#ecedf6]">
                         {questionIndex + 1}. {question.question}
                       </p>
                       <div className="mt-3 space-y-2">
@@ -138,8 +905,8 @@ export function TrainingPanel({
                           <button
                             className={`w-full rounded-xl border px-4 py-3 text-left text-sm transition ${
                               answers[questionIndex] === optionIndex
-                                ? "border-blue-500/30 bg-blue-600/10 text-blue-200"
-                                : "border-slate-800/70 bg-slate-950/25 text-slate-300 hover:border-slate-700"
+                                ? "border-[#74b1ff]/20 bg-[#74b1ff]/8 text-[#74b1ff]"
+                                : "border-[#45484f]/10 bg-[#161a21]/50 text-[#ecedf6] hover:border-[#74b1ff]/30"
                             }`}
                             key={`${question.question}-${option}`}
                             onClick={() =>
@@ -158,20 +925,20 @@ export function TrainingPanel({
                   ))}
                 </div>
               ) : (
-                <div className="rounded-[1.2rem] border border-slate-800/70 bg-slate-950/25 px-4 py-4 text-sm text-slate-400">
+                <div className="rounded-xl border border-[#45484f]/10 bg-[#161a21]/50 px-4 py-4 text-sm text-[#a9abb3]">
                   This module does not include a quiz. Completing it will mark the assignment as passed.
                 </div>
               )}
 
               {statusMessage ? (
-                <div className="rounded-[1.2rem] border border-blue-500/20 bg-blue-600/10 px-4 py-3 text-sm text-blue-100">
+                <div className="rounded-xl border border-[#74b1ff]/20 bg-[#74b1ff]/8 px-4 py-3 text-sm text-[#ecedf6]">
                   {statusMessage}
                 </div>
               ) : null}
 
               {!canManage ? (
                 <button
-                  className="rounded-[1.15rem] bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:opacity-50"
+                  className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-5 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
                   disabled={isSubmitting}
                   onClick={() => {
                     void submitProgress();
@@ -183,42 +950,80 @@ export function TrainingPanel({
               ) : null}
             </div>
           ) : (
-            <p className="text-sm text-slate-500">No modules are available.</p>
+            <p className="text-sm text-[#a9abb3]">No modules are available.</p>
           )}
         </section>
 
         {canManage ? (
-          <section className="rounded-[1.75rem] border border-slate-800/70 bg-[#0c1629] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-            <div className="flex items-center justify-between gap-4">
+          <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+            <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Team Progress</p>
-                <p className="mt-2 text-sm text-slate-400">Starter modules are auto-provisioned when an org has none, so managers can test the full training flow immediately.</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Team Progress</p>
+                <p className="mt-2 text-sm text-[#a9abb3]">
+                  Starter modules are auto-provisioned when an org has none, so managers can test the full training flow immediately.
+                </p>
               </div>
             </div>
-            <div className="mt-4 space-y-3">
-              {initialTeamRows.length ? (
-                initialTeamRows.map((row) => (
-                  <div className="flex items-center justify-between rounded-[1.2rem] border border-slate-800/70 bg-slate-950/25 px-4 py-4" key={row.repId}>
-                    <div>
-                      <p className="text-sm font-medium text-white">
-                        {[row.firstName, row.lastName].filter(Boolean).join(" ").trim() || row.email}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500">{row.email}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-semibold text-blue-300">{row.completionRate}%</p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {row.passed}/{row.assigned} passed
-                      </p>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="rounded-[1.2rem] border border-dashed border-slate-700/80 bg-slate-950/20 px-4 py-6 text-sm text-slate-500">
-                  No rep progress yet. Reps will appear here after they complete module quizzes.
-                </div>
-              )}
-            </div>
+            {teamProgress.modules.length ? (
+              <div className="mt-4 overflow-x-auto">
+                <table className="w-full min-w-[720px] text-left text-sm text-[#ecedf6]">
+                  <thead>
+                    <tr className="border-b border-[#45484f]/20 text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">
+                      <th className="px-4 py-3">Rep</th>
+                      {teamProgress.modules.map((module) => (
+                        <th className="px-4 py-3" key={module.id}>
+                          {module.title}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {teamProgress.repProgress.length ? (
+                      teamProgress.repProgress.map((rep) => (
+                        <tr className="border-b border-[#45484f]/10 last:border-b-0" key={rep.repId}>
+                          <td className="px-4 py-4 align-top">
+                            <p className="font-medium text-white">
+                              {[rep.firstName, rep.lastName].filter(Boolean).join(" ").trim() || rep.repId}
+                            </p>
+                          </td>
+                          {teamProgress.modules.map((module) => {
+                            const progress = rep.moduleProgress.find((entry) => entry.moduleId === module.id);
+
+                            return (
+                              <td className="px-4 py-4 align-top" key={module.id}>
+                                {progress ? (
+                                  <div className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-3 py-3">
+                                    <p className="text-sm font-semibold capitalize text-white">{progress.status.replaceAll("_", " ")}</p>
+                                    <p className="mt-1 text-xs text-[#a9abb3]">
+                                      {progress.score === null ? "Score pending" : `${progress.score}% score`}
+                                    </p>
+                                    <p className="mt-1 text-xs text-[#a9abb3]">{progress.attempts} attempts</p>
+                                  </div>
+                                ) : (
+                                  <div className="rounded-xl border border-dashed border-[#45484f]/20 px-3 py-3 text-xs text-[#a9abb3]">
+                                    Not started
+                                  </div>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td className="px-4 py-6 text-sm text-[#a9abb3]" colSpan={teamProgress.modules.length + 1}>
+                          No rep progress yet. Reps will appear here after they complete module quizzes.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="mt-4 rounded-xl border border-dashed border-[#45484f]/20 px-4 py-6 text-sm text-[#a9abb3]">
+                Create or generate modules to start tracking team progress.
+              </div>
+            )}
           </section>
         ) : null}
       </div>
