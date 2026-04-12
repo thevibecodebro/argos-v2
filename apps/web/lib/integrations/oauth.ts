@@ -229,6 +229,59 @@ export async function exchangeGhlCode(
   };
 }
 
+export async function refreshZoomToken(
+  refreshToken: string,
+  env: EnvSource = process.env,
+) {
+  const clientId = env.ZOOM_CLIENT_ID;
+  const clientSecret = env.ZOOM_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error("Zoom integration is not configured");
+  }
+
+  const basic = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+  const tokenUrl = new URL("https://zoom.us/oauth/token");
+  tokenUrl.searchParams.set("grant_type", "refresh_token");
+  tokenUrl.searchParams.set("refresh_token", refreshToken);
+
+  const tokenResponse = await fetch(tokenUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${basic}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+  });
+
+  if (!tokenResponse.ok) {
+    throw new Error(`Zoom token refresh failed: ${tokenResponse.status}`);
+  }
+
+  const tokenPayload = (await tokenResponse.json()) as {
+    access_token: string;
+    refresh_token: string;
+    expires_in: number;
+  };
+
+  return {
+    accessToken: tokenPayload.access_token,
+    refreshToken: tokenPayload.refresh_token,
+    tokenExpiresAt: new Date(Date.now() + tokenPayload.expires_in * 1000 - 60_000),
+  };
+}
+
+export async function deleteZoomWebhook(input: {
+  accessToken: string;
+  webhookId: string;
+}) {
+  await fetch(`https://api.zoom.us/v2/webhooks/${input.webhookId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${input.accessToken}`,
+    },
+  });
+}
+
 export async function registerZoomWebhook(input: {
   accessToken: string;
   webhookToken: string;

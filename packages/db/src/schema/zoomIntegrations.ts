@@ -11,6 +11,7 @@ export const zoomIntegrationsTable = pgTable("zoom_integrations", {
   refreshToken: text("refresh_token").notNull(),
   tokenExpiresAt: timestamp("token_expires_at", { withTimezone: true }).notNull(),
   webhookToken: text("webhook_token"),
+  webhookId: text("webhook_id"),
   zoomUserId: text("zoom_user_id"),
   zoomAccountId: text("zoom_account_id"),
   connectedAt: timestamp("connected_at", { withTimezone: true }).notNull().defaultNow(),

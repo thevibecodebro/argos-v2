@@ -8,5 +8,9 @@ coverage
 .env.*.local
 .DS_Store
 supabase/.temp/
+.claude/
+.qwen/
 .worktrees/
 archive/argos-legacy/
+.vercel
+.gitnexus

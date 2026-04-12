@@ -1,0 +1,85 @@
+import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { createTrainingRepository } from "@/lib/training/create-repository";
+import { assignTrainingModule } from "@/lib/training/service";
+
+export const dynamic = "force-dynamic";
+
+function isNonEmptyStringArray(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every((entry) => typeof entry === "string" && entry.trim().length > 0)
+  );
+}
+
+function parseDueDate(value: unknown): string | null | undefined {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return undefined;
+  }
+
+  const [yearText, monthText, dayText] = trimmed.split("-");
+  const year = Number.parseInt(yearText, 10);
+  const month = Number.parseInt(monthText, 10);
+  const day = Number.parseInt(dayText, 10);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    Number.isNaN(parsed.getTime()) ||
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    return undefined;
+  }
+
+  return trimmed;
+}
+
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const authUser = await getAuthenticatedSupabaseUser();
+
+  if (!authUser) {
+    return unauthorizedJson();
+  }
+
+  let body: Record<string, unknown>;
+  try {
+    body = (await request.json()) as Record<string, unknown>;
+  } catch {
+    return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  if (!isNonEmptyStringArray(body.repIds)) {
+    return Response.json({ error: "repIds must be non-empty strings" }, { status: 400 });
+  }
+
+  const dueDate = parseDueDate(body.dueDate);
+  if (dueDate === undefined) {
+    return Response.json({ error: "dueDate must be a valid ISO date string" }, { status: 400 });
+  }
+
+  const { id } = await params;
+  const result = await assignTrainingModule(createTrainingRepository(), authUser.id, id, {
+    repIds: body.repIds.map((repId) => repId.trim()),
+    dueDate,
+  });
+
+  return fromServiceResult(result);
+}

@@ -96,6 +96,21 @@ export class SupabaseRoleplayRepository implements RoleplayRepository {
     return data ? normalizeSessionRecord(data) : null;
   }
 
+  async findSessionsByOrgId(orgId: string) {
+    const supabase: any = this.supabase;
+    const { data, error } = await supabase
+      .from("roleplay_sessions")
+      .select("*")
+      .eq("org_id", orgId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return (data ?? []).map(normalizeSessionRecord);
+  }
+
   async findSessionsByRepId(repId: string) {
     const supabase: any = this.supabase;
     const { data, error } = await supabase

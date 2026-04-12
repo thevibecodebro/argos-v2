@@ -10,19 +10,23 @@ import {
 import { organizationsTable } from "./organizations";
 import { usersTable } from "./users";
 
-export const trainingModulesTable = pgTable("training_modules", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  orgId: uuid("org_id")
-    .notNull()
-    .references(() => organizationsTable.id, { onDelete: "cascade" }),
-  title: text("title"),
-  description: text("description"),
-  skillCategory: text("skill_category"),
-  videoUrl: text("video_url"),
-  quizData: jsonb("quiz_data"),
-  orderIndex: integer("order_index"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const trainingModulesTable = pgTable(
+  "training_modules",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizationsTable.id, { onDelete: "cascade" }),
+    title: text("title"),
+    description: text("description"),
+    skillCategory: text("skill_category"),
+    videoUrl: text("video_url"),
+    quizData: jsonb("quiz_data"),
+    orderIndex: integer("order_index"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [unique("training_modules_org_order_unique").on(table.orgId, table.orderIndex)],
+);
 
 export const trainingProgressTable = pgTable(
   "training_progress",

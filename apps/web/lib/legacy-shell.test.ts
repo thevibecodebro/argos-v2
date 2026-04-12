@@ -51,13 +51,17 @@ describe("legacy UI shell", () => {
     createDashboardRepositoryMock.mockReturnValue({});
   });
 
-  it("renders the legacy-style sign-in shell on the landing page", () => {
-    const html = renderToStaticMarkup(HomePage());
-
-    expect(html).toContain("Revenue Command Platform");
-    expect(html).toContain("AI Scorecards");
-    expect(html).toContain("Coaching Flags");
-    expect(html).toContain("Instant Insights");
+  it("redirects the landing page to login", () => {
+    expect(() => HomePage()).toThrowError(
+      expect.objectContaining({
+        digest: expect.stringContaining("NEXT_REDIRECT"),
+      }),
+    );
+    expect(() => HomePage()).toThrowError(
+      expect.objectContaining({
+        digest: expect.stringContaining("/login"),
+      }),
+    );
   });
 
   it("renders the login page with the restored dark auth shell", async () => {
@@ -67,9 +71,9 @@ describe("legacy UI shell", () => {
       }),
     );
 
-    expect(html).toContain("Revenue Command Platform");
+    expect(html).toContain("Welcome back");
     expect(html).toContain("Continue with Google");
-    expect(html).toContain("Send magic link");
+    expect(html).toContain("Work Email");
   });
 
   it("renders the executive dashboard shell with legacy navigation labels", async () => {

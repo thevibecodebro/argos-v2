@@ -93,33 +93,43 @@ export function CallsFilters({ initialSearch }: Props) {
   }
 
   return (
-    <div className="space-y-3">
-      <div className="grid gap-3 md:grid-cols-[1.6fr,0.8fr,0.8fr,0.8fr]">
-        <div>
+    <div className="space-y-6">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_repeat(3,minmax(0,0.75fr))_auto]">
+        <div className="group flex items-center rounded-[1.15rem] border border-white/10 bg-white/[0.04] px-4 py-1.5 shadow-[0_12px_40px_rgba(3,8,20,0.24)] backdrop-blur-md transition focus-within:border-[#74b1ff]/40 focus-within:bg-white/[0.06]">
+          <span
+            aria-hidden="true"
+            className="material-symbols-outlined mr-3 text-[#74b1ff]"
+            style={{ fontSize: "18px" }}
+          >
+            topic
+          </span>
           <label className="sr-only" htmlFor="search">
             Search by topic
           </label>
           <input
-            className="w-full rounded-[1.15rem] border border-slate-700/70 bg-slate-950/40 px-4 py-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10"
+            className="w-full border-none bg-transparent px-0 py-3 text-sm font-medium text-slate-100 outline-none placeholder:text-slate-500 focus:ring-0"
             id="search"
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by topic..."
+            placeholder="Search by topics, deals, or objections"
             type="text"
             value={search}
           />
         </div>
 
-        <div>
+        <div className="rounded-[1.15rem] border border-white/10 bg-white/[0.04] px-4 py-3 shadow-[0_12px_40px_rgba(3,8,20,0.24)] backdrop-blur-md">
+          <p className="mb-1 text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">
+            Min Score
+          </p>
           <label className="sr-only" htmlFor="minScore">
             Minimum score
           </label>
           <select
-            className="w-full rounded-[1.15rem] border border-slate-700/70 bg-slate-950/40 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10"
+            className="w-full border-none bg-transparent px-0 py-0 text-sm font-semibold text-slate-100 outline-none focus:ring-0"
             id="minScore"
             onChange={(e) => handleMinScoreChange(e.target.value)}
             value={currentMinScore}
           >
-            <option value="">Min score</option>
+            <option value="">Any</option>
             {[50, 60, 70, 80, 90].map((v) => (
               <option key={v} value={v}>
                 {v}+
@@ -128,17 +138,20 @@ export function CallsFilters({ initialSearch }: Props) {
           </select>
         </div>
 
-        <div>
+        <div className="rounded-[1.15rem] border border-white/10 bg-white/[0.04] px-4 py-3 shadow-[0_12px_40px_rgba(3,8,20,0.24)] backdrop-blur-md">
+          <p className="mb-1 text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">
+            Max Score
+          </p>
           <label className="sr-only" htmlFor="maxScore">
             Maximum score
           </label>
           <select
-            className="w-full rounded-[1.15rem] border border-slate-700/70 bg-slate-950/40 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10"
+            className="w-full border-none bg-transparent px-0 py-0 text-sm font-semibold text-slate-100 outline-none focus:ring-0"
             id="maxScore"
             onChange={(e) => handleMaxScoreChange(e.target.value)}
             value={currentMaxScore}
           >
-            <option value="">Max score</option>
+            <option value="">Any</option>
             {[60, 70, 80, 90, 100].map((v) => (
               <option key={v} value={v}>
                 {v}
@@ -147,12 +160,15 @@ export function CallsFilters({ initialSearch }: Props) {
           </select>
         </div>
 
-        <div>
+        <div className="rounded-[1.15rem] border border-white/10 bg-white/[0.04] px-4 py-3 shadow-[0_12px_40px_rgba(3,8,20,0.24)] backdrop-blur-md">
+          <p className="mb-1 text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">
+            Sort By
+          </p>
           <label className="sr-only" htmlFor="sort">
             Sort order
           </label>
           <select
-            className="w-full rounded-[1.15rem] border border-slate-700/70 bg-slate-950/40 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10"
+            className="w-full border-none bg-transparent px-0 py-0 text-sm font-semibold text-slate-100 outline-none focus:ring-0"
             id="sort"
             onChange={(e) => router.replace(buildUrl({ sort: e.target.value }))}
             value={currentSort}
@@ -164,16 +180,31 @@ export function CallsFilters({ initialSearch }: Props) {
             ))}
           </select>
         </div>
+
+        <button
+          aria-label={hasActiveFilters ? "Clear filters" : "Filters applied"}
+          className={`flex h-full min-h-[62px] items-center justify-center rounded-[1.15rem] border shadow-[0_12px_40px_rgba(3,8,20,0.24)] backdrop-blur-md transition ${
+            hasActiveFilters
+              ? "border-[#74b1ff]/30 bg-[#74b1ff]/10 text-[#74b1ff] hover:bg-[#74b1ff]/15"
+              : "border-white/10 bg-white/[0.04] text-slate-400"
+          }`}
+          onClick={() => hasActiveFilters && router.replace("/calls")}
+          type="button"
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>
+            filter_list
+          </span>
+        </button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-6 border-b border-white/8 pb-1">
         {STATUS_OPTIONS.map((option) => (
           <button
             aria-current={currentStatus === option.value ? "page" : undefined}
-            className={`rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${
+            className={`border-b-2 pb-4 text-xs font-black uppercase tracking-[0.24em] transition ${
               currentStatus === option.value
-                ? "border-blue-500/40 bg-blue-600/15 text-blue-300"
-                : "border-slate-700/70 bg-slate-950/30 text-slate-400 hover:border-slate-600 hover:text-slate-200"
+                ? "border-[#74b1ff] text-[#74b1ff]"
+                : "border-transparent text-slate-500 hover:text-slate-200"
             }`}
             key={option.value}
             onClick={() => router.replace(buildUrl({ status: option.value }))}
@@ -184,7 +215,7 @@ export function CallsFilters({ initialSearch }: Props) {
         ))}
         {hasActiveFilters ? (
           <button
-            className="ml-auto rounded-xl border border-slate-700/70 bg-slate-950/30 px-4 py-2 text-sm font-medium text-slate-300 transition hover:border-slate-600 hover:text-white"
+            className="ml-auto rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-slate-300 transition hover:border-white/20 hover:text-white"
             onClick={() => router.replace("/calls")}
             type="button"
           >

@@ -31,34 +31,34 @@ export default async function LeaderboardPage() {
 
           return (
             <article
-              className="rounded-[1.75rem] border border-slate-800/70 bg-[#0c1629] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]"
+              className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]"
               key={group.key}
             >
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-400">{group.title}</p>
-              <p className="mt-2 text-sm text-slate-500">{group.description}</p>
+              <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#74b1ff]">{group.title}</p>
+              <p className="mt-2 text-sm text-[#a9abb3]">{group.description}</p>
 
               {entries.length ? (
                 <div className="mt-6 space-y-3">
                   {entries.map((entry) => (
                     <Link
-                      className="flex items-center justify-between gap-4 rounded-2xl border border-slate-800/70 bg-slate-950/30 px-4 py-4 transition hover:border-blue-500/30 hover:bg-blue-600/5"
+                      className="flex items-center justify-between gap-4 rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-4 transition hover:border-[#74b1ff]/30 hover:bg-[#74b1ff]/5"
                       href={`/team/${entry.userId}`}
                       key={entry.userId}
                     >
                       <div>
-                        <p className="text-sm font-medium text-slate-100">
+                        <p className="text-sm font-medium text-[#ecedf6]">
                           {entry.rank}. {[entry.firstName, entry.lastName].filter(Boolean).join(" ") || "Unknown rep"}
                         </p>
-                        <p className="mt-1 text-xs text-slate-500">Drill into team profile</p>
+                        <p className="mt-1 text-xs text-[#a9abb3]">Drill into team profile</p>
                       </div>
                       <span className={`text-lg font-semibold ${scoreColor(entry.value)}`}>{entry.value ?? "—"}</span>
                     </Link>
                   ))}
                 </div>
               ) : (
-                <div className="mt-6 rounded-[1.5rem] border border-dashed border-slate-700/80 bg-slate-950/20 px-5 py-8 text-center">
-                  <p className="text-lg font-medium text-slate-200">No data yet</p>
-                  <p className="mx-auto mt-2 max-w-xl text-sm leading-7 text-slate-500">
+                <div className="mt-6 rounded-xl border border-dashed border-[#45484f]/20 bg-[#161a21]/20 px-5 py-8 text-center">
+                  <p className="text-lg font-medium text-[#ecedf6]">No data yet</p>
+                  <p className="mx-auto mt-2 max-w-xl text-sm leading-7 text-[#a9abb3]">
                     Once this org has enough scored calls, this leaderboard slice will populate automatically.
                   </p>
                 </div>
@@ -72,21 +72,9 @@ export default async function LeaderboardPage() {
 }
 
 function scoreColor(value: number | null | undefined) {
-  if (typeof value !== "number") {
-    return "text-slate-400";
-  }
-
-  if (value >= 85) {
-    return "text-emerald-400";
-  }
-
-  if (value >= 70) {
-    return "text-blue-300";
-  }
-
-  if (value >= 60) {
-    return "text-amber-400";
-  }
-
+  if (typeof value !== "number") return "text-[#a9abb3]";
+  if (value >= 85) return "text-emerald-400";
+  if (value >= 70) return "text-[#74b1ff]";
+  if (value >= 60) return "text-amber-400";
   return "text-red-400";
 }

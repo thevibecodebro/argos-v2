@@ -20,6 +20,41 @@ function formatTimestamp(seconds: number | null | undefined) {
   return `${minutes}:${remainder.toString().padStart(2, "0")}`;
 }
 
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function scoreTint(value: number | null | undefined) {
+  if (typeof value !== "number") return "bg-slate-700 text-slate-400";
+  if (value >= 85) return "bg-cyan-400 text-cyan-300";
+  if (value >= 70) return "bg-[#74b1ff] text-[#74b1ff]";
+  if (value >= 60) return "bg-amber-400 text-amber-300";
+  return "bg-red-400 text-red-400";
+}
+
+function severityTint(severity: string | null | undefined) {
+  if (severity === "strength") return "bg-cyan-500/10 text-cyan-300 border-cyan-500/20";
+  if (severity === "critical") return "bg-red-500/10 text-red-300 border-red-500/20";
+  return "bg-[#74b1ff]/10 text-[#74b1ff] border-[#74b1ff]/20";
+}
+
+function progressWidth(value: number | null | undefined) {
+  if (typeof value !== "number") return 18;
+  return Math.max(8, Math.min(100, value));
+}
+
+function initials(speaker: string) {
+  return speaker
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
 export function CallDetailPanel({
   annotations: initialAnnotations,
   call,
@@ -31,7 +66,7 @@ export function CallDetailPanel({
   const [highlightNote, setHighlightNote] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const scoreCards = useMemo(
+  const scoreCards = useMemo<[string, number | null][]>(
     () => [
       ["Frame Control", call.frameControlScore],
       ["Rapport", call.rapportScore],
@@ -43,6 +78,10 @@ export function CallDetailPanel({
     ],
     [call],
   );
+
+  const circumference = 2 * Math.PI * 40;
+  const overallScore = typeof call.overallScore === "number" ? call.overallScore : 0;
+  const ringOffset = circumference - (Math.max(0, Math.min(100, overallScore)) / 100) * circumference;
 
   async function submitAnnotation() {
     if (!note.trim()) {
@@ -92,184 +131,361 @@ export function CallDetailPanel({
   }
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[1.15fr_1.55fr]">
-      <div className="space-y-5">
-        <section className="rounded-[1.75rem] border border-slate-800/70 bg-[#0c1629] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-400">Scorecard</p>
-          <h3 className="mt-2 text-3xl font-semibold text-white">{call.overallScore ?? "—"}</h3>
-          <p className="mt-2 text-sm text-slate-500">
-            Confidence: {call.confidence ?? "unknown"} · Stage: {call.callStageReached ?? "not set"}
-          </p>
-          <div className="mt-5 space-y-3">
-            {scoreCards.map(([label, value]) => (
-              <div className="flex items-center justify-between rounded-[1.15rem] border border-slate-800/70 bg-slate-950/25 px-4 py-3" key={label}>
-                <span className="text-sm text-slate-300">{label}</span>
-                <span className="text-sm font-semibold text-white">{value ?? "—"}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="rounded-[1.75rem] border border-slate-800/70 bg-[#0c1629] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Coaching Notes</p>
-          <div className="mt-4 space-y-3">
-            {annotations.length ? (
-              annotations.map((annotation) => (
-                <div className="rounded-[1.15rem] border border-slate-800/70 bg-slate-950/25 px-4 py-4" key={annotation.id}>
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-white">{annotation.note}</p>
-                      <p className="mt-2 text-xs text-slate-500">
-                        {annotation.authorFirstName || annotation.authorLastName
-                          ? `${annotation.authorFirstName ?? ""} ${annotation.authorLastName ?? ""}`.trim()
-                          : annotation.authorRole ?? "Coach"}{" "}
-                        · {new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(annotation.createdAt))}
-                      </p>
-                    </div>
-                    <button
-                      className="text-xs uppercase tracking-[0.22em] text-slate-500 transition hover:text-red-300"
-                      onClick={() => {
-                        void removeAnnotation(annotation.id);
-                      }}
-                      type="button"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="rounded-[1.15rem] border border-dashed border-slate-700/80 bg-slate-950/20 px-4 py-6 text-sm text-slate-500">
-                No annotations yet. Add a coaching note below.
-              </div>
-            )}
-          </div>
-          <div className="mt-4 space-y-3">
-            <textarea
-              className="min-h-28 w-full rounded-[1.15rem] border border-slate-700/70 bg-slate-950/40 px-4 py-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10"
-              onChange={(event) => setNote(event.target.value)}
-              placeholder="Add a coaching note tied to this call."
-              value={note}
-            />
-            <button
-              className="rounded-[1.15rem] bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:opacity-50"
-              disabled={isSubmitting || !note.trim()}
-              onClick={() => {
-                void submitAnnotation();
-              }}
-              type="button"
-            >
-              {isSubmitting ? "Saving..." : "Add annotation"}
-            </button>
-          </div>
-        </section>
-      </div>
-
-      <div className="space-y-5">
-        <section className="rounded-[1.75rem] border border-slate-800/70 bg-[#0c1629] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-          <div className="flex items-center justify-between gap-4">
+    <div className="grid grid-cols-12 gap-8">
+      <div className="col-span-12 space-y-8 lg:col-span-5">
+        <section className="overflow-hidden rounded-[1.5rem] border border-white/8 bg-[#10131a] p-6 shadow-[0_24px_80px_rgba(2,8,23,0.32)]">
+          <div className="mb-8 flex items-start justify-between gap-6">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Call Detail</p>
-              <h3 className="mt-2 text-2xl font-semibold text-white">{call.callTopic ?? "Untitled call"}</h3>
-            </div>
-            <div className="text-right">
-              <p className="text-xs uppercase tracking-[0.22em] text-slate-500">{call.status}</p>
-              <p className="mt-1 text-sm text-slate-400">
-                {new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(call.createdAt))}
+              <h2 className="text-xl font-semibold text-white">Revenue Scorecard</h2>
+              <p className="mt-1 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+                AI-Powered Evaluation
+              </p>
+              <p className="mt-3 text-sm text-slate-400">
+                Confidence: {call.confidence ?? "unknown"} · Stage: {call.callStageReached ?? "not set"}
               </p>
             </div>
+            <div className="relative flex items-center justify-center">
+              <svg className="h-24 w-24 -rotate-90 transform">
+                <circle
+                  cx="48"
+                  cy="48"
+                  fill="transparent"
+                  r="40"
+                  stroke="#22262f"
+                  strokeWidth="8"
+                />
+                <circle
+                  cx="48"
+                  cy="48"
+                  fill="transparent"
+                  r="40"
+                  stroke="#74b1ff"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={ringOffset}
+                  strokeLinecap="round"
+                  strokeWidth="8"
+                />
+              </svg>
+              <span className="absolute text-2xl font-black text-[#74b1ff]">
+                {call.overallScore ?? "—"}
+              </span>
+            </div>
           </div>
 
-          <div className="mt-5 grid gap-3 md:grid-cols-2">
-            <div className="rounded-[1.15rem] border border-slate-800/70 bg-slate-950/25 px-4 py-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Strengths</p>
-              <ul className="mt-3 space-y-2 text-sm text-slate-300">
-                {(call.strengths ?? []).map((strength) => (
-                  <li key={strength}>• {strength}</li>
-                ))}
-              </ul>
-            </div>
-            <div className="rounded-[1.15rem] border border-slate-800/70 bg-slate-950/25 px-4 py-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Recommended Drills</p>
-              <ul className="mt-3 space-y-2 text-sm text-slate-300">
-                {(call.recommendedDrills ?? []).map((drill) => (
-                  <li key={drill}>• {drill}</li>
-                ))}
-              </ul>
-            </div>
+          <div className="space-y-4">
+            {scoreCards.map(([label, value]) => {
+              const tint = scoreTint(value);
+              return (
+                <div className="flex items-center justify-between gap-4" key={label}>
+                  <span className="text-sm font-medium text-slate-300 transition-colors hover:text-[#74b1ff]">
+                    {label}
+                  </span>
+                  <div className="flex items-center gap-3">
+                    <div className="h-1.5 w-32 overflow-hidden rounded-full bg-black">
+                      <div
+                        className={`h-full rounded-full ${tint.split(" ")[0]}`}
+                        style={{ width: `${progressWidth(value)}%` }}
+                      />
+                    </div>
+                    <span className={`w-7 text-right text-xs font-bold ${tint.split(" ")[1]}`}>
+                      {value ?? "—"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </section>
 
-        <section className="rounded-[1.75rem] border border-slate-800/70 bg-[#0c1629] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Moments</p>
-          <div className="mt-4 space-y-3">
+        <section className="rounded-[1.5rem] border border-white/8 bg-[#10131a] p-6 shadow-[0_24px_80px_rgba(2,8,23,0.32)]">
+          <div className="mb-6 flex items-center justify-between gap-4">
+            <h2 className="text-xl font-semibold text-white">Key Moments</h2>
+            <span className="material-symbols-outlined text-[#74b1ff]">filter_list</span>
+          </div>
+
+          <div className="space-y-6">
             {call.moments.length ? (
               call.moments.map((moment) => (
-                <div className="rounded-[1.15rem] border border-slate-800/70 bg-slate-950/25 px-4 py-4" key={moment.id}>
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-300">
-                        {moment.category ?? "moment"} · {formatTimestamp(moment.timestampSeconds)}
-                      </p>
-                      <p className="mt-2 text-sm font-medium text-white">{moment.observation}</p>
-                      {moment.recommendation ? (
-                        <p className="mt-2 text-sm leading-7 text-slate-400">{moment.recommendation}</p>
-                      ) : null}
-                    </div>
-                    {canManage ? (
-                      <div className="space-y-2 text-right">
-                        <button
-                          className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${
-                            moment.isHighlight
-                              ? "bg-amber-500/15 text-amber-200"
-                              : "border border-slate-700/70 text-slate-300 hover:border-amber-500/30 hover:text-amber-200"
-                          }`}
-                          onClick={() => {
-                            void toggleHighlight(moment.id, !moment.isHighlight);
-                          }}
-                          type="button"
-                        >
-                          {moment.isHighlight ? "Unstar" : "Highlight"}
-                        </button>
-                        <input
-                          className="w-44 rounded-lg border border-slate-700/70 bg-slate-950/40 px-3 py-2 text-xs text-slate-200 outline-none transition placeholder:text-slate-600 focus:border-blue-500/60"
-                          onChange={(event) =>
-                            setHighlightNote((current) => ({
-                              ...current,
-                              [moment.id]: event.target.value,
-                            }))
-                          }
-                          placeholder="Highlight note"
-                          type="text"
-                          value={highlightNote[moment.id] ?? moment.highlightNote ?? ""}
-                        />
-                      </div>
+                <div className="relative border-l border-white/10 pl-8" key={moment.id}>
+                  <div className="absolute -left-1.5 top-0 h-3 w-3 rounded-full bg-[#74b1ff] shadow-[0_0_16px_rgba(116,177,255,0.3)]" />
+                  <div className="mb-2 flex flex-wrap items-center gap-3">
+                    <span className="text-xs font-black tracking-[0.22em] text-[#74b1ff]">
+                      {formatTimestamp(moment.timestampSeconds)}
+                    </span>
+                    <span
+                      className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] border ${severityTint(moment.severity)}`}
+                    >
+                      {moment.category ?? "Moment"}
+                    </span>
+                    {moment.isHighlight ? (
+                      <span className="rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] border border-amber-500/20 bg-amber-500/10 text-amber-300">
+                        Highlighted
+                      </span>
                     ) : null}
                   </div>
+                  <p className="text-sm font-medium leading-relaxed text-white">
+                    {moment.observation ?? "No observation recorded."}
+                  </p>
+                  {moment.recommendation ? (
+                    <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                      {moment.recommendation}
+                    </p>
+                  ) : null}
+                  {canManage ? (
+                    <div className="mt-4 space-y-3">
+                      <input
+                        className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs text-slate-200 outline-none transition placeholder:text-slate-600 focus:border-[#74b1ff]/50"
+                        onChange={(event) =>
+                          setHighlightNote((current) => ({
+                            ...current,
+                            [moment.id]: event.target.value,
+                          }))
+                        }
+                        placeholder="Highlight note"
+                        type="text"
+                        value={highlightNote[moment.id] ?? moment.highlightNote ?? ""}
+                      />
+                      <button
+                        className={`rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-[0.16em] transition ${
+                          moment.isHighlight
+                            ? "bg-amber-500/15 text-amber-200 hover:bg-amber-500/20"
+                            : "border border-white/10 bg-white/[0.03] text-slate-300 hover:border-amber-500/30 hover:text-amber-200"
+                        }`}
+                        onClick={() => {
+                          void toggleHighlight(moment.id, !moment.isHighlight);
+                        }}
+                        type="button"
+                      >
+                        {moment.isHighlight ? "Unstar Moment" : "Highlight Moment"}
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
               ))
             ) : (
-              <div className="rounded-[1.15rem] border border-dashed border-slate-700/80 bg-slate-950/20 px-4 py-6 text-sm text-slate-500">
+              <div className="rounded-[1.15rem] border border-dashed border-white/10 bg-black/20 px-4 py-6 text-sm text-slate-500">
                 No moments were generated for this call yet.
               </div>
             )}
           </div>
         </section>
+      </div>
 
-        <section className="rounded-[1.75rem] border border-slate-800/70 bg-[#0c1629] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Transcript</p>
-          <div className="mt-4 space-y-3">
-            {(call.transcript ?? []).map((line) => (
-              <div className="rounded-[1.15rem] border border-slate-800/70 bg-slate-950/25 px-4 py-4" key={`${line.timestampSeconds}-${line.speaker}`}>
-                <div className="flex items-center justify-between gap-4">
-                  <p className="text-sm font-medium text-white">{line.speaker}</p>
-                  <p className="text-xs uppercase tracking-[0.22em] text-slate-500">
-                    {formatTimestamp(line.timestampSeconds)}
-                  </p>
-                </div>
-                <p className="mt-2 text-sm leading-7 text-slate-400">{line.text}</p>
+      <div className="col-span-12 space-y-8 lg:col-span-7">
+        <section className="relative aspect-video overflow-hidden rounded-[1.5rem] border border-white/8 bg-black shadow-[0_24px_80px_rgba(2,8,23,0.32)]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(116,177,255,0.16),transparent_35%),linear-gradient(180deg,rgba(15,19,26,0.15),rgba(0,0,0,0.8))]" />
+          <div className="absolute inset-x-0 top-0 p-6">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#74b1ff]">
+                  {call.status}
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold text-white">
+                  {call.callTopic ?? "Untitled call"}
+                </h2>
+                <p className="mt-2 text-sm text-slate-400">{formatDate(call.createdAt)}</p>
               </div>
-            ))}
+              <div className="rounded-full border border-white/10 bg-black/30 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-slate-300">
+                {call.durationSeconds ? formatTimestamp(call.durationSeconds) : "No duration"}
+              </div>
+            </div>
+          </div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <button
+              className="flex h-20 w-20 items-center justify-center rounded-full border border-[#74b1ff]/30 bg-[#74b1ff]/10 backdrop-blur-md transition hover:scale-105"
+              type="button"
+            >
+              <span
+                className="material-symbols-outlined text-4xl text-[#74b1ff]"
+                style={{ fontVariationSettings: "'FILL' 1" }}
+              >
+                play_arrow
+              </span>
+            </button>
+          </div>
+          <div className="absolute inset-x-0 bottom-0 p-4">
+            <div className="mb-2 h-1 w-full rounded-full bg-[#22262f]">
+              <div className="h-full w-1/3 rounded-full bg-[#74b1ff] shadow-[0_0_16px_rgba(116,177,255,0.3)]" />
+            </div>
+            <div className="flex justify-between text-[10px] font-bold tracking-[0.18em] text-[#74b1ff]">
+              <span>Preview</span>
+              <span>{call.transcriptUrl ? "Transcript linked" : "No media linked"}</span>
+            </div>
+          </div>
+        </section>
+
+        <section className="flex h-[600px] flex-col overflow-hidden rounded-[1.5rem] border border-white/8 bg-[#10131a] shadow-[0_24px_80px_rgba(2,8,23,0.32)]">
+          <div className="flex items-center justify-between gap-4 border-b border-white/8 bg-[#161a21] p-6">
+            <h2 className="text-xl font-semibold text-white">Transcript</h2>
+            <div className="flex items-center gap-3">
+              <span className="rounded-full bg-white/[0.04] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[#74b1ff]">
+                Speaker Diarization
+              </span>
+              <span className="material-symbols-outlined text-slate-400">search</span>
+            </div>
+          </div>
+          <div className="flex-1 space-y-6 overflow-y-auto p-6">
+            {(call.transcript ?? []).length ? (
+              (call.transcript ?? []).map((line, index) => {
+                const isEmphasized = index === 2;
+                const speakerInitials = initials(line.speaker);
+
+                return (
+                  <div
+                    className={`flex gap-4 ${isEmphasized ? "rounded-xl border-l-2 border-[#74b1ff] bg-[#74b1ff]/5 p-4" : ""}`}
+                    key={`${line.timestampSeconds}-${line.speaker}-${index}`}
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#22262f] text-xs font-bold text-[#74b1ff]">
+                      {speakerInitials}
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`text-xs font-black uppercase tracking-[0.18em] ${
+                            isEmphasized ? "text-[#74b1ff]" : "text-white"
+                          }`}
+                        >
+                          {line.speaker}
+                        </span>
+                        <span
+                          className={`text-[10px] ${isEmphasized ? "text-[#74b1ff]/70" : "text-slate-500"}`}
+                        >
+                          {formatTimestamp(line.timestampSeconds)}
+                        </span>
+                      </div>
+                      <p
+                        className={`text-sm leading-relaxed ${
+                          isEmphasized ? "italic text-white" : "text-slate-300"
+                        }`}
+                      >
+                        {line.text}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="rounded-[1.15rem] border border-dashed border-white/10 bg-black/20 px-4 py-6 text-sm text-slate-500">
+                No transcript lines are available yet.
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="grid gap-8 xl:grid-cols-[1fr_1fr]">
+          <div className="rounded-[1.5rem] border border-white/8 bg-[#10131a] p-6 shadow-[0_24px_80px_rgba(2,8,23,0.32)]">
+            <h2 className="mb-6 flex items-center gap-3 text-xl font-semibold text-white">
+              <span className="material-symbols-outlined text-[#74b1ff]">insights</span>
+              Call Summary
+            </h2>
+            <div className="space-y-6">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                  Strengths
+                </p>
+                <ul className="mt-3 space-y-2 text-sm text-slate-300">
+                  {(call.strengths ?? []).length ? (
+                    (call.strengths ?? []).map((strength) => <li key={strength}>• {strength}</li>)
+                  ) : (
+                    <li>• No strengths generated yet.</li>
+                  )}
+                </ul>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                  Improvement Areas
+                </p>
+                <ul className="mt-3 space-y-2 text-sm text-slate-300">
+                  {(call.improvements ?? []).length ? (
+                    (call.improvements ?? []).map((item) => <li key={item}>• {item}</li>)
+                  ) : (
+                    <li>• No improvement areas generated yet.</li>
+                  )}
+                </ul>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                  Recommended Drills
+                </p>
+                <ul className="mt-3 space-y-2 text-sm text-slate-300">
+                  {(call.recommendedDrills ?? []).length ? (
+                    (call.recommendedDrills ?? []).map((drill) => <li key={drill}>• {drill}</li>)
+                  ) : (
+                    <li>• No drills recommended yet.</li>
+                  )}
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[1.5rem] border border-white/8 bg-[#10131a] p-6 shadow-[0_24px_80px_rgba(2,8,23,0.32)]">
+            <h2 className="mb-6 flex items-center gap-3 text-xl font-semibold text-white">
+              <span className="material-symbols-outlined text-[#74b1ff]">edit_note</span>
+              Coaching Notes
+            </h2>
+
+            <div className="rounded-xl border border-white/10 bg-black/30 p-4">
+              <textarea
+                className="min-h-[120px] w-full resize-none border-none bg-transparent text-sm text-white outline-none placeholder:text-slate-600 focus:ring-0"
+                onChange={(event) => setNote(event.target.value)}
+                placeholder="Add a coaching observation..."
+                value={note}
+              />
+              <div className="mt-3 flex items-center justify-between border-t border-white/8 pt-3">
+                <div className="flex gap-2">
+                  <button className="rounded p-1.5 transition hover:bg-white/[0.05]" type="button">
+                    <span className="material-symbols-outlined text-sm text-slate-400">attach_file</span>
+                  </button>
+                  <button className="rounded p-1.5 transition hover:bg-white/[0.05]" type="button">
+                    <span className="material-symbols-outlined text-sm text-slate-400">alternate_email</span>
+                  </button>
+                </div>
+                <button
+                  className="rounded-lg bg-[#22262f] px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#74b1ff] transition hover:bg-[#74b1ff] hover:text-[#002f59] disabled:opacity-50"
+                  disabled={isSubmitting || !note.trim()}
+                  onClick={() => {
+                    void submitAnnotation();
+                  }}
+                  type="button"
+                >
+                  {isSubmitting ? "Saving..." : "Post Note"}
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-3">
+              {annotations.length ? (
+                annotations.map((annotation) => (
+                  <div
+                    className="rounded-xl border border-white/10 bg-white/[0.04] p-4"
+                    key={annotation.id}
+                  >
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#74b1ff]">
+                        {(annotation.authorFirstName || annotation.authorLastName
+                          ? `${annotation.authorFirstName ?? ""} ${annotation.authorLastName ?? ""}`.trim()
+                          : annotation.authorRole ?? "Coach")}{" "}
+                        • {formatDate(annotation.createdAt)}
+                      </span>
+                      <button
+                        className="text-[11px] font-semibold text-slate-500 transition hover:text-red-300"
+                        onClick={() => {
+                          void removeAnnotation(annotation.id);
+                        }}
+                        type="button"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                    <p className="text-sm leading-relaxed text-slate-200">{annotation.note}</p>
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-[1.15rem] border border-dashed border-white/10 bg-black/20 px-4 py-6 text-sm text-slate-500">
+                  No annotations yet. Add a coaching note below.
+                </div>
+              )}
+            </div>
           </div>
         </section>
       </div>

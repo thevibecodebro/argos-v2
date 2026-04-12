@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { PageFrame } from "@/components/page-frame";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { listCalls } from "@/lib/calls/service";
@@ -41,228 +40,300 @@ export default async function CallsPage({
     activeSort !== "createdAt:desc";
 
   return (
-    <PageFrame
-      actions={[{ href: "/upload", label: "Upload a call" }]}
-      description="Search, filter, and sort calls. Click any row to open the full scorecard and transcript."
-      title="Call Library"
-    >
-      <section className="space-y-4 rounded-[1.75rem] border border-slate-800/70 bg-[#0c1629] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-        {canSeeRep && viewer ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/50 pb-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
-                Viewing as
-              </p>
-              <p className="mt-1 text-base font-semibold text-white">{viewer.fullName}</p>
-              <p className="text-sm capitalize text-slate-400">{viewer.role}</p>
-            </div>
-            <p className="text-sm text-slate-500">
-              {total} {total === 1 ? "call" : "calls"} in library
-            </p>
-          </div>
-        ) : null}
+    <div className="mx-auto w-full max-w-7xl px-6 py-8 sm:px-8 lg:px-10">
+      <div className="relative overflow-hidden rounded-[2rem] border border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(116,177,255,0.18),transparent_28%),radial-gradient(circle_at_top_right,rgba(109,221,255,0.08),transparent_30%),linear-gradient(180deg,rgba(15,19,26,0.98),rgba(10,13,19,0.95))] p-6 shadow-[0_24px_80px_rgba(2,8,23,0.42)] sm:p-8">
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.06),transparent_24%,transparent_72%,rgba(255,255,255,0.04))]" />
 
-        <Suspense
-          fallback={
+        <section className="relative mb-8 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+          <div className="space-y-4">
+            <div className="inline-flex items-center rounded-full border border-[#74b1ff]/20 bg-[#74b1ff]/8 px-3 py-1 text-[11px] font-black uppercase tracking-[0.3em] text-[#74b1ff]">
+              Intelligence archive
+            </div>
             <div className="space-y-3">
-              <div className="grid gap-3 md:grid-cols-[1.6fr,0.8fr,0.8fr,0.8fr]">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div
-                    className="h-[46px] animate-pulse rounded-[1.15rem] bg-slate-800/40"
-                    key={i}
-                  />
-                ))}
-              </div>
-              <div className="h-9 animate-pulse rounded-full bg-slate-800/40 w-48" />
+              <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                Call Library
+              </h1>
+              <p className="max-w-2xl text-sm leading-7 text-slate-400 sm:text-base">
+                Explore and analyze {total.toLocaleString()} recorded{" "}
+                {total === 1 ? "interaction" : "interactions"} from your team.
+                Open any row to review the scorecard, transcript, and coaching detail.
+              </p>
             </div>
-          }
-        >
-          <CallsFilters initialSearch={filters.search ?? ""} />
-        </Suspense>
+          </div>
 
-        <div className="overflow-hidden rounded-[1.5rem] border border-slate-800/70 bg-slate-950/25">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b border-slate-800/70">
-                <th
-                  className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.24em] text-slate-500"
-                  scope="col"
-                >
-                  Call
-                </th>
-                {canSeeRep ? (
+          <div className="flex flex-col gap-3 sm:flex-row">
+            {canSeeRep && viewer ? (
+              <div className="rounded-[1.25rem] border border-white/10 bg-white/[0.04] px-5 py-4 shadow-[0_12px_40px_rgba(3,8,20,0.22)] backdrop-blur-md">
+                <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">
+                  Viewing As
+                </p>
+                <p className="mt-2 text-sm font-semibold text-white">{viewer.fullName}</p>
+                <p className="text-sm capitalize text-slate-400">{viewer.role}</p>
+              </div>
+            ) : null}
+
+            <Link
+              className="inline-flex items-center justify-center gap-2 rounded-[1.15rem] border border-[#74b1ff]/20 bg-white/[0.04] px-5 py-4 text-sm font-semibold text-[#74b1ff] shadow-[0_12px_40px_rgba(3,8,20,0.22)] backdrop-blur-md transition hover:border-[#74b1ff]/35 hover:bg-[#74b1ff]/10"
+              href="/upload"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>
+                upload_file
+              </span>
+              Upload a call
+            </Link>
+          </div>
+        </section>
+
+        <section className="relative space-y-6">
+          <Suspense
+            fallback={
+              <div className="space-y-6">
+                <div className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_repeat(3,minmax(0,0.75fr))_auto]">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div
+                      className="h-[68px] animate-pulse rounded-[1.15rem] bg-white/[0.05]"
+                      key={i}
+                    />
+                  ))}
+                </div>
+                <div className="h-10 w-72 animate-pulse rounded-full bg-white/[0.05]" />
+              </div>
+            }
+          >
+            <CallsFilters initialSearch={filters.search ?? ""} />
+          </Suspense>
+
+          <div className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/[0.04] shadow-[0_18px_60px_rgba(2,8,23,0.28)] backdrop-blur-md">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-white/8 bg-black/10">
                   <th
-                    className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.24em] text-slate-500"
+                    className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-[0.28em] text-slate-500"
                     scope="col"
                   >
-                    Rep
+                    Call
                   </th>
-                ) : null}
-                <th
-                  className="hidden px-5 py-4 text-right text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 md:table-cell"
-                  scope="col"
-                >
-                  Duration
-                </th>
-                <th
-                  className="px-5 py-4 text-right text-xs font-semibold uppercase tracking-[0.24em] text-slate-500"
-                  scope="col"
-                >
-                  Score
-                </th>
-                <th
-                  className="px-5 py-4 text-right text-xs font-semibold uppercase tracking-[0.24em] text-slate-500"
-                  scope="col"
-                >
-                  Status
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {calls.length ? (
-                calls.map((call) => {
-                  const badge = statusBadge(call.status);
-                  const duration = formatDuration(call.durationSeconds);
-                  const repName =
-                    call.repFirstName || call.repLastName
-                      ? `${call.repFirstName ?? ""} ${call.repLastName ?? ""}`.trim()
-                      : null;
-                  const topic = call.callTopic ?? "Untitled call";
-
-                  return (
-                    <tr
-                      className="group relative border-b border-slate-900/70 transition last:border-b-0 hover:bg-blue-600/5"
-                      key={call.id}
+                  {canSeeRep ? (
+                    <th
+                      className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-[0.28em] text-slate-500"
+                      scope="col"
                     >
-                      <td className="px-5 py-4">
-                        {/* Full-row link via absolute positioning — no other interactive content in the row */}
-                        <a
-                          aria-label={`View call: ${topic}`}
-                          className="absolute inset-0"
-                          href={`/calls/${call.id}`}
-                        />
-                        <p
-                          className="truncate text-sm font-medium text-slate-100 group-hover:underline"
-                          title={topic}
-                        >
-                          {topic}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {formatTimestamp(call.createdAt)}
-                        </p>
-                      </td>
-                      {canSeeRep ? (
-                        <td className="px-5 py-4">
-                          <span
-                            className={`text-sm ${repName ? "text-slate-300" : "italic text-slate-600"}`}
-                          >
-                            {repName ?? "—"}
+                      Rep
+                    </th>
+                  ) : null}
+                  <th
+                    className="hidden px-6 py-4 text-left text-[10px] font-black uppercase tracking-[0.28em] text-slate-500 md:table-cell"
+                    scope="col"
+                  >
+                    Duration
+                  </th>
+                  <th
+                    className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-[0.28em] text-slate-500"
+                    scope="col"
+                  >
+                    Score
+                  </th>
+                  <th
+                    className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-[0.28em] text-slate-500"
+                    scope="col"
+                  >
+                    Status
+                  </th>
+                  <th className="w-16 px-6 py-4" scope="col" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/8">
+                {calls.length ? (
+                  calls.map((call) => {
+                    const badge = statusBadge(call.status);
+                    const icon = rowIcon(call.status);
+                    const duration = formatDuration(call.durationSeconds);
+                    const repName =
+                      call.repFirstName || call.repLastName
+                        ? `${call.repFirstName ?? ""} ${call.repLastName ?? ""}`.trim()
+                        : null;
+                    const topic = call.callTopic ?? "Untitled call";
+                    const scoreValue = normalizedScore(call.overallScore);
+
+                    return (
+                      <tr
+                        className="group relative transition hover:bg-white/[0.03]"
+                        key={call.id}
+                      >
+                        <td className="px-6 py-5">
+                          <a
+                            aria-label={`View call: ${topic}`}
+                            className="absolute inset-0"
+                            href={`/calls/${call.id}`}
+                          />
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${icon.className}`}
+                            >
+                              <span
+                                className="material-symbols-outlined"
+                                style={{ fontSize: "18px" }}
+                              >
+                                {icon.icon}
+                              </span>
+                            </div>
+                            <div className="min-w-0">
+                              <p
+                                className="truncate text-sm font-semibold text-white group-hover:text-[#9ec7ff]"
+                                title={topic}
+                              >
+                                {topic}
+                              </p>
+                              <p className="mt-1 text-xs text-slate-500">
+                                {formatTimestamp(call.createdAt)}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        {canSeeRep ? (
+                          <td className="px-6 py-5">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-xs font-bold text-[#74b1ff]">
+                                {initials(repName)}
+                              </div>
+                              <span
+                                className={`text-sm font-medium ${
+                                  repName ? "text-slate-200" : "italic text-slate-600"
+                                }`}
+                              >
+                                {repName ?? "Unassigned"}
+                              </span>
+                            </div>
+                          </td>
+                        ) : null}
+                        <td className="hidden px-6 py-5 md:table-cell">
+                          <span className="text-sm font-medium text-slate-400">
+                            {duration ?? "--:--"}
                           </span>
                         </td>
-                      ) : null}
-                      <td className="hidden px-5 py-4 text-right md:table-cell">
-                        <span className="text-sm text-slate-500">{duration ?? "—"}</span>
-                      </td>
-                      <td className="px-5 py-4 text-right">
-                        <span
-                          className={`text-base font-semibold ${scoreColor(call.overallScore)}`}
-                        >
-                          {call.overallScore ?? "—"}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="flex justify-end">
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-3">
+                            <div className="h-2 w-16 overflow-hidden rounded-full bg-black/30">
+                              <div
+                                className={`h-full rounded-full ${scoreBarClass(call.overallScore)}`}
+                                style={{ width: `${scoreValue}%` }}
+                              />
+                            </div>
+                            <span className={`text-sm font-bold ${scoreColor(call.overallScore)}`}>
+                              {call.overallScore ?? "--"}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-5">
                           <span
-                            className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] ${badge.className}`}
+                            className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${badge.className}`}
                           >
                             {badge.label}
                           </span>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td
-                    className="px-6 py-12 text-center"
-                    colSpan={canSeeRep ? 5 : 4}
-                  >
-                    <p className="text-lg font-medium text-slate-200">No calls found</p>
-                    <p className="mt-2 text-sm leading-7 text-slate-500">
-                      {hasActiveFilters ? (
-                        <>
-                          No calls match the current filters.{" "}
-                          <Link className="text-blue-400 hover:underline" href="/calls">
-                            Clear filters
-                          </Link>{" "}
-                          or{" "}
-                          <Link className="text-blue-400 hover:underline" href="/upload">
-                            upload a call
-                          </Link>
-                          .
-                        </>
-                      ) : (
-                        <>
-                          No calls yet.{" "}
-                          <Link className="text-blue-400 hover:underline" href="/upload">
-                            Upload a call
-                          </Link>{" "}
-                          to populate the library.
-                        </>
-                      )}
-                    </p>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                        </td>
+                        <td className="px-6 py-5 text-right">
+                          <span className="inline-flex rounded-xl p-2 text-slate-500 transition group-hover:bg-[#74b1ff]/10 group-hover:text-[#74b1ff]">
+                            <span
+                              className="material-symbols-outlined"
+                              style={{ fontSize: "18px" }}
+                            >
+                              {badge.label === "Failed" ? "refresh" : "arrow_forward"}
+                            </span>
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td className="px-6 py-16 text-center" colSpan={canSeeRep ? 6 : 5}>
+                      <div className="mx-auto max-w-xl space-y-3">
+                        <p className="text-lg font-semibold text-slate-100">No calls found</p>
+                        <p className="text-sm leading-7 text-slate-500">
+                          {hasActiveFilters ? (
+                            <>
+                              No calls match the current filters.{" "}
+                              <Link className="text-[#74b1ff] hover:underline" href="/calls">
+                                Clear filters
+                              </Link>{" "}
+                              or{" "}
+                              <Link className="text-[#74b1ff] hover:underline" href="/upload">
+                                upload a call
+                              </Link>
+                              .
+                            </>
+                          ) : (
+                            <>
+                              No calls yet.{" "}
+                              <Link className="text-[#74b1ff] hover:underline" href="/upload">
+                                Upload a call
+                              </Link>{" "}
+                              to populate the library.
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-slate-500">
-            {total > 0
-              ? `Showing ${calls.length} of ${total} ${total === 1 ? "call" : "calls"}`
-              : "No calls"}
-          </p>
-          {totalPages > 1 ? (
-            <div className="flex items-center gap-2">
-              <Link
-                aria-disabled={page === 0}
-                className={`rounded-xl border px-4 py-2 text-sm font-medium transition ${
-                  page === 0
-                    ? "pointer-events-none border-slate-800/70 bg-slate-950/20 text-slate-600"
-                    : "border-slate-700/70 bg-slate-950/30 text-slate-300 hover:border-slate-600 hover:text-white"
-                }`}
-                href={buildCallsHref(filters, {
-                  offset: Math.max(0, (page - 1) * (filters.limit ?? 20)),
-                })}
-                tabIndex={page === 0 ? -1 : undefined}
-              >
-                Previous
-              </Link>
-              <span className="px-2 text-sm text-slate-500">
-                {page + 1} / {totalPages}
-              </span>
-              <Link
-                aria-disabled={page + 1 >= totalPages}
-                className={`rounded-xl border px-4 py-2 text-sm font-medium transition ${
-                  page + 1 >= totalPages
-                    ? "pointer-events-none border-slate-800/70 bg-slate-950/20 text-slate-600"
-                    : "border-slate-700/70 bg-slate-950/30 text-slate-300 hover:border-slate-600 hover:text-white"
-                }`}
-                href={buildCallsHref(filters, {
-                  offset: (page + 1) * (filters.limit ?? 20),
-                })}
-                tabIndex={page + 1 >= totalPages ? -1 : undefined}
-              >
-                Next
-              </Link>
-            </div>
-          ) : null}
-        </div>
-      </section>
-    </PageFrame>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <p className="text-sm font-medium text-slate-500">
+              {total > 0
+                ? `Showing ${(filters.offset ?? 0) + 1} - ${(filters.offset ?? 0) + calls.length} of ${total.toLocaleString()} ${total === 1 ? "interaction" : "interactions"}`
+                : "No interactions"}
+            </p>
+
+            {totalPages > 1 ? (
+              <div className="flex items-center gap-2">
+                <Link
+                  aria-disabled={page === 0}
+                  className={`flex h-10 w-10 items-center justify-center rounded-xl border transition ${
+                    page === 0
+                      ? "pointer-events-none border-white/8 bg-white/[0.03] text-slate-700"
+                      : "border-white/10 bg-white/[0.04] text-slate-300 hover:border-white/20 hover:text-white"
+                  }`}
+                  href={buildCallsHref(filters, {
+                    offset: Math.max(0, (page - 1) * (filters.limit ?? 20)),
+                  })}
+                  tabIndex={page === 0 ? -1 : undefined}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>
+                    chevron_left
+                  </span>
+                </Link>
+                <span className="flex h-10 min-w-10 items-center justify-center rounded-xl bg-[#74b1ff] px-3 text-sm font-bold text-[#03111f]">
+                  {page + 1}
+                </span>
+                <span className="px-1 text-sm text-slate-500">/</span>
+                <span className="flex h-10 min-w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-3 text-sm font-semibold text-slate-300">
+                  {totalPages}
+                </span>
+                <Link
+                  aria-disabled={page + 1 >= totalPages}
+                  className={`flex h-10 w-10 items-center justify-center rounded-xl border transition ${
+                    page + 1 >= totalPages
+                      ? "pointer-events-none border-white/8 bg-white/[0.03] text-slate-700"
+                      : "border-white/10 bg-white/[0.04] text-slate-300 hover:border-white/20 hover:text-white"
+                  }`}
+                  href={buildCallsHref(filters, {
+                    offset: (page + 1) * (filters.limit ?? 20),
+                  })}
+                  tabIndex={page + 1 >= totalPages ? -1 : undefined}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>
+                    chevron_right
+                  </span>
+                </Link>
+              </div>
+            ) : null}
+          </div>
+        </section>
+      </div>
+    </div>
   );
 }
 
@@ -330,10 +401,23 @@ function formatDuration(seconds: number | null | undefined) {
 
 function scoreColor(value: number | null | undefined) {
   if (typeof value !== "number") return "text-slate-400";
-  if (value >= 85) return "text-emerald-400";
-  if (value >= 70) return "text-blue-300";
+  if (value >= 85) return "text-[#74b1ff]";
+  if (value >= 70) return "text-cyan-300";
   if (value >= 60) return "text-amber-400";
   return "text-red-400";
+}
+
+function scoreBarClass(value: number | null | undefined) {
+  if (typeof value !== "number") return "bg-slate-700";
+  if (value >= 85) return "bg-[#4da0ff] shadow-[0_0_14px_rgba(77,160,255,0.4)]";
+  if (value >= 70) return "bg-cyan-400";
+  if (value >= 60) return "bg-amber-400";
+  return "bg-red-400";
+}
+
+function normalizedScore(value: number | null | undefined) {
+  if (typeof value !== "number") return 20;
+  return Math.max(8, Math.min(100, value));
 }
 
 function statusBadge(status: string) {
@@ -341,23 +425,64 @@ function statusBadge(status: string) {
   if (normalized === "complete") {
     return {
       label: "Complete",
-      className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+      className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-400",
     };
   }
   if (["processing", "transcribing", "evaluating"].includes(normalized)) {
     return {
       label: "Processing",
-      className: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+      className: "border-cyan-500/20 bg-cyan-500/10 text-cyan-300",
     };
   }
   if (normalized === "failed") {
     return {
       label: "Failed",
-      className: "bg-red-500/10 text-red-400 border-red-500/20",
+      className: "border-red-500/20 bg-red-500/10 text-red-400",
     };
   }
   return {
     label: status,
-    className: "bg-slate-800/60 text-slate-400 border-slate-700/50",
+    className: "border-slate-700/50 bg-slate-800/60 text-slate-400",
   };
+}
+
+function rowIcon(status: string) {
+  const normalized = status.toLowerCase();
+
+  if (normalized === "complete") {
+    return {
+      icon: "call",
+      className: "border-[#74b1ff]/15 bg-[#74b1ff]/10 text-[#74b1ff]",
+    };
+  }
+
+  if (["processing", "transcribing", "evaluating"].includes(normalized)) {
+    return {
+      icon: "sync",
+      className: "border-cyan-500/15 bg-cyan-500/10 text-cyan-300",
+    };
+  }
+
+  if (normalized === "failed") {
+    return {
+      icon: "error",
+      className: "border-red-500/15 bg-red-500/10 text-red-400",
+    };
+  }
+
+  return {
+    icon: "library_books",
+    className: "border-white/10 bg-white/[0.05] text-slate-300",
+  };
+}
+
+function initials(value: string | null | undefined) {
+  if (!value) return "—";
+
+  return value
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
 }

@@ -59,6 +59,19 @@ export function getWebEnvConfigurationError(
   return `Auth is not configured for this environment. Missing: ${missingKeys.join(", ")}.`;
 }
 
+export function getDevelopmentStartupEnvError(options: {
+  env?: WebEnvSource;
+  nodeEnv?: string;
+} = {}): string | null {
+  const nodeEnv = options.nodeEnv ?? process.env.NODE_ENV;
+
+  if (nodeEnv !== "development") {
+    return null;
+  }
+
+  return getWebEnvConfigurationError(options.env ?? process.env);
+}
+
 function getBrowserRuntimeEnvSource(): WebEnvSource {
   return {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,

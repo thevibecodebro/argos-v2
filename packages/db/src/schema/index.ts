@@ -11,3 +11,4 @@ export * from "./roleplay";
 export * from "./compliance";
 export * from "./zoomIntegrations";
 export * from "./ghlIntegrations";
+export * from "./invites";

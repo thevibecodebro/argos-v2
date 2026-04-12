@@ -6,6 +6,7 @@ import {
   zoomIntegrationsTable,
   type ArgosDb,
 } from "@argos-v2/db";
+
 import { DrizzleCallsRepository } from "@/lib/calls/repository";
 import type { ZoomWebhookRepository } from "./zoom-webhook";
 
@@ -72,12 +73,27 @@ export class DrizzleZoomWebhookRepository implements ZoomWebhookRepository {
       .select({
         orgId: zoomIntegrationsTable.orgId,
         webhookToken: zoomIntegrationsTable.webhookToken,
+        accessToken: zoomIntegrationsTable.accessToken,
+        refreshToken: zoomIntegrationsTable.refreshToken,
+        tokenExpiresAt: zoomIntegrationsTable.tokenExpiresAt,
       })
       .from(zoomIntegrationsTable)
       .where(eq(zoomIntegrationsTable.zoomAccountId, accountId))
       .limit(1);
 
     return integration ?? null;
+  }
+
+  async updateZoomTokens(orgId: string, tokens: { accessToken: string; refreshToken: string; tokenExpiresAt: Date }) {
+    await this.db
+      .update(zoomIntegrationsTable)
+      .set({
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        tokenExpiresAt: tokens.tokenExpiresAt,
+        updatedAt: new Date(),
+      })
+      .where(eq(zoomIntegrationsTable.orgId, orgId));
   }
 
   async setCallEvaluation(callId: string, evaluation: Parameters<DrizzleCallsRepository["setCallEvaluation"]>[1]) {

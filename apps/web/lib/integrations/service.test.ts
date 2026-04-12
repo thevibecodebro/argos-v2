@@ -13,7 +13,9 @@ function createRepository(
     deleteZoomIntegration: vi.fn(),
     findCurrentUserByAuthId: vi.fn(),
     findGhlStatus: vi.fn(),
+    findZoomIntegrationForDisconnect: vi.fn().mockResolvedValue(null),
     findZoomStatus: vi.fn(),
+    updateZoomTokens: vi.fn(),
     ...overrides,
   };
 }

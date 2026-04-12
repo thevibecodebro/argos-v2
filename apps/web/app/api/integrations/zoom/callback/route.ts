@@ -127,12 +127,25 @@ export async function GET(request: Request) {
     });
 
     try {
-      await registerZoomWebhook({
+      const webhookId = await registerZoomWebhook({
         accessToken: tokens.accessToken,
         webhookToken,
         webhookUrl: resolveZoomWebhookUrl(getRequestOrigin(request)),
         zoomAccountId: tokens.zoomAccountId,
       });
+
+      if (webhookId) {
+        await repository.upsertZoomIntegration({
+          accessToken: tokens.accessToken,
+          orgId: viewer.org.id,
+          refreshToken: tokens.refreshToken,
+          tokenExpiresAt: tokens.tokenExpiresAt,
+          webhookId,
+          webhookToken,
+          zoomAccountId: tokens.zoomAccountId,
+          zoomUserId: tokens.zoomUserId,
+        });
+      }
     } catch {
       return settingsRedirectWithNotice(
         request,

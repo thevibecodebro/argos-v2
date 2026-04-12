@@ -1,4 +1,5 @@
 import type { DashboardUserRecord } from "@/lib/dashboard/service";
+import type { AppUserRole } from "@/lib/users/roles";
 
 type OrganizationRecord = {
   id: string;
@@ -23,7 +24,7 @@ export type OnboardingOrganization = {
 export interface OnboardingRepository {
   assignUserToOrganization(input: {
     orgId: string;
-    role: "admin" | "rep";
+    role: AppUserRole;
     userId: string;
   }): Promise<void>;
   createOrganization(input: {

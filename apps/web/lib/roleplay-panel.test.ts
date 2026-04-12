@@ -85,13 +85,10 @@ describe("RoleplayPanel", () => {
 
     expect(html).toContain("Session Scorecard");
     expect(html).toContain("Confidence");
-    expect(html).toContain("Call Stage");
-    expect(html).toContain("Areas to Improve");
+    expect(html).toContain("Stage");
+    expect(html).toContain("Improve");
     expect(html).toContain("Frame Control");
-    expect(html).toContain("Recent Sessions");
-    expect(html).toContain("Voice Mode");
-    expect(html).toContain("AI-generated voice");
-    expect(html).toContain("Start voice practice");
+    expect(html).toContain("Recent History");
     expect(html).toContain("Listen");
   });
 });

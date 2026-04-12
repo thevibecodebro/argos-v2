@@ -5,7 +5,7 @@ import {
   usersTable,
   type ArgosDb,
 } from "@argos-v2/db";
-import { parseAppUserRole } from "@/lib/users/roles";
+import { parseAppUserRole, type AppUserRole } from "@/lib/users/roles";
 import type { OnboardingRepository } from "./service";
 
 export class DrizzleOnboardingRepository implements OnboardingRepository {
@@ -13,7 +13,7 @@ export class DrizzleOnboardingRepository implements OnboardingRepository {
 
   async assignUserToOrganization(input: {
     orgId: string;
-    role: "admin" | "rep";
+    role: AppUserRole;
     userId: string;
   }) {
     await this.db

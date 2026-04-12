@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, sql } from "drizzle-orm";
 import {
   getDb,
   organizationsTable,
@@ -8,10 +8,51 @@ import {
   type ArgosDb,
 } from "@argos-v2/db";
 import { parseAppUserRole } from "@/lib/users/roles";
-import type { TrainingRepository } from "./service";
+import type {
+  TrainingModuleRecord,
+  TrainingProgressRecord,
+  TrainingRepository,
+} from "./service";
 
 export class DrizzleTrainingRepository implements TrainingRepository {
   constructor(private readonly db: ArgosDb = getDb()) {}
+
+  private mapModuleRow(row: {
+    id: string;
+    orgId: string;
+    title: string | null;
+    skillCategory: string | null;
+    videoUrl: string | null;
+    description: string | null;
+    quizData: unknown;
+    orderIndex: number | null;
+    createdAt: Date;
+  }): TrainingModuleRecord {
+    return {
+      ...row,
+      quizData:
+        row.quizData && typeof row.quizData === "object"
+          ? (row.quizData as {
+              questions: Array<{ question: string; options: string[]; correctIndex: number }>;
+            })
+          : null,
+    };
+  }
+
+  private mapProgressRow(row: {
+    id: string;
+    repId: string;
+    moduleId: string;
+    status: "assigned" | "in_progress" | "passed" | "failed";
+    score: number | null;
+    attempts: number;
+    completedAt: Date | null;
+    assignedBy: string | null;
+    assignedAt: Date | null;
+    dueDate: Date | null;
+  }): TrainingProgressRecord {
+    return row;
+  }
 
   async countModulesByOrgId(orgId: string) {
     const [row] = await this.db
@@ -39,7 +80,53 @@ export class DrizzleTrainingRepository implements TrainingRepository {
       return;
     }
 
-    await this.db.insert(trainingModulesTable).values(modules);
+    await this.db
+      .insert(trainingModulesTable)
+      .values(modules)
+      .onConflictDoNothing({
+        target: [trainingModulesTable.orgId, trainingModulesTable.orderIndex],
+      });
+  }
+
+  async createModule(input: {
+    orgId: string;
+    title: string;
+    description: string;
+    skillCategory: string;
+    videoUrl: string | null;
+    quizData: {
+      questions: Array<{ question: string; options: string[]; correctIndex: number }>;
+    } | null;
+    orderIndex: number;
+  }): Promise<TrainingModuleRecord> {
+    const [created] = await this.db
+      .insert(trainingModulesTable)
+      .values({
+        orgId: input.orgId,
+        title: input.title,
+        description: input.description,
+        skillCategory: input.skillCategory,
+        videoUrl: input.videoUrl,
+        quizData: input.quizData,
+        orderIndex: input.orderIndex,
+      })
+      .returning({
+        id: trainingModulesTable.id,
+        orgId: trainingModulesTable.orgId,
+        title: trainingModulesTable.title,
+        skillCategory: trainingModulesTable.skillCategory,
+        videoUrl: trainingModulesTable.videoUrl,
+        description: trainingModulesTable.description,
+        quizData: trainingModulesTable.quizData,
+        orderIndex: trainingModulesTable.orderIndex,
+        createdAt: trainingModulesTable.createdAt,
+      });
+
+    if (!created) {
+      throw new Error("Failed to create training module");
+    }
+
+    return this.mapModuleRow(created);
   }
 
   async findCurrentUserByAuthId(authUserId: string) {
@@ -99,6 +186,45 @@ export class DrizzleTrainingRepository implements TrainingRepository {
               : null,
         })),
       );
+  }
+
+  async findModuleById(moduleId: string): Promise<TrainingModuleRecord | null> {
+    const [row] = await this.db
+      .select({
+        id: trainingModulesTable.id,
+        orgId: trainingModulesTable.orgId,
+        title: trainingModulesTable.title,
+        skillCategory: trainingModulesTable.skillCategory,
+        videoUrl: trainingModulesTable.videoUrl,
+        description: trainingModulesTable.description,
+        quizData: trainingModulesTable.quizData,
+        orderIndex: trainingModulesTable.orderIndex,
+        createdAt: trainingModulesTable.createdAt,
+      })
+      .from(trainingModulesTable)
+      .where(eq(trainingModulesTable.id, moduleId))
+      .limit(1);
+
+    return row ? this.mapModuleRow(row) : null;
+  }
+
+  async findProgressByModuleId(moduleId: string): Promise<TrainingProgressRecord[]> {
+    return this.db
+      .select({
+        id: trainingProgressTable.id,
+        repId: trainingProgressTable.repId,
+        moduleId: trainingProgressTable.moduleId,
+        status: trainingProgressTable.status,
+        score: trainingProgressTable.score,
+        attempts: trainingProgressTable.attempts,
+        completedAt: trainingProgressTable.completedAt,
+        assignedBy: trainingProgressTable.assignedBy,
+        assignedAt: trainingProgressTable.assignedAt,
+        dueDate: trainingProgressTable.dueDate,
+      })
+      .from(trainingProgressTable)
+      .where(eq(trainingProgressTable.moduleId, moduleId))
+      .then((rows) => rows.map((row) => this.mapProgressRow(row)));
   }
 
   async findProgressByRepId(repId: string) {
@@ -164,6 +290,96 @@ export class DrizzleTrainingRepository implements TrainingRepository {
         completionRate: assigned > 0 ? Math.round((passed / assigned) * 100) : 0,
       };
     });
+  }
+
+  async updateModule(
+    moduleId: string,
+    input: {
+      title: string;
+      description: string;
+      skillCategory: string;
+      videoUrl: string | null;
+      quizData: {
+        questions: Array<{ question: string; options: string[]; correctIndex: number }>;
+      } | null;
+    },
+  ): Promise<TrainingModuleRecord> {
+    const [updated] = await this.db
+      .update(trainingModulesTable)
+      .set({
+        title: input.title,
+        description: input.description,
+        skillCategory: input.skillCategory,
+        videoUrl: input.videoUrl,
+        quizData: input.quizData,
+      })
+      .where(eq(trainingModulesTable.id, moduleId))
+      .returning({
+        id: trainingModulesTable.id,
+        orgId: trainingModulesTable.orgId,
+        title: trainingModulesTable.title,
+        skillCategory: trainingModulesTable.skillCategory,
+        videoUrl: trainingModulesTable.videoUrl,
+        description: trainingModulesTable.description,
+        quizData: trainingModulesTable.quizData,
+        orderIndex: trainingModulesTable.orderIndex,
+        createdAt: trainingModulesTable.createdAt,
+      });
+
+    if (!updated) {
+      throw new Error("Failed to update training module");
+    }
+
+    return this.mapModuleRow(updated);
+  }
+
+  async assignModuleToRepIds(input: {
+    moduleId: string;
+    repIds: string[];
+    assignedBy: string;
+    dueDate: Date | null;
+  }): Promise<void> {
+    if (!input.repIds.length) {
+      return;
+    }
+
+    await this.db
+      .insert(trainingProgressTable)
+      .values(
+        input.repIds.map((repId) => ({
+          repId,
+          moduleId: input.moduleId,
+          status: "assigned" as const,
+          score: null,
+          attempts: 0,
+          completedAt: null,
+          assignedBy: input.assignedBy,
+          assignedAt: new Date(),
+          dueDate: input.dueDate,
+        })),
+      )
+      .onConflictDoNothing({
+        target: [trainingProgressTable.repId, trainingProgressTable.moduleId],
+      });
+  }
+
+  async removeModuleAssignmentsForRepIds(input: {
+    moduleId: string;
+    repIds: string[];
+  }): Promise<void> {
+    if (!input.repIds.length) {
+      return;
+    }
+
+    await this.db
+      .delete(trainingProgressTable)
+      .where(
+        and(
+          eq(trainingProgressTable.moduleId, input.moduleId),
+          eq(trainingProgressTable.status, "assigned"),
+          inArray(trainingProgressTable.repId, input.repIds),
+        ),
+      );
   }
 
   async upsertProgress(input: {
