@@ -2,6 +2,8 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getAuthenticatedEntryHref, getLoginHref, isProtectedPath } from "@/lib/auth-routing";
 import { getWebEnv } from "@/lib/env";
+import { isRetryableSupabaseAuthError } from "@/lib/supabase/auth-errors";
+import { logAuthTransportFailure } from "@/lib/supabase/auth-observability";
 
 type CookieToSet = {
   name: string;
@@ -38,9 +40,24 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user = null;
+
+  try {
+    const {
+      data: { user: authenticatedUser },
+    } = await supabase.auth.getUser();
+    user = authenticatedUser;
+  } catch (error) {
+    if (!isRetryableSupabaseAuthError(error)) {
+      throw error;
+    }
+
+    logAuthTransportFailure({
+      source: "middleware",
+      path: request.nextUrl.pathname,
+      error,
+    });
+  }
 
   response.headers.set("Cache-Control", "private, no-store");
 

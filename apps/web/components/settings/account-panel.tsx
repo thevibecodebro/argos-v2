@@ -68,39 +68,39 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
   return (
     <div className="space-y-5">
       {/* Profile card */}
-      <section className="rounded-[1.75rem] border border-slate-800/70 bg-[#0c1629] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+      <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
         <div className="flex items-start gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-blue-500/30 bg-blue-600/15 text-lg font-semibold text-blue-200">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-[#74b1ff]/20 bg-[#74b1ff]/8 text-lg font-semibold text-[#74b1ff]">
             {initials(currentUser.firstName, currentUser.lastName, currentUser.email)}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Your Profile</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Your Profile</p>
 
             {isEditing ? (
               <div className="mt-4 space-y-3">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="text-left">
-                    <span className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">First Name</span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">First Name</span>
                     <input
-                      className="mt-2 w-full rounded-[1rem] border border-slate-700/70 bg-slate-950/35 px-4 py-3 text-sm text-white outline-none transition focus:border-blue-500/60"
+                      className="mt-2 w-full rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-3 text-sm text-white outline-none transition focus:border-[#74b1ff]/60"
                       onChange={(e) => setFirstName(e.target.value)}
                       value={firstName}
                     />
                   </label>
                   <label className="text-left">
-                    <span className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Last Name</span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">Last Name</span>
                     <input
-                      className="mt-2 w-full rounded-[1rem] border border-slate-700/70 bg-slate-950/35 px-4 py-3 text-sm text-white outline-none transition focus:border-blue-500/60"
+                      className="mt-2 w-full rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-3 text-sm text-white outline-none transition focus:border-[#74b1ff]/60"
                       onChange={(e) => setLastName(e.target.value)}
                       value={lastName}
                     />
                   </label>
                 </div>
-                <p className="text-sm text-slate-400">{currentUser.email}</p>
+                <p className="text-sm text-[#a9abb3]">{currentUser.email}</p>
                 {error ? <p className="text-sm text-red-300">{error}</p> : null}
                 <div className="flex gap-3">
                   <button
-                    className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:opacity-50"
+                    className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-2 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
                     disabled={isSaving}
                     onClick={() => void saveProfile()}
                     type="button"
@@ -108,7 +108,7 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
                     {isSaving ? "Saving..." : "Save changes"}
                   </button>
                   <button
-                    className="rounded-xl border border-slate-700/70 px-4 py-2 text-sm font-medium text-slate-300 transition hover:border-slate-600 hover:text-white"
+                    className="rounded-xl border border-[#45484f]/20 px-4 py-2 text-sm font-medium text-[#a9abb3] transition hover:border-slate-600 hover:text-white"
                     disabled={isSaving}
                     onClick={() => {
                       setFirstName(currentUser.firstName ?? "");
@@ -125,16 +125,16 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
             ) : (
               <div className="mt-4">
                 <p className="text-2xl font-semibold text-white">{displayName}</p>
-                <p className="mt-2 text-sm text-slate-400">{currentUser.email}</p>
+                <p className="mt-2 text-sm text-[#a9abb3]">{currentUser.email}</p>
                 <div className="mt-3 flex flex-wrap items-center gap-3">
                   <span
-                    className="rounded-full border border-blue-500/25 bg-blue-600/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-blue-300"
+                    className="rounded-full border border-[#74b1ff]/20 bg-[#74b1ff]/8 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#74b1ff]"
                     title="Your role is set by an org admin"
                   >
                     {currentUser.role ?? "member"}
                   </span>
                   <button
-                    className="rounded-xl border border-slate-700/70 px-3 py-1.5 text-sm font-medium text-slate-300 transition hover:border-slate-600 hover:text-white"
+                    className="rounded-xl border border-[#45484f]/20 px-3 py-1.5 text-sm font-medium text-[#a9abb3] transition hover:border-slate-600 hover:text-white"
                     onClick={() => setIsEditing(true)}
                     type="button"
                   >
@@ -148,19 +148,19 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
       </section>
 
       {/* Organization card */}
-      <section className="rounded-[1.75rem] border border-slate-800/70 bg-[#0c1629] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Organization</p>
+      <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+        <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Organization</p>
         <p className="mt-4 text-2xl font-semibold text-white">{currentUser.org?.name ?? "No organization"}</p>
         {currentUser.org ? (
           <div className="mt-5 space-y-4">
-            <div className="flex items-center justify-between gap-3 rounded-[1rem] border border-slate-800/70 bg-slate-950/20 px-4 py-3">
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Org ID</p>
-                <p className="mt-1 font-mono text-sm font-medium text-slate-300">{currentUser.org.slug}</p>
-                <p className="mt-1 text-xs text-slate-500">Used in API references and webhook configurations</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">Org ID</p>
+                <p className="mt-1 font-mono text-sm font-medium text-[#ecedf6]">{currentUser.org.slug}</p>
+                <p className="mt-1 text-xs text-[#a9abb3]">Used in API references and webhook configurations</p>
               </div>
               <button
-                className="rounded-xl border border-slate-700/70 px-3 py-2 text-sm font-medium text-slate-300 transition hover:border-blue-500/40 hover:text-white"
+                className="rounded-xl border border-[#45484f]/20 px-3 py-2 text-sm font-medium text-[#a9abb3] transition hover:border-blue-500/40 hover:text-white"
                 onClick={() => void copySlug()}
                 type="button"
               >
@@ -168,20 +168,20 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
               </button>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-[1rem] border border-slate-800/70 bg-slate-950/20 px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Plan</p>
-                <p className="mt-2 text-sm font-medium capitalize text-slate-300">{currentUser.org.plan}</p>
+              <div className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">Plan</p>
+                <p className="mt-2 text-sm font-medium capitalize text-[#ecedf6]">{currentUser.org.plan}</p>
               </div>
-              <div className="rounded-[1rem] border border-slate-800/70 bg-slate-950/20 px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Created</p>
-                <p className="mt-2 text-sm font-medium text-slate-300">
+              <div className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">Created</p>
+                <p className="mt-2 text-sm font-medium text-[#ecedf6]">
                   {formatDate(currentUser.org.createdAt) ?? "Unknown"}
                 </p>
               </div>
             </div>
           </div>
         ) : (
-          <p className="mt-3 text-sm text-slate-400">Join or create an organization to unlock the workspace.</p>
+          <p className="mt-3 text-sm text-[#a9abb3]">Join or create an organization to unlock the workspace.</p>
         )}
       </section>
     </div>

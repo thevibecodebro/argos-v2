@@ -29,8 +29,9 @@ export async function POST(request: Request) {
     );
     return fromServiceResult(result);
   } catch (error) {
-    console.error("Failed to send invite email:", error);
-    return NextResponse.json({ error: "Failed to send invite email" }, { status: 500 });
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Failed to send invite:", message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 

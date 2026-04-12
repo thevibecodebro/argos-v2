@@ -67,6 +67,7 @@ export class SupabaseIntegrationsRepository implements IntegrationsRepository {
     orgId: string;
     refreshToken: string;
     tokenExpiresAt: Date;
+    webhookId?: string | null;
     webhookToken?: string | null;
     zoomAccountId: string | null;
     zoomUserId: string | null;
@@ -78,6 +79,7 @@ export class SupabaseIntegrationsRepository implements IntegrationsRepository {
         access_token: input.accessToken,
         refresh_token: input.refreshToken,
         token_expires_at: input.tokenExpiresAt.toISOString(),
+        webhook_id: input.webhookId ?? null,
         webhook_token: input.webhookToken ?? null,
         zoom_account_id: input.zoomAccountId,
         zoom_user_id: input.zoomUserId,
@@ -86,6 +88,47 @@ export class SupabaseIntegrationsRepository implements IntegrationsRepository {
       },
       { onConflict: "org_id" },
     );
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  async findZoomIntegrationForDisconnect(orgId: string) {
+    const supabase: any = this.supabase;
+    const { data, error } = await supabase
+      .from("zoom_integrations")
+      .select("access_token, refresh_token, token_expires_at, webhook_id")
+      .eq("org_id", orgId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (!data) {
+      return null;
+    }
+
+    return {
+      accessToken: data.access_token as string,
+      refreshToken: data.refresh_token as string,
+      tokenExpiresAt: new Date(data.token_expires_at as string),
+      webhookId: (data.webhook_id as string | null) ?? null,
+    };
+  }
+
+  async updateZoomTokens(orgId: string, tokens: { accessToken: string; refreshToken: string; tokenExpiresAt: Date }) {
+    const supabase: any = this.supabase;
+    const { error } = await supabase
+      .from("zoom_integrations")
+      .update({
+        access_token: tokens.accessToken,
+        refresh_token: tokens.refreshToken,
+        token_expires_at: tokens.tokenExpiresAt.toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("org_id", orgId);
 
     if (error) {
       throw new Error(error.message);

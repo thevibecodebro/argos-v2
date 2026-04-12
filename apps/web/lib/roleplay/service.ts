@@ -1,51 +1,17 @@
-import { createAccessRepository } from "@/lib/access/create-repository";
+import "server-only";
 import { buildAccessContext, canActorViewRep, type AccessContext } from "@/lib/access/service";
 import type { DashboardUserRecord } from "@/lib/dashboard/service";
+import {
+  ROLEPLAY_CATEGORY_LABELS,
+  type RoleplayCategory,
+  type RoleplayMessage,
+  type RoleplayPersona,
+  type RoleplayScorecard,
+  type RoleplaySession,
+  type RoleplaySessionRecord,
+} from "./types";
 
-export type RoleplayPersona = {
-  id: string;
-  name: string;
-  role: string;
-  company: string;
-  industry: string;
-  difficulty: "beginner" | "intermediate" | "advanced";
-  objectionType: string;
-  description: string;
-  avatarInitials: string;
-};
-
-export type RoleplayMessage = {
-  role: "assistant" | "user";
-  content: string;
-};
-
-export const ROLEPLAY_CATEGORY_LABELS = {
-  closing: "Closing",
-  discovery: "Discovery",
-  frame_control: "Frame Control",
-  objection_handling: "Objection Handling",
-  pain_expansion: "Pain Expansion",
-  rapport: "Rapport",
-  solution: "Solution",
-} as const;
-
-export type RoleplayCategory = keyof typeof ROLEPLAY_CATEGORY_LABELS;
-
-export type RoleplayScorecard = {
-  callStageReached: "opening" | "discovery" | "solution" | "objection_handling" | "commitment";
-  categoryScores: Record<RoleplayCategory, number | null>;
-  confidence: "high" | "medium" | "low";
-  summary: string;
-  strengths: string[];
-  improvements: string[];
-  recommendedDrills: string[];
-  moments: Array<{
-    category: RoleplayCategory;
-    severity: "strength" | "improvement" | "critical";
-    observation: string;
-    recommendation: string;
-  }>;
-};
+export type { RoleplayScorecard, RoleplaySession, RoleplaySessionRecord };
 
 type LegacyRoleplayScorecard = {
   summary: string;
@@ -57,35 +23,6 @@ type LegacyRoleplayScorecard = {
     feedback?: string;
     type?: "strength" | "improvement";
   }>;
-};
-
-export type RoleplaySessionRecord = {
-  id: string;
-  repId: string;
-  orgId: string;
-  persona: string | null;
-  industry: string | null;
-  difficulty: "beginner" | "intermediate" | "advanced" | null;
-  overallScore: number | null;
-  transcript: RoleplayMessage[] | null;
-  scorecard: RoleplayScorecard | null;
-  status: "active" | "evaluating" | "complete";
-  createdAt: Date;
-};
-
-export type RoleplaySession = {
-  id: string;
-  repId: string;
-  orgId: string;
-  persona: string | null;
-  personaDetails: RoleplayPersona | null;
-  industry: string | null;
-  difficulty: "beginner" | "intermediate" | "advanced" | null;
-  overallScore: number | null;
-  transcript: RoleplayMessage[];
-  scorecard: RoleplayScorecard | null;
-  status: "active" | "evaluating" | "complete";
-  createdAt: string;
 };
 
 type ServiceResult<T> =
@@ -434,6 +371,7 @@ function buildScorecard(transcript: RoleplayMessage[]): {
 async function getViewer(
   authUserId: string,
 ): Promise<ServiceResult<AccessContext>> {
+  const { createAccessRepository } = await import("@/lib/access/create-repository");
   const accessRepository = createAccessRepository();
   const actor = await accessRepository.findActorByAuthUserId(authUserId);
 

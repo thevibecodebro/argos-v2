@@ -39,6 +39,17 @@ describe("getAuthenticatedSupabaseUser", () => {
     await expect(getAuthenticatedSupabaseUser()).rejects.toThrow("JWT expired");
   });
 
+  it("returns null when Supabase auth is temporarily unreachable", async () => {
+    getUser.mockRejectedValue(
+      Object.assign(new Error("fetch failed"), {
+        __isAuthError: true,
+        status: 0,
+      }),
+    );
+
+    await expect(getAuthenticatedSupabaseUser()).resolves.toBeNull();
+  });
+
   it("returns the authenticated user when present", async () => {
     const user = { id: "auth-user-1", email: "manager@argos.ai" };
     getUser.mockResolvedValue({

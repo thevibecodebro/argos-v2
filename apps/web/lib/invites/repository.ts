@@ -38,6 +38,8 @@ export interface InvitesRepository {
 
   markInviteAccepted(id: string): Promise<void>;
 
+  deleteInviteByToken(token: string, orgId: string): Promise<void>;
+
   findTeamsByIds(teamIds: string[], orgId: string): Promise<TeamRecord[]>;
 
   listActiveTeamsByOrg(orgId: string): Promise<TeamRecord[]>;

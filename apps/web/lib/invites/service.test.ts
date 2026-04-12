@@ -57,6 +57,7 @@ function makeInvitesRepo(overrides: Partial<InvitesRepository> = {}): InvitesRep
     findPendingInviteByOrgAndEmail: vi.fn().mockResolvedValue(null),
     findPendingInvitesByOrg: vi.fn().mockResolvedValue([]),
     markInviteAccepted: vi.fn().mockResolvedValue(undefined),
+    deleteInviteByToken: vi.fn().mockResolvedValue(undefined),
     findTeamsByIds: vi.fn().mockResolvedValue([]),
     listActiveTeamsByOrg: vi.fn().mockResolvedValue([]),
     createTeamMemberships: vi.fn().mockResolvedValue(undefined),

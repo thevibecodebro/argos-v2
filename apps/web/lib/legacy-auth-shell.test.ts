@@ -4,14 +4,17 @@ import HomePage from "../app/page";
 import LoginPage from "../app/login/page";
 
 describe("legacy auth shell", () => {
-  it("renders the dark restored landing page", () => {
-    const html = renderToStaticMarkup(HomePage());
-
-    expect(html).toContain("Revenue Command Platform");
-    expect(html).toContain("AI Scorecards");
-    expect(html).toContain("Coaching Flags");
-    expect(html).toContain("Instant Insights");
-    expect(html).toContain("Sign in to Argos");
+  it("redirects the landing page to login", () => {
+    expect(() => HomePage()).toThrowError(
+      expect.objectContaining({
+        digest: expect.stringContaining("NEXT_REDIRECT"),
+      }),
+    );
+    expect(() => HomePage()).toThrowError(
+      expect.objectContaining({
+        digest: expect.stringContaining("/login"),
+      }),
+    );
   });
 
   it("renders the login flow inside the restored shell", async () => {
@@ -21,8 +24,8 @@ describe("legacy auth shell", () => {
       }),
     );
 
-    expect(html).toContain("Revenue Command Platform");
+    expect(html).toContain("Welcome back");
     expect(html).toContain("Continue with Google");
-    expect(html).toContain("Send magic link");
+    expect(html).toContain("Work Email");
   });
 });

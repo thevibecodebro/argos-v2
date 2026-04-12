@@ -3,6 +3,7 @@ import {
   buildAuthRedirectUrl,
   getBrowserWebEnv,
   getBrowserWebEnvConfigurationError,
+  getDevelopmentStartupEnvError,
   getMissingWebEnvKeys,
   getWebEnv,
   getWebEnvConfigurationError,
@@ -147,5 +148,39 @@ describe("buildAuthRedirectUrl", () => {
     });
 
     expect(redirectUrl).toBe("https://argos-v2.vercel.app/auth/callback?next=%2Fdashboard");
+  });
+});
+
+describe("getDevelopmentStartupEnvError", () => {
+  it("returns a development-only startup error when required public auth env is missing", () => {
+    expect(
+      getDevelopmentStartupEnvError({
+        env: { NEXT_PUBLIC_SITE_URL: "http://localhost:3000" },
+        nodeEnv: "development",
+      }),
+    ).toBe(
+      "Auth is not configured for this environment. Missing: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY.",
+    );
+  });
+
+  it("does not block startup in production when public auth env is missing", () => {
+    expect(
+      getDevelopmentStartupEnvError({
+        env: { NEXT_PUBLIC_SITE_URL: "https://argos-v2.app" },
+        nodeEnv: "production",
+      }),
+    ).toBeNull();
+  });
+
+  it("returns null when required auth env is present", () => {
+    expect(
+      getDevelopmentStartupEnvError({
+        env: {
+          NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
+        },
+        nodeEnv: "development",
+      }),
+    ).toBeNull();
   });
 });

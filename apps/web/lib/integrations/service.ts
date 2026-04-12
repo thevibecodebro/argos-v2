@@ -1,3 +1,4 @@
+import { deleteZoomWebhook, refreshZoomToken } from "./oauth";
 import type { DashboardUserRecord } from "@/lib/dashboard/service";
 import type { AppUserRole } from "@/lib/users/roles";
 
@@ -42,7 +43,9 @@ export type IntegrationsRepository = {
   deleteZoomIntegration(orgId: string): Promise<boolean>;
   findCurrentUserByAuthId(authUserId: string): Promise<DashboardUserRecord | null>;
   findGhlStatus(orgId: string): Promise<{ connected: boolean; connectedAt: Date | null; locationId: string | null; locationName: string | null }>;
+  findZoomIntegrationForDisconnect(orgId: string): Promise<{ accessToken: string; refreshToken: string; tokenExpiresAt: Date; webhookId: string | null } | null>;
   findZoomStatus(orgId: string): Promise<{ connected: boolean; connectedAt: Date | null; zoomUserId: string | null }>;
+  updateZoomTokens(orgId: string, tokens: { accessToken: string; refreshToken: string; tokenExpiresAt: Date }): Promise<void>;
 };
 
 function canManage(role: AppUserRole | null) {
@@ -162,6 +165,24 @@ export async function disconnectIntegration(
   }
 
   if (provider === "zoom") {
+    const integration = await repository.findZoomIntegrationForDisconnect(viewer.org.id);
+
+    if (integration?.webhookId) {
+      try {
+        let { accessToken } = integration;
+
+        if (integration.tokenExpiresAt <= new Date()) {
+          const refreshed = await refreshZoomToken(integration.refreshToken);
+          await repository.updateZoomTokens(viewer.org.id, refreshed);
+          accessToken = refreshed.accessToken;
+        }
+
+        await deleteZoomWebhook({ accessToken, webhookId: integration.webhookId });
+      } catch {
+        // Best-effort — proceed with disconnect even if webhook deletion fails
+      }
+    }
+
     await repository.deleteZoomIntegration(viewer.org.id);
   } else {
     await repository.deleteGhlIntegration(viewer.org.id);

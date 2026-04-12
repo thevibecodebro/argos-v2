@@ -99,6 +99,12 @@ export class DrizzleInvitesRepository implements InvitesRepository {
       .where(eq(invitesTable.id, id));
   }
 
+  async deleteInviteByToken(token: string, orgId: string): Promise<void> {
+    await this.db
+      .delete(invitesTable)
+      .where(and(eq(invitesTable.token, token), eq(invitesTable.orgId, orgId)));
+  }
+
   async findTeamsByIds(teamIds: string[], orgId: string): Promise<TeamRecord[]> {
     if (teamIds.length === 0) return [];
     const rows = await this.db

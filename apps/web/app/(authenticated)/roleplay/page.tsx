@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { PageFrame } from "@/components/page-frame";
 import { RoleplayPanel } from "@/components/roleplay-panel";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { createRoleplayRepository } from "@/lib/roleplay/create-repository";
@@ -18,34 +17,25 @@ export default async function RoleplayPage() {
 
   if (!result.ok) {
     return (
-      <PageFrame
-        actions={[{ href: "/training", label: "Open training" }]}
-        description="Roleplay needs an app user record and organization before sessions can be created."
-        eyebrow="Provisioning"
-        title="Roleplay"
-        tone="warning"
-      >
-        <section className="rounded-[1.75rem] border border-amber-500/20 bg-amber-500/5 p-6 text-sm leading-7 text-amber-100">
-          {result.error}
-        </section>
-      </PageFrame>
+      <div className="flex-1 p-8">
+        <div className="mx-auto w-full max-w-7xl">
+          <section className="mb-8 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-6 text-sm leading-7 text-amber-100">
+            <p className="font-bold text-amber-300">Roleplay unavailable</p>
+            <p className="mt-1">{result.error}</p>
+          </section>
+        </div>
+      </div>
     );
   }
 
   return (
-    <PageFrame
-      actions={[
-        { href: "/training", label: "Open training" },
-        { href: "/calls", label: "Open calls" },
-      ]}
-      description="Roleplay supports persona selection, live transcript practice, voice mode, and deterministic scorecards."
-      eyebrow="Simulation"
-      title="Roleplay"
-    >
-      <RoleplayPanel
-        initialPersonas={result.data.personas}
-        initialSessions={result.data.sessions}
-      />
-    </PageFrame>
+    <div className="flex-1 p-8">
+      <div className="mx-auto w-full max-w-7xl space-y-12">
+        <RoleplayPanel
+          initialPersonas={result.data.personas}
+          initialSessions={result.data.sessions}
+        />
+      </div>
+    </div>
   );
 }

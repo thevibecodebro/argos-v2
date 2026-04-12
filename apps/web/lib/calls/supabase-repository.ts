@@ -230,6 +230,13 @@ export class SupabaseCallsRepository implements CallsRepository {
     return this.listCalls({ repId, filters });
   }
 
+  async findCallsByRepIds(repIds: string[], filters: CallsFilters) {
+    if (!repIds.length) {
+      return { calls: [], total: 0 };
+    }
+    return this.listCalls({ repIds, filters });
+  }
+
   async findCurrentUserByAuthId(authUserId: string) {
     const user = await findUserWithOrgByAuthId(authUserId, this.supabase);
 
@@ -441,10 +448,12 @@ export class SupabaseCallsRepository implements CallsRepository {
   private async listCalls({
     orgId,
     repId,
+    repIds,
     filters,
   }: {
     orgId?: string;
     repId?: string;
+    repIds?: string[];
     filters: CallsFilters;
   }) {
     const supabase: any = this.supabase;
@@ -460,6 +469,7 @@ export class SupabaseCallsRepository implements CallsRepository {
     const applyFilters = (query: any) => {
       if (orgId) query = query.eq("org_id", orgId);
       if (repId) query = query.eq("rep_id", repId);
+      if (repIds) query = query.in("rep_id", repIds);
       if (filters.status && filters.status !== "all") {
         const normalizedStatus = filters.status === "processing" ? "evaluating" : filters.status;
         query = query.eq("status", normalizedStatus);

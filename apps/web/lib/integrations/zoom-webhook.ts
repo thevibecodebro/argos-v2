@@ -1,7 +1,8 @@
 import crypto from "node:crypto";
+import { refreshZoomToken } from "./oauth";
 
 type ZoomWebhookEnv = Partial<Record<
-  "ZOOM_WEBHOOK_SECRET_TOKEN" | "AI_INTEGRATIONS_OPENAI_BASE_URL" | "AI_INTEGRATIONS_OPENAI_API_KEY",
+  "ZOOM_WEBHOOK_SECRET_TOKEN" | "AI_INTEGRATIONS_OPENAI_BASE_URL" | "AI_INTEGRATIONS_OPENAI_API_KEY" | "ZOOM_CLIENT_ID" | "ZOOM_CLIENT_SECRET",
   string | undefined
 >>;
 
@@ -50,7 +51,8 @@ export interface ZoomWebhookRepository {
   }): Promise<{ id: string }>;
   findCallByZoomRecordingId(zoomRecordingId: string): Promise<{ id: string } | null>;
   findPreferredCallOwner(orgId: string): Promise<{ id: string } | null>;
-  findZoomIntegrationByAccountId(accountId: string): Promise<{ orgId: string; webhookToken: string | null } | null>;
+  findZoomIntegrationByAccountId(accountId: string): Promise<{ orgId: string; webhookToken: string | null; accessToken: string; refreshToken: string; tokenExpiresAt: Date } | null>;
+  updateZoomTokens(orgId: string, tokens: { accessToken: string; refreshToken: string; tokenExpiresAt: Date }): Promise<void>;
   setCallEvaluation(callId: string, evaluation: ZoomEvaluation): Promise<void>;
 }
 
@@ -186,17 +188,36 @@ export async function processZoomWebhookRequest(
     };
   }
 
+  // Refresh access token if expired
+  let accessToken = integration.accessToken;
+  if (integration.tokenExpiresAt <= new Date()) {
+    try {
+      const refreshed = await refreshZoomToken(integration.refreshToken, env as Record<string, string | undefined>);
+      await repository.updateZoomTokens(integration.orgId, refreshed);
+      accessToken = refreshed.accessToken;
+    } catch {
+      // Continue with existing token — it may still work
+    }
+  }
+
   const durationSeconds = parsed.payload?.object?.duration
     ? parsed.payload.object.duration * 60
     : null;
   const callTopic = parsed.payload?.object?.topic?.trim() || "Zoom cloud recording";
+
+  // Download and store recording
+  const recordingUrl = await downloadAndStoreRecording({
+    downloadUrl: recording.download_url ?? null,
+    accessToken,
+    recordingId: recording.id,
+  });
 
   const call = await repository.createCall({
     orgId: integration.orgId,
     repId: owner.id,
     callTopic,
     durationSeconds,
-    recordingUrl: recording.download_url ?? null,
+    recordingUrl,
     consentConfirmed: true,
     status: "evaluating",
     zoomRecordingId: recording.id,
@@ -215,6 +236,52 @@ export async function processZoomWebhookRequest(
     status: 200,
     body: { received: true },
   };
+}
+
+async function downloadAndStoreRecording(input: {
+  downloadUrl: string | null;
+  accessToken: string;
+  recordingId: string;
+}): Promise<string | null> {
+  if (!input.downloadUrl) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(input.downloadUrl, {
+      headers: { Authorization: `Bearer ${input.accessToken}` },
+    });
+
+    if (!response.ok || !response.body) {
+      return input.downloadUrl;
+    }
+
+    const contentType = response.headers.get("content-type") ?? "audio/mp4";
+    const ext = contentType.includes("mp4") ? "mp4" : "m4a";
+    const fileName = `recordings/${input.recordingId}.${ext}`;
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    const { createSupabaseAdminClient } = await import("@/lib/supabase/admin");
+    const supabase = createSupabaseAdminClient();
+
+    const { error } = await supabase.storage
+      .from("call-recordings")
+      .upload(fileName, buffer, {
+        contentType,
+        upsert: true,
+      });
+
+    if (error) {
+      return input.downloadUrl;
+    }
+
+    const { data } = supabase.storage.from("call-recordings").getPublicUrl(fileName);
+    return data.publicUrl;
+  } catch {
+    return input.downloadUrl;
+  }
 }
 
 function safeParseJson(value: string): ZoomWebhookPayload | null {

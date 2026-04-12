@@ -14,6 +14,7 @@ function createRepository(
     findPreferredCallOwner: vi.fn(),
     findZoomIntegrationByAccountId: vi.fn(),
     setCallEvaluation: vi.fn(),
+    updateZoomTokens: vi.fn(),
     ...overrides,
   };
 }

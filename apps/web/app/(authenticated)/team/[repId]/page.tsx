@@ -53,9 +53,9 @@ export default async function RepProfilePage({
       title="Rep Profile"
     >
       <section className="grid gap-4 xl:grid-cols-[0.9fr,1.1fr]">
-        <article className="rounded-[1.5rem] border border-slate-800/70 bg-[#0c1629] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.22)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Team Member</p>
-          <h3 className="mt-3 text-3xl font-semibold text-white">
+        <article className="rounded-xl border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.22)]">
+          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Team Member</p>
+          <h3 className="mt-3 text-3xl font-semibold text-[#ecedf6]">
             {[rep.firstName, rep.lastName].filter(Boolean).join(" ") || "Unknown rep"}
           </h3>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -77,20 +77,20 @@ export default async function RepProfilePage({
             <SnapshotStat label="30-day average" value={repDashboard.monthlyAvgScore ?? "—"} />
           </div>
           {rep.needsCoaching ? (
-            <div className="mt-5 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+            <div className="mt-5 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
               This rep is currently flagged for coaching based on a negative week-over-week trend.
             </div>
           ) : null}
         </article>
 
-        <article className="rounded-[1.5rem] border border-slate-800/70 bg-[#0c1629] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.22)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-400">Focus Areas</p>
+        <article className="rounded-xl border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.22)]">
+          <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#74b1ff]">Focus Areas</p>
           {repDashboard.lowestCategories.length ? (
             <div className="mt-5 space-y-3">
               {repDashboard.lowestCategories.map((category) => (
                 <div className="flex items-center gap-3" key={category.category}>
-                  <span className="w-40 shrink-0 text-sm text-slate-300">{category.category}</span>
-                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-800">
+                  <span className="w-40 shrink-0 text-sm text-[#a9abb3]">{category.category}</span>
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#22262f]">
                     <div
                       className={`h-full rounded-full ${barColor(category.avgScore)}`}
                       style={{ width: `${Math.max(0, Math.min(category.avgScore, 100))}%` }}
@@ -103,16 +103,16 @@ export default async function RepProfilePage({
               ))}
             </div>
           ) : (
-            <p className="mt-5 text-sm text-slate-500">No focus categories yet for this rep.</p>
+            <p className="mt-5 text-sm text-[#a9abb3]">No focus categories yet for this rep.</p>
           )}
         </article>
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.05fr,0.95fr]">
-        <article className="rounded-[1.5rem] border border-slate-800/70 bg-[#0c1629] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.22)]">
+        <article className="rounded-xl border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.22)]">
           <div className="flex items-center justify-between gap-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Recent Calls</p>
-            <Link className="text-sm font-medium text-blue-300 transition hover:text-blue-200" href="/calls">
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Recent Calls</p>
+            <Link className="text-sm font-medium text-[#74b1ff] transition hover:text-[#54a3ff]" href="/calls">
               Open call library
             </Link>
           </div>
@@ -120,43 +120,43 @@ export default async function RepProfilePage({
             {repDashboard.recentCalls.length ? (
               repDashboard.recentCalls.map((call) => (
                 <Link
-                  className="flex items-center justify-between gap-4 rounded-2xl border border-slate-800/70 bg-slate-950/30 px-4 py-4 transition hover:border-blue-500/30 hover:bg-blue-600/5"
+                  className="flex items-center justify-between gap-4 rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-4 transition hover:border-[#74b1ff]/30 hover:bg-[#74b1ff]/5"
                   href={`/calls/${call.id}`}
                   key={call.id}
                 >
                   <div>
-                    <p className="text-sm font-medium text-slate-100">{call.callTopic ?? "Untitled call"}</p>
-                    <p className="mt-1 text-xs text-slate-500">{formatTimestamp(call.createdAt)}</p>
+                    <p className="text-sm font-medium text-[#ecedf6]">{call.callTopic ?? "Untitled call"}</p>
+                    <p className="mt-1 text-xs text-[#a9abb3]">{formatTimestamp(call.createdAt)}</p>
                   </div>
                   <div className="text-right">
                     <p className={`text-sm font-semibold ${scoreColor(call.overallScore)}`}>{call.overallScore ?? "—"}</p>
-                    <p className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-500">{call.status}</p>
+                    <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[#a9abb3]">{call.status}</p>
                   </div>
                 </Link>
               ))
             ) : (
-              <p className="text-sm text-slate-500">No recent calls for this rep yet.</p>
+              <p className="text-sm text-[#a9abb3]">No recent calls for this rep yet.</p>
             )}
           </div>
         </article>
 
-        <article className="rounded-[1.5rem] border border-slate-800/70 bg-[#0c1629] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.22)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Badges & Milestones</p>
+        <article className="rounded-xl border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.22)]">
+          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Badges & Milestones</p>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             {(badges?.badges ?? []).map((badge) => (
               <div
-                className={`rounded-2xl border px-4 py-4 ${
+                className={`rounded-xl border px-4 py-4 ${
                   badge.earned
                     ? "border-amber-500/25 bg-amber-500/5"
-                    : "border-slate-800/70 bg-slate-950/30 opacity-70"
+                    : "border-[#45484f]/20 bg-[#161a21]/50 opacity-70"
                 }`}
                 key={badge.id}
               >
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">{badge.emoji}</span>
                   <div>
-                    <p className="text-sm font-semibold text-slate-100">{badge.name}</p>
-                    <p className="mt-1 text-xs text-slate-500">{badge.description}</p>
+                    <p className="text-sm font-semibold text-[#ecedf6]">{badge.name}</p>
+                    <p className="mt-1 text-xs text-[#a9abb3]">{badge.description}</p>
                   </div>
                 </div>
               </div>
@@ -178,8 +178,8 @@ function SnapshotStat({
   tone?: "blue" | "emerald" | "red" | "slate";
 }) {
   return (
-    <div className="rounded-2xl border border-slate-800/70 bg-slate-950/30 px-4 py-4">
-      <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{label}</p>
+    <div className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-4">
+      <p className="text-[10px] uppercase tracking-[0.18em] text-[#a9abb3]">{label}</p>
       <p className={`mt-2 text-2xl font-semibold ${toneClass(tone)}`}>{value}</p>
     </div>
   );
@@ -197,9 +197,9 @@ function formatDelta(value: number) {
 }
 
 function scoreColor(value: number | null | undefined) {
-  if (typeof value !== "number") return "text-slate-400";
+  if (typeof value !== "number") return "text-[#a9abb3]";
   if (value >= 85) return "text-emerald-400";
-  if (value >= 70) return "text-blue-300";
+  if (value >= 70) return "text-[#74b1ff]";
   if (value >= 60) return "text-amber-400";
   return "text-red-400";
 }
@@ -207,13 +207,13 @@ function scoreColor(value: number | null | undefined) {
 function toneClass(tone: "blue" | "emerald" | "red" | "slate") {
   if (tone === "emerald") return "text-emerald-400";
   if (tone === "red") return "text-red-400";
-  if (tone === "slate") return "text-slate-200";
-  return "text-blue-300";
+  if (tone === "slate") return "text-[#ecedf6]";
+  return "text-[#74b1ff]";
 }
 
 function barColor(value: number) {
   if (value >= 85) return "bg-emerald-400";
-  if (value >= 70) return "bg-blue-400";
+  if (value >= 70) return "bg-[#74b1ff]";
   if (value >= 60) return "bg-amber-400";
   return "bg-red-400";
 }

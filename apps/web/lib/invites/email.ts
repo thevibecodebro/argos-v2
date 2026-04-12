@@ -17,7 +17,7 @@ export async function sendInviteEmail(
 ): Promise<void> {
   const resend = getResend();
   const { error } = await resend.emails.send({
-    from: "Argos <noreply@argos.ai>",
+    from: "Argos <onboarding@resend.dev>",
     to,
     subject: `You've been invited to join ${orgName} on Argos`,
     html: `
@@ -28,6 +28,7 @@ export async function sendInviteEmail(
   });
 
   if (error) {
-    throw new Error(`Failed to send invite email: ${error.message}`);
+    console.error("[Resend] send error:", JSON.stringify(error));
+    throw new Error(`Resend error [${(error as { name?: string }).name ?? "unknown"}]: ${error.message}`);
   }
 }

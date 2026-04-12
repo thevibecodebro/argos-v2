@@ -53,26 +53,26 @@ export function TeamsPanel({
 
   return (
     <div className="space-y-5">
-      <section className="rounded-[1.75rem] border border-slate-800/70 bg-[#0c1629] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+      <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">
               Teams
             </p>
-            <p className="mt-2 text-sm text-slate-400">
+            <p className="mt-2 text-sm text-[#a9abb3]">
               View team structure, primary managers, and rep assignments.
             </p>
           </div>
-          <span className="rounded-full border border-slate-700/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+          <span className="rounded-full border border-[#45484f]/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#a9abb3]">
             {teams.length} {teams.length === 1 ? "team" : "teams"}
           </span>
         </div>
 
         <div className="mt-5 space-y-3">
           {teams.length === 0 ? (
-            <div className="rounded-[1.2rem] border border-slate-800/70 bg-slate-950/20 px-5 py-6 text-center">
-              <p className="text-sm font-medium text-slate-300">No teams yet</p>
-              <p className="mt-2 text-sm text-slate-500">
+            <div className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-5 py-6 text-center">
+              <p className="text-sm font-medium text-[#ecedf6]">No teams yet</p>
+              <p className="mt-2 text-sm text-[#a9abb3]">
                 Teams are created during onboarding. Contact support if you
                 need to add or restructure teams.
               </p>
@@ -90,11 +90,11 @@ export function TeamsPanel({
               return (
                 <div
                   key={team.id}
-                  className="rounded-[1.2rem] border border-slate-800/70 bg-slate-950/20 overflow-hidden"
+                  className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 overflow-hidden"
                 >
                   {/* Team header row */}
                   <button
-                    className="w-full flex items-center justify-between gap-3 px-4 py-4 text-left transition hover:bg-slate-800/20"
+                    className="w-full flex items-center justify-between gap-3 px-4 py-4 text-left transition hover:bg-[#74b1ff]/5"
                     onClick={() =>
                       setExpandedTeamId(isExpanded ? null : team.id)
                     }
@@ -102,7 +102,7 @@ export function TeamsPanel({
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <span
-                        className="material-symbols-outlined shrink-0 text-slate-500"
+                        className="material-symbols-outlined shrink-0 text-[#a9abb3]"
                         style={{ fontSize: "18px" }}
                       >
                         groups
@@ -112,18 +112,18 @@ export function TeamsPanel({
                           {team.name}
                         </p>
                         {team.description ? (
-                          <p className="mt-0.5 text-xs text-slate-500 truncate">
+                          <p className="mt-0.5 text-xs text-[#a9abb3] truncate">
                             {team.description}
                           </p>
                         ) : null}
                       </div>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-xs text-slate-500 uppercase tracking-[0.18em]">
+                      <span className="text-xs text-[#a9abb3] uppercase tracking-[0.18em]">
                         {reps.length} {reps.length === 1 ? "rep" : "reps"}
                       </span>
                       <span
-                        className="material-symbols-outlined text-slate-500 transition-transform"
+                        className="material-symbols-outlined text-[#a9abb3] transition-transform"
                         style={{
                           fontSize: "18px",
                           transform: isExpanded
@@ -138,10 +138,10 @@ export function TeamsPanel({
 
                   {/* Expanded details */}
                   {isExpanded ? (
-                    <div className="border-t border-slate-800/70 px-4 py-4 space-y-4">
+                    <div className="border-t border-[#45484f]/20 px-4 py-4 space-y-4">
                       {/* Primary manager */}
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+                        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">
                           Primary Manager
                         </p>
                         {primaryManager ? (
@@ -164,11 +164,11 @@ export function TeamsPanel({
 
                       {/* Reps */}
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+                        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">
                           Reps
                         </p>
                         {reps.length === 0 ? (
-                          <p className="mt-2 text-sm text-slate-400">
+                          <p className="mt-2 text-sm text-[#a9abb3]">
                             No reps on this team yet.
                           </p>
                         ) : (
@@ -176,10 +176,10 @@ export function TeamsPanel({
                             {reps.map((rep) => (
                               <li
                                 key={rep.userId}
-                                className="flex items-center gap-2 text-sm text-slate-300"
+                                className="flex items-center gap-2 text-sm text-[#ecedf6]"
                               >
                                 <span
-                                  className="material-symbols-outlined text-slate-600"
+                                  className="material-symbols-outlined text-[#a9abb3]"
                                   style={{ fontSize: "16px" }}
                                 >
                                   person

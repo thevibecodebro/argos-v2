@@ -118,6 +118,31 @@ export async function commitInviteAcceptance(
   return { ok: true, data: { orgId: invite.orgId } };
 }
 
+export async function revokeInvite(
+  repo: InvitesRepository,
+  usersRepo: UsersRepository,
+  authUserId: string,
+  token: string,
+): Promise<InviteServiceResult<null>> {
+  const caller = await usersRepo.findCurrentUserByAuthId(authUserId);
+
+  if (!caller) {
+    return { ok: false, status: 404, error: "User not found" };
+  }
+
+  if (!caller.orgId) {
+    return { ok: false, status: 400, error: "You are not part of an organization" };
+  }
+
+  if (caller.role !== "admin") {
+    return { ok: false, status: 403, error: "Only admins can revoke invites" };
+  }
+
+  await repo.deleteInviteByToken(token, caller.orgId);
+
+  return { ok: true, data: null };
+}
+
 export async function listPendingInvites(
   repo: InvitesRepository,
   usersRepo: UsersRepository,

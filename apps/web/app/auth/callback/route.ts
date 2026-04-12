@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { SupabaseProvisioningRepository } from "@/lib/provisioning/repository";
 import { ensureUserProvisioned } from "@/lib/provisioning/service";
+import { isRetryableSupabaseAuthError } from "@/lib/supabase/auth-errors";
+import { logAuthTransportFailure } from "@/lib/supabase/auth-observability";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
@@ -14,13 +16,44 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createSupabaseServerClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    let exchangeError = null;
 
-    if (!error) {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+    try {
+      const result = await supabase.auth.exchangeCodeForSession(code);
+      exchangeError = result.error;
+    } catch (error) {
+      if (isRetryableSupabaseAuthError(error)) {
+        logAuthTransportFailure({
+          source: "auth-callback",
+          path: "/auth/callback",
+          error,
+        });
+        return NextResponse.redirect(`${origin}/auth/error`);
+      }
+
+      throw error;
+    }
+
+    if (!exchangeError) {
+      let user = null;
+      let userError = null;
+
+      try {
+        const result = await supabase.auth.getUser();
+        user = result.data.user;
+        userError = result.error;
+      } catch (error) {
+        if (isRetryableSupabaseAuthError(error)) {
+          logAuthTransportFailure({
+            source: "auth-callback",
+            path: "/auth/callback",
+            error,
+          });
+          return NextResponse.redirect(`${origin}/auth/error`);
+        }
+
+        throw error;
+      }
 
       if (userError) {
         return NextResponse.redirect(`${origin}/auth/error`);

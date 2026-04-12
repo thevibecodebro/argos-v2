@@ -87,15 +87,15 @@ export function UploadCallPanel() {
   }
 
   return (
-    <section className="rounded-[1.75rem] border border-slate-800/70 bg-[#0c1629] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+    <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
       <div className="space-y-5">
         <div
-          className={`rounded-[1.5rem] border-2 border-dashed p-10 text-center transition ${
+          className={`rounded-xl border-2 border-dashed p-10 text-center transition ${
             isDragging
-              ? "border-blue-500/60 bg-blue-600/10"
+              ? "border-[#74b1ff]/60 bg-[#74b1ff]/8"
               : file
                 ? "border-emerald-500/40 bg-emerald-500/5"
-                : "border-slate-700/70 bg-slate-950/30 hover:border-slate-600/70"
+                : "border-[#45484f]/20 bg-[#161a21]/50 hover:border-[#45484f]/40"
           }`}
           onClick={() => !file && fileInputRef.current?.click()}
           onDragLeave={() => setIsDragging(false)}
@@ -128,7 +128,7 @@ export function UploadCallPanel() {
           {file ? (
             <div className="space-y-3">
               <p className="text-lg font-semibold text-emerald-300">{file.name}</p>
-              <p className="text-sm text-slate-500">{formatBytes(file.size)}</p>
+              <p className="text-sm text-[#a9abb3]">{formatBytes(file.size)}</p>
               <button
                 className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-300 transition hover:bg-red-500/15"
                 onClick={(event) => {
@@ -142,18 +142,18 @@ export function UploadCallPanel() {
             </div>
           ) : (
             <div className="space-y-3">
-              <p className="text-lg font-semibold text-slate-100">Drop a call recording here</p>
-              <p className="text-sm text-slate-500">MP3, WAV, M4A, MP4, or WebM up to 500 MB</p>
+              <p className="text-lg font-semibold text-[#ecedf6]">Drop a call recording here</p>
+              <p className="text-sm text-[#a9abb3]">MP3, WAV, M4A, MP4, or WebM up to 500 MB</p>
             </div>
           )}
         </div>
 
         <label className="block space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+          <span className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">
             Call Name
           </span>
           <input
-            className="w-full rounded-[1.15rem] border border-slate-700/70 bg-slate-950/40 px-4 py-3 text-base text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10"
+            className="w-full rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-3 text-base text-[#ecedf6] outline-none transition placeholder:text-[#a9abb3] focus:border-[#74b1ff]/60 focus:ring-4 focus:ring-[#74b1ff]/10"
             onChange={(event) => setCallTopic(event.target.value)}
             placeholder="Discovery call with ACME"
             type="text"
@@ -163,24 +163,24 @@ export function UploadCallPanel() {
 
         {isUploading ? (
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs uppercase tracking-[0.22em] text-slate-500">
+            <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.22em] text-[#a9abb3]">
               <span>{progress < 100 ? "Uploading" : "Scoring"}</span>
               <span>{progress}%</span>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-slate-900">
-              <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${progress}%` }} />
+            <div className="h-2 overflow-hidden rounded-full bg-[#22262f]">
+              <div className="h-full rounded-full bg-[#74b1ff] transition-all" style={{ width: `${progress}%` }} />
             </div>
           </div>
         ) : null}
 
         {error ? (
-          <div className="rounded-[1.15rem] border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
             {error}
           </div>
         ) : null}
 
         <button
-          className="w-full rounded-[1.2rem] bg-blue-600 px-5 py-4 text-base font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-5 py-4 text-base font-bold text-[#002345] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
           disabled={!file || isUploading}
           onClick={() => {
             void submit();

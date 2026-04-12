@@ -23,6 +23,7 @@ export function createDb(connectionString = getDatabaseUrl()): ArgosDb {
   const pool = new Pool({
     connectionString,
     max: 5,
+    ssl: { rejectUnauthorized: false },
   });
 
   return drizzle({
@@ -36,6 +37,7 @@ export function getDb(): ArgosDb {
     globalForDatabase.argosPool = new Pool({
       connectionString: getDatabaseUrl(),
       max: 5,
+      ssl: { rejectUnauthorized: false },
     });
 
     globalForDatabase.argosDb = drizzle({
