@@ -51,6 +51,7 @@ const repository = {
       { teamId: "team-a", userId: "mgr-1", membershipType: "manager" },
       { teamId: "team-a", userId: "rep-1", membershipType: "rep" },
     ],
+    grants: [],
   }),
   updateTeam: vi.fn().mockResolvedValue({
     id: "team-a",

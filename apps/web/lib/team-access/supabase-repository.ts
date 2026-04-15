@@ -1,6 +1,7 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { TeamPermissionKey } from "@/lib/access/permissions";
 import type {
+  TeamAccessGrant,
   TeamAccessManager,
   TeamAccessMembership,
   TeamAccessRep,
@@ -292,8 +293,9 @@ export class SupabaseTeamAccessRepository implements TeamAccessRepository {
       { data: teams, error: teamsError },
       { data: managers, error: managersError },
       { data: reps, error: repsError },
-      { data: memberships, error: membershipsError },
       { data: assignments, error: assignmentsError },
+      { data: memberships, error: membershipsError },
+      { data: grants, error: grantsError },
     ] = await Promise.all([
       supabase
         .from("teams")
@@ -320,6 +322,10 @@ export class SupabaseTeamAccessRepository implements TeamAccessRepository {
         .from("team_memberships")
         .select("team_id, user_id, membership_type")
         .eq("org_id", orgId),
+      supabase
+        .from("team_permission_grants")
+        .select("team_id, user_id, permission_key")
+        .eq("org_id", orgId),
     ]);
 
     if (teamsError) {
@@ -337,6 +343,9 @@ export class SupabaseTeamAccessRepository implements TeamAccessRepository {
     if (assignmentsError) {
       throw new Error(assignmentsError.message);
     }
+    if (grantsError) {
+      throw new Error(grantsError.message);
+    }
 
     const primaryManagerByRepId = new Map<string, string>();
     for (const row of assignments ?? []) {
@@ -348,6 +357,13 @@ export class SupabaseTeamAccessRepository implements TeamAccessRepository {
         teamId: row.team_id,
         userId: row.user_id,
         membershipType: row.membership_type,
+      }),
+    );
+    const teamGrants = (grants ?? []).map(
+      (row: SupabaseRow): TeamAccessGrant => ({
+        teamId: row.team_id,
+        userId: row.user_id,
+        permissionKey: row.permission_key,
       }),
     );
 
@@ -374,6 +390,7 @@ export class SupabaseTeamAccessRepository implements TeamAccessRepository {
         }),
       ),
       memberships: teamMemberships,
+      grants: teamGrants,
     };
   }
 }

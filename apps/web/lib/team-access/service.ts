@@ -56,11 +56,18 @@ export type TeamAccessMembership = {
   membershipType: TeamMembershipType;
 };
 
+export type TeamAccessGrant = {
+  teamId: string;
+  userId: string;
+  permissionKey: TeamPermissionKey;
+};
+
 export type TeamAccessSnapshot = {
   teams: TeamAccessTeam[];
   managers: TeamAccessManager[];
   reps: TeamAccessRep[];
   memberships: TeamAccessMembership[];
+  grants: TeamAccessGrant[];
 };
 
 type ServiceResult<T> =
