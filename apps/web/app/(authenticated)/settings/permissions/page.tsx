@@ -5,7 +5,7 @@ import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user"
 import { createTeamAccessRepository } from "@/lib/team-access/create-repository";
 import { getTeamAccessSnapshot, PRESET_GRANTS } from "@/lib/team-access/service";
 import { createUsersRepository } from "@/lib/users/create-repository";
-import { getCurrentUserDetails, listOrganizationMembers } from "@/lib/users/service";
+import { getCurrentUserDetails } from "@/lib/users/service";
 
 export const dynamic = "force-dynamic";
 
@@ -17,14 +17,11 @@ export default async function SettingsPermissionsPage() {
   if (!result?.ok) redirect("/settings");
   if (result.data.role !== "admin") redirect("/settings");
 
-  const [snapshotResult, membersResult] = await Promise.all([
-    getTeamAccessSnapshot(createTeamAccessRepository(), authUser.id),
-    listOrganizationMembers(createUsersRepository(), authUser.id),
-  ]);
-
+  const snapshotResult = await getTeamAccessSnapshot(
+    createTeamAccessRepository(),
+    authUser.id,
+  );
   const snapshot = snapshotResult?.ok ? snapshotResult.data : null;
-  const allMembers = membersResult?.ok ? membersResult.data : [];
-  const managers = allMembers.filter((m) => m.role === "manager" || m.role === "admin");
 
   // Build static presets from the PRESET_GRANTS constant
   const presets = (Object.keys(PRESET_GRANTS) as Array<keyof typeof PRESET_GRANTS>).map(
@@ -46,9 +43,12 @@ export default async function SettingsPermissionsPage() {
       title="Permissions"
     >
       <PermissionsPanel
-        managers={managers}
+        grants={snapshot?.grants ?? []}
+        managers={snapshot?.managers ?? []}
+        memberships={snapshot?.memberships ?? []}
         presets={presets}
         reps={reps}
+        teams={snapshot?.teams ?? []}
       />
     </PageFrame>
   );

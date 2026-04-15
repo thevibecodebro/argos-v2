@@ -12,6 +12,7 @@ import {
 import { parseAppUserRole } from "@/lib/users/roles";
 import type { TeamPermissionKey } from "@/lib/access/permissions";
 import type {
+  TeamAccessGrant,
   TeamAccessManager,
   TeamAccessMembership,
   TeamAccessRep,
@@ -74,6 +75,18 @@ function mapMembership(row: {
     teamId: row.teamId,
     userId: row.userId,
     membershipType: row.membershipType,
+  };
+}
+
+function mapGrant(row: {
+  teamId: string;
+  userId: string;
+  permissionKey: TeamPermissionKey;
+}): TeamAccessGrant {
+  return {
+    teamId: row.teamId,
+    userId: row.userId,
+    permissionKey: row.permissionKey,
   };
 }
 
@@ -330,7 +343,7 @@ export class DrizzleTeamAccessRepository implements TeamAccessRepository {
   }
 
   async findTeamAccessSnapshot(orgId: string): Promise<TeamAccessSnapshot> {
-    const [teams, managers, reps, memberships, assignments] = await Promise.all([
+    const [teams, managers, reps, memberships, assignments, grants] = await Promise.all([
       this.db
         .select({
           id: teamsTable.id,
@@ -376,6 +389,14 @@ export class DrizzleTeamAccessRepository implements TeamAccessRepository {
         })
         .from(repManagerAssignmentsTable)
         .where(eq(repManagerAssignmentsTable.orgId, orgId)),
+      this.db
+        .select({
+          teamId: teamPermissionGrantsTable.teamId,
+          userId: teamPermissionGrantsTable.userId,
+          permissionKey: teamPermissionGrantsTable.permissionKey,
+        })
+        .from(teamPermissionGrantsTable)
+        .where(eq(teamPermissionGrantsTable.orgId, orgId)),
     ]);
 
     const primaryManagerByRepId = new Map(assignments.map((row) => [row.repId, row.managerId]));
@@ -390,6 +411,7 @@ export class DrizzleTeamAccessRepository implements TeamAccessRepository {
         }),
       ),
       memberships: memberships.map(mapMembership),
+      grants: grants.map(mapGrant),
     };
   }
 }

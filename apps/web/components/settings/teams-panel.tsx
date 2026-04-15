@@ -1,54 +1,379 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 type Team = {
   id: string;
   name: string;
   description: string | null;
+  status: string;
 };
 
 type TeamMember = {
+  id: string;
+  name: string;
+};
+
+type TeamMembership = {
+  teamId: string;
   userId: string;
-  role: string;
-  firstName: string | null;
-  lastName: string | null;
-  email: string;
+  membershipType: "manager" | "rep";
 };
 
 type TeamsPanelProps = {
   teams: Team[];
-  // Map of teamId → primary manager userId (or null)
-  primaryManagerMap: Record<string, string | null>;
-  // Map of teamId → members
-  membersByTeam: Record<string, TeamMember[]>;
-  // All org members (for name lookups)
-  orgMembers: Array<{
-    id: string;
-    firstName: string | null;
-    lastName: string | null;
-    email: string;
-    role: string;
-  }>;
+  managers: TeamMember[];
+  reps: TeamMember[];
+  memberships: TeamMembership[];
 };
+
+type TeamDraft = {
+  name: string;
+  description: string;
+  status: string;
+};
+
+type TeamPayload = {
+  id: string;
+  name: string;
+  description: string | null;
+  status: string;
+};
+
+type MembershipPayload = {
+  membershipType: "manager" | "rep";
+  userId: string;
+};
+
+type RequestResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: string };
+
+type FetchFn = typeof fetch;
+
+function readError(payload: unknown, fallback: string): string {
+  if (
+    payload &&
+    typeof payload === "object" &&
+    "error" in payload &&
+    typeof (payload as { error?: unknown }).error === "string"
+  ) {
+    return (payload as { error: string }).error;
+  }
+
+  return fallback;
+}
+
+async function readJson(response: Response): Promise<unknown> {
+  const text = await response.text();
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+export async function createTeamRequest(
+  fetchFn: FetchFn,
+  payload: { name: string; description: string },
+): Promise<RequestResult<TeamPayload>> {
+  const response = await fetchFn("/api/teams", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await readJson(response);
+
+  if (!response.ok) {
+    return { ok: false, error: readError(data, "Unable to create team") };
+  }
+
+  return { ok: true, data: data as TeamPayload };
+}
+
+export async function updateTeamRequest(
+  fetchFn: FetchFn,
+  teamId: string,
+  payload: { name: string; description: string; status: string },
+): Promise<RequestResult<TeamPayload>> {
+  const response = await fetchFn(`/api/teams/${teamId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await readJson(response);
+
+  if (!response.ok) {
+    return { ok: false, error: readError(data, "Unable to update team") };
+  }
+
+  return { ok: true, data: data as TeamPayload };
+}
+
+export async function addTeamMembershipRequest(
+  fetchFn: FetchFn,
+  teamId: string,
+  payload: MembershipPayload,
+): Promise<RequestResult<unknown>> {
+  const response = await fetchFn(`/api/teams/${teamId}/members`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await readJson(response);
+
+  if (!response.ok) {
+    return { ok: false, error: readError(data, "Unable to add team member") };
+  }
+
+  return { ok: true, data };
+}
+
+export async function removeTeamMembershipRequest(
+  fetchFn: FetchFn,
+  teamId: string,
+  payload: MembershipPayload,
+): Promise<RequestResult<unknown>> {
+  const response = await fetchFn(`/api/teams/${teamId}/members`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await readJson(response);
+
+  if (!response.ok) {
+    return { ok: false, error: readError(data, "Unable to remove team member") };
+  }
+
+  return { ok: true, data };
+}
+
+function buildDrafts(teams: Team[]): Record<string, TeamDraft> {
+  return Object.fromEntries(
+    teams.map((team) => [
+      team.id,
+      {
+        name: team.name,
+        description: team.description ?? "",
+        status: team.status,
+      },
+    ]),
+  );
+}
+
+function sortTeamsByName(items: Team[]): Team[] {
+  return [...items].sort((left, right) => left.name.localeCompare(right.name));
+}
+
+function memberNameById(members: TeamMember[]): Map<string, string> {
+  return new Map(members.map((member) => [member.id, member.name]));
+}
 
 export function TeamsPanel({
   teams,
-  primaryManagerMap,
-  membersByTeam,
-  orgMembers,
+  managers,
+  reps,
+  memberships,
 }: TeamsPanelProps) {
-  const [expandedTeamId, setExpandedTeamId] = useState<string | null>(null);
+  const router = useRouter();
+  const [localTeams, setLocalTeams] = useState(() => sortTeamsByName(teams));
+  const [localMemberships, setLocalMemberships] = useState(memberships);
+  const [draftsByTeamId, setDraftsByTeamId] = useState<Record<string, TeamDraft>>(
+    () => buildDrafts(teams),
+  );
+  const [newTeam, setNewTeam] = useState({ name: "", description: "" });
+  const [managerSelectionByTeamId, setManagerSelectionByTeamId] = useState<Record<string, string>>(
+    {},
+  );
+  const [repSelectionByTeamId, setRepSelectionByTeamId] = useState<Record<string, string>>({});
+  const [pendingKey, setPendingKey] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
-  function displayName(member: {
-    firstName: string | null;
-    lastName: string | null;
-    email: string;
-  }) {
-    return (
-      [member.firstName, member.lastName].filter(Boolean).join(" ").trim() ||
-      member.email
+  const managerNames = memberNameById(managers);
+  const repNames = memberNameById(reps);
+
+  function resetMessage() {
+    setError(null);
+    setNotice(null);
+  }
+
+  function updateDraft(teamId: string, patch: Partial<TeamDraft>) {
+    setDraftsByTeamId((current) => ({
+      ...current,
+      [teamId]: {
+        name: current[teamId]?.name ?? "",
+        description: current[teamId]?.description ?? "",
+        status: current[teamId]?.status ?? "active",
+        ...patch,
+      },
+    }));
+  }
+
+  async function handleCreateTeam() {
+    const name = newTeam.name.trim();
+    if (!name) {
+      setError("Team name is required.");
+      return;
+    }
+
+    resetMessage();
+    setPendingKey("create-team");
+    const result = await createTeamRequest(fetch, {
+      name,
+      description: newTeam.description,
+    });
+    setPendingKey(null);
+
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+
+    setLocalTeams((current) => sortTeamsByName([...current, result.data]));
+    setDraftsByTeamId((current) => ({
+      ...current,
+      [result.data.id]: {
+        name: result.data.name,
+        description: result.data.description ?? "",
+        status: result.data.status,
+      },
+    }));
+    setNewTeam({ name: "", description: "" });
+    setNotice("Team created.");
+    router.refresh();
+  }
+
+  async function handleSaveTeam(teamId: string) {
+    const draft = draftsByTeamId[teamId];
+    if (!draft || !draft.name.trim()) {
+      setError("Team name is required.");
+      return;
+    }
+
+    resetMessage();
+    setPendingKey(`save:${teamId}`);
+    const result = await updateTeamRequest(fetch, teamId, {
+      name: draft.name.trim(),
+      description: draft.description,
+      status: draft.status,
+    });
+    setPendingKey(null);
+
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+
+    setLocalTeams((current) =>
+      sortTeamsByName(
+        current.map((team) => (team.id === teamId ? result.data : team)),
+      ),
     );
+    setDraftsByTeamId((current) => ({
+      ...current,
+      [teamId]: {
+        name: result.data.name,
+        description: result.data.description ?? "",
+        status: result.data.status,
+      },
+    }));
+    setNotice("Team updated.");
+    router.refresh();
+  }
+
+  async function handleAddMembership(
+    teamId: string,
+    membershipType: "manager" | "rep",
+  ) {
+    const selectedId =
+      membershipType === "manager"
+        ? managerSelectionByTeamId[teamId]
+        : repSelectionByTeamId[teamId];
+
+    if (!selectedId) {
+      setError(`Select a ${membershipType} before adding.`);
+      return;
+    }
+
+    resetMessage();
+    setPendingKey(`add:${membershipType}:${teamId}`);
+    const result = await addTeamMembershipRequest(fetch, teamId, {
+      userId: selectedId,
+      membershipType,
+    });
+    setPendingKey(null);
+
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+
+    setLocalMemberships((current) => {
+      if (
+        current.some(
+          (membership) =>
+            membership.teamId === teamId &&
+            membership.userId === selectedId &&
+            membership.membershipType === membershipType,
+        )
+      ) {
+        return current;
+      }
+
+      return [
+        ...current,
+        {
+          teamId,
+          userId: selectedId,
+          membershipType,
+        },
+      ];
+    });
+    if (membershipType === "manager") {
+      setManagerSelectionByTeamId((current) => ({ ...current, [teamId]: "" }));
+    } else {
+      setRepSelectionByTeamId((current) => ({ ...current, [teamId]: "" }));
+    }
+    setNotice(`${membershipType === "manager" ? "Manager" : "Rep"} added.`);
+    router.refresh();
+  }
+
+  async function handleRemoveMembership(
+    teamId: string,
+    userId: string,
+    membershipType: "manager" | "rep",
+  ) {
+    resetMessage();
+    setPendingKey(`remove:${membershipType}:${teamId}:${userId}`);
+    const result = await removeTeamMembershipRequest(fetch, teamId, {
+      userId,
+      membershipType,
+    });
+    setPendingKey(null);
+
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+
+    setLocalMemberships((current) =>
+      current.filter(
+        (membership) =>
+          !(
+            membership.teamId === teamId &&
+            membership.userId === userId &&
+            membership.membershipType === membershipType
+          ),
+      ),
+    );
+    setNotice(`${membershipType === "manager" ? "Manager" : "Rep"} removed.`);
+    router.refresh();
   }
 
   return (
@@ -60,139 +385,324 @@ export function TeamsPanel({
               Teams
             </p>
             <p className="mt-2 text-sm text-[#a9abb3]">
-              View team structure, primary managers, and rep assignments.
+              Create teams, edit team metadata, and manage manager and rep membership.
             </p>
           </div>
           <span className="rounded-full border border-[#45484f]/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#a9abb3]">
-            {teams.length} {teams.length === 1 ? "team" : "teams"}
+            {localTeams.length} {localTeams.length === 1 ? "team" : "teams"}
           </span>
         </div>
 
-        <div className="mt-5 space-y-3">
-          {teams.length === 0 ? (
+        {error ? (
+          <div className="mt-4 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            {error}
+          </div>
+        ) : null}
+        {notice ? (
+          <div className="mt-4 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+            {notice}
+          </div>
+        ) : null}
+
+        <div className="mt-5 rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-white">Create team</p>
+              <p className="mt-1 text-sm text-[#a9abb3]">
+                Teams define the manager and rep roster. Rep-level primary manager assignments still
+                live in{" "}
+                <a className="underline hover:text-white" href="/settings/permissions">
+                  /settings/permissions
+                </a>
+                .
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+            <label className="space-y-2 text-sm text-[#a9abb3]">
+              <span>Team name</span>
+              <input
+                className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-2 text-sm text-white outline-none transition focus:border-[#74b1ff]/60"
+                onChange={(event) =>
+                  setNewTeam((current) => ({ ...current, name: event.target.value }))
+                }
+                value={newTeam.name}
+              />
+            </label>
+            <label className="space-y-2 text-sm text-[#a9abb3]">
+              <span>Description</span>
+              <input
+                className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-2 text-sm text-white outline-none transition focus:border-[#74b1ff]/60"
+                onChange={(event) =>
+                  setNewTeam((current) => ({ ...current, description: event.target.value }))
+                }
+                value={newTeam.description}
+              />
+            </label>
+            <div className="flex items-end">
+              <button
+                className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-2 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
+                disabled={pendingKey === "create-team"}
+                onClick={() => {
+                  void handleCreateTeam();
+                }}
+                type="button"
+              >
+                {pendingKey === "create-team" ? "Creating..." : "Create team"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-5 space-y-4">
+          {localTeams.length === 0 ? (
             <div className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-5 py-6 text-center">
               <p className="text-sm font-medium text-[#ecedf6]">No teams yet</p>
               <p className="mt-2 text-sm text-[#a9abb3]">
-                Teams are created during onboarding. Contact support if you
-                need to add or restructure teams.
+                Create your first team above to start organizing managers and reps.
               </p>
             </div>
           ) : (
-            teams.map((team) => {
-              const primaryManagerId = primaryManagerMap[team.id] ?? null;
-              const primaryManager = primaryManagerId
-                ? orgMembers.find((m) => m.id === primaryManagerId)
-                : null;
-              const teamMembers = membersByTeam[team.id] ?? [];
-              const reps = teamMembers.filter((m) => m.role === "rep");
-              const isExpanded = expandedTeamId === team.id;
+            localTeams.map((team) => {
+              const draft = draftsByTeamId[team.id] ?? {
+                name: team.name,
+                description: team.description ?? "",
+                status: team.status,
+              };
+              const teamManagers = localMemberships.filter(
+                (membership) =>
+                  membership.teamId === team.id && membership.membershipType === "manager",
+              );
+              const teamReps = localMemberships.filter(
+                (membership) =>
+                  membership.teamId === team.id && membership.membershipType === "rep",
+              );
+              const availableManagers = managers.filter(
+                (manager) =>
+                  !teamManagers.some((membership) => membership.userId === manager.id),
+              );
+              const availableReps = reps.filter(
+                (rep) => !teamReps.some((membership) => membership.userId === rep.id),
+              );
 
               return (
-                <div
+                <section
+                  className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 p-4"
                   key={team.id}
-                  className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 overflow-hidden"
                 >
-                  {/* Team header row */}
-                  <button
-                    className="w-full flex items-center justify-between gap-3 px-4 py-4 text-left transition hover:bg-[#74b1ff]/5"
-                    onClick={() =>
-                      setExpandedTeamId(isExpanded ? null : team.id)
-                    }
-                    type="button"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span
-                        className="material-symbols-outlined shrink-0 text-[#a9abb3]"
-                        style={{ fontSize: "18px" }}
+                  <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_180px_auto]">
+                    <label className="space-y-2 text-sm text-[#a9abb3]">
+                      <span>Team name</span>
+                      <input
+                        className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-2 text-sm text-white outline-none transition focus:border-[#74b1ff]/60"
+                        onChange={(event) =>
+                          updateDraft(team.id, { name: event.target.value })
+                        }
+                        value={draft.name}
+                      />
+                    </label>
+                    <label className="space-y-2 text-sm text-[#a9abb3]">
+                      <span>Description</span>
+                      <input
+                        className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-2 text-sm text-white outline-none transition focus:border-[#74b1ff]/60"
+                        onChange={(event) =>
+                          updateDraft(team.id, { description: event.target.value })
+                        }
+                        value={draft.description}
+                      />
+                    </label>
+                    <label className="space-y-2 text-sm text-[#a9abb3]">
+                      <span>Status</span>
+                      <select
+                        className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-2 text-sm text-white outline-none transition focus:border-[#74b1ff]/60"
+                        onChange={(event) =>
+                          updateDraft(team.id, { status: event.target.value })
+                        }
+                        value={draft.status}
                       >
-                        groups
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-white truncate">
-                          {team.name}
-                        </p>
-                        {team.description ? (
-                          <p className="mt-0.5 text-xs text-[#a9abb3] truncate">
-                            {team.description}
-                          </p>
-                        ) : null}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-xs text-[#a9abb3] uppercase tracking-[0.18em]">
-                        {reps.length} {reps.length === 1 ? "rep" : "reps"}
-                      </span>
-                      <span
-                        className="material-symbols-outlined text-[#a9abb3] transition-transform"
-                        style={{
-                          fontSize: "18px",
-                          transform: isExpanded
-                            ? "rotate(180deg)"
-                            : "rotate(0deg)",
+                        <option value="active">active</option>
+                        <option value="archived">archived</option>
+                      </select>
+                    </label>
+                    <div className="flex items-end">
+                      <button
+                        className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-2 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
+                        disabled={pendingKey === `save:${team.id}`}
+                        onClick={() => {
+                          void handleSaveTeam(team.id);
                         }}
+                        type="button"
                       >
-                        expand_more
-                      </span>
+                        {pendingKey === `save:${team.id}` ? "Saving..." : "Save"}
+                      </button>
                     </div>
-                  </button>
+                  </div>
 
-                  {/* Expanded details */}
-                  {isExpanded ? (
-                    <div className="border-t border-[#45484f]/20 px-4 py-4 space-y-4">
-                      {/* Primary manager */}
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">
-                          Primary Manager
-                        </p>
-                        {primaryManager ? (
-                          <p className="mt-2 text-sm text-white">
-                            {displayName(primaryManager)}
+                  <p className="mt-4 text-xs text-[#a9abb3]">
+                    Team membership is managed here. Rep-level primary manager assignments stay on{" "}
+                    <a className="underline hover:text-white" href="/settings/permissions">
+                      /settings/permissions
+                    </a>
+                    .
+                  </p>
+
+                  <div className="mt-5 grid gap-4 xl:grid-cols-2">
+                    <div className="rounded-xl border border-[#45484f]/20 bg-[#10131a]/60 p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">
+                            Managers
                           </p>
+                          <p className="mt-1 text-sm text-[#a9abb3]">
+                            Team-level coaching and management membership.
+                          </p>
+                        </div>
+                        <span className="text-xs uppercase tracking-[0.18em] text-[#a9abb3]">
+                          {teamManagers.length}
+                        </span>
+                      </div>
+
+                      <div className="mt-4 flex gap-2">
+                        <select
+                          className="min-w-0 flex-1 rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-3 py-2 text-sm text-white outline-none transition focus:border-[#74b1ff]/60"
+                          onChange={(event) =>
+                            setManagerSelectionByTeamId((current) => ({
+                              ...current,
+                              [team.id]: event.target.value,
+                            }))
+                          }
+                          value={managerSelectionByTeamId[team.id] ?? ""}
+                        >
+                          <option value="">Select manager</option>
+                          {availableManagers.map((manager) => (
+                            <option key={manager.id} value={manager.id}>
+                              {manager.name}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          className="rounded-xl border border-[#74b1ff]/20 px-3 py-2 text-sm font-semibold text-[#74b1ff] transition hover:bg-[#74b1ff]/10 disabled:opacity-50"
+                          disabled={pendingKey === `add:manager:${team.id}`}
+                          onClick={() => {
+                            void handleAddMembership(team.id, "manager");
+                          }}
+                          type="button"
+                        >
+                          Add
+                        </button>
+                      </div>
+
+                      <ul className="mt-4 space-y-2">
+                        {teamManagers.length === 0 ? (
+                          <li className="text-sm text-[#a9abb3]">No managers on this team yet.</li>
                         ) : (
-                          <p className="mt-2 text-sm text-amber-300">
-                            No primary manager assigned. Go to{" "}
-                            <a
-                              className="underline hover:text-amber-200"
-                              href="/settings/permissions"
+                          teamManagers.map((membership) => (
+                            <li
+                              className="flex items-center justify-between gap-3 rounded-lg border border-[#45484f]/20 bg-[#161a21]/50 px-3 py-2 text-sm text-[#ecedf6]"
+                              key={`${membership.teamId}:${membership.userId}:${membership.membershipType}`}
                             >
-                              Permissions
-                            </a>{" "}
-                            to assign one.
-                          </p>
+                              <span>{managerNames.get(membership.userId) ?? membership.userId}</span>
+                              <button
+                                className="text-xs font-medium uppercase tracking-[0.14em] text-[#a9abb3] transition hover:text-red-300"
+                                disabled={
+                                  pendingKey ===
+                                  `remove:manager:${team.id}:${membership.userId}`
+                                }
+                                onClick={() => {
+                                  void handleRemoveMembership(
+                                    team.id,
+                                    membership.userId,
+                                    "manager",
+                                  );
+                                }}
+                                type="button"
+                              >
+                                Remove
+                              </button>
+                            </li>
+                          ))
                         )}
+                      </ul>
+                    </div>
+
+                    <div className="rounded-xl border border-[#45484f]/20 bg-[#10131a]/60 p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">
+                            Reps
+                          </p>
+                          <p className="mt-1 text-sm text-[#a9abb3]">
+                            Sales reps assigned to this team.
+                          </p>
+                        </div>
+                        <span className="text-xs uppercase tracking-[0.18em] text-[#a9abb3]">
+                          {teamReps.length}
+                        </span>
                       </div>
 
-                      {/* Reps */}
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">
-                          Reps
-                        </p>
-                        {reps.length === 0 ? (
-                          <p className="mt-2 text-sm text-[#a9abb3]">
-                            No reps on this team yet.
-                          </p>
-                        ) : (
-                          <ul className="mt-2 space-y-1">
-                            {reps.map((rep) => (
-                              <li
-                                key={rep.userId}
-                                className="flex items-center gap-2 text-sm text-[#ecedf6]"
-                              >
-                                <span
-                                  className="material-symbols-outlined text-[#a9abb3]"
-                                  style={{ fontSize: "16px" }}
-                                >
-                                  person
-                                </span>
-                                {displayName(rep)}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
+                      <div className="mt-4 flex gap-2">
+                        <select
+                          className="min-w-0 flex-1 rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-3 py-2 text-sm text-white outline-none transition focus:border-[#74b1ff]/60"
+                          onChange={(event) =>
+                            setRepSelectionByTeamId((current) => ({
+                              ...current,
+                              [team.id]: event.target.value,
+                            }))
+                          }
+                          value={repSelectionByTeamId[team.id] ?? ""}
+                        >
+                          <option value="">Select rep</option>
+                          {availableReps.map((rep) => (
+                            <option key={rep.id} value={rep.id}>
+                              {rep.name}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          className="rounded-xl border border-[#74b1ff]/20 px-3 py-2 text-sm font-semibold text-[#74b1ff] transition hover:bg-[#74b1ff]/10 disabled:opacity-50"
+                          disabled={pendingKey === `add:rep:${team.id}`}
+                          onClick={() => {
+                            void handleAddMembership(team.id, "rep");
+                          }}
+                          type="button"
+                        >
+                          Add
+                        </button>
                       </div>
+
+                      <ul className="mt-4 space-y-2">
+                        {teamReps.length === 0 ? (
+                          <li className="text-sm text-[#a9abb3]">No reps on this team yet.</li>
+                        ) : (
+                          teamReps.map((membership) => (
+                            <li
+                              className="flex items-center justify-between gap-3 rounded-lg border border-[#45484f]/20 bg-[#161a21]/50 px-3 py-2 text-sm text-[#ecedf6]"
+                              key={`${membership.teamId}:${membership.userId}:${membership.membershipType}`}
+                            >
+                              <span>{repNames.get(membership.userId) ?? membership.userId}</span>
+                              <button
+                                className="text-xs font-medium uppercase tracking-[0.14em] text-[#a9abb3] transition hover:text-red-300"
+                                disabled={
+                                  pendingKey === `remove:rep:${team.id}:${membership.userId}`
+                                }
+                                onClick={() => {
+                                  void handleRemoveMembership(
+                                    team.id,
+                                    membership.userId,
+                                    "rep",
+                                  );
+                                }}
+                                type="button"
+                              >
+                                Remove
+                              </button>
+                            </li>
+                          ))
+                        )}
+                      </ul>
                     </div>
-                  ) : null}
-                </div>
+                  </div>
+                </section>
               );
             })
           )}
