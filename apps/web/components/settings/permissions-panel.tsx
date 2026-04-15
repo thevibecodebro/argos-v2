@@ -96,7 +96,7 @@ export async function applyTeamPresetRequest(
   fetchFn: FetchFn,
   teamId: string,
   managerId: string,
-  preset: string,
+  preset: string | null,
 ): Promise<RequestResult<{ grants?: string[] }>> {
   const response = await fetchFn(`/api/teams/${teamId}/grants`, {
     method: "POST",
@@ -191,13 +191,19 @@ export function PermissionsPanel({
   async function applyPreset(teamId: string, managerId: string) {
     const stateKey = `${teamId}:${managerId}`;
     const preset = stagedPresetByKey[stateKey];
-    if (!preset) return;
+    if (!(stateKey in stagedPresetByKey)) return;
 
     setError(null);
     setNotice(null);
     setPendingKey(`preset:${stateKey}`);
 
-    const result = await applyTeamPresetRequest(fetch, teamId, managerId, preset);
+    const shouldClearPreset = preset === "";
+    const result = await applyTeamPresetRequest(
+      fetch,
+      teamId,
+      managerId,
+      shouldClearPreset ? null : preset,
+    );
     setPendingKey(null);
 
     if (!result.ok) {
@@ -206,33 +212,34 @@ export function PermissionsPanel({
     }
 
     const selectedPreset = presets.find((entry) => entry.id === preset);
-    if (!selectedPreset) {
+    if (!shouldClearPreset && !selectedPreset) {
       setError("Unknown preset selected.");
       return;
     }
+    const nextPermissionKeys = shouldClearPreset
+      ? []
+      : (selectedPreset?.permissions ?? []).map((permissionKey) => ({
+          teamId,
+          userId: managerId,
+          permissionKey: permissionKey as TeamPermissionKey,
+        }));
 
     setLocalGrants((current) => {
       const remaining = current.filter(
         (grant) => !(grant.teamId === teamId && grant.userId === managerId),
       );
-      return [
-        ...remaining,
-        ...selectedPreset.permissions.map((permissionKey) => ({
-          teamId,
-          userId: managerId,
-          permissionKey: permissionKey as TeamPermissionKey,
-        })),
-      ];
+      return [...remaining, ...nextPermissionKeys];
     });
     setStagedPresetByKey((current) => {
       const next = { ...current };
       delete next[stateKey];
       return next;
     });
-    setNotice("Permission preset updated.");
+    setNotice(shouldClearPreset ? "Permission preset cleared." : "Permission preset updated.");
   }
 
   const hasStagedManager = (repId: string) => repId in stagedManagerByRepId;
+  const hasStagedPreset = (stateKey: string) => stateKey in stagedPresetByKey;
 
   return (
     <div className="space-y-5">
@@ -364,7 +371,7 @@ export function PermissionsPanel({
                                   </option>
                                 ))}
                               </select>
-                              {stagedPresetByKey[stateKey] ? (
+                              {hasStagedPreset(stateKey) ? (
                                 <button
                                   className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-3 py-2 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
                                   disabled={pendingKey === `preset:${stateKey}`}

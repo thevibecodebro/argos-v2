@@ -143,6 +143,10 @@ function isMembershipType(value: unknown): value is TeamMembershipType {
   return value === "rep" || value === "manager";
 }
 
+function isClearPresetValue(value: unknown) {
+  return value === null || (typeof value === "string" && value.trim().length === 0);
+}
+
 async function findValidatedRole(
   repository: TeamAccessRepository,
   orgId: string,
@@ -347,6 +351,15 @@ export async function removeTeamMembership(
   }
 
   await repository.removeTeamMembership(adminCheck.orgId, teamId, userId, membershipType);
+  if (membershipType === "manager") {
+    await repository.replaceManagerTeamPermissionGrants({
+      orgId: adminCheck.orgId,
+      teamId,
+      managerId: userId,
+      permissionKeys: [],
+      grantedBy: authUserId,
+    });
+  }
 
   return {
     ok: true,
@@ -371,7 +384,8 @@ export async function setManagerPermissionPreset(
 
   const teamId = normalizeString(input.teamId);
   const managerId = normalizeString(input.managerId);
-  if (!teamId || !managerId || !isPreset(input.preset)) {
+  const shouldClearPreset = isClearPresetValue(input.preset);
+  if (!teamId || !managerId || (!shouldClearPreset && !isPreset(input.preset))) {
     return { ok: false, status: 400, error: "teamId, managerId, and preset are required" };
   }
 
@@ -380,11 +394,31 @@ export async function setManagerPermissionPreset(
     return { ok: false, status: 400, error: "managerId must belong to a manager" };
   }
 
+  const snapshot = await repository.findTeamAccessSnapshot(adminCheck.orgId);
+  const isManagerOnTeam = snapshot.memberships.some(
+    (membership) =>
+      membership.teamId === teamId &&
+      membership.userId === managerId &&
+      membership.membershipType === "manager",
+  );
+  if (!isManagerOnTeam) {
+    return {
+      ok: false,
+      status: 400,
+      error: "managerId must belong to a manager on this team",
+    };
+  }
+
+  const permissionKeys =
+    shouldClearPreset || !isPreset(input.preset)
+      ? []
+      : [...PRESET_GRANTS[input.preset]];
+
   const grants = await repository.replaceManagerTeamPermissionGrants({
     orgId: adminCheck.orgId,
     teamId,
     managerId,
-    permissionKeys: [...PRESET_GRANTS[input.preset]],
+    permissionKeys,
     grantedBy: authUserId,
   });
 

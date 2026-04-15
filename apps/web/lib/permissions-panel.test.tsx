@@ -139,4 +139,26 @@ describe("PermissionsPanel", () => {
       body: JSON.stringify({ managerId: "mgr-1", preset: "Coach" }),
     });
   });
+
+  it("clears a manager preset through the team grants API", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ grants: [] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await expect(
+      applyTeamPresetRequest(fetchMock as typeof fetch, "team-a", "mgr-1", null),
+    ).resolves.toEqual({
+      ok: true,
+      data: { grants: [] },
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/teams/team-a/grants", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ managerId: "mgr-1", preset: null }),
+    });
+  });
 });

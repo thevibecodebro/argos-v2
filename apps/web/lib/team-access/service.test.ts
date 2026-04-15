@@ -103,6 +103,23 @@ describe("team access service", () => {
     expect(repository.replaceManagerTeamPermissionGrants).toHaveBeenCalled();
   });
 
+  it("allows clearing all grants for a manager preset assignment", async () => {
+    const result = await setManagerPermissionPreset(repository as any, "admin-1", {
+      teamId: "team-a",
+      managerId: "mgr-1",
+      preset: null,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(repository.replaceManagerTeamPermissionGrants).toHaveBeenCalledWith({
+      orgId: "org-1",
+      teamId: "team-a",
+      managerId: "mgr-1",
+      permissionKeys: [],
+      grantedBy: "admin-1",
+    });
+  });
+
   it("rejects assigning a non-manager as primary manager", async () => {
     const result = await assignPrimaryManager(repository as any, "admin-1", {
       repId: "rep-1",
@@ -127,6 +144,20 @@ describe("team access service", () => {
       ok: false,
       status: 400,
       error: "managerId must belong to a manager",
+    });
+  });
+
+  it("rejects presets for managers who are not on the team", async () => {
+    const result = await setManagerPermissionPreset(repository as any, "admin-1", {
+      teamId: "team-b",
+      managerId: "mgr-1",
+      preset: "Coach",
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      status: 400,
+      error: "managerId must belong to a manager on this team",
     });
   });
 
@@ -175,5 +206,22 @@ describe("team access service", () => {
 
     expect(result.ok).toBe(true);
     expect(repository.removeTeamMembership).toHaveBeenCalledWith("org-1", "team-a", "rep-1", "rep");
+  });
+
+  it("removes manager grants when manager membership is removed", async () => {
+    const result = await removeTeamMembership(repository as any, "admin-1", {
+      teamId: "team-a",
+      userId: "mgr-1",
+      membershipType: "manager",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(repository.replaceManagerTeamPermissionGrants).toHaveBeenCalledWith({
+      orgId: "org-1",
+      teamId: "team-a",
+      managerId: "mgr-1",
+      permissionKeys: [],
+      grantedBy: "admin-1",
+    });
   });
 });
