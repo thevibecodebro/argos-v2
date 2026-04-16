@@ -7,7 +7,9 @@ const updateTrainingModule = vi.fn();
 const getTrainingTeamProgress = vi.fn();
 const getTrainingAiStatus = vi.fn();
 const generateTrainingModules = vi.fn();
+const generateTrainingModuleDraft = vi.fn();
 const normalizeTrainingModuleGenerationInput = vi.fn();
+const normalizeTrainingModuleDraftGenerationInput = vi.fn();
 const assignTrainingModule = vi.fn();
 const unassignTrainingModule = vi.fn();
 
@@ -25,7 +27,9 @@ vi.mock("@/lib/training/service", () => ({
   getTrainingTeamProgress,
   getTrainingAiStatus,
   generateTrainingModules,
+  generateTrainingModuleDraft,
   normalizeTrainingModuleGenerationInput,
+  normalizeTrainingModuleDraftGenerationInput,
   assignTrainingModule,
   unassignTrainingModule,
 }));
@@ -41,7 +45,9 @@ describe("training routes", () => {
     getTrainingTeamProgress.mockReset();
     getTrainingAiStatus.mockReset();
     generateTrainingModules.mockReset();
+    generateTrainingModuleDraft.mockReset();
     normalizeTrainingModuleGenerationInput.mockReset();
+    normalizeTrainingModuleDraftGenerationInput.mockReset();
     assignTrainingModule.mockReset();
     unassignTrainingModule.mockReset();
     createTrainingRepository.mockReturnValue({});
@@ -80,6 +86,28 @@ describe("training routes", () => {
           targetRole,
           skillFocus,
           moduleCount,
+        },
+      };
+    });
+    normalizeTrainingModuleDraftGenerationInput.mockImplementation((body: unknown) => {
+      if (!body || typeof body !== "object") {
+        return { ok: false, error: "mode and contextNotes are required" };
+      }
+
+      const input = body as Record<string, unknown>;
+      if (input.mode !== "content" && input.mode !== "quiz") {
+        return { ok: false, error: "mode must be content or quiz" };
+      }
+
+      if (typeof input.contextNotes !== "string") {
+        return { ok: false, error: "contextNotes must be a string" };
+      }
+
+      return {
+        ok: true,
+        data: {
+          mode: input.mode,
+          contextNotes: input.contextNotes.trim(),
         },
       };
     });
@@ -278,6 +306,126 @@ describe("training routes", () => {
     await expect(response.json()).resolves.toMatchObject({
       rows: [{ repId: "rep-1" }],
       progress: { modules: [{ id: "module-1" }] },
+    });
+  });
+
+  it("rejects invalid module draft modes before delegating", async () => {
+    const route = await import("../../app/api/training/modules/[id]/generate/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/training/modules/module-1/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "diagram",
+          contextNotes: "Ground this in the current module.",
+        }),
+      }),
+      { params: Promise.resolve({ id: "module-1" }) },
+    );
+
+    expect(response.status).toBe(400);
+    expect(generateTrainingModuleDraft).not.toHaveBeenCalled();
+  });
+
+  it("returns 401 for unauthorized module draft generation requests", async () => {
+    getAuthenticatedSupabaseUser.mockResolvedValue(null);
+
+    const route = await import("../../app/api/training/modules/[id]/generate/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/training/modules/module-1/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "content",
+          contextNotes: "Ground this in the current module.",
+        }),
+      }),
+      { params: Promise.resolve({ id: "module-1" }) },
+    );
+
+    expect(response.status).toBe(401);
+    expect(generateTrainingModuleDraft).not.toHaveBeenCalled();
+  });
+
+  it("forwards grounded module draft requests to the service", async () => {
+    generateTrainingModuleDraft.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        mode: "quiz",
+        draft: {
+          quizData: {
+            questions: [
+              {
+                question: "What is the strongest reason to ask layered follow-up questions in discovery?",
+                options: ["To keep the talk track moving quickly", "To uncover root causes behind the stated problem"],
+                correctIndex: 1,
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    const route = await import("../../app/api/training/modules/[id]/generate/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/training/modules/module-1/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "quiz",
+          contextNotes: "Use the current discovery lesson context.",
+        }),
+      }),
+      { params: Promise.resolve({ id: "module-1" }) },
+    );
+
+    expect(generateTrainingModuleDraft).toHaveBeenCalledWith(
+      expect.anything(),
+      "auth-user-1",
+      "module-1",
+      {
+        mode: "quiz",
+        contextNotes: "Use the current discovery lesson context.",
+      },
+    );
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      mode: "quiz",
+      draft: {
+        quizData: {
+          questions: [
+            {
+              correctIndex: 1,
+            },
+          ],
+        },
+      },
+    });
+  });
+
+  it("propagates module draft generation service failures", async () => {
+    generateTrainingModuleDraft.mockResolvedValueOnce({
+      ok: false,
+      status: 422,
+      error: "Add course context before generating quiz content",
+    });
+
+    const route = await import("../../app/api/training/modules/[id]/generate/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/training/modules/module-1/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "quiz",
+          contextNotes: "",
+        }),
+      }),
+      { params: Promise.resolve({ id: "module-1" }) },
+    );
+
+    expect(response.status).toBe(422);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "Add course context before generating quiz content",
     });
   });
 

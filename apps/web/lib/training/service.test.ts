@@ -4,6 +4,7 @@ import {
   assignTrainingModule,
   createTrainingModule,
   generateTrainingModules,
+  generateTrainingModuleDraft,
   getTrainingAiStatus,
   unassignTrainingModule,
   updateTrainingModule,
@@ -763,6 +764,245 @@ describe("generateTrainingModules", () => {
         },
       },
     ]);
+  });
+});
+
+describe("generateTrainingModuleDraft", () => {
+  it("returns grounded quiz drafts only when module context is attached", async () => {
+    mockAccessRepository({
+      actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
+      memberships: [{ orgId: "org-1", teamId: "team-a", userId: "mgr-1", membershipType: "manager" }],
+      grants: [
+        {
+          orgId: "org-1",
+          teamId: "team-a",
+          userId: "mgr-1",
+          permissionKey: "manage_team_training",
+        },
+      ],
+    });
+    vi.stubEnv("OPENAI_API_KEY", "test-openai-key");
+
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  draft: {
+                    quizData: {
+                      questions: [
+                        {
+                          question: "Why use grounded follow-ups?",
+                          options: ["To fill time", "To uncover root causes"],
+                          correctIndex: 1,
+                        },
+                      ],
+                    },
+                  },
+                }),
+              },
+            },
+          ],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const repository = createRepository({
+      findModuleById: vi.fn().mockResolvedValue({
+        id: "module-1",
+        orgId: "org-1",
+        title: "Discovery That Finds the Real Pain",
+        skillCategory: "Discovery",
+        videoUrl: null,
+        description: "Learn how to uncover operational pain.",
+        quizData: null,
+        orderIndex: 1,
+        createdAt: new Date("2026-04-08T00:00:00.000Z"),
+      }),
+    });
+
+    const result = await generateTrainingModuleDraft(repository, "mgr-1", "module-1", {
+      mode: "quiz",
+      contextNotes: "Focus on uncovering hidden pain.",
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected generated quiz draft");
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(result.data.mode).toBe("quiz");
+    expect(result.data.draft).toEqual({
+      quizData: {
+        questions: [
+          {
+            question: "Why use grounded follow-ups?",
+            options: ["To fill time", "To uncover root causes"],
+            correctIndex: 1,
+          },
+        ],
+      },
+    });
+  });
+
+  it("requires attached context before generating content drafts", async () => {
+    mockAccessRepository({
+      actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
+      memberships: [{ orgId: "org-1", teamId: "team-a", userId: "mgr-1", membershipType: "manager" }],
+      grants: [
+        {
+          orgId: "org-1",
+          teamId: "team-a",
+          userId: "mgr-1",
+          permissionKey: "manage_team_training",
+        },
+      ],
+    });
+    vi.stubEnv("OPENAI_API_KEY", "test-openai-key");
+
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const repository = createRepository({
+      findModuleById: vi.fn().mockResolvedValue({
+        id: "module-1",
+        orgId: "org-1",
+        title: "Discovery That Finds the Real Pain",
+        skillCategory: "Discovery",
+        videoUrl: null,
+        description: null,
+        quizData: null,
+        orderIndex: 1,
+        createdAt: new Date("2026-04-08T00:00:00.000Z"),
+      }),
+    });
+
+    const result = await generateTrainingModuleDraft(repository, "mgr-1", "module-1", {
+      mode: "content",
+      contextNotes: "",
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("Expected context validation to fail");
+    expect(result.status).toBe(422);
+    expect(result.error).toBe("Add course context before generating lesson content");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed quiz draft responses from OpenAI", async () => {
+    mockAccessRepository({
+      actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
+      memberships: [{ orgId: "org-1", teamId: "team-a", userId: "mgr-1", membershipType: "manager" }],
+      grants: [
+        {
+          orgId: "org-1",
+          teamId: "team-a",
+          userId: "mgr-1",
+          permissionKey: "manage_team_training",
+        },
+      ],
+    });
+    vi.stubEnv("OPENAI_API_KEY", "test-openai-key");
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            choices: [
+              {
+                message: {
+                  content: JSON.stringify({
+                    draft: {
+                      quizData: {
+                        questions: [
+                          {
+                            question: "Incomplete quiz",
+                            options: ["Only one option"],
+                            correctIndex: 0,
+                          },
+                        ],
+                      },
+                    },
+                  }),
+                },
+              },
+            ],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      ),
+    );
+
+    const repository = createRepository({
+      findModuleById: vi.fn().mockResolvedValue({
+        id: "module-1",
+        orgId: "org-1",
+        title: "Discovery That Finds the Real Pain",
+        skillCategory: "Discovery",
+        videoUrl: null,
+        description: "Learn how to uncover operational pain.",
+        quizData: null,
+        orderIndex: 1,
+        createdAt: new Date("2026-04-08T00:00:00.000Z"),
+      }),
+    });
+
+    const result = await generateTrainingModuleDraft(repository, "mgr-1", "module-1", {
+      mode: "quiz",
+      contextNotes: "Focus on uncovering hidden pain.",
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("Expected malformed AI quiz draft to fail");
+    expect(result.status).toBe(501);
+    expect(result.error).toBe("AI returned malformed quiz draft content");
+  });
+
+  it("returns 422 when module draft generation is unavailable", async () => {
+    mockAccessRepository({
+      actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
+      memberships: [{ orgId: "org-1", teamId: "team-a", userId: "mgr-1", membershipType: "manager" }],
+      grants: [
+        {
+          orgId: "org-1",
+          teamId: "team-a",
+          userId: "mgr-1",
+          permissionKey: "manage_team_training",
+        },
+      ],
+    });
+    vi.stubEnv("OPENAI_API_KEY", "");
+
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const repository = createRepository({
+      findModuleById: vi.fn().mockResolvedValue({
+        id: "module-1",
+        orgId: "org-1",
+        title: "Discovery That Finds the Real Pain",
+        skillCategory: "Discovery",
+        videoUrl: "https://example.com/training",
+        description: "Learn how to uncover operational pain.",
+        quizData: null,
+        orderIndex: 1,
+        createdAt: new Date("2026-04-08T00:00:00.000Z"),
+      }),
+    });
+
+    const result = await generateTrainingModuleDraft(repository, "mgr-1", "module-1", {
+      mode: "content",
+      contextNotes: "",
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("Expected unavailable AI validation to fail");
+    expect(result.status).toBe(422);
+    expect(result.error).toBe("AI curriculum generation is unavailable until OpenAI is configured");
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 

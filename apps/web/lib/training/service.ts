@@ -129,6 +129,11 @@ export type TrainingModuleGenerationInput = {
   skillFocus: string;
 };
 
+export type TrainingModuleDraftGenerationInput = {
+  mode: "content" | "quiz";
+  contextNotes: string;
+};
+
 const MAX_GENERATION_FIELD_LENGTH = 120;
 const MAX_GENERATION_MODULE_COUNT = 6;
 
@@ -186,12 +191,59 @@ export function normalizeTrainingModuleGenerationInput(
   };
 }
 
+export function normalizeTrainingModuleDraftGenerationInput(
+  input: unknown,
+):
+  | { ok: true; data: TrainingModuleDraftGenerationInput }
+  | { ok: false; error: string } {
+  if (!input || typeof input !== "object") {
+    return {
+      ok: false,
+      error: "mode and contextNotes are required",
+    };
+  }
+
+  const candidate = input as Record<string, unknown>;
+  if (candidate.mode !== "content" && candidate.mode !== "quiz") {
+    return {
+      ok: false,
+      error: "mode must be content or quiz",
+    };
+  }
+
+  if (typeof candidate.contextNotes !== "string") {
+    return {
+      ok: false,
+      error: "contextNotes must be a string",
+    };
+  }
+
+  return {
+    ok: true,
+    data: {
+      mode: candidate.mode,
+      contextNotes: candidate.contextNotes.trim(),
+    },
+  };
+}
+
 type TrainingGeneratedModule = {
   title: string;
   skillCategory: string;
   description: string;
   quizData: TrainingModuleRecord["quizData"];
 };
+
+type TrainingModuleContentDraft = {
+  title: string;
+  skillCategory: string;
+  description: string;
+  videoUrl: string | null;
+};
+
+type TrainingModuleDraftResult =
+  | { mode: "content"; draft: TrainingModuleContentDraft }
+  | { mode: "quiz"; draft: { quizData: TrainingModuleRecord["quizData"] } };
 
 export type TrainingRepository = {
   countModulesByOrgId(orgId: string): Promise<number>;
@@ -599,6 +651,245 @@ function parseGeneratedModulesContent(
       quizData,
     };
   });
+}
+
+function hasTrainingModuleContext(module: TrainingModuleRecord, contextNotes: string) {
+  return Boolean(module.description?.trim() || module.videoUrl?.trim() || contextNotes.trim());
+}
+
+function buildTrainingModuleDraftPrompt(
+  module: TrainingModuleRecord,
+  input: TrainingModuleDraftGenerationInput,
+) {
+  const contextLines = [
+    `Module title: ${module.title?.trim() || "(untitled module)"}`,
+    `Skill category: ${module.skillCategory?.trim() || "(unspecified)"}`,
+    `Description: ${module.description?.trim() || "(none)"}`,
+    `Video URL: ${module.videoUrl?.trim() || "(none)"}`,
+    `Context notes: ${input.contextNotes || "(none)"}`,
+  ];
+
+  if (input.mode === "quiz") {
+    return [
+      "You create grounded sales training quiz drafts.",
+      'Return valid JSON only with shape {"draft":{"quizData":{"questions":[{"question":string,"options":[string,string,...],"correctIndex":number}]}}}.',
+      "quizData must contain at least one question and every question must have at least 2 non-empty options.",
+      "Use the attached module context and context notes to keep the quiz grounded in the lesson.",
+      `Mode: ${input.mode}`,
+      ...contextLines,
+      "Create concise, practical questions that directly reflect the lesson material.",
+    ].join("\n");
+  }
+
+  return [
+    "You create grounded sales training lesson drafts.",
+    'Return valid JSON only with shape {"draft":{"title":string,"skillCategory":string,"description":string,"videoUrl":string|null}}.',
+    "Use the attached module context and context notes to keep the draft grounded in the lesson.",
+    `Mode: ${input.mode}`,
+    ...contextLines,
+    "Draft concise lesson content that is practical and directly tied to the attached context.",
+  ].join("\n");
+}
+
+function parseTrainingModuleDraftContent(
+  content: string,
+  mode: TrainingModuleDraftGenerationInput["mode"],
+): TrainingModuleDraftResult {
+  const payload = JSON.parse(content) as { draft?: unknown };
+
+  if (!payload.draft || typeof payload.draft !== "object") {
+    throw new Error("AI module draft response did not include a draft");
+  }
+
+  if (mode === "quiz") {
+    const draft = payload.draft as {
+      quizData?: unknown;
+    };
+
+    const quizData = draft.quizData === undefined ? null : draft.quizData;
+    const hasMinimumOptions =
+      quizData !== null &&
+      isQuizData(quizData) &&
+      quizData.questions.every((question) => question.options.length >= 2);
+
+    if (!hasMinimumOptions) {
+      throw new Error("AI returned malformed quiz draft content");
+    }
+
+    return {
+      mode,
+      draft: {
+        quizData,
+      },
+    };
+  }
+
+  const draft = payload.draft as {
+    title?: unknown;
+    skillCategory?: unknown;
+    description?: unknown;
+    videoUrl?: unknown;
+  };
+
+  const title = typeof draft.title === "string" ? draft.title.trim() : "";
+  const skillCategory = typeof draft.skillCategory === "string" ? draft.skillCategory.trim() : "";
+  const description = typeof draft.description === "string" ? draft.description.trim() : "";
+  const videoUrl =
+    typeof draft.videoUrl === "string" && draft.videoUrl.trim().length > 0 ? draft.videoUrl.trim() : null;
+
+  if (!title || !skillCategory || !description) {
+    throw new Error("AI returned malformed lesson draft content");
+  }
+
+  return {
+    mode,
+    draft: {
+      title,
+      skillCategory,
+      description,
+      videoUrl,
+    },
+  };
+}
+
+export async function generateTrainingModuleDraft(
+  repository: TrainingRepository,
+  authUserId: string,
+  moduleId: string,
+  input: TrainingModuleDraftGenerationInput,
+): Promise<ServiceResult<TrainingModuleDraftResult>> {
+  const normalized = normalizeTrainingModuleDraftGenerationInput(input);
+  if (!normalized.ok) {
+    return {
+      ok: false,
+      status: 422,
+      error: normalized.error,
+    };
+  }
+
+  const accessResult = await getAccessContext(authUserId);
+
+  if (!accessResult.ok) {
+    return accessResult;
+  }
+
+  const access = accessResult.data;
+  const orgId = access.actor.orgId;
+
+  if (!orgId) {
+    return {
+      ok: false,
+      status: 403,
+      error: "User must belong to an organization",
+    };
+  }
+
+  if (!canManageTrainingModule(access)) {
+    return {
+      ok: false,
+      status: 403,
+      error: "Managers only",
+    };
+  }
+
+  const module = await repository.findModuleById(moduleId);
+  if (!module || module.orgId !== orgId) {
+    return {
+      ok: false,
+      status: 404,
+      error: "Module not found",
+    };
+  }
+
+  if (!hasTrainingModuleContext(module, normalized.data.contextNotes)) {
+    return {
+      ok: false,
+      status: 422,
+      error:
+        normalized.data.mode === "quiz"
+          ? "Add course context before generating quiz content"
+          : "Add course context before generating lesson content",
+    };
+  }
+
+  const aiStatus = getTrainingAiStatus();
+  if (!aiStatus.available) {
+    return {
+      ok: false,
+      status: 422,
+      error: "AI curriculum generation is unavailable until OpenAI is configured",
+    };
+  }
+
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  const model = process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-4.1-mini";
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content: buildTrainingModuleDraftPrompt(module, normalized.data),
+          },
+          {
+            role: "user",
+            content: [
+              `Module ID: ${module.id}`,
+              `Module title: ${module.title?.trim() || "(untitled module)"}`,
+              `Skill category: ${module.skillCategory?.trim() || "(unspecified)"}`,
+              `Mode: ${normalized.data.mode}`,
+              normalized.data.contextNotes ? `Context notes: ${normalized.data.contextNotes}` : "Context notes: (none)",
+            ].join("\n"),
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => "");
+      return {
+        ok: false,
+        status: 501,
+        error: `AI module draft generation failed: ${response.status}${errorBody ? ` ${errorBody}` : ""}`,
+      };
+    }
+
+    const payload = (await response.json()) as {
+      choices?: Array<{
+        message?: {
+          content?: string | null;
+        };
+      }>;
+    };
+    const content = payload.choices?.[0]?.message?.content;
+
+    if (typeof content !== "string" || !content.trim()) {
+      return {
+        ok: false,
+        status: 501,
+        error: "AI module draft generation returned an empty response",
+      };
+    }
+
+    return {
+      ok: true,
+      data: parseTrainingModuleDraftContent(content, normalized.data.mode),
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      status: 501,
+      error: error instanceof Error ? error.message : "AI module draft generation failed",
+    };
+  }
 }
 
 export async function getTrainingModules(
