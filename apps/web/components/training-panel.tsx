@@ -1,6 +1,24 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { TrainingCourseShell } from "./training/training-course-shell";
+import {
+  TrainingQuizEditor,
+  normalizeTrainingQuizQuestionDrafts,
+  quizDataToTrainingQuizQuestionDrafts,
+  type TrainingQuizQuestionDraft,
+} from "./training/training-quiz-editor";
+import {
+  TrainingManagerAiTools,
+  getTrainingModuleAiContextAvailability,
+  parseTrainingModuleAIDraftResponse,
+  type TrainingModuleAIDraftMode,
+  type TrainingModuleAIDraftResponse,
+} from "./training/training-manager-ai-tools";
+import {
+  TrainingWorkspaceNav,
+  type TrainingWorkspaceSection,
+} from "./training/training-workspace-nav";
 import type {
   TrainingModuleRecord,
   TrainingModuleSummary,
@@ -15,7 +33,7 @@ type ModuleFormState = {
   description: string;
   skillCategory: string;
   videoUrl: string;
-  quizJson: string;
+  quizQuestions: TrainingQuizQuestionDraft[];
 };
 
 type GenerateFormState = {
@@ -30,6 +48,10 @@ type GeneratedModuleDraft = {
   skillCategory: string;
   description: string;
   quizData: TrainingModuleRecord["quizData"];
+};
+
+type ModuleAiDraftFormState = {
+  contextNotes: string;
 };
 
 type TrainingPanelProps = {
@@ -50,12 +72,21 @@ type ModuleSubmitTarget = {
   moduleId: string | null;
 };
 
+export type TrainingWorkspaceView = "aiTools" | "assignments" | "lesson" | "overview" | "teamProgress";
+
+type ModuleSelectionPatch = {
+  activeSection: TrainingWorkspaceSection;
+  answers: Record<number, number>;
+  selectedModuleId: string;
+  statusMessage: null;
+};
+
 const EMPTY_MODULE_FORM: ModuleFormState = {
   title: "",
   description: "",
   skillCategory: "",
   videoUrl: "",
-  quizJson: "",
+  quizQuestions: [],
 };
 
 const EMPTY_GENERATE_FORM: GenerateFormState = {
@@ -65,9 +96,9 @@ const EMPTY_GENERATE_FORM: GenerateFormState = {
   skillFocus: "",
 };
 
-function formatQuizJson(quizData: TrainingModuleRecord["quizData"]) {
-  return quizData ? JSON.stringify(quizData, null, 2) : "";
-}
+const EMPTY_MODULE_AI_DRAFT_FORM: ModuleAiDraftFormState = {
+  contextNotes: "",
+};
 
 function moduleToFormState(module: TrainingModuleSummary): ModuleFormState {
   return {
@@ -75,45 +106,31 @@ function moduleToFormState(module: TrainingModuleSummary): ModuleFormState {
     description: module.description ?? "",
     skillCategory: module.skillCategory,
     videoUrl: module.videoUrl ?? "",
-    quizJson: formatQuizJson(module.quizData),
+    quizQuestions: quizDataToTrainingQuizQuestionDrafts(module.quizData),
   };
 }
 
-function parseQuizJson(value: string): TrainingModuleRecord["quizData"] {
-  const trimmed = value.trim();
-
-  if (!trimmed) {
-    return null;
+function moduleDraftToFormState(
+  selectedModule: TrainingModuleSummary,
+  draft: TrainingModuleAIDraftResponse,
+): ModuleFormState {
+  if (draft.mode === "quiz") {
+    return {
+      title: selectedModule.title,
+      description: selectedModule.description ?? "",
+      skillCategory: selectedModule.skillCategory,
+      videoUrl: selectedModule.videoUrl ?? "",
+      quizQuestions: quizDataToTrainingQuizQuestionDrafts(draft.draft.quizData),
+    };
   }
 
-  const parsed = JSON.parse(trimmed) as TrainingModuleRecord["quizData"];
-
-  if (
-    !parsed ||
-    typeof parsed !== "object" ||
-    !Array.isArray(parsed.questions) ||
-    parsed.questions.length === 0
-  ) {
-    throw new Error("Quiz JSON must contain a non-empty questions array.");
-  }
-
-  for (const question of parsed.questions) {
-    if (
-      !question ||
-      typeof question.question !== "string" ||
-      !question.question.trim() ||
-      !Array.isArray(question.options) ||
-      question.options.length === 0 ||
-      question.options.some((option) => typeof option !== "string" || !option.trim()) ||
-      !Number.isInteger(question.correctIndex) ||
-      question.correctIndex < 0 ||
-      question.correctIndex >= question.options.length
-    ) {
-      throw new Error("Quiz JSON is malformed.");
-    }
-  }
-
-  return parsed;
+  return {
+    title: selectedModule.title,
+    description: draft.draft.description,
+    skillCategory: selectedModule.skillCategory,
+    videoUrl: selectedModule.videoUrl ?? "",
+    quizQuestions: quizDataToTrainingQuizQuestionDrafts(selectedModule.quizData),
+  };
 }
 
 async function readJsonResponse<T>(response: Response): Promise<JsonResponse<T>> {
@@ -158,6 +175,35 @@ export function getModuleSubmitTarget(
   };
 }
 
+export function getModuleSelectionPatch(moduleId: string): ModuleSelectionPatch {
+  return {
+    activeSection: "modules",
+    answers: {},
+    selectedModuleId: moduleId,
+    statusMessage: null,
+  };
+}
+
+export function resolveTrainingWorkspaceView(
+  activeSection: TrainingWorkspaceSection,
+  canManage: boolean,
+): TrainingWorkspaceView {
+  switch (activeSection) {
+    case "modules":
+    case "quiz":
+      return "lesson";
+    case "assignments":
+      return canManage ? "assignments" : "overview";
+    case "teamProgress":
+      return canManage ? "teamProgress" : "overview";
+    case "aiTools":
+      return canManage ? "aiTools" : "overview";
+    case "overview":
+    default:
+      return "overview";
+  }
+}
+
 export function mergeTeamProgressModule(
   progress: TrainingTeamProgressShell,
   module: TrainingModuleSummary,
@@ -188,6 +234,7 @@ export function TrainingPanel({
   const [teamRows, setTeamRows] = useState(initialTeamRows);
   const [teamProgress, setTeamProgress] = useState(initialTeamProgress);
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(initialModules[0]?.id ?? null);
+  const [activeSection, setActiveSection] = useState<TrainingWorkspaceSection>("overview");
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -197,6 +244,7 @@ export function TrainingPanel({
   const [isManagerBusy, setIsManagerBusy] = useState(false);
   const [moduleForm, setModuleForm] = useState<ModuleFormState>(EMPTY_MODULE_FORM);
   const [generateForm, setGenerateForm] = useState<GenerateFormState>(EMPTY_GENERATE_FORM);
+  const [moduleAiDraftForm, setModuleAiDraftForm] = useState<ModuleAiDraftFormState>(EMPTY_MODULE_AI_DRAFT_FORM);
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
   const [assigningModuleId, setAssigningModuleId] = useState<string | null>(null);
   const [assignRepIds, setAssignRepIds] = useState<string[]>([]);
@@ -236,6 +284,7 @@ export function TrainingPanel({
     setGeneratedDrafts([]);
     setModuleForm(EMPTY_MODULE_FORM);
     setEditingModuleId(null);
+    setActiveSection("aiTools");
     setActiveManagerModal("create");
   }
 
@@ -244,6 +293,7 @@ export function TrainingPanel({
     setGeneratedDrafts([]);
     setEditingModuleId(module.id);
     setModuleForm(moduleToFormState(module));
+    setActiveSection("aiTools");
     setActiveManagerModal("edit");
   }
 
@@ -251,6 +301,7 @@ export function TrainingPanel({
     resetManagerFeedback();
     setGeneratedDrafts([]);
     setGenerateForm(EMPTY_GENERATE_FORM);
+    setActiveSection("aiTools");
     setActiveManagerModal("generate");
   }
 
@@ -259,7 +310,59 @@ export function TrainingPanel({
     setAssigningModuleId(module.id);
     setAssignRepIds([]);
     setAssignDueDate("");
+    setActiveSection("assignments");
     setActiveManagerModal("assign");
+  }
+
+  async function generateModuleDraft(mode: TrainingModuleAIDraftMode) {
+    resetManagerFeedback();
+
+    if (!selectedModule) {
+      setManagerError("Select a module before drafting AI content.");
+      return;
+    }
+
+    const hasCourseContext = getTrainingModuleAiContextAvailability(selectedModule, moduleAiDraftForm.contextNotes);
+    if (!hasCourseContext) {
+      setManagerError("Add course context before generating module drafts.");
+      return;
+    }
+
+    setIsManagerBusy(true);
+
+    try {
+      const response = await fetch(`/api/training/modules/${selectedModule.id}/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode,
+          contextNotes: moduleAiDraftForm.contextNotes,
+        }),
+      });
+      const payload = await readJsonResponse<unknown>(response);
+
+      if (!payload.ok) {
+        setManagerError(payload.error);
+        return;
+      }
+
+      const draft = parseTrainingModuleAIDraftResponse(payload.data);
+      if (!draft) {
+        setManagerError("AI draft response was malformed.");
+        return;
+      }
+
+      setGeneratedDrafts([]);
+      setModuleForm(moduleDraftToFormState(selectedModule, draft));
+      setEditingModuleId(selectedModule.id);
+      setActiveSection("aiTools");
+      setActiveManagerModal("edit");
+      setManagerMessage(
+        draft.mode === "quiz" ? "Loaded quiz draft for review." : "Loaded lesson draft for review.",
+      );
+    } finally {
+      setIsManagerBusy(false);
+    }
   }
 
   function closeManagerModal() {
@@ -356,15 +459,7 @@ export function TrainingPanel({
 
     resetManagerFeedback();
     setIsManagerBusy(true);
-
-    let quizData: TrainingModuleRecord["quizData"];
-    try {
-      quizData = parseQuizJson(moduleForm.quizJson);
-    } catch (error) {
-      setManagerError(error instanceof Error ? error.message : "Quiz JSON is invalid.");
-      setIsManagerBusy(false);
-      return;
-    }
+    const quizData = normalizeTrainingQuizQuestionDrafts(moduleForm.quizQuestions);
 
     const submitTarget = getModuleSubmitTarget(activeManagerModal, editingModuleId);
     try {
@@ -532,500 +627,643 @@ export function TrainingPanel({
     }
   }
 
-  return (
-    <div className="grid gap-5 xl:grid-cols-[1.1fr_1.4fr]">
-      <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-5 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-        <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Modules</p>
-        <div className="mt-4 space-y-3">
-          {modules.map((module) => (
+  const modulesRail = (
+    <div className="space-y-3">
+      <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Modules</p>
+      <div className="space-y-3">
+        {modules.map((module) => (
+          <button
+            className={`w-full rounded-xl border px-4 py-4 text-left transition ${
+              module.id === selectedModuleId
+                ? "border-[#74b1ff]/20 bg-[#74b1ff]/8"
+                : "border-[#45484f]/10 bg-[#161a21]/50 hover:border-[#74b1ff]/30"
+            }`}
+            key={module.id}
+            onClick={() => {
+              const nextState = getModuleSelectionPatch(module.id);
+              setSelectedModuleId(nextState.selectedModuleId);
+              setAnswers(nextState.answers);
+              setStatusMessage(nextState.statusMessage);
+              setActiveSection(nextState.activeSection);
+            }}
+            type="button"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-white">{module.title}</p>
+                <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[#74b1ff]">{module.skillCategory}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">
+                  {module.progress?.status ?? "assigned"}
+                </p>
+                <p className="mt-1 text-sm font-semibold text-[#ecedf6]">{module.progress?.score ?? "—"}</p>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  const managerHeaderActions = canManage ? (
+    <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-5 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Manager tools</p>
+          <p className="mt-2 text-sm text-[#a9abb3]">
+            Create, revise, assign, and review training modules from the same workspace.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          {selectedModule ? (
+            <>
+              <button
+                className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/70 px-4 py-3 text-sm font-semibold text-white transition hover:border-[#74b1ff]/30 hover:bg-[#74b1ff]/10 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={isManagerBusy}
+                onClick={() => openEditModal(selectedModule)}
+                type="button"
+              >
+                Edit module
+              </button>
+              <button
+                className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/70 px-4 py-3 text-sm font-semibold text-white transition hover:border-[#74b1ff]/30 hover:bg-[#74b1ff]/10 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={isManagerBusy}
+                onClick={() => openAssignModal(selectedModule)}
+                type="button"
+              >
+                Assign module
+              </button>
+            </>
+          ) : null}
+          <button
+            className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/70 px-4 py-3 text-sm font-semibold text-white transition hover:border-[#74b1ff]/30 hover:bg-[#74b1ff]/10 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={isManagerBusy}
+            onClick={openCreateModal}
+            type="button"
+          >
+            Create module
+          </button>
+          <button
+            className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+            aria-describedby={!aiAvailable ? "training-ai-unavailable" : undefined}
+            disabled={!aiAvailable || isManagerBusy}
+            onClick={() => {
+              if (aiAvailable) {
+                openGenerateModal();
+              }
+            }}
+            type="button"
+          >
+            Generate with AI
+          </button>
+        </div>
+      </div>
+      {!aiAvailable ? (
+        <p className="mt-4 text-xs text-[#a9abb3]" id="training-ai-unavailable">
+          AI curriculum generation is unavailable until OpenAI is configured.
+        </p>
+      ) : null}
+
+      {managerError ? (
+        <div className="mt-4 rounded-xl border border-[#f38ba8]/30 bg-[#f38ba8]/10 px-4 py-3 text-sm text-[#ffd7e3]">
+          {managerError}
+        </div>
+      ) : null}
+      {managerMessage ? (
+        <div className="mt-4 rounded-xl border border-[#74b1ff]/20 bg-[#74b1ff]/8 px-4 py-3 text-sm text-[#ecedf6]">
+          {managerMessage}
+        </div>
+      ) : null}
+
+      {activeManagerModal ? (
+        <div className="mt-4 rounded-2xl border border-[#45484f]/20 bg-[#161a21]/60 p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-white">
+                {activeManagerModal === "create"
+                  ? "Create module"
+                  : activeManagerModal === "edit"
+                    ? "Edit module"
+                    : activeManagerModal === "assign"
+                      ? `Assign ${assigningModule?.title ?? "module"}`
+                      : "Generate draft modules"}
+              </p>
+              <p className="mt-1 text-xs text-[#a9abb3]">
+                {activeManagerModal === "assign"
+                  ? "Select reps, set an optional due date, and remove unstarted assignments."
+                  : activeManagerModal === "generate"
+                    ? "Draft AI modules, then save only the ones you want to keep."
+                    : "Changes save directly into the training module catalog."}
+              </p>
+            </div>
             <button
-              className={`w-full rounded-xl border px-4 py-4 text-left transition ${
-                module.id === selectedModuleId
-                  ? "border-[#74b1ff]/20 bg-[#74b1ff]/8"
-                  : "border-[#45484f]/10 bg-[#161a21]/50 hover:border-[#74b1ff]/30"
-              }`}
-              key={module.id}
-              onClick={() => {
-                setSelectedModuleId(module.id);
-                setAnswers({});
-                setStatusMessage(null);
-              }}
+              className="text-xs font-semibold uppercase tracking-[0.2em] text-[#a9abb3]"
+              onClick={closeManagerModal}
               type="button"
             >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-sm font-semibold text-white">{module.title}</p>
-                  <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[#74b1ff]">{module.skillCategory}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">
-                    {module.progress?.status ?? "assigned"}
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-[#ecedf6]">{module.progress?.score ?? "—"}</p>
-                </div>
-              </div>
+              Close
             </button>
-          ))}
-        </div>
-      </section>
+          </div>
 
-      <div className="space-y-5">
-        {canManage ? (
-          <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-5 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Manager tools</p>
-                <p className="mt-2 text-sm text-[#a9abb3]">Create, revise, assign, and review training modules from the same workspace.</p>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <button
-                  className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/70 px-4 py-3 text-sm font-semibold text-white transition hover:border-[#74b1ff]/30 hover:bg-[#74b1ff]/10"
-                  onClick={openCreateModal}
-                  type="button"
+          {(activeManagerModal === "create" || activeManagerModal === "edit") && (
+            <div className="mt-4 space-y-3">
+              <input
+                className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                onChange={(event) => setModuleForm((current) => ({ ...current, title: event.target.value }))}
+                placeholder="Module title"
+                value={moduleForm.title}
+              />
+              <div className="grid gap-3 md:grid-cols-2">
+                <select
+                  className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                  onChange={(event) => setModuleForm((current) => ({ ...current, skillCategory: event.target.value }))}
+                  value={moduleForm.skillCategory}
                 >
-                  Create module
-                </button>
+                  <option disabled value="">
+                    Skill category
+                  </option>
+                  {rubricCategories.map((cat) => (
+                    <option key={cat.slug} value={cat.name}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                  onChange={(event) => setModuleForm((current) => ({ ...current, videoUrl: event.target.value }))}
+                  placeholder="Video URL (optional)"
+                  value={moduleForm.videoUrl}
+                />
+              </div>
+              <textarea
+                className="min-h-28 w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                onChange={(event) => setModuleForm((current) => ({ ...current, description: event.target.value }))}
+                placeholder="Module description"
+                value={moduleForm.description}
+              />
+              <TrainingQuizEditor
+                onChange={(quizQuestions) => setModuleForm((current) => ({ ...current, quizQuestions }))}
+                value={moduleForm.quizQuestions}
+              />
+              <div className="flex justify-end">
                 <button
-                  className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-                  aria-describedby={!aiAvailable ? "training-ai-unavailable" : undefined}
-                  disabled={!aiAvailable}
+                  className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
+                  disabled={isManagerBusy}
                   onClick={() => {
-                    if (aiAvailable) {
-                      openGenerateModal();
-                    }
+                    void submitModuleForm();
                   }}
                   type="button"
                 >
-                  Generate with AI
+                  {isManagerBusy ? "Saving..." : activeManagerModal === "edit" ? "Save changes" : "Create module"}
                 </button>
               </div>
             </div>
-            {!aiAvailable ? (
-              <p className="mt-4 text-xs text-[#a9abb3]" id="training-ai-unavailable">
-                AI curriculum generation is unavailable until OpenAI is configured.
-              </p>
-            ) : null}
+          )}
 
-            {managerError ? (
-              <div className="mt-4 rounded-xl border border-[#f38ba8]/30 bg-[#f38ba8]/10 px-4 py-3 text-sm text-[#ffd7e3]">
-                {managerError}
+          {activeManagerModal === "generate" && (
+            <div className="mt-4 space-y-3">
+              <div className="grid gap-3 md:grid-cols-2">
+                <input
+                  className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                  onChange={(event) => setGenerateForm((current) => ({ ...current, topic: event.target.value }))}
+                  placeholder="Topic"
+                  value={generateForm.topic}
+                />
+                <input
+                  className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                  onChange={(event) => setGenerateForm((current) => ({ ...current, targetRole: event.target.value }))}
+                  placeholder="Target role"
+                  value={generateForm.targetRole}
+                />
               </div>
-            ) : null}
-            {managerMessage ? (
-              <div className="mt-4 rounded-xl border border-[#74b1ff]/20 bg-[#74b1ff]/8 px-4 py-3 text-sm text-[#ecedf6]">
-                {managerMessage}
+              <div className="grid gap-3 md:grid-cols-[1fr_160px]">
+                <input
+                  className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                  onChange={(event) => setGenerateForm((current) => ({ ...current, skillFocus: event.target.value }))}
+                  placeholder="Skill focus"
+                  value={generateForm.skillFocus}
+                />
+                <input
+                  className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                  min={1}
+                  onChange={(event) =>
+                    setGenerateForm((current) => ({
+                      ...current,
+                      moduleCount: Number.parseInt(event.target.value || "0", 10) || 0,
+                    }))
+                  }
+                  placeholder="Count"
+                  type="number"
+                  value={generateForm.moduleCount}
+                />
               </div>
-            ) : null}
-
-            {activeManagerModal ? (
-              <div className="mt-4 rounded-2xl border border-[#45484f]/20 bg-[#161a21]/60 p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold text-white">
-                      {activeManagerModal === "create"
-                        ? "Create module"
-                        : activeManagerModal === "edit"
-                          ? "Edit module"
-                          : activeManagerModal === "assign"
-                            ? `Assign ${assigningModule?.title ?? "module"}`
-                            : "Generate draft modules"}
-                    </p>
-                    <p className="mt-1 text-xs text-[#a9abb3]">
-                      {activeManagerModal === "assign"
-                        ? "Select reps, set an optional due date, and remove unstarted assignments."
-                        : activeManagerModal === "generate"
-                          ? "Draft AI modules, then save only the ones you want to keep."
-                          : "Changes save directly into the training module catalog."}
-                    </p>
-                  </div>
-                  <button
-                    className="text-xs font-semibold uppercase tracking-[0.2em] text-[#a9abb3]"
-                    onClick={closeManagerModal}
-                    type="button"
-                  >
-                    Close
-                  </button>
-                </div>
-
-                {(activeManagerModal === "create" || activeManagerModal === "edit") && (
-                  <div className="mt-4 space-y-3">
-                    <input
-                      className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
-                      onChange={(event) => setModuleForm((current) => ({ ...current, title: event.target.value }))}
-                      placeholder="Module title"
-                      value={moduleForm.title}
-                    />
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <input
-                        className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
-                        onChange={(event) => setModuleForm((current) => ({ ...current, skillCategory: event.target.value }))}
-                        placeholder="Skill category"
-                        value={moduleForm.skillCategory}
-                      />
-                      <input
-                        className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
-                        onChange={(event) => setModuleForm((current) => ({ ...current, videoUrl: event.target.value }))}
-                        placeholder="Video URL (optional)"
-                        value={moduleForm.videoUrl}
-                      />
-                    </div>
-                    <textarea
-                      className="min-h-28 w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
-                      onChange={(event) => setModuleForm((current) => ({ ...current, description: event.target.value }))}
-                      placeholder="Module description"
-                      value={moduleForm.description}
-                    />
-                    <textarea
-                      className="min-h-48 w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 font-mono text-xs text-white outline-none"
-                      onChange={(event) => setModuleForm((current) => ({ ...current, quizJson: event.target.value }))}
-                      placeholder='Optional quiz JSON: {"questions":[{"question":"...","options":["A","B"],"correctIndex":0}]}'
-                      value={moduleForm.quizJson}
-                    />
-                    <div className="flex justify-end">
-                      <button
-                        className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
-                        disabled={isManagerBusy}
-                        onClick={() => {
-                          void submitModuleForm();
-                        }}
-                        type="button"
-                      >
-                        {isManagerBusy ? "Saving..." : activeManagerModal === "edit" ? "Save changes" : "Create module"}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {activeManagerModal === "generate" && (
-                  <div className="mt-4 space-y-3">
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <input
-                        className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
-                        onChange={(event) => setGenerateForm((current) => ({ ...current, topic: event.target.value }))}
-                        placeholder="Topic"
-                        value={generateForm.topic}
-                      />
-                      <input
-                        className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
-                        onChange={(event) => setGenerateForm((current) => ({ ...current, targetRole: event.target.value }))}
-                        placeholder="Target role"
-                        value={generateForm.targetRole}
-                      />
-                    </div>
-                    <div className="grid gap-3 md:grid-cols-[1fr_160px]">
-                      <input
-                        className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
-                        onChange={(event) => setGenerateForm((current) => ({ ...current, skillFocus: event.target.value }))}
-                        placeholder="Skill focus"
-                        value={generateForm.skillFocus}
-                      />
-                      <input
-                        className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
-                        min={1}
-                        onChange={(event) =>
-                          setGenerateForm((current) => ({
-                            ...current,
-                            moduleCount: Number.parseInt(event.target.value || "0", 10) || 0,
-                          }))
-                        }
-                        placeholder="Count"
-                        type="number"
-                        value={generateForm.moduleCount}
-                      />
-                    </div>
-                    <div className="flex justify-end">
-                      <button
-                        className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
-                        disabled={isManagerBusy}
-                        onClick={() => {
-                          void submitGenerate();
-                        }}
-                        type="button"
-                      >
-                        {isManagerBusy ? "Generating..." : "Generate drafts"}
-                      </button>
-                    </div>
-
-                    {generatedDrafts.length > 0 ? (
-                      <div className="space-y-3 pt-2">
-                        {generatedDrafts.map((draft) => (
-                          <div
-                            className="rounded-xl border border-[#45484f]/20 bg-[#10131a]/80 p-4"
-                            key={`${draft.title}-${draft.skillCategory}`}
-                          >
-                            <div className="flex flex-wrap items-start justify-between gap-3">
-                              <div>
-                                <p className="text-sm font-semibold text-white">{draft.title}</p>
-                                <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[#74b1ff]">
-                                  {draft.skillCategory}
-                                </p>
-                              </div>
-                              <button
-                                className="rounded-lg border border-[#74b1ff]/30 px-3 py-2 text-xs font-semibold text-[#ecedf6]"
-                                disabled={isManagerBusy}
-                                onClick={() => {
-                                  void saveGeneratedDraft(draft);
-                                }}
-                                type="button"
-                              >
-                                Save draft
-                              </button>
-                            </div>
-                            <p className="mt-3 text-sm text-[#a9abb3]">{draft.description}</p>
-                          </div>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-                )}
-
-                {activeManagerModal === "assign" && assigningModule && (
-                  <div className="mt-4 space-y-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <p className="text-sm text-[#a9abb3]">
-                        Use the checklist to assign this module. Existing assignments are shown inline.
-                      </p>
-                      <input
-                        className="rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
-                        onChange={(event) => setAssignDueDate(event.target.value)}
-                        type="date"
-                        value={assignDueDate}
-                      />
-                    </div>
-                    <div className="space-y-3">
-                      {teamRows.map((row) => {
-                        const progress = assignmentProgressByRepId.get(row.repId);
-                        const checked = assignRepIds.includes(row.repId);
-
-                        return (
-                          <label
-                            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#45484f]/20 bg-[#10131a]/80 px-4 py-3"
-                            key={row.repId}
-                          >
-                            <div className="flex items-center gap-3">
-                              <input
-                                checked={checked}
-                                onChange={(event) =>
-                                  setAssignRepIds((current) =>
-                                    event.target.checked
-                                      ? [...current, row.repId]
-                                      : current.filter((repId) => repId !== row.repId),
-                                  )
-                                }
-                                type="checkbox"
-                              />
-                              <div>
-                                <p className="text-sm font-semibold text-white">
-                                  {[row.firstName, row.lastName].filter(Boolean).join(" ").trim() || row.email}
-                                </p>
-                                <p className="text-xs text-[#a9abb3]">{row.email}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <div className="text-right text-xs text-[#a9abb3]">
-                                <p>{progress ? progress.status : "not assigned"}</p>
-                                <p>{progress?.score === null || progress?.score === undefined ? "Score pending" : `${progress.score}% score`}</p>
-                              </div>
-                              {progress?.status === "assigned" ? (
-                                <button
-                                  className="rounded-lg border border-[#45484f]/30 px-3 py-2 text-xs font-semibold text-white"
-                                  disabled={isManagerBusy}
-                                  onClick={() => {
-                                    void unassignRep(row.repId);
-                                  }}
-                                  type="button"
-                                >
-                                  Remove
-                                </button>
-                              ) : null}
-                            </div>
-                          </label>
-                        );
-                      })}
-                    </div>
-                    <div className="flex justify-end">
-                      <button
-                        className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
-                        disabled={isManagerBusy}
-                        onClick={() => {
-                          void submitAssignment();
-                        }}
-                        type="button"
-                      >
-                        {isManagerBusy ? "Assigning..." : "Assign module"}
-                      </button>
-                    </div>
-                  </div>
-                )}
+              <div className="flex justify-end">
+                <button
+                  className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
+                  disabled={isManagerBusy}
+                  onClick={() => {
+                    void submitGenerate();
+                  }}
+                  type="button"
+                >
+                  {isManagerBusy ? "Generating..." : "Generate drafts"}
+                </button>
               </div>
-            ) : null}
-          </section>
-        ) : null}
 
-        <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-          {selectedModule ? (
-            <div className="space-y-5">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#74b1ff]">
-                    {selectedModule.skillCategory}
-                  </p>
-                  <h3 className="mt-2 text-2xl font-semibold text-white">{selectedModule.title}</h3>
-                  <p className="mt-3 text-sm leading-7 text-[#a9abb3]">{selectedModule.description}</p>
-                </div>
-                {canManage ? (
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      className="rounded-lg border border-[#45484f]/20 px-3 py-2 text-xs font-semibold text-white"
-                      onClick={() => openEditModal(selectedModule)}
-                      type="button"
+              {generatedDrafts.length > 0 ? (
+                <div className="space-y-3 pt-2">
+                  {generatedDrafts.map((draft) => (
+                    <div
+                      className="rounded-xl border border-[#45484f]/20 bg-[#10131a]/80 p-4"
+                      key={`${draft.title}-${draft.skillCategory}`}
                     >
-                      Edit module
-                    </button>
-                    <button
-                      className="rounded-lg border border-[#45484f]/20 px-3 py-2 text-xs font-semibold text-white"
-                      onClick={() => openAssignModal(selectedModule)}
-                      type="button"
-                    >
-                      Assign module
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-
-              {selectedModule.quizData?.questions?.length ? (
-                <div className="space-y-5">
-                  {selectedModule.quizData.questions.map((question, questionIndex) => (
-                    <div key={question.question}>
-                      <p className="text-sm font-medium text-[#ecedf6]">
-                        {questionIndex + 1}. {question.question}
-                      </p>
-                      <div className="mt-3 space-y-2">
-                        {question.options.map((option, optionIndex) => (
-                          <button
-                            className={`w-full rounded-xl border px-4 py-3 text-left text-sm transition ${
-                              answers[questionIndex] === optionIndex
-                                ? "border-[#74b1ff]/20 bg-[#74b1ff]/8 text-[#74b1ff]"
-                                : "border-[#45484f]/10 bg-[#161a21]/50 text-[#ecedf6] hover:border-[#74b1ff]/30"
-                            }`}
-                            key={`${question.question}-${option}`}
-                            onClick={() =>
-                              setAnswers((current) => ({
-                                ...current,
-                                [questionIndex]: optionIndex,
-                              }))
-                            }
-                            type="button"
-                          >
-                            {option}
-                          </button>
-                        ))}
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-white">{draft.title}</p>
+                          <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[#74b1ff]">
+                            {draft.skillCategory}
+                          </p>
+                        </div>
+                        <button
+                          className="rounded-lg border border-[#74b1ff]/30 px-3 py-2 text-xs font-semibold text-[#ecedf6]"
+                          disabled={isManagerBusy}
+                          onClick={() => {
+                            void saveGeneratedDraft(draft);
+                          }}
+                          type="button"
+                        >
+                          Save draft
+                        </button>
                       </div>
+                      <p className="mt-3 text-sm text-[#a9abb3]">{draft.description}</p>
                     </div>
                   ))}
                 </div>
-              ) : (
-                <div className="rounded-xl border border-[#45484f]/10 bg-[#161a21]/50 px-4 py-4 text-sm text-[#a9abb3]">
-                  This module does not include a quiz. Completing it will mark the assignment as passed.
-                </div>
-              )}
-
-              {statusMessage ? (
-                <div className="rounded-xl border border-[#74b1ff]/20 bg-[#74b1ff]/8 px-4 py-3 text-sm text-[#ecedf6]">
-                  {statusMessage}
-                </div>
               ) : null}
+            </div>
+          )}
 
-              {!canManage ? (
+          {activeManagerModal === "assign" && assigningModule && (
+            <div className="mt-4 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm text-[#a9abb3]">
+                  Use the checklist to assign this module. Existing assignments are shown inline.
+                </p>
+                <input
+                  className="rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                  onChange={(event) => setAssignDueDate(event.target.value)}
+                  type="date"
+                  value={assignDueDate}
+                />
+              </div>
+              <div className="space-y-3">
+                {teamRows.map((row) => {
+                  const progress = assignmentProgressByRepId.get(row.repId);
+                  const checked = assignRepIds.includes(row.repId);
+
+                  return (
+                    <label
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#45484f]/20 bg-[#10131a]/80 px-4 py-3"
+                      key={row.repId}
+                    >
+                      <div className="flex items-center gap-3">
+                        <input
+                          checked={checked}
+                          onChange={(event) =>
+                            setAssignRepIds((current) =>
+                              event.target.checked
+                                ? [...current, row.repId]
+                                : current.filter((repId) => repId !== row.repId),
+                            )
+                          }
+                          type="checkbox"
+                        />
+                        <div>
+                          <p className="text-sm font-semibold text-white">
+                            {[row.firstName, row.lastName].filter(Boolean).join(" ").trim() || row.email}
+                          </p>
+                          <p className="text-xs text-[#a9abb3]">{row.email}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right text-xs text-[#a9abb3]">
+                          <p>{progress ? progress.status : "not assigned"}</p>
+                          <p>
+                            {progress?.score === null || progress?.score === undefined
+                              ? "Score pending"
+                              : `${progress.score}% score`}
+                          </p>
+                        </div>
+                        {progress?.status === "assigned" ? (
+                          <button
+                            className="rounded-lg border border-[#45484f]/30 px-3 py-2 text-xs font-semibold text-white"
+                            disabled={isManagerBusy}
+                            onClick={() => {
+                              void unassignRep(row.repId);
+                            }}
+                            type="button"
+                          >
+                            Remove
+                          </button>
+                        ) : null}
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+              <div className="flex justify-end">
                 <button
-                  className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-5 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
-                  disabled={isSubmitting}
+                  className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
+                  disabled={isManagerBusy}
                   onClick={() => {
-                    void submitProgress();
+                    void submitAssignment();
                   }}
                   type="button"
                 >
-                  {isSubmitting ? "Submitting..." : "Submit module"}
+                  {isManagerBusy ? "Assigning..." : "Assign module"}
                 </button>
-              ) : null}
-            </div>
-          ) : (
-            <p className="text-sm text-[#a9abb3]">No modules are available.</p>
-          )}
-        </section>
-
-        {canManage ? (
-          <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Team Progress</p>
-                <p className="mt-2 text-sm text-[#a9abb3]">
-                  Starter modules are auto-provisioned when an org has none, so managers can test the full training flow immediately.
-                </p>
               </div>
             </div>
-            {teamProgress.modules.length ? (
-              <div className="mt-4 overflow-x-auto">
-                <table className="w-full min-w-[720px] text-left text-sm text-[#ecedf6]">
-                  <thead>
-                    <tr className="border-b border-[#45484f]/20 text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">
-                      <th className="px-4 py-3">Rep</th>
-                      {teamProgress.modules.map((module) => (
-                        <th className="px-4 py-3" key={module.id}>
-                          {module.title}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {teamProgress.repProgress.length ? (
-                      teamProgress.repProgress.map((rep) => (
-                        <tr className="border-b border-[#45484f]/10 last:border-b-0" key={rep.repId}>
-                          <td className="px-4 py-4 align-top">
-                            <p className="font-medium text-white">
-                              {[rep.firstName, rep.lastName].filter(Boolean).join(" ").trim() || rep.repId}
-                            </p>
-                          </td>
-                          {teamProgress.modules.map((module) => {
-                            const progress = rep.moduleProgress.find((entry) => entry.moduleId === module.id);
+          )}
+        </div>
+      ) : null}
+    </section>
+  ) : null;
 
-                            return (
-                              <td className="px-4 py-4 align-top" key={module.id}>
-                                {progress ? (
-                                  <div className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-3 py-3">
-                                    <p className="text-sm font-semibold capitalize text-white">{progress.status.replaceAll("_", " ")}</p>
-                                    <p className="mt-1 text-xs text-[#a9abb3]">
-                                      {progress.score === null ? "Score pending" : `${progress.score}% score`}
-                                    </p>
-                                    <p className="mt-1 text-xs text-[#a9abb3]">{progress.attempts} attempts</p>
-                                  </div>
-                                ) : (
-                                  <div className="rounded-xl border border-dashed border-[#45484f]/20 px-3 py-3 text-xs text-[#a9abb3]">
-                                    Not started
-                                  </div>
-                                )}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td className="px-4 py-6 text-sm text-[#a9abb3]" colSpan={teamProgress.modules.length + 1}>
-                          No rep progress yet. Reps will appear here after they complete module quizzes.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+  const showQuizWorkspace = activeSection === "quiz";
+
+  const lessonWorkspace = (
+    <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+      {selectedModule ? (
+        <div className="space-y-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#74b1ff]">
+                {selectedModule.skillCategory}
+              </p>
+              <h3 className="mt-2 text-2xl font-semibold text-white">{selectedModule.title}</h3>
+              <p className="mt-3 text-sm leading-7 text-[#a9abb3]">{selectedModule.description}</p>
+            </div>
+          </div>
+
+          {showQuizWorkspace ? (
+            selectedModule.quizData?.questions?.length ? (
+              <div className="space-y-5">
+                {selectedModule.quizData.questions.map((question, questionIndex) => (
+                  <div key={question.question}>
+                    <p className="text-sm font-medium text-[#ecedf6]">
+                      {questionIndex + 1}. {question.question}
+                    </p>
+                    <div className="mt-3 space-y-2">
+                      {question.options.map((option, optionIndex) => (
+                        <button
+                          className={`w-full rounded-xl border px-4 py-3 text-left text-sm transition ${
+                            answers[questionIndex] === optionIndex
+                              ? "border-[#74b1ff]/20 bg-[#74b1ff]/8 text-[#74b1ff]"
+                              : "border-[#45484f]/10 bg-[#161a21]/50 text-[#ecedf6] hover:border-[#74b1ff]/30"
+                          }`}
+                          key={`${question.question}-${option}`}
+                          onClick={() =>
+                            setAnswers((current) => ({
+                              ...current,
+                              [questionIndex]: optionIndex,
+                            }))
+                          }
+                          type="button"
+                        >
+                          {option}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (
-              <div className="mt-4 rounded-xl border border-dashed border-[#45484f]/20 px-4 py-6 text-sm text-[#a9abb3]">
-                Create or generate modules to start tracking team progress.
+              <div className="rounded-xl border border-[#45484f]/10 bg-[#161a21]/50 px-4 py-4 text-sm text-[#a9abb3]">
+                This module does not include a quiz. Completing it will mark the assignment as passed.
               </div>
-            )}
-          </section>
-        ) : null}
+            )
+          ) : (
+            <div className="rounded-xl border border-[#45484f]/10 bg-[#161a21]/50 px-4 py-4 text-sm text-[#a9abb3]">
+              Open Quiz to review and submit the current module questions.
+            </div>
+          )}
+
+          {statusMessage ? (
+            <div className="rounded-xl border border-[#74b1ff]/20 bg-[#74b1ff]/8 px-4 py-3 text-sm text-[#ecedf6]">
+              {statusMessage}
+            </div>
+          ) : null}
+
+          {!canManage && showQuizWorkspace ? (
+            <button
+              className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-5 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
+              disabled={isSubmitting}
+              onClick={() => {
+                void submitProgress();
+              }}
+              type="button"
+            >
+              {isSubmitting ? "Submitting..." : "Submit module"}
+            </button>
+          ) : null}
+        </div>
+      ) : (
+        <p className="text-sm text-[#a9abb3]">No modules are available.</p>
+      )}
+    </section>
+  );
+
+  const overviewPanel = (
+    <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+      <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Course overview</p>
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <div className="rounded-xl border border-[#45484f]/10 bg-[#161a21]/50 px-4 py-4">
+          <p className="text-sm font-semibold text-white">Current curriculum</p>
+          <p className="mt-2 text-sm leading-7 text-[#a9abb3]">
+            Use Modules to review the active lesson and Quiz to complete it. Manager tools and reporting sections
+            stay separate so the shell stays learner-first.
+          </p>
+        </div>
+        <div className="rounded-xl border border-[#45484f]/10 bg-[#161a21]/50 px-4 py-4">
+          <p className="text-sm font-semibold text-white">{selectedModule?.title ?? "No module selected"}</p>
+          <p className="mt-2 text-sm leading-7 text-[#a9abb3]">
+            {selectedModule?.description?.trim() ||
+              "Choose a module from the rail to review its summary and current status."}
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+
+  const assignmentsPanel = canManage ? (
+    <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+      <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Assignments</p>
+      <div className="mt-4 space-y-4">
+        <div className="rounded-xl border border-[#45484f]/10 bg-[#161a21]/50 px-4 py-4 text-sm text-[#a9abb3]">
+          Assignments use the same manager flow, but they now live under their own section.
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-[#a9abb3]">
+            {selectedModule ? `Assign ${selectedModule.title} to reps.` : "Select a module first, then open assignment tools."}
+          </p>
+          <button
+            className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
+            disabled={!selectedModule}
+            onClick={() => {
+              if (selectedModule) {
+                openAssignModal(selectedModule);
+              }
+            }}
+            type="button"
+          >
+            Open assignment tools
+          </button>
+        </div>
+      </div>
+    </section>
+  ) : null;
+
+  const aiToolsPanel = canManage ? (
+    <TrainingManagerAiTools
+      aiAvailable={aiAvailable}
+      canManage={canManage}
+      contextNotes={moduleAiDraftForm.contextNotes}
+      isBusy={isManagerBusy}
+      onContextNotesChange={(value) => setModuleAiDraftForm((current) => ({ ...current, contextNotes: value }))}
+      onGenerate={(mode) => {
+        void generateModuleDraft(mode);
+      }}
+      selectedModule={selectedModule}
+    />
+  ) : null;
+
+  const teamProgressPanel = canManage ? (
+    <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Team Progress</p>
+          <p className="mt-2 text-sm text-[#a9abb3]">
+            Starter modules are auto-provisioned when an org has none, so managers can test the full training flow
+            immediately.
+          </p>
+        </div>
+      </div>
+      {teamProgress.modules.length ? (
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[720px] text-left text-sm text-[#ecedf6]">
+            <thead>
+              <tr className="border-b border-[#45484f]/20 text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">
+                <th className="px-4 py-3">Rep</th>
+                {teamProgress.modules.map((module) => (
+                  <th className="px-4 py-3" key={module.id}>
+                    {module.title}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {teamProgress.repProgress.length ? (
+                teamProgress.repProgress.map((rep) => (
+                  <tr className="border-b border-[#45484f]/10 last:border-b-0" key={rep.repId}>
+                    <td className="px-4 py-4 align-top">
+                      <p className="font-medium text-white">
+                        {[rep.firstName, rep.lastName].filter(Boolean).join(" ").trim() || rep.repId}
+                      </p>
+                    </td>
+                    {teamProgress.modules.map((module) => {
+                      const progress = rep.moduleProgress.find((entry) => entry.moduleId === module.id);
+
+                      return (
+                        <td className="px-4 py-4 align-top" key={module.id}>
+                          {progress ? (
+                            <div className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-3 py-3">
+                              <p className="text-sm font-semibold capitalize text-white">
+                                {progress.status.replaceAll("_", " ")}
+                              </p>
+                              <p className="mt-1 text-xs text-[#a9abb3]">
+                                {progress.score === null ? "Score pending" : `${progress.score}% score`}
+                              </p>
+                              <p className="mt-1 text-xs text-[#a9abb3]">{progress.attempts} attempts</p>
+                            </div>
+                          ) : (
+                            <div className="rounded-xl border border-dashed border-[#45484f]/20 px-3 py-3 text-xs text-[#a9abb3]">
+                              Not started
+                            </div>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td className="px-4 py-6 text-sm text-[#a9abb3]" colSpan={teamProgress.modules.length + 1}>
+                    No rep progress yet. Reps will appear here after they complete module quizzes.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="mt-4 rounded-xl border border-dashed border-[#45484f]/20 px-4 py-6 text-sm text-[#a9abb3]">
+          Create or generate modules to start tracking team progress.
+        </div>
+      )}
+    </section>
+  ) : null;
+
+  const activeWorkspaceView = resolveTrainingWorkspaceView(activeSection, canManage);
+  const activeWorkspacePanel = (() => {
+    switch (activeWorkspaceView) {
+      case "overview":
+        return (
+          <div className="space-y-5">
+            {overviewPanel}
+            {teamProgressPanel}
+          </div>
+        );
+      case "lesson":
+        return lessonWorkspace;
+      case "assignments":
+        return assignmentsPanel ?? overviewPanel;
+      case "teamProgress":
+        return teamProgressPanel ?? overviewPanel;
+      case "aiTools":
+        return aiToolsPanel ?? overviewPanel;
+      default:
+        return overviewPanel;
+    }
+  })();
+
+  return (
+    <div className="space-y-4">
+      <TrainingWorkspaceNav
+        activeSection={activeSection}
+        canManage={canManage}
+        compact
+        onSelect={setActiveSection}
+      />
+
+      <div className="flex min-h-[calc(100vh-8rem)] gap-6">
+        <aside className="hidden w-56 shrink-0 self-start overflow-y-auto border-r border-[#45484f]/10 pt-2 xl:sticky xl:top-[92px] xl:block xl:h-[calc(100vh-96px)]">
+          <TrainingWorkspaceNav activeSection={activeSection} canManage={canManage} onSelect={setActiveSection} />
+        </aside>
+
+        <div className="min-w-0 flex-1">
+          <TrainingCourseShell
+            managerActions={
+              canManage && (activeSection === "overview" || activeSection === "aiTools" || activeManagerModal !== null)
+                ? managerHeaderActions
+                : null
+            }
+            modulesRail={modulesRail}
+            primaryContent={activeWorkspacePanel}
+            selectedModule={selectedModule}
+          />
+        </div>
       </div>
     </div>
   );

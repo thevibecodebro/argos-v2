@@ -1,6 +1,13 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { getModuleSubmitTarget, mergeTeamProgressModule, TrainingPanel } from "../components/training-panel";
+import {
+  getModuleSelectionPatch,
+  getModuleSubmitTarget,
+  mergeTeamProgressModule,
+  resolveTrainingWorkspaceView,
+  TrainingPanel,
+} from "../components/training-panel";
+import { getTrainingModuleAiContextAvailability } from "../components/training/training-manager-ai-tools";
 
 const baseModules = [
   {
@@ -114,6 +121,22 @@ describe("TrainingPanel", () => {
     });
   });
 
+  it("routes quiz and module sections into the lesson workspace", () => {
+    expect(resolveTrainingWorkspaceView("modules", false)).toBe("lesson");
+    expect(resolveTrainingWorkspaceView("quiz", false)).toBe("lesson");
+    expect(resolveTrainingWorkspaceView("assignments", false)).toBe("overview");
+    expect(resolveTrainingWorkspaceView("teamProgress", true)).toBe("teamProgress");
+  });
+
+  it("resets quiz answers and returns to the module view when a module is selected", () => {
+    expect(getModuleSelectionPatch("module-2")).toEqual({
+      activeSection: "modules",
+      answers: {},
+      selectedModuleId: "module-2",
+      statusMessage: null,
+    });
+  });
+
   it("does not show Create module to reps", () => {
     const html = renderToStaticMarkup(
       <TrainingPanel
@@ -178,5 +201,71 @@ describe("TrainingPanel", () => {
     expect(html).toContain('disabled=""');
     expect(html).toContain('aria-describedby="training-ai-unavailable"');
     expect(html).toContain('id="training-ai-unavailable"');
+  });
+
+  it("renders learner-first workspace sections for reps", () => {
+    const html = renderToStaticMarkup(
+      <TrainingPanel
+        aiAvailable={false}
+        canManage={false}
+        initialModules={baseModules}
+        initialTeamProgress={initialTeamProgress}
+        initialTeamRows={initialTeamRows}
+        rubricCategories={[]}
+      />,
+    );
+
+    expect(html).toContain("Course overview");
+    expect(html).toContain("Modules");
+    expect(html).toContain("Quiz");
+    expect(html).toContain("Quick switcher");
+    expect(html).toContain('aria-label="Training workspace quick switcher"');
+    expect(html).not.toContain("Assignments");
+    expect(html).not.toContain("AI tools");
+  });
+
+  it("renders manager-only workspace sections for managers", () => {
+    const html = renderToStaticMarkup(
+      <TrainingPanel
+        aiAvailable
+        canManage
+        initialModules={baseModules}
+        initialTeamProgress={initialTeamProgress}
+        initialTeamRows={initialTeamRows}
+        rubricCategories={[]}
+      />,
+    );
+
+    expect(html).toContain("Course overview");
+    expect(html).toContain("Modules");
+    expect(html).toContain("Quiz");
+    expect(html).toContain("Assignments");
+    expect(html).toContain("Team progress");
+    expect(html).toContain("AI tools");
+  });
+
+  it("enables module-scoped AI drafting only when course context is attached", () => {
+    expect(
+      getTrainingModuleAiContextAvailability(
+        {
+          ...baseModules[0],
+          description: null,
+          videoUrl: null,
+        },
+        "",
+      ),
+    ).toBe(false);
+
+    expect(getTrainingModuleAiContextAvailability(baseModules[0], "")).toBe(true);
+    expect(
+      getTrainingModuleAiContextAvailability(
+        {
+          ...baseModules[0],
+          description: null,
+          videoUrl: null,
+        },
+        "Use this context to ground the draft.",
+      ),
+    ).toBe(true);
   });
 });
