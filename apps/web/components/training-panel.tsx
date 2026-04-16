@@ -60,6 +60,7 @@ type TrainingPanelProps = {
   initialModules: TrainingModuleSummary[];
   initialTeamProgress: TrainingTeamProgressShell;
   initialTeamRows: TrainingTeamProgress[];
+  rubricCategories?: Array<{ slug: string; name: string }>;
 };
 
 type JsonResponse<T> =
@@ -229,6 +230,7 @@ export function TrainingPanel({
   initialModules,
   initialTeamProgress,
   initialTeamRows,
+  rubricCategories = [],
 }: TrainingPanelProps) {
   const [modules, setModules] = useState(initialModules);
   const [teamRows, setTeamRows] = useState(initialTeamRows);
