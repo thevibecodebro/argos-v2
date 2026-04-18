@@ -1,5 +1,6 @@
 import { findUserWithOrgByAuthId, findUsersByIds, getSupabaseAdminClient, toDate } from "@/lib/supabase/admin-repository-helpers";
 import type { CallsFilters, CallsRepository } from "./service";
+import type { CallEvaluation } from "./types";
 
 type SupabaseCallRow = {
   id: string;
@@ -90,6 +91,51 @@ export class SupabaseCallsRepository implements CallsRepository {
       body: input.body,
       link: input.link,
     });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  async deleteCall(callId: string) {
+    const supabase: any = this.supabase;
+    const { error } = await supabase.from("calls").delete().eq("id", callId);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  async createOrResetCallProcessingJob(input: {
+    callId: string;
+    sourceOrigin: "manual_upload" | "zoom_recording";
+    sourceStoragePath: string;
+    sourceFileName: string;
+    sourceContentType: string | null;
+    sourceSizeBytes: number | null;
+  }) {
+    const supabase: any = this.supabase;
+    const { error } = await supabase
+      .from("call_processing_jobs")
+      .upsert(
+        {
+          call_id: input.callId,
+          source_origin: input.sourceOrigin,
+          source_storage_path: input.sourceStoragePath,
+          source_file_name: input.sourceFileName,
+          source_content_type: input.sourceContentType,
+          source_size_bytes: input.sourceSizeBytes,
+          status: "pending",
+          attempt_count: 0,
+          next_run_at: new Date().toISOString(),
+          locked_at: null,
+          lock_expires_at: null,
+          last_stage: null,
+          last_error: null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "call_id" },
+      );
 
     if (error) {
       throw new Error(error.message);
@@ -335,7 +381,7 @@ export class SupabaseCallsRepository implements CallsRepository {
     };
   }
 
-  async setCallEvaluation(callId: string, evaluation: any) {
+  async setCallEvaluation(callId: string, evaluation: CallEvaluation) {
     const supabase: any = this.supabase;
     const { error } = await supabase
       .from("calls")
@@ -385,6 +431,18 @@ export class SupabaseCallsRepository implements CallsRepository {
       if (insertError) {
         throw new Error(insertError.message);
       }
+    }
+  }
+
+  async updateCallRecording(callId: string, recordingUrl: string | null) {
+    const supabase: any = this.supabase;
+    const { error } = await supabase
+      .from("calls")
+      .update({ recording_url: recordingUrl })
+      .eq("id", callId);
+
+    if (error) {
+      throw new Error(error.message);
     }
   }
 

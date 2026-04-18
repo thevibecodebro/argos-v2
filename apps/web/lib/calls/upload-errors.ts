@@ -10,6 +10,9 @@ export const UPLOAD_CALL_ERROR_CODES = {
   unsupportedFileType: "unsupported_file_type",
 } as const;
 
+export const uploadProcessingFailedMessage =
+  "The call upload could not be queued for processing.";
+
 export function uploadCallErrorJson(
   code: UploadErrorCode,
   message: string,

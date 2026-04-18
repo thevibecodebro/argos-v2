@@ -7,6 +7,8 @@ function createRepository(
   return {
     createCall: vi.fn(),
     createNotification: vi.fn(),
+    createOrResetCallProcessingJob: vi.fn(),
+    deleteCall: vi.fn(),
     deleteAnnotation: vi.fn(),
     findAnnotations: vi.fn(),
     findCallById: vi.fn(),
@@ -19,6 +21,7 @@ function createRepository(
     findScoreTrend: vi.fn(),
     insertAnnotation: vi.fn(),
     setCallEvaluation: vi.fn(),
+    updateCallRecording: vi.fn(),
     updateCallStatus: vi.fn(),
     updateCallTopic: vi.fn(),
     updateMomentHighlight: vi.fn(),
@@ -27,7 +30,7 @@ function createRepository(
 }
 
 describe("uploadCall", () => {
-  it("marks the call failed if evaluation crashes after the record is created", async () => {
+  it("stores the source asset and queues a processing job instead of scoring inline", async () => {
     const repository = createRepository({
       findCurrentUserByAuthId: vi.fn().mockResolvedValue({
         id: "rep-1",
@@ -39,25 +42,52 @@ describe("uploadCall", () => {
       }),
       createCall: vi.fn().mockResolvedValue({
         id: "call-1",
-        status: "evaluating",
+        status: "uploaded",
         createdAt: new Date("2026-04-17T00:00:00.000Z"),
       }),
-      setCallEvaluation: vi.fn().mockRejectedValue(new Error("transcriber unavailable")),
-      updateCallStatus: vi.fn().mockResolvedValue(undefined),
+      createOrResetCallProcessingJob: vi.fn().mockResolvedValue(undefined),
+      updateCallRecording: vi.fn().mockResolvedValue(undefined),
+    });
+    const storeSourceAsset = vi.fn().mockResolvedValue({
+      storagePath: "recordings/call-1/source/demo.mp3",
+      publicUrl: "https://storage.example/call-1/demo.mp3",
     });
 
-    await expect(
-      uploadCall(repository, "rep-1", {
-        fileName: "discovery-call.mp3",
-        fileSizeBytes: 10 * 1024 * 1024,
-        callTopic: "Discovery call",
-      }),
-    ).rejects.toThrow("transcriber unavailable");
+    const result = await uploadCall(
+      repository,
+      "rep-1",
+      {
+        fileName: "demo.mp3",
+        fileSizeBytes: 12_000_000,
+        callTopic: "Discovery",
+        recording: {
+          bytes: Buffer.from("fake audio"),
+          contentType: "audio/mpeg",
+        },
+      },
+      {
+        storeSourceAsset,
+      },
+    );
 
-    expect(repository.updateCallStatus).toHaveBeenCalledWith("call-1", "failed");
+    expect(result.ok && result.data.status).toBe("uploaded");
+    expect(storeSourceAsset).toHaveBeenCalledTimes(1);
+    expect(repository.updateCallRecording).toHaveBeenCalledWith(
+      "call-1",
+      "https://storage.example/call-1/demo.mp3",
+    );
+    expect(repository.createOrResetCallProcessingJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        callId: "call-1",
+        sourceOrigin: "manual_upload",
+        sourceStoragePath: "recordings/call-1/source/demo.mp3",
+      }),
+    );
+    expect(repository.setCallEvaluation).not.toHaveBeenCalled();
+    expect(repository.createNotification).not.toHaveBeenCalled();
   });
 
-  it("does not fail the upload when notification delivery fails after scoring", async () => {
+  it("marks the call failed if queueing crashes after the record is created", async () => {
     const repository = createRepository({
       findCurrentUserByAuthId: vi.fn().mockResolvedValue({
         id: "rep-1",
@@ -69,25 +99,76 @@ describe("uploadCall", () => {
       }),
       createCall: vi.fn().mockResolvedValue({
         id: "call-1",
-        status: "evaluating",
+        status: "uploaded",
         createdAt: new Date("2026-04-17T00:00:00.000Z"),
       }),
-      setCallEvaluation: vi.fn().mockResolvedValue(undefined),
-      createNotification: vi.fn().mockRejectedValue(new Error("notifications offline")),
       updateCallStatus: vi.fn().mockResolvedValue(undefined),
     });
+    const storeSourceAsset = vi.fn().mockRejectedValue(new Error("storage offline"));
 
-    const result = await uploadCall(repository, "rep-1", {
-      fileName: "discovery-call.mp3",
-      fileSizeBytes: 10 * 1024 * 1024,
-      callTopic: "Discovery call",
+    await expect(
+      uploadCall(
+        repository,
+        "rep-1",
+        {
+          fileName: "demo.mp3",
+          fileSizeBytes: 12_000_000,
+          callTopic: "Discovery",
+          recording: {
+            bytes: Buffer.from("fake audio"),
+            contentType: "audio/mpeg",
+          },
+        },
+        {
+          storeSourceAsset,
+        },
+      ),
+    ).rejects.toThrow("storage offline");
+
+    expect(repository.updateCallStatus).toHaveBeenCalledWith("call-1", "failed");
+    expect(repository.setCallEvaluation).not.toHaveBeenCalled();
+  });
+
+  it("deletes the call if queueing cleanup cannot mark it failed", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "rep-1",
+        email: "rep@argos.ai",
+        role: "rep",
+        firstName: "Riley",
+        lastName: "Stone",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      createCall: vi.fn().mockResolvedValue({
+        id: "call-1",
+        status: "uploaded",
+        createdAt: new Date("2026-04-17T00:00:00.000Z"),
+      }),
+      updateCallStatus: vi.fn().mockRejectedValue(new Error("write unavailable")),
+      deleteCall: vi.fn().mockResolvedValue(undefined),
     });
+    const storeSourceAsset = vi.fn().mockRejectedValue(new Error("storage offline"));
 
-    expect(result.ok).toBe(true);
-    if (!result.ok) {
-      throw new Error("Expected upload success");
-    }
-    expect(result.data.id).toBe("call-1");
-    expect(repository.updateCallStatus).not.toHaveBeenCalled();
+    await expect(
+      uploadCall(
+        repository,
+        "rep-1",
+        {
+          fileName: "demo.mp3",
+          fileSizeBytes: 12_000_000,
+          callTopic: "Discovery",
+          recording: {
+            bytes: Buffer.from("fake audio"),
+            contentType: "audio/mpeg",
+          },
+        },
+        {
+          storeSourceAsset,
+        },
+      ),
+    ).rejects.toThrow("storage offline");
+
+    expect(repository.updateCallStatus).toHaveBeenCalledWith("call-1", "failed");
+    expect(repository.deleteCall).toHaveBeenCalledWith("call-1");
   });
 });

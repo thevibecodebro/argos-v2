@@ -5,7 +5,11 @@ import {
   CALL_UPLOAD_MAX_BYTES,
   isAcceptedUploadFile,
 } from "@/lib/calls/upload-contract";
-import { uploadCallErrorJson, UPLOAD_CALL_ERROR_CODES } from "@/lib/calls/upload-errors";
+import {
+  uploadCallErrorJson,
+  uploadProcessingFailedMessage,
+  UPLOAD_CALL_ERROR_CODES,
+} from "@/lib/calls/upload-errors";
 import { uploadCall } from "@/lib/calls/service";
 import { unauthorizedJson } from "@/lib/http";
 
@@ -79,10 +83,15 @@ export async function POST(request: Request) {
     }
 
     try {
+      const recordingBytes = Buffer.from(await recording.arrayBuffer());
       const result = await uploadCall(createCallsRepository(), authUser.id, {
         callTopic: typeof callTopic === "string" ? callTopic : null,
         fileName: recording.name,
         fileSizeBytes: recording.size,
+        recording: {
+          bytes: recordingBytes,
+          contentType: recording.type || null,
+        },
       });
 
       if (!result.ok) {
@@ -103,10 +112,10 @@ export async function POST(request: Request) {
 
       return uploadCallErrorJson(
         UPLOAD_CALL_ERROR_CODES.processingFailed,
-        "The call uploaded, but Argos could not finish analyzing it.",
+        uploadProcessingFailedMessage,
         500,
         {
-          action: "Retry the upload. If it keeps failing, try a smaller recording.",
+          action: "Retry the upload. If it keeps failing, contact support.",
           details: {
             reason: error instanceof Error ? error.message : "Internal server error",
           },
@@ -118,7 +127,7 @@ export async function POST(request: Request) {
 
     return uploadCallErrorJson(
       UPLOAD_CALL_ERROR_CODES.processingFailed,
-      "The call upload could not be completed.",
+      uploadProcessingFailedMessage,
       500,
       {
         details: {

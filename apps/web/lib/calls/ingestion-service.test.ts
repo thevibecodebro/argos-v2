@@ -1,0 +1,72 @@
+import { describe, expect, it, vi } from "vitest";
+import { storeManualCallSource } from "./ingestion-service";
+
+describe("storeManualCallSource", () => {
+  it("uploads the source recording and returns the stored asset info", async () => {
+    const upload = vi.fn().mockResolvedValue({ error: null });
+    const getPublicUrl = vi.fn().mockReturnValue({
+      data: { publicUrl: "https://storage.example/recordings/call-1/source/demo.mp3" },
+    });
+    const from = vi.fn().mockReturnValue({
+      upload,
+      getPublicUrl,
+    });
+
+    const result = await storeManualCallSource(
+      {
+        callId: "call-1",
+        bytes: Buffer.from("audio"),
+        contentType: "audio/mpeg",
+        fileName: "demo.mp3",
+      },
+      {
+        supabase: {
+          storage: {
+            from,
+          },
+        } as any,
+      },
+    );
+
+    expect(from).toHaveBeenCalledWith("call-recordings");
+    expect(upload).toHaveBeenCalledWith(
+      "recordings/call-1/source/demo.mp3",
+      Buffer.from("audio"),
+      {
+        contentType: "audio/mpeg",
+        upsert: true,
+      },
+    );
+    expect(result).toEqual({
+      storagePath: "recordings/call-1/source/demo.mp3",
+      publicUrl: "https://storage.example/recordings/call-1/source/demo.mp3",
+    });
+  });
+
+  it("throws a descriptive error when storage upload fails", async () => {
+    const from = vi.fn().mockReturnValue({
+      upload: vi.fn().mockResolvedValue({
+        error: { message: "bucket unavailable" },
+      }),
+      getPublicUrl: vi.fn(),
+    });
+
+    await expect(
+      storeManualCallSource(
+        {
+          callId: "call-1",
+          bytes: Buffer.from("audio"),
+          contentType: null,
+          fileName: "demo.mp3",
+        },
+        {
+          supabase: {
+            storage: {
+              from,
+            },
+          } as any,
+        },
+      ),
+    ).rejects.toThrow("Failed to store source recording: bucket unavailable");
+  });
+});

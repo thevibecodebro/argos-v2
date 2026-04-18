@@ -8,6 +8,10 @@ import {
 import type { AccessRepository } from "@/lib/access/repository.types";
 import type { DashboardUserRecord } from "@/lib/dashboard/service";
 import type { AppUserRole } from "@/lib/users/roles";
+import { storeManualCallSource, type SourceAsset } from "./ingestion-service";
+import type { CallEvaluation, TranscriptLine } from "./types";
+
+export type { TranscriptLine } from "./types";
 
 export type CallSummary = {
   id: string;
@@ -44,12 +48,6 @@ export type CallAnnotation = {
   authorFirstName: string | null;
   authorLastName: string | null;
   authorRole: string | null;
-};
-
-export type TranscriptLine = {
-  timestampSeconds: number;
-  speaker: string;
-  text: string;
 };
 
 export type CallDetail = CallSummary & {
@@ -132,33 +130,21 @@ type UploadCallInput = {
   callTopic?: string | null;
   fileName: string;
   fileSizeBytes: number;
+  recording: {
+    bytes: Buffer;
+    contentType: string | null;
+  };
 };
 
-type MockCallEvaluation = {
-  confidence: string;
-  durationSeconds: number;
-  callStageReached: string;
-  overallScore: number;
-  frameControlScore: number;
-  rapportScore: number;
-  discoveryScore: number;
-  painExpansionScore: number;
-  solutionScore: number;
-  objectionScore: number;
-  closingScore: number;
-  strengths: string[];
-  improvements: string[];
-  recommendedDrills: string[];
-  transcript: TranscriptLine[];
-  moments: Array<{
-    timestampSeconds: number;
-    category: string;
-    observation: string;
-    recommendation: string;
-    severity: "strength" | "improvement" | "critical";
-    isHighlight: boolean;
-    highlightNote: string | null;
-  }>;
+type StoreSourceAssetFunction = (input: {
+  callId: string;
+  bytes: Buffer;
+  contentType: string | null;
+  fileName: string;
+}) => Promise<SourceAsset>;
+
+type UploadCallDependencies = {
+  storeSourceAsset?: StoreSourceAssetFunction;
 };
 
 type UploadCallResult = {
@@ -191,6 +177,7 @@ export type CallsRepository = {
     type: "call_scored" | "annotation_added" | "module_assigned";
     userId: string;
   }): Promise<void>;
+  deleteCall(callId: string): Promise<void>;
   deleteAnnotation(annotationId: string, callId: string): Promise<boolean>;
   findAnnotations(callId: string): Promise<CallAnnotationRecord[]>;
   findCallById(callId: string): Promise<CallDetailRecord | null>;
@@ -216,7 +203,16 @@ export type CallsRepository = {
     note: string;
     timestampSeconds: number | null;
   }): Promise<CallAnnotationRecord>;
-  setCallEvaluation(callId: string, evaluation: MockCallEvaluation): Promise<void>;
+  createOrResetCallProcessingJob(input: {
+    callId: string;
+    sourceOrigin: "manual_upload" | "zoom_recording";
+    sourceStoragePath: string;
+    sourceFileName: string;
+    sourceContentType: string | null;
+    sourceSizeBytes: number | null;
+  }): Promise<void>;
+  setCallEvaluation(callId: string, evaluation: CallEvaluation): Promise<void>;
+  updateCallRecording(callId: string, recordingUrl: string | null): Promise<void>;
   updateCallStatus(
     callId: string,
     status: "uploaded" | "transcribing" | "evaluating" | "complete" | "failed",
@@ -888,6 +884,7 @@ export async function uploadCall(
   repository: CallsRepository,
   authUserId: string,
   input: UploadCallInput,
+  dependencies: UploadCallDependencies = {},
 ): Promise<ServiceResult<UploadCallResult>> {
   const viewerResult = await getViewer(repository, authUserId);
 
@@ -906,46 +903,57 @@ export async function uploadCall(
     };
   }
 
+  const topic = input.callTopic?.trim() || deriveCallTopicFromFileName(input.fileName);
+  const storeSourceAsset = dependencies.storeSourceAsset ?? storeManualCallSource;
   const created = await repository.createCall({
     orgId: viewer.org.id,
     repId: viewer.id,
-    callTopic: input.callTopic?.trim() || deriveCallTopicFromFileName(input.fileName),
+    callTopic: topic,
     durationSeconds: null,
     recordingUrl: null,
     transcriptUrl: null,
     consentConfirmed: true,
-    status: "evaluating",
+    status: "uploaded",
   });
 
-  const evaluation = buildMockEvaluation(input.fileName, input.callTopic ?? null, input.fileSizeBytes);
-
   try {
-    await repository.setCallEvaluation(created.id, evaluation);
+    const sourceAsset = await storeSourceAsset({
+      callId: created.id,
+      bytes: input.recording.bytes,
+      contentType: input.recording.contentType,
+      fileName: input.fileName,
+    });
+
+    await repository.updateCallRecording(created.id, sourceAsset.publicUrl);
+    await repository.createOrResetCallProcessingJob({
+      callId: created.id,
+      sourceOrigin: "manual_upload",
+      sourceStoragePath: sourceAsset.storagePath,
+      sourceFileName: input.fileName,
+      sourceContentType: input.recording.contentType,
+      sourceSizeBytes: input.fileSizeBytes,
+    });
+
+    return {
+      ok: true,
+      data: {
+        id: created.id,
+        status: "uploaded",
+        createdAt: created.createdAt.toISOString(),
+      },
+    };
   } catch (error) {
-    await repository.updateCallStatus(created.id, "failed").catch(() => undefined);
+    try {
+      await repository.updateCallStatus(created.id, "failed");
+    } catch (statusError) {
+      console.error("Failed to mark queued upload as failed", statusError);
+      await repository.deleteCall(created.id).catch((deleteError) => {
+        console.error("Failed to clean up queued upload after status update failure", deleteError);
+      });
+    }
+
     throw error;
   }
-
-  try {
-    await repository.createNotification({
-      body: `${input.callTopic?.trim() || deriveCallTopicFromFileName(input.fileName)} finished scoring with an ${evaluation.overallScore} overall score.`,
-      link: `/calls/${created.id}`,
-      title: "Call scored",
-      type: "call_scored",
-      userId: viewer.id,
-    });
-  } catch (error) {
-    console.error("Failed to create call upload notification", error);
-  }
-
-  return {
-    ok: true,
-    data: {
-      id: created.id,
-      status: "complete",
-      createdAt: created.createdAt.toISOString(),
-    },
-  };
 }
 
 function deriveCallTopicFromFileName(fileName: string) {
@@ -953,131 +961,4 @@ function deriveCallTopicFromFileName(fileName: string) {
     .replace(/\.[^/.]+$/, "")
     .replace(/[-_]+/g, " ")
     .trim() || "Uploaded call";
-}
-
-function buildMockEvaluation(
-  fileName: string,
-  callTopic: string | null,
-  fileSizeBytes: number,
-): MockCallEvaluation {
-  const seed = hashString(`${fileName}:${callTopic ?? ""}:${fileSizeBytes}`);
-  const base = 62 + (seed % 19);
-
-  const frameControlScore = clampScore(base + offset(seed, 0));
-  const rapportScore = clampScore(base + offset(seed, 1));
-  const discoveryScore = clampScore(base + offset(seed, 2));
-  const painExpansionScore = clampScore(base + offset(seed, 3));
-  const solutionScore = clampScore(base + offset(seed, 4));
-  const objectionScore = clampScore(base + offset(seed, 5));
-  const closingScore = clampScore(base + offset(seed, 6));
-  const overallScore = Math.round(
-    [
-      frameControlScore,
-      rapportScore,
-      discoveryScore,
-      painExpansionScore,
-      solutionScore,
-      objectionScore,
-      closingScore,
-    ].reduce((sum, score) => sum + score, 0) / 7,
-  );
-
-  const categories = [
-    ["Frame Control", frameControlScore],
-    ["Rapport", rapportScore],
-    ["Discovery", discoveryScore],
-    ["Pain Expansion", painExpansionScore],
-    ["Solution", solutionScore],
-    ["Objection Handling", objectionScore],
-    ["Closing", closingScore],
-  ] as const;
-
-  const sorted = [...categories].sort((left, right) => right[1] - left[1]);
-  const strengths = sorted.slice(0, 2).map(([label]) => `${label} showed above-team execution`);
-  const improvements = sorted.slice(-2).map(([label]) => `${label} needs tighter control and repetition`);
-  const recommendedDrills = sorted
-    .slice(-2)
-    .map(([label]) => `${label} drill`);
-
-  const topic = callTopic?.trim() || deriveCallTopicFromFileName(fileName);
-  const durationSeconds = 420 + (seed % 780);
-  const confidence = overallScore >= 85 ? "high" : overallScore >= 72 ? "medium" : "low";
-  const callStageReached = overallScore >= 82 ? "closed_won" : overallScore >= 70 ? "proposal" : "discovery";
-
-  const transcript: TranscriptLine[] = [
-    { timestampSeconds: 12, speaker: "Rep", text: `Thanks for making time today. I wanted to use this call to unpack ${topic.toLowerCase()} and see whether Argos is a fit.` },
-    { timestampSeconds: 47, speaker: "Prospect", text: "That works. We need better visibility into rep performance, but I need to understand the rollout effort." },
-    { timestampSeconds: 118, speaker: "Rep", text: "What is breaking most often today when managers coach from memory instead of call evidence?" },
-    { timestampSeconds: 194, speaker: "Prospect", text: "Consistency. Some reps improve quickly, but others repeat the same mistakes week after week." },
-    { timestampSeconds: 286, speaker: "Rep", text: "If we could flag those moments automatically and feed the exact drill back into training, would that change the rollout math?" },
-    { timestampSeconds: 351, speaker: "Prospect", text: "Yes, provided the workflow stays simple and we can see ROI in the first month." },
-  ];
-
-  const strongestCategory = sorted[0][0];
-  const weakestCategory = sorted[sorted.length - 1][0];
-
-  const moments: MockCallEvaluation["moments"] = [
-    {
-      timestampSeconds: 118,
-      category: "discovery",
-      observation: "The rep shifted from product pitch into diagnosis and uncovered the coaching consistency gap.",
-      recommendation: "Double down on layered follow-up questions before presenting the solution.",
-      severity: discoveryScore >= 80 ? "strength" : "improvement",
-      isHighlight: discoveryScore >= 80,
-      highlightNote: discoveryScore >= 80 ? "Strong discovery transition" : null,
-    },
-    {
-      timestampSeconds: 194,
-      category: weakestCategory.toLowerCase().replace(/\s+/g, "_"),
-      observation: `${weakestCategory} was the least developed segment of the call.`,
-      recommendation: `Practice a tighter ${weakestCategory.toLowerCase()} framework to move the conversation faster.`,
-      severity: "improvement",
-      isHighlight: false,
-      highlightNote: null,
-    },
-    {
-      timestampSeconds: 286,
-      category: strongestCategory.toLowerCase().replace(/\s+/g, "_"),
-      observation: `The rep connected the platform directly to the buyer's business outcome with strong ${strongestCategory.toLowerCase()}.`,
-      recommendation: "Reuse this exact framing in future coaching examples.",
-      severity: "strength",
-      isHighlight: true,
-      highlightNote: "Worth using as a team example",
-    },
-  ];
-
-  return {
-    confidence,
-    durationSeconds,
-    callStageReached,
-    overallScore,
-    frameControlScore,
-    rapportScore,
-    discoveryScore,
-    painExpansionScore,
-    solutionScore,
-    objectionScore,
-    closingScore,
-    strengths,
-    improvements,
-    recommendedDrills,
-    transcript,
-    moments,
-  };
-}
-
-function hashString(value: string) {
-  let hash = 0;
-  for (let index = 0; index < value.length; index += 1) {
-    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
-  }
-  return hash;
-}
-
-function offset(seed: number, index: number) {
-  return ((seed >> (index * 3)) % 15) - 7;
-}
-
-function clampScore(value: number) {
-  return Math.max(44, Math.min(96, value));
 }

@@ -92,11 +92,50 @@ describe("calls upload route", () => {
     expect(response.status).toBe(500);
     await expect(response.json()).resolves.toMatchObject({
       code: "processing_failed",
-      error: "The call uploaded, but Argos could not finish analyzing it.",
+      error: "The call upload could not be queued for processing.",
       retryable: true,
       details: {
         reason: "transcriber unavailable",
       },
     });
+  });
+
+  it("passes the uploaded file bytes and mime type to the calls service", async () => {
+    uploadCall.mockResolvedValue({
+      ok: true,
+      data: {
+        id: "call-1",
+        status: "uploaded",
+        createdAt: "2026-04-17T00:00:00.000Z",
+      },
+    });
+
+    const route = await import("../app/api/calls/upload/route");
+    const form = new FormData();
+    form.append("recording", new File(["audio-bytes"], "call.mp3", { type: "audio/mpeg" }));
+    form.append("consentConfirmed", "true");
+    form.append("callTopic", "Discovery call");
+
+    const response = await route.POST(
+      new Request("http://localhost:3000/api/calls/upload", {
+        method: "POST",
+        body: form,
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(uploadCall).toHaveBeenCalledWith(
+      {},
+      "auth-user-1",
+      expect.objectContaining({
+        fileName: "call.mp3",
+        fileSizeBytes: 11,
+        callTopic: "Discovery call",
+        recording: {
+          bytes: expect.any(Uint8Array),
+          contentType: "audio/mpeg",
+        },
+      }),
+    );
   });
 });

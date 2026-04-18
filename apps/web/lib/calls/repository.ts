@@ -1,6 +1,7 @@
 import { and, asc, count, desc, eq, gte, ilike, inArray, isNotNull, lte, sql } from "drizzle-orm";
 import {
   callAnnotationsTable,
+  callProcessingJobsTable,
   callMomentsTable,
   callsTable,
   getDb,
@@ -11,6 +12,7 @@ import {
 } from "@argos-v2/db";
 import { parseAppUserRole } from "@/lib/users/roles";
 import type { CallsFilters, CallsRepository } from "./service";
+import type { CallEvaluation } from "./types";
 
 export class DrizzleCallsRepository implements CallsRepository {
   constructor(private readonly db: ArgosDb = getDb()) {}
@@ -45,6 +47,49 @@ export class DrizzleCallsRepository implements CallsRepository {
     userId: string;
   }) {
     await this.db.insert(notificationsTable).values(input);
+  }
+
+  async deleteCall(callId: string) {
+    await this.db.delete(callsTable).where(eq(callsTable.id, callId));
+  }
+
+  async createOrResetCallProcessingJob(input: {
+    callId: string;
+    sourceOrigin: "manual_upload" | "zoom_recording";
+    sourceStoragePath: string;
+    sourceFileName: string;
+    sourceContentType: string | null;
+    sourceSizeBytes: number | null;
+  }) {
+    await this.db
+      .insert(callProcessingJobsTable)
+      .values({
+        callId: input.callId,
+        sourceOrigin: input.sourceOrigin,
+        sourceStoragePath: input.sourceStoragePath,
+        sourceFileName: input.sourceFileName,
+        sourceContentType: input.sourceContentType,
+        sourceSizeBytes: input.sourceSizeBytes,
+        status: "pending",
+      })
+      .onConflictDoUpdate({
+        target: callProcessingJobsTable.callId,
+        set: {
+          sourceOrigin: input.sourceOrigin,
+          sourceStoragePath: input.sourceStoragePath,
+          sourceFileName: input.sourceFileName,
+          sourceContentType: input.sourceContentType,
+          sourceSizeBytes: input.sourceSizeBytes,
+          status: "pending",
+          attemptCount: 0,
+          nextRunAt: new Date(),
+          lockedAt: null,
+          lockExpiresAt: null,
+          lastStage: null,
+          lastError: null,
+          updatedAt: new Date(),
+        },
+      });
   }
 
   async deleteAnnotation(annotationId: string, callId: string) {
@@ -319,32 +364,7 @@ export class DrizzleCallsRepository implements CallsRepository {
     };
   }
 
-  async setCallEvaluation(callId: string, evaluation: {
-    confidence: string;
-    durationSeconds: number;
-    callStageReached: string;
-    overallScore: number;
-    frameControlScore: number;
-    rapportScore: number;
-    discoveryScore: number;
-    painExpansionScore: number;
-    solutionScore: number;
-    objectionScore: number;
-    closingScore: number;
-    strengths: string[];
-    improvements: string[];
-    recommendedDrills: string[];
-    transcript: unknown;
-    moments: Array<{
-      timestampSeconds: number;
-      category: string;
-      observation: string;
-      recommendation: string;
-      severity: "strength" | "improvement" | "critical";
-      isHighlight: boolean;
-      highlightNote: string | null;
-    }>;
-  }) {
+  async setCallEvaluation(callId: string, evaluation: CallEvaluation) {
     await this.db.transaction(async (tx) => {
       await tx
         .update(callsTable)
@@ -385,6 +405,13 @@ export class DrizzleCallsRepository implements CallsRepository {
         );
       }
     });
+  }
+
+  async updateCallRecording(callId: string, recordingUrl: string | null) {
+    await this.db
+      .update(callsTable)
+      .set({ recordingUrl })
+      .where(eq(callsTable.id, callId));
   }
 
   async updateCallStatus(
