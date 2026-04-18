@@ -1,20 +1,19 @@
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { createCallsRepository } from "@/lib/calls/create-repository";
+import {
+  CALL_UPLOAD_ACCEPTED_TYPES,
+  CALL_UPLOAD_MAX_BYTES,
+  isAcceptedUploadFile,
+} from "@/lib/calls/upload-contract";
+import {
+  uploadCallErrorJson,
+  uploadProcessingFailedMessage,
+  UPLOAD_CALL_ERROR_CODES,
+} from "@/lib/calls/upload-errors";
 import { uploadCall } from "@/lib/calls/service";
-import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { unauthorizedJson } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
-
-const ALLOWED_FILE_TYPES = new Set([
-  "audio/mpeg",
-  "audio/mp4",
-  "audio/x-m4a",
-  "audio/wav",
-  "audio/webm",
-  "video/mp4",
-  "video/webm",
-  "audio/mp3",
-]);
 
 export async function POST(request: Request) {
   try {
@@ -24,40 +23,117 @@ export async function POST(request: Request) {
       return unauthorizedJson();
     }
 
-    const formData = await request.formData();
+    const formData = await request.formData().catch(() => null);
+
+    if (!formData) {
+      return uploadCallErrorJson(
+        UPLOAD_CALL_ERROR_CODES.invalidUpload,
+        "The upload request could not be read.",
+        400,
+      );
+    }
+
     const recording = formData.get("recording");
     const consentConfirmed = formData.get("consentConfirmed");
     const callTopic = formData.get("callTopic");
 
     if (!(recording instanceof File)) {
-      return Response.json({ error: "No file uploaded" }, { status: 400 });
+      return uploadCallErrorJson(
+        UPLOAD_CALL_ERROR_CODES.missingFile,
+        "Upload a call recording before submitting the form.",
+        400,
+      );
     }
 
-    if (!ALLOWED_FILE_TYPES.has(recording.type)) {
-      return Response.json({ error: `File type not allowed: ${recording.type}` }, { status: 400 });
+    if (!isAcceptedUploadFile(recording)) {
+      return uploadCallErrorJson(
+        UPLOAD_CALL_ERROR_CODES.unsupportedFileType,
+        "This recording format is not supported.",
+        415,
+        {
+          action: "Use MP3, WAV, M4A, MP4, or WebM and try again.",
+          details: {
+            allowedTypes: [...CALL_UPLOAD_ACCEPTED_TYPES],
+            receivedType: recording.type || null,
+          },
+        },
+      );
     }
 
-    if (recording.size > 500 * 1024 * 1024) {
-      return Response.json({ error: "File exceeds 500 MB limit" }, { status: 400 });
+    if (recording.size > CALL_UPLOAD_MAX_BYTES) {
+      return uploadCallErrorJson(
+        UPLOAD_CALL_ERROR_CODES.fileTooLarge,
+        "Call recordings must be 500 MB or smaller.",
+        413,
+        {
+          details: {
+            maxBytes: CALL_UPLOAD_MAX_BYTES,
+            fileSizeBytes: recording.size,
+          },
+        },
+      );
     }
 
     if (consentConfirmed !== "true") {
-      return Response.json({ error: "Call consent must be confirmed before upload" }, { status: 400 });
+      return uploadCallErrorJson(
+        UPLOAD_CALL_ERROR_CODES.consentRequired,
+        "Confirm call consent before uploading the recording.",
+        400,
+      );
     }
 
-    const result = await uploadCall(createCallsRepository(), authUser.id, {
-      callTopic: typeof callTopic === "string" ? callTopic : null,
-      fileName: recording.name,
-      fileSizeBytes: recording.size,
-    });
+    try {
+      const recordingBytes = Buffer.from(await recording.arrayBuffer());
+      const result = await uploadCall(createCallsRepository(), authUser.id, {
+        callTopic: typeof callTopic === "string" ? callTopic : null,
+        fileName: recording.name,
+        fileSizeBytes: recording.size,
+        recording: {
+          bytes: recordingBytes,
+          contentType: recording.type || null,
+        },
+      });
 
-    return fromServiceResult(result);
+      if (!result.ok) {
+        return Response.json(
+          {
+            code: result.code,
+            error: result.error,
+          },
+          { status: result.status },
+        );
+      }
+
+      return Response.json(result.data, {
+        headers: { "Cache-Control": "private, no-store" },
+      });
+    } catch (error) {
+      console.error("Failed to upload call", error);
+
+      return uploadCallErrorJson(
+        UPLOAD_CALL_ERROR_CODES.processingFailed,
+        uploadProcessingFailedMessage,
+        500,
+        {
+          action: "Retry the upload. If it keeps failing, contact support.",
+          details: {
+            reason: error instanceof Error ? error.message : "Internal server error",
+          },
+        },
+      );
+    }
   } catch (error) {
     console.error("Failed to upload call", error);
 
-    return Response.json(
-      { error: error instanceof Error ? error.message : "Internal server error" },
-      { status: 500 },
+    return uploadCallErrorJson(
+      UPLOAD_CALL_ERROR_CODES.processingFailed,
+      uploadProcessingFailedMessage,
+      500,
+      {
+        details: {
+          reason: error instanceof Error ? error.message : "Internal server error",
+        },
+      },
     );
   }
 }
