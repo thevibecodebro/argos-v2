@@ -1,12 +1,54 @@
 import { createServer } from "node:http";
+import { existsSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { CallProcessingRepository } from "./calls/repository";
 import { getWorkerEnv } from "./env";
+import { pollCallProcessingJobs } from "./jobs/poll-call-processing-jobs";
+import { processCallJob } from "./jobs/process-call-job";
+
+function loadLocalWorkerEnvFiles() {
+  if (typeof process.loadEnvFile !== "function") {
+    return;
+  }
+
+  const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
+  const candidates = [
+    resolve(repoRoot, "apps/web/.env"),
+    resolve(repoRoot, "apps/web/.env.local"),
+  ];
+
+  for (const filePath of candidates) {
+    if (existsSync(filePath)) {
+      process.loadEnvFile(filePath);
+    }
+  }
+}
+
+loadLocalWorkerEnvFiles();
 
 const env = getWorkerEnv();
 
 if (env.callProcessingEnabled) {
-  console.warn(
-    "CALL_PROCESSING_ENABLED is set, but the job processor is not wired until Task 7. Polling remains disabled.",
-  );
+  const repository = new CallProcessingRepository();
+
+  void pollCallProcessingJobs({
+    repository,
+    pollIntervalMs: env.pollIntervalMs,
+    processJob: async (job) => {
+      try {
+        await processCallJob({
+          env,
+          job,
+          repository,
+        });
+      } catch (error) {
+        console.error(`Call processing job ${job.id} failed`, error);
+      }
+    },
+  }).catch((error) => {
+    console.error("Call processing poll loop stopped", error);
+  });
 }
 
 const server = createServer((request, response) => {

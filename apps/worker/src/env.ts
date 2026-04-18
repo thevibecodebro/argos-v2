@@ -6,6 +6,7 @@ export type WorkerEnv = {
   ffmpegBinary: string | null;
   host: string;
   maxSourceBytes: number;
+  openaiApiKey: string | null;
   port: number;
   nodeEnv: string;
   pollIntervalMs: number;
@@ -62,18 +63,40 @@ function parseInteger(
   return parsed;
 }
 
-function readEnv(
-  env: WorkerEnvSource,
-  key: "DATABASE_URL" | "SUPABASE_SERVICE_ROLE_KEY" | "SUPABASE_URL",
-) {
-  return env[key]?.trim() || null;
+function readEnv(env: WorkerEnvSource, ...keys: string[]) {
+  for (const key of keys) {
+    const value = env[key]?.trim();
+
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
 }
 
 export function getWorkerEnv(env: WorkerEnvSource = process.env): WorkerEnv {
   const callProcessingEnabled = parseBoolean(env.CALL_PROCESSING_ENABLED, false);
   const databaseUrl = readEnv(env, "DATABASE_URL");
+  const ffmpegBinary = readEnv(env, "FFMPEG_BINARY", "CALL_PROCESSING_FFMPEG_BINARY");
+  const openaiApiKey = readEnv(env, "OPENAI_API_KEY");
   const supabaseServiceRoleKey = readEnv(env, "SUPABASE_SERVICE_ROLE_KEY");
-  const supabaseUrl = readEnv(env, "SUPABASE_URL");
+  const supabaseUrl = readEnv(env, "SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL");
+  const maxSourceBytes = parseInteger(
+    env.CALL_PROCESSING_MAX_SOURCE_BYTES ?? env.MAX_SOURCE_BYTES,
+    500 * 1024 * 1024,
+    "CALL_PROCESSING_MAX_SOURCE_BYTES",
+  );
+  const pollIntervalMs = parseInteger(
+    env.CALL_PROCESSING_POLL_INTERVAL_MS ?? env.POLL_INTERVAL_MS,
+    5_000,
+    "CALL_PROCESSING_POLL_INTERVAL_MS",
+  );
+  const transcribeConcurrency = parseInteger(
+    env.CALL_PROCESSING_TRANSCRIBE_CONCURRENCY ?? env.TRANSCRIBE_CONCURRENCY,
+    3,
+    "CALL_PROCESSING_TRANSCRIBE_CONCURRENCY",
+  );
 
   if (callProcessingEnabled) {
     if (!databaseUrl) {
@@ -87,19 +110,24 @@ export function getWorkerEnv(env: WorkerEnvSource = process.env): WorkerEnv {
     if (!supabaseUrl) {
       throw new Error("Missing required environment variable: SUPABASE_URL");
     }
+
+    if (!openaiApiKey) {
+      throw new Error("Missing required environment variable: OPENAI_API_KEY");
+    }
   }
 
   return {
     callProcessingEnabled,
     databaseUrl,
-    ffmpegBinary: env.FFMPEG_BINARY?.trim() || null,
+    ffmpegBinary,
     host: env.HOST || "0.0.0.0",
-    maxSourceBytes: parseInteger(env.MAX_SOURCE_BYTES, 500 * 1024 * 1024, "MAX_SOURCE_BYTES"),
+    maxSourceBytes,
+    openaiApiKey,
     port: parsePort(env.PORT),
     nodeEnv: env.NODE_ENV || "development",
-    pollIntervalMs: parseInteger(env.POLL_INTERVAL_MS, 5_000, "POLL_INTERVAL_MS"),
+    pollIntervalMs,
     supabaseServiceRoleKey,
     supabaseUrl,
-    transcribeConcurrency: parseInteger(env.TRANSCRIBE_CONCURRENCY, 3, "TRANSCRIBE_CONCURRENCY"),
+    transcribeConcurrency,
   };
 }

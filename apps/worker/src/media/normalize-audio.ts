@@ -1,3 +1,4 @@
+import { stat } from "node:fs/promises";
 import { runFfmpeg } from "./ffmpeg";
 
 type NormalizeAudioInput = {
@@ -8,6 +9,7 @@ type NormalizeAudioInput = {
 
 type NormalizeAudioDependencies = {
   spawn?: typeof runFfmpeg;
+  stat?: typeof stat;
 };
 
 export async function normalizeAudio(
@@ -15,6 +17,7 @@ export async function normalizeAudio(
   dependencies: NormalizeAudioDependencies = {},
 ) {
   const spawn = dependencies.spawn ?? runFfmpeg;
+  const readStat = dependencies.stat ?? stat;
 
   await spawn(
     input.ffmpegBinary,
@@ -33,7 +36,11 @@ export async function normalizeAudio(
     ],
   );
 
+  const outputStats = await readStat(input.outputPath);
+
   return {
     outputPath: input.outputPath,
+    sizeBytes: outputStats.size,
+    durationSeconds: Math.max(1, Math.round((outputStats.size * 8) / 32_000)),
   };
 }

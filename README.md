@@ -16,7 +16,7 @@ Next.js 15 + Supabase replatform for Argos.
 - Supabase SSR auth plumbing with middleware, callback route, and login screen
 - Tailwind v4 styling and shared `@argos-v2/ui` button primitive
 - Drizzle database client + dashboard summary feature slice
-- Worker HTTP health server in `apps/worker`
+- Worker queue polling for call transcription/scoring in `apps/worker`
 - Shared Drizzle schema package in `packages/db`
 
 ## Commands
@@ -29,6 +29,34 @@ Next.js 15 + Supabase replatform for Argos.
 - `npm run test:worker`
 - `npm run typecheck:web`
 - `npm run typecheck:worker`
+
+## Worker Call Processing
+
+The worker owns async call processing for manual uploads and Zoom recordings. When `CALL_PROCESSING_ENABLED=true`, it claims jobs from `call_processing_jobs`, downloads the stored source asset, normalizes it to mono 16 kHz MP3, chunks oversized recordings, transcribes them, scores the merged transcript, and persists the final evaluation back to `calls` and `call_moments`.
+
+For local development, `apps/worker/src/index.ts` automatically loads `apps/web/.env` and `apps/web/.env.local` before reading worker config. Keep the worker env values in the same file as the web app unless you explicitly export them in your shell.
+
+Required worker env vars when processing is enabled:
+
+- `DATABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_URL`
+- `OPENAI_API_KEY`
+
+Optional worker test env var:
+
+- `WORKER_TEST_DATABASE_URL` to force the worker repository integration tests onto a specific local Postgres instance. If unset, the suite will use a local-only `DATABASE_URL` when available, otherwise it will probe the default Supabase local Postgres at `127.0.0.1:54322` and skip the DB-backed tests if that database is not reachable.
+
+Recommended worker env vars:
+
+- `OPENAI_CALL_SCORING_MODEL`
+- `OPENAI_CALL_TRANSCRIPTION_MODEL`
+- `FFMPEG_BINARY` if you want to override the bundled `ffmpeg-static` binary
+- `CALL_PROCESSING_POLL_INTERVAL_MS`
+- `CALL_PROCESSING_MAX_SOURCE_BYTES`
+- `CALL_PROCESSING_TRANSCRIBE_CONCURRENCY`
+
+The worker still exposes `/health` for uptime checks.
 
 ## Vercel Web Deploy
 

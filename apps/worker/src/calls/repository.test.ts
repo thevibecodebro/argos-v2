@@ -9,8 +9,9 @@ import {
 } from "@argos-v2/db";
 import { describe, expect, it } from "vitest";
 import { CallProcessingRepository } from "./repository";
+import { discoverWorkerTestDatabaseUrl } from "../test-support/database-env";
 
-const workerTestDatabaseUrl = process.env.WORKER_TEST_DATABASE_URL ?? process.env.DATABASE_URL;
+const workerTestDatabaseUrl = await discoverWorkerTestDatabaseUrl();
 const workerTestDb = workerTestDatabaseUrl ? createDb(workerTestDatabaseUrl) : null;
 
 const describeWithDatabase = workerTestDatabaseUrl ? describe : describe.skip;
@@ -45,6 +46,7 @@ async function seedCall(db: ArgosDb, callId = crypto.randomUUID()): Promise<Seed
     id: callId,
     orgId,
     repId,
+    callTopic: "Discovery",
     consentConfirmed: true,
     status: "uploaded",
   });
@@ -149,6 +151,8 @@ describeWithDatabase("CallProcessingRepository", () => {
 
       expect(claimed?.id).toBe(earlierJob.id);
       expect(claimed?.callId).toBe(seededCalls[1].callId);
+      expect(claimed?.repId).toBe(seededCalls[1].repId);
+      expect(claimed?.callTopic).toBe("Discovery");
       expect(claimed?.status).toBe("running");
       expect(claimed?.attemptCount).toBe(1);
       expect(claimed?.lockExpiresAt).toEqual(new Date("2026-04-18T10:15:00.000Z"));

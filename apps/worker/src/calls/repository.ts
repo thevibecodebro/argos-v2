@@ -1,11 +1,20 @@
 import { eq, sql } from "drizzle-orm";
 import {
+  callMomentsTable,
   callProcessingJobsTable,
+  callsTable,
   getDb,
+  notificationsTable,
   type ArgosDb,
 } from "@argos-v2/db";
+import type { CallEvaluation } from "@argos-v2/call-processing";
 
 type CallProcessingJobRecord = typeof callProcessingJobsTable.$inferSelect;
+type ClaimedCallProcessingJobRecord = CallProcessingJobRecord & {
+  repId: string;
+  callTopic: string | null;
+};
+type CallStatus = typeof callsTable.$inferSelect.status;
 
 type CallProcessingJobInsert = {
   callId: string;
@@ -72,7 +81,7 @@ function requireDate(value: Date | string | null, fieldName: string): Date {
   return date;
 }
 
-function normalizeJobRecord(row: CallProcessingJobRecord): CallProcessingJobRecord {
+function normalizeJobRecord<T extends CallProcessingJobRecord>(row: T): T {
   return {
     ...row,
     nextRunAt: requireDate(row.nextRunAt, "nextRunAt"),
@@ -113,45 +122,69 @@ export class CallProcessingRepository {
     return job ?? null;
   }
 
-  async claimNextJob(now = new Date()): Promise<CallProcessingJobRecord | null> {
+  async claimNextJob(now = new Date()): Promise<ClaimedCallProcessingJobRecord | null> {
     const leaseExpiresAt = new Date(now.getTime() + 15 * 60 * 1000);
-    const rows = extractRows<CallProcessingJobRecord>(
+    const rows = extractRows<ClaimedCallProcessingJobRecord>(
       await this.db.execute(sql`
-        update call_processing_jobs
-        set
-          status = 'running',
-          attempt_count = attempt_count + 1,
-          locked_at = ${now},
-          lock_expires_at = ${leaseExpiresAt},
-          updated_at = ${now}
-        where id = (
-          select id
-          from call_processing_jobs
-          where status in ('pending', 'retrying')
-            and next_run_at <= ${now}
-            and (lock_expires_at is null or lock_expires_at <= ${now})
-          order by next_run_at asc, created_at asc
-          limit 1
-          for update skip locked
+        with claimed as (
+          update call_processing_jobs
+          set
+            status = 'running',
+            attempt_count = attempt_count + 1,
+            locked_at = ${now},
+            lock_expires_at = ${leaseExpiresAt},
+            updated_at = ${now}
+          where id = (
+            select id
+            from call_processing_jobs
+            where status in ('pending', 'retrying')
+              and next_run_at <= ${now}
+              and (lock_expires_at is null or lock_expires_at <= ${now})
+            order by next_run_at asc, created_at asc
+            limit 1
+            for update skip locked
+          )
+          returning
+            id,
+            call_id as "callId",
+            source_origin as "sourceOrigin",
+            source_storage_path as "sourceStoragePath",
+            source_file_name as "sourceFileName",
+            source_content_type as "sourceContentType",
+            source_size_bytes as "sourceSizeBytes",
+            status,
+            attempt_count as "attemptCount",
+            max_attempts as "maxAttempts",
+            next_run_at as "nextRunAt",
+            locked_at as "lockedAt",
+            lock_expires_at as "lockExpiresAt",
+            last_stage as "lastStage",
+            last_error as "lastError",
+            created_at as "createdAt",
+            updated_at as "updatedAt"
         )
-        returning
-          id,
-          call_id as "callId",
-          source_origin as "sourceOrigin",
-          source_storage_path as "sourceStoragePath",
-          source_file_name as "sourceFileName",
-          source_content_type as "sourceContentType",
-          source_size_bytes as "sourceSizeBytes",
-          status,
-          attempt_count as "attemptCount",
-          max_attempts as "maxAttempts",
-          next_run_at as "nextRunAt",
-          locked_at as "lockedAt",
-          lock_expires_at as "lockExpiresAt",
-          last_stage as "lastStage",
-          last_error as "lastError",
-          created_at as "createdAt",
-          updated_at as "updatedAt";
+        select
+          claimed.id,
+          claimed."callId",
+          claimed."sourceOrigin",
+          claimed."sourceStoragePath",
+          claimed."sourceFileName",
+          claimed."sourceContentType",
+          claimed."sourceSizeBytes",
+          claimed.status,
+          claimed."attemptCount",
+          claimed."maxAttempts",
+          claimed."nextRunAt",
+          claimed."lockedAt",
+          claimed."lockExpiresAt",
+          claimed."lastStage",
+          claimed."lastError",
+          claimed."createdAt",
+          claimed."updatedAt",
+          calls.rep_id as "repId",
+          calls.call_topic as "callTopic"
+        from claimed
+        inner join calls on calls.id = claimed."callId";
       `),
     );
 
@@ -205,5 +238,76 @@ export class CallProcessingRepository {
         updatedAt: input.now,
       })
       .where(eq(callProcessingJobsTable.id, jobId));
+  }
+
+  async markJobComplete(jobId: string, now = new Date()): Promise<void> {
+    await this.markCompleted(jobId, {
+      now,
+      lastStage: "persist",
+    });
+  }
+
+  async markTerminalFailure(jobId: string, input: FailedJobInput): Promise<void> {
+    await this.markFailed(jobId, input);
+  }
+
+  async updateCallStatus(callId: string, status: CallStatus): Promise<void> {
+    await this.db
+      .update(callsTable)
+      .set({ status })
+      .where(eq(callsTable.id, callId));
+  }
+
+  async setCallEvaluation(callId: string, evaluation: CallEvaluation): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      await tx
+        .update(callsTable)
+        .set({
+          status: "complete",
+          durationSeconds: evaluation.durationSeconds,
+          overallScore: evaluation.overallScore,
+          frameControlScore: evaluation.frameControlScore,
+          rapportScore: evaluation.rapportScore,
+          discoveryScore: evaluation.discoveryScore,
+          painExpansionScore: evaluation.painExpansionScore,
+          solutionScore: evaluation.solutionScore,
+          objectionScore: evaluation.objectionScore,
+          closingScore: evaluation.closingScore,
+          confidence: evaluation.confidence,
+          callStageReached: evaluation.callStageReached,
+          strengths: evaluation.strengths,
+          improvements: evaluation.improvements,
+          recommendedDrills: evaluation.recommendedDrills,
+          transcript: evaluation.transcript,
+        })
+        .where(eq(callsTable.id, callId));
+
+      await tx.delete(callMomentsTable).where(eq(callMomentsTable.callId, callId));
+
+      if (evaluation.moments.length > 0) {
+        await tx.insert(callMomentsTable).values(
+          evaluation.moments.map((moment) => ({
+            callId,
+            timestampSeconds: moment.timestampSeconds,
+            category: moment.category,
+            observation: moment.observation,
+            recommendation: moment.recommendation,
+            severity: moment.severity,
+            isHighlight: moment.isHighlight,
+            highlightNote: moment.highlightNote,
+          })),
+        );
+      }
+    });
+  }
+
+  async createNotification(input: {
+    body: string;
+    link: string | null;
+    title: string;
+    type: "call_scored" | "annotation_added" | "module_assigned";
+    userId: string;
+  }): Promise<void> {
+    await this.db.insert(notificationsTable).values(input);
   }
 }
