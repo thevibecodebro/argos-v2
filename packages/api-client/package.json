@@ -1,0 +1,5 @@
+{
+  "name": "@argos-v2/api-client",
+  "private": true,
+  "types": "src/index.ts"
+}

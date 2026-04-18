@@ -326,6 +326,28 @@ function assertManager(user: DashboardUserRecord) {
   }
 }
 
+async function assertRequestedRepAccessible(
+  repository: DashboardRepository,
+  viewer: DashboardUserRecord,
+  access: NonNullable<Awaited<ReturnType<typeof resolveAccessContext>>>,
+  requestedRepId: string | undefined,
+) {
+  if (!requestedRepId || requestedRepId === viewer.id) {
+    return;
+  }
+
+  const orgUsers = await repository.findOrgUsersByOrgId(viewer.org!.id);
+  const targetRep = orgUsers.find((member) => member.id === requestedRepId && member.role === "rep");
+
+  if (!targetRep) {
+    throw new DashboardServiceError("Rep not found", 404);
+  }
+
+  if (!canActorDrillIntoLeaderboardRep(access, requestedRepId)) {
+    throw new DashboardServiceError("Only authorized team managers can view this rep", 403);
+  }
+}
+
 function buildLeaderboardEntries(
   users: DashboardOrgUserRecord[],
   getValue: (userId: string) => number | null,
@@ -424,9 +446,7 @@ export async function getRepDashboard(
     return null;
   }
 
-  if (requestedRepId && requestedRepId !== user.id && !canActorDrillIntoLeaderboardRep(access, requestedRepId)) {
-    throw new DashboardServiceError("Only authorized team managers can view this rep", 403);
-  }
+  await assertRequestedRepAccessible(repository, user, access, requestedRepId);
 
   const targetRepId = requestedRepId ?? user.id;
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -677,9 +697,7 @@ export async function getRepBadges(
     return null;
   }
 
-  if (requestedRepId && requestedRepId !== user.id && !canActorDrillIntoLeaderboardRep(access, requestedRepId)) {
-    throw new DashboardServiceError("Only authorized team managers can view this rep", 403);
-  }
+  await assertRequestedRepAccessible(repository, user, access, requestedRepId);
 
   const targetRepId = requestedRepId ?? user.id;
   const [completedCalls, passedTraining, completedRoleplays] = await Promise.all([

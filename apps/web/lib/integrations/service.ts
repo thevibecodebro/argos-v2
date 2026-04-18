@@ -1,4 +1,5 @@
 import { deleteZoomWebhook, refreshZoomToken } from "./oauth";
+import { getGhlOAuthCapability, getZoomOAuthCapability } from "@/lib/capabilities/service";
 import type { DashboardUserRecord } from "@/lib/dashboard/service";
 import type { AppUserRole } from "@/lib/users/roles";
 
@@ -9,12 +10,15 @@ type ServiceResult<T> =
 type IntegrationProvider = "zoom" | "ghl";
 
 type IntegrationAvailability = {
+  ghlClientSecret: string | null | undefined;
   ghlClientId: string | null | undefined;
+  zoomClientSecret: string | null | undefined;
   zoomClientId: string | null | undefined;
 };
 
 export type ZoomIntegrationStatus = {
   available: boolean;
+  reason: string | null;
   connectPath: string;
   connected: boolean;
   connectedAt: string | null;
@@ -24,6 +28,7 @@ export type ZoomIntegrationStatus = {
 
 export type GhlIntegrationStatus = {
   available: boolean;
+  reason: string | null;
   connectPath: string;
   connected: boolean;
   connectedAt: string | null;
@@ -54,11 +59,19 @@ function canManage(role: AppUserRole | null) {
 
 function getAvailability(input: IntegrationAvailability = {
   ghlClientId: process.env.GHL_CLIENT_ID,
+  ghlClientSecret: process.env.GHL_CLIENT_SECRET,
   zoomClientId: process.env.ZOOM_CLIENT_ID,
+  zoomClientSecret: process.env.ZOOM_CLIENT_SECRET,
 }) {
   return {
-    ghl: Boolean(input.ghlClientId),
-    zoom: Boolean(input.zoomClientId),
+    ghl: getGhlOAuthCapability({
+      GHL_CLIENT_ID: input.ghlClientId ?? undefined,
+      GHL_CLIENT_SECRET: input.ghlClientSecret ?? undefined,
+    }),
+    zoom: getZoomOAuthCapability({
+      ZOOM_CLIENT_ID: input.zoomClientId ?? undefined,
+      ZOOM_CLIENT_SECRET: input.zoomClientSecret ?? undefined,
+    }),
   };
 }
 
@@ -84,7 +97,8 @@ export async function getIntegrationStatuses(
       data: {
         canManage: canManage(viewer.role),
         ghl: {
-          available: availability.ghl,
+          available: availability.ghl.available,
+          reason: availability.ghl.reason,
           connectPath: "/api/integrations/ghl/connect",
           connected: false,
           connectedAt: null,
@@ -93,7 +107,8 @@ export async function getIntegrationStatuses(
           locationName: null,
         },
         zoom: {
-          available: availability.zoom,
+          available: availability.zoom.available,
+          reason: availability.zoom.reason,
           connectPath: "/api/integrations/zoom/connect",
           connected: false,
           connectedAt: null,
@@ -114,7 +129,8 @@ export async function getIntegrationStatuses(
     data: {
       canManage: canManage(viewer.role),
       zoom: {
-        available: availability.zoom,
+        available: availability.zoom.available,
+        reason: availability.zoom.reason,
         connectPath: "/api/integrations/zoom/connect",
         connected: zoom.connected,
         connectedAt: zoom.connectedAt?.toISOString() ?? null,
@@ -122,7 +138,8 @@ export async function getIntegrationStatuses(
         zoomUserId: zoom.zoomUserId,
       },
       ghl: {
-        available: availability.ghl,
+        available: availability.ghl.available,
+        reason: availability.ghl.reason,
         connectPath: "/api/integrations/ghl/connect",
         connected: ghl.connected,
         connectedAt: ghl.connectedAt?.toISOString() ?? null,

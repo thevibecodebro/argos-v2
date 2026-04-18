@@ -93,7 +93,7 @@ describe("createOrganizationForUser", () => {
 });
 
 describe("joinOrganizationForUser", () => {
-  it("joins an existing organization as a rep", async () => {
+  it("rejects self-service joins without an invite", async () => {
     const repository = createRepository({
       findCurrentUserByAuthId: vi.fn().mockResolvedValue({
         id: "user-1",
@@ -117,23 +117,14 @@ describe("joinOrganizationForUser", () => {
     });
 
     expect(result).toEqual({
-      ok: true,
-      data: {
-        id: "org-1",
-        name: "Argos",
-        slug: "argos",
-        plan: "trial",
-        createdAt: "2026-04-03T00:00:00.000Z",
-      },
+      ok: false,
+      status: 403,
+      error: "Use an invite to join an organization",
     });
-    expect(repository.assignUserToOrganization).toHaveBeenCalledWith({
-      orgId: "org-1",
-      role: "rep",
-      userId: "user-1",
-    });
+    expect(repository.assignUserToOrganization).not.toHaveBeenCalled();
   });
 
-  it("rejects missing organizations", async () => {
+  it("rejects invalid slugs before invite enforcement", async () => {
     const repository = createRepository({
       findCurrentUserByAuthId: vi.fn().mockResolvedValue({
         id: "user-1",
@@ -143,17 +134,16 @@ describe("joinOrganizationForUser", () => {
         lastName: "Newman",
         org: null,
       }),
-      findOrganizationBySlug: vi.fn().mockResolvedValue(null),
     });
 
     const result = await joinOrganizationForUser(repository, "user-1", {
-      slug: "missing-org",
+      slug: "Missing Org",
     });
 
     expect(result).toEqual({
       ok: false,
-      status: 404,
-      error: "Organization not found",
+      status: 400,
+      error: "slug must only contain lowercase letters, numbers, and hyphens",
     });
   });
 });

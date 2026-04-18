@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { createIntegrationsRepository } from "@/lib/integrations/create-repository";
+import { INTEGRATIONS_SETTINGS_PATH } from "@/lib/integrations/settings";
 import {
   decodeIntegrationOAuthState,
   exchangeGhlCode,
@@ -14,7 +15,7 @@ import {
 export const dynamic = "force-dynamic";
 
 function settingsRedirect(request: Request, key: string, value: string, clearNonce = false) {
-  const target = new URL("/settings", getRequestOrigin(request));
+  const target = new URL(INTEGRATIONS_SETTINGS_PATH, getRequestOrigin(request));
   target.searchParams.set(key, value);
   const response = NextResponse.redirect(target);
 

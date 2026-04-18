@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { HighlightNote } from "@/components/highlight-note";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { listHighlights } from "@/lib/calls/service";
@@ -94,11 +95,7 @@ export default async function HighlightsPage() {
                       {highlight.recommendation}
                     </p>
                   )}
-                  {highlight.highlightNote && (
-                    <p className="mt-2 text-sm italic text-amber-200">
-                      {highlight.highlightNote}
-                    </p>
-                  )}
+                  {highlight.highlightNote ? <HighlightNote note={highlight.highlightNote} /> : null}
                 </div>
                 <div className="w-full shrink-0 md:w-auto">
                   <Link

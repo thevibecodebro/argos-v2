@@ -1,0 +1,5 @@
+{
+  "name": "@argos-v2/api-zod",
+  "private": true,
+  "types": "src/index.ts"
+}

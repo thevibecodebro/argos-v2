@@ -78,8 +78,13 @@ describe("RoleplayPanel", () => {
             },
             status: "complete",
             createdAt: "2026-04-03T00:00:00.000Z",
+            startedAt: "2026-04-03T00:00:00.000Z",
+            lastActivityAt: "2026-04-03T00:02:07.000Z",
+            endedAt: "2026-04-03T00:02:07.000Z",
+            durationSeconds: 127,
           },
-        ],
+        ] as any,
+        voiceAvailable: true,
       }),
     );
 
@@ -90,5 +95,65 @@ describe("RoleplayPanel", () => {
     expect(html).toContain("Frame Control");
     expect(html).toContain("Recent History");
     expect(html).toContain("Listen");
+    expect(html).toContain("02:07");
+    expect(html).not.toContain("01:30");
+  });
+
+  it("removes voice affordances when voice setup is unavailable", () => {
+    const html = renderToStaticMarkup(
+      createElement(RoleplayPanel, {
+        initialPersonas: [
+          {
+            id: "skeptical-cfo",
+            name: "Dana Mercer",
+            role: "CFO",
+            company: "Apex Manufacturing",
+            industry: "Manufacturing",
+            difficulty: "advanced",
+            objectionType: "ROI & Budget",
+            description: "Numbers-first evaluator.",
+            avatarInitials: "DM",
+          },
+        ],
+        initialSessions: [
+          {
+            id: "session-1",
+            repId: "rep-1",
+            orgId: "org-1",
+            persona: "skeptical-cfo",
+            personaDetails: {
+              id: "skeptical-cfo",
+              name: "Dana Mercer",
+              role: "CFO",
+              company: "Apex Manufacturing",
+              industry: "Manufacturing",
+              difficulty: "advanced",
+              objectionType: "ROI & Budget",
+              description: "Numbers-first evaluator.",
+              avatarInitials: "DM",
+            },
+            industry: "Manufacturing",
+            difficulty: "advanced",
+            overallScore: null,
+            transcript: [{ role: "assistant", content: "Show me the ROI math." }],
+            scorecard: null,
+            status: "active",
+            createdAt: "2026-04-03T00:00:00.000Z",
+            startedAt: "2026-04-03T00:00:00.000Z",
+            lastActivityAt: "2026-04-03T00:00:00.000Z",
+            endedAt: null,
+            durationSeconds: 0,
+          },
+        ] as any,
+        voiceAvailable: false,
+      }),
+    );
+
+    expect(html).toContain("Voice setup required");
+    expect(html).toContain(
+      "Voice playback and live voice practice are unavailable in this environment.",
+    );
+    expect(html).not.toContain("Listen");
+    expect(html).toContain("Type your response to continue the roleplay...");
   });
 });

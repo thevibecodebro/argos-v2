@@ -56,6 +56,10 @@ export type RoleplaySession = {
   scorecard: RoleplayScorecard | null;
   status: "active" | "evaluating" | "complete";
   createdAt: string;
+  startedAt: string | null;
+  lastActivityAt: string | null;
+  endedAt: string | null;
+  durationSeconds: number | null;
 };
 
 export type RoleplaySessionRecord = {
@@ -70,4 +74,8 @@ export type RoleplaySessionRecord = {
   scorecard: RoleplayScorecard | null;
   status: "active" | "evaluating" | "complete";
   createdAt: Date;
+  startedAt: Date | null;
+  lastActivityAt: Date | null;
+  endedAt: Date | null;
+  durationSeconds: number | null;
 };

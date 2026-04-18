@@ -3,6 +3,8 @@ import {
   createAnnotation,
   deleteAnnotation,
   getCallDetail,
+  getCallHighlightManagementAccess,
+  getScoreTrend,
   listCalls,
   toggleMomentHighlight,
   type CallsRepository,
@@ -46,6 +48,56 @@ function createAccessRepository(overrides: Partial<Record<string, unknown>> = {}
 }
 
 describe("listCalls", () => {
+  it("blocks org admins from filtering calls for reps in another org", async () => {
+    const accessRepository = createAccessRepository({
+      findActorByAuthUserId: vi
+        .fn()
+        .mockImplementation(async (authUserId: string) => {
+          if (authUserId === "admin-1") {
+            return { id: "admin-1", role: "admin", orgId: "org-1" };
+          }
+
+          if (authUserId === "rep-foreign") {
+            return { id: "rep-foreign", role: "rep", orgId: "org-2" };
+          }
+
+          return null;
+        }),
+      findMembershipsByOrgId: vi.fn().mockResolvedValue([]),
+      findGrantsByUserId: vi.fn().mockResolvedValue([]),
+    });
+
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "admin-1",
+        email: "admin@argos.ai",
+        role: "admin",
+        firstName: "Jordan",
+        lastName: "Lane",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      findCallsByRepId: vi.fn().mockResolvedValue({
+        calls: [],
+        total: 0,
+      }),
+    });
+
+    const result = await listCalls(
+      repository,
+      "admin-1",
+      { repId: "rep-foreign" },
+      accessRepository as never,
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      status: 403,
+      code: "forbidden",
+      error: "You do not have access to this rep",
+    });
+    expect(repository.findCallsByRepId).not.toHaveBeenCalled();
+  });
+
   it("queries managers through team-scoped rep ids instead of org-wide pagination", async () => {
     const accessRepository = createAccessRepository({
       findActorByAuthUserId: vi.fn().mockResolvedValue({
@@ -105,6 +157,55 @@ describe("listCalls", () => {
     expect(result.data.total).toBe(7);
     expect(result.data.calls).toHaveLength(1);
     expect(result.data.calls[0].repId).toBe("rep-1");
+  });
+});
+
+describe("getScoreTrend", () => {
+  it("blocks cross-org trend lookups even for executives", async () => {
+    const accessRepository = createAccessRepository({
+      findActorByAuthUserId: vi
+        .fn()
+        .mockImplementation(async (authUserId: string) => {
+          if (authUserId === "exec-1") {
+            return { id: "exec-1", role: "executive", orgId: "org-1" };
+          }
+
+          if (authUserId === "rep-foreign") {
+            return { id: "rep-foreign", role: "rep", orgId: "org-2" };
+          }
+
+          return null;
+        }),
+      findMembershipsByOrgId: vi.fn().mockResolvedValue([]),
+      findGrantsByUserId: vi.fn().mockResolvedValue([]),
+    });
+
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "exec-1",
+        email: "exec@argos.ai",
+        role: "executive",
+        firstName: "Avery",
+        lastName: "Cross",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      findScoreTrend: vi.fn().mockResolvedValue([]),
+    });
+
+    const result = await getScoreTrend(
+      repository,
+      "exec-1",
+      { repId: "rep-foreign" },
+      accessRepository as never,
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      status: 403,
+      code: "forbidden",
+      error: "You do not have access to this rep",
+    });
+    expect(repository.findScoreTrend).not.toHaveBeenCalled();
   });
 });
 
@@ -497,6 +598,336 @@ describe("toggleMomentHighlight", () => {
       error: "Only managers with highlight access can update moments",
     });
     expect(repository.updateMomentHighlight).not.toHaveBeenCalled();
+  });
+
+  it("persists a trimmed note when highlighting a moment", async () => {
+    const accessRepository = createAccessRepository({
+      findActorByAuthUserId: vi.fn().mockResolvedValue({
+        id: "manager-1",
+        role: "manager",
+        orgId: "org-1",
+      }),
+      findMembershipsByOrgId: vi.fn().mockResolvedValue([
+        { orgId: "org-1", teamId: "team-a", userId: "manager-1", membershipType: "manager" },
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ]),
+      findGrantsByUserId: vi.fn().mockResolvedValue([
+        { orgId: "org-1", teamId: "team-a", userId: "manager-1", permissionKey: "view_team_calls" },
+        { orgId: "org-1", teamId: "team-a", userId: "manager-1", permissionKey: "manage_call_highlights" },
+      ]),
+    });
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "manager-1",
+        email: "manager@argos.ai",
+        role: "manager",
+        firstName: "Morgan",
+        lastName: "Lane",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      findCallById: vi.fn().mockResolvedValue({
+        id: "call-1",
+        repId: "rep-1",
+        orgId: "org-1",
+        status: "complete",
+        recordingUrl: null,
+        transcriptUrl: null,
+        durationSeconds: 1200,
+        callTopic: "ACME",
+        overallScore: 84,
+        frameControlScore: 80,
+        rapportScore: 82,
+        discoveryScore: 79,
+        painExpansionScore: 76,
+        solutionScore: 85,
+        objectionScore: 78,
+        closingScore: 88,
+        confidence: "high",
+        callStageReached: "close",
+        strengths: [],
+        improvements: [],
+        recommendedDrills: [],
+        transcript: [],
+        createdAt: new Date("2026-04-01T00:00:00.000Z"),
+        repFirstName: "Riley",
+        repLastName: "Stone",
+        moments: [],
+      }),
+      updateMomentHighlight: vi.fn().mockResolvedValue({
+        id: "moment-1",
+        callId: "call-1",
+        timestampSeconds: 132,
+        category: "Discovery",
+        observation: "Strong transition",
+        recommendation: "Replay this in team coaching.",
+        severity: "strength",
+        isHighlight: true,
+        highlightNote: "Use this in the team review.",
+        createdAt: new Date("2026-04-01T00:02:12.000Z"),
+      }),
+    });
+
+    const result = await toggleMomentHighlight(
+      repository,
+      "manager-1",
+      "call-1",
+      "moment-1",
+      { isHighlight: true, highlightNote: "  Use this in the team review.  " },
+      accessRepository as never,
+    );
+
+    expect(repository.updateMomentHighlight).toHaveBeenCalledWith(
+      "call-1",
+      "moment-1",
+      true,
+      "Use this in the team review.",
+    );
+    expect(result).toEqual({
+      ok: true,
+      data: {
+        id: "moment-1",
+        callId: "call-1",
+        timestampSeconds: 132,
+        category: "Discovery",
+        observation: "Strong transition",
+        recommendation: "Replay this in team coaching.",
+        severity: "strength",
+        isHighlight: true,
+        highlightNote: "Use this in the team review.",
+        createdAt: "2026-04-01T00:02:12.000Z",
+      },
+    });
+  });
+
+  it("clears a saved note without removing the highlight", async () => {
+    const accessRepository = createAccessRepository({
+      findActorByAuthUserId: vi.fn().mockResolvedValue({
+        id: "manager-1",
+        role: "manager",
+        orgId: "org-1",
+      }),
+      findMembershipsByOrgId: vi.fn().mockResolvedValue([
+        { orgId: "org-1", teamId: "team-a", userId: "manager-1", membershipType: "manager" },
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ]),
+      findGrantsByUserId: vi.fn().mockResolvedValue([
+        { orgId: "org-1", teamId: "team-a", userId: "manager-1", permissionKey: "view_team_calls" },
+        { orgId: "org-1", teamId: "team-a", userId: "manager-1", permissionKey: "manage_call_highlights" },
+      ]),
+    });
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "manager-1",
+        email: "manager@argos.ai",
+        role: "manager",
+        firstName: "Morgan",
+        lastName: "Lane",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      findCallById: vi.fn().mockResolvedValue({
+        id: "call-1",
+        repId: "rep-1",
+        orgId: "org-1",
+        status: "complete",
+        recordingUrl: null,
+        transcriptUrl: null,
+        durationSeconds: 1200,
+        callTopic: "ACME",
+        overallScore: 84,
+        frameControlScore: 80,
+        rapportScore: 82,
+        discoveryScore: 79,
+        painExpansionScore: 76,
+        solutionScore: 85,
+        objectionScore: 78,
+        closingScore: 88,
+        confidence: "high",
+        callStageReached: "close",
+        strengths: [],
+        improvements: [],
+        recommendedDrills: [],
+        transcript: [],
+        createdAt: new Date("2026-04-01T00:00:00.000Z"),
+        repFirstName: "Riley",
+        repLastName: "Stone",
+        moments: [],
+      }),
+      updateMomentHighlight: vi.fn().mockResolvedValue({
+        id: "moment-1",
+        callId: "call-1",
+        timestampSeconds: 132,
+        category: "Discovery",
+        observation: "Strong transition",
+        recommendation: "Replay this in team coaching.",
+        severity: "strength",
+        isHighlight: true,
+        highlightNote: null,
+        createdAt: new Date("2026-04-01T00:02:12.000Z"),
+      }),
+    });
+
+    const result = await toggleMomentHighlight(
+      repository,
+      "manager-1",
+      "call-1",
+      "moment-1",
+      { isHighlight: true, highlightNote: "   " },
+      accessRepository as never,
+    );
+
+    expect(repository.updateMomentHighlight).toHaveBeenCalledWith(
+      "call-1",
+      "moment-1",
+      true,
+      null,
+    );
+    expect(result).toEqual({
+      ok: true,
+      data: {
+        id: "moment-1",
+        callId: "call-1",
+        timestampSeconds: 132,
+        category: "Discovery",
+        observation: "Strong transition",
+        recommendation: "Replay this in team coaching.",
+        severity: "strength",
+        isHighlight: true,
+        highlightNote: null,
+        createdAt: "2026-04-01T00:02:12.000Z",
+      },
+    });
+  });
+});
+
+describe("getCallHighlightManagementAccess", () => {
+  it("returns true for managers with the highlight-management grant", async () => {
+    const accessRepository = createAccessRepository({
+      findActorByAuthUserId: vi.fn().mockResolvedValue({
+        id: "manager-1",
+        role: "manager",
+        orgId: "org-1",
+      }),
+      findMembershipsByOrgId: vi.fn().mockResolvedValue([
+        { orgId: "org-1", teamId: "team-a", userId: "manager-1", membershipType: "manager" },
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ]),
+      findGrantsByUserId: vi.fn().mockResolvedValue([
+        { orgId: "org-1", teamId: "team-a", userId: "manager-1", permissionKey: "view_team_calls" },
+        { orgId: "org-1", teamId: "team-a", userId: "manager-1", permissionKey: "manage_call_highlights" },
+      ]),
+    });
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "manager-1",
+        email: "manager@argos.ai",
+        role: "manager",
+        firstName: "Morgan",
+        lastName: "Lane",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      findCallById: vi.fn().mockResolvedValue({
+        id: "call-1",
+        repId: "rep-1",
+        orgId: "org-1",
+        status: "complete",
+        recordingUrl: null,
+        transcriptUrl: null,
+        durationSeconds: 1200,
+        callTopic: "ACME",
+        overallScore: 84,
+        frameControlScore: 80,
+        rapportScore: 82,
+        discoveryScore: 79,
+        painExpansionScore: 76,
+        solutionScore: 85,
+        objectionScore: 78,
+        closingScore: 88,
+        confidence: "high",
+        callStageReached: "close",
+        strengths: [],
+        improvements: [],
+        recommendedDrills: [],
+        transcript: [],
+        createdAt: new Date("2026-04-01T00:00:00.000Z"),
+        repFirstName: "Riley",
+        repLastName: "Stone",
+        moments: [],
+      }),
+    });
+
+    const result = await getCallHighlightManagementAccess(
+      repository,
+      "manager-1",
+      "call-1",
+      accessRepository as never,
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      data: { canManage: true },
+    });
+  });
+
+  it("returns false for executives who can view the call but cannot manage highlights", async () => {
+    const accessRepository = createAccessRepository({
+      findActorByAuthUserId: vi.fn().mockResolvedValue({
+        id: "exec-1",
+        role: "executive",
+        orgId: "org-1",
+      }),
+      findMembershipsByOrgId: vi.fn().mockResolvedValue([]),
+      findGrantsByUserId: vi.fn().mockResolvedValue([]),
+    });
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "exec-1",
+        email: "exec@argos.ai",
+        role: "executive",
+        firstName: "Avery",
+        lastName: "Cross",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      findCallById: vi.fn().mockResolvedValue({
+        id: "call-1",
+        repId: "rep-1",
+        orgId: "org-1",
+        status: "complete",
+        recordingUrl: null,
+        transcriptUrl: null,
+        durationSeconds: 1200,
+        callTopic: "ACME",
+        overallScore: 84,
+        frameControlScore: 80,
+        rapportScore: 82,
+        discoveryScore: 79,
+        painExpansionScore: 76,
+        solutionScore: 85,
+        objectionScore: 78,
+        closingScore: 88,
+        confidence: "high",
+        callStageReached: "close",
+        strengths: [],
+        improvements: [],
+        recommendedDrills: [],
+        transcript: [],
+        createdAt: new Date("2026-04-01T00:00:00.000Z"),
+        repFirstName: "Riley",
+        repLastName: "Stone",
+        moments: [],
+      }),
+    });
+
+    const result = await getCallHighlightManagementAccess(
+      repository,
+      "exec-1",
+      "call-1",
+      accessRepository as never,
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      data: { canManage: false },
+    });
   });
 });
 

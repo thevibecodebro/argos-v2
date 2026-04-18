@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { PageFrame } from "@/components/page-frame";
 import { PeoplePanel } from "@/components/settings/people-panel";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { getInviteEmailCapability } from "@/lib/capabilities/service";
 import { createInvitesRepository } from "@/lib/invites/create-repository";
 import { listPendingInvites } from "@/lib/invites/service";
 import { createTeamAccessRepository } from "@/lib/team-access/create-repository";
@@ -24,6 +25,7 @@ export default async function SettingsPeoplePage() {
     getTeamAccessSnapshot(createTeamAccessRepository(), authUser.id),
     listPendingInvites(createInvitesRepository(), createUsersRepository(), authUser.id),
   ]);
+  const inviteEmailCapability = getInviteEmailCapability();
 
   return (
     <PageFrame
@@ -36,6 +38,8 @@ export default async function SettingsPeoplePage() {
         initialMembers={membersResult?.ok ? membersResult.data : []}
         initialPendingInvites={pendingInvitesResult?.ok ? pendingInvitesResult.data : []}
         initialTeams={teamAccessResult?.ok ? teamAccessResult.data.teams : []}
+        inviteEmailAvailable={inviteEmailCapability.available}
+        inviteEmailReason={inviteEmailCapability.reason}
       />
     </PageFrame>
   );

@@ -1,4 +1,5 @@
 import type { RoleplaySession } from "@/lib/roleplay/service";
+import { getRoleplayVoiceCapability } from "@/lib/capabilities/service";
 
 type OpenAiVoiceEnvSource = Partial<Record<string, string | undefined>>;
 
@@ -13,11 +14,7 @@ export type OpenAiVoiceEnv = {
 export function getOpenAiVoiceConfigurationError(
   env: OpenAiVoiceEnvSource = process.env,
 ) {
-  if (!env.OPENAI_API_KEY) {
-    return "Voice features are not configured. Missing: OPENAI_API_KEY.";
-  }
-
-  return null;
+  return getRoleplayVoiceCapability(env).reason;
 }
 
 export function getOpenAiVoiceEnv(

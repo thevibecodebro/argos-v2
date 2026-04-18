@@ -12,12 +12,19 @@ function autoSlug(value: string) {
     .replace(/[^a-z0-9-]/g, "");
 }
 
-export function OnboardingPanel() {
+type OnboardingPanelProps = {
+  inviteEmailAvailable: boolean;
+  inviteEmailReason: string | null;
+};
+
+export function OnboardingPanel({
+  inviteEmailAvailable,
+  inviteEmailReason,
+}: OnboardingPanelProps) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("choose");
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
-  const [joinSlug, setJoinSlug] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isMutating, setIsMutating] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -48,6 +55,8 @@ export function OnboardingPanel() {
       setIsMutating(false);
       return;
     }
+
+    setIsMutating(false);
 
     if (onSuccess) {
       onSuccess();
@@ -98,9 +107,9 @@ export function OnboardingPanel() {
             <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#74b1ff]">
               Join
             </p>
-            <h2 className="mt-4 text-3xl font-semibold text-[#ecedf6]">Join Organization</h2>
+            <h2 className="mt-4 text-3xl font-semibold text-[#ecedf6]">Join With Invite</h2>
             <p className="mt-3 text-lg leading-8 text-[#a9abb3]">
-              Enter your org slug to join the existing team as a rep.
+              Ask an Argos admin for an invite link, then accept it while signed in with the invited email.
             </p>
           </button>
         </div>
@@ -171,19 +180,15 @@ export function OnboardingPanel() {
       {step === "join" ? (
         <div className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] px-6 py-7 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
           <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#74b1ff]">
-            Join Organization
+            Join With Invite
           </p>
-          <div className="mt-6 space-y-4">
-            <label className="block text-left">
-              <span className="text-sm font-medium text-[#a9abb3]">Organization Slug</span>
-              <input
-                className="mt-2 w-full rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-3 text-lg text-white outline-none transition placeholder:text-[#a9abb3] focus:border-[#74b1ff]/60"
-                onChange={(event) => setJoinSlug(event.target.value.toLowerCase())}
-                placeholder="acme-corp"
-                type="text"
-                value={joinSlug}
-              />
-            </label>
+          <div className="mt-6 space-y-4 rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-4 text-left">
+            <p className="text-sm font-medium text-[#ecedf6]">Direct org slug joins are disabled.</p>
+            <p className="text-sm leading-7 text-[#a9abb3]">
+              To join an existing workspace, ask your Argos admin to send you an invite from the
+              People settings page. Open the invite link while signed in with the invited email to
+              accept membership.
+            </p>
           </div>
 
           {error ? <p className="mt-4 text-sm text-red-300">{error}</p> : null}
@@ -199,16 +204,6 @@ export function OnboardingPanel() {
             >
               Back
             </button>
-            <button
-              className="flex-1 rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-base font-bold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
-              disabled={!joinSlug.trim() || isMutating}
-              onClick={() => {
-                void submit("/api/organizations/join", { slug: joinSlug });
-              }}
-              type="button"
-            >
-              {isMutating ? "Joining..." : "Join"}
-            </button>
           </div>
         </div>
       ) : null}
@@ -218,7 +213,16 @@ export function OnboardingPanel() {
           <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#74b1ff]">
             Invite Your Team
           </p>
-          <div className="mt-6 space-y-4">
+          {!inviteEmailAvailable ? (
+            <div className="mt-6 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-4 text-left text-sm text-amber-200">
+              <p className="font-medium text-amber-100">Invite delivery is unavailable.</p>
+              <p className="mt-2 leading-7">
+                {inviteEmailReason ??
+                  "Configure invite email delivery before sending onboarding invites from this environment."}
+              </p>
+            </div>
+          ) : (
+            <div className="mt-6 space-y-4">
             <label className="block text-left">
               <span className="text-sm font-medium text-[#a9abb3]">Email</span>
               <input
@@ -281,42 +285,49 @@ export function OnboardingPanel() {
                 )}
               </div>
             ) : null}
-          </div>
+            </div>
+          )}
 
           {error ? <p className="mt-4 text-sm text-red-300">{error}</p> : null}
           {inviteSuccess ? <p className="mt-4 text-sm text-green-400">{inviteSuccess}</p> : null}
 
           <div className="mt-6 flex gap-3">
-            <button
-              className="flex-1 rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-base font-bold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
-              disabled={!inviteEmail.trim() || isMutating}
-              onClick={async () => {
-                setError(null);
-                setInviteSuccess(null);
-                setIsMutating(true);
-                const response = await fetch("/api/invites", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    email: inviteEmail,
-                    role: inviteRole,
-                    teamIds: inviteTeamIds.length > 0 ? inviteTeamIds : undefined,
-                  }),
-                });
-                const data = (await response.json()) as { error?: string };
-                setIsMutating(false);
-                if (!response.ok) {
-                  setError(data.error ?? "Unable to send invite.");
-                } else {
-                  setInviteSuccess(`Invite sent to ${inviteEmail}`);
-                  setInviteEmail("");
-                  setInviteTeamIds([]);
-                }
-              }}
-              type="button"
-            >
-              {isMutating ? "Sending..." : "Send Invite"}
-            </button>
+            {inviteEmailAvailable ? (
+              <button
+                className="flex-1 rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-base font-bold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
+                disabled={!inviteEmail.trim() || isMutating}
+                onClick={async () => {
+                  setError(null);
+                  setInviteSuccess(null);
+                  setIsMutating(true);
+                  const response = await fetch("/api/invites", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      email: inviteEmail,
+                      role: inviteRole,
+                      teamIds: inviteTeamIds.length > 0 ? inviteTeamIds : undefined,
+                    }),
+                  });
+                  const data = (await response.json()) as { error?: string };
+                  setIsMutating(false);
+                  if (!response.ok) {
+                    setError(data.error ?? "Unable to send invite.");
+                  } else {
+                    setInviteSuccess(`Invite sent to ${inviteEmail}`);
+                    setInviteEmail("");
+                    setInviteTeamIds([]);
+                  }
+                }}
+                type="button"
+              >
+                {isMutating ? "Sending..." : "Send Invite"}
+              </button>
+            ) : (
+              <span className="flex flex-1 items-center justify-center rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-base font-semibold text-amber-200">
+                Setup required
+              </span>
+            )}
             <button
               className="flex-1 rounded-xl border border-[#45484f]/20 px-4 py-3 text-base font-medium text-[#a9abb3] transition hover:border-[#74b1ff]/30 hover:text-white"
               onClick={() => {

@@ -1,0 +1,7 @@
+{
+  "name": "@argos-v2/api-spec",
+  "private": true,
+  "scripts": {
+    "generate": "orval --config ./orval.config.ts"
+  }
+}

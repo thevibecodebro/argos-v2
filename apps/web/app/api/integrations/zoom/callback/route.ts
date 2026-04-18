@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { createIntegrationsRepository } from "@/lib/integrations/create-repository";
+import { INTEGRATIONS_SETTINGS_PATH } from "@/lib/integrations/settings";
 import {
   decodeIntegrationOAuthState,
   exchangeZoomCode,
@@ -17,7 +18,7 @@ import {
 export const dynamic = "force-dynamic";
 
 function settingsRedirect(request: Request, key: string, value: string, clearNonce = false) {
-  const target = new URL("/settings", getRequestOrigin(request));
+  const target = new URL(INTEGRATIONS_SETTINGS_PATH, getRequestOrigin(request));
   target.searchParams.set(key, value);
   const response = NextResponse.redirect(target);
 
@@ -38,7 +39,7 @@ function settingsRedirectWithNotice(
   params: Record<string, string>,
   clearNonce = false,
 ) {
-  const target = new URL("/settings", getRequestOrigin(request));
+  const target = new URL(INTEGRATIONS_SETTINGS_PATH, getRequestOrigin(request));
 
   Object.entries(params).forEach(([key, value]) => {
     target.searchParams.set(key, value);

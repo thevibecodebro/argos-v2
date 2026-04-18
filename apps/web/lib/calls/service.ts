@@ -217,6 +217,10 @@ export type CallsRepository = {
     timestampSeconds: number | null;
   }): Promise<CallAnnotationRecord>;
   setCallEvaluation(callId: string, evaluation: MockCallEvaluation): Promise<void>;
+  updateCallStatus(
+    callId: string,
+    status: "uploaded" | "transcribing" | "evaluating" | "complete" | "failed",
+  ): Promise<void>;
   updateCallTopic(callId: string, callTopic: string | null): Promise<{ id: string; callTopic: string | null }>;
   updateMomentHighlight(
     callId: string,
@@ -324,6 +328,20 @@ async function resolveAccessContext(
   return buildAccessContext({ actor, memberships, grants });
 }
 
+async function canActorAccessTargetRep(
+  accessRepository: AccessRepository,
+  access: AccessContext,
+  repId: string,
+) {
+  const targetActor = await accessRepository.findActorByAuthUserId(repId);
+
+  if (!targetActor?.orgId || targetActor.orgId !== access.actor.orgId || targetActor.role !== "rep") {
+    return false;
+  }
+
+  return canActorViewRep(access, repId);
+}
+
 function getScopedCallRepIds(access: AccessContext) {
   const repIds = new Set<string>();
   for (const teamRepIds of access.repIdsByTeamId.values()) {
@@ -365,6 +383,35 @@ function canActorManageHighlights(access: AccessContext, repId: string) {
   }
 
   return canActorUsePermissionForRep(access, "manage_call_highlights", repId);
+}
+
+export async function getCallHighlightManagementAccess(
+  repository: CallsRepository,
+  authUserId: string,
+  callId: string,
+  accessRepository: AccessRepository = createAccessRepository(),
+): Promise<ServiceResult<{ canManage: boolean }>> {
+  const detail = await getCallDetail(repository, authUserId, callId, accessRepository);
+
+  if (!detail.ok) {
+    return detail;
+  }
+
+  const access = await resolveAccessContext(accessRepository, authUserId);
+
+  if (!access) {
+    return {
+      ok: false,
+      status: 404,
+      code: "unprovisioned",
+      error: "User is not provisioned in the app database",
+    };
+  }
+
+  return {
+    ok: true,
+    data: { canManage: canActorManageHighlights(access, detail.data.repId) },
+  };
 }
 
 export async function listCalls(
@@ -409,7 +456,7 @@ export async function listCalls(
     };
   }
 
-  if (filters.repId && !canActorViewRep(access, filters.repId)) {
+  if (filters.repId && !(await canActorAccessTargetRep(accessRepository, access, filters.repId))) {
     return {
       ok: false,
       status: 403,
@@ -814,7 +861,10 @@ export async function getScoreTrend(
 
   const targetRepId = params.repId ?? viewer.id;
 
-  if (!canActorUsePermissionForRep(access, "view_team_calls", targetRepId) && targetRepId !== viewer.id) {
+  if (
+    targetRepId !== viewer.id &&
+    !(await canActorAccessTargetRep(accessRepository, access, targetRepId))
+  ) {
     return {
       ok: false,
       status: 403,
@@ -869,14 +919,24 @@ export async function uploadCall(
 
   const evaluation = buildMockEvaluation(input.fileName, input.callTopic ?? null, input.fileSizeBytes);
 
-  await repository.setCallEvaluation(created.id, evaluation);
-  await repository.createNotification({
-    body: `${input.callTopic?.trim() || deriveCallTopicFromFileName(input.fileName)} finished scoring with an ${evaluation.overallScore} overall score.`,
-    link: `/calls/${created.id}`,
-    title: "Call scored",
-    type: "call_scored",
-    userId: viewer.id,
-  });
+  try {
+    await repository.setCallEvaluation(created.id, evaluation);
+  } catch (error) {
+    await repository.updateCallStatus(created.id, "failed").catch(() => undefined);
+    throw error;
+  }
+
+  try {
+    await repository.createNotification({
+      body: `${input.callTopic?.trim() || deriveCallTopicFromFileName(input.fileName)} finished scoring with an ${evaluation.overallScore} overall score.`,
+      link: `/calls/${created.id}`,
+      title: "Call scored",
+      type: "call_scored",
+      userId: viewer.id,
+    });
+  } catch (error) {
+    console.error("Failed to create call upload notification", error);
+  }
 
   return {
     ok: true,

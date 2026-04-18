@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 export type IntegrationsPanelProps = {
   zoom: {
     available: boolean;
+    reason?: string | null;
     connectPath: string;
     connected: boolean;
     connectedAt?: string | null;
@@ -14,6 +15,7 @@ export type IntegrationsPanelProps = {
   };
   ghl: {
     available: boolean;
+    reason?: string | null;
     connectPath: string;
     connected: boolean;
     connectedAt?: string | null;
@@ -36,6 +38,7 @@ function formatConnectedAt(value: string | null | undefined) {
 
 type ZoomCardProps = {
   available: boolean;
+  reason?: string | null;
   connectPath: string;
   connected: boolean;
   connectedAt?: string | null;
@@ -45,6 +48,7 @@ type ZoomCardProps = {
 
 function ZoomCard({
   available,
+  reason,
   connectPath,
   connected,
   connectedAt,
@@ -89,7 +93,7 @@ function ZoomCard({
           </span>
         ) : (
           <span className="rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">
-            Not connected
+            {available ? "Not connected" : "Not configured"}
           </span>
         )}
       </div>
@@ -116,7 +120,7 @@ function ZoomCard({
 
       {!available && !isConnected ? (
         <p className="mt-3 text-sm text-amber-200/80">
-          OAuth credentials for Zoom are not yet configured in this environment.
+          {reason ?? "OAuth credentials for Zoom are not yet configured in this environment."}
         </p>
       ) : null}
 
@@ -153,15 +157,18 @@ function ZoomCard({
               Disconnect
             </button>
           )
-        ) : (
+        ) : available ? (
           <button
             className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-2 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
-            disabled={!available}
             onClick={() => router.push(connectPath)}
             type="button"
           >
             Connect Zoom
           </button>
+        ) : (
+          <span className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-200">
+            Setup required
+          </span>
         )}
       </div>
     </section>
@@ -170,6 +177,7 @@ function ZoomCard({
 
 type GhlCardProps = {
   available: boolean;
+  reason?: string | null;
   connectPath: string;
   connected: boolean;
   connectedAt?: string | null;
@@ -180,6 +188,7 @@ type GhlCardProps = {
 
 function GhlCard({
   available,
+  reason,
   connectPath,
   connected,
   connectedAt,
@@ -222,7 +231,7 @@ function GhlCard({
           </span>
         ) : (
           <span className="rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">
-            Not connected
+            {available ? "Not connected" : "Not configured"}
           </span>
         )}
       </div>
@@ -249,7 +258,7 @@ function GhlCard({
 
       {!available && !isConnected ? (
         <p className="mt-3 text-sm text-amber-200/80">
-          OAuth credentials for Go High Level are not yet configured in this environment.
+          {reason ?? "OAuth credentials for Go High Level are not yet configured in this environment."}
         </p>
       ) : null}
 
@@ -286,15 +295,18 @@ function GhlCard({
               Disconnect
             </button>
           )
-        ) : (
+        ) : available ? (
           <button
             className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-2 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
-            disabled={!available}
             onClick={() => router.push(connectPath)}
             type="button"
           >
             Connect Go High Level
           </button>
+        ) : (
+          <span className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-200">
+            Setup required
+          </span>
         )}
       </div>
     </section>
@@ -306,6 +318,7 @@ export function IntegrationsPanel({ zoom, ghl }: IntegrationsPanelProps) {
     <div className="space-y-5">
       <ZoomCard
         available={zoom.available}
+        reason={zoom.reason}
         connectPath={zoom.connectPath}
         connected={zoom.connected}
         connectedAt={zoom.connectedAt}
@@ -314,6 +327,7 @@ export function IntegrationsPanel({ zoom, ghl }: IntegrationsPanelProps) {
       />
       <GhlCard
         available={ghl.available}
+        reason={ghl.reason}
         connectPath={ghl.connectPath}
         connected={ghl.connected}
         connectedAt={ghl.connectedAt}

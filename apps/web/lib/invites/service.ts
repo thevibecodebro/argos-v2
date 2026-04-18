@@ -1,5 +1,6 @@
 import type { AppUserRole } from "@/lib/users/roles";
 import { APP_USER_ROLES } from "@/lib/users/roles";
+import { getInviteEmailCapability } from "@/lib/capabilities/service";
 import type { UsersRepository } from "@/lib/users/service";
 import type { OnboardingRepository } from "@/lib/onboarding/service";
 import type { InvitesRepository, InviteRecord } from "./repository";
@@ -7,7 +8,7 @@ import { sendInviteEmail } from "./email";
 
 type InviteServiceResult<T> =
   | { ok: true; data: T }
-  | { ok: false; status: 400 | 403 | 404 | 409 | 410; error: string };
+  | { ok: false; status: 400 | 403 | 404 | 409 | 410 | 503; error: string };
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -62,6 +63,16 @@ export async function sendInvite(
     if (found.length !== rawTeamIds.length) {
       return { ok: false, status: 400, error: "One or more team IDs are invalid" };
     }
+  }
+
+  const inviteEmailCapability = getInviteEmailCapability();
+
+  if (!inviteEmailCapability.available) {
+    return {
+      ok: false,
+      status: 503,
+      error: inviteEmailCapability.reason ?? "Invite email delivery is unavailable in this environment",
+    };
   }
 
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);

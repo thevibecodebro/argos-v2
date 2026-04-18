@@ -1,7 +1,10 @@
 import { LegacyAuthShell } from "@/components/legacy-shell";
 import { OnboardingPanel } from "@/components/onboarding-panel";
+import { getInviteEmailCapability } from "@/lib/capabilities/service";
 
 export default function OnboardingPage() {
+  const inviteEmailCapability = getInviteEmailCapability();
+
   return (
     <LegacyAuthShell note="Create a new team or join your existing one to unlock the Argos workspace.">
       <div className="text-center">
@@ -11,7 +14,10 @@ export default function OnboardingPage() {
         </p>
       </div>
       <div className="mt-10">
-        <OnboardingPanel />
+        <OnboardingPanel
+          inviteEmailAvailable={inviteEmailCapability.available}
+          inviteEmailReason={inviteEmailCapability.reason}
+        />
       </div>
     </LegacyAuthShell>
   );

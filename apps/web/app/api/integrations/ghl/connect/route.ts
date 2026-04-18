@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { getGhlOAuthCapability } from "@/lib/capabilities/service";
 import { createIntegrationsRepository } from "@/lib/integrations/create-repository";
+import { INTEGRATIONS_SETTINGS_PATH } from "@/lib/integrations/settings";
 import {
   buildGhlOAuthUrl,
   createIntegrationNonce,
@@ -24,20 +26,23 @@ export async function GET(request: Request) {
   const viewer = await repository.findCurrentUserByAuthId(authUser.id);
 
   if (!viewer?.org) {
-    return NextResponse.redirect(new URL("/settings?ghl_error=not_provisioned", request.url));
+    return NextResponse.redirect(new URL(`${INTEGRATIONS_SETTINGS_PATH}?ghl_error=not_provisioned`, request.url));
   }
 
   if (viewer.role !== "admin") {
-    return NextResponse.redirect(new URL("/settings?ghl_error=forbidden", request.url));
+    return NextResponse.redirect(new URL(`${INTEGRATIONS_SETTINGS_PATH}?ghl_error=forbidden`, request.url));
   }
 
-  if (!process.env.GHL_CLIENT_ID || !process.env.GHL_CLIENT_SECRET) {
-    return NextResponse.redirect(new URL("/settings?ghl_error=not_configured", request.url));
+  const capability = getGhlOAuthCapability();
+
+  if (!capability.available) {
+    return NextResponse.redirect(new URL(`${INTEGRATIONS_SETTINGS_PATH}?ghl_error=not_configured`, request.url));
   }
 
   const origin = getRequestOrigin(request);
   const redirectUri = resolveGhlRedirectUri(origin);
   const nonce = createIntegrationNonce();
+  const clientId = process.env.GHL_CLIENT_ID!;
   const state = encodeIntegrationOAuthState({
     nonce,
     orgId: viewer.org.id,
@@ -46,7 +51,7 @@ export async function GET(request: Request) {
 
   const response = NextResponse.redirect(
     buildGhlOAuthUrl({
-      clientId: process.env.GHL_CLIENT_ID,
+      clientId,
       redirectUri,
       state,
     }),

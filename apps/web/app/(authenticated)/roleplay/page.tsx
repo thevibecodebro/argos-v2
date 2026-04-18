@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { RoleplayPanel } from "@/components/roleplay-panel";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { getRoleplayVoiceCapability } from "@/lib/capabilities/service";
 import { createRoleplayRepository } from "@/lib/roleplay/create-repository";
 import { listRoleplaySessions } from "@/lib/roleplay/service";
 
@@ -28,12 +29,15 @@ export default async function RoleplayPage() {
     );
   }
 
+  const voiceCapability = getRoleplayVoiceCapability();
+
   return (
     <div className="flex-1 p-8">
       <div className="mx-auto w-full max-w-7xl space-y-12">
         <RoleplayPanel
           initialPersonas={result.data.personas}
           initialSessions={result.data.sessions}
+          voiceAvailable={voiceCapability.available}
         />
       </div>
     </div>

@@ -73,6 +73,33 @@ const repository = {
 };
 
 describe("team access service", () => {
+  it("rejects reps from creating teams", async () => {
+    const result = await createTeam(
+      {
+        ...repository,
+        findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+          id: "rep-1",
+          email: "rep@argos.ai",
+          role: "rep",
+          firstName: "Riley",
+          lastName: "Stone",
+          org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+        }),
+      } as any,
+      "rep-1",
+      {
+        name: "Closers",
+        description: "",
+      },
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      status: 403,
+      error: "Admin only",
+    });
+  });
+
   it("allows admins to create teams", async () => {
     const result = await createTeam(repository as any, "admin-1", {
       name: "Closers",

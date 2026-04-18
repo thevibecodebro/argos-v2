@@ -18,6 +18,11 @@ function normalizeSessionRecord(record: any): RoleplaySessionRecord {
     scorecard: record.scorecard && typeof record.scorecard === "object" ? record.scorecard : null,
     status: record.status,
     createdAt: toDate(record.created_at) ?? new Date(0),
+    startedAt: toDate(record.started_at),
+    lastActivityAt: toDate(record.last_activity_at),
+    endedAt: toDate(record.ended_at),
+    durationSeconds:
+      typeof record.duration_seconds === "number" ? record.duration_seconds : null,
   };
 }
 
@@ -26,11 +31,15 @@ export class SupabaseRoleplayRepository implements RoleplayRepository {
 
   async createSession(input: {
     difficulty: "beginner" | "intermediate" | "advanced";
+    durationSeconds: number | null;
+    endedAt: Date | null;
     industry: string;
+    lastActivityAt: Date | null;
     orgId: string;
     persona: string;
     repId: string;
     scorecard: RoleplayScorecard | null;
+    startedAt: Date | null;
     status: "active" | "evaluating" | "complete";
     transcript: Array<{ role: "assistant" | "user"; content: string }>;
   }) {
@@ -45,6 +54,10 @@ export class SupabaseRoleplayRepository implements RoleplayRepository {
         rep_id: input.repId,
         scorecard: input.scorecard,
         status: input.status,
+        started_at: input.startedAt?.toISOString() ?? null,
+        last_activity_at: input.lastActivityAt?.toISOString() ?? null,
+        ended_at: input.endedAt?.toISOString() ?? null,
+        duration_seconds: input.durationSeconds,
         transcript: input.transcript,
       })
       .select("*")
@@ -129,8 +142,12 @@ export class SupabaseRoleplayRepository implements RoleplayRepository {
   async updateSession(
     sessionId: string,
     patch: Partial<{
+      durationSeconds: number | null;
+      endedAt: Date | null;
+      lastActivityAt: Date | null;
       overallScore: number | null;
       scorecard: RoleplayScorecard | null;
+      startedAt: Date | null;
       status: "active" | "evaluating" | "complete";
       transcript: Array<{ role: "assistant" | "user"; content: string }>;
     }>,
@@ -142,6 +159,16 @@ export class SupabaseRoleplayRepository implements RoleplayRepository {
     if (patch.scorecard !== undefined) updatePatch.scorecard = patch.scorecard;
     if (patch.status !== undefined) updatePatch.status = patch.status;
     if (patch.transcript !== undefined) updatePatch.transcript = patch.transcript;
+    if (patch.startedAt !== undefined) {
+      updatePatch.started_at = patch.startedAt?.toISOString() ?? null;
+    }
+    if (patch.lastActivityAt !== undefined) {
+      updatePatch.last_activity_at = patch.lastActivityAt?.toISOString() ?? null;
+    }
+    if (patch.endedAt !== undefined) {
+      updatePatch.ended_at = patch.endedAt?.toISOString() ?? null;
+    }
+    if (patch.durationSeconds !== undefined) updatePatch.duration_seconds = patch.durationSeconds;
 
     const { data, error } = await supabase
       .from("roleplay_sessions")

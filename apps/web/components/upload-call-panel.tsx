@@ -2,17 +2,17 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { UploadRequestError, uploadCallWithProgress, type UploadPhase } from "@/lib/calls/upload-client";
+import {
+  CALL_UPLOAD_ACCEPTED_TYPES,
+  CALL_UPLOAD_MAX_BYTES,
+  formatUploadLimit,
+  normalizeUploadErrorPayload,
+  validateUploadFile,
+  type UploadErrorPayload,
+} from "@/lib/calls/upload-contract";
 
-const ACCEPTED_TYPES = [
-  "audio/mpeg",
-  "audio/mp4",
-  "audio/x-m4a",
-  "audio/wav",
-  "audio/webm",
-  "video/mp4",
-  "video/webm",
-  "audio/mp3",
-];
+type PanelPhase = "canceled" | "error" | "idle" | "processing" | "ready" | "uploading";
 
 function formatBytes(bytes: number) {
   if (bytes < 1024 * 1024) {
@@ -22,29 +22,85 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function getPrimaryActionLabel(phase: PanelPhase) {
+  if (phase === "uploading") {
+    return "Uploading...";
+  }
+
+  if (phase === "processing") {
+    return "Analyzing call...";
+  }
+
+  if (phase === "error" || phase === "canceled") {
+    return "Retry Upload";
+  }
+
+  return "Upload & Analyze";
+}
+
+function getStatusCopy(phase: PanelPhase, progress: number) {
+  if (phase === "processing") {
+    return {
+      label: "Processing",
+      detail: "Upload complete. Argos is scoring the call now.",
+      progressLabel: "Upload complete",
+      showPercent: false,
+      value: 100,
+    };
+  }
+
+  return {
+    label: "Uploading",
+    detail: "Keep this tab open while the recording transfers.",
+    progressLabel: `${progress}% uploaded`,
+    showPercent: true,
+    value: progress,
+  };
+}
+
 export function UploadCallPanel() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const requestRef = useRef<ReturnType<typeof uploadCallWithProgress> | null>(null);
   const [callTopic, setCallTopic] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [consentConfirmed, setConsentConfirmed] = useState(false);
+  const [error, setError] = useState<UploadErrorPayload | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+  const [phase, setPhase] = useState<PanelPhase>("idle");
   const [progress, setProgress] = useState(0);
 
-  function handleFile(nextFile: File) {
-    if (!ACCEPTED_TYPES.includes(nextFile.type)) {
-      setError(`Unsupported file type: ${nextFile.type}`);
-      return;
-    }
+  const isSubmitting = phase === "processing" || phase === "uploading";
+  const statusCopy = getStatusCopy(phase, progress);
 
-    if (nextFile.size > 500 * 1024 * 1024) {
-      setError("File exceeds the 500 MB upload limit.");
+  function handleFile(nextFile: File) {
+    const validationError = validateUploadFile(nextFile);
+
+    if (validationError) {
+      setError(validationError);
+      setFile(null);
+      setPhase("error");
       return;
     }
 
     setError(null);
     setFile(nextFile);
+    setProgress(0);
+    setPhase("ready");
+  }
+
+  function resetFile() {
+    if (isSubmitting) {
+      return;
+    }
+
+    setFile(null);
+    setError(null);
+    setProgress(0);
+    setPhase("idle");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   }
 
   async function submit() {
@@ -52,38 +108,62 @@ export function UploadCallPanel() {
       return;
     }
 
+    const validationError = validateUploadFile(file);
+
+    if (validationError) {
+      setError(validationError);
+      setPhase("error");
+      return;
+    }
+
     setError(null);
-    setIsUploading(true);
-    setProgress(15);
+    setProgress(0);
+    setPhase("uploading");
+
+    const request = uploadCallWithProgress({
+      callTopic,
+      consentConfirmed,
+      file,
+      onPhaseChange(nextPhase: UploadPhase) {
+        setPhase(nextPhase);
+      },
+      onUploadProgress(nextProgress) {
+        setProgress(nextProgress);
+      },
+    });
+
+    requestRef.current = request;
 
     try {
-      const form = new FormData();
-      form.append("recording", file);
-      form.append("consentConfirmed", "true");
-      if (callTopic.trim()) {
-        form.append("callTopic", callTopic.trim());
-      }
-
-      const response = await fetch("/api/calls/upload", {
-        method: "POST",
-        body: form,
-      });
-
+      const payload = await request.promise;
       setProgress(100);
-
-      const payload = (await response.json()) as { error?: string; id?: string };
-
-      if (!response.ok || !payload.id) {
-        throw new Error(payload.error ?? "Upload failed");
-      }
-
       router.push(`/calls/${payload.id}`);
       router.refresh();
     } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : "Upload failed");
-      setIsUploading(false);
+      const normalized =
+        uploadError instanceof UploadRequestError
+          ? normalizeUploadErrorPayload({
+              action: uploadError.action,
+              code: uploadError.code,
+              details: uploadError.details,
+              error: uploadError.message,
+              retryable: uploadError.retryable,
+            })
+          : normalizeUploadErrorPayload({
+              code: "invalid_upload",
+              error: uploadError instanceof Error ? uploadError.message : "Upload failed.",
+            });
+
+      setError(normalized);
       setProgress(0);
+      setPhase(normalized.code === "upload_canceled" ? "canceled" : "error");
+    } finally {
+      requestRef.current = null;
     }
+  }
+
+  function cancelUpload() {
+    requestRef.current?.cancel();
   }
 
   return (
@@ -97,24 +177,42 @@ export function UploadCallPanel() {
                 ? "border-emerald-500/40 bg-emerald-500/5"
                 : "border-[#45484f]/20 bg-[#161a21]/50 hover:border-[#45484f]/40"
           }`}
-          onClick={() => !file && fileInputRef.current?.click()}
+          onClick={() => !isSubmitting && fileInputRef.current?.click()}
           onDragLeave={() => setIsDragging(false)}
           onDragOver={(event) => {
             event.preventDefault();
-            setIsDragging(true);
+            if (!isSubmitting) {
+              setIsDragging(true);
+            }
           }}
           onDrop={(event) => {
             event.preventDefault();
             setIsDragging(false);
+            if (isSubmitting) {
+              return;
+            }
             const nextFile = event.dataTransfer.files?.[0];
             if (nextFile) {
               handleFile(nextFile);
             }
           }}
+          onKeyDown={(event) => {
+            if (isSubmitting) {
+              return;
+            }
+
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              fileInputRef.current?.click();
+            }
+          }}
+          role="button"
+          tabIndex={isSubmitting ? -1 : 0}
         >
           <input
-            accept={ACCEPTED_TYPES.join(",")}
+            accept={CALL_UPLOAD_ACCEPTED_TYPES.join(",")}
             className="sr-only"
+            disabled={isSubmitting}
             onChange={(event) => {
               const nextFile = event.target.files?.[0];
               if (nextFile) {
@@ -130,10 +228,11 @@ export function UploadCallPanel() {
               <p className="text-lg font-semibold text-emerald-300">{file.name}</p>
               <p className="text-sm text-[#a9abb3]">{formatBytes(file.size)}</p>
               <button
-                className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-300 transition hover:bg-red-500/15"
+                className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-300 transition hover:bg-red-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={isSubmitting}
                 onClick={(event) => {
                   event.stopPropagation();
-                  setFile(null);
+                  resetFile();
                 }}
                 type="button"
               >
@@ -143,7 +242,9 @@ export function UploadCallPanel() {
           ) : (
             <div className="space-y-3">
               <p className="text-lg font-semibold text-[#ecedf6]">Drop a call recording here</p>
-              <p className="text-sm text-[#a9abb3]">MP3, WAV, M4A, MP4, or WebM up to 500 MB</p>
+              <p className="text-sm text-[#a9abb3]">
+                MP3, WAV, M4A, MP4, or WebM up to {formatUploadLimit(CALL_UPLOAD_MAX_BYTES)}
+              </p>
             </div>
           )}
         </div>
@@ -154,6 +255,7 @@ export function UploadCallPanel() {
           </span>
           <input
             className="w-full rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-3 text-base text-[#ecedf6] outline-none transition placeholder:text-[#a9abb3] focus:border-[#74b1ff]/60 focus:ring-4 focus:ring-[#74b1ff]/10"
+            disabled={isSubmitting}
             onChange={(event) => setCallTopic(event.target.value)}
             placeholder="Discovery call with ACME"
             type="text"
@@ -161,34 +263,91 @@ export function UploadCallPanel() {
           />
         </label>
 
-        {isUploading ? (
-          <div className="space-y-2">
+        <label className="flex items-start gap-3 rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-3">
+          <input
+            checked={consentConfirmed}
+            className="mt-1 h-4 w-4 rounded border-[#45484f]/40 bg-[#10131a] text-[#74b1ff] focus:ring-[#74b1ff]/40"
+            disabled={isSubmitting}
+            onChange={(event) => setConsentConfirmed(event.target.checked)}
+            type="checkbox"
+          />
+          <span className="text-sm text-[#c7c9d3]">
+            I confirm the necessary recording consent was collected for this call.
+          </span>
+        </label>
+
+        {isSubmitting ? (
+          <div
+            aria-live="polite"
+            className="space-y-3 rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-4"
+          >
             <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.22em] text-[#a9abb3]">
-              <span>{progress < 100 ? "Uploading" : "Scoring"}</span>
-              <span>{progress}%</span>
+              <span>{statusCopy.label}</span>
+              <span>{statusCopy.showPercent ? `${progress}%` : "Working"}</span>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-[#22262f]">
-              <div className="h-full rounded-full bg-[#74b1ff] transition-all" style={{ width: `${progress}%` }} />
+            <div
+              aria-valuemax={100}
+              aria-valuemin={0}
+              aria-valuenow={statusCopy.value}
+              className="h-2 overflow-hidden rounded-full bg-[#22262f]"
+              role="progressbar"
+            >
+              <div
+                className={`h-full rounded-full bg-[#74b1ff] transition-all ${phase === "processing" ? "animate-pulse" : ""}`}
+                style={{ width: `${statusCopy.value}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-[#ecedf6]">{statusCopy.progressLabel}</p>
+                <p className="text-xs text-[#a9abb3]">{statusCopy.detail}</p>
+              </div>
+              {phase === "uploading" ? (
+                <button
+                  className="rounded-xl border border-[#45484f]/20 px-3 py-2 text-sm font-medium text-[#ecedf6] transition hover:bg-[#22262f]"
+                  onClick={cancelUpload}
+                  type="button"
+                >
+                  Cancel
+                </button>
+              ) : null}
             </div>
           </div>
         ) : null}
 
         {error ? (
-          <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-            {error}
+          <div
+            className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+            role="alert"
+          >
+            <p className="font-semibold">{error.error}</p>
+            {error.action ? <p className="mt-1 text-red-100/90">{error.action}</p> : null}
           </div>
         ) : null}
 
-        <button
-          className="w-full rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-5 py-4 text-base font-bold text-[#002345] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={!file || isUploading}
-          onClick={() => {
-            void submit();
-          }}
-          type="button"
-        >
-          {isUploading ? "Analyzing call..." : "Upload & Analyze"}
-        </button>
+        <div className="flex gap-3">
+          <button
+            className="flex-1 rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-5 py-4 text-base font-bold text-[#002345] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!file || !consentConfirmed || isSubmitting}
+            onClick={() => {
+              void submit();
+            }}
+            type="button"
+          >
+            {getPrimaryActionLabel(phase)}
+          </button>
+          {(phase === "error" || phase === "canceled") && file ? (
+            <button
+              className="rounded-xl border border-[#45484f]/20 px-5 py-4 text-sm font-medium text-[#ecedf6] transition hover:bg-[#161a21]/80"
+              onClick={() => {
+                void submit();
+              }}
+              type="button"
+            >
+              Retry
+            </button>
+          ) : null}
+        </div>
       </div>
     </section>
   );

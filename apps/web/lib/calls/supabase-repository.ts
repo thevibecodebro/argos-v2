@@ -388,6 +388,21 @@ export class SupabaseCallsRepository implements CallsRepository {
     }
   }
 
+  async updateCallStatus(
+    callId: string,
+    status: "uploaded" | "transcribing" | "evaluating" | "complete" | "failed",
+  ) {
+    const supabase: any = this.supabase;
+    const { error } = await supabase
+      .from("calls")
+      .update({ status })
+      .eq("id", callId);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
   async updateCallTopic(callId: string, callTopic: string | null) {
     const supabase: any = this.supabase;
     const { data, error } = await supabase

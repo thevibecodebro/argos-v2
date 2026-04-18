@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const getAuthenticatedSupabaseUser = vi.fn();
 const createRoleplayRepository = vi.fn();
+const closeRoleplaySession = vi.fn();
 const getRoleplaySession = vi.fn();
 
 vi.mock("@/lib/auth/get-authenticated-user", () => ({
@@ -13,6 +14,7 @@ vi.mock("@/lib/roleplay/create-repository", () => ({
 }));
 
 vi.mock("@/lib/roleplay/service", () => ({
+  closeRoleplaySession,
   getRoleplaySession,
 }));
 
@@ -30,6 +32,7 @@ describe("roleplay voice routes", () => {
     vi.restoreAllMocks();
     getAuthenticatedSupabaseUser.mockReset();
     createRoleplayRepository.mockReset();
+    closeRoleplaySession.mockReset();
     getRoleplaySession.mockReset();
     createRoleplayRepository.mockReturnValue({});
     getRoleplaySession.mockResolvedValue({
@@ -52,6 +55,10 @@ describe("roleplay voice routes", () => {
           { role: "assistant", content: "Show me the ROI math." },
           { role: "user", content: "We cut onboarding time by 32%." },
         ],
+        startedAt: "2026-04-03T00:00:00.000Z",
+        lastActivityAt: "2026-04-03T00:01:00.000Z",
+        endedAt: null,
+        durationSeconds: 60,
       },
     });
     getAuthenticatedSupabaseUser.mockResolvedValue({ id: "auth-user-1" });
@@ -157,5 +164,57 @@ describe("roleplay voice routes", () => {
     expect(Buffer.from(await response.arrayBuffer())).toEqual(Buffer.from(audioBytes));
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0]?.[0]).toBe("https://api.openai.com/v1/audio/speech");
+  });
+
+  it("persists measured timing when a realtime voice session closes", async () => {
+    closeRoleplaySession.mockResolvedValue({
+      ok: true,
+      data: {
+        id: "session-1",
+        persona: "skeptical-cfo",
+        personaDetails: {
+          id: "skeptical-cfo",
+          name: "Dana Mercer",
+          role: "CFO",
+          company: "Apex Manufacturing",
+          industry: "Manufacturing",
+          difficulty: "advanced",
+          objectionType: "ROI & Budget",
+          description: "Numbers-first evaluator.",
+          avatarInitials: "DM",
+        },
+        transcript: [
+          { role: "assistant", content: "Show me the ROI math." },
+          { role: "user", content: "We cut onboarding time by 32%." },
+        ],
+        startedAt: "2026-04-03T00:00:00.000Z",
+        lastActivityAt: "2026-04-03T00:02:32.000Z",
+        endedAt: "2026-04-03T00:02:32.000Z",
+        durationSeconds: 152,
+        orgId: "org-1",
+        repId: "rep-1",
+        industry: "Manufacturing",
+        difficulty: "advanced",
+        overallScore: null,
+        scorecard: null,
+        status: "active",
+        createdAt: "2026-04-03T00:00:00.000Z",
+      },
+    });
+
+    const route = await import("../app/api/roleplay/sessions/[id]/close/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/roleplay/sessions/session-1/close", {
+        method: "POST",
+      }),
+      { params: Promise.resolve({ id: "session-1" }) },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      durationSeconds: 152,
+      endedAt: "2026-04-03T00:02:32.000Z",
+    });
+    expect(closeRoleplaySession).toHaveBeenCalledWith({}, "auth-user-1", "session-1");
   });
 });

@@ -24,4 +24,8 @@ export const roleplaySessionsTable = pgTable("roleplay_sessions", {
     .notNull()
     .default("active"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  startedAt: timestamp("started_at", { withTimezone: true }),
+  lastActivityAt: timestamp("last_activity_at", { withTimezone: true }),
+  endedAt: timestamp("ended_at", { withTimezone: true }),
+  durationSeconds: integer("duration_seconds"),
 });

@@ -11,7 +11,7 @@ type OrganizationRecord = {
 
 type OnboardingResult<T> =
   | { ok: true; data: T }
-  | { ok: false; status: 400 | 404 | 409; error: string };
+  | { ok: false; status: 400 | 403 | 404 | 409; error: string };
 
 export type OnboardingOrganization = {
   id: string;
@@ -164,24 +164,9 @@ export async function joinOrganizationForUser(
     };
   }
 
-  const organization = await repository.findOrganizationBySlug(slug);
-
-  if (!organization) {
-    return {
-      ok: false,
-      status: 404,
-      error: "Organization not found",
-    };
-  }
-
-  await repository.assignUserToOrganization({
-    orgId: organization.id,
-    role: "rep",
-    userId: eligibleUser.data.id,
-  });
-
   return {
-    ok: true,
-    data: serializeOrganization(organization),
+    ok: false,
+    status: 403,
+    error: "Use an invite to join an organization",
   };
 }

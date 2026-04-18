@@ -12,15 +12,18 @@ import {
 type RoleplayPanelProps = {
   initialPersonas: RoleplayPersona[];
   initialSessions: RoleplaySession[];
+  voiceAvailable: boolean;
 };
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(value));
 }
 
-function formatDuration(session: RoleplaySession) {
-  const msgs = session.transcript.length;
-  const seconds = msgs * 45;
+function formatDuration(seconds: number | null | undefined) {
+  if (typeof seconds !== "number" || seconds < 0) {
+    return "—";
+  }
+
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
@@ -83,7 +86,7 @@ function parseRealtimeEvent(rawEvent: string): RoleplayMessage | null {
   }
 }
 
-export function RoleplayPanel({ initialPersonas, initialSessions }: RoleplayPanelProps) {
+export function RoleplayPanel({ initialPersonas, initialSessions, voiceAvailable }: RoleplayPanelProps) {
   const router = useRouter();
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const activeAudioUrlRef = useRef<string | null>(null);
@@ -115,9 +118,18 @@ export function RoleplayPanel({ initialPersonas, initialSessions }: RoleplayPane
   );
 
   function cleanupVoiceSession() {
-    dataChannelRef.current?.close();
+    if (dataChannelRef.current) {
+      dataChannelRef.current.onclose = null;
+      dataChannelRef.current.onerror = null;
+      dataChannelRef.current.onmessage = null;
+      dataChannelRef.current.close();
+    }
     dataChannelRef.current = null;
-    peerConnectionRef.current?.close();
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.onconnectionstatechange = null;
+      peerConnectionRef.current.ontrack = null;
+      peerConnectionRef.current.close();
+    }
     peerConnectionRef.current = null;
     mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
     mediaStreamRef.current = null;
@@ -152,6 +164,7 @@ export function RoleplayPanel({ initialPersonas, initialSessions }: RoleplayPane
     setLiveVoiceTranscript([]);
 
     try {
+      const sessionId = activeSession.id;
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaStreamRef.current = stream;
 
@@ -170,6 +183,19 @@ export function RoleplayPanel({ initialPersonas, initialSessions }: RoleplayPane
         if (msg) setLiveVoiceTranscript((cur) => [...cur, msg]);
       };
       dc.onerror = () => setError("Voice mode lost the realtime event channel. Stop and restart.");
+      dc.onclose = () => {
+        void closeSession(sessionId);
+        cleanupVoiceSession();
+        setVoiceStatus("Voice practice stopped.");
+      };
+
+      pc.onconnectionstatechange = () => {
+        if (pc.connectionState === "closed" || pc.connectionState === "disconnected" || pc.connectionState === "failed") {
+          void closeSession(sessionId);
+          cleanupVoiceSession();
+          setVoiceStatus("Voice practice disconnected.");
+        }
+      };
 
       stream.getTracks().forEach((t) => pc.addTrack(t, stream));
 
@@ -200,8 +226,29 @@ export function RoleplayPanel({ initialPersonas, initialSessions }: RoleplayPane
   }
 
   function stopVoicePractice() {
+    if (activeSession) {
+      void closeSession(activeSession.id);
+    }
     cleanupVoiceSession();
     setVoiceStatus("Voice practice stopped.");
+  }
+
+  async function closeSession(sessionId: string) {
+    try {
+      const res = await fetch(`/api/roleplay/sessions/${sessionId}/close`, {
+        method: "POST",
+      });
+
+      if (!res.ok) {
+        return;
+      }
+
+      const payload = (await res.json()) as RoleplaySession;
+      setActiveSession((current) => (current?.id === payload.id ? payload : current));
+      setSessions((current) => current.map((session) => (session.id === payload.id ? payload : session)));
+    } catch {
+      // Best-effort timing persistence should not block local voice teardown.
+    }
   }
 
   async function playTranscriptLine(text: string) {
@@ -371,20 +418,34 @@ export function RoleplayPanel({ initialPersonas, initialSessions }: RoleplayPane
               </span>
             </div>
             <div className="flex items-center gap-2 rounded-full bg-[#22262f] p-1">
-              <button
-                className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold transition-colors ${
-                  isVoiceActive ? "bg-[#ff716c]/20 text-[#ff716c]" : "bg-[#74b1ff] text-[#002345]"
-                }`}
-                disabled={isStartingVoice || !activeSession}
-                onClick={() => isVoiceActive ? stopVoicePractice() : void startVoicePractice()}
-                type="button"
-              >
-                <span className="material-symbols-outlined text-sm">mic</span>
-                {isStartingVoice ? "Starting…" : isVoiceActive ? "Stop" : "Voice"}
-              </button>
+              {voiceAvailable ? (
+                <button
+                  className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold transition-colors ${
+                    isVoiceActive ? "bg-[#ff716c]/20 text-[#ff716c]" : "bg-[#74b1ff] text-[#002345]"
+                  }`}
+                  disabled={isStartingVoice || !activeSession}
+                  onClick={() => isVoiceActive ? stopVoicePractice() : void startVoicePractice()}
+                  type="button"
+                >
+                  <span className="material-symbols-outlined text-sm">mic</span>
+                  {isStartingVoice ? "Starting…" : isVoiceActive ? "Stop" : "Voice"}
+                </button>
+              ) : (
+                <span className="flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold text-amber-200">
+                  <span className="material-symbols-outlined text-sm">mic_off</span>
+                  Voice setup required
+                </span>
+              )}
               <span className="px-3 py-1.5 text-xs font-bold text-[#a9abb3]">Text</span>
             </div>
           </div>
+
+          {!voiceAvailable && (
+            <div className="mb-4 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+              Voice playback and live voice practice are unavailable in this environment. Ask an
+              Argos admin to finish AI voice setup, then refresh this page.
+            </div>
+          )}
 
           {/* Transcript */}
           <div
@@ -415,7 +476,7 @@ export function RoleplayPanel({ initialPersonas, initialSessions }: RoleplayPane
                         <span className="font-['Space_Grotesk'] text-[10px] font-bold uppercase tracking-widest text-[#a9abb3]">
                           {msg.role === "user" ? "You" : (activeSession.personaDetails?.name ?? "Prospect")}
                         </span>
-                        {msg.role === "assistant" && (
+                        {msg.role === "assistant" && voiceAvailable && (
                           <button
                             className="font-['Space_Grotesk'] text-[10px] font-bold uppercase tracking-widest text-[#74b1ff]"
                             onClick={() => void playTranscriptLine(msg.content)}
@@ -462,7 +523,11 @@ export function RoleplayPanel({ initialPersonas, initialSessions }: RoleplayPane
                 disabled={!activeSession || activeSession.status === "complete" || isMutating}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void sendMessage(); } }}
-                placeholder="Type your response or click the mic to speak..."
+                placeholder={
+                  voiceAvailable
+                    ? "Type your response or click the mic to speak..."
+                    : "Type your response to continue the roleplay..."
+                }
                 value={draft}
               />
               <button
@@ -618,7 +683,7 @@ export function RoleplayPanel({ initialPersonas, initialSessions }: RoleplayPane
                           <span className={`font-bold ${scoreColor(score)}`}>{score}%</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-[#a9abb3]">{formatDuration(session)}</td>
+                      <td className="px-6 py-4 text-[#a9abb3]">{formatDuration(session.durationSeconds)}</td>
                       <td className="px-6 py-4 text-[#a9abb3]">{formatDate(session.createdAt)}</td>
                       <td className="px-6 py-4 text-right">
                         <button className="font-medium text-[#74b1ff] underline hover:text-[#74b1ff]/80" type="button">

@@ -387,6 +387,16 @@ export class DrizzleCallsRepository implements CallsRepository {
     });
   }
 
+  async updateCallStatus(
+    callId: string,
+    status: "uploaded" | "transcribing" | "evaluating" | "complete" | "failed",
+  ) {
+    await this.db
+      .update(callsTable)
+      .set({ status })
+      .where(eq(callsTable.id, callId));
+  }
+
   async updateCallTopic(callId: string, callTopic: string | null) {
     const [updated] = await this.db
       .update(callsTable)

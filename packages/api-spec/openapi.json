@@ -1,0 +1,3773 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Argos API",
+    "version": "2026-04-17",
+    "description": "Active API contract for the current Argos Next.js backend. This spec covers the frontend-used route surface plus selected compatibility endpoints."
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "Base API path"
+    }
+  ],
+  "tags": [
+    {
+      "name": "health"
+    },
+    {
+      "name": "users"
+    },
+    {
+      "name": "organizations"
+    },
+    {
+      "name": "compliance"
+    },
+    {
+      "name": "teams"
+    },
+    {
+      "name": "invites"
+    },
+    {
+      "name": "calls"
+    },
+    {
+      "name": "notifications"
+    },
+    {
+      "name": "roleplay"
+    },
+    {
+      "name": "training"
+    },
+    {
+      "name": "integrations"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "operationId": "getHealth",
+        "summary": "Get active service health",
+        "responses": {
+          "200": {
+            "description": "Healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "operationId": "getCurrentUser",
+        "summary": "Get the current authenticated user profile",
+        "responses": {
+          "200": {
+            "description": "Current user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentUserDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "users"
+        ],
+        "operationId": "updateCurrentUserProfile",
+        "summary": "Update the current user profile",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentUserDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/organizations": {
+      "post": {
+        "tags": [
+          "organizations"
+        ],
+        "operationId": "createOrganization",
+        "summary": "Create a new organization for the current user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrganizationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/organizations/join": {
+      "post": {
+        "tags": [
+          "organizations"
+        ],
+        "operationId": "joinOrganizationBySlug",
+        "summary": "Compatibility endpoint for legacy self-join flows",
+        "description": "Direct organization joins are disabled. New members must use an invite link.",
+        "deprecated": true,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JoinOrganizationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/organizations/members/{userId}": {
+      "patch": {
+        "tags": [
+          "organizations"
+        ],
+        "operationId": "updateOrganizationMemberRole",
+        "summary": "Update an organization member role",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationMemberRoleUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated member role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationMemberRoleUpdateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "organizations"
+        ],
+        "operationId": "removeOrganizationMember",
+        "summary": "Remove an organization member",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Member removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/organizations/members/{userId}/primary-manager": {
+      "patch": {
+        "tags": [
+          "organizations"
+        ],
+        "operationId": "assignPrimaryManager",
+        "summary": "Assign a primary manager to a rep",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrimaryManagerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Primary manager assigned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrimaryManagerAssignment"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/compliance/consent": {
+      "post": {
+        "tags": [
+          "compliance"
+        ],
+        "operationId": "recordComplianceConsent",
+        "summary": "Record call-recording consent acknowledgement",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComplianceConsentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Consent acknowledged",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComplianceConsentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/teams": {
+      "get": {
+        "tags": [
+          "teams"
+        ],
+        "operationId": "listActiveTeams",
+        "summary": "List active teams for invite assignment",
+        "responses": {
+          "200": {
+            "description": "Active teams",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TeamRecord"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "teams"
+        ],
+        "operationId": "createTeam",
+        "summary": "Create a team",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created team",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/teams/{teamId}": {
+      "patch": {
+        "tags": [
+          "teams"
+        ],
+        "operationId": "updateTeam",
+        "summary": "Update team metadata",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated team",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/teams/{teamId}/members": {
+      "post": {
+        "tags": [
+          "teams"
+        ],
+        "operationId": "addTeamMembership",
+        "summary": "Add a rep or manager to a team",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamMembershipRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated team access snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamAccessSnapshot"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "teams"
+        ],
+        "operationId": "removeTeamMembership",
+        "summary": "Remove a rep or manager from a team",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamMembershipRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated team access snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamAccessSnapshot"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/teams/{teamId}/grants": {
+      "post": {
+        "tags": [
+          "teams"
+        ],
+        "operationId": "setTeamManagerPermissionPreset",
+        "summary": "Apply or clear a permission preset for a manager on a team",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamPermissionPresetRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Applied permission preset",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamPermissionPresetResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/invites": {
+      "get": {
+        "tags": [
+          "invites"
+        ],
+        "operationId": "listPendingInvites",
+        "summary": "List pending invites for the current organization",
+        "responses": {
+          "200": {
+            "description": "Pending invites",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InviteRecord"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "invites"
+        ],
+        "operationId": "createInvite",
+        "summary": "Send a new organization invite",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created invite",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteRecord"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/invites/{token}": {
+      "delete": {
+        "tags": [
+          "invites"
+        ],
+        "operationId": "revokeInvite",
+        "summary": "Revoke a pending invite",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Token"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Invite revoked"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/invites/{token}/accept": {
+      "post": {
+        "tags": [
+          "invites"
+        ],
+        "operationId": "acceptInvite",
+        "summary": "Accept an invite for the current authenticated user",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Token"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invite accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteAcceptResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "410": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/calls/upload": {
+      "post": {
+        "tags": [
+          "calls"
+        ],
+        "operationId": "uploadCall",
+        "summary": "Upload a call recording for analysis",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "recording",
+                  "consentConfirmed"
+                ],
+                "properties": {
+                  "recording": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "consentConfirmed": {
+                    "type": "string",
+                    "enum": [
+                      "true"
+                    ]
+                  },
+                  "callTopic": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Call uploaded and analyzed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadCallResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Upload validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadCallErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "413": {
+            "description": "File too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadCallErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported file type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadCallErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Processing failed after upload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadCallErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/calls/{id}/annotations": {
+      "post": {
+        "tags": [
+          "calls"
+        ],
+        "operationId": "createCallAnnotation",
+        "summary": "Create a coaching annotation on a call",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CallId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAnnotationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created annotation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CallAnnotation"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/calls/{id}/annotations/{annotationId}": {
+      "delete": {
+        "tags": [
+          "calls"
+        ],
+        "operationId": "deleteCallAnnotation",
+        "summary": "Delete a coaching annotation",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CallId"
+          },
+          {
+            "$ref": "#/components/parameters/AnnotationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted annotation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/calls/{id}/moments/{momentId}/highlight": {
+      "patch": {
+        "tags": [
+          "calls"
+        ],
+        "operationId": "updateCallMomentHighlight",
+        "summary": "Toggle highlight state for a call moment",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CallId"
+          },
+          {
+            "$ref": "#/components/parameters/MomentId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateHighlightRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated moment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CallMoment"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/notifications/{id}/read": {
+      "post": {
+        "tags": [
+          "notifications"
+        ],
+        "operationId": "markNotificationRead",
+        "summary": "Mark a notification as read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/NotificationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification marked read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/notifications/read-all": {
+      "post": {
+        "tags": [
+          "notifications"
+        ],
+        "operationId": "markAllNotificationsRead",
+        "summary": "Mark all notifications as read",
+        "responses": {
+          "200": {
+            "description": "Notifications marked read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/integrations/zoom/connect": {
+      "get": {
+        "tags": [
+          "integrations"
+        ],
+        "operationId": "connectZoomIntegration",
+        "summary": "Start the Zoom OAuth flow",
+        "responses": {
+          "302": {
+            "description": "Redirect to Zoom or back to settings with an error query string"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/integrations/zoom/disconnect": {
+      "post": {
+        "tags": [
+          "integrations"
+        ],
+        "operationId": "disconnectZoomIntegration",
+        "summary": "Disconnect the Zoom integration",
+        "responses": {
+          "200": {
+            "description": "Integration disconnected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/integrations/ghl/connect": {
+      "get": {
+        "tags": [
+          "integrations"
+        ],
+        "operationId": "connectGhlIntegration",
+        "summary": "Start the GoHighLevel OAuth flow",
+        "responses": {
+          "302": {
+            "description": "Redirect to GoHighLevel or back to settings with an error query string"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/integrations/ghl/disconnect": {
+      "post": {
+        "tags": [
+          "integrations"
+        ],
+        "operationId": "disconnectGhlIntegration",
+        "summary": "Disconnect the GoHighLevel integration",
+        "responses": {
+          "200": {
+            "description": "Integration disconnected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/roleplay/sessions": {
+      "get": {
+        "tags": [
+          "roleplay"
+        ],
+        "operationId": "listRoleplaySessions",
+        "summary": "List visible roleplay sessions for the current user",
+        "responses": {
+          "200": {
+            "description": "Roleplay sessions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RoleplaySession"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "roleplay"
+        ],
+        "operationId": "createRoleplaySession",
+        "summary": "Create a roleplay session",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRoleplaySessionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created roleplay session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleplaySession"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/roleplay/sessions/{id}": {
+      "get": {
+        "tags": [
+          "roleplay"
+        ],
+        "operationId": "getRoleplaySession",
+        "summary": "Get a roleplay session by id",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SessionId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Roleplay session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleplaySession"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/roleplay/sessions/{id}/messages": {
+      "post": {
+        "tags": [
+          "roleplay"
+        ],
+        "operationId": "appendRoleplayMessage",
+        "summary": "Append a user message to a roleplay session",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SessionId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppendRoleplayMessageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated roleplay session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleplaySession"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/roleplay/sessions/{id}/complete": {
+      "post": {
+        "tags": [
+          "roleplay"
+        ],
+        "operationId": "completeRoleplaySession",
+        "summary": "Complete and score a roleplay session",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SessionId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Completed roleplay session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleplaySession"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/roleplay/sessions/{id}/close": {
+      "post": {
+        "tags": [
+          "roleplay"
+        ],
+        "operationId": "closeRoleplaySession",
+        "summary": "Persist measured timing for an in-progress roleplay session",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SessionId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Closed roleplay session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleplaySession"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/roleplay/sessions/{id}/realtime": {
+      "get": {
+        "tags": [
+          "roleplay"
+        ],
+        "operationId": "getRoleplayRealtimeAvailability",
+        "summary": "Check whether realtime voice is available for a roleplay session",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SessionId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Realtime voice availability",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleplayRealtimeAvailability"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "roleplay"
+        ],
+        "operationId": "startRoleplayRealtimeSession",
+        "summary": "Start a realtime voice session for a roleplay",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SessionId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/sdp": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "SDP answer",
+            "content": {
+              "application/sdp": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "502": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/roleplay/tts": {
+      "post": {
+        "tags": [
+          "roleplay"
+        ],
+        "operationId": "synthesizeRoleplaySpeech",
+        "summary": "Synthesize roleplay speech audio",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TtsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Synthesized audio",
+            "content": {
+              "audio/mpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "502": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/training/modules": {
+      "get": {
+        "tags": [
+          "training"
+        ],
+        "operationId": "listTrainingModules",
+        "summary": "List training modules for the current user",
+        "responses": {
+          "200": {
+            "description": "Training modules",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainingModuleListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "training"
+        ],
+        "operationId": "createTrainingModule",
+        "summary": "Create a training module",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrainingModuleUpsertRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created module",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainingModuleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/training/modules/{id}": {
+      "get": {
+        "tags": [
+          "training"
+        ],
+        "operationId": "getTrainingModule",
+        "summary": "Get a training module by id",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ModuleId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Training module",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainingModuleSummary"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "training"
+        ],
+        "operationId": "updateTrainingModule",
+        "summary": "Update a training module",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ModuleId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrainingModuleUpsertRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated module",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainingModuleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/training/modules/generate": {
+      "post": {
+        "tags": [
+          "training"
+        ],
+        "operationId": "generateTrainingModules",
+        "summary": "Generate draft training modules with AI",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrainingModuleGenerationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Generated training modules",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainingModuleGenerationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "501": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/training/modules/{id}/generate": {
+      "post": {
+        "tags": [
+          "training"
+        ],
+        "operationId": "generateTrainingModuleDraft",
+        "summary": "Generate a lesson-content or quiz draft for an existing module",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ModuleId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrainingModuleDraftGenerationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Generated draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainingModuleAIDraftResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "501": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/training/modules/{id}/progress": {
+      "post": {
+        "tags": [
+          "training"
+        ],
+        "operationId": "submitTrainingProgress",
+        "summary": "Submit progress for a training module",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ModuleId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrainingProgressSubmitRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved training progress",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainingProgressSubmitResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/training/modules/{id}/assign": {
+      "post": {
+        "tags": [
+          "training"
+        ],
+        "operationId": "assignTrainingModule",
+        "summary": "Assign a training module to reps",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ModuleId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrainingModuleAssignRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Assignment result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainingModuleAssignResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/training/modules/{id}/assign/{repId}": {
+      "delete": {
+        "tags": [
+          "training"
+        ],
+        "operationId": "unassignTrainingModule",
+        "summary": "Remove an unstarted training assignment from a rep",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ModuleId"
+          },
+          {
+            "$ref": "#/components/parameters/RepId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unassigned module",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainingModuleUnassignResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/training/team-progress": {
+      "get": {
+        "tags": [
+          "training"
+        ],
+        "operationId": "getTrainingTeamProgress",
+        "summary": "Get training progress across the accessible team roster",
+        "responses": {
+          "200": {
+            "description": "Training team progress",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainingTeamProgressResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "responses": {
+      "Error": {
+        "description": "Error response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Unauthorized",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "parameters": {
+      "AnnotationId": {
+        "name": "annotationId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "CallId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "ModuleId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "MomentId": {
+        "name": "momentId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "NotificationId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "RepId": {
+        "name": "repId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "SessionId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "TeamId": {
+        "name": "teamId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Token": {
+        "name": "token",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "UserId": {
+        "name": "userId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "schemas": {
+      "AppUserRole": {
+        "type": "string",
+        "enum": [
+          "rep",
+          "manager",
+          "executive",
+          "admin"
+        ]
+      },
+      "AppendRoleplayMessageRequest": {
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "string"
+          }
+        }
+      },
+      "CallAnnotation": {
+        "type": "object",
+        "required": [
+          "id",
+          "callId",
+          "authorId",
+          "note",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "callId": {
+            "type": "string"
+          },
+          "authorId": {
+            "type": "string"
+          },
+          "timestampSeconds": {
+            "type": "number",
+            "nullable": true
+          },
+          "note": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "authorFirstName": {
+            "type": "string",
+            "nullable": true
+          },
+          "authorLastName": {
+            "type": "string",
+            "nullable": true
+          },
+          "authorRole": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "CallMoment": {
+        "type": "object",
+        "required": [
+          "id",
+          "callId",
+          "isHighlight",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "callId": {
+            "type": "string"
+          },
+          "timestampSeconds": {
+            "type": "number",
+            "nullable": true
+          },
+          "category": {
+            "type": "string",
+            "nullable": true
+          },
+          "observation": {
+            "type": "string",
+            "nullable": true
+          },
+          "recommendation": {
+            "type": "string",
+            "nullable": true
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "strength",
+              "improvement",
+              "critical"
+            ],
+            "nullable": true
+          },
+          "isHighlight": {
+            "type": "boolean"
+          },
+          "highlightNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ComplianceConsentRequest": {
+        "type": "object",
+        "required": [
+          "eventType",
+          "tosVersion"
+        ],
+        "properties": {
+          "eventType": {
+            "type": "string"
+          },
+          "tosVersion": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "ComplianceConsentResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "consentedAt"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "consentedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateAnnotationRequest": {
+        "type": "object",
+        "required": [
+          "note"
+        ],
+        "properties": {
+          "note": {
+            "type": "string"
+          },
+          "timestampSeconds": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      },
+      "CreateOrganizationRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "slug"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateRoleplaySessionRequest": {
+        "type": "object",
+        "required": [
+          "personaId"
+        ],
+        "properties": {
+          "personaId": {
+            "type": "string"
+          }
+        }
+      },
+      "CurrentUserDetails": {
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "profileImageUrl",
+          "role",
+          "orgId",
+          "displayNameSet",
+          "org"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "nullable": true
+          },
+          "profileImageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "role": {
+            "$ref": "#/components/schemas/AppUserRole",
+            "nullable": true
+          },
+          "orgId": {
+            "type": "string",
+            "nullable": true
+          },
+          "displayNameSet": {
+            "type": "boolean"
+          },
+          "org": {
+            "$ref": "#/components/schemas/CurrentUserOrganization",
+            "nullable": true
+          }
+        }
+      },
+      "CurrentUserOrganization": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "plan",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "plan": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "required": [
+          "ok",
+          "service",
+          "timestamp"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "service": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "InviteAcceptResponse": {
+        "type": "object",
+        "required": [
+          "orgId"
+        ],
+        "properties": {
+          "orgId": {
+            "type": "string"
+          }
+        }
+      },
+      "InviteCreateRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "role"
+        ],
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/AppUserRole"
+          },
+          "teamIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "InviteRecord": {
+        "type": "object",
+        "required": [
+          "id",
+          "orgId",
+          "email",
+          "role",
+          "token",
+          "teamIds",
+          "expiresAt",
+          "acceptedAt",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "orgId": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/AppUserRole"
+          },
+          "token": {
+            "type": "string"
+          },
+          "teamIds": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "acceptedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "JoinOrganizationRequest": {
+        "type": "object",
+        "required": [
+          "slug"
+        ],
+        "properties": {
+          "slug": {
+            "type": "string"
+          }
+        }
+      },
+      "OrganizationMemberRoleUpdateRequest": {
+        "type": "object",
+        "required": [
+          "role"
+        ],
+        "properties": {
+          "role": {
+            "$ref": "#/components/schemas/AppUserRole"
+          }
+        }
+      },
+      "OrganizationMemberRoleUpdateResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "role"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/AppUserRole"
+          }
+        }
+      },
+      "OrganizationResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "plan",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "plan": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PrimaryManagerAssignment": {
+        "type": "object",
+        "required": [
+          "repId",
+          "managerId"
+        ],
+        "properties": {
+          "repId": {
+            "type": "string"
+          },
+          "managerId": {
+            "type": "string"
+          }
+        }
+      },
+      "PrimaryManagerRequest": {
+        "type": "object",
+        "required": [
+          "managerId"
+        ],
+        "properties": {
+          "managerId": {
+            "type": "string"
+          }
+        }
+      },
+      "RoleplayCallStage": {
+        "type": "string",
+        "enum": [
+          "opening",
+          "discovery",
+          "solution",
+          "objection_handling",
+          "commitment"
+        ]
+      },
+      "RoleplayCategory": {
+        "type": "string",
+        "enum": [
+          "closing",
+          "discovery",
+          "frame_control",
+          "objection_handling",
+          "pain_expansion",
+          "rapport",
+          "solution"
+        ]
+      },
+      "RoleplayConfidence": {
+        "type": "string",
+        "enum": [
+          "high",
+          "medium",
+          "low"
+        ]
+      },
+      "RoleplayDifficulty": {
+        "type": "string",
+        "enum": [
+          "beginner",
+          "intermediate",
+          "advanced"
+        ]
+      },
+      "RoleplayMessage": {
+        "type": "object",
+        "required": [
+          "role",
+          "content"
+        ],
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "assistant",
+              "user"
+            ]
+          },
+          "content": {
+            "type": "string"
+          }
+        }
+      },
+      "RoleplayPersona": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "role",
+          "company",
+          "industry",
+          "difficulty",
+          "objectionType",
+          "description",
+          "avatarInitials"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "company": {
+            "type": "string"
+          },
+          "industry": {
+            "type": "string"
+          },
+          "difficulty": {
+            "$ref": "#/components/schemas/RoleplayDifficulty"
+          },
+          "objectionType": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "avatarInitials": {
+            "type": "string"
+          }
+        }
+      },
+      "RoleplayRealtimeAvailability": {
+        "type": "object",
+        "required": [
+          "available",
+          "persona"
+        ],
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "persona": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "RoleplayScoreMoment": {
+        "type": "object",
+        "required": [
+          "category",
+          "severity",
+          "observation",
+          "recommendation"
+        ],
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/RoleplayCategory"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "strength",
+              "improvement",
+              "critical"
+            ]
+          },
+          "observation": {
+            "type": "string"
+          },
+          "recommendation": {
+            "type": "string"
+          }
+        }
+      },
+      "RoleplayScorecard": {
+        "type": "object",
+        "required": [
+          "callStageReached",
+          "categoryScores",
+          "confidence",
+          "summary",
+          "strengths",
+          "improvements",
+          "recommendedDrills",
+          "moments"
+        ],
+        "properties": {
+          "callStageReached": {
+            "$ref": "#/components/schemas/RoleplayCallStage"
+          },
+          "categoryScores": {
+            "type": "object",
+            "required": [
+              "closing",
+              "discovery",
+              "frame_control",
+              "objection_handling",
+              "pain_expansion",
+              "rapport",
+              "solution"
+            ],
+            "properties": {
+              "closing": {
+                "type": "number",
+                "nullable": true
+              },
+              "discovery": {
+                "type": "number",
+                "nullable": true
+              },
+              "frame_control": {
+                "type": "number",
+                "nullable": true
+              },
+              "objection_handling": {
+                "type": "number",
+                "nullable": true
+              },
+              "pain_expansion": {
+                "type": "number",
+                "nullable": true
+              },
+              "rapport": {
+                "type": "number",
+                "nullable": true
+              },
+              "solution": {
+                "type": "number",
+                "nullable": true
+              }
+            }
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/RoleplayConfidence"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "strengths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "improvements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "recommendedDrills": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "moments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoleplayScoreMoment"
+            }
+          }
+        }
+      },
+      "RoleplaySession": {
+        "type": "object",
+        "required": [
+          "id",
+          "repId",
+          "orgId",
+          "persona",
+          "personaDetails",
+          "industry",
+          "difficulty",
+          "overallScore",
+          "transcript",
+          "scorecard",
+          "status",
+          "createdAt",
+          "startedAt",
+          "lastActivityAt",
+          "endedAt",
+          "durationSeconds"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "repId": {
+            "type": "string"
+          },
+          "orgId": {
+            "type": "string"
+          },
+          "persona": {
+            "type": "string",
+            "nullable": true
+          },
+          "personaDetails": {
+            "$ref": "#/components/schemas/RoleplayPersona",
+            "nullable": true
+          },
+          "industry": {
+            "type": "string",
+            "nullable": true
+          },
+          "difficulty": {
+            "$ref": "#/components/schemas/RoleplayDifficulty",
+            "nullable": true
+          },
+          "overallScore": {
+            "type": "number",
+            "nullable": true
+          },
+          "transcript": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoleplayMessage"
+            }
+          },
+          "scorecard": {
+            "$ref": "#/components/schemas/RoleplayScorecard",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "evaluating",
+              "complete"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lastActivityAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "endedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "durationSeconds": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      },
+      "SuccessResponse": {
+        "type": "object",
+        "required": [
+          "success"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TeamAccessSnapshot": {
+        "type": "object",
+        "required": [
+          "teams",
+          "managers",
+          "reps",
+          "memberships",
+          "grants"
+        ],
+        "properties": {
+          "teams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamDetail"
+            }
+          },
+          "managers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamMember"
+            }
+          },
+          "reps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamRep"
+            }
+          },
+          "memberships": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamMembership"
+            }
+          },
+          "grants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamGrant"
+            }
+          }
+        }
+      },
+      "TeamCreateRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "TeamDetail": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "TeamGrant": {
+        "type": "object",
+        "required": [
+          "teamId",
+          "userId",
+          "permissionKey"
+        ],
+        "properties": {
+          "teamId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "permissionKey": {
+            "type": "string"
+          }
+        }
+      },
+      "TeamMember": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "TeamMembership": {
+        "type": "object",
+        "required": [
+          "teamId",
+          "userId",
+          "membershipType"
+        ],
+        "properties": {
+          "teamId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "membershipType": {
+            "type": "string",
+            "enum": [
+              "manager",
+              "rep"
+            ]
+          }
+        }
+      },
+      "TeamMembershipRequest": {
+        "type": "object",
+        "required": [
+          "membershipType",
+          "userId"
+        ],
+        "properties": {
+          "membershipType": {
+            "type": "string",
+            "enum": [
+              "manager",
+              "rep"
+            ]
+          },
+          "userId": {
+            "type": "string"
+          }
+        }
+      },
+      "TeamPermissionPresetRequest": {
+        "type": "object",
+        "required": [
+          "managerId"
+        ],
+        "properties": {
+          "managerId": {
+            "type": "string"
+          },
+          "preset": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "TeamPermissionPresetResponse": {
+        "type": "object",
+        "required": [
+          "grants"
+        ],
+        "properties": {
+          "grants": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "TeamRecord": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "TeamRep": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "primaryManagerId"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "primaryManagerId": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "TeamUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "archived"
+            ]
+          }
+        }
+      },
+      "TrainingGeneratedModule": {
+        "type": "object",
+        "required": [
+          "title",
+          "skillCategory",
+          "description",
+          "quizData"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "skillCategory": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "quizData": {
+            "$ref": "#/components/schemas/TrainingQuizData",
+            "nullable": true
+          }
+        }
+      },
+      "TrainingModuleAIDraftResponse": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "mode",
+              "draft"
+            ],
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "content"
+                ]
+              },
+              "draft": {
+                "$ref": "#/components/schemas/TrainingModuleContentDraft"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "mode",
+              "draft"
+            ],
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "quiz"
+                ]
+              },
+              "draft": {
+                "$ref": "#/components/schemas/TrainingModuleQuizDraft"
+              }
+            }
+          }
+        ]
+      },
+      "TrainingModuleAssignRequest": {
+        "type": "object",
+        "required": [
+          "repIds"
+        ],
+        "properties": {
+          "repIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "dueDate": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "TrainingModuleAssignResponse": {
+        "type": "object",
+        "required": [
+          "assignedRepIds",
+          "rejectedRepIds"
+        ],
+        "properties": {
+          "assignedRepIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rejectedRepIds": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "repId",
+                "reason"
+              ],
+              "properties": {
+                "repId": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string",
+                  "enum": [
+                    "not_found",
+                    "out_of_scope"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "TrainingModuleContentDraft": {
+        "type": "object",
+        "required": [
+          "title",
+          "skillCategory",
+          "description",
+          "videoUrl"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "skillCategory": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "videoUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "TrainingModuleDraftGenerationRequest": {
+        "type": "object",
+        "required": [
+          "mode",
+          "contextNotes"
+        ],
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "content",
+              "quiz"
+            ]
+          },
+          "contextNotes": {
+            "type": "string"
+          }
+        }
+      },
+      "TrainingModuleGenerationRequest": {
+        "type": "object",
+        "required": [
+          "topic",
+          "targetRole",
+          "skillFocus",
+          "moduleCount"
+        ],
+        "properties": {
+          "topic": {
+            "type": "string"
+          },
+          "targetRole": {
+            "type": "string"
+          },
+          "skillFocus": {
+            "type": "string"
+          },
+          "moduleCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "TrainingModuleGenerationResponse": {
+        "type": "object",
+        "required": [
+          "modules"
+        ],
+        "properties": {
+          "modules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrainingGeneratedModule"
+            }
+          }
+        }
+      },
+      "TrainingModuleListResponse": {
+        "type": "object",
+        "required": [
+          "modules",
+          "canManage"
+        ],
+        "properties": {
+          "modules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrainingModuleSummary"
+            }
+          },
+          "canManage": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TrainingModuleQuizDraft": {
+        "type": "object",
+        "required": [
+          "quizData"
+        ],
+        "properties": {
+          "quizData": {
+            "$ref": "#/components/schemas/TrainingQuizData",
+            "nullable": true
+          }
+        }
+      },
+      "TrainingModuleResponse": {
+        "type": "object",
+        "required": [
+          "module"
+        ],
+        "properties": {
+          "module": {
+            "$ref": "#/components/schemas/TrainingModuleSummary"
+          }
+        }
+      },
+      "TrainingModuleSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "orgId",
+          "title",
+          "skillCategory",
+          "videoUrl",
+          "description",
+          "hasQuiz",
+          "quizData",
+          "orderIndex",
+          "createdAt",
+          "progress"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "orgId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "skillCategory": {
+            "type": "string"
+          },
+          "videoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasQuiz": {
+            "type": "boolean"
+          },
+          "quizData": {
+            "$ref": "#/components/schemas/TrainingQuizData",
+            "nullable": true
+          },
+          "orderIndex": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "progress": {
+            "$ref": "#/components/schemas/TrainingModuleProgress",
+            "nullable": true
+          }
+        }
+      },
+      "TrainingModuleProgress": {
+        "type": "object",
+        "required": [
+          "status",
+          "score",
+          "attempts",
+          "completedAt",
+          "dueDate",
+          "assignedAt"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number",
+            "nullable": true
+          },
+          "attempts": {
+            "type": "integer"
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "assignedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "TrainingModuleUnassignResponse": {
+        "type": "object",
+        "required": [
+          "unassignedRepId"
+        ],
+        "properties": {
+          "unassignedRepId": {
+            "type": "string"
+          }
+        }
+      },
+      "TrainingModuleUpsertRequest": {
+        "type": "object",
+        "required": [
+          "title",
+          "skillCategory"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "skillCategory": {
+            "type": "string"
+          },
+          "videoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "quizData": {
+            "$ref": "#/components/schemas/TrainingQuizData",
+            "nullable": true
+          }
+        }
+      },
+      "TrainingProgressModuleSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "title"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "TrainingProgressStatus": {
+        "type": "string",
+        "enum": [
+          "assigned",
+          "in_progress",
+          "passed",
+          "failed"
+        ]
+      },
+      "TrainingProgressSubmitRequest": {
+        "type": "object",
+        "properties": {
+          "quizAnswers": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        }
+      },
+      "TrainingProgressSubmitResponse": {
+        "type": "object",
+        "required": [
+          "status",
+          "score",
+          "attempts"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number",
+            "nullable": true
+          },
+          "attempts": {
+            "type": "integer"
+          }
+        }
+      },
+      "TrainingQuizData": {
+        "type": "object",
+        "required": [
+          "questions"
+        ],
+        "properties": {
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrainingQuizQuestion"
+            }
+          }
+        }
+      },
+      "TrainingQuizQuestion": {
+        "type": "object",
+        "required": [
+          "question",
+          "options",
+          "correctIndex"
+        ],
+        "properties": {
+          "question": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "correctIndex": {
+            "type": "integer"
+          }
+        }
+      },
+      "TrainingRepModuleProgress": {
+        "type": "object",
+        "required": [
+          "moduleId",
+          "moduleTitle",
+          "status",
+          "score",
+          "attempts"
+        ],
+        "properties": {
+          "moduleId": {
+            "type": "string"
+          },
+          "moduleTitle": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TrainingProgressStatus"
+          },
+          "score": {
+            "type": "number",
+            "nullable": true
+          },
+          "attempts": {
+            "type": "integer"
+          }
+        }
+      },
+      "TrainingRepProgress": {
+        "type": "object",
+        "required": [
+          "repId",
+          "firstName",
+          "lastName",
+          "moduleProgress"
+        ],
+        "properties": {
+          "repId": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "nullable": true
+          },
+          "moduleProgress": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrainingRepModuleProgress"
+            }
+          }
+        }
+      },
+      "TrainingTeamProgressResponse": {
+        "type": "object",
+        "required": [
+          "rows",
+          "progress"
+        ],
+        "properties": {
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrainingTeamProgressRow"
+            }
+          },
+          "progress": {
+            "$ref": "#/components/schemas/TrainingTeamProgressShell"
+          }
+        }
+      },
+      "TrainingTeamProgressRow": {
+        "type": "object",
+        "required": [
+          "repId",
+          "firstName",
+          "lastName",
+          "email",
+          "assigned",
+          "passed",
+          "completionRate"
+        ],
+        "properties": {
+          "repId": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string"
+          },
+          "assigned": {
+            "type": "integer"
+          },
+          "passed": {
+            "type": "integer"
+          },
+          "completionRate": {
+            "type": "number"
+          }
+        }
+      },
+      "TrainingTeamProgressShell": {
+        "type": "object",
+        "required": [
+          "modules",
+          "repProgress"
+        ],
+        "properties": {
+          "modules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrainingProgressModuleSummary"
+            }
+          },
+          "repProgress": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrainingRepProgress"
+            }
+          }
+        }
+      },
+      "TtsRequest": {
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "voice": {
+            "type": "string"
+          },
+          "instructions": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateHighlightRequest": {
+        "type": "object",
+        "required": [
+          "isHighlight"
+        ],
+        "properties": {
+          "isHighlight": {
+            "type": "boolean"
+          },
+          "highlightNote": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "UpdateProfileRequest": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          }
+        }
+      },
+      "UploadCallResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "UploadCallErrorResponse": {
+        "type": "object",
+        "required": [
+          "code",
+          "error"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "action": {
+            "type": "string"
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      }
+    }
+  }
+}

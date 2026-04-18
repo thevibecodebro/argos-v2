@@ -335,6 +335,55 @@ describe("getManagerDashboard", () => {
 });
 
 describe("getRepDashboard", () => {
+  it("blocks cross-org rep drill-ins for admins", async () => {
+    const accessRepository = createAccessRepository({
+      findActorByAuthUserId: vi.fn().mockResolvedValue({
+        id: "admin-1",
+        role: "admin",
+        orgId: "org-1",
+      }),
+      findMembershipsByOrgId: vi.fn().mockResolvedValue([]),
+      findGrantsByUserId: vi.fn().mockResolvedValue([]),
+    });
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "admin-1",
+        email: "admin@argos.ai",
+        role: "admin",
+        firstName: "Jordan",
+        lastName: "Lane",
+        org: {
+          id: "org-1",
+          name: "Argos Demo Org",
+          slug: "argos-demo-org",
+          plan: "trial",
+        },
+      }),
+      findRecentCallsByRepId: vi.fn().mockResolvedValue([]),
+      findScoredCallsByRepIdSince: vi.fn().mockResolvedValue([]),
+      findOrgUsersByOrgId: vi.fn().mockResolvedValue([
+        {
+          id: "rep-1",
+          email: "rep-1@argos.ai",
+          role: "rep",
+          firstName: "Riley",
+          lastName: "Stone",
+          profileImageUrl: null,
+        },
+      ]),
+    });
+
+    await expect(
+      getRepDashboard(
+        repository,
+        "admin-1",
+        "rep-foreign",
+        new Date("2026-03-27T00:00:00.000Z"),
+        accessRepository as never,
+      ),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
   it("keeps leaderboard drilldown scoped to granted teams", async () => {
     const accessRepository = createAccessRepository({
       findActorByAuthUserId: vi.fn().mockResolvedValue({
@@ -365,6 +414,24 @@ describe("getRepDashboard", () => {
           plan: "trial",
         },
       }),
+      findOrgUsersByOrgId: vi.fn().mockResolvedValue([
+        {
+          id: "rep-1",
+          email: "rep-1@argos.ai",
+          role: "rep",
+          firstName: "Riley",
+          lastName: "Stone",
+          profileImageUrl: null,
+        },
+        {
+          id: "rep-outside-scope",
+          email: "rep-2@argos.ai",
+          role: "rep",
+          firstName: "Taylor",
+          lastName: "Jones",
+          profileImageUrl: null,
+        },
+      ]),
     });
 
     await expect(
@@ -708,6 +775,50 @@ describe("getExecutiveDashboard", () => {
 });
 
 describe("getRepBadges", () => {
+  it("blocks cross-org badge drill-ins for admins", async () => {
+    const accessRepository = createAccessRepository({
+      findActorByAuthUserId: vi.fn().mockResolvedValue({
+        id: "admin-1",
+        role: "admin",
+        orgId: "org-1",
+      }),
+      findMembershipsByOrgId: vi.fn().mockResolvedValue([]),
+      findGrantsByUserId: vi.fn().mockResolvedValue([]),
+    });
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "admin-1",
+        email: "admin@argos.ai",
+        role: "admin",
+        firstName: "Jordan",
+        lastName: "Lane",
+        org: {
+          id: "org-1",
+          name: "Argos Demo Org",
+          slug: "argos-demo-org",
+          plan: "trial",
+        },
+      }),
+      findOrgUsersByOrgId: vi.fn().mockResolvedValue([
+        {
+          id: "rep-1",
+          email: "rep-1@argos.ai",
+          role: "rep",
+          firstName: "Riley",
+          lastName: "Stone",
+          profileImageUrl: null,
+        },
+      ]),
+      findCompletedCallsByRepId: vi.fn().mockResolvedValue([]),
+      findPassedTrainingByRepId: vi.fn().mockResolvedValue([]),
+      findCompletedRoleplaysByRepId: vi.fn().mockResolvedValue([]),
+    });
+
+    await expect(
+      getRepBadges(repository, "admin-1", "rep-foreign", accessRepository as never),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
   it("marks badges as earned from completed calls, training, and roleplay activity", async () => {
     const accessRepository = createAccessRepository({
       findActorByAuthUserId: vi.fn().mockResolvedValue({

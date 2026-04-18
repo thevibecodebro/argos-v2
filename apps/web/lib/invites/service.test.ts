@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { InvitesRepository, InviteRecord, TeamRecord } from "./repository";
 import type { UsersRepository } from "@/lib/users/service";
 import type { OnboardingRepository } from "@/lib/onboarding/service";
@@ -92,8 +92,20 @@ vi.mock("./email", () => ({
   sendInviteEmail: (...args: unknown[]) => mockSendEmail(...args),
 }));
 
+const ORIGINAL_ENV = {
+  NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+  RESEND_API_KEY: process.env.RESEND_API_KEY,
+};
+
 beforeEach(() => {
   mockSendEmail.mockClear();
+  process.env.NEXT_PUBLIC_SITE_URL = "https://app.argos.ai";
+  process.env.RESEND_API_KEY = "resend-key";
+});
+
+afterEach(() => {
+  process.env.NEXT_PUBLIC_SITE_URL = ORIGINAL_ENV.NEXT_PUBLIC_SITE_URL;
+  process.env.RESEND_API_KEY = ORIGINAL_ENV.RESEND_API_KEY;
 });
 
 // ── sendInvite ────────────────────────────────────────────────────────────────
@@ -204,6 +216,25 @@ describe("sendInvite", () => {
         role: "rep",
       }),
     ).rejects.toThrow("Resend error");
+  });
+
+  it("returns 503 before persisting when invite email delivery is unavailable", async () => {
+    delete process.env.RESEND_API_KEY;
+    process.env.NEXT_PUBLIC_SITE_URL = "https://app.argos.ai";
+
+    const repo = makeInvitesRepo();
+    const result = await sendInvite(repo, makeUsersRepo(), "user-1", {
+      email: "rep@acme.com",
+      role: "rep",
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      status: 503,
+      error: "Invite email delivery is not configured. Missing: RESEND_API_KEY.",
+    });
+    expect(repo.createInvite).not.toHaveBeenCalled();
+    expect(mockSendEmail).not.toHaveBeenCalled();
   });
 });
 

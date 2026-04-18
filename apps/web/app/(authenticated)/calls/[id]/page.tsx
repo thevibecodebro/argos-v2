@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { CallDetailPanel } from "@/components/call-detail-panel";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { createCallsRepository } from "@/lib/calls/create-repository";
-import { getCallDetail, listAnnotations } from "@/lib/calls/service";
+import { getCallDetail, getCallHighlightManagementAccess, listAnnotations } from "@/lib/calls/service";
 import { createDashboardRepository } from "@/lib/dashboard/create-repository";
 import { getCurrentUserProfile } from "@/lib/dashboard/service";
 
@@ -21,10 +21,13 @@ export default async function CallDetailPage({
     notFound();
   }
 
-  const [profile, detailResult, annotationsResult] = await Promise.all([
+  const callsRepository = createCallsRepository();
+
+  const [profile, detailResult, annotationsResult, highlightManagementResult] = await Promise.all([
     getCurrentUserProfile(createDashboardRepository(), authUser.id),
-    getCallDetail(createCallsRepository(), authUser.id, id),
-    listAnnotations(createCallsRepository(), authUser.id, id),
+    getCallDetail(callsRepository, authUser.id, id),
+    listAnnotations(callsRepository, authUser.id, id),
+    getCallHighlightManagementAccess(callsRepository, authUser.id, id),
   ]);
 
   if (!detailResult.ok) {
@@ -75,7 +78,7 @@ export default async function CallDetailPage({
       <CallDetailPanel
         annotations={annotationsResult.ok ? annotationsResult.data.annotations : []}
         call={call}
-        canManage={profile?.role === "admin" || profile?.role === "manager" || profile?.role === "executive"}
+        canManage={highlightManagementResult.ok ? highlightManagementResult.data.canManage : false}
       />
     </div>
   );

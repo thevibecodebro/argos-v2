@@ -5,6 +5,7 @@ import {
   canActorUsePermissionForRep,
   type AccessContext,
 } from "@/lib/access/service";
+import { getTrainingAiCapability } from "@/lib/capabilities/service";
 import type { DashboardUserRecord } from "@/lib/dashboard/service";
 
 export type TrainingModuleRecord = {
@@ -1238,19 +1239,7 @@ export async function updateTrainingModule(
 }
 
 export function getTrainingAiStatus(): TrainingAiStatus {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-
-  if (!apiKey) {
-    return {
-      available: false,
-      reason: "OPENAI_API_KEY is missing",
-    };
-  }
-
-  return {
-    available: true,
-    reason: null,
-  };
+  return getTrainingAiCapability();
 }
 
 export async function generateTrainingModules(

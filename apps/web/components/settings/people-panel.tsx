@@ -20,6 +20,8 @@ type PeoplePanelProps = {
   initialMembers: OrganizationMember[];
   initialPendingInvites: InviteRecord[];
   initialTeams: Array<{ id: string; name: string }>;
+  inviteEmailAvailable: boolean;
+  inviteEmailReason: string | null;
 };
 
 export function PeoplePanel({
@@ -27,6 +29,8 @@ export function PeoplePanel({
   initialMembers,
   initialPendingInvites,
   initialTeams,
+  inviteEmailAvailable,
+  inviteEmailReason,
 }: PeoplePanelProps) {
   const router = useRouter();
   const [members, setMembers] = useState(initialMembers);
@@ -259,7 +263,7 @@ export function PeoplePanel({
               Invite links expire in 7 days. Revoke a pending invite to invalidate it immediately.
             </p>
           </div>
-          {!showInviteForm ? (
+          {!showInviteForm && inviteEmailAvailable ? (
             <button
               className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-2 text-sm font-semibold text-[#002345] transition hover:brightness-110"
               onClick={() => setShowInviteForm(true)}
@@ -267,10 +271,21 @@ export function PeoplePanel({
             >
               Invite member
             </button>
+          ) : !inviteEmailAvailable ? (
+            <span className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-200">
+              Setup required
+            </span>
           ) : null}
         </div>
 
-        {showInviteForm ? (
+        {!inviteEmailAvailable ? (
+          <div className="mt-5 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+            {inviteEmailReason ??
+              "Invite email delivery is unavailable in this environment. Configure invite delivery before sending new invites."}
+          </div>
+        ) : null}
+
+        {showInviteForm && inviteEmailAvailable ? (
           <div className="mt-5 rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 p-5 space-y-4">
             <label className="block">
               <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">Email</span>
@@ -356,7 +371,7 @@ export function PeoplePanel({
         <div className="mt-5">
           {pendingInvites.length === 0 ? (
             <p className="text-sm text-[#a9abb3]">
-              No pending invites. Use the "Invite member" button above to add teammates.
+              No pending invites. {inviteEmailAvailable ? 'Use the "Invite member" button above to add teammates.' : "Invite delivery will appear here once email setup is configured."}
             </p>
           ) : (
             <ul className="space-y-2">

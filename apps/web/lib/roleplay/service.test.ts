@@ -1,10 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
 import { createAccessRepository } from "@/lib/access/create-repository";
 import {
   appendRoleplayMessage,
+  closeRoleplaySession,
   completeRoleplaySession,
   createRoleplaySession,
   getRoleplaySession,
@@ -15,6 +16,10 @@ import {
 vi.mock("@/lib/access/create-repository", () => ({
   createAccessRepository: vi.fn(),
 }));
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 function createRepository(
   overrides: Partial<RoleplayRepository> = {},
@@ -61,6 +66,9 @@ function mockAccessRepository(input: {
 
 describe("createRoleplaySession", () => {
   it("creates an active session with an opening assistant message for the chosen persona", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-03T00:00:00.000Z"));
+
     mockAccessRepository({
       actor: { id: "rep-1", orgId: "org-1", role: "rep" },
       memberships: [
@@ -95,6 +103,10 @@ describe("createRoleplaySession", () => {
         ],
         scorecard: null,
         createdAt: new Date("2026-04-03T00:00:00.000Z"),
+        startedAt: new Date("2026-04-03T00:00:00.000Z"),
+        lastActivityAt: new Date("2026-04-03T00:00:00.000Z"),
+        endedAt: null,
+        durationSeconds: 0,
       }),
     });
 
@@ -108,10 +120,53 @@ describe("createRoleplaySession", () => {
       role: "assistant",
       content: "Thanks for making time. We're watching spend carefully this quarter, so keep it straightforward for me.",
     });
+    expect(repository.createSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        startedAt: new Date("2026-04-03T00:00:00.000Z"),
+        lastActivityAt: new Date("2026-04-03T00:00:00.000Z"),
+        endedAt: null,
+        durationSeconds: 0,
+      }),
+    );
   });
 });
 
 describe("appendRoleplayMessage", () => {
+  it("blocks cross-org session updates even for admins", async () => {
+    mockAccessRepository({
+      actor: { id: "admin-1", orgId: "org-1", role: "admin" },
+      memberships: [],
+      grants: [],
+    });
+
+    const repository = createRepository({
+      findSessionById: vi.fn().mockResolvedValue({
+        id: "session-foreign",
+        repId: "rep-foreign",
+        orgId: "org-2",
+        persona: "skeptical-cfo",
+        industry: "Manufacturing",
+        difficulty: "advanced",
+        overallScore: null,
+        status: "active",
+        transcript: [{ role: "assistant", content: "Before we go too far, show me the ROI math." }],
+        scorecard: null,
+        createdAt: new Date("2026-04-03T00:00:00.000Z"),
+      }),
+    });
+
+    const result = await appendRoleplayMessage(repository, "admin-1", "session-foreign", {
+      content: "Cross-org attempt",
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      status: 404,
+      error: "Roleplay session not found",
+    });
+    expect(repository.updateSession).not.toHaveBeenCalled();
+  });
+
   it("appends the rep message and a generated assistant reply", async () => {
     mockAccessRepository({
       actor: { id: "rep-1", orgId: "org-1", role: "rep" },
@@ -178,6 +233,9 @@ describe("appendRoleplayMessage", () => {
 
 describe("completeRoleplaySession", () => {
   it("marks the session complete and produces a scorecard from the transcript", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-03T00:05:00.000Z"));
+
     mockAccessRepository({
       actor: { id: "rep-1", orgId: "org-1", role: "rep" },
       memberships: [
@@ -212,6 +270,10 @@ describe("completeRoleplaySession", () => {
         ],
         scorecard: null,
         createdAt: new Date("2026-04-03T00:00:00.000Z"),
+        startedAt: new Date("2026-04-03T00:00:00.000Z"),
+        lastActivityAt: new Date("2026-04-03T00:04:20.000Z"),
+        endedAt: null,
+        durationSeconds: 260,
       }),
       updateSession: vi.fn().mockImplementation(async (_sessionId, patch) => ({
         id: "session-1",
@@ -225,6 +287,10 @@ describe("completeRoleplaySession", () => {
         transcript: patch.transcript ?? [],
         scorecard: patch.scorecard ?? null,
         createdAt: new Date("2026-04-03T00:00:00.000Z"),
+        startedAt: new Date("2026-04-03T00:00:00.000Z"),
+        lastActivityAt: patch.lastActivityAt ?? new Date("2026-04-03T00:05:00.000Z"),
+        endedAt: patch.endedAt ?? new Date("2026-04-03T00:05:00.000Z"),
+        durationSeconds: patch.durationSeconds ?? 300,
       })),
     });
 
@@ -247,6 +313,98 @@ describe("completeRoleplaySession", () => {
       observation: expect.any(String),
       recommendation: expect.any(String),
     });
+    expect(result.data.durationSeconds).toBe(300);
+    expect(result.data.endedAt).toBe("2026-04-03T00:05:00.000Z");
+    expect(repository.updateSession).toHaveBeenCalledWith(
+      "session-1",
+      expect.objectContaining({
+        status: "complete",
+        lastActivityAt: new Date("2026-04-03T00:05:00.000Z"),
+        endedAt: new Date("2026-04-03T00:05:00.000Z"),
+        durationSeconds: 300,
+      }),
+    );
+  });
+});
+
+describe("closeRoleplaySession", () => {
+  it("stores a real measured duration for an interrupted session without scoring it", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-03T00:06:00.000Z"));
+
+    mockAccessRepository({
+      actor: { id: "rep-1", orgId: "org-1", role: "rep" },
+      memberships: [
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ],
+      grants: [],
+    });
+
+    const repository = createRepository({
+      findSessionById: vi.fn().mockResolvedValue({
+        id: "session-1",
+        repId: "rep-1",
+        orgId: "org-1",
+        persona: "technical-buyer",
+        industry: "AI / Data",
+        difficulty: "advanced",
+        overallScore: null,
+        status: "active",
+        transcript: [
+          { role: "assistant", content: "I need more technical depth before I can take this seriously." },
+          { role: "user", content: "We support API-first rollout with SOC 2 controls." },
+        ],
+        scorecard: null,
+        createdAt: new Date("2026-04-03T00:00:00.000Z"),
+        startedAt: new Date("2026-04-03T00:00:00.000Z"),
+        lastActivityAt: new Date("2026-04-03T00:04:30.000Z"),
+        endedAt: null,
+        durationSeconds: 270,
+      }),
+      updateSession: vi.fn().mockImplementation(async (_sessionId, patch) => ({
+        id: "session-1",
+        repId: "rep-1",
+        orgId: "org-1",
+        persona: "technical-buyer",
+        industry: "AI / Data",
+        difficulty: "advanced",
+        overallScore: null,
+        status: patch.status ?? "active",
+        transcript: [
+          { role: "assistant", content: "I need more technical depth before I can take this seriously." },
+          { role: "user", content: "We support API-first rollout with SOC 2 controls." },
+        ],
+        scorecard: null,
+        createdAt: new Date("2026-04-03T00:00:00.000Z"),
+        startedAt: new Date("2026-04-03T00:00:00.000Z"),
+        lastActivityAt: patch.lastActivityAt ?? new Date("2026-04-03T00:06:00.000Z"),
+        endedAt: patch.endedAt ?? new Date("2026-04-03T00:06:00.000Z"),
+        durationSeconds: patch.durationSeconds ?? 360,
+      })),
+    });
+
+    const result = await closeRoleplaySession(repository, "rep-1", "session-1");
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected closed roleplay session");
+    expect(result.data.status).toBe("active");
+    expect(result.data.scorecard).toBeNull();
+    expect(result.data.durationSeconds).toBe(360);
+    expect(result.data.endedAt).toBe("2026-04-03T00:06:00.000Z");
+    expect(repository.updateSession).toHaveBeenCalledWith(
+      "session-1",
+      expect.objectContaining({
+        lastActivityAt: new Date("2026-04-03T00:06:00.000Z"),
+        endedAt: new Date("2026-04-03T00:06:00.000Z"),
+        durationSeconds: 360,
+      }),
+    );
+    expect(repository.updateSession).not.toHaveBeenCalledWith(
+      "session-1",
+      expect.objectContaining({
+        status: "complete",
+      }),
+    );
   });
 });
 
@@ -362,6 +520,40 @@ describe("listRoleplaySessions", () => {
     expect(result.data.sessions).toHaveLength(1);
     expect(result.data.sessions[0].repId).toBe("rep-2");
     expect(repository.findSessionsByRepId).not.toHaveBeenCalled();
+  });
+});
+
+describe("getRoleplaySession", () => {
+  it("hides cross-org sessions from org admins", async () => {
+    mockAccessRepository({
+      actor: { id: "admin-1", orgId: "org-1", role: "admin" },
+      memberships: [],
+      grants: [],
+    });
+
+    const repository = createRepository({
+      findSessionById: vi.fn().mockResolvedValue({
+        id: "session-foreign",
+        repId: "rep-foreign",
+        orgId: "org-2",
+        persona: "skeptical-cfo",
+        industry: "Manufacturing",
+        difficulty: "advanced",
+        overallScore: 88,
+        transcript: [{ role: "assistant", content: "Before we go too far, show me the ROI math." }],
+        scorecard: null,
+        status: "active",
+        createdAt: new Date("2026-04-03T00:00:00.000Z"),
+      }),
+    });
+
+    const result = await getRoleplaySession(repository, "admin-1", "session-foreign");
+
+    expect(result).toEqual({
+      ok: false,
+      status: 404,
+      error: "Roleplay session not found",
+    });
   });
 });
 

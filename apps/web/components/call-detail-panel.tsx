@@ -1,8 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import type { CallAnnotation, CallDetail } from "@/lib/calls/service";
+import { HighlightNote } from "@/components/highlight-note";
+import type { CallAnnotation, CallDetail, CallMoment } from "@/lib/calls/service";
 
 type CallDetailPanelProps = {
   annotations: CallAnnotation[];
@@ -60,11 +60,13 @@ export function CallDetailPanel({
   call,
   canManage,
 }: CallDetailPanelProps) {
-  const router = useRouter();
   const [annotations, setAnnotations] = useState(initialAnnotations);
+  const [moments, setMoments] = useState(call.moments);
   const [note, setNote] = useState("");
-  const [highlightNote, setHighlightNote] = useState<Record<string, string>>({});
+  const [highlightNoteDrafts, setHighlightNoteDrafts] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [highlightActionMomentId, setHighlightActionMomentId] = useState<string | null>(null);
+  const [noteActionMomentId, setNoteActionMomentId] = useState<string | null>(null);
 
   const scoreCards = useMemo<[string, number | null][]>(
     () => [
@@ -105,18 +107,73 @@ export function CallDetailPanel({
     setIsSubmitting(false);
   }
 
-  async function toggleHighlight(momentId: string, nextValue: boolean) {
+  function getHighlightNoteDraft(moment: CallMoment) {
+    return highlightNoteDrafts[moment.id] ?? moment.highlightNote ?? "";
+  }
+
+  function updateMoment(nextMoment: CallMoment) {
+    setMoments((current) =>
+      current.map((moment) => (moment.id === nextMoment.id ? nextMoment : moment)),
+    );
+    setHighlightNoteDrafts((current) => ({
+      ...current,
+      [nextMoment.id]: nextMoment.highlightNote ?? "",
+    }));
+  }
+
+  async function persistHighlight(momentId: string, nextValue: boolean, nextNote: string | null) {
     const response = await fetch(`/api/calls/${call.id}/moments/${momentId}/highlight`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         isHighlight: nextValue,
-        highlightNote: highlightNote[momentId] ?? null,
+        highlightNote: nextNote,
       }),
     });
+    const payload = (await response.json()) as CallMoment & { error?: string };
 
     if (response.ok) {
-      router.refresh();
+      updateMoment(payload);
+    }
+  }
+
+  async function highlightMoment(moment: CallMoment) {
+    setHighlightActionMomentId(moment.id);
+
+    try {
+      await persistHighlight(moment.id, true, getHighlightNoteDraft(moment).trim() || null);
+    } finally {
+      setHighlightActionMomentId(null);
+    }
+  }
+
+  async function saveHighlightNote(moment: CallMoment) {
+    setNoteActionMomentId(moment.id);
+
+    try {
+      await persistHighlight(moment.id, true, getHighlightNoteDraft(moment).trim() || null);
+    } finally {
+      setNoteActionMomentId(null);
+    }
+  }
+
+  async function removeHighlightNote(moment: CallMoment) {
+    setNoteActionMomentId(moment.id);
+
+    try {
+      await persistHighlight(moment.id, true, null);
+    } finally {
+      setNoteActionMomentId(null);
+    }
+  }
+
+  async function removeHighlight(moment: CallMoment) {
+    setHighlightActionMomentId(moment.id);
+
+    try {
+      await persistHighlight(moment.id, false, null);
+    } finally {
+      setHighlightActionMomentId(null);
     }
   }
 
@@ -204,64 +261,119 @@ export function CallDetailPanel({
           </div>
 
           <div className="space-y-6">
-            {call.moments.length ? (
-              call.moments.map((moment) => (
-                <div className="relative border-l border-white/10 pl-8" key={moment.id}>
-                  <div className="absolute -left-1.5 top-0 h-3 w-3 rounded-full bg-[#74b1ff] shadow-[0_0_16px_rgba(116,177,255,0.3)]" />
-                  <div className="mb-2 flex flex-wrap items-center gap-3">
-                    <span className="text-xs font-black tracking-[0.22em] text-[#74b1ff]">
-                      {formatTimestamp(moment.timestampSeconds)}
-                    </span>
-                    <span
-                      className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] border ${severityTint(moment.severity)}`}
-                    >
-                      {moment.category ?? "Moment"}
-                    </span>
-                    {moment.isHighlight ? (
-                      <span className="rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] border border-amber-500/20 bg-amber-500/10 text-amber-300">
-                        Highlighted
+            {moments.length ? (
+              moments.map((moment) => {
+                const savedNote = moment.highlightNote?.trim() ?? "";
+                const draftNote = getHighlightNoteDraft(moment);
+                const trimmedDraftNote = draftNote.trim();
+                const noteChanged = trimmedDraftNote !== savedNote;
+                const canRemoveNote = Boolean(savedNote || trimmedDraftNote);
+                const highlightActionLabel =
+                  trimmedDraftNote.length > 0 ? "Add note and highlight" : "Highlight moment";
+                const isHighlightActionBusy = highlightActionMomentId === moment.id;
+                const isNoteActionBusy = noteActionMomentId === moment.id;
+
+                return (
+                  <div className="relative border-l border-white/10 pl-8" key={moment.id}>
+                    <div className="absolute -left-1.5 top-0 h-3 w-3 rounded-full bg-[#74b1ff] shadow-[0_0_16px_rgba(116,177,255,0.3)]" />
+                    <div className="mb-2 flex flex-wrap items-center gap-3">
+                      <span className="text-xs font-black tracking-[0.22em] text-[#74b1ff]">
+                        {formatTimestamp(moment.timestampSeconds)}
                       </span>
+                      <span
+                        className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] border ${severityTint(moment.severity)}`}
+                      >
+                        {moment.category ?? "Moment"}
+                      </span>
+                      {moment.isHighlight ? (
+                        <span className="rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] border border-amber-500/20 bg-amber-500/10 text-amber-300">
+                          Highlighted
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="text-sm font-medium leading-relaxed text-white">
+                      {moment.observation ?? "No observation recorded."}
+                    </p>
+                    {moment.recommendation ? (
+                      <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                        {moment.recommendation}
+                      </p>
+                    ) : null}
+                    {moment.highlightNote ? <HighlightNote note={moment.highlightNote} /> : null}
+                    {canManage ? (
+                      <div className="mt-4 space-y-3">
+                        <label
+                          className="block text-[10px] font-black uppercase tracking-[0.18em] text-slate-500"
+                          htmlFor={`highlight-note-${moment.id}`}
+                        >
+                          Edit note
+                        </label>
+                        <textarea
+                          className="min-h-[88px] w-full resize-y rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-slate-200 outline-none transition placeholder:text-slate-600 focus:border-[#74b1ff]/50"
+                          id={`highlight-note-${moment.id}`}
+                          onChange={(event) =>
+                            setHighlightNoteDrafts((current) => ({
+                              ...current,
+                              [moment.id]: event.target.value,
+                            }))
+                          }
+                          placeholder="Add context for why this moment matters."
+                          value={draftNote}
+                        />
+                        <div className="flex flex-wrap gap-2">
+                          {moment.isHighlight ? (
+                            <>
+                              <button
+                                className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-200 transition hover:border-[#74b1ff]/30 hover:text-[#74b1ff] disabled:opacity-50"
+                                disabled={isNoteActionBusy || !noteChanged}
+                                onClick={() => {
+                                  void saveHighlightNote(moment);
+                                }}
+                                type="button"
+                              >
+                                {isNoteActionBusy ? "Saving..." : "Save note"}
+                              </button>
+                              {canRemoveNote ? (
+                                <button
+                                  className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-300 transition hover:border-red-400/40 hover:text-red-200 disabled:opacity-50"
+                                  disabled={isNoteActionBusy}
+                                  onClick={() => {
+                                    void removeHighlightNote(moment);
+                                  }}
+                                  type="button"
+                                >
+                                  {isNoteActionBusy ? "Removing..." : "Remove note"}
+                                </button>
+                              ) : null}
+                              <button
+                                className="rounded-lg bg-amber-500/15 px-3 py-2 text-xs font-bold uppercase tracking-[0.16em] text-amber-200 transition hover:bg-amber-500/20 disabled:opacity-50"
+                                disabled={isHighlightActionBusy}
+                                onClick={() => {
+                                  void removeHighlight(moment);
+                                }}
+                                type="button"
+                              >
+                                {isHighlightActionBusy ? "Removing..." : "Remove highlight"}
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-300 transition hover:border-amber-500/30 hover:text-amber-200 disabled:opacity-50"
+                              disabled={isHighlightActionBusy}
+                              onClick={() => {
+                                void highlightMoment(moment);
+                              }}
+                              type="button"
+                            >
+                              {isHighlightActionBusy ? "Saving..." : highlightActionLabel}
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     ) : null}
                   </div>
-                  <p className="text-sm font-medium leading-relaxed text-white">
-                    {moment.observation ?? "No observation recorded."}
-                  </p>
-                  {moment.recommendation ? (
-                    <p className="mt-2 text-sm leading-relaxed text-slate-400">
-                      {moment.recommendation}
-                    </p>
-                  ) : null}
-                  {canManage ? (
-                    <div className="mt-4 space-y-3">
-                      <input
-                        className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs text-slate-200 outline-none transition placeholder:text-slate-600 focus:border-[#74b1ff]/50"
-                        onChange={(event) =>
-                          setHighlightNote((current) => ({
-                            ...current,
-                            [moment.id]: event.target.value,
-                          }))
-                        }
-                        placeholder="Highlight note"
-                        type="text"
-                        value={highlightNote[moment.id] ?? moment.highlightNote ?? ""}
-                      />
-                      <button
-                        className={`rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-[0.16em] transition ${
-                          moment.isHighlight
-                            ? "bg-amber-500/15 text-amber-200 hover:bg-amber-500/20"
-                            : "border border-white/10 bg-white/[0.03] text-slate-300 hover:border-amber-500/30 hover:text-amber-200"
-                        }`}
-                        onClick={() => {
-                          void toggleHighlight(moment.id, !moment.isHighlight);
-                        }}
-                        type="button"
-                      >
-                        {moment.isHighlight ? "Unstar Moment" : "Highlight Moment"}
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-              ))
+                );
+              })
             ) : (
               <div className="rounded-[1.15rem] border border-dashed border-white/10 bg-black/20 px-4 py-6 text-sm text-slate-500">
                 No moments were generated for this call yet.

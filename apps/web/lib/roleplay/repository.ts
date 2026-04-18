@@ -25,6 +25,10 @@ function normalizeSessionRecord(record: {
   scorecard: unknown;
   status: "active" | "evaluating" | "complete";
   createdAt: Date;
+  startedAt: Date | null;
+  lastActivityAt: Date | null;
+  endedAt: Date | null;
+  durationSeconds: number | null;
 }): RoleplaySessionRecord {
   return {
     ...record,
@@ -43,11 +47,15 @@ export class DrizzleRoleplayRepository implements RoleplayRepository {
 
   async createSession(input: {
     difficulty: "beginner" | "intermediate" | "advanced";
+    durationSeconds: number | null;
+    endedAt: Date | null;
     industry: string;
+    lastActivityAt: Date | null;
     orgId: string;
     persona: string;
     repId: string;
     scorecard: RoleplayScorecard | null;
+    startedAt: Date | null;
     status: "active" | "evaluating" | "complete";
     transcript: Array<{ role: "assistant" | "user"; content: string }>;
   }) {
@@ -66,6 +74,10 @@ export class DrizzleRoleplayRepository implements RoleplayRepository {
         scorecard: roleplaySessionsTable.scorecard,
         status: roleplaySessionsTable.status,
         createdAt: roleplaySessionsTable.createdAt,
+        startedAt: roleplaySessionsTable.startedAt,
+        lastActivityAt: roleplaySessionsTable.lastActivityAt,
+        endedAt: roleplaySessionsTable.endedAt,
+        durationSeconds: roleplaySessionsTable.durationSeconds,
       });
 
     return normalizeSessionRecord(session);
@@ -115,6 +127,10 @@ export class DrizzleRoleplayRepository implements RoleplayRepository {
         scorecard: roleplaySessionsTable.scorecard,
         status: roleplaySessionsTable.status,
         createdAt: roleplaySessionsTable.createdAt,
+        startedAt: roleplaySessionsTable.startedAt,
+        lastActivityAt: roleplaySessionsTable.lastActivityAt,
+        endedAt: roleplaySessionsTable.endedAt,
+        durationSeconds: roleplaySessionsTable.durationSeconds,
       })
       .from(roleplaySessionsTable)
       .where(eq(roleplaySessionsTable.id, sessionId))
@@ -137,6 +153,10 @@ export class DrizzleRoleplayRepository implements RoleplayRepository {
         scorecard: roleplaySessionsTable.scorecard,
         status: roleplaySessionsTable.status,
         createdAt: roleplaySessionsTable.createdAt,
+        startedAt: roleplaySessionsTable.startedAt,
+        lastActivityAt: roleplaySessionsTable.lastActivityAt,
+        endedAt: roleplaySessionsTable.endedAt,
+        durationSeconds: roleplaySessionsTable.durationSeconds,
       })
       .from(roleplaySessionsTable)
       .where(eq(roleplaySessionsTable.orgId, orgId))
@@ -159,6 +179,10 @@ export class DrizzleRoleplayRepository implements RoleplayRepository {
         scorecard: roleplaySessionsTable.scorecard,
         status: roleplaySessionsTable.status,
         createdAt: roleplaySessionsTable.createdAt,
+        startedAt: roleplaySessionsTable.startedAt,
+        lastActivityAt: roleplaySessionsTable.lastActivityAt,
+        endedAt: roleplaySessionsTable.endedAt,
+        durationSeconds: roleplaySessionsTable.durationSeconds,
       })
       .from(roleplaySessionsTable)
       .where(eq(roleplaySessionsTable.repId, repId))
@@ -170,20 +194,30 @@ export class DrizzleRoleplayRepository implements RoleplayRepository {
   async updateSession(
     sessionId: string,
     patch: Partial<{
+      durationSeconds: number | null;
+      endedAt: Date | null;
+      lastActivityAt: Date | null;
       overallScore: number | null;
       scorecard: RoleplayScorecard | null;
+      startedAt: Date | null;
       status: "active" | "evaluating" | "complete";
       transcript: Array<{ role: "assistant" | "user"; content: string }>;
     }>,
   ) {
+    const updatePatch: Record<string, unknown> = {};
+
+    if (patch.overallScore !== undefined) updatePatch.overallScore = patch.overallScore;
+    if (patch.scorecard !== undefined) updatePatch.scorecard = patch.scorecard;
+    if (patch.status !== undefined) updatePatch.status = patch.status;
+    if (patch.transcript !== undefined) updatePatch.transcript = patch.transcript;
+    if (patch.startedAt !== undefined) updatePatch.startedAt = patch.startedAt;
+    if (patch.lastActivityAt !== undefined) updatePatch.lastActivityAt = patch.lastActivityAt;
+    if (patch.endedAt !== undefined) updatePatch.endedAt = patch.endedAt;
+    if (patch.durationSeconds !== undefined) updatePatch.durationSeconds = patch.durationSeconds;
+
     const [session] = await this.db
       .update(roleplaySessionsTable)
-      .set({
-        overallScore: patch.overallScore,
-        scorecard: patch.scorecard,
-        status: patch.status,
-        transcript: patch.transcript,
-      })
+      .set(updatePatch)
       .where(eq(roleplaySessionsTable.id, sessionId))
       .returning({
         id: roleplaySessionsTable.id,
@@ -197,6 +231,10 @@ export class DrizzleRoleplayRepository implements RoleplayRepository {
         scorecard: roleplaySessionsTable.scorecard,
         status: roleplaySessionsTable.status,
         createdAt: roleplaySessionsTable.createdAt,
+        startedAt: roleplaySessionsTable.startedAt,
+        lastActivityAt: roleplaySessionsTable.lastActivityAt,
+        endedAt: roleplaySessionsTable.endedAt,
+        durationSeconds: roleplaySessionsTable.durationSeconds,
       });
 
     return normalizeSessionRecord(session);

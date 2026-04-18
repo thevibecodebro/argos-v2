@@ -46,17 +46,20 @@ describe("getIntegrationStatuses", () => {
 
     const result = await getIntegrationStatuses(repository, "manager-1", {
       ghlClientId: null,
+      ghlClientSecret: null,
       zoomClientId: "zoom-client-id",
+      zoomClientSecret: undefined,
     });
 
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("Expected integration statuses");
     expect(result.data.canManage).toBe(false);
     expect(result.data.zoom).toMatchObject({
-      available: true,
+      available: false,
       connectPath: "/api/integrations/zoom/connect",
       connected: true,
       disconnectPath: "/api/integrations/zoom/disconnect",
+      reason: "Zoom OAuth is not configured. Missing: ZOOM_CLIENT_SECRET.",
       zoomUserId: "zoom-user-7",
     });
     expect(result.data.ghl).toMatchObject({

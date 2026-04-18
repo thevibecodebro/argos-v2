@@ -32,11 +32,15 @@ type ServiceResult<T> =
 export type RoleplayRepository = {
   createSession(input: {
     difficulty: "beginner" | "intermediate" | "advanced";
+    durationSeconds: number | null;
+    endedAt: Date | null;
     industry: string;
+    lastActivityAt: Date | null;
     orgId: string;
     persona: string;
     repId: string;
     scorecard: RoleplayScorecard | null;
+    startedAt: Date | null;
     status: "active" | "evaluating" | "complete";
     transcript: RoleplayMessage[];
   }): Promise<RoleplaySessionRecord>;
@@ -47,8 +51,12 @@ export type RoleplayRepository = {
   updateSession(
     sessionId: string,
     patch: Partial<{
+      durationSeconds: number | null;
+      endedAt: Date | null;
+      lastActivityAt: Date | null;
       overallScore: number | null;
       scorecard: RoleplayScorecard | null;
+      startedAt: Date | null;
       status: "active" | "evaluating" | "complete";
       transcript: RoleplayMessage[];
     }>,
@@ -143,7 +151,31 @@ function serializeSession(session: RoleplaySessionRecord): RoleplaySession {
     scorecard: normalizeScorecard(session.scorecard),
     status: session.status,
     createdAt: session.createdAt.toISOString(),
+    startedAt: session.startedAt?.toISOString() ?? null,
+    lastActivityAt: session.lastActivityAt?.toISOString() ?? null,
+    endedAt: session.endedAt?.toISOString() ?? null,
+    durationSeconds: getMeasuredDurationSeconds(session),
   };
+}
+
+function getSessionStartTime(session: RoleplaySessionRecord) {
+  return session.startedAt ?? session.createdAt;
+}
+
+function computeDurationSeconds(startedAt: Date, endedAt: Date) {
+  return Math.max(0, Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000));
+}
+
+function getMeasuredDurationSeconds(session: RoleplaySessionRecord) {
+  if (typeof session.durationSeconds === "number") {
+    return session.durationSeconds;
+  }
+
+  if (!session.endedAt) {
+    return null;
+  }
+
+  return computeDurationSeconds(getSessionStartTime(session), session.endedAt);
 }
 
 function createEmptyCategoryScores(): Record<RoleplayCategory, number | null> {
@@ -427,6 +459,14 @@ async function getAuthorizedSession(
     };
   }
 
+  if (session.orgId !== accessResult.data.actor.orgId) {
+    return {
+      ok: false,
+      status: 404,
+      error: "Roleplay session not found",
+    };
+  }
+
   if (!canActorViewRep(accessResult.data, session.repId)) {
     return {
       ok: false,
@@ -582,14 +622,19 @@ export async function createRoleplaySession(
       content: PERSONA_OPENERS[persona.id] ?? "Tell me what this does and why it matters now.",
     },
   ];
+  const now = new Date();
 
   const session = await repository.createSession({
     difficulty: persona.difficulty,
+    durationSeconds: 0,
+    endedAt: null,
     industry: persona.industry,
+    lastActivityAt: now,
     orgId,
     persona: persona.id,
     repId: accessResult.data.actor.id,
     scorecard: null,
+    startedAt: now,
     status: "active",
     transcript,
   });
@@ -646,8 +691,12 @@ export async function appendRoleplayMessage(
       ),
     },
   ];
+  const now = new Date();
 
   const updated = await repository.updateSession(sessionId, {
+    durationSeconds: computeDurationSeconds(getSessionStartTime(sessionResult.data), now),
+    endedAt: null,
+    lastActivityAt: now,
     status: "active",
     transcript: nextTranscript,
   });
@@ -680,11 +729,46 @@ export async function completeRoleplaySession(
   }
 
   const { overallScore, scorecard } = buildScorecard(transcript);
+  const now = new Date();
 
   const updated = await repository.updateSession(sessionId, {
+    durationSeconds: computeDurationSeconds(getSessionStartTime(sessionResult.data), now),
+    endedAt: now,
+    lastActivityAt: now,
     overallScore,
     scorecard,
     status: "complete",
+  });
+
+  return {
+    ok: true,
+    data: serializeSession(updated),
+  };
+}
+
+export async function closeRoleplaySession(
+  repository: RoleplayRepository,
+  authUserId: string,
+  sessionId: string,
+): Promise<ServiceResult<RoleplaySession>> {
+  const sessionResult = await getAuthorizedSession(repository, authUserId, sessionId);
+
+  if (!sessionResult.ok) {
+    return sessionResult;
+  }
+
+  if (sessionResult.data.status !== "active") {
+    return {
+      ok: true,
+      data: serializeSession(sessionResult.data),
+    };
+  }
+
+  const now = new Date();
+  const updated = await repository.updateSession(sessionId, {
+    durationSeconds: computeDurationSeconds(getSessionStartTime(sessionResult.data), now),
+    endedAt: now,
+    lastActivityAt: now,
   });
 
   return {
