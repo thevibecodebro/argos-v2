@@ -3,6 +3,12 @@ import { getWorkerEnv } from "./env";
 
 const env = getWorkerEnv();
 
+if (env.callProcessingEnabled) {
+  console.warn(
+    "CALL_PROCESSING_ENABLED is set, but the job processor is not wired until Task 7. Polling remains disabled.",
+  );
+}
+
 const server = createServer((request, response) => {
   if (request.url === "/health") {
     response.writeHead(200, {
