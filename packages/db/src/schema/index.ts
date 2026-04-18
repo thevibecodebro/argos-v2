@@ -12,3 +12,4 @@ export * from "./compliance";
 export * from "./zoomIntegrations";
 export * from "./ghlIntegrations";
 export * from "./invites";
+export * from "./callProcessingJobs";
