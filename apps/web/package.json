@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit --incremental false"
   },
   "dependencies": {
+    "@argos-v2/call-processing": "*",
     "@argos-v2/db": "*",
     "@argos-v2/ui": "*",
     "@supabase/ssr": "^0.5.2",
