@@ -1,13 +1,11 @@
-import type { CallEvaluation } from "./types";
+import {
+  CALL_SCORING_CATEGORY_SLUGS,
+  CALL_STAGE_REACHED_VALUES,
+  type CallEvaluation,
+  type CallScoringCategorySlug,
+} from "./types";
 
-export type CallScoringCategorySlug =
-  | "rapport"
-  | "frame_control"
-  | "discovery"
-  | "pain_expansion"
-  | "solution"
-  | "objection_handling"
-  | "closing";
+export type { CallScoringCategorySlug } from "./types";
 
 export type CallScoreField = keyof Pick<
   CallEvaluation,
@@ -147,6 +145,15 @@ export function computeWeightedOverallScore(
 }
 
 export function buildCallScoringSystemPrompt() {
+  const categorySchema = CALL_SCORING_CATEGORY_SLUGS.map(
+    (slug) => `    "${slug}": number`,
+  ).join(",\n");
+  const categoryMomentSchema = CALL_SCORING_CATEGORY_SLUGS.map(
+    (slug) => `"${slug}"`,
+  ).join(" | ");
+  const callStageSchema = CALL_STAGE_REACHED_VALUES.map(
+    (stage) => `"${stage}"`,
+  ).join(" | ");
   const rubric = CALL_SCORING_CATEGORIES.map((category) =>
     [
       `${category.label} (${category.slug}, weight ${category.weight})`,
@@ -163,22 +170,16 @@ export function buildCallScoringSystemPrompt() {
     "Return strict JSON with exactly these top-level keys:",
     "{",
     '  "confidence": "high" | "medium" | "low",',
-    '  "callStageReached": "opening" | "discovery" | "proposal" | "objection_handling" | "commitment" | "closed_won" | "closed_lost",',
+    `  "callStageReached": ${callStageSchema},`,
     '  "categoryScores": {',
-    '    "rapport": number,',
-    '    "frame_control": number,',
-    '    "discovery": number,',
-    '    "pain_expansion": number,',
-    '    "solution": number,',
-    '    "objection_handling": number,',
-    '    "closing": number',
+    categorySchema,
     "  },",
     '  "strengths": string[],',
     '  "improvements": string[],',
     '  "recommendedDrills": string[],',
     '  "moments": Array<{',
     '    "timestampSeconds": number,',
-    '    "category": "rapport" | "frame_control" | "discovery" | "pain_expansion" | "solution" | "objection_handling" | "closing",',
+    `    "category": ${categoryMomentSchema},`,
     '    "observation": string,',
     '    "recommendation": string,',
     '    "severity": "strength" | "improvement" | "critical",',

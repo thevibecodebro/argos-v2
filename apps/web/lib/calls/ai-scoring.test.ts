@@ -42,6 +42,21 @@ describe("shared call-processing package", () => {
       text: "Opening question",
     });
   });
+
+  it("preserves an unknown duration for plain-text transcription fallbacks", () => {
+    const normalized = normalizeTranscriptionPayload({
+      text: "Plain transcript with no segment timing",
+    });
+
+    expect(normalized.durationSeconds).toBe(0);
+    expect(normalized.transcript).toEqual([
+      {
+        timestampSeconds: 0,
+        speaker: "Speaker A",
+        text: "Plain transcript with no segment timing",
+      },
+    ]);
+  });
 });
 
 describe("scoreCallRecording", () => {

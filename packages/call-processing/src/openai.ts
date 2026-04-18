@@ -1,14 +1,17 @@
 import {
   CALL_SCORING_CATEGORIES,
   CALL_SCORE_LABELS_BY_SLUG,
-  type CallScoringCategorySlug,
   buildCallScoringSystemPrompt,
   computeWeightedOverallScore,
 } from "./rubric";
-import type {
+import {
+  CALL_SCORING_CATEGORY_SLUGS,
+  CALL_STAGE_REACHED_VALUES,
+  type CallScoringCategorySlug,
   CallEvaluation,
   CallEvaluationMoment,
   CallMomentSeverity,
+  type CallStageReached,
   TranscriptLine,
 } from "./types";
 
@@ -43,7 +46,7 @@ type TranscriptionResponse = {
 };
 
 type ParsedScoringResponse = {
-  callStageReached: string;
+  callStageReached: CallStageReached;
   categoryScores: Record<CallScoringCategorySlug, number>;
   confidence: "high" | "medium" | "low";
   improvements: string[];
@@ -120,7 +123,7 @@ export function normalizeTranscriptionPayload(payload: TranscriptionResponse) {
   }, 0);
 
   return {
-    durationSeconds: durationFromUsage ?? Math.max(1, durationFromSegments),
+    durationSeconds: durationFromUsage ?? durationFromSegments,
     transcript,
   };
 }
@@ -329,10 +332,7 @@ function parseScoringResponse(
   );
 
   const confidence = normalizeConfidence(record.confidence);
-  const callStageReached =
-    typeof record.callStageReached === "string" && record.callStageReached.trim()
-      ? record.callStageReached.trim()
-      : "discovery";
+  const callStageReached = normalizeCallStage(record.callStageReached);
 
   const strengths = normalizeStringArray(record.strengths);
   const improvements = normalizeStringArray(record.improvements);
@@ -458,9 +458,22 @@ function normalizeCategory(value: unknown) {
   }
 
   const normalized = value.trim().toLowerCase();
-  return CALL_SCORING_CATEGORIES.some((category) => category.slug === normalized)
+  return CALL_SCORING_CATEGORY_SLUGS.includes(
+    normalized as CallScoringCategorySlug,
+  )
     ? (normalized as CallScoringCategorySlug)
     : null;
+}
+
+function normalizeCallStage(value: unknown): CallStageReached {
+  if (typeof value !== "string") {
+    return "discovery";
+  }
+
+  const normalized = value.trim().toLowerCase();
+  return CALL_STAGE_REACHED_VALUES.includes(normalized as CallStageReached)
+    ? (normalized as CallStageReached)
+    : "discovery";
 }
 
 function normalizeSeverity(value: unknown): CallMomentSeverity {

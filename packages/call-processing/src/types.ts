@@ -1,3 +1,28 @@
+export const CALL_SCORING_CATEGORY_SLUGS = [
+  "rapport",
+  "frame_control",
+  "discovery",
+  "pain_expansion",
+  "solution",
+  "objection_handling",
+  "closing",
+] as const;
+
+export type CallScoringCategorySlug =
+  (typeof CALL_SCORING_CATEGORY_SLUGS)[number];
+
+export const CALL_STAGE_REACHED_VALUES = [
+  "opening",
+  "discovery",
+  "proposal",
+  "objection_handling",
+  "commitment",
+  "closed_won",
+  "closed_lost",
+] as const;
+
+export type CallStageReached = (typeof CALL_STAGE_REACHED_VALUES)[number];
+
 export type TranscriptLine = {
   timestampSeconds: number;
   speaker: string;
@@ -8,7 +33,7 @@ export type CallMomentSeverity = "strength" | "improvement" | "critical";
 
 export type CallEvaluationMoment = {
   timestampSeconds: number;
-  category: string;
+  category: CallScoringCategorySlug;
   observation: string;
   recommendation: string;
   severity: CallMomentSeverity;
@@ -19,7 +44,7 @@ export type CallEvaluationMoment = {
 export type CallEvaluation = {
   confidence: "high" | "medium" | "low";
   durationSeconds: number;
-  callStageReached: string;
+  callStageReached: CallStageReached;
   overallScore: number;
   frameControlScore: number;
   rapportScore: number;
