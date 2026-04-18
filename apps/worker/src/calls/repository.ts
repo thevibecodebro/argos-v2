@@ -24,6 +24,18 @@ type RetryableFailureInput = {
   lastStage: NonNullable<CallProcessingJobRecord["lastStage"]>;
 };
 
+type CompletedJobInput = {
+  now: Date;
+  lastStage: NonNullable<CallProcessingJobRecord["lastStage"]>;
+};
+
+type FailedJobInput = {
+  now: Date;
+  attemptCount: number;
+  lastError: string;
+  lastStage: NonNullable<CallProcessingJobRecord["lastStage"]>;
+};
+
 function extractRows<T>(result: unknown): T[] {
   if (Array.isArray(result)) {
     return result as T[];
@@ -34,6 +46,41 @@ function extractRows<T>(result: unknown): T[] {
   }
 
   return [];
+}
+
+function toDate(value: Date | string | null, fieldName: string): Date | null {
+  if (!value) {
+    return null;
+  }
+
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    throw new Error(`CallProcessingRepository received invalid ${fieldName}: ${String(value)}`);
+  }
+
+  return date;
+}
+
+function requireDate(value: Date | string | null, fieldName: string): Date {
+  const date = toDate(value, fieldName);
+
+  if (!date) {
+    throw new Error(`CallProcessingRepository received missing ${fieldName}`);
+  }
+
+  return date;
+}
+
+function normalizeJobRecord(row: CallProcessingJobRecord): CallProcessingJobRecord {
+  return {
+    ...row,
+    nextRunAt: requireDate(row.nextRunAt, "nextRunAt"),
+    lockedAt: toDate(row.lockedAt, "lockedAt"),
+    lockExpiresAt: toDate(row.lockExpiresAt, "lockExpiresAt"),
+    createdAt: requireDate(row.createdAt, "createdAt"),
+    updatedAt: requireDate(row.updatedAt, "updatedAt"),
+  };
 }
 
 export class CallProcessingRepository {
@@ -108,7 +155,9 @@ export class CallProcessingRepository {
       `),
     );
 
-    return rows[0] ?? null;
+    const row = rows[0];
+
+    return row ? normalizeJobRecord(row) : null;
   }
 
   async markRetryableFailure(jobId: string, input: RetryableFailureInput): Promise<void> {
@@ -124,6 +173,35 @@ export class CallProcessingRepository {
         lockExpiresAt: null,
         lastError: input.lastError,
         lastStage: input.lastStage,
+        updatedAt: input.now,
+      })
+      .where(eq(callProcessingJobsTable.id, jobId));
+  }
+
+  async markCompleted(jobId: string, input: CompletedJobInput): Promise<void> {
+    await this.db
+      .update(callProcessingJobsTable)
+      .set({
+        status: "complete",
+        lockedAt: null,
+        lockExpiresAt: null,
+        lastStage: input.lastStage,
+        lastError: null,
+        updatedAt: input.now,
+      })
+      .where(eq(callProcessingJobsTable.id, jobId));
+  }
+
+  async markFailed(jobId: string, input: FailedJobInput): Promise<void> {
+    await this.db
+      .update(callProcessingJobsTable)
+      .set({
+        status: "failed",
+        attemptCount: input.attemptCount,
+        lockedAt: null,
+        lockExpiresAt: null,
+        lastStage: input.lastStage,
+        lastError: input.lastError,
         updatedAt: input.now,
       })
       .where(eq(callProcessingJobsTable.id, jobId));
