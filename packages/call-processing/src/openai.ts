@@ -55,6 +55,13 @@ type ParsedScoringResponse = {
   strengths: string[];
 };
 
+type TranscriptGroup =
+  | TranscriptLine[]
+  | {
+      offsetSeconds: number;
+      transcript: TranscriptLine[];
+    };
+
 export function resolveCallScoringConfig(
   config: CallScoringConfig = {},
 ): Required<CallScoringConfig> {
@@ -128,8 +135,26 @@ export function normalizeTranscriptionPayload(payload: TranscriptionResponse) {
   };
 }
 
-export function mergeTranscriptLines(transcriptGroups: TranscriptLine[][]) {
-  return transcriptGroups.flatMap((group) => group);
+export function mergeTranscriptLines(transcriptGroups: TranscriptGroup[]) {
+  return transcriptGroups
+    .flatMap((group) => {
+      if (Array.isArray(group)) {
+        return group;
+      }
+
+      return group.transcript.map((line) => ({
+        ...line,
+        timestampSeconds: line.timestampSeconds + group.offsetSeconds,
+      }));
+    })
+    .sort((left, right) => left.timestampSeconds - right.timestampSeconds)
+    .map((line, index, lines) => ({
+      ...line,
+      timestampSeconds:
+        index > 0 && line.timestampSeconds < lines[index - 1]!.timestampSeconds
+          ? lines[index - 1]!.timestampSeconds
+          : line.timestampSeconds,
+    }));
 }
 
 export async function transcribeAudioBuffer(input: {

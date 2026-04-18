@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   CALL_SCORING_CATEGORIES,
   computeWeightedOverallScore,
+  mergeTranscriptLines,
   normalizeTranscriptionPayload,
 } from "@argos-v2/call-processing";
 import { scoreCallRecording } from "./ai-scoring";
@@ -54,6 +55,86 @@ describe("shared call-processing package", () => {
         timestampSeconds: 0,
         speaker: "Speaker A",
         text: "Plain transcript with no segment timing",
+      },
+    ]);
+  });
+
+  it("merges transcript groups into a monotonic timeline", () => {
+    const merged = mergeTranscriptLines([
+      [
+        {
+          timestampSeconds: 15,
+          speaker: "Speaker A",
+          text: "Later line",
+        },
+      ],
+      [
+        {
+          timestampSeconds: 5,
+          speaker: "Speaker B",
+          text: "Earlier line",
+        },
+        {
+          timestampSeconds: 22,
+          speaker: "Speaker A",
+          text: "Latest line",
+        },
+      ],
+    ]);
+
+    expect(merged).toEqual([
+      {
+        timestampSeconds: 5,
+        speaker: "Speaker B",
+        text: "Earlier line",
+      },
+      {
+        timestampSeconds: 15,
+        speaker: "Speaker A",
+        text: "Later line",
+      },
+      {
+        timestampSeconds: 22,
+        speaker: "Speaker A",
+        text: "Latest line",
+      },
+    ]);
+  });
+
+  it("applies chunk offsets before merging chunk-local transcript lines", () => {
+    const merged = mergeTranscriptLines([
+      {
+        offsetSeconds: 0,
+        transcript: [
+          {
+            timestampSeconds: 0,
+            speaker: "Speaker A",
+            text: "Opening line",
+          },
+        ],
+      },
+      {
+        offsetSeconds: 300,
+        transcript: [
+          {
+            timestampSeconds: 0,
+            speaker: "Speaker B",
+            text: "Later chunk opening",
+          },
+        ],
+      },
+    ]);
+
+    expect(merged).toEqual([
+      {
+        timestampSeconds: 0,
+        speaker: "Speaker A",
+        text: "Opening line",
+      },
+      {
+        timestampSeconds: 300,
+        speaker: "Speaker B",
+        text: "Later chunk opening",
       },
     ]);
   });
@@ -170,6 +251,7 @@ describe("scoreCallRecording", () => {
     const transcriptionForm = transcriptionRequest?.body as FormData;
     expect(transcriptionForm.get("model")).toBe("gpt-4o-transcribe-diarize");
     expect(transcriptionForm.get("response_format")).toBe("diarized_json");
+    expect(transcriptionForm.get("chunking_strategy")).toBe("auto");
 
     expect(fetchMock.mock.calls[1]?.[0]).toBe("https://api.openai.com/v1/chat/completions");
     expect(result.durationSeconds).toBe(124);
