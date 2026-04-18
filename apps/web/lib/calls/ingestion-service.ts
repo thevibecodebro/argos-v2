@@ -5,20 +5,20 @@ export type SourceAsset = {
   publicUrl: string;
 };
 
-type ManualCallSourceInput = {
+type CallSourceInput = {
   callId: string;
   bytes: Buffer;
   contentType: string | null;
   fileName: string;
 };
 
-type StoreManualCallSourceDependencies = {
+type StoreCallSourceDependencies = {
   supabase?: ReturnType<typeof createSupabaseAdminClient>;
 };
 
-export async function storeManualCallSource(
-  input: ManualCallSourceInput,
-  dependencies: StoreManualCallSourceDependencies = {},
+export async function storeCallSourceAsset(
+  input: CallSourceInput,
+  dependencies: StoreCallSourceDependencies = {},
 ): Promise<SourceAsset> {
   const supabase = dependencies.supabase ?? createSupabaseAdminClient();
   const storagePath = `recordings/${input.callId}/source/${input.fileName}`;
@@ -38,4 +38,18 @@ export async function storeManualCallSource(
     storagePath,
     publicUrl: data.publicUrl,
   };
+}
+
+export async function storeManualCallSource(
+  input: CallSourceInput,
+  dependencies: StoreCallSourceDependencies = {},
+): Promise<SourceAsset> {
+  return storeCallSourceAsset(input, dependencies);
+}
+
+export async function storeZoomCallSource(
+  input: CallSourceInput,
+  dependencies: StoreCallSourceDependencies = {},
+): Promise<SourceAsset> {
+  return storeCallSourceAsset(input, dependencies);
 }
