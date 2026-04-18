@@ -5,6 +5,7 @@ import {
   canActorUsePermissionForRep,
 } from "@/lib/access/service";
 import type { AccessRepository } from "@/lib/access/repository.types";
+import { CALL_SCORE_LABELS_BY_FIELD } from "@/lib/calls/rubric";
 import type { AppUserRole } from "@/lib/users/roles";
 
 export type DashboardUserRecord = {
@@ -234,13 +235,13 @@ export class DashboardServiceError extends Error {
 
 const MANAGER_ROLES: AppUserRole[] = ["admin", "manager", "executive"];
 const SKILL_CATEGORIES = [
-  { key: "frameControlScore", label: "Frame Control" },
-  { key: "rapportScore", label: "Rapport" },
-  { key: "discoveryScore", label: "Discovery" },
-  { key: "painExpansionScore", label: "Pain Expansion" },
-  { key: "solutionScore", label: "Solution" },
-  { key: "objectionScore", label: "Objection Handling" },
-  { key: "closingScore", label: "Closing" },
+  { key: "frameControlScore", label: CALL_SCORE_LABELS_BY_FIELD.frameControlScore },
+  { key: "rapportScore", label: CALL_SCORE_LABELS_BY_FIELD.rapportScore },
+  { key: "discoveryScore", label: CALL_SCORE_LABELS_BY_FIELD.discoveryScore },
+  { key: "painExpansionScore", label: CALL_SCORE_LABELS_BY_FIELD.painExpansionScore },
+  { key: "solutionScore", label: CALL_SCORE_LABELS_BY_FIELD.solutionScore },
+  { key: "objectionScore", label: CALL_SCORE_LABELS_BY_FIELD.objectionScore },
+  { key: "closingScore", label: CALL_SCORE_LABELS_BY_FIELD.closingScore },
 ] as const;
 
 function isManagerRole(role: AppUserRole | null | undefined): boolean {
@@ -323,6 +324,28 @@ async function resolveAccessContext(
 function assertManager(user: DashboardUserRecord) {
   if (!isManagerRole(user.role)) {
     throw new DashboardServiceError("Manager or admin role required", 403);
+  }
+}
+
+async function assertRequestedRepAccessible(
+  repository: DashboardRepository,
+  viewer: DashboardUserRecord,
+  access: NonNullable<Awaited<ReturnType<typeof resolveAccessContext>>>,
+  requestedRepId: string | undefined,
+) {
+  if (!requestedRepId || requestedRepId === viewer.id) {
+    return;
+  }
+
+  const orgUsers = await repository.findOrgUsersByOrgId(viewer.org!.id);
+  const targetRep = orgUsers.find((member) => member.id === requestedRepId && member.role === "rep");
+
+  if (!targetRep) {
+    throw new DashboardServiceError("Rep not found", 404);
+  }
+
+  if (!canActorDrillIntoLeaderboardRep(access, requestedRepId)) {
+    throw new DashboardServiceError("Only authorized team managers can view this rep", 403);
   }
 }
 
@@ -424,9 +447,7 @@ export async function getRepDashboard(
     return null;
   }
 
-  if (requestedRepId && requestedRepId !== user.id && !canActorDrillIntoLeaderboardRep(access, requestedRepId)) {
-    throw new DashboardServiceError("Only authorized team managers can view this rep", 403);
-  }
+  await assertRequestedRepAccessible(repository, user, access, requestedRepId);
 
   const targetRepId = requestedRepId ?? user.id;
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -677,9 +698,7 @@ export async function getRepBadges(
     return null;
   }
 
-  if (requestedRepId && requestedRepId !== user.id && !canActorDrillIntoLeaderboardRep(access, requestedRepId)) {
-    throw new DashboardServiceError("Only authorized team managers can view this rep", 403);
-  }
+  await assertRequestedRepAccessible(repository, user, access, requestedRepId);
 
   const targetRepId = requestedRepId ?? user.id;
   const [completedCalls, passedTraining, completedRoleplays] = await Promise.all([
