@@ -1,5 +1,6 @@
 import { and, eq, inArray } from "drizzle-orm";
 import {
+  callProcessingJobsTable,
   callsTable,
   getDb,
   usersTable,
@@ -38,10 +39,21 @@ export class DrizzleZoomWebhookRepository implements ZoomWebhookRepository {
     return call;
   }
 
+  async createOrResetCallProcessingJob(
+    input: Parameters<DrizzleCallsRepository["createOrResetCallProcessingJob"]>[0],
+  ) {
+    await this.callsRepository.createOrResetCallProcessingJob(input);
+  }
+
   async findCallByZoomRecordingId(zoomRecordingId: string) {
     const [call] = await this.db
-      .select({ id: callsTable.id })
+      .select({
+        id: callsTable.id,
+        status: callsTable.status,
+        jobStatus: callProcessingJobsTable.status,
+      })
       .from(callsTable)
+      .leftJoin(callProcessingJobsTable, eq(callProcessingJobsTable.callId, callsTable.id))
       .where(eq(callsTable.zoomRecordingId, zoomRecordingId))
       .limit(1);
 
@@ -84,6 +96,17 @@ export class DrizzleZoomWebhookRepository implements ZoomWebhookRepository {
     return integration ?? null;
   }
 
+  async updateCallRecording(callId: string, recordingUrl: string | null) {
+    await this.callsRepository.updateCallRecording(callId, recordingUrl);
+  }
+
+  async updateCallStatus(
+    callId: string,
+    status: "uploaded" | "transcribing" | "evaluating" | "complete" | "failed",
+  ) {
+    await this.callsRepository.updateCallStatus(callId, status);
+  }
+
   async updateZoomTokens(orgId: string, tokens: { accessToken: string; refreshToken: string; tokenExpiresAt: Date }) {
     await this.db
       .update(zoomIntegrationsTable)
@@ -94,9 +117,5 @@ export class DrizzleZoomWebhookRepository implements ZoomWebhookRepository {
         updatedAt: new Date(),
       })
       .where(eq(zoomIntegrationsTable.orgId, orgId));
-  }
-
-  async setCallEvaluation(callId: string, evaluation: Parameters<DrizzleCallsRepository["setCallEvaluation"]>[1]) {
-    await this.callsRepository.setCallEvaluation(callId, evaluation);
   }
 }

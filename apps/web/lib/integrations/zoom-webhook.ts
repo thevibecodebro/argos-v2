@@ -1,41 +1,14 @@
 import crypto from "node:crypto";
+import { storeZoomCallSource, type SourceAsset } from "@/lib/calls/ingestion-service";
 import { refreshZoomToken } from "./oauth";
 
 type ZoomWebhookEnv = Partial<Record<
-  "ZOOM_WEBHOOK_SECRET_TOKEN" | "AI_INTEGRATIONS_OPENAI_BASE_URL" | "AI_INTEGRATIONS_OPENAI_API_KEY" | "ZOOM_CLIENT_ID" | "ZOOM_CLIENT_SECRET",
+  "ZOOM_WEBHOOK_SECRET_TOKEN" | "ZOOM_CLIENT_ID" | "ZOOM_CLIENT_SECRET",
   string | undefined
 >>;
 
-type ZoomEvaluation = {
-  confidence: string;
-  durationSeconds: number;
-  callStageReached: string;
-  overallScore: number;
-  frameControlScore: number;
-  rapportScore: number;
-  discoveryScore: number;
-  painExpansionScore: number;
-  solutionScore: number;
-  objectionScore: number;
-  closingScore: number;
-  strengths: string[];
-  improvements: string[];
-  recommendedDrills: string[];
-  transcript: Array<{
-    timestampSeconds: number;
-    speaker: string;
-    text: string;
-  }>;
-  moments: Array<{
-    timestampSeconds: number;
-    category: string;
-    observation: string;
-    recommendation: string;
-    severity: "strength" | "improvement" | "critical";
-    isHighlight: boolean;
-    highlightNote: string | null;
-  }>;
-};
+type CallStatus = "uploaded" | "transcribing" | "evaluating" | "complete" | "failed";
+type CallProcessingJobStatus = "pending" | "running" | "retrying" | "failed" | "complete";
 
 export interface ZoomWebhookRepository {
   createCall(input: {
@@ -45,15 +18,32 @@ export interface ZoomWebhookRepository {
     orgId: string;
     recordingUrl: string | null;
     repId: string;
-    status: "uploaded" | "transcribing" | "evaluating" | "complete" | "failed";
+    status: CallStatus;
     zoomMeetingId: string | null;
     zoomRecordingId: string;
   }): Promise<{ id: string }>;
-  findCallByZoomRecordingId(zoomRecordingId: string): Promise<{ id: string } | null>;
+  createOrResetCallProcessingJob(input: {
+    callId: string;
+    sourceOrigin: "zoom_recording";
+    sourceStoragePath: string;
+    sourceFileName: string;
+    sourceContentType: string | null;
+    sourceSizeBytes: number | null;
+  }): Promise<void>;
+  findCallByZoomRecordingId(
+    zoomRecordingId: string,
+  ): Promise<{ id: string; status: CallStatus; jobStatus: CallProcessingJobStatus | null } | null>;
   findPreferredCallOwner(orgId: string): Promise<{ id: string } | null>;
-  findZoomIntegrationByAccountId(accountId: string): Promise<{ orgId: string; webhookToken: string | null; accessToken: string; refreshToken: string; tokenExpiresAt: Date } | null>;
+  findZoomIntegrationByAccountId(accountId: string): Promise<{
+    orgId: string;
+    webhookToken: string | null;
+    accessToken: string;
+    refreshToken: string;
+    tokenExpiresAt: Date;
+  } | null>;
+  updateCallRecording(callId: string, recordingUrl: string | null): Promise<void>;
+  updateCallStatus(callId: string, status: CallStatus): Promise<void>;
   updateZoomTokens(orgId: string, tokens: { accessToken: string; refreshToken: string; tokenExpiresAt: Date }): Promise<void>;
-  setCallEvaluation(callId: string, evaluation: ZoomEvaluation): Promise<void>;
 }
 
 type ZoomWebhookRequest = {
@@ -99,9 +89,32 @@ type ZoomRecordingFile = {
   file_type?: string;
 };
 
+type DownloadedRecordingAsset = {
+  audioBytes: Buffer;
+  contentType: string | null;
+  fileName: string;
+};
+
+type ZoomWebhookDependencies = {
+  storeSourceAsset?: (input: {
+    callId: string;
+    bytes: Buffer;
+    contentType: string | null;
+    fileName: string;
+  }) => Promise<SourceAsset>;
+};
+
+const COMPLETED_OR_ACTIVE_JOB_STATUSES: ReadonlySet<CallProcessingJobStatus> = new Set([
+  "pending",
+  "running",
+  "retrying",
+  "complete",
+]);
+
 export async function processZoomWebhookRequest(
   repository: ZoomWebhookRepository,
   input: ZoomWebhookRequest,
+  dependencies: ZoomWebhookDependencies = {},
 ): Promise<ZoomWebhookResponse> {
   const env = input.env ?? process.env;
   const parsed = safeParseJson(input.rawBody);
@@ -172,7 +185,14 @@ export async function processZoomWebhookRequest(
 
   const existing = await repository.findCallByZoomRecordingId(recording.id);
 
-  if (existing) {
+  if (existing?.jobStatus && COMPLETED_OR_ACTIVE_JOB_STATUSES.has(existing.jobStatus)) {
+    return {
+      status: 200,
+      body: { received: true },
+    };
+  }
+
+  if (existing && existing.status !== "failed" && existing.jobStatus !== "failed") {
     return {
       status: 200,
       body: { received: true },
@@ -188,7 +208,6 @@ export async function processZoomWebhookRequest(
     };
   }
 
-  // Refresh access token if expired
   let accessToken = integration.accessToken;
   if (integration.tokenExpiresAt <= new Date()) {
     try {
@@ -196,41 +215,61 @@ export async function processZoomWebhookRequest(
       await repository.updateZoomTokens(integration.orgId, refreshed);
       accessToken = refreshed.accessToken;
     } catch {
-      // Continue with existing token — it may still work
+      // Continue with the current token if refresh fails; the download may still succeed.
     }
   }
 
-  const durationSeconds = parsed.payload?.object?.duration
+  const durationSeconds = typeof parsed.payload?.object?.duration === "number"
     ? parsed.payload.object.duration * 60
     : null;
   const callTopic = parsed.payload?.object?.topic?.trim() || "Zoom cloud recording";
+  const createdNewCall = !existing;
+  const callId = existing?.id ?? (
+    await repository.createCall({
+      orgId: integration.orgId,
+      repId: owner.id,
+      callTopic,
+      durationSeconds,
+      recordingUrl: null,
+      consentConfirmed: true,
+      status: "uploaded",
+      zoomRecordingId: recording.id,
+      zoomMeetingId: parsed.payload?.object?.id ?? null,
+    })
+  ).id;
 
-  // Download and store recording
-  const recordingUrl = await downloadAndStoreRecording({
-    downloadUrl: recording.download_url ?? null,
-    accessToken,
-    recordingId: recording.id,
-  });
+  try {
+    if (!createdNewCall && existing?.status === "failed") {
+      await repository.updateCallStatus(callId, "uploaded");
+    }
 
-  const call = await repository.createCall({
-    orgId: integration.orgId,
-    repId: owner.id,
-    callTopic,
-    durationSeconds,
-    recordingUrl,
-    consentConfirmed: true,
-    status: "evaluating",
-    zoomRecordingId: recording.id,
-    zoomMeetingId: parsed.payload?.object?.id ?? null,
-  });
+    const recordingAsset = await downloadRecording({
+      downloadUrl: recording.download_url ?? null,
+      accessToken,
+      fileExtension: recording.file_extension ?? null,
+      recordingId: recording.id,
+    });
+    const storeSourceAsset = dependencies.storeSourceAsset ?? storeZoomCallSource;
+    const sourceAsset = await storeSourceAsset({
+      callId,
+      bytes: recordingAsset.audioBytes,
+      contentType: recordingAsset.contentType,
+      fileName: recordingAsset.fileName,
+    });
 
-  const evaluation = buildMockEvaluation({
-    callTopic,
-    durationSeconds: durationSeconds ?? 0,
-    recordingId: recording.id,
-  });
-
-  await repository.setCallEvaluation(call.id, evaluation);
+    await repository.updateCallRecording(callId, sourceAsset.publicUrl);
+    await repository.createOrResetCallProcessingJob({
+      callId,
+      sourceOrigin: "zoom_recording",
+      sourceStoragePath: sourceAsset.storagePath,
+      sourceFileName: recordingAsset.fileName,
+      sourceContentType: recordingAsset.contentType,
+      sourceSizeBytes: recordingAsset.audioBytes.length,
+    });
+  } catch (error) {
+    await Promise.resolve(repository.updateCallStatus(callId, "failed")).catch(() => undefined);
+    throw error;
+  }
 
   return {
     status: 200,
@@ -238,50 +277,36 @@ export async function processZoomWebhookRequest(
   };
 }
 
-async function downloadAndStoreRecording(input: {
+async function downloadRecording(input: {
   downloadUrl: string | null;
   accessToken: string;
+  fileExtension: string | null;
   recordingId: string;
-}): Promise<string | null> {
+}): Promise<DownloadedRecordingAsset> {
+  const fallbackExtension = input.fileExtension?.toLowerCase() || "m4a";
+  const defaultFileName = `${input.recordingId}.${fallbackExtension}`;
+
   if (!input.downloadUrl) {
-    return null;
+    throw new Error("Zoom recording is missing a download URL");
   }
 
-  try {
-    const response = await fetch(input.downloadUrl, {
-      headers: { Authorization: `Bearer ${input.accessToken}` },
-    });
+  const response = await fetch(input.downloadUrl, {
+    headers: { Authorization: `Bearer ${input.accessToken}` },
+  });
 
-    if (!response.ok || !response.body) {
-      return input.downloadUrl;
-    }
-
-    const contentType = response.headers.get("content-type") ?? "audio/mp4";
-    const ext = contentType.includes("mp4") ? "mp4" : "m4a";
-    const fileName = `recordings/${input.recordingId}.${ext}`;
-
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    const { createSupabaseAdminClient } = await import("@/lib/supabase/admin");
-    const supabase = createSupabaseAdminClient();
-
-    const { error } = await supabase.storage
-      .from("call-recordings")
-      .upload(fileName, buffer, {
-        contentType,
-        upsert: true,
-      });
-
-    if (error) {
-      return input.downloadUrl;
-    }
-
-    const { data } = supabase.storage.from("call-recordings").getPublicUrl(fileName);
-    return data.publicUrl;
-  } catch {
-    return input.downloadUrl;
+  if (!response.ok || !response.body) {
+    throw new Error(`Zoom recording download failed with status ${response.status}`);
   }
+
+  const contentType = response.headers.get("content-type") ?? "audio/mp4";
+  const ext = input.fileExtension?.toLowerCase() || (contentType.includes("mp4") ? "mp4" : "m4a");
+  const arrayBuffer = await response.arrayBuffer();
+
+  return {
+    audioBytes: Buffer.from(arrayBuffer),
+    contentType,
+    fileName: `${input.recordingId}.${ext}`,
+  };
 }
 
 function safeParseJson(value: string): ZoomWebhookPayload | null {
@@ -296,9 +321,9 @@ function pickPreferredRecording(
   files: ZoomRecordingFile[],
 ) {
   return (
-    files.find((file) => file.recording_type === "audio_only" && file.file_extension?.toLowerCase() === "m4a") ??
-    files.find((file) => file.file_extension?.toLowerCase() === "m4a") ??
-    files.find((file) => file.file_type?.toLowerCase() === "mp4") ??
+    files.find((file) => file.recording_type === "audio_only" && file.file_extension?.toLowerCase() === "m4a" && file.download_url) ??
+    files.find((file) => file.file_extension?.toLowerCase() === "m4a" && file.download_url) ??
+    files.find((file) => file.file_type?.toLowerCase() === "mp4" && file.download_url) ??
     files.find((file) => file.download_url)
   );
 }
@@ -334,110 +359,4 @@ function verifyZoomWebhookSignature(input: {
   } catch {
     return false;
   }
-}
-
-function buildMockEvaluation(input: {
-  callTopic: string;
-  durationSeconds: number;
-  recordingId: string;
-}): ZoomEvaluation {
-  const seed = hashString(`${input.callTopic}:${input.recordingId}:${input.durationSeconds}`);
-  const base = 64 + (seed % 15);
-
-  const frameControlScore = clampScore(base + offset(seed, 0));
-  const rapportScore = clampScore(base + offset(seed, 1));
-  const discoveryScore = clampScore(base + offset(seed, 2));
-  const painExpansionScore = clampScore(base + offset(seed, 3));
-  const solutionScore = clampScore(base + offset(seed, 4));
-  const objectionScore = clampScore(base + offset(seed, 5));
-  const closingScore = clampScore(base + offset(seed, 6));
-  const overallScore = Math.round(
-    [
-      frameControlScore,
-      rapportScore,
-      discoveryScore,
-      painExpansionScore,
-      solutionScore,
-      objectionScore,
-      closingScore,
-    ].reduce((sum, value) => sum + value, 0) / 7,
-  );
-
-  const confidence = overallScore >= 85 ? "high" : overallScore >= 72 ? "medium" : "low";
-
-  return {
-    confidence,
-    durationSeconds: input.durationSeconds || 480,
-    callStageReached: overallScore >= 82 ? "proposal" : "discovery",
-    overallScore,
-    frameControlScore,
-    rapportScore,
-    discoveryScore,
-    painExpansionScore,
-    solutionScore,
-    objectionScore,
-    closingScore,
-    strengths: [
-      "The rep tied the conversation back to the buyer's operational pain.",
-      "The close stayed concise and outcome-oriented.",
-    ],
-    improvements: [
-      "Sharpen the ROI explanation with more quantified proof.",
-      "Add one more discovery layer before shifting to solution positioning.",
-    ],
-    recommendedDrills: ["Discovery drill", "Objection handling drill"],
-    transcript: [
-      {
-        timestampSeconds: 18,
-        speaker: "Rep",
-        text: `Thanks for joining. I wanted to review ${input.callTopic.toLowerCase()} and understand what is slowing your team down.`,
-      },
-      {
-        timestampSeconds: 72,
-        speaker: "Prospect",
-        text: "The challenge is consistency. Some reps improve, but coaching takes too long and the same mistakes come back.",
-      },
-      {
-        timestampSeconds: 144,
-        speaker: "Rep",
-        text: "If we could surface those coaching moments automatically and tie them to a drill, would that change how fast managers can intervene?",
-      },
-    ],
-    moments: [
-      {
-        timestampSeconds: 72,
-        category: "discovery",
-        observation: "The rep uncovered a repeatable coaching pain point quickly.",
-        recommendation: "Follow the pain thread one level deeper before introducing the platform.",
-        severity: discoveryScore >= 80 ? "strength" : "improvement",
-        isHighlight: discoveryScore >= 80,
-        highlightNote: discoveryScore >= 80 ? "Strong discovery moment" : null,
-      },
-      {
-        timestampSeconds: 144,
-        category: "solution",
-        observation: "The rep linked the product to coaching speed and consistency.",
-        recommendation: "Pair the solution language with a tighter ROI proof point.",
-        severity: "strength",
-        isHighlight: true,
-        highlightNote: "Clear value connection",
-      },
-    ],
-  };
-}
-
-function hashString(value: string) {
-  let hash = 0;
-  for (let index = 0; index < value.length; index += 1) {
-    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
-  }
-  return hash;
-}
-
-function offset(seed: number, index: number) {
-  return ((seed >> (index * 3)) % 15) - 7;
-}
-
-function clampScore(value: number) {
-  return Math.max(44, Math.min(96, value));
 }
