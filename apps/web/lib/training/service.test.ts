@@ -748,6 +748,7 @@ describe("generateTrainingModules", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("Expected generated modules");
     expect(fetchMock).toHaveBeenCalledOnce();
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)).model).toBe("gpt-5-mini");
     expect(result.data.modules).toEqual([
       {
         title: "Generated Discovery Deep Dive",
@@ -833,6 +834,7 @@ describe("generateTrainingModuleDraft", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("Expected generated quiz draft");
     expect(fetchMock).toHaveBeenCalledOnce();
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)).model).toBe("gpt-5-mini");
     expect(result.data.mode).toBe("quiz");
     expect(result.data.draft).toEqual({
       quizData: {

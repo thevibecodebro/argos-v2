@@ -822,7 +822,7 @@ export async function generateTrainingModuleDraft(
   }
 
   const apiKey = process.env.OPENAI_API_KEY?.trim();
-  const model = process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-4.1-mini";
+  const model = process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-5-mini";
 
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -1292,7 +1292,7 @@ export async function generateTrainingModules(
   }
 
   const apiKey = process.env.OPENAI_API_KEY?.trim();
-  const model = process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-4.1-mini";
+  const model = process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-5-mini";
 
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {

@@ -254,6 +254,9 @@ describe("scoreCallRecording", () => {
     expect(transcriptionForm.get("chunking_strategy")).toBe("auto");
 
     expect(fetchMock.mock.calls[1]?.[0]).toBe("https://api.openai.com/v1/chat/completions");
+    expect(
+      JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body)).model,
+    ).toBe("gpt-5-mini");
     expect(result.durationSeconds).toBe(124);
     expect(result.overallScore).toBe(85);
     expect(result.frameControlScore).toBe(86);

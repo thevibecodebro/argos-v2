@@ -83,7 +83,7 @@ export function resolveCallScoringConfig(
     scoringModel:
       config.scoringModel?.trim() ||
       process.env.OPENAI_CALL_SCORING_MODEL?.trim() ||
-      "gpt-4.1-mini",
+      "gpt-5-mini",
     transcriptionModel:
       config.transcriptionModel?.trim() ||
       process.env.OPENAI_CALL_TRANSCRIPTION_MODEL?.trim() ||
