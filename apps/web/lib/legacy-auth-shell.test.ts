@@ -4,17 +4,12 @@ import HomePage from "../app/page";
 import LoginPage from "../app/login/page";
 
 describe("legacy auth shell", () => {
-  it("redirects the landing page to login", () => {
-    expect(() => HomePage()).toThrowError(
-      expect.objectContaining({
-        digest: expect.stringContaining("NEXT_REDIRECT"),
-      }),
-    );
-    expect(() => HomePage()).toThrowError(
-      expect.objectContaining({
-        digest: expect.stringContaining("/login"),
-      }),
-    );
+  it("renders the landing page ahead of the login flow", async () => {
+    const html = renderToStaticMarkup(await HomePage());
+
+    expect(html).toContain("Build a sales team that improves after every call.");
+    expect(html).toContain('href="/login"');
+    expect(html).toContain("Revenue command platform");
   });
 
   it("renders the login flow inside the restored shell", async () => {
