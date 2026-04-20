@@ -43,6 +43,20 @@ export type RoleplayScorecard = {
   }>;
 };
 
+export type RoleplaySessionOrigin = "manual" | "generated_from_call";
+
+export type RoleplaySessionFocusMode = "all" | "category";
+
+export type RoleplaySessionMetadata = {
+  origin: RoleplaySessionOrigin;
+  sourceCallId: string | null;
+  rubricId: string | null;
+  focusMode: RoleplaySessionFocusMode;
+  focusCategorySlug: string | null;
+  scenarioSummary: string | null;
+  scenarioBrief: string | null;
+};
+
 export type RoleplaySession = {
   id: string;
   repId: string;
@@ -52,6 +66,13 @@ export type RoleplaySession = {
   industry: string | null;
   difficulty: "beginner" | "intermediate" | "advanced" | null;
   overallScore: number | null;
+  origin: RoleplaySessionOrigin;
+  sourceCallId: string | null;
+  rubricId: string | null;
+  focusMode: RoleplaySessionFocusMode;
+  focusCategorySlug: string | null;
+  scenarioSummary: string | null;
+  scenarioBrief: string | null;
   transcript: RoleplayMessage[];
   scorecard: RoleplayScorecard | null;
   status: "active" | "evaluating" | "complete";
@@ -66,6 +87,13 @@ export type RoleplaySessionRecord = {
   industry: string | null;
   difficulty: "beginner" | "intermediate" | "advanced" | null;
   overallScore: number | null;
+  origin: RoleplaySessionOrigin;
+  sourceCallId: string | null;
+  rubricId: string | null;
+  focusMode: RoleplaySessionFocusMode;
+  focusCategorySlug: string | null;
+  scenarioSummary: string | null;
+  scenarioBrief: string | null;
   transcript: RoleplayMessage[] | null;
   scorecard: RoleplayScorecard | null;
   status: "active" | "evaluating" | "complete";

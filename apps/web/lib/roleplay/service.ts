@@ -29,17 +29,94 @@ type ServiceResult<T> =
   | { ok: true; data: T }
   | { ok: false; status: 400 | 403 | 404 | 409; error: string };
 
+type RoleplaySessionCreateBase = {
+  difficulty: "beginner" | "intermediate" | "advanced";
+  industry: string | null;
+  orgId: string;
+  persona: string | null;
+  repId: string;
+  scorecard: RoleplayScorecard | null;
+  status: "active" | "evaluating" | "complete";
+  transcript: RoleplayMessage[];
+  rubricId?: string | null;
+  scenarioSummary?: string | null;
+  scenarioBrief?: string | null;
+};
+
+type OriginRoleplaySessionCreateInput =
+  | {
+      origin?: "manual";
+      sourceCallId?: null;
+    }
+  | {
+      origin: "generated_from_call";
+      sourceCallId: string;
+    };
+
+type FocusRoleplaySessionCreateInput =
+  | {
+      focusMode?: "all";
+      focusCategorySlug?: null;
+    }
+  | {
+      focusMode: "category";
+      focusCategorySlug: string;
+    };
+
+export type RoleplaySessionCreateInput = RoleplaySessionCreateBase &
+  OriginRoleplaySessionCreateInput &
+  FocusRoleplaySessionCreateInput;
+
+type NormalizedRoleplaySessionCreateInput = RoleplaySessionCreateBase & {
+  origin: "manual" | "generated_from_call";
+  sourceCallId: string | null;
+  focusMode: "all" | "category";
+  focusCategorySlug: string | null;
+  rubricId: string | null;
+  scenarioSummary: string | null;
+  scenarioBrief: string | null;
+};
+
+export function normalizeRoleplaySessionCreateInput(
+  input: RoleplaySessionCreateInput,
+): NormalizedRoleplaySessionCreateInput {
+  const origin = input.origin ?? "manual";
+  const sourceCallId = input.sourceCallId ?? null;
+  const focusMode = input.focusMode ?? "all";
+  const focusCategorySlug = input.focusCategorySlug ?? null;
+
+  if (origin === "manual" && sourceCallId !== null) {
+    throw new Error("Manual roleplay sessions cannot reference a source call");
+  }
+
+  if (origin === "generated_from_call" && !sourceCallId) {
+    throw new Error("Generated roleplay sessions require a source call");
+  }
+
+  if (focusMode === "category" && !focusCategorySlug) {
+    throw new Error("Category-focused roleplay sessions require a focus category");
+  }
+
+  if (focusMode === "all" && focusCategorySlug !== null) {
+    throw new Error("All-focus roleplay sessions cannot set a focus category");
+  }
+
+  const normalized = {
+    ...input,
+    origin,
+    sourceCallId,
+    focusMode,
+    focusCategorySlug,
+    rubricId: input.rubricId ?? null,
+    scenarioSummary: input.scenarioSummary ?? null,
+    scenarioBrief: input.scenarioBrief ?? null,
+  };
+
+  return normalized as NormalizedRoleplaySessionCreateInput;
+}
+
 export type RoleplayRepository = {
-  createSession(input: {
-    difficulty: "beginner" | "intermediate" | "advanced";
-    industry: string;
-    orgId: string;
-    persona: string;
-    repId: string;
-    scorecard: RoleplayScorecard | null;
-    status: "active" | "evaluating" | "complete";
-    transcript: RoleplayMessage[];
-  }): Promise<RoleplaySessionRecord>;
+  createSession(input: RoleplaySessionCreateInput): Promise<RoleplaySessionRecord>;
   findCurrentUserByAuthId(authUserId: string): Promise<DashboardUserRecord | null>;
   findSessionById(sessionId: string): Promise<RoleplaySessionRecord | null>;
   findSessionsByOrgId(orgId: string): Promise<RoleplaySessionRecord[]>;
@@ -139,6 +216,13 @@ function serializeSession(session: RoleplaySessionRecord): RoleplaySession {
     industry: session.industry,
     difficulty: session.difficulty,
     overallScore: session.overallScore,
+    origin: session.origin ?? "manual",
+    sourceCallId: session.sourceCallId ?? null,
+    rubricId: session.rubricId ?? null,
+    focusMode: session.focusMode ?? "all",
+    focusCategorySlug: session.focusCategorySlug ?? null,
+    scenarioSummary: session.scenarioSummary ?? null,
+    scenarioBrief: session.scenarioBrief ?? null,
     transcript: Array.isArray(session.transcript) ? session.transcript : [],
     scorecard: normalizeScorecard(session.scorecard),
     status: session.status,
@@ -583,16 +667,23 @@ export async function createRoleplaySession(
     },
   ];
 
-  const session = await repository.createSession({
+  const session = await repository.createSession(normalizeRoleplaySessionCreateInput({
     difficulty: persona.difficulty,
     industry: persona.industry,
     orgId,
     persona: persona.id,
+    origin: "manual",
+    sourceCallId: null,
+    rubricId: null,
+    focusMode: "all",
+    focusCategorySlug: null,
+    scenarioSummary: null,
+    scenarioBrief: null,
     repId: accessResult.data.actor.id,
     scorecard: null,
     status: "active",
     transcript,
-  });
+  }) as RoleplaySessionCreateInput);
 
   return {
     ok: true,

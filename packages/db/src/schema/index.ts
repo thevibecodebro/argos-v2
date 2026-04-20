@@ -7,6 +7,7 @@ export * from "./teamPermissionGrants";
 export * from "./calls";
 export * from "./training";
 export * from "./notifications";
+export * from "./rubrics";
 export * from "./roleplay";
 export * from "./compliance";
 export * from "./zoomIntegrations";
