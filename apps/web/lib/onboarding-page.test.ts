@@ -15,6 +15,6 @@ describe("OnboardingPage", () => {
 
     expect(html).toContain("Welcome to Argos");
     expect(html).toContain("Create Organization");
-    expect(html).toContain("Join Organization");
+    expect(html).toContain("Join With Invite");
   });
 });

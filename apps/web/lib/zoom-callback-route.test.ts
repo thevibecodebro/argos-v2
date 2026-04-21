@@ -79,7 +79,9 @@ describe("zoom callback route", () => {
       ),
     );
 
-    expect(response.headers.get("location")).toBe("https://app.argos.ai/settings?zoom_connected=true");
+    expect(response.headers.get("location")).toBe(
+      "https://app.argos.ai/settings/integrations?zoom_connected=true",
+    );
     expect(repository.upsertZoomIntegration).toHaveBeenCalledTimes(1);
     const savedIntegration = repository.upsertZoomIntegration.mock.calls[0]?.[0];
     expect(savedIntegration).toMatchObject({
@@ -137,7 +139,7 @@ describe("zoom callback route", () => {
     );
 
     expect(response.headers.get("location")).toBe(
-      "https://app.argos.ai/settings?zoom_connected=true&zoom_notice=webhook_registration_failed",
+      "https://app.argos.ai/settings/integrations?zoom_connected=true&zoom_notice=webhook_registration_failed",
     );
     expect(repository.upsertZoomIntegration).toHaveBeenCalledTimes(1);
   });
