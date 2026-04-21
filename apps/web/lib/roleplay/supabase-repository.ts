@@ -2,10 +2,12 @@ import { findUserWithOrgByAuthId, getSupabaseAdminClient, toDate } from "@/lib/s
 import type {
   RoleplayRepository,
   RoleplayScorecard,
-  RoleplaySessionCreateInput,
   RoleplaySessionRecord,
 } from "./service";
-import { normalizeRoleplaySessionCreateInput } from "./service";
+import {
+  normalizeRoleplaySessionCreateInput,
+  type RoleplaySessionCreateInput,
+} from "./types";
 
 function normalizeSessionRecord(record: any): RoleplaySessionRecord {
   return {
