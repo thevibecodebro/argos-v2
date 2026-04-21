@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { type CallsRepository, uploadCall } from "./calls/service";
+import { completeUploadedCall, type CallsRepository, uploadCall } from "./calls/service";
 import type { RubricsRepository } from "./rubrics/service";
 
 function createRepository(
@@ -208,5 +208,120 @@ describe("uploadCall", () => {
 
     expect(repository.updateCallStatus).toHaveBeenCalledWith("call-1", "failed");
     expect(repository.deleteCall).toHaveBeenCalledWith("call-1");
+  });
+});
+
+describe("completeUploadedCall", () => {
+  it("creates a queued call from a pre-uploaded source asset", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "rep-1",
+        email: "rep@argos.ai",
+        role: "rep",
+        firstName: "Riley",
+        lastName: "Stone",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      createCall: vi.fn().mockResolvedValue({
+        id: "call-1",
+        status: "uploaded",
+        createdAt: new Date("2026-04-17T00:00:00.000Z"),
+      }),
+      createOrResetCallProcessingJob: vi.fn().mockResolvedValue(undefined),
+      updateCallRecording: vi.fn().mockResolvedValue(undefined),
+    });
+    const rubricsRepository = createRubricsRepository({
+      findActiveRubricByOrgId: vi.fn().mockResolvedValue({
+        id: "rubric-1",
+        orgId: "org-1",
+        name: "Revenue Scorecard",
+        description: null,
+        sourceType: "manual",
+        status: "active",
+        version: 1,
+        createdAt: new Date("2026-04-17T00:00:00.000Z"),
+        publishedAt: new Date("2026-04-17T00:00:00.000Z"),
+      }),
+    });
+
+    const result = await completeUploadedCall(
+      repository,
+      "rep-1",
+      {
+        fileName: "demo.mp3",
+        fileSizeBytes: 12_000_000,
+        callTopic: "Discovery",
+        sourceAsset: {
+          storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
+          publicUrl: "https://storage.example/manual/demo.mp3",
+          contentType: "audio/mpeg",
+        },
+      },
+      {
+        rubricsRepository,
+      },
+    );
+
+    expect(result.ok && result.data.status).toBe("uploaded");
+    expect(repository.createCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        rubricId: "rubric-1",
+      }),
+    );
+    expect(repository.updateCallRecording).toHaveBeenCalledWith(
+      "call-1",
+      "https://storage.example/manual/demo.mp3",
+    );
+    expect(repository.createOrResetCallProcessingJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        callId: "call-1",
+        rubricId: "rubric-1",
+        sourceOrigin: "manual_upload",
+        sourceStoragePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
+      }),
+    );
+  });
+
+  it("marks the call failed if queueing the pre-uploaded source asset crashes", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "rep-1",
+        email: "rep@argos.ai",
+        role: "rep",
+        firstName: "Riley",
+        lastName: "Stone",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      createCall: vi.fn().mockResolvedValue({
+        id: "call-1",
+        status: "uploaded",
+        createdAt: new Date("2026-04-17T00:00:00.000Z"),
+      }),
+      updateCallRecording: vi.fn().mockRejectedValue(new Error("write unavailable")),
+      updateCallStatus: vi.fn().mockResolvedValue(undefined),
+    });
+    const rubricsRepository = createRubricsRepository();
+
+    await expect(
+      completeUploadedCall(
+        repository,
+        "rep-1",
+        {
+          fileName: "demo.mp3",
+          fileSizeBytes: 12_000_000,
+          callTopic: "Discovery",
+          sourceAsset: {
+            storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
+            publicUrl: "https://storage.example/manual/demo.mp3",
+            contentType: "audio/mpeg",
+          },
+        },
+        {
+          rubricsRepository,
+        },
+      ),
+    ).rejects.toThrow("write unavailable");
+
+    expect(repository.updateCallStatus).toHaveBeenCalledWith("call-1", "failed");
   });
 });

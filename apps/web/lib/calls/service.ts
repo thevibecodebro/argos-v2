@@ -170,6 +170,19 @@ type UploadCallDependencies = {
   storeSourceAsset?: StoreSourceAssetFunction;
 };
 
+type CompleteUploadedCallInput = {
+  callTopic?: string | null;
+  fileName: string;
+  fileSizeBytes: number;
+  sourceAsset: SourceAsset & {
+    contentType: string | null;
+  };
+};
+
+type CompleteUploadedCallDependencies = {
+  rubricsRepository?: RubricsRepository;
+};
+
 type UploadCallResult = {
   id: string;
   status: string;
@@ -1058,14 +1071,77 @@ export async function uploadCall(
       },
     };
   } catch (error) {
-    try {
-      await repository.updateCallStatus(created.id, "failed");
-    } catch (statusError) {
-      console.error("Failed to mark queued upload as failed", statusError);
-      await repository.deleteCall(created.id).catch((deleteError) => {
-        console.error("Failed to clean up queued upload after status update failure", deleteError);
-      });
-    }
+    await handleQueuedCallFailure(repository, created.id, "Failed to mark queued upload as failed");
+
+    throw error;
+  }
+}
+
+export async function completeUploadedCall(
+  repository: CallsRepository,
+  authUserId: string,
+  input: CompleteUploadedCallInput,
+  dependencies: CompleteUploadedCallDependencies = {},
+): Promise<ServiceResult<UploadCallResult>> {
+  const viewerResult = await getViewer(repository, authUserId);
+
+  if (!viewerResult.ok) {
+    return viewerResult;
+  }
+
+  const viewer = viewerResult.data;
+
+  if (!viewer.org) {
+    return {
+      ok: false,
+      status: 403,
+      code: "forbidden",
+      error: "User must belong to an organization to upload calls",
+    };
+  }
+
+  const topic = input.callTopic?.trim() || deriveCallTopicFromFileName(input.fileName);
+  const rubricsRepository = dependencies.rubricsRepository ?? createRubricsRepository();
+  const activeRubric = await getActiveRubric(rubricsRepository, viewer.org.id);
+  const rubricId = activeRubric.ok ? activeRubric.data.id : null;
+  const created = await repository.createCall({
+    orgId: viewer.org.id,
+    repId: viewer.id,
+    rubricId,
+    callTopic: topic,
+    durationSeconds: null,
+    recordingUrl: null,
+    transcriptUrl: null,
+    consentConfirmed: true,
+    status: "uploaded",
+  });
+
+  try {
+    await repository.updateCallRecording(created.id, input.sourceAsset.publicUrl);
+    await repository.createOrResetCallProcessingJob({
+      callId: created.id,
+      rubricId,
+      sourceOrigin: "manual_upload",
+      sourceStoragePath: input.sourceAsset.storagePath,
+      sourceFileName: input.fileName,
+      sourceContentType: input.sourceAsset.contentType,
+      sourceSizeBytes: input.fileSizeBytes,
+    });
+
+    return {
+      ok: true,
+      data: {
+        id: created.id,
+        status: "uploaded",
+        createdAt: created.createdAt.toISOString(),
+      },
+    };
+  } catch (error) {
+    await handleQueuedCallFailure(
+      repository,
+      created.id,
+      "Failed to mark direct upload as failed",
+    );
 
     throw error;
   }
@@ -1076,4 +1152,19 @@ function deriveCallTopicFromFileName(fileName: string) {
     .replace(/\.[^/.]+$/, "")
     .replace(/[-_]+/g, " ")
     .trim() || "Uploaded call";
+}
+
+async function handleQueuedCallFailure(
+  repository: Pick<CallsRepository, "deleteCall" | "updateCallStatus">,
+  callId: string,
+  logMessage: string,
+) {
+  try {
+    await repository.updateCallStatus(callId, "failed");
+  } catch (statusError) {
+    console.error(logMessage, statusError);
+    await repository.deleteCall(callId).catch((deleteError) => {
+      console.error("Failed to clean up queued upload after status update failure", deleteError);
+    });
+  }
 }

@@ -154,6 +154,7 @@ export type Database = {
           locked_at: string | null
           max_attempts: number
           next_run_at: string
+          rubric_id: string | null
           source_content_type: string | null
           source_file_name: string
           source_origin: string
@@ -173,6 +174,7 @@ export type Database = {
           locked_at?: string | null
           max_attempts?: number
           next_run_at?: string
+          rubric_id?: string | null
           source_content_type?: string | null
           source_file_name: string
           source_origin: string
@@ -192,6 +194,7 @@ export type Database = {
           locked_at?: string | null
           max_attempts?: number
           next_run_at?: string
+          rubric_id?: string | null
           source_content_type?: string | null
           source_file_name?: string
           source_origin?: string
@@ -206,6 +209,13 @@ export type Database = {
             columns: ["call_id"]
             isOneToOne: true
             referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_processing_jobs_rubric_id_fkey"
+            columns: ["rubric_id"]
+            isOneToOne: false
+            referencedRelation: "rubrics"
             referencedColumns: ["id"]
           },
         ]

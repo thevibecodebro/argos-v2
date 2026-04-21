@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { uploadCallFromBrowser } from "@/lib/calls/browser-upload";
 
 const ACCEPTED_TYPES = [
   "audio/mpeg",
@@ -57,25 +58,15 @@ export function UploadCallPanel() {
     setProgress(15);
 
     try {
-      const form = new FormData();
-      form.append("recording", file);
-      form.append("consentConfirmed", "true");
-      if (callTopic.trim()) {
-        form.append("callTopic", callTopic.trim());
-      }
-
-      const response = await fetch("/api/calls/upload", {
-        method: "POST",
-        body: form,
-      });
-
-      setProgress(100);
-
-      const payload = (await response.json()) as { error?: string; id?: string };
-
-      if (!response.ok || !payload.id) {
-        throw new Error(payload.error ?? "Upload failed");
-      }
+      const payload = await uploadCallFromBrowser(
+        {
+          callTopic,
+          file,
+        },
+        {
+          onProgress: setProgress,
+        },
+      );
 
       router.push(`/calls/${payload.id}`);
       router.refresh();
