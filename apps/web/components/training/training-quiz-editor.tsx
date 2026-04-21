@@ -146,10 +146,10 @@ export function TrainingQuizEditor({ onChange, value }: TrainingQuizEditorProps)
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#74b1ff]">
-            Quick quiz builder
+            Quiz builder
           </p>
           <p className="mt-1 text-sm text-[#a9abb3]">
-            Add questions, options, and correct answers without raw JSON.
+            Add questions, options, and correct answers inline without dropping into raw JSON.
           </p>
         </div>
         <button

@@ -39,7 +39,7 @@ export default async function TrainingPage() {
   return (
     <PageFrame
       actions={[{ href: "/highlights", label: "Open highlights" }]}
-      description="Launch modules, track progress, and coach reps from a live training workspace."
+      description="Review curriculum, assign modules, and guide practice from one training studio."
       eyebrow="Training"
       title="Training"
     >

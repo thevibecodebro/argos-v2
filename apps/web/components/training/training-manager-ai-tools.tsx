@@ -176,8 +176,8 @@ export function TrainingManagerAiTools({
             {selectedModule?.title ?? "Select a module to draft"}
           </h3>
           <p className="mt-2 text-sm leading-7 text-[#a9abb3]">
-            Draft lesson content or quiz questions from the selected module, then review the result in edit mode
-            before saving.
+            Draft lesson content or quiz questions from the selected module, then review the result inline before
+            saving.
           </p>
         </div>
 

@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import TrainingLoading from "../app/(authenticated)/training/loading";
 import {
   getModuleSelectionPatch,
   getModuleSubmitTarget,
@@ -65,6 +66,8 @@ const initialTeamProgress = {
           status: "passed",
           score: 92,
           attempts: 1,
+          assignedAt: "2026-04-18T09:00:00.000Z",
+          dueDate: "2026-04-22T12:00:00.000Z",
         },
         {
           moduleId: "module-2",
@@ -72,6 +75,8 @@ const initialTeamProgress = {
           status: "in_progress",
           score: null,
           attempts: 2,
+          assignedAt: "2026-04-19T09:00:00.000Z",
+          dueDate: "2026-04-25T12:00:00.000Z",
         },
       ],
     },
@@ -440,6 +445,47 @@ describe("TrainingPanel", () => {
     expect(html).not.toContain("AI tools");
     expect(html).not.toContain("Course overview");
     expect(html).not.toContain("Quick switcher");
+  });
+
+  it("renders the manager empty state with curriculum studio actions", () => {
+    const html = renderToStaticMarkup(
+      <TrainingPanel
+        aiAvailable
+        canManage
+        initialModules={[]}
+        initialTeamProgress={{ modules: [], repProgress: [] }}
+        initialTeamRows={[]}
+        rubricCategories={[]}
+      />,
+    );
+
+    expect(html).toContain("Build your curriculum");
+    expect(html).toContain("Create module");
+    expect(html).toContain("Generate with AI");
+  });
+
+  it("renders the rep empty state without manager actions", () => {
+    const html = renderToStaticMarkup(
+      <TrainingPanel
+        aiAvailable={false}
+        canManage={false}
+        initialModules={[]}
+        initialTeamProgress={{ modules: [], repProgress: [] }}
+        initialTeamRows={[]}
+        rubricCategories={[]}
+      />,
+    );
+
+    expect(html).toContain("No training is assigned yet");
+    expect(html).not.toContain("Create module");
+  });
+
+  it("renders the route loading shell with training studio scaffolding", () => {
+    const html = renderToStaticMarkup(<TrainingLoading />);
+
+    expect(html).toContain("Loading training");
+    expect(html).toContain("Curriculum map");
+    expect(html).toContain("Team pulse");
   });
 
   it("renders active-state semantics for the curriculum map and stage switcher", () => {
