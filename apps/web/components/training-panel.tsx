@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { TrainingCourseShell } from "./training/training-course-shell";
+import { TrainingManagerCommandDeck } from "./training/training-manager-command-deck";
 import { TrainingModuleStage } from "./training/training-module-stage";
 import { TrainingModuleToc } from "./training/training-module-toc";
 import {
@@ -17,6 +18,8 @@ import {
   type TrainingModuleAIDraftMode,
   type TrainingModuleAIDraftResponse,
 } from "./training/training-manager-ai-tools";
+import { TrainingManagerStatusBand } from "./training/training-manager-status-band";
+import { getTrainingManagerStageMetrics } from "./training/training-manager-stage-metrics";
 import {
   getTrainingStagePrimaryAction,
   resolveTrainingStageView,
@@ -646,65 +649,13 @@ export function TrainingPanel({
     setStageView(primaryAction.nextView);
   }
 
-  const managerHeaderActions = canManage ? (
-    <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-5 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Manager tools</p>
-          <p className="mt-2 text-sm text-[#a9abb3]">
-            Create, revise, assign, and review training modules from the command deck.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          {selectedModule ? (
-            <>
-              <button
-                className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/70 px-4 py-3 text-sm font-semibold text-white transition hover:border-[#74b1ff]/30 hover:bg-[#74b1ff]/10 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={isManagerBusy}
-                onClick={() => openEditModal(selectedModule)}
-                type="button"
-              >
-                Edit module
-              </button>
-              <button
-                className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/70 px-4 py-3 text-sm font-semibold text-white transition hover:border-[#74b1ff]/30 hover:bg-[#74b1ff]/10 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={isManagerBusy}
-                onClick={() => openAssignModal(selectedModule)}
-                type="button"
-              >
-                Assign module
-              </button>
-            </>
-          ) : null}
-          <button
-            className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/70 px-4 py-3 text-sm font-semibold text-white transition hover:border-[#74b1ff]/30 hover:bg-[#74b1ff]/10 disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={isManagerBusy}
-            onClick={openCreateModal}
-            type="button"
-          >
-            Create module
-          </button>
-          <button
-            aria-describedby={!aiAvailable ? "training-ai-unavailable" : undefined}
-            className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={!aiAvailable || isManagerBusy}
-            onClick={() => {
-              if (aiAvailable) {
-                openGenerateModal();
-              }
-            }}
-            type="button"
-          >
-            Generate with AI
-          </button>
-        </div>
-      </div>
-      {!aiAvailable ? (
-        <p className="mt-4 text-xs text-[#a9abb3]" id="training-ai-unavailable">
-          AI curriculum generation is unavailable until OpenAI is configured.
-        </p>
-      ) : null}
+  const managerStageMetrics = getTrainingManagerStageMetrics({
+    repProgress: teamProgress.repProgress,
+    selectedModuleId,
+  });
 
+  const managerFeedback = (
+    <>
       {managerError ? (
         <div className="mt-4 rounded-xl border border-[#f38ba8]/30 bg-[#f38ba8]/10 px-4 py-3 text-sm text-[#ffd7e3]">
           {managerError}
@@ -715,9 +666,108 @@ export function TrainingPanel({
           {managerMessage}
         </div>
       ) : null}
+    </>
+  );
+
+  const managerPlannerPanel = (
+    <div className="space-y-4">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+        <section className="rounded-[1.5rem] border border-[#45484f]/10 bg-[#10131a]/72 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Coverage board</p>
+              <p className="mt-2 text-sm text-[#a9abb3]">
+                Module-level status stays visible here so managers can spot stalled reps without leaving the planning
+                deck.
+              </p>
+            </div>
+            <div className="rounded-xl border border-[#45484f]/10 bg-[#161a21]/55 px-4 py-3 text-right">
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">Live snapshot</p>
+              <p className="mt-1 text-sm text-[#ecedf6]">
+                {managerStageMetrics.assignedCount} assigned, {managerStageMetrics.dueSoonCount} due soon
+              </p>
+            </div>
+          </div>
+
+          {teamProgress.modules.length ? (
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full min-w-[720px] text-left text-sm text-[#ecedf6]">
+                <thead>
+                  <tr className="border-b border-[#45484f]/20 text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">
+                    <th className="px-4 py-3">Rep</th>
+                    {teamProgress.modules.map((module) => (
+                      <th className="px-4 py-3" key={module.id}>
+                        {module.title}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {teamProgress.repProgress.length ? (
+                    teamProgress.repProgress.map((rep) => (
+                      <tr className="border-b border-[#45484f]/10 last:border-b-0" key={rep.repId}>
+                        <td className="px-4 py-4 align-top">
+                          <p className="font-medium text-white">
+                            {[rep.firstName, rep.lastName].filter(Boolean).join(" ").trim() || rep.repId}
+                          </p>
+                        </td>
+                        {teamProgress.modules.map((module) => {
+                          const progress = rep.moduleProgress.find((entry) => entry.moduleId === module.id);
+
+                          return (
+                            <td className="px-4 py-4 align-top" key={module.id}>
+                              {progress ? (
+                                <div className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-3 py-3">
+                                  <p className="text-sm font-semibold capitalize text-white">
+                                    {progress.status.replaceAll("_", " ")}
+                                  </p>
+                                  <p className="mt-1 text-xs text-[#a9abb3]">
+                                    {progress.score === null ? "Score pending" : `${progress.score}% score`}
+                                  </p>
+                                  <p className="mt-1 text-xs text-[#a9abb3]">{progress.attempts} attempts</p>
+                                </div>
+                              ) : (
+                                <div className="rounded-xl border border-dashed border-[#45484f]/20 px-3 py-3 text-xs text-[#a9abb3]">
+                                  Not started
+                                </div>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td className="px-4 py-6 text-sm text-[#a9abb3]" colSpan={teamProgress.modules.length + 1}>
+                        No rep progress yet. Reps will appear here after they complete module quizzes.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="mt-4 rounded-xl border border-dashed border-[#45484f]/20 px-4 py-6 text-sm text-[#a9abb3]">
+              Create or generate modules to start tracking coverage across the team.
+            </div>
+          )}
+        </section>
+
+        <TrainingManagerAiTools
+          aiAvailable={aiAvailable}
+          canManage={canManage}
+          contextNotes={moduleAiDraftForm.contextNotes}
+          isBusy={isManagerBusy}
+          onContextNotesChange={(value) => setModuleAiDraftForm((current) => ({ ...current, contextNotes: value }))}
+          onGenerate={(mode) => {
+            void generateModuleDraft(mode);
+          }}
+          selectedModule={selectedModule}
+        />
+      </div>
 
       {activeManagerModal ? (
-        <div className="mt-4 rounded-2xl border border-[#45484f]/20 bg-[#161a21]/60 p-4">
+        <div className="rounded-2xl border border-[#45484f]/20 bg-[#10131a]/78 p-4">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-sm font-semibold text-white">
@@ -968,8 +1018,8 @@ export function TrainingPanel({
           )}
         </div>
       ) : null}
-    </section>
-  ) : null;
+    </div>
+  );
 
   const quizContent = selectedModule ? (
     selectedModule.quizData?.questions?.length ? (
@@ -1033,140 +1083,42 @@ export function TrainingPanel({
       primaryActionDisabled={primaryActionDisabled}
       quizContent={quizContent}
       selectedModule={selectedModule}
+      stageBand={canManage ? <TrainingManagerStatusBand metrics={managerStageMetrics} /> : null}
       stageView={resolvedStageView}
       statusMessage={statusMessage}
     />
   );
-
-  const assignmentsPanel = canManage ? (
-    <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-      <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Assignments</p>
-      <div className="mt-4 space-y-4">
-        <div className="rounded-xl border border-[#45484f]/10 bg-[#161a21]/50 px-4 py-4 text-sm text-[#a9abb3]">
-          Assignments now stay in the command deck so the stage can remain focused on the selected module.
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-[#a9abb3]">
-            {selectedModule ? `Assign ${selectedModule.title} to reps.` : "Select a module first, then open assignment tools."}
-          </p>
-          <button
-            className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
-            disabled={!selectedModule}
-            onClick={() => {
-              if (selectedModule) {
-                openAssignModal(selectedModule);
-              }
-            }}
-            type="button"
-          >
-            Open assignment tools
-          </button>
-        </div>
-      </div>
-    </section>
-  ) : null;
-
-  const aiToolsPanel = canManage ? (
-    <TrainingManagerAiTools
-      aiAvailable={aiAvailable}
-      canManage={canManage}
-      contextNotes={moduleAiDraftForm.contextNotes}
-      isBusy={isManagerBusy}
-      onContextNotesChange={(value) => setModuleAiDraftForm((current) => ({ ...current, contextNotes: value }))}
-      onGenerate={(mode) => {
-        void generateModuleDraft(mode);
-      }}
-      selectedModule={selectedModule}
-    />
-  ) : null;
-
-  const teamProgressPanel = canManage ? (
-    <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Team Progress</p>
-          <p className="mt-2 text-sm text-[#a9abb3]">
-            Starter modules are auto-provisioned when an org has none, so managers can test the full training flow
-            immediately.
-          </p>
-        </div>
-      </div>
-      {teamProgress.modules.length ? (
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-sm text-[#ecedf6]">
-            <thead>
-              <tr className="border-b border-[#45484f]/20 text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">
-                <th className="px-4 py-3">Rep</th>
-                {teamProgress.modules.map((module) => (
-                  <th className="px-4 py-3" key={module.id}>
-                    {module.title}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {teamProgress.repProgress.length ? (
-                teamProgress.repProgress.map((rep) => (
-                  <tr className="border-b border-[#45484f]/10 last:border-b-0" key={rep.repId}>
-                    <td className="px-4 py-4 align-top">
-                      <p className="font-medium text-white">
-                        {[rep.firstName, rep.lastName].filter(Boolean).join(" ").trim() || rep.repId}
-                      </p>
-                    </td>
-                    {teamProgress.modules.map((module) => {
-                      const progress = rep.moduleProgress.find((entry) => entry.moduleId === module.id);
-
-                      return (
-                        <td className="px-4 py-4 align-top" key={module.id}>
-                          {progress ? (
-                            <div className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-3 py-3">
-                              <p className="text-sm font-semibold capitalize text-white">
-                                {progress.status.replaceAll("_", " ")}
-                              </p>
-                              <p className="mt-1 text-xs text-[#a9abb3]">
-                                {progress.score === null ? "Score pending" : `${progress.score}% score`}
-                              </p>
-                              <p className="mt-1 text-xs text-[#a9abb3]">{progress.attempts} attempts</p>
-                            </div>
-                          ) : (
-                            <div className="rounded-xl border border-dashed border-[#45484f]/20 px-3 py-3 text-xs text-[#a9abb3]">
-                              Not started
-                            </div>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td className="px-4 py-6 text-sm text-[#a9abb3]" colSpan={teamProgress.modules.length + 1}>
-                    No rep progress yet. Reps will appear here after they complete module quizzes.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="mt-4 rounded-xl border border-dashed border-[#45484f]/20 px-4 py-6 text-sm text-[#a9abb3]">
-          Create or generate modules to start tracking team progress.
-        </div>
-      )}
-    </section>
-  ) : null;
 
   const tableOfContents = (
     <TrainingModuleToc modules={modules} onSelectModule={selectModule} selectedModuleId={selectedModuleId} />
   );
 
   const commandDeck = canManage ? (
-    <div className="space-y-5">
-      {managerHeaderActions}
-      {assignmentsPanel}
-      {teamProgressPanel}
-      {aiToolsPanel}
-    </div>
+    <TrainingManagerCommandDeck
+      aiAvailable={aiAvailable}
+      expandedPanel={managerPlannerPanel}
+      feedback={managerFeedback}
+      isBusy={isManagerBusy}
+      moduleCount={modules.length}
+      onAssign={() => {
+        if (selectedModule) {
+          openAssignModal(selectedModule);
+        }
+      }}
+      onCreate={openCreateModal}
+      onEdit={() => {
+        if (selectedModule) {
+          openEditModal(selectedModule);
+        }
+      }}
+      onGenerate={() => {
+        if (aiAvailable) {
+          openGenerateModal();
+        }
+      }}
+      repCount={teamRows.length}
+      selectedModuleTitle={selectedModule?.title ?? null}
+    />
   ) : null;
 
   return <TrainingCourseShell commandDeck={commandDeck} stage={stage} tableOfContents={tableOfContents} />;

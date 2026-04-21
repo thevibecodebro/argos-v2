@@ -7,6 +7,7 @@ import {
   TrainingPanel,
 } from "../components/training-panel";
 import { getTrainingModuleAiContextAvailability } from "../components/training/training-manager-ai-tools";
+import { getTrainingManagerStageMetrics } from "../components/training/training-manager-stage-metrics";
 import {
   getTrainingStagePrimaryAction,
   resolveTrainingStageView,
@@ -85,6 +86,73 @@ const initialTeamRows = [
     assigned: 2,
     passed: 1,
     completionRate: 50,
+  },
+];
+
+const managerMetricsProgress = [
+  {
+    repId: "rep-1",
+    firstName: "Maya",
+    lastName: "Chen",
+    moduleProgress: [
+      {
+        moduleId: "module-1",
+        moduleTitle: "Discovery That Finds the Real Pain",
+        status: "assigned",
+        score: null,
+        attempts: 0,
+        assignedAt: "2026-04-20T09:00:00.000Z",
+        dueDate: "2026-04-23T12:00:00.000Z",
+      },
+    ],
+  },
+  {
+    repId: "rep-2",
+    firstName: "Jordan",
+    lastName: "Lee",
+    moduleProgress: [
+      {
+        moduleId: "module-1",
+        moduleTitle: "Discovery That Finds the Real Pain",
+        status: "passed",
+        score: 94,
+        attempts: 1,
+        assignedAt: "2026-04-19T09:00:00.000Z",
+        dueDate: "2026-04-24T12:00:00.000Z",
+      },
+    ],
+  },
+  {
+    repId: "rep-3",
+    firstName: "Alex",
+    lastName: "Stone",
+    moduleProgress: [
+      {
+        moduleId: "module-1",
+        moduleTitle: "Discovery That Finds the Real Pain",
+        status: "in_progress",
+        score: null,
+        attempts: 1,
+        assignedAt: "2026-04-18T09:00:00.000Z",
+        dueDate: "2026-04-26T12:00:00.000Z",
+      },
+    ],
+  },
+  {
+    repId: "rep-4",
+    firstName: "Toni",
+    lastName: "Banks",
+    moduleProgress: [
+      {
+        moduleId: "module-2",
+        moduleTitle: "Objection Handling Without Losing Control",
+        status: "assigned",
+        score: null,
+        attempts: 0,
+        assignedAt: "2026-04-20T09:00:00.000Z",
+        dueDate: "2026-04-22T12:00:00.000Z",
+      },
+    ],
   },
 ];
 
@@ -180,6 +248,20 @@ describe("TrainingPanel", () => {
     });
   });
 
+  it("calculates manager stage metrics for the selected module", () => {
+    expect(
+      getTrainingManagerStageMetrics({
+        now: "2026-04-21T12:00:00.000Z",
+        repProgress: managerMetricsProgress,
+        selectedModuleId: "module-1",
+      }),
+    ).toEqual({
+      assignedCount: 3,
+      completionRate: 33,
+      dueSoonCount: 1,
+    });
+  });
+
   it("does not show Create module to reps", () => {
     const html = renderToStaticMarkup(
       <TrainingPanel
@@ -207,12 +289,17 @@ describe("TrainingPanel", () => {
     );
 
     expect(html).toContain("Create module");
-    expect(html).toContain("Edit module");
-    expect(html).toContain("Assign module");
-    expect(html).toContain("Team Progress");
+    expect(html).toContain("Edit selected module");
+    expect(html).toContain("Assign selected module");
+    expect(html).toContain("Assignment coverage");
+    expect(html).toContain("Team pulse");
+    expect(html).toContain("Draft lesson content");
     expect(html).toContain("Discovery That Finds the Real Pain");
     expect(html).toContain("Maya Chen");
     expect(html).toContain("passed");
+    expect(html).not.toContain("Assignments");
+    expect(html).not.toContain("Team Progress");
+    expect(html).not.toContain("AI tools");
   });
 
   it("shows Generate with AI to managers", () => {
@@ -283,7 +370,7 @@ describe("TrainingPanel", () => {
     expect(html).not.toContain(">Quiz<");
   });
 
-  it("renders the manager shell with a command deck instead of workspace tabs", () => {
+  it("renders the manager shell with a status band and planning deck instead of section headings", () => {
     const html = renderToStaticMarkup(
       <TrainingPanel
         aiAvailable
@@ -299,9 +386,13 @@ describe("TrainingPanel", () => {
     expect(html).toContain("Lesson");
     expect(html).toContain("Quiz");
     expect(html).toContain("Plan assignments");
-    expect(html).toContain("Assignments");
-    expect(html).toContain("Team Progress");
-    expect(html).toContain("Module AI tools");
+    expect(html).toContain("Assignment coverage");
+    expect(html).toContain("Team pulse");
+    expect(html).toContain("Create module");
+    expect(html).toContain("Draft lesson content");
+    expect(html).not.toContain("Assignments");
+    expect(html).not.toContain("Team Progress");
+    expect(html).not.toContain("AI tools");
     expect(html).not.toContain("Course overview");
     expect(html).not.toContain("Quick switcher");
   });
