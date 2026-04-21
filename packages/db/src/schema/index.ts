@@ -5,6 +5,7 @@ export * from "./teamMemberships";
 export * from "./repManagerAssignments";
 export * from "./teamPermissionGrants";
 export * from "./calls";
+export * from "./rubrics";
 export * from "./training";
 export * from "./notifications";
 export * from "./rubrics";

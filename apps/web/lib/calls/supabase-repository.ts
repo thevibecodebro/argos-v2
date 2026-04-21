@@ -6,6 +6,7 @@ type SupabaseCallRow = {
   id: string;
   org_id: string;
   rep_id: string;
+  rubric_id: string | null;
   recording_url: string | null;
   transcript_url: string | null;
   duration_seconds: number | null;
@@ -42,6 +43,7 @@ export class SupabaseCallsRepository implements CallsRepository {
   async createCall(input: {
     orgId: string;
     repId: string;
+    rubricId?: string | null;
     callTopic: string | null;
     durationSeconds: number | null;
     recordingUrl: string | null;
@@ -55,6 +57,7 @@ export class SupabaseCallsRepository implements CallsRepository {
       .insert({
         org_id: input.orgId,
         rep_id: input.repId,
+        rubric_id: input.rubricId ?? null,
         call_topic: input.callTopic,
         duration_seconds: input.durationSeconds,
         recording_url: input.recordingUrl,
@@ -108,6 +111,7 @@ export class SupabaseCallsRepository implements CallsRepository {
 
   async createOrResetCallProcessingJob(input: {
     callId: string;
+    rubricId?: string | null;
     sourceOrigin: "manual_upload" | "zoom_recording";
     sourceStoragePath: string;
     sourceFileName: string;
@@ -120,6 +124,7 @@ export class SupabaseCallsRepository implements CallsRepository {
       .upsert(
         {
           call_id: input.callId,
+          rubric_id: input.rubricId ?? null,
           source_origin: input.sourceOrigin,
           source_storage_path: input.sourceStoragePath,
           source_file_name: input.sourceFileName,
@@ -226,6 +231,77 @@ export class SupabaseCallsRepository implements CallsRepository {
     }
 
     const rep = repUsers[0] ?? null;
+    let rubric: {
+      id: string;
+      name: string;
+      version: number;
+      status: string | null;
+    } | null = null;
+    let categoryScores: Array<{
+      categoryId: string | null;
+      slug: string;
+      name: string;
+      description: string | null;
+      weight: number | null;
+      sortOrder: number | null;
+      score: number | null;
+    }> = [];
+
+    if (call.rubric_id) {
+      const [{ data: rubricRow, error: rubricError }, { data: categories, error: categoriesError }, { data: scores, error: scoresError }] =
+        await Promise.all([
+          supabase
+            .from("rubrics")
+            .select("id, name, version, status")
+            .eq("id", call.rubric_id)
+            .maybeSingle(),
+          supabase
+            .from("rubric_categories")
+            .select("id, slug, name, description, weight, sort_order")
+            .eq("rubric_id", call.rubric_id)
+            .order("sort_order", { ascending: true })
+            .order("created_at", { ascending: true }),
+          supabase
+            .from("call_scores")
+            .select("rubric_category_id, score")
+            .eq("call_id", callId),
+        ]);
+
+      if (rubricError) {
+        throw new Error(rubricError.message);
+      }
+
+      if (categoriesError) {
+        throw new Error(categoriesError.message);
+      }
+
+      if (scoresError) {
+        throw new Error(scoresError.message);
+      }
+
+      rubric = rubricRow
+        ? {
+            id: rubricRow.id,
+            name: rubricRow.name,
+            version: rubricRow.version,
+            status: rubricRow.status,
+          }
+        : null;
+
+      const scoresByCategoryId = new Map(
+        (scores ?? []).map((row: any) => [row.rubric_category_id, row.score]),
+      );
+
+      categoryScores = (categories ?? []).map((row: any) => ({
+        categoryId: row.id,
+        slug: row.slug,
+        name: row.name,
+        description: row.description,
+        weight: row.weight,
+        sortOrder: row.sort_order,
+        score: scoresByCategoryId.get(row.id) ?? null,
+      }));
+    }
 
     return {
       id: call.id,
@@ -250,6 +326,8 @@ export class SupabaseCallsRepository implements CallsRepository {
       transcript: normalizeTranscript(call.transcript),
       repId: call.rep_id,
       orgId: call.org_id,
+      rubric,
+      categoryScores,
       createdAt: toDate(call.created_at) ?? new Date(0),
       repFirstName: rep?.firstName ?? null,
       repLastName: rep?.lastName ?? null,
@@ -389,6 +467,7 @@ export class SupabaseCallsRepository implements CallsRepository {
         status: "complete",
         duration_seconds: evaluation.durationSeconds,
         overall_score: evaluation.overallScore,
+        rubric_id: evaluation.rubricId,
         frame_control_score: evaluation.frameControlScore,
         rapport_score: evaluation.rapportScore,
         discovery_score: evaluation.discoveryScore,
@@ -412,6 +491,26 @@ export class SupabaseCallsRepository implements CallsRepository {
     const { error: deleteError } = await supabase.from("call_moments").delete().eq("call_id", callId);
     if (deleteError) {
       throw new Error(deleteError.message);
+    }
+
+    const { error: deleteScoresError } = await supabase.from("call_scores").delete().eq("call_id", callId);
+    if (deleteScoresError) {
+      throw new Error(deleteScoresError.message);
+    }
+
+    const categoryScores = evaluation.categoryScores.filter((category) => category.categoryId);
+    if (categoryScores.length > 0) {
+      const { error: insertScoresError } = await supabase.from("call_scores").insert(
+        categoryScores.map((category) => ({
+          call_id: callId,
+          rubric_category_id: category.categoryId,
+          score: category.score,
+        })),
+      );
+
+      if (insertScoresError) {
+        throw new Error(insertScoresError.message);
+      }
     }
 
     if (evaluation.moments?.length) {

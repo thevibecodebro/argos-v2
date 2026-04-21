@@ -4,6 +4,7 @@ import {
   processZoomWebhookRequest,
   type ZoomWebhookRepository,
 } from "./zoom-webhook";
+import type { RubricsRepository } from "../rubrics/service";
 
 function createRepository(
   overrides: Partial<ZoomWebhookRepository> = {},
@@ -19,6 +20,19 @@ function createRepository(
     updateZoomTokens: vi.fn(),
     ...overrides,
   };
+}
+
+function createRubricsRepository(
+  overrides: Partial<RubricsRepository> = {},
+): RubricsRepository {
+  return {
+    createDraftRubric: vi.fn(),
+    findActiveRubricByOrgId: vi.fn().mockResolvedValue(null),
+    findRubricHistoryByOrgId: vi.fn(),
+    findCategoriesByRubricId: vi.fn(),
+    publishDraftRubric: vi.fn(),
+    ...overrides,
+  } as unknown as RubricsRepository;
 }
 
 function sign(secret: string, rawBody: string, timestamp = Math.floor(Date.now() / 1000).toString()) {
@@ -87,6 +101,19 @@ describe("processZoomWebhookRequest", () => {
       storagePath: "recordings/call-1/source/recording-1.m4a",
       publicUrl: "https://storage.example/recordings/call-1/source/recording-1.m4a",
     });
+    const rubricsRepository = createRubricsRepository({
+      findActiveRubricByOrgId: vi.fn().mockResolvedValue({
+        id: "rubric-1",
+        orgId: "org-1",
+        name: "Revenue Scorecard",
+        description: null,
+        sourceType: "manual",
+        status: "active",
+        version: 1,
+        createdAt: new Date("2026-04-17T00:00:00.000Z"),
+        publishedAt: new Date("2026-04-17T00:00:00.000Z"),
+      }),
+    });
     const repository = createRepository({
       createCall: vi.fn().mockResolvedValue({ id: "call-1" }),
       createOrResetCallProcessingJob: vi.fn().mockResolvedValue(undefined),
@@ -141,6 +168,7 @@ describe("processZoomWebhookRequest", () => {
           },
         },
         {
+          rubricsRepository,
           storeSourceAsset,
         },
       );
@@ -154,6 +182,7 @@ describe("processZoomWebhookRequest", () => {
         consentConfirmed: true,
         durationSeconds: 720,
         orgId: "org-1",
+        rubricId: "rubric-1",
         recordingUrl: null,
         repId: "user-1",
         status: "uploaded",
@@ -175,6 +204,7 @@ describe("processZoomWebhookRequest", () => {
       );
       expect(repository.createOrResetCallProcessingJob).toHaveBeenCalledWith({
         callId: "call-1",
+        rubricId: "rubric-1",
         sourceOrigin: "zoom_recording",
         sourceStoragePath: "recordings/call-1/source/recording-1.m4a",
         sourceFileName: "recording-1.m4a",
@@ -200,6 +230,7 @@ describe("processZoomWebhookRequest", () => {
       storagePath: "recordings/call-1/source/recording-1.m4a",
       publicUrl: "https://storage.example/recordings/call-1/source/recording-1.m4a",
     });
+    const rubricsRepository = createRubricsRepository();
 
     const repository = createRepository({
       createCall: vi.fn().mockResolvedValue({ id: "call-1" }),
@@ -247,6 +278,7 @@ describe("processZoomWebhookRequest", () => {
           },
         },
         {
+          rubricsRepository,
           storeSourceAsset,
         },
       );
@@ -275,6 +307,7 @@ describe("processZoomWebhookRequest", () => {
       storagePath: "recordings/call-1/source/recording-1.mp4",
       publicUrl: "https://storage.example/recordings/call-1/source/recording-1.mp4",
     });
+    const rubricsRepository = createRubricsRepository();
 
     const repository = createRepository({
       createCall: vi.fn().mockResolvedValue({ id: "call-1" }),
@@ -328,6 +361,7 @@ describe("processZoomWebhookRequest", () => {
           },
         },
         {
+          rubricsRepository,
           storeSourceAsset,
         },
       );
@@ -398,6 +432,7 @@ describe("processZoomWebhookRequest", () => {
       storagePath: "recordings/call-1/source/recording-1.m4a",
       publicUrl: "https://storage.example/recordings/call-1/source/recording-1.m4a",
     });
+    const rubricsRepository = createRubricsRepository();
     const repository = createRepository({
       createOrResetCallProcessingJob: vi.fn().mockResolvedValue(undefined),
       findCallByZoomRecordingId: vi.fn().mockResolvedValue({
@@ -447,6 +482,7 @@ describe("processZoomWebhookRequest", () => {
           },
         },
         {
+          rubricsRepository,
           storeSourceAsset,
         },
       );
@@ -469,6 +505,7 @@ describe("processZoomWebhookRequest", () => {
       );
       expect(repository.createOrResetCallProcessingJob).toHaveBeenCalledWith({
         callId: "call-1",
+        rubricId: null,
         sourceOrigin: "zoom_recording",
         sourceStoragePath: "recordings/call-1/source/recording-1.m4a",
         sourceFileName: "recording-1.m4a",

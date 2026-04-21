@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { type CallsRepository, uploadCall } from "./calls/service";
+import type { RubricsRepository } from "./rubrics/service";
 
 function createRepository(
   overrides: Partial<CallsRepository> = {},
@@ -29,6 +30,19 @@ function createRepository(
   } as unknown as CallsRepository;
 }
 
+function createRubricsRepository(
+  overrides: Partial<RubricsRepository> = {},
+): RubricsRepository {
+  return {
+    createDraftRubric: vi.fn(),
+    findActiveRubricByOrgId: vi.fn().mockResolvedValue(null),
+    findRubricHistoryByOrgId: vi.fn(),
+    findCategoriesByRubricId: vi.fn(),
+    publishDraftRubric: vi.fn(),
+    ...overrides,
+  } as unknown as RubricsRepository;
+}
+
 describe("uploadCall", () => {
   it("stores the source asset and queues a processing job instead of scoring inline", async () => {
     const repository = createRepository({
@@ -52,6 +66,19 @@ describe("uploadCall", () => {
       storagePath: "recordings/call-1/source/demo.mp3",
       publicUrl: "https://storage.example/call-1/demo.mp3",
     });
+    const rubricsRepository = createRubricsRepository({
+      findActiveRubricByOrgId: vi.fn().mockResolvedValue({
+        id: "rubric-1",
+        orgId: "org-1",
+        name: "Revenue Scorecard",
+        description: null,
+        sourceType: "manual",
+        status: "active",
+        version: 1,
+        createdAt: new Date("2026-04-17T00:00:00.000Z"),
+        publishedAt: new Date("2026-04-17T00:00:00.000Z"),
+      }),
+    });
 
     const result = await uploadCall(
       repository,
@@ -66,6 +93,7 @@ describe("uploadCall", () => {
         },
       },
       {
+        rubricsRepository,
         storeSourceAsset,
       },
     );
@@ -76,9 +104,15 @@ describe("uploadCall", () => {
       "call-1",
       "https://storage.example/call-1/demo.mp3",
     );
+    expect(repository.createCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        rubricId: "rubric-1",
+      }),
+    );
     expect(repository.createOrResetCallProcessingJob).toHaveBeenCalledWith(
       expect.objectContaining({
         callId: "call-1",
+        rubricId: "rubric-1",
         sourceOrigin: "manual_upload",
         sourceStoragePath: "recordings/call-1/source/demo.mp3",
       }),
@@ -105,6 +139,7 @@ describe("uploadCall", () => {
       updateCallStatus: vi.fn().mockResolvedValue(undefined),
     });
     const storeSourceAsset = vi.fn().mockRejectedValue(new Error("storage offline"));
+    const rubricsRepository = createRubricsRepository();
 
     await expect(
       uploadCall(
@@ -120,6 +155,7 @@ describe("uploadCall", () => {
           },
         },
         {
+          rubricsRepository,
           storeSourceAsset,
         },
       ),
@@ -148,6 +184,7 @@ describe("uploadCall", () => {
       deleteCall: vi.fn().mockResolvedValue(undefined),
     });
     const storeSourceAsset = vi.fn().mockRejectedValue(new Error("storage offline"));
+    const rubricsRepository = createRubricsRepository();
 
     await expect(
       uploadCall(
@@ -163,6 +200,7 @@ describe("uploadCall", () => {
           },
         },
         {
+          rubricsRepository,
           storeSourceAsset,
         },
       ),

@@ -5,6 +5,8 @@ import {
   canActorUsePermissionForRep,
 } from "@/lib/access/service";
 import type { AccessRepository } from "@/lib/access/repository.types";
+import { createRubricsRepository } from "@/lib/rubrics/create-repository";
+import { getActiveRubric, type RubricsRepository } from "@/lib/rubrics/service";
 import { CALL_SCORE_LABELS_BY_FIELD } from "@/lib/calls/rubric";
 import type { AppUserRole } from "@/lib/users/roles";
 
@@ -50,6 +52,15 @@ export type DashboardScoredCallRecord = {
   createdAt: Date;
   overallScore: number | null;
   durationSeconds: number | null;
+  rubricId?: string | null;
+  rubricName?: string | null;
+  rubricVersion?: number | null;
+  categoryScores?: Array<{
+    slug: string;
+    name: string;
+    score: number | null;
+    sortOrder: number | null;
+  }>;
   frameControlScore: number | null;
   rapportScore: number | null;
   discoveryScore: number | null;
@@ -102,6 +113,7 @@ export type RepDashboard = {
   monthlyAvgScore: number | null;
   weeklyTrend: WeeklyPoint[];
   lowestCategories: CategoryScore[];
+  categoryAnalyticsContextLabel?: string | null;
   recentCalls: Array<{
     id: string;
     status: string;
@@ -184,6 +196,10 @@ export type RepSkillBreakdown = {
   profileImageUrl: string | null;
   compositeScore: number | null;
   callCount: number;
+  skillBreakdown?: Array<{
+    category: string;
+    avgScore: number | null;
+  }>;
   skills: {
     frameControl: number | null;
     rapport: number | null;
@@ -197,6 +213,8 @@ export type RepSkillBreakdown = {
 
 export type ExecutiveDashboard = {
   skillAverages: SkillAverage[];
+  categoryAnalyticsContextLabel?: string | null;
+  skillColumns?: string[];
   weeklyCallVolume: WeeklyCallVolume[];
   trainingStats: TrainingStats;
   repSkillBreakdown: RepSkillBreakdown[];
@@ -243,6 +261,96 @@ const SKILL_CATEGORIES = [
   { key: "objectionScore", label: CALL_SCORE_LABELS_BY_FIELD.objectionScore },
   { key: "closingScore", label: CALL_SCORE_LABELS_BY_FIELD.closingScore },
 ] as const;
+
+function hasDynamicCategoryScores(call: DashboardScoredCallRecord) {
+  return Array.isArray(call.categoryScores) && call.categoryScores.length > 0;
+}
+
+async function resolveDynamicCategoryAnalytics(
+  calls: DashboardScoredCallRecord[],
+  orgId: string,
+  rubricsRepository: RubricsRepository,
+) {
+  const dynamicCalls = calls.filter(hasDynamicCategoryScores);
+
+  if (!dynamicCalls.length) {
+    return null;
+  }
+
+  const rubricIds = Array.from(
+    new Set(
+      dynamicCalls
+        .map((call) => call.rubricId)
+        .filter((value): value is string => typeof value === "string" && value.length > 0),
+    ),
+  );
+
+  const activeRubricResult = await getActiveRubric(rubricsRepository, orgId);
+  const activeRubricId = activeRubricResult.ok ? activeRubricResult.data.id : null;
+  const mixedVersions = rubricIds.length > 1;
+
+  let selectedCalls = dynamicCalls;
+  let label: string | null = null;
+
+  if (activeRubricId && rubricIds.includes(activeRubricId)) {
+    selectedCalls = dynamicCalls.filter((call) => call.rubricId === activeRubricId);
+    if (mixedVersions) {
+      label = "Category analytics filtered to the active rubric version";
+    }
+  } else if (mixedVersions) {
+    const latestRubricId = [...dynamicCalls]
+      .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())[0]
+      ?.rubricId;
+
+    if (latestRubricId) {
+      selectedCalls = dynamicCalls.filter((call) => call.rubricId === latestRubricId);
+      label = "Category analytics filtered to a single rubric version";
+    }
+  }
+
+  const categoryTotals = new Map<string, {
+    total: number;
+    count: number;
+    name: string;
+    sortOrder: number;
+  }>();
+
+  for (const call of selectedCalls) {
+    for (const category of call.categoryScores ?? []) {
+      if (typeof category.score !== "number") {
+        continue;
+      }
+
+      const existing = categoryTotals.get(category.slug);
+      if (existing) {
+        existing.total += category.score;
+        existing.count += 1;
+      } else {
+        categoryTotals.set(category.slug, {
+          total: category.score,
+          count: 1,
+          name: category.name,
+          sortOrder: category.sortOrder ?? Number.MAX_SAFE_INTEGER,
+        });
+      }
+    }
+  }
+
+  const averages = [...categoryTotals.entries()]
+    .map(([slug, bucket]) => ({
+      slug,
+      category: bucket.name,
+      avgScore: Math.round(bucket.total / bucket.count),
+      sortOrder: bucket.sortOrder,
+    }))
+    .sort((left, right) => left.sortOrder - right.sortOrder || left.category.localeCompare(right.category));
+
+  return {
+    averages,
+    calls: selectedCalls,
+    label,
+  };
+}
 
 function isManagerRole(role: AppUserRole | null | undefined): boolean {
   return MANAGER_ROLES.includes((role ?? null) as AppUserRole);
@@ -425,6 +533,7 @@ export async function getRepDashboard(
   requestedRepId?: string,
   now = new Date(),
   accessRepository: AccessRepository = createAccessRepository(),
+  rubricsRepository?: RubricsRepository,
 ): Promise<RepDashboard | null> {
   const user = await repository.findCurrentUserByAuthId(authUserId);
 
@@ -498,23 +607,41 @@ export async function getRepDashboard(
     callCount: bucket.callCount,
   }));
 
-  const lowestCategories = SKILL_CATEGORIES
-    .map(({ key, label }) => ({
-      category: label as string,
-      avgScore: averageScore(trendCalls.map((call) => call[key]), false),
-    }))
-    .filter((category): category is { category: string; avgScore: number } => typeof category.avgScore === "number")
-    .sort((left, right) => left.avgScore - right.avgScore)
-    .slice(0, 3)
-    .map((category) => ({
-      category: category.category,
-      avgScore: Math.round(category.avgScore),
-    }));
+  const dynamicCategoryAnalytics = trendCalls.some(hasDynamicCategoryScores)
+    ? await resolveDynamicCategoryAnalytics(
+        trendCalls,
+        user.org.id,
+        rubricsRepository ?? createRubricsRepository(),
+      )
+    : null;
+
+  const lowestCategories = dynamicCategoryAnalytics
+    ? dynamicCategoryAnalytics.averages
+        .slice()
+        .sort((left, right) => left.avgScore - right.avgScore)
+        .slice(0, 3)
+        .map((category) => ({
+          category: category.category,
+          avgScore: category.avgScore,
+        }))
+    : SKILL_CATEGORIES
+        .map(({ key, label }) => ({
+          category: label as string,
+          avgScore: averageScore(trendCalls.map((call) => call[key]), false),
+        }))
+        .filter((category): category is { category: string; avgScore: number } => typeof category.avgScore === "number")
+        .sort((left, right) => left.avgScore - right.avgScore)
+        .slice(0, 3)
+        .map((category) => ({
+          category: category.category,
+          avgScore: Math.round(category.avgScore),
+        }));
 
   return {
     monthlyAvgScore,
     weeklyTrend,
     lowestCategories,
+    categoryAnalyticsContextLabel: dynamicCategoryAnalytics?.label ?? null,
     recentCalls: recentCalls.map(serializeRecentCall),
   };
 }
@@ -793,6 +920,7 @@ export async function getExecutiveDashboard(
   repository: DashboardRepository,
   authUserId: string,
   now = new Date(),
+  rubricsRepository?: RubricsRepository,
 ): Promise<ExecutiveDashboard | null> {
   const user = await repository.findCurrentUserByAuthId(authUserId);
 
@@ -838,11 +966,28 @@ export async function getExecutiveDashboard(
     weeklyBuckets.set(weekKey, (weeklyBuckets.get(weekKey) ?? 0) + 1);
   }
 
+  const dynamicCategoryAnalytics = recentCalls.some(hasDynamicCategoryScores)
+    ? await resolveDynamicCategoryAnalytics(
+        recentCalls,
+        user.org.id,
+        rubricsRepository ?? createRubricsRepository(),
+      )
+    : null;
+  const skillAverages = dynamicCategoryAnalytics
+    ? dynamicCategoryAnalytics.averages.map((category) => ({
+        category: category.category,
+        avgScore: category.avgScore,
+      }))
+    : SKILL_CATEGORIES.map(({ key, label }) => ({
+        category: label,
+        avgScore: averageScore(recentCalls.map((call) => call[key])),
+      }));
+  const skillColumns = dynamicCategoryAnalytics?.averages.map((category) => category.category) ?? undefined;
+
   return {
-    skillAverages: SKILL_CATEGORIES.map(({ key, label }) => ({
-      category: label,
-      avgScore: averageScore(recentCalls.map((call) => call[key])),
-    })),
+    skillAverages,
+    categoryAnalyticsContextLabel: dynamicCategoryAnalytics?.label ?? null,
+    skillColumns,
     weeklyCallVolume: weekKeys.map((week) => ({
       week,
       callCount: weeklyBuckets.get(week) ?? 0,
@@ -862,6 +1007,9 @@ export async function getExecutiveDashboard(
     repSkillBreakdown: reps
       .map((rep) => {
         const repCalls = completedCalls.filter((call) => call.repId === rep.id);
+        const repCategoryCalls = dynamicCategoryAnalytics
+          ? dynamicCategoryAnalytics.calls.filter((call) => call.repId === rep.id)
+          : repCalls;
 
         return {
           repId: rep.id,
@@ -870,6 +1018,18 @@ export async function getExecutiveDashboard(
           profileImageUrl: rep.profileImageUrl,
           compositeScore: averageScore(repCalls.map((call) => call.overallScore)),
           callCount: repCalls.length,
+          skillBreakdown: dynamicCategoryAnalytics
+            ? dynamicCategoryAnalytics.averages.map((category) => ({
+                category: category.category,
+                avgScore: averageScore(
+                  repCategoryCalls.flatMap((call) =>
+                    (call.categoryScores ?? [])
+                      .filter((score) => score.slug === category.slug)
+                      .map((score) => score.score),
+                  ),
+                ),
+              }))
+            : undefined,
           skills: {
             frameControl: averageScore(repCalls.map((call) => call.frameControlScore)),
             rapport: averageScore(repCalls.map((call) => call.rapportScore)),

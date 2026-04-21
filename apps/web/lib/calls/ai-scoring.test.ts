@@ -4,8 +4,9 @@ import {
   computeWeightedOverallScore,
   mergeTranscriptLines,
   normalizeTranscriptionPayload,
+  type ScoringRubric,
 } from "@argos-v2/call-processing";
-import { scoreCallRecording } from "./ai-scoring";
+import { scoreCallRecording, scoreTranscriptFromLines } from "./ai-scoring";
 
 describe("shared call-processing package", () => {
   it("exports the rubric and transcript normalization helpers", () => {
@@ -258,7 +259,59 @@ describe("scoreCallRecording", () => {
       JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body)).model,
     ).toBe("gpt-5-mini");
     expect(result.durationSeconds).toBe(124);
+    expect(result.rubricId).toBeNull();
     expect(result.overallScore).toBe(85);
+    expect(result.categoryScores).toEqual([
+      {
+        categoryId: null,
+        slug: "rapport",
+        name: "Build Rapport",
+        weight: 5,
+        score: 83,
+      },
+      {
+        categoryId: null,
+        slug: "frame_control",
+        name: "Set a Strong Frame",
+        weight: 15,
+        score: 86,
+      },
+      {
+        categoryId: null,
+        slug: "discovery",
+        name: "In-Depth Discovery",
+        weight: 15,
+        score: 90,
+      },
+      {
+        categoryId: null,
+        slug: "pain_expansion",
+        name: "Transition to Pitch",
+        weight: 5,
+        score: 78,
+      },
+      {
+        categoryId: null,
+        slug: "solution",
+        name: "Pitch/Demo",
+        weight: 15,
+        score: 84,
+      },
+      {
+        categoryId: null,
+        slug: "objection_handling",
+        name: "Overcome Objections",
+        weight: 15,
+        score: 80,
+      },
+      {
+        categoryId: null,
+        slug: "closing",
+        name: "Closing",
+        weight: 30,
+        score: 88,
+      },
+    ]);
     expect(result.frameControlScore).toBe(86);
     expect(result.rapportScore).toBe(83);
     expect(result.discoveryScore).toBe(90);
@@ -291,5 +344,114 @@ describe("scoreCallRecording", () => {
         fileName: "discovery-call.m4a",
       }),
     ).rejects.toThrow("OPENAI_API_KEY");
+  });
+
+  it("scores against a runtime custom rubric and leaves legacy fields empty when slugs do not match", async () => {
+    const rubric: ScoringRubric = {
+      id: "rubric-1",
+      name: "Custom rubric",
+      version: 3,
+      categories: [
+        {
+          id: "category-1",
+          slug: "discovery_depth",
+          name: "Discovery Depth",
+          description: "How deeply the rep explores the buyer's problem.",
+          weight: 60,
+          scoringCriteria: {
+            excellent: "Deep, commercial discovery.",
+            proficient: "Good discovery with some missing depth.",
+            developing: "Surface-level discovery.",
+            lookFor: ["Pain", "Impact", "Urgency"],
+          },
+        },
+        {
+          id: "category-2",
+          slug: "next_step_control",
+          name: "Next Step Control",
+          description: "How clearly the rep owns the close.",
+          weight: 40,
+          scoringCriteria: {
+            excellent: "Specific ask with owner and timing.",
+            proficient: "Reasonable next step with some ambiguity.",
+            developing: "Vague or missing next step.",
+            lookFor: ["Explicit ask", "Owner", "Date"],
+          },
+        },
+      ],
+    };
+
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  confidence: "high",
+                  callStageReached: "commitment",
+                  categoryScores: {
+                    discovery_depth: 92,
+                    next_step_control: 74,
+                  },
+                  strengths: ["Strong discovery"],
+                  improvements: ["Tighten the close"],
+                  recommendedDrills: ["Next step drill"],
+                  moments: [
+                    {
+                      timestampSeconds: 9,
+                      category: "discovery_depth",
+                      observation: "The rep tied the problem to a concrete business impact.",
+                      recommendation: "Keep that depth before pivoting to the close.",
+                      severity: "strength",
+                      isHighlight: true,
+                      highlightNote: "Strong custom-category moment",
+                    },
+                  ],
+                }),
+              },
+            },
+          ],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const result = await scoreTranscriptFromLines({
+      callTopic: "Custom rubric call",
+      durationSeconds: 180,
+      rubric,
+      transcript: [
+        {
+          timestampSeconds: 0,
+          speaker: "Speaker A",
+          text: "Walk me through the current rollout problem.",
+        },
+      ],
+    });
+
+    expect(result.rubricId).toBe("rubric-1");
+    expect(result.overallScore).toBe(85);
+    expect(result.categoryScores).toEqual([
+      {
+        categoryId: "category-1",
+        slug: "discovery_depth",
+        name: "Discovery Depth",
+        weight: 60,
+        score: 92,
+      },
+      {
+        categoryId: "category-2",
+        slug: "next_step_control",
+        name: "Next Step Control",
+        weight: 40,
+        score: 74,
+      },
+    ]);
+    expect(result.frameControlScore).toBeNull();
+    expect(result.rapportScore).toBeNull();
+    expect(result.discoveryScore).toBeNull();
+    expect(result.closingScore).toBeNull();
+    expect(result.moments[0]?.category).toBe("discovery_depth");
   });
 });

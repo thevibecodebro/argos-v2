@@ -59,6 +59,7 @@ async function ensureCallProcessingJobsTable(db: ArgosDb) {
     create temporary table call_processing_jobs (
       id uuid primary key default gen_random_uuid(),
       call_id uuid not null unique,
+      rubric_id uuid,
       source_origin text not null check (source_origin in ('manual_upload', 'zoom_recording')),
       source_storage_path text not null,
       source_file_name text not null,
@@ -156,6 +157,34 @@ describeWithDatabase("CallProcessingRepository", () => {
       expect(claimed?.status).toBe("running");
       expect(claimed?.attemptCount).toBe(1);
       expect(claimed?.lockExpiresAt).toEqual(new Date("2026-04-18T10:15:00.000Z"));
+    });
+  });
+
+  it("preserves rubricId when inserting and claiming a job", async () => {
+    await withRepositoryTransaction(async ({ db, repository }) => {
+      const seeded = await seedCall(db);
+      const rubricId = crypto.randomUUID();
+
+      const inserted = await repository.insertJob({
+        callId: seeded.callId,
+        rubricId,
+        sourceOrigin: "manual_upload",
+        sourceStoragePath: "recordings/call-5/source/rubric.mp3",
+        sourceFileName: "rubric.mp3",
+        status: "pending",
+      });
+
+      expect(inserted.rubricId).toBe(rubricId);
+
+      await db
+        .update(callProcessingJobsTable)
+        .set({ nextRunAt: new Date("2026-04-18T09:55:00.000Z") })
+        .where(eq(callProcessingJobsTable.id, inserted.id));
+
+      const claimed = await repository.claimNextJob(new Date("2026-04-18T10:00:00.000Z"));
+
+      expect(claimed?.id).toBe(inserted.id);
+      expect(claimed?.rubricId).toBe(rubricId);
     });
   });
 

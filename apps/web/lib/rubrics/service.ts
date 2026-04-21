@@ -1,6 +1,8 @@
 import type { RubricInput, RubricSourceType, RubricWithCategories } from "./types";
 import type { RubricsRepository } from "./repository";
 
+export type { RubricsRepository } from "./repository";
+
 type ServiceResult<T> =
   | { ok: true; data: T }
   | { ok: false; status: 400 | 404 | 409 | 500; error: string };
@@ -119,6 +121,26 @@ export async function loadActiveRubric(repository: RubricsRepository, orgId: str
   return repository.findActiveRubricByOrgId(orgId);
 }
 
+export async function getActiveRubric(
+  repository: RubricsRepository,
+  orgId: string,
+): Promise<ServiceResult<RubricWithCategories>> {
+  const rubric = await loadActiveRubric(repository, orgId);
+
+  if (!rubric) {
+    return {
+      ok: false,
+      status: 404,
+      error: "Active rubric not found",
+    };
+  }
+
+  return {
+    ok: true,
+    data: rubric,
+  };
+}
+
 export async function loadRubricHistory(repository: RubricsRepository, orgId: string) {
   return repository.findRubricHistoryByOrgId(orgId);
 }
@@ -150,4 +172,3 @@ export async function publishRubric(
 ) {
   return repository.publishDraftRubric(input);
 }
-

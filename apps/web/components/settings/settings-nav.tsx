@@ -18,6 +18,7 @@ const NAV_ITEMS: SettingsNavItem[] = [
   { href: "/settings/teams",        label: "Teams",        icon: "groups",       visibleTo: ["admin"] },
   { href: "/settings/permissions",  label: "Permissions",  icon: "lock",         visibleTo: ["admin"] },
   { href: "/settings/integrations", label: "Integrations", icon: "power",        visibleTo: ["admin"] },
+  { href: "/settings/rubric",       label: "Rubrics",      icon: "grading",      visibleTo: ["admin"] },
   { href: "/settings/compliance",   label: "Compliance",   icon: "verified_user", visibleTo: ["admin"] },
 ];
 

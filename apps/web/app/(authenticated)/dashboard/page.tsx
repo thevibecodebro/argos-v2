@@ -89,6 +89,7 @@ function RepDashboardView({
 }) {
   const recentCalls = dashboard?.recentCalls ?? [];
   const focusAreas = dashboard?.lowestCategories ?? [];
+  const focusAreasLabel = dashboard?.categoryAnalyticsContextLabel ?? null;
 
   return (
     <div className="space-y-8">
@@ -139,6 +140,11 @@ function RepDashboardView({
         </SurfacePanel>
 
         <SurfacePanel title="Focus Areas" link={{ href: "/training", label: "Open training" }}>
+          {focusAreasLabel ? (
+            <p className="mb-4 text-xs font-medium uppercase tracking-[0.18em] text-[#74b1ff]">
+              {focusAreasLabel}
+            </p>
+          ) : null}
           {focusAreas.length ? (
             <div className="space-y-3">
               {focusAreas.map((area) => (
@@ -290,6 +296,11 @@ function ExecutiveDashboardView({
   const reps = managerDashboard?.reps ?? [];
   const repSkillBreakdown = executiveDashboard?.repSkillBreakdown ?? [];
   const trainingStats = executiveDashboard?.trainingStats;
+  const skillAveragesLabel = executiveDashboard?.categoryAnalyticsContextLabel ?? null;
+  const dynamicSkillColumns = executiveDashboard?.skillColumns ?? [];
+  const hasDynamicSkillMatrix =
+    dynamicSkillColumns.length > 0 &&
+    repSkillBreakdown.some((rep) => (rep.skillBreakdown?.length ?? 0) > 0);
 
   return (
     <div className="space-y-8">
@@ -358,6 +369,11 @@ function ExecutiveDashboardView({
       {/* Row 5: Org Skill Averages + Call Volume */}
       <div className="grid gap-6 xl:grid-cols-[1.05fr,0.95fr]">
         <SurfacePanel title="Org Skill Averages" link={{ href: "/training", label: "Open training" }}>
+          {skillAveragesLabel ? (
+            <p className="mb-4 text-xs font-medium uppercase tracking-[0.18em] text-[#74b1ff]">
+              {skillAveragesLabel}
+            </p>
+          ) : null}
           {executiveDashboard?.skillAverages?.some((s) => s.avgScore !== null) ? (
             <div className="space-y-3">
               {executiveDashboard.skillAverages.map((skill) => (
@@ -419,13 +435,21 @@ function ExecutiveDashboardView({
                 <tr className="border-b border-[#45484f]/20 text-[#a9abb3]">
                   <th className="pb-3 text-left font-medium">Rep</th>
                   <th className="pb-3 text-center font-medium">Overall</th>
-                  <th className="pb-3 text-center font-medium">Frame</th>
-                  <th className="pb-3 text-center font-medium">Rapport</th>
-                  <th className="pb-3 text-center font-medium">Discovery</th>
-                  <th className="pb-3 text-center font-medium">Pain</th>
-                  <th className="pb-3 text-center font-medium">Solution</th>
-                  <th className="pb-3 text-center font-medium">Objection</th>
-                  <th className="pb-3 text-center font-medium">Closing</th>
+                  {hasDynamicSkillMatrix ? (
+                    dynamicSkillColumns.map((column) => (
+                      <th className="pb-3 text-center font-medium" key={column}>{column}</th>
+                    ))
+                  ) : (
+                    <>
+                      <th className="pb-3 text-center font-medium">Frame</th>
+                      <th className="pb-3 text-center font-medium">Rapport</th>
+                      <th className="pb-3 text-center font-medium">Discovery</th>
+                      <th className="pb-3 text-center font-medium">Pain</th>
+                      <th className="pb-3 text-center font-medium">Solution</th>
+                      <th className="pb-3 text-center font-medium">Objection</th>
+                      <th className="pb-3 text-center font-medium">Closing</th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -437,13 +461,26 @@ function ExecutiveDashboardView({
                       </Link>
                     </td>
                     <td className={`py-3 text-center font-semibold ${scoreColor(rep.compositeScore)}`}>{rep.compositeScore ?? "—"}</td>
-                    <td className={`py-3 text-center ${scoreColor(rep.skills.frameControl)}`}>{rep.skills.frameControl ?? "—"}</td>
-                    <td className={`py-3 text-center ${scoreColor(rep.skills.rapport)}`}>{rep.skills.rapport ?? "—"}</td>
-                    <td className={`py-3 text-center ${scoreColor(rep.skills.discovery)}`}>{rep.skills.discovery ?? "—"}</td>
-                    <td className={`py-3 text-center ${scoreColor(rep.skills.painExpansion)}`}>{rep.skills.painExpansion ?? "—"}</td>
-                    <td className={`py-3 text-center ${scoreColor(rep.skills.solution)}`}>{rep.skills.solution ?? "—"}</td>
-                    <td className={`py-3 text-center ${scoreColor(rep.skills.objection)}`}>{rep.skills.objection ?? "—"}</td>
-                    <td className={`py-3 text-center ${scoreColor(rep.skills.closing)}`}>{rep.skills.closing ?? "—"}</td>
+                    {hasDynamicSkillMatrix ? (
+                      dynamicSkillColumns.map((column) => {
+                        const score = rep.skillBreakdown?.find((entry) => entry.category === column)?.avgScore ?? null;
+                        return (
+                          <td className={`py-3 text-center ${scoreColor(score)}`} key={`${rep.repId}-${column}`}>
+                            {score ?? "—"}
+                          </td>
+                        );
+                      })
+                    ) : (
+                      <>
+                        <td className={`py-3 text-center ${scoreColor(rep.skills.frameControl)}`}>{rep.skills.frameControl ?? "—"}</td>
+                        <td className={`py-3 text-center ${scoreColor(rep.skills.rapport)}`}>{rep.skills.rapport ?? "—"}</td>
+                        <td className={`py-3 text-center ${scoreColor(rep.skills.discovery)}`}>{rep.skills.discovery ?? "—"}</td>
+                        <td className={`py-3 text-center ${scoreColor(rep.skills.painExpansion)}`}>{rep.skills.painExpansion ?? "—"}</td>
+                        <td className={`py-3 text-center ${scoreColor(rep.skills.solution)}`}>{rep.skills.solution ?? "—"}</td>
+                        <td className={`py-3 text-center ${scoreColor(rep.skills.objection)}`}>{rep.skills.objection ?? "—"}</td>
+                        <td className={`py-3 text-center ${scoreColor(rep.skills.closing)}`}>{rep.skills.closing ?? "—"}</td>
+                      </>
+                    )}
                   </tr>
                 ))}
               </tbody>

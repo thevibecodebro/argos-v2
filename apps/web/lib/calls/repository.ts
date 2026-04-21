@@ -2,11 +2,14 @@ import { and, asc, count, desc, eq, gte, ilike, inArray, isNotNull, lte, sql } f
 import {
   callAnnotationsTable,
   callProcessingJobsTable,
+  callScoresTable,
   callMomentsTable,
   callsTable,
   getDb,
   notificationsTable,
   organizationsTable,
+  rubricCategoriesTable,
+  rubricsTable,
   usersTable,
   type ArgosDb,
 } from "@argos-v2/db";
@@ -20,6 +23,7 @@ export class DrizzleCallsRepository implements CallsRepository {
   async createCall(input: {
     orgId: string;
     repId: string;
+    rubricId?: string | null;
     callTopic: string | null;
     durationSeconds: number | null;
     recordingUrl: string | null;
@@ -55,6 +59,7 @@ export class DrizzleCallsRepository implements CallsRepository {
 
   async createOrResetCallProcessingJob(input: {
     callId: string;
+    rubricId?: string | null;
     sourceOrigin: "manual_upload" | "zoom_recording";
     sourceStoragePath: string;
     sourceFileName: string;
@@ -65,6 +70,7 @@ export class DrizzleCallsRepository implements CallsRepository {
       .insert(callProcessingJobsTable)
       .values({
         callId: input.callId,
+        rubricId: input.rubricId ?? null,
         sourceOrigin: input.sourceOrigin,
         sourceStoragePath: input.sourceStoragePath,
         sourceFileName: input.sourceFileName,
@@ -75,6 +81,7 @@ export class DrizzleCallsRepository implements CallsRepository {
       .onConflictDoUpdate({
         target: callProcessingJobsTable.callId,
         set: {
+          rubricId: input.rubricId ?? null,
           sourceOrigin: input.sourceOrigin,
           sourceStoragePath: input.sourceStoragePath,
           sourceFileName: input.sourceFileName,
@@ -149,6 +156,7 @@ export class DrizzleCallsRepository implements CallsRepository {
         recommendedDrills: callsTable.recommendedDrills,
         transcript: callsTable.transcript,
         repId: callsTable.repId,
+        rubricId: callsTable.rubricId,
         orgId: callsTable.orgId,
         createdAt: callsTable.createdAt,
         repFirstName: usersTable.firstName,
@@ -180,8 +188,84 @@ export class DrizzleCallsRepository implements CallsRepository {
       .where(eq(callMomentsTable.callId, callId))
       .orderBy(asc(callMomentsTable.timestampSeconds), asc(callMomentsTable.createdAt));
 
+    let rubric: {
+      id: string;
+      name: string;
+      version: number;
+      status: string | null;
+    } | null = null;
+    let categoryScores: Array<{
+      categoryId: string | null;
+      slug: string;
+      name: string;
+      description: string | null;
+      weight: number | null;
+      sortOrder: number | null;
+      score: number | null;
+    }> = [];
+
+    if (callRow.rubricId) {
+      const [rubricRow, rubricCategories, callScores] = await Promise.all([
+        this.db
+          .select({
+            id: rubricsTable.id,
+            name: rubricsTable.name,
+            version: rubricsTable.version,
+            isActive: rubricsTable.isActive,
+            isTemplate: rubricsTable.isTemplate,
+          })
+          .from(rubricsTable)
+          .where(eq(rubricsTable.id, callRow.rubricId))
+          .limit(1)
+          .then((rows) => rows[0] ?? null),
+        this.db
+          .select({
+            id: rubricCategoriesTable.id,
+            slug: rubricCategoriesTable.slug,
+            name: rubricCategoriesTable.name,
+            description: rubricCategoriesTable.description,
+            weight: rubricCategoriesTable.weight,
+            sortOrder: rubricCategoriesTable.sortOrder,
+          })
+          .from(rubricCategoriesTable)
+          .where(eq(rubricCategoriesTable.rubricId, callRow.rubricId))
+          .orderBy(asc(rubricCategoriesTable.sortOrder), asc(rubricCategoriesTable.createdAt)),
+        this.db
+          .select({
+            rubricCategoryId: callScoresTable.rubricCategoryId,
+            score: callScoresTable.score,
+          })
+          .from(callScoresTable)
+          .where(eq(callScoresTable.callId, callId)),
+      ]);
+
+      rubric = rubricRow
+        ? {
+            id: rubricRow.id,
+            name: rubricRow.name,
+            version: rubricRow.version,
+            status: rubricRow.isActive ? "active" : rubricRow.isTemplate ? "template" : "draft",
+          }
+        : null;
+      const scoresByCategoryId = new Map(
+        callScores.map((row) => [row.rubricCategoryId, row.score]),
+      );
+
+      categoryScores = rubricCategories.map((category) => ({
+        categoryId: category.id,
+        slug: category.slug,
+        name: category.name,
+        description: category.description,
+        weight: Number(category.weight),
+        sortOrder: category.sortOrder,
+        score: scoresByCategoryId.get(category.id) ?? null,
+      }));
+    }
+
     return {
       ...callRow,
+      rubric,
+      categoryScores,
       strengths: Array.isArray(callRow.strengths) ? (callRow.strengths as string[]) : null,
       improvements: Array.isArray(callRow.improvements) ? (callRow.improvements as string[]) : null,
       recommendedDrills: Array.isArray(callRow.recommendedDrills)
@@ -372,6 +456,7 @@ export class DrizzleCallsRepository implements CallsRepository {
           status: "complete",
           durationSeconds: evaluation.durationSeconds,
           overallScore: evaluation.overallScore,
+          rubricId: evaluation.rubricId,
           frameControlScore: evaluation.frameControlScore,
           rapportScore: evaluation.rapportScore,
           discoveryScore: evaluation.discoveryScore,
@@ -388,7 +473,22 @@ export class DrizzleCallsRepository implements CallsRepository {
         })
         .where(eq(callsTable.id, callId));
 
+      await tx.delete(callScoresTable).where(eq(callScoresTable.callId, callId));
       await tx.delete(callMomentsTable).where(eq(callMomentsTable.callId, callId));
+
+      const categoryScores = evaluation.categoryScores.filter(
+        (category) => category.categoryId,
+      );
+
+      if (categoryScores.length > 0) {
+        await tx.insert(callScoresTable).values(
+          categoryScores.map((category) => ({
+            callId,
+            rubricCategoryId: category.categoryId!,
+            score: category.score,
+          })),
+        );
+      }
 
       if (evaluation.moments.length > 0) {
         await tx.insert(callMomentsTable).values(

@@ -31,6 +31,45 @@ function createRepository(
   };
 }
 
+function createRubricsRepositoryStub() {
+  const categories = [
+    { slug: "discovery", name: "Discovery", description: "", weight: 1, sortOrder: 1, scoringCriteria: { excellent: "", proficient: "", developing: "", lookFor: [] } },
+    { slug: "solution", name: "Solution", description: "", weight: 1, sortOrder: 2, scoringCriteria: { excellent: "", proficient: "", developing: "", lookFor: [] } },
+    { slug: "closing", name: "Closing", description: "", weight: 1, sortOrder: 3, scoringCriteria: { excellent: "", proficient: "", developing: "", lookFor: [] } },
+  ];
+
+  return {
+    findActiveRubricByOrgId: vi.fn().mockResolvedValue({
+      id: "rubric-1",
+      orgId: "org-1",
+      name: "Revenue Scorecard",
+      description: null,
+      sourceType: "manual",
+      status: "active",
+      version: 2,
+      createdAt: new Date("2026-04-01T00:00:00.000Z"),
+      publishedAt: new Date("2026-04-01T00:00:00.000Z"),
+      categories,
+    }),
+    findRubricHistoryByOrgId: vi.fn().mockResolvedValue([
+      {
+        id: "rubric-1",
+        orgId: "org-1",
+        name: "Revenue Scorecard",
+        description: null,
+        sourceType: "manual",
+        status: "active",
+        version: 2,
+        createdAt: new Date("2026-04-01T00:00:00.000Z"),
+        publishedAt: new Date("2026-04-01T00:00:00.000Z"),
+      },
+    ]),
+    findCategoriesByRubricId: vi.fn().mockResolvedValue(categories),
+    createDraftRubric: vi.fn(),
+    publishDraftRubric: vi.fn(),
+  };
+}
+
 function mockAccessRepository(input: {
   actor: { id: string; orgId: string; role: "admin" | "executive" | "manager" | "rep" | null };
   memberships: Array<{
@@ -89,7 +128,7 @@ describe("createRoleplaySession", () => {
         overallScore: null,
         origin: "manual",
         sourceCallId: null,
-        rubricId: null,
+        rubricId: "rubric-1",
         focusMode: "all",
         focusCategorySlug: null,
         scenarioSummary: null,
@@ -106,7 +145,12 @@ describe("createRoleplaySession", () => {
       }),
     });
 
-    const result = await createRoleplaySession(repository, "rep-1", "price-sensitive-smb");
+    const result = await createRoleplaySession(
+      repository,
+      "rep-1",
+      "price-sensitive-smb",
+      createRubricsRepositoryStub() as never,
+    );
 
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("Expected roleplay session");
@@ -304,7 +348,7 @@ describe("completeRoleplaySession", () => {
         overallScore: null,
         origin: "manual",
         sourceCallId: null,
-        rubricId: null,
+        rubricId: "rubric-1",
         focusMode: "all",
         focusCategorySlug: null,
         scenarioSummary: null,
@@ -329,7 +373,7 @@ describe("completeRoleplaySession", () => {
         overallScore: patch.overallScore ?? null,
         origin: "manual",
         sourceCallId: null,
-        rubricId: null,
+        rubricId: "rubric-1",
         focusMode: "all",
         focusCategorySlug: null,
         scenarioSummary: null,
@@ -341,7 +385,12 @@ describe("completeRoleplaySession", () => {
       })),
     });
 
-    const result = await completeRoleplaySession(repository, "rep-1", "session-1");
+    const result = await completeRoleplaySession(
+      repository,
+      "rep-1",
+      "session-1",
+      createRubricsRepositoryStub() as never,
+    );
 
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("Expected completed roleplay");
@@ -349,6 +398,7 @@ describe("completeRoleplaySession", () => {
     expect(result.data.overallScore).not.toBeNull();
     expect(result.data.scorecard?.confidence).toBe("high");
     expect(result.data.scorecard?.callStageReached).toBe("commitment");
+    expect(result.data.scorecard?.rubricId).toBe("rubric-1");
     expect(result.data.scorecard?.categoryScores.solution).toBeGreaterThan(0);
     expect(result.data.scorecard?.categoryScores.closing).toBeGreaterThan(0);
     expect(result.data.scorecard?.improvements.length).toBeGreaterThan(0);

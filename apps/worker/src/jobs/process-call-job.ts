@@ -3,9 +3,11 @@ import { tmpdir } from "node:os";
 import { basename, extname, join } from "node:path";
 import ffmpegStatic from "ffmpeg-static";
 import {
+  DEFAULT_CALL_SCORING_RUBRIC,
   mergeTranscriptLines,
   scoreTranscriptFromLines,
   transcribeAudioBuffer,
+  type ScoringRubric,
   type TranscriptLine,
 } from "@argos-v2/call-processing";
 import { downloadSourceAsset } from "../calls/storage";
@@ -25,6 +27,7 @@ type ProcessCallJobInput = {
   repository: Pick<
     CallProcessingRepository,
     | "createNotification"
+    | "findRubricById"
     | "markJobComplete"
     | "markRetryableFailure"
     | "markTerminalFailure"
@@ -153,6 +156,23 @@ async function classifyAndPersistFailure(input: {
   await input.repository.updateCallStatus(input.job.callId, "failed");
 }
 
+async function resolveScoringRubric(input: {
+  job: ClaimedCallProcessingJob;
+  repository: Pick<ProcessCallJobInput["repository"], "findRubricById">;
+}): Promise<ScoringRubric> {
+  if (!input.job.rubricId) {
+    return DEFAULT_CALL_SCORING_RUBRIC;
+  }
+
+  const rubric = await input.repository.findRubricById(input.job.rubricId);
+
+  if (!rubric) {
+    throw new Error(`Pinned rubric ${input.job.rubricId} was not found for job ${input.job.id}`);
+  }
+
+  return rubric;
+}
+
 export async function processCallJob(input: ProcessCallJobInput) {
   const env = input.env ?? getWorkerEnv();
   const ffmpegBinary = resolveFfmpegBinary(env);
@@ -214,9 +234,14 @@ export async function processCallJob(input: ProcessCallJobInput) {
 
     currentStage = "score";
     await input.repository.updateCallStatus(input.job.callId, "evaluating");
+    const rubric = await resolveScoringRubric({
+      job: input.job,
+      repository: input.repository,
+    });
     const evaluation = await scoreTranscriptFromLinesImpl({
       callTopic: input.job.callTopic,
       durationSeconds: transcription.durationSeconds,
+      rubric,
       transcript: transcription.transcript,
     });
 

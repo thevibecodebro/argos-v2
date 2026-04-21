@@ -392,6 +392,8 @@ export function RoleplayPanel({
   }
 
   const selectedPersona = personas.find((p) => p.id === selectedPersonaId) ?? activeSession?.personaDetails ?? null;
+  const activeScorecard = activeSession?.scorecard ?? null;
+  const activeSessionWithScorecard = activeSession && activeScorecard ? activeSession : null;
   const completedSessions = sessions.filter((s) => s.status === "complete");
   const generatedActiveSession = activeSession?.origin === "generated_from_call"
     ? activeSession
@@ -625,31 +627,41 @@ export function RoleplayPanel({
               <h3 className="font-['Space_Grotesk'] text-xl font-bold text-[#ecedf6]">Session Scorecard</h3>
             </div>
 
-            {activeSession?.scorecard ? (
+            {activeSessionWithScorecard ? (
               <div className="space-y-4">
                 <div className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-4">
                   <p className="font-['Space_Grotesk'] text-3xl font-bold text-[#ecedf6]">
-                    {activeSession.overallScore ?? "—"}
+                    {activeSessionWithScorecard.overallScore ?? "—"}
                   </p>
-                  <p className="mt-2 text-sm leading-relaxed text-[#a9abb3]">{activeSession.scorecard.summary}</p>
+                  {activeScorecard?.rubricName ? (
+                    <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-[#74b1ff]">
+                      {activeScorecard.rubricName}
+                      {activeScorecard.rubricVersion != null
+                        ? ` · v${activeScorecard.rubricVersion}`
+                        : ""}
+                    </p>
+                  ) : null}
+                  <p className="mt-2 text-sm leading-relaxed text-[#a9abb3]">{activeScorecard?.summary}</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-3">
                     <p className="font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-widest text-[#a9abb3]">Confidence</p>
-                    <p className="mt-1 text-sm font-semibold capitalize text-[#ecedf6]">{activeSession.scorecard.confidence}</p>
+                    <p className="mt-1 text-sm font-semibold capitalize text-[#ecedf6]">{activeScorecard?.confidence}</p>
                   </div>
                   <div className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-3">
                     <p className="font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-widest text-[#a9abb3]">Stage</p>
-                    <p className="mt-1 text-sm font-semibold text-[#ecedf6]">{labelCallStage(activeSession.scorecard.callStageReached)}</p>
+                    <p className="mt-1 text-sm font-semibold text-[#ecedf6]">{activeScorecard ? labelCallStage(activeScorecard.callStageReached) : "—"}</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  {Object.entries(activeSession.scorecard.categoryScores).map(([cat, val]) => (
+                  {Object.entries(activeScorecard?.categoryScores ?? {}).map(([cat, val]) => (
                     <div className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-3" key={cat}>
                       <p className="text-[10px] font-semibold uppercase tracking-widest text-[#a9abb3]">
-                        {ROLEPLAY_CATEGORY_LABELS[cat as keyof typeof ROLEPLAY_CATEGORY_LABELS]}
+                        {activeScorecard?.categoryLabels?.[cat]
+                          ?? ROLEPLAY_CATEGORY_LABELS[cat as keyof typeof ROLEPLAY_CATEGORY_LABELS]
+                          ?? cat}
                       </p>
                       <p className="mt-1 text-lg font-bold text-[#ecedf6]">{val ?? "—"}</p>
                     </div>
@@ -659,14 +671,14 @@ export function RoleplayPanel({
                 <div className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-4">
                   <p className="font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-widest text-emerald-300">Strengths</p>
                   <ul className="mt-2 space-y-1 text-sm text-[#ecedf6]">
-                    {activeSession.scorecard.strengths.map((s) => <li key={s}>• {s}</li>)}
+                    {(activeScorecard?.strengths ?? []).map((s) => <li key={s}>• {s}</li>)}
                   </ul>
                 </div>
 
                 <div className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-4">
                   <p className="font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-widest text-amber-300">Improve</p>
                   <ul className="mt-2 space-y-1 text-sm text-[#ecedf6]">
-                    {activeSession.scorecard.improvements.map((s) => <li key={s}>• {s}</li>)}
+                    {(activeScorecard?.improvements ?? []).map((s) => <li key={s}>• {s}</li>)}
                   </ul>
                 </div>
               </div>

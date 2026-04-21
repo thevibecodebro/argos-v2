@@ -10,6 +10,7 @@ import {
   getSetupStatus,
   type DashboardRepository,
 } from "./service";
+import type { RubricsRepository } from "@/lib/rubrics/service";
 
 function createAccessRepository(
   overrides: Partial<Record<string, unknown>> = {},
@@ -43,6 +44,19 @@ function createRepository(
     findTrainingProgressByOrgId: vi.fn(),
     ...overrides,
   };
+}
+
+function createRubricsRepository(
+  overrides: Partial<RubricsRepository> = {},
+): RubricsRepository {
+  return {
+    createDraftRubric: vi.fn(),
+    findActiveRubricByOrgId: vi.fn().mockResolvedValue(null),
+    findRubricHistoryByOrgId: vi.fn(),
+    findCategoriesByRubricId: vi.fn(),
+    publishDraftRubric: vi.fn(),
+    ...overrides,
+  } as unknown as RubricsRepository;
 }
 
 describe("getCurrentUserProfile", () => {
@@ -444,6 +458,107 @@ describe("getRepDashboard", () => {
       ),
     ).rejects.toMatchObject({ status: 403 });
   });
+
+  it("filters category analytics to the active rubric version when dynamic scores span versions", async () => {
+    const accessRepository = createAccessRepository({
+      findActorByAuthUserId: vi.fn().mockResolvedValue({
+        id: "rep-1",
+        role: "rep",
+        orgId: "org-1",
+      }),
+      findMembershipsByOrgId: vi.fn().mockResolvedValue([]),
+      findGrantsByUserId: vi.fn().mockResolvedValue([]),
+    });
+    const rubricsRepository = createRubricsRepository({
+      findActiveRubricByOrgId: vi.fn().mockResolvedValue({
+        id: "rubric-active",
+        orgId: "org-1",
+        name: "Revenue Scorecard",
+        description: null,
+        sourceType: "manual",
+        status: "active",
+        version: 2,
+        createdAt: new Date("2026-03-01T00:00:00.000Z"),
+        publishedAt: new Date("2026-03-01T00:00:00.000Z"),
+      }),
+    });
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "rep-1",
+        email: "rep-1@argos.ai",
+        role: "rep",
+        firstName: "Riley",
+        lastName: "Stone",
+        org: {
+          id: "org-1",
+          name: "Argos Demo Org",
+          slug: "argos-demo-org",
+          plan: "trial",
+        },
+      }),
+      findRecentCallsByRepId: vi.fn().mockResolvedValue([]),
+      findScoredCallsByRepIdSince: vi.fn().mockResolvedValue([
+        {
+          id: "call-1",
+          repId: "rep-1",
+          callTopic: "Current rubric call",
+          createdAt: new Date("2026-03-25T12:00:00.000Z"),
+          overallScore: 82,
+          durationSeconds: 1200,
+          rubricId: "rubric-active",
+          rubricVersion: 2,
+          categoryScores: [
+            { slug: "discovery_depth", name: "Discovery Depth", score: 61, sortOrder: 1 },
+            { slug: "mutual_plan", name: "Mutual Action Plan", score: 78, sortOrder: 2 },
+          ],
+          frameControlScore: 82,
+          rapportScore: 82,
+          discoveryScore: 82,
+          painExpansionScore: 82,
+          solutionScore: 82,
+          objectionScore: 82,
+          closingScore: 82,
+        },
+        {
+          id: "call-2",
+          repId: "rep-1",
+          callTopic: "Old rubric call",
+          createdAt: new Date("2026-03-12T12:00:00.000Z"),
+          overallScore: 91,
+          durationSeconds: 1200,
+          rubricId: "rubric-old",
+          rubricVersion: 1,
+          categoryScores: [
+            { slug: "discovery", name: "Discovery", score: 95, sortOrder: 1 },
+          ],
+          frameControlScore: 91,
+          rapportScore: 91,
+          discoveryScore: 91,
+          painExpansionScore: 91,
+          solutionScore: 91,
+          objectionScore: 91,
+          closingScore: 91,
+        },
+      ]),
+    });
+
+    const result = await getRepDashboard(
+      repository,
+      "rep-1",
+      undefined,
+      new Date("2026-03-27T00:00:00.000Z"),
+      accessRepository as never,
+      rubricsRepository,
+    );
+
+    expect(result).toMatchObject({
+      categoryAnalyticsContextLabel: "Category analytics filtered to the active rubric version",
+      lowestCategories: [
+        { category: "Discovery Depth", avgScore: 61 },
+        { category: "Mutual Action Plan", avgScore: 78 },
+      ],
+    });
+  });
 });
 
 describe("getDashboardLeaderboard", () => {
@@ -617,6 +732,92 @@ describe("getDashboardLeaderboard", () => {
 });
 
 describe("getExecutiveDashboard", () => {
+  it("builds a dynamic skill matrix when rubric category scores are available", async () => {
+    const rubricsRepository = createRubricsRepository({
+      findActiveRubricByOrgId: vi.fn().mockResolvedValue({
+        id: "rubric-active",
+        orgId: "org-1",
+        name: "Revenue Scorecard",
+        description: null,
+        sourceType: "manual",
+        status: "active",
+        version: 2,
+        createdAt: new Date("2026-03-01T00:00:00.000Z"),
+        publishedAt: new Date("2026-03-01T00:00:00.000Z"),
+      }),
+    });
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "exec-1",
+        email: "exec@argos.ai",
+        role: "executive",
+        firstName: "Avery",
+        lastName: "Cole",
+        org: {
+          id: "org-1",
+          name: "Argos Demo Org",
+          slug: "argos-demo-org",
+          plan: "trial",
+        },
+      }),
+      findCompletedCallsByOrgId: vi.fn().mockResolvedValue([
+        {
+          id: "call-1",
+          repId: "rep-1",
+          callTopic: "Current rubric call",
+          createdAt: new Date("2026-03-25T12:00:00.000Z"),
+          overallScore: 82,
+          durationSeconds: 1200,
+          rubricId: "rubric-active",
+          rubricVersion: 2,
+          categoryScores: [
+            { slug: "discovery_depth", name: "Discovery Depth", score: 61, sortOrder: 1 },
+            { slug: "mutual_plan", name: "Mutual Action Plan", score: 78, sortOrder: 2 },
+          ],
+          frameControlScore: 82,
+          rapportScore: 82,
+          discoveryScore: 82,
+          painExpansionScore: 82,
+          solutionScore: 82,
+          objectionScore: 82,
+          closingScore: 82,
+        },
+      ]),
+      findOrgUsersByOrgId: vi.fn().mockResolvedValue([
+        {
+          id: "rep-1",
+          email: "rep-1@argos.ai",
+          role: "rep",
+          firstName: "Riley",
+          lastName: "Stone",
+          profileImageUrl: null,
+        },
+      ]),
+      findTrainingProgressByOrgId: vi.fn().mockResolvedValue([]),
+    });
+
+    const result = await getExecutiveDashboard(
+      repository,
+      "exec-1",
+      new Date("2026-03-27T00:00:00.000Z"),
+      rubricsRepository,
+    );
+
+    expect(result).toMatchObject({
+      skillColumns: ["Discovery Depth", "Mutual Action Plan"],
+      skillAverages: [
+        { category: "Discovery Depth", avgScore: 61 },
+        { category: "Mutual Action Plan", avgScore: 78 },
+      ],
+    });
+    expect(result?.repSkillBreakdown[0]?.skillBreakdown).toEqual([
+      { category: "Discovery Depth", avgScore: 61 },
+      { category: "Mutual Action Plan", avgScore: 78 },
+    ]);
+  });
+});
+
+describe("getExecutiveDashboard", () => {
   it("builds org skill averages, call volume, training stats, and rep skill matrix", async () => {
     const repository = createRepository({
       findCurrentUserByAuthId: vi.fn().mockResolvedValue({
@@ -686,7 +887,7 @@ describe("getExecutiveDashboard", () => {
       throw new Error("Expected executive dashboard");
     }
 
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       skillAverages: [
         { category: "Set a Strong Frame", avgScore: 86 },
         { category: "Build Rapport", avgScore: 72 },

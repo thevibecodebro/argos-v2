@@ -1,9 +1,12 @@
-import { and, count, desc, eq, gte, isNotNull } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, isNotNull } from "drizzle-orm";
 import {
+  callScoresTable,
   callsTable,
   getDb,
   organizationsTable,
   roleplaySessionsTable,
+  rubricCategoriesTable,
+  rubricsTable,
   trainingProgressTable,
   usersTable,
   type ArgosDb,
@@ -65,7 +68,7 @@ export class DrizzleDashboardRepository implements DashboardRepository {
   }
 
   async findScoredCallsByRepIdSince(repId: string, since: Date) {
-    return this.db
+    const calls = await this.db
       .select({
         id: callsTable.id,
         repId: callsTable.repId,
@@ -73,6 +76,7 @@ export class DrizzleDashboardRepository implements DashboardRepository {
         createdAt: callsTable.createdAt,
         overallScore: callsTable.overallScore,
         durationSeconds: callsTable.durationSeconds,
+        rubricId: callsTable.rubricId,
         frameControlScore: callsTable.frameControlScore,
         rapportScore: callsTable.rapportScore,
         discoveryScore: callsTable.discoveryScore,
@@ -91,10 +95,12 @@ export class DrizzleDashboardRepository implements DashboardRepository {
         ),
       )
       .orderBy(desc(callsTable.createdAt));
+
+    return this.attachRubricData(calls);
   }
 
   async findCompletedCallsByRepId(repId: string) {
-    return this.db
+    const calls = await this.db
       .select({
         id: callsTable.id,
         repId: callsTable.repId,
@@ -102,6 +108,7 @@ export class DrizzleDashboardRepository implements DashboardRepository {
         createdAt: callsTable.createdAt,
         overallScore: callsTable.overallScore,
         durationSeconds: callsTable.durationSeconds,
+        rubricId: callsTable.rubricId,
         frameControlScore: callsTable.frameControlScore,
         rapportScore: callsTable.rapportScore,
         discoveryScore: callsTable.discoveryScore,
@@ -113,10 +120,12 @@ export class DrizzleDashboardRepository implements DashboardRepository {
       .from(callsTable)
       .where(and(eq(callsTable.repId, repId), eq(callsTable.status, "complete")))
       .orderBy(callsTable.createdAt);
+
+    return this.attachRubricData(calls);
   }
 
   async findCompletedCallsByOrgId(orgId: string) {
-    return this.db
+    const calls = await this.db
       .select({
         id: callsTable.id,
         repId: callsTable.repId,
@@ -124,6 +133,7 @@ export class DrizzleDashboardRepository implements DashboardRepository {
         createdAt: callsTable.createdAt,
         overallScore: callsTable.overallScore,
         durationSeconds: callsTable.durationSeconds,
+        rubricId: callsTable.rubricId,
         frameControlScore: callsTable.frameControlScore,
         rapportScore: callsTable.rapportScore,
         discoveryScore: callsTable.discoveryScore,
@@ -135,6 +145,8 @@ export class DrizzleDashboardRepository implements DashboardRepository {
       .from(callsTable)
       .where(and(eq(callsTable.orgId, orgId), eq(callsTable.status, "complete")))
       .orderBy(callsTable.createdAt);
+
+    return this.attachRubricData(calls);
   }
 
   async findOrgUsersByOrgId(orgId: string) {
@@ -214,5 +226,104 @@ export class DrizzleDashboardRepository implements DashboardRepository {
       .where(and(eq(roleplaySessionsTable.orgId, orgId), eq(roleplaySessionsTable.status, "complete")));
 
     return row?.count ?? 0;
+  }
+
+  private async attachRubricData<
+    T extends {
+      id: string;
+      rubricId: string | null;
+    },
+  >(calls: T[]) {
+    if (!calls.length) {
+      return calls.map((call) => ({
+        ...call,
+        rubricVersion: null,
+        rubricName: null,
+        categoryScores: [],
+      }));
+    }
+
+    const callIds = calls.map((call) => call.id);
+    const rubricIds = Array.from(
+      new Set(
+        calls
+          .map((call) => call.rubricId)
+          .filter((value): value is string => typeof value === "string" && value.length > 0),
+      ),
+    );
+
+    if (!rubricIds.length) {
+      return calls.map((call) => ({
+        ...call,
+        rubricVersion: null,
+        rubricName: null,
+        categoryScores: [],
+      }));
+    }
+
+    const [rubrics, categories, scores] = await Promise.all([
+      this.db
+        .select({
+          id: rubricsTable.id,
+          name: rubricsTable.name,
+          version: rubricsTable.version,
+        })
+        .from(rubricsTable)
+        .where(inArray(rubricsTable.id, rubricIds)),
+      this.db
+        .select({
+          id: rubricCategoriesTable.id,
+          rubricId: rubricCategoriesTable.rubricId,
+          slug: rubricCategoriesTable.slug,
+          name: rubricCategoriesTable.name,
+          sortOrder: rubricCategoriesTable.sortOrder,
+        })
+        .from(rubricCategoriesTable)
+        .where(inArray(rubricCategoriesTable.rubricId, rubricIds))
+        .orderBy(asc(rubricCategoriesTable.sortOrder), asc(rubricCategoriesTable.createdAt)),
+      this.db
+        .select({
+          callId: callScoresTable.callId,
+          rubricCategoryId: callScoresTable.rubricCategoryId,
+          score: callScoresTable.score,
+        })
+        .from(callScoresTable)
+        .where(inArray(callScoresTable.callId, callIds)),
+    ]);
+
+    const rubricById = new Map(rubrics.map((rubric) => [rubric.id, rubric]));
+    const categoriesByRubricId = new Map<string, typeof categories>();
+
+    for (const category of categories) {
+      const bucket = categoriesByRubricId.get(category.rubricId) ?? [];
+      bucket.push(category);
+      categoriesByRubricId.set(category.rubricId, bucket);
+    }
+
+    const scoresByCallId = new Map<string, Map<string, number>>();
+
+    for (const score of scores) {
+      const bucket = scoresByCallId.get(score.callId) ?? new Map<string, number>();
+      bucket.set(score.rubricCategoryId, score.score);
+      scoresByCallId.set(score.callId, bucket);
+    }
+
+    return calls.map((call) => {
+      const rubric = call.rubricId ? rubricById.get(call.rubricId) ?? null : null;
+      const rubricCategories = call.rubricId ? categoriesByRubricId.get(call.rubricId) ?? [] : [];
+      const callScores = scoresByCallId.get(call.id) ?? new Map<string, number>();
+
+      return {
+        ...call,
+        rubricVersion: rubric?.version ?? null,
+        rubricName: rubric?.name ?? null,
+        categoryScores: rubricCategories.map((category) => ({
+          slug: category.slug,
+          name: category.name,
+          score: callScores.get(category.id) ?? null,
+          sortOrder: category.sortOrder,
+        })),
+      };
+    });
   }
 }
