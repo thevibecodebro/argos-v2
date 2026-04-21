@@ -4,10 +4,13 @@ import {
   getModuleSelectionPatch,
   getModuleSubmitTarget,
   mergeTeamProgressModule,
-  resolveTrainingWorkspaceView,
   TrainingPanel,
 } from "../components/training-panel";
 import { getTrainingModuleAiContextAvailability } from "../components/training/training-manager-ai-tools";
+import {
+  getTrainingStagePrimaryAction,
+  resolveTrainingStageView,
+} from "../components/training/training-stage-state";
 
 const baseModules = [
   {
@@ -121,18 +124,26 @@ describe("TrainingPanel", () => {
     });
   });
 
-  it("routes quiz and module sections into the lesson workspace", () => {
-    expect(resolveTrainingWorkspaceView("modules", false)).toBe("lesson");
-    expect(resolveTrainingWorkspaceView("quiz", false)).toBe("lesson");
-    expect(resolveTrainingWorkspaceView("assignments", false)).toBe("overview");
-    expect(resolveTrainingWorkspaceView("teamProgress", true)).toBe("teamProgress");
+  it("keeps the lesson view active when a module has no quiz", () => {
+    expect(resolveTrainingStageView("quiz", false)).toBe("lesson");
+  });
+
+  it("uses module-driven primary actions for reps", () => {
+    expect(
+      getTrainingStagePrimaryAction({
+        canManage: false,
+        stageView: "lesson",
+        hasQuiz: true,
+        progress: null,
+      }),
+    ).toEqual({ label: "Resume lesson", nextView: "lesson" });
   });
 
   it("resets quiz answers and returns to the module view when a module is selected", () => {
     expect(getModuleSelectionPatch("module-2")).toEqual({
-      activeSection: "modules",
       answers: {},
       selectedModuleId: "module-2",
+      stageView: "lesson",
       statusMessage: null,
     });
   });
@@ -203,7 +214,7 @@ describe("TrainingPanel", () => {
     expect(html).toContain('id="training-ai-unavailable"');
   });
 
-  it("renders learner-first workspace sections for reps", () => {
+  it("renders the rep shell as a curriculum studio instead of workspace tabs", () => {
     const html = renderToStaticMarkup(
       <TrainingPanel
         aiAvailable={false}
@@ -215,16 +226,16 @@ describe("TrainingPanel", () => {
       />,
     );
 
-    expect(html).toContain("Course overview");
-    expect(html).toContain("Modules");
+    expect(html).toContain("Curriculum map");
+    expect(html).toContain("Lesson");
     expect(html).toContain("Quiz");
-    expect(html).toContain("Quick switcher");
-    expect(html).toContain('aria-label="Training workspace quick switcher"');
-    expect(html).not.toContain("Assignments");
-    expect(html).not.toContain("AI tools");
+    expect(html).toContain("Resume lesson");
+    expect(html).not.toContain("Course overview");
+    expect(html).not.toContain("Quick switcher");
+    expect(html).not.toContain("Training workspace quick switcher");
   });
 
-  it("renders manager-only workspace sections for managers", () => {
+  it("renders the manager shell with a command deck instead of workspace tabs", () => {
     const html = renderToStaticMarkup(
       <TrainingPanel
         aiAvailable
@@ -236,12 +247,14 @@ describe("TrainingPanel", () => {
       />,
     );
 
-    expect(html).toContain("Course overview");
-    expect(html).toContain("Modules");
+    expect(html).toContain("Curriculum map");
+    expect(html).toContain("Lesson");
     expect(html).toContain("Quiz");
     expect(html).toContain("Assignments");
-    expect(html).toContain("Team progress");
-    expect(html).toContain("AI tools");
+    expect(html).toContain("Team Progress");
+    expect(html).toContain("Module AI tools");
+    expect(html).not.toContain("Course overview");
+    expect(html).not.toContain("Quick switcher");
   });
 
   it("enables module-scoped AI drafting only when course context is attached", () => {

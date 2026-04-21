@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { TrainingCourseShell } from "./training/training-course-shell";
+import { TrainingModuleStage } from "./training/training-module-stage";
+import { TrainingModuleToc } from "./training/training-module-toc";
 import {
   TrainingQuizEditor,
   normalizeTrainingQuizQuestionDrafts,
@@ -16,9 +18,10 @@ import {
   type TrainingModuleAIDraftResponse,
 } from "./training/training-manager-ai-tools";
 import {
-  TrainingWorkspaceNav,
-  type TrainingWorkspaceSection,
-} from "./training/training-workspace-nav";
+  getTrainingStagePrimaryAction,
+  resolveTrainingStageView,
+  type TrainingStageView,
+} from "./training/training-stage-state";
 import type {
   TrainingModuleRecord,
   TrainingModuleSummary,
@@ -73,12 +76,10 @@ type ModuleSubmitTarget = {
   moduleId: string | null;
 };
 
-export type TrainingWorkspaceView = "aiTools" | "assignments" | "lesson" | "overview" | "teamProgress";
-
 type ModuleSelectionPatch = {
-  activeSection: TrainingWorkspaceSection;
   answers: Record<number, number>;
   selectedModuleId: string;
+  stageView: TrainingStageView;
   statusMessage: null;
 };
 
@@ -178,31 +179,11 @@ export function getModuleSubmitTarget(
 
 export function getModuleSelectionPatch(moduleId: string): ModuleSelectionPatch {
   return {
-    activeSection: "modules",
     answers: {},
     selectedModuleId: moduleId,
+    stageView: "lesson",
     statusMessage: null,
   };
-}
-
-export function resolveTrainingWorkspaceView(
-  activeSection: TrainingWorkspaceSection,
-  canManage: boolean,
-): TrainingWorkspaceView {
-  switch (activeSection) {
-    case "modules":
-    case "quiz":
-      return "lesson";
-    case "assignments":
-      return canManage ? "assignments" : "overview";
-    case "teamProgress":
-      return canManage ? "teamProgress" : "overview";
-    case "aiTools":
-      return canManage ? "aiTools" : "overview";
-    case "overview":
-    default:
-      return "overview";
-  }
 }
 
 export function mergeTeamProgressModule(
@@ -236,7 +217,7 @@ export function TrainingPanel({
   const [teamRows, setTeamRows] = useState(initialTeamRows);
   const [teamProgress, setTeamProgress] = useState(initialTeamProgress);
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(initialModules[0]?.id ?? null);
-  const [activeSection, setActiveSection] = useState<TrainingWorkspaceSection>("overview");
+  const [stageView, setStageView] = useState<TrainingStageView>("lesson");
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -286,7 +267,6 @@ export function TrainingPanel({
     setGeneratedDrafts([]);
     setModuleForm(EMPTY_MODULE_FORM);
     setEditingModuleId(null);
-    setActiveSection("aiTools");
     setActiveManagerModal("create");
   }
 
@@ -295,7 +275,6 @@ export function TrainingPanel({
     setGeneratedDrafts([]);
     setEditingModuleId(module.id);
     setModuleForm(moduleToFormState(module));
-    setActiveSection("aiTools");
     setActiveManagerModal("edit");
   }
 
@@ -303,7 +282,6 @@ export function TrainingPanel({
     resetManagerFeedback();
     setGeneratedDrafts([]);
     setGenerateForm(EMPTY_GENERATE_FORM);
-    setActiveSection("aiTools");
     setActiveManagerModal("generate");
   }
 
@@ -312,7 +290,6 @@ export function TrainingPanel({
     setAssigningModuleId(module.id);
     setAssignRepIds([]);
     setAssignDueDate("");
-    setActiveSection("assignments");
     setActiveManagerModal("assign");
   }
 
@@ -357,7 +334,6 @@ export function TrainingPanel({
       setGeneratedDrafts([]);
       setModuleForm(moduleDraftToFormState(selectedModule, draft));
       setEditingModuleId(selectedModule.id);
-      setActiveSection("aiTools");
       setActiveManagerModal("edit");
       setManagerMessage(
         draft.mode === "quiz" ? "Loaded quiz draft for review." : "Loaded lesson draft for review.",
@@ -493,6 +469,7 @@ export function TrainingPanel({
       });
       setTeamProgress((current) => mergeTeamProgressModule(current, nextModule));
       setSelectedModuleId(nextModule.id);
+      setStageView("lesson");
       setManagerMessage(submitTarget.moduleId ? "Module updated." : "Module created.");
       closeManagerModal();
     } finally {
@@ -549,9 +526,12 @@ export function TrainingPanel({
         return;
       }
 
-      setModules((current) => [...current, payload.data.module].sort((left, right) => left.orderIndex - right.orderIndex));
+      setModules((current) =>
+        [...current, payload.data.module].sort((left, right) => left.orderIndex - right.orderIndex),
+      );
       setTeamProgress((current) => mergeTeamProgressModule(current, payload.data.module));
       setSelectedModuleId(payload.data.module.id);
+      setStageView("lesson");
       setGeneratedDrafts((current) => current.filter((entry) => entry !== draft));
       setManagerMessage(`Saved "${payload.data.module.title}".`);
     } finally {
@@ -629,44 +609,21 @@ export function TrainingPanel({
     }
   }
 
-  const modulesRail = (
-    <div className="space-y-3">
-      <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Modules</p>
-      <div className="space-y-3">
-        {modules.map((module) => (
-          <button
-            className={`w-full rounded-xl border px-4 py-4 text-left transition ${
-              module.id === selectedModuleId
-                ? "border-[#74b1ff]/20 bg-[#74b1ff]/8"
-                : "border-[#45484f]/10 bg-[#161a21]/50 hover:border-[#74b1ff]/30"
-            }`}
-            key={module.id}
-            onClick={() => {
-              const nextState = getModuleSelectionPatch(module.id);
-              setSelectedModuleId(nextState.selectedModuleId);
-              setAnswers(nextState.answers);
-              setStatusMessage(nextState.statusMessage);
-              setActiveSection(nextState.activeSection);
-            }}
-            type="button"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-sm font-semibold text-white">{module.title}</p>
-                <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[#74b1ff]">{module.skillCategory}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">
-                  {module.progress?.status ?? "assigned"}
-                </p>
-                <p className="mt-1 text-sm font-semibold text-[#ecedf6]">{module.progress?.score ?? "—"}</p>
-              </div>
-            </div>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+  function selectModule(moduleId: string) {
+    const nextState = getModuleSelectionPatch(moduleId);
+    setSelectedModuleId(nextState.selectedModuleId);
+    setAnswers(nextState.answers);
+    setStatusMessage(nextState.statusMessage);
+    setStageView(nextState.stageView);
+  }
+
+  const resolvedStageView = resolveTrainingStageView(stageView, selectedModule?.hasQuiz ?? false);
+  const primaryAction = getTrainingStagePrimaryAction({
+    canManage,
+    hasQuiz: selectedModule?.hasQuiz ?? false,
+    progress: selectedModule?.progress ?? null,
+    stageView: resolvedStageView,
+  });
 
   const managerHeaderActions = canManage ? (
     <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-5 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
@@ -674,7 +631,7 @@ export function TrainingPanel({
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Manager tools</p>
           <p className="mt-2 text-sm text-[#a9abb3]">
-            Create, revise, assign, and review training modules from the same workspace.
+            Create, revise, assign, and review training modules from the command deck.
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -707,8 +664,8 @@ export function TrainingPanel({
             Create module
           </button>
           <button
-            className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
             aria-describedby={!aiAvailable ? "training-ai-unavailable" : undefined}
+            className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!aiAvailable || isManagerBusy}
             onClick={() => {
               if (aiAvailable) {
@@ -993,110 +950,71 @@ export function TrainingPanel({
     </section>
   ) : null;
 
-  const showQuizWorkspace = activeSection === "quiz";
-
-  const lessonWorkspace = (
-    <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-      {selectedModule ? (
-        <div className="space-y-5">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#74b1ff]">
-                {selectedModule.skillCategory}
-              </p>
-              <h3 className="mt-2 text-2xl font-semibold text-white">{selectedModule.title}</h3>
-              <p className="mt-3 text-sm leading-7 text-[#a9abb3]">{selectedModule.description}</p>
+  const quizContent = selectedModule ? (
+    selectedModule.quizData?.questions?.length ? (
+      <div className="space-y-5">
+        {selectedModule.quizData.questions.map((question, questionIndex) => (
+          <div key={question.question}>
+            <p className="text-sm font-medium text-[#ecedf6]">
+              {questionIndex + 1}. {question.question}
+            </p>
+            <div className="mt-3 space-y-2">
+              {question.options.map((option, optionIndex) => (
+                <button
+                  className={`w-full rounded-xl border px-4 py-3 text-left text-sm transition ${
+                    answers[questionIndex] === optionIndex
+                      ? "border-[#74b1ff]/20 bg-[#74b1ff]/8 text-[#74b1ff]"
+                      : "border-[#45484f]/10 bg-[#161a21]/50 text-[#ecedf6] hover:border-[#74b1ff]/30"
+                  }`}
+                  key={`${question.question}-${option}`}
+                  onClick={() =>
+                    setAnswers((current) => ({
+                      ...current,
+                      [questionIndex]: optionIndex,
+                    }))
+                  }
+                  type="button"
+                >
+                  {option}
+                </button>
+              ))}
             </div>
           </div>
-
-          {showQuizWorkspace ? (
-            selectedModule.quizData?.questions?.length ? (
-              <div className="space-y-5">
-                {selectedModule.quizData.questions.map((question, questionIndex) => (
-                  <div key={question.question}>
-                    <p className="text-sm font-medium text-[#ecedf6]">
-                      {questionIndex + 1}. {question.question}
-                    </p>
-                    <div className="mt-3 space-y-2">
-                      {question.options.map((option, optionIndex) => (
-                        <button
-                          className={`w-full rounded-xl border px-4 py-3 text-left text-sm transition ${
-                            answers[questionIndex] === optionIndex
-                              ? "border-[#74b1ff]/20 bg-[#74b1ff]/8 text-[#74b1ff]"
-                              : "border-[#45484f]/10 bg-[#161a21]/50 text-[#ecedf6] hover:border-[#74b1ff]/30"
-                          }`}
-                          key={`${question.question}-${option}`}
-                          onClick={() =>
-                            setAnswers((current) => ({
-                              ...current,
-                              [questionIndex]: optionIndex,
-                            }))
-                          }
-                          type="button"
-                        >
-                          {option}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-xl border border-[#45484f]/10 bg-[#161a21]/50 px-4 py-4 text-sm text-[#a9abb3]">
-                This module does not include a quiz. Completing it will mark the assignment as passed.
-              </div>
-            )
-          ) : (
-            <div className="rounded-xl border border-[#45484f]/10 bg-[#161a21]/50 px-4 py-4 text-sm text-[#a9abb3]">
-              Open Quiz to review and submit the current module questions.
-            </div>
-          )}
-
-          {statusMessage ? (
-            <div className="rounded-xl border border-[#74b1ff]/20 bg-[#74b1ff]/8 px-4 py-3 text-sm text-[#ecedf6]">
-              {statusMessage}
-            </div>
-          ) : null}
-
-          {!canManage && showQuizWorkspace ? (
-            <button
-              className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-5 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
-              disabled={isSubmitting}
-              onClick={() => {
-                void submitProgress();
-              }}
-              type="button"
-            >
-              {isSubmitting ? "Submitting..." : "Submit module"}
-            </button>
-          ) : null}
-        </div>
-      ) : (
-        <p className="text-sm text-[#a9abb3]">No modules are available.</p>
-      )}
-    </section>
+        ))}
+        {!canManage ? (
+          <button
+            className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-5 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
+            disabled={isSubmitting}
+            onClick={() => {
+              void submitProgress();
+            }}
+            type="button"
+          >
+            {isSubmitting ? "Submitting..." : "Submit module"}
+          </button>
+        ) : null}
+      </div>
+    ) : (
+      <div className="rounded-xl border border-[#45484f]/10 bg-[#161a21]/50 px-4 py-4 text-sm text-[#a9abb3]">
+        This module does not include a quiz. Completing it will mark the assignment as passed.
+      </div>
+    )
+  ) : (
+    <p className="text-sm text-[#a9abb3]">No modules are available.</p>
   );
 
-  const overviewPanel = (
-    <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-      <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Course overview</p>
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
-        <div className="rounded-xl border border-[#45484f]/10 bg-[#161a21]/50 px-4 py-4">
-          <p className="text-sm font-semibold text-white">Current curriculum</p>
-          <p className="mt-2 text-sm leading-7 text-[#a9abb3]">
-            Use Modules to review the active lesson and Quiz to complete it. Manager tools and reporting sections
-            stay separate so the shell stays learner-first.
-          </p>
-        </div>
-        <div className="rounded-xl border border-[#45484f]/10 bg-[#161a21]/50 px-4 py-4">
-          <p className="text-sm font-semibold text-white">{selectedModule?.title ?? "No module selected"}</p>
-          <p className="mt-2 text-sm leading-7 text-[#a9abb3]">
-            {selectedModule?.description?.trim() ||
-              "Choose a module from the rail to review its summary and current status."}
-          </p>
-        </div>
-      </div>
-    </section>
+  const stage = (
+    <TrainingModuleStage
+      canManage={canManage}
+      onPrimaryAction={() => setStageView(primaryAction.nextView)}
+      onSelectView={setStageView}
+      primaryAction={primaryAction.label}
+      primaryActionDisabled={isSubmitting}
+      quizContent={quizContent}
+      selectedModule={selectedModule}
+      stageView={resolvedStageView}
+      statusMessage={statusMessage}
+    />
   );
 
   const assignmentsPanel = canManage ? (
@@ -1104,7 +1022,7 @@ export function TrainingPanel({
       <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Assignments</p>
       <div className="mt-4 space-y-4">
         <div className="rounded-xl border border-[#45484f]/10 bg-[#161a21]/50 px-4 py-4 text-sm text-[#a9abb3]">
-          Assignments use the same manager flow, but they now live under their own section.
+          Assignments now stay in the command deck so the stage can remain focused on the selected module.
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-[#a9abb3]">
@@ -1217,56 +1135,18 @@ export function TrainingPanel({
     </section>
   ) : null;
 
-  const activeWorkspaceView = resolveTrainingWorkspaceView(activeSection, canManage);
-  const activeWorkspacePanel = (() => {
-    switch (activeWorkspaceView) {
-      case "overview":
-        return (
-          <div className="space-y-5">
-            {overviewPanel}
-            {teamProgressPanel}
-          </div>
-        );
-      case "lesson":
-        return lessonWorkspace;
-      case "assignments":
-        return assignmentsPanel ?? overviewPanel;
-      case "teamProgress":
-        return teamProgressPanel ?? overviewPanel;
-      case "aiTools":
-        return aiToolsPanel ?? overviewPanel;
-      default:
-        return overviewPanel;
-    }
-  })();
-
-  return (
-    <div className="space-y-4">
-      <TrainingWorkspaceNav
-        activeSection={activeSection}
-        canManage={canManage}
-        compact
-        onSelect={setActiveSection}
-      />
-
-      <div className="flex min-h-[calc(100vh-8rem)] gap-6">
-        <aside className="hidden w-56 shrink-0 self-start overflow-y-auto border-r border-[#45484f]/10 pt-2 xl:sticky xl:top-[92px] xl:block xl:h-[calc(100vh-96px)]">
-          <TrainingWorkspaceNav activeSection={activeSection} canManage={canManage} onSelect={setActiveSection} />
-        </aside>
-
-        <div className="min-w-0 flex-1">
-          <TrainingCourseShell
-            managerActions={
-              canManage && (activeSection === "overview" || activeSection === "aiTools" || activeManagerModal !== null)
-                ? managerHeaderActions
-                : null
-            }
-            modulesRail={modulesRail}
-            primaryContent={activeWorkspacePanel}
-            selectedModule={selectedModule}
-          />
-        </div>
-      </div>
-    </div>
+  const tableOfContents = (
+    <TrainingModuleToc modules={modules} onSelectModule={selectModule} selectedModuleId={selectedModuleId} />
   );
+
+  const commandDeck = canManage ? (
+    <div className="space-y-5">
+      {managerHeaderActions}
+      {assignmentsPanel}
+      {teamProgressPanel}
+      {aiToolsPanel}
+    </div>
+  ) : null;
+
+  return <TrainingCourseShell commandDeck={commandDeck} stage={stage} tableOfContents={tableOfContents} />;
 }
