@@ -6,7 +6,22 @@ import { listRoleplaySessions } from "@/lib/roleplay/service";
 
 export const dynamic = "force-dynamic";
 
-export default async function RoleplayPage() {
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+function firstSearchParamValue(value: string | string[] | undefined) {
+  if (Array.isArray(value)) {
+    return value[0] ?? null;
+  }
+
+  return value ?? null;
+}
+
+export default async function RoleplayPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const resolvedSearchParams = await searchParams;
   const authUser = await getAuthenticatedSupabaseUser();
 
   if (!authUser) {
@@ -34,6 +49,7 @@ export default async function RoleplayPage() {
         <RoleplayPanel
           initialPersonas={result.data.personas}
           initialSessions={result.data.sessions}
+          initialSessionId={firstSearchParamValue(resolvedSearchParams.sessionId)}
         />
       </div>
     </div>

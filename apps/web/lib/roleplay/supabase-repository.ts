@@ -4,6 +4,10 @@ import type {
   RoleplayScorecard,
   RoleplaySessionRecord,
 } from "./service";
+import {
+  normalizeRoleplaySessionCreateInput,
+  type RoleplaySessionCreateInput,
+} from "./types";
 
 function normalizeSessionRecord(record: any): RoleplaySessionRecord {
   return {
@@ -14,6 +18,13 @@ function normalizeSessionRecord(record: any): RoleplaySessionRecord {
     industry: record.industry,
     difficulty: record.difficulty,
     overallScore: record.overall_score,
+    origin: record.origin ?? "manual",
+    sourceCallId: record.source_call_id ?? null,
+    rubricId: record.rubric_id ?? null,
+    focusMode: record.focus_mode ?? "all",
+    focusCategorySlug: record.focus_category_slug ?? null,
+    scenarioSummary: record.scenario_summary ?? null,
+    scenarioBrief: record.scenario_brief ?? null,
     transcript: Array.isArray(record.transcript) ? record.transcript : null,
     scorecard: record.scorecard && typeof record.scorecard === "object" ? record.scorecard : null,
     status: record.status,
@@ -24,28 +35,27 @@ function normalizeSessionRecord(record: any): RoleplaySessionRecord {
 export class SupabaseRoleplayRepository implements RoleplayRepository {
   constructor(private readonly supabase = getSupabaseAdminClient()) {}
 
-  async createSession(input: {
-    difficulty: "beginner" | "intermediate" | "advanced";
-    industry: string;
-    orgId: string;
-    persona: string;
-    repId: string;
-    scorecard: RoleplayScorecard | null;
-    status: "active" | "evaluating" | "complete";
-    transcript: Array<{ role: "assistant" | "user"; content: string }>;
-  }) {
+  async createSession(input: RoleplaySessionCreateInput) {
     const supabase: any = this.supabase;
+    const sessionInput = normalizeRoleplaySessionCreateInput(input);
     const { data, error } = await supabase
       .from("roleplay_sessions")
       .insert({
-        difficulty: input.difficulty,
-        industry: input.industry,
-        org_id: input.orgId,
-        persona: input.persona,
-        rep_id: input.repId,
-        scorecard: input.scorecard,
-        status: input.status,
-        transcript: input.transcript,
+        difficulty: sessionInput.difficulty,
+        industry: sessionInput.industry,
+        org_id: sessionInput.orgId,
+        origin: sessionInput.origin,
+        source_call_id: sessionInput.sourceCallId,
+        persona: sessionInput.persona,
+        rubric_id: sessionInput.rubricId,
+        focus_mode: sessionInput.focusMode,
+        focus_category_slug: sessionInput.focusCategorySlug,
+        scenario_brief: sessionInput.scenarioBrief,
+        scenario_summary: sessionInput.scenarioSummary,
+        rep_id: sessionInput.repId,
+        scorecard: sessionInput.scorecard,
+        status: sessionInput.status,
+        transcript: sessionInput.transcript,
       })
       .select("*")
       .single();

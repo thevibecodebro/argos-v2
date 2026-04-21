@@ -2,8 +2,10 @@ import "server-only";
 import { buildAccessContext, canActorViewRep, type AccessContext } from "@/lib/access/service";
 import type { DashboardUserRecord } from "@/lib/dashboard/service";
 import {
+  normalizeRoleplaySessionCreateInput,
   ROLEPLAY_CATEGORY_LABELS,
   type RoleplayCategory,
+  type RoleplaySessionCreateInput,
   type RoleplayMessage,
   type RoleplayPersona,
   type RoleplayScorecard,
@@ -12,6 +14,9 @@ import {
 } from "./types";
 
 export type { RoleplayScorecard, RoleplaySession, RoleplaySessionRecord };
+
+export { normalizeRoleplaySessionCreateInput };
+export type { RoleplaySessionCreateInput };
 
 type LegacyRoleplayScorecard = {
   summary: string;
@@ -30,16 +35,7 @@ type ServiceResult<T> =
   | { ok: false; status: 400 | 403 | 404 | 409; error: string };
 
 export type RoleplayRepository = {
-  createSession(input: {
-    difficulty: "beginner" | "intermediate" | "advanced";
-    industry: string;
-    orgId: string;
-    persona: string;
-    repId: string;
-    scorecard: RoleplayScorecard | null;
-    status: "active" | "evaluating" | "complete";
-    transcript: RoleplayMessage[];
-  }): Promise<RoleplaySessionRecord>;
+  createSession(input: RoleplaySessionCreateInput): Promise<RoleplaySessionRecord>;
   findCurrentUserByAuthId(authUserId: string): Promise<DashboardUserRecord | null>;
   findSessionById(sessionId: string): Promise<RoleplaySessionRecord | null>;
   findSessionsByOrgId(orgId: string): Promise<RoleplaySessionRecord[]>;
@@ -139,6 +135,13 @@ function serializeSession(session: RoleplaySessionRecord): RoleplaySession {
     industry: session.industry,
     difficulty: session.difficulty,
     overallScore: session.overallScore,
+    origin: session.origin ?? "manual",
+    sourceCallId: session.sourceCallId ?? null,
+    rubricId: session.rubricId ?? null,
+    focusMode: session.focusMode ?? "all",
+    focusCategorySlug: session.focusCategorySlug ?? null,
+    scenarioSummary: session.scenarioSummary ?? null,
+    scenarioBrief: session.scenarioBrief ?? null,
     transcript: Array.isArray(session.transcript) ? session.transcript : [],
     scorecard: normalizeScorecard(session.scorecard),
     status: session.status,
@@ -583,16 +586,23 @@ export async function createRoleplaySession(
     },
   ];
 
-  const session = await repository.createSession({
+  const session = await repository.createSession(normalizeRoleplaySessionCreateInput({
     difficulty: persona.difficulty,
     industry: persona.industry,
     orgId,
     persona: persona.id,
+    origin: "manual",
+    sourceCallId: null,
+    rubricId: null,
+    focusMode: "all",
+    focusCategorySlug: null,
+    scenarioSummary: null,
+    scenarioBrief: null,
     repId: accessResult.data.actor.id,
     scorecard: null,
     status: "active",
     transcript,
-  });
+  }) as RoleplaySessionCreateInput);
 
   return {
     ok: true,

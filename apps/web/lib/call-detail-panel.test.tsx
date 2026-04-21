@@ -52,6 +52,33 @@ const baseCall = {
 };
 
 describe("CallDetailPanel", () => {
+  it("renders Generate Roleplay for completed calls", () => {
+    const html = renderToStaticMarkup(
+      createElement(CallDetailPanel, {
+        annotations: [],
+        call: baseCall,
+        canManage: true,
+      }),
+    );
+
+    expect(html).toContain("Generate Roleplay");
+  });
+
+  it("does not render Generate Roleplay for incomplete calls", () => {
+    const html = renderToStaticMarkup(
+      createElement(CallDetailPanel, {
+        annotations: [],
+        call: {
+          ...baseCall,
+          status: "processing",
+        },
+        canManage: true,
+      }),
+    );
+
+    expect(html).not.toContain("Generate Roleplay");
+  });
+
   it("renders explicit note management controls for highlighted moments", () => {
     const html = renderToStaticMarkup(
       createElement(CallDetailPanel, {

@@ -582,13 +582,19 @@ export type Database = {
         Row: {
           created_at: string
           difficulty: string | null
+          focus_category_slug: string | null
+          focus_mode: string
           id: string
           industry: string | null
           org_id: string
           overall_score: number | null
+          origin: string
           persona: string | null
           rep_id: string
           rubric_id: string | null
+          scenario_brief: string | null
+          scenario_summary: string | null
+          source_call_id: string | null
           scorecard: Json | null
           status: string
           transcript: Json | null
@@ -596,13 +602,19 @@ export type Database = {
         Insert: {
           created_at?: string
           difficulty?: string | null
+          focus_category_slug?: string | null
+          focus_mode?: string
           id?: string
           industry?: string | null
           org_id: string
           overall_score?: number | null
+          origin?: string
           persona?: string | null
           rep_id: string
           rubric_id?: string | null
+          scenario_brief?: string | null
+          scenario_summary?: string | null
+          source_call_id?: string | null
           scorecard?: Json | null
           status?: string
           transcript?: Json | null
@@ -610,13 +622,19 @@ export type Database = {
         Update: {
           created_at?: string
           difficulty?: string | null
+          focus_category_slug?: string | null
+          focus_mode?: string
           id?: string
           industry?: string | null
           org_id?: string
           overall_score?: number | null
+          origin?: string
           persona?: string | null
           rep_id?: string
           rubric_id?: string | null
+          scenario_brief?: string | null
+          scenario_summary?: string | null
+          source_call_id?: string | null
           scorecard?: Json | null
           status?: string
           transcript?: Json | null
@@ -641,6 +659,13 @@ export type Database = {
             columns: ["rubric_id"]
             isOneToOne: false
             referencedRelation: "rubrics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roleplay_sessions_source_call_id_fkey"
+            columns: ["source_call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
             referencedColumns: ["id"]
           },
         ]

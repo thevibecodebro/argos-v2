@@ -12,6 +12,10 @@ import type {
   RoleplayScorecard,
   RoleplaySessionRecord,
 } from "./service";
+import {
+  normalizeRoleplaySessionCreateInput,
+  type RoleplaySessionCreateInput,
+} from "./types";
 
 function normalizeSessionRecord(record: {
   id: string;
@@ -21,6 +25,13 @@ function normalizeSessionRecord(record: {
   industry: string | null;
   difficulty: "beginner" | "intermediate" | "advanced" | null;
   overallScore: number | null;
+  origin: "manual" | "generated_from_call";
+  sourceCallId: string | null;
+  rubricId: string | null;
+  focusMode: "all" | "category";
+  focusCategorySlug: string | null;
+  scenarioSummary: string | null;
+  scenarioBrief: string | null;
   transcript: unknown;
   scorecard: unknown;
   status: "active" | "evaluating" | "complete";
@@ -28,6 +39,13 @@ function normalizeSessionRecord(record: {
 }): RoleplaySessionRecord {
   return {
     ...record,
+    origin: record.origin ?? "manual",
+    sourceCallId: record.sourceCallId ?? null,
+    rubricId: record.rubricId ?? null,
+    focusMode: record.focusMode ?? "all",
+    focusCategorySlug: record.focusCategorySlug ?? null,
+    scenarioSummary: record.scenarioSummary ?? null,
+    scenarioBrief: record.scenarioBrief ?? null,
     transcript: Array.isArray(record.transcript)
       ? (record.transcript as RoleplaySessionRecord["transcript"])
       : null,
@@ -41,19 +59,11 @@ function normalizeSessionRecord(record: {
 export class DrizzleRoleplayRepository implements RoleplayRepository {
   constructor(private readonly db: ArgosDb = getDb()) {}
 
-  async createSession(input: {
-    difficulty: "beginner" | "intermediate" | "advanced";
-    industry: string;
-    orgId: string;
-    persona: string;
-    repId: string;
-    scorecard: RoleplayScorecard | null;
-    status: "active" | "evaluating" | "complete";
-    transcript: Array<{ role: "assistant" | "user"; content: string }>;
-  }) {
+  async createSession(input: RoleplaySessionCreateInput) {
+    const sessionInput = normalizeRoleplaySessionCreateInput(input);
     const [session] = await this.db
       .insert(roleplaySessionsTable)
-      .values(input)
+      .values(sessionInput)
       .returning({
         id: roleplaySessionsTable.id,
         repId: roleplaySessionsTable.repId,
@@ -62,6 +72,13 @@ export class DrizzleRoleplayRepository implements RoleplayRepository {
         industry: roleplaySessionsTable.industry,
         difficulty: roleplaySessionsTable.difficulty,
         overallScore: roleplaySessionsTable.overallScore,
+        origin: roleplaySessionsTable.origin,
+        sourceCallId: roleplaySessionsTable.sourceCallId,
+        rubricId: roleplaySessionsTable.rubricId,
+        focusMode: roleplaySessionsTable.focusMode,
+        focusCategorySlug: roleplaySessionsTable.focusCategorySlug,
+        scenarioSummary: roleplaySessionsTable.scenarioSummary,
+        scenarioBrief: roleplaySessionsTable.scenarioBrief,
         transcript: roleplaySessionsTable.transcript,
         scorecard: roleplaySessionsTable.scorecard,
         status: roleplaySessionsTable.status,
@@ -111,6 +128,13 @@ export class DrizzleRoleplayRepository implements RoleplayRepository {
         industry: roleplaySessionsTable.industry,
         difficulty: roleplaySessionsTable.difficulty,
         overallScore: roleplaySessionsTable.overallScore,
+        origin: roleplaySessionsTable.origin,
+        sourceCallId: roleplaySessionsTable.sourceCallId,
+        rubricId: roleplaySessionsTable.rubricId,
+        focusMode: roleplaySessionsTable.focusMode,
+        focusCategorySlug: roleplaySessionsTable.focusCategorySlug,
+        scenarioSummary: roleplaySessionsTable.scenarioSummary,
+        scenarioBrief: roleplaySessionsTable.scenarioBrief,
         transcript: roleplaySessionsTable.transcript,
         scorecard: roleplaySessionsTable.scorecard,
         status: roleplaySessionsTable.status,
@@ -133,6 +157,13 @@ export class DrizzleRoleplayRepository implements RoleplayRepository {
         industry: roleplaySessionsTable.industry,
         difficulty: roleplaySessionsTable.difficulty,
         overallScore: roleplaySessionsTable.overallScore,
+        origin: roleplaySessionsTable.origin,
+        sourceCallId: roleplaySessionsTable.sourceCallId,
+        rubricId: roleplaySessionsTable.rubricId,
+        focusMode: roleplaySessionsTable.focusMode,
+        focusCategorySlug: roleplaySessionsTable.focusCategorySlug,
+        scenarioSummary: roleplaySessionsTable.scenarioSummary,
+        scenarioBrief: roleplaySessionsTable.scenarioBrief,
         transcript: roleplaySessionsTable.transcript,
         scorecard: roleplaySessionsTable.scorecard,
         status: roleplaySessionsTable.status,
@@ -155,6 +186,13 @@ export class DrizzleRoleplayRepository implements RoleplayRepository {
         industry: roleplaySessionsTable.industry,
         difficulty: roleplaySessionsTable.difficulty,
         overallScore: roleplaySessionsTable.overallScore,
+        origin: roleplaySessionsTable.origin,
+        sourceCallId: roleplaySessionsTable.sourceCallId,
+        rubricId: roleplaySessionsTable.rubricId,
+        focusMode: roleplaySessionsTable.focusMode,
+        focusCategorySlug: roleplaySessionsTable.focusCategorySlug,
+        scenarioSummary: roleplaySessionsTable.scenarioSummary,
+        scenarioBrief: roleplaySessionsTable.scenarioBrief,
         transcript: roleplaySessionsTable.transcript,
         scorecard: roleplaySessionsTable.scorecard,
         status: roleplaySessionsTable.status,
@@ -179,11 +217,11 @@ export class DrizzleRoleplayRepository implements RoleplayRepository {
     const [session] = await this.db
       .update(roleplaySessionsTable)
       .set({
-        overallScore: patch.overallScore,
-        scorecard: patch.scorecard,
-        status: patch.status,
-        transcript: patch.transcript,
-      })
+      overallScore: patch.overallScore,
+      scorecard: patch.scorecard,
+      status: patch.status,
+      transcript: patch.transcript,
+    })
       .where(eq(roleplaySessionsTable.id, sessionId))
       .returning({
         id: roleplaySessionsTable.id,
@@ -193,6 +231,13 @@ export class DrizzleRoleplayRepository implements RoleplayRepository {
         industry: roleplaySessionsTable.industry,
         difficulty: roleplaySessionsTable.difficulty,
         overallScore: roleplaySessionsTable.overallScore,
+        origin: roleplaySessionsTable.origin,
+        sourceCallId: roleplaySessionsTable.sourceCallId,
+        rubricId: roleplaySessionsTable.rubricId,
+        focusMode: roleplaySessionsTable.focusMode,
+        focusCategorySlug: roleplaySessionsTable.focusCategorySlug,
+        scenarioSummary: roleplaySessionsTable.scenarioSummary,
+        scenarioBrief: roleplaySessionsTable.scenarioBrief,
         transcript: roleplaySessionsTable.transcript,
         scorecard: roleplaySessionsTable.scorecard,
         status: roleplaySessionsTable.status,

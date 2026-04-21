@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { HighlightNote } from "@/components/highlight-note";
-import { CALL_SCORE_LABELS_BY_FIELD } from "@/lib/calls/rubric";
+import { CALL_SCORING_CATEGORIES } from "@/lib/calls/rubric";
 import type { CallAnnotation, CallDetail, CallMoment } from "@/lib/calls/service";
 
 type CallDetailPanelProps = {
@@ -61,6 +62,7 @@ export function CallDetailPanel({
   call,
   canManage,
 }: CallDetailPanelProps) {
+  const router = useRouter();
   const [annotations, setAnnotations] = useState(initialAnnotations);
   const [moments, setMoments] = useState(call.moments);
   const [note, setNote] = useState("");
@@ -68,17 +70,37 @@ export function CallDetailPanel({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [highlightActionMomentId, setHighlightActionMomentId] = useState<string | null>(null);
   const [noteActionMomentId, setNoteActionMomentId] = useState<string | null>(null);
+  const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
+  const [isLoadingGeneratePreview, setIsLoadingGeneratePreview] = useState(false);
+  const [isGeneratingRoleplay, setIsGeneratingRoleplay] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+  const [generatePreview, setGeneratePreview] = useState<{
+    scenarioSummary: string;
+    focusOptions: Array<{ slug: string; label: string }>;
+    defaultFocusSlug: string;
+  } | null>(null);
+  const [focusCategorySlug, setFocusCategorySlug] = useState("all");
 
-  const scoreCards = useMemo<[string, number | null][]>(
-    () => [
-      [CALL_SCORE_LABELS_BY_FIELD.frameControlScore, call.frameControlScore],
-      [CALL_SCORE_LABELS_BY_FIELD.rapportScore, call.rapportScore],
-      [CALL_SCORE_LABELS_BY_FIELD.discoveryScore, call.discoveryScore],
-      [CALL_SCORE_LABELS_BY_FIELD.painExpansionScore, call.painExpansionScore],
-      [CALL_SCORE_LABELS_BY_FIELD.solutionScore, call.solutionScore],
-      [CALL_SCORE_LABELS_BY_FIELD.objectionScore, call.objectionScore],
-      [CALL_SCORE_LABELS_BY_FIELD.closingScore, call.closingScore],
-    ],
+  const scoreCards = useMemo(
+    () =>
+      CALL_SCORING_CATEGORIES.map((category, index) => ({
+        categoryId: null,
+        description: null,
+        name: category.label,
+        score:
+          {
+            frame_control: call.frameControlScore,
+            rapport: call.rapportScore,
+            discovery: call.discoveryScore,
+            pain_expansion: call.painExpansionScore,
+            solution: call.solutionScore,
+            objection_handling: call.objectionScore,
+            closing: call.closingScore,
+          }[category.slug] ?? null,
+        slug: category.slug,
+        sortOrder: index,
+        weight: category.weight ?? null,
+      })),
     [call],
   );
 
@@ -188,9 +210,91 @@ export function CallDetailPanel({
     }
   }
 
+  async function openGenerateRoleplayModal() {
+    setIsGenerateModalOpen(true);
+    setIsLoadingGeneratePreview(true);
+    setGenerateError(null);
+
+    try {
+      const response = await fetch(`/api/calls/${call.id}/generate-roleplay`, {
+        cache: "no-store",
+      });
+      const payload = (await response.json().catch(() => null)) as
+        | {
+            defaultFocusSlug?: string;
+            focusOptions?: Array<{ slug: string; label: string }>;
+            scenarioSummary?: string;
+            error?: string;
+          }
+        | null;
+
+      if (!response.ok) {
+        setGenerateError(payload?.error ?? "Unable to prepare roleplay.");
+        setGeneratePreview(null);
+        return;
+      }
+
+      const defaultFocusSlug = payload?.defaultFocusSlug ?? "all";
+      setGeneratePreview({
+        scenarioSummary: payload?.scenarioSummary ?? "",
+        focusOptions: payload?.focusOptions ?? [{ slug: "all", label: "All" }],
+        defaultFocusSlug,
+      });
+      setFocusCategorySlug(defaultFocusSlug);
+    } catch {
+      setGenerateError("Unable to prepare roleplay.");
+      setGeneratePreview(null);
+    } finally {
+      setIsLoadingGeneratePreview(false);
+    }
+  }
+
+  function closeGenerateRoleplayModal() {
+    if (isGeneratingRoleplay) {
+      return;
+    }
+
+    setIsGenerateModalOpen(false);
+    setGenerateError(null);
+  }
+
+  async function generateRoleplay() {
+    setIsGeneratingRoleplay(true);
+    setGenerateError(null);
+
+    try {
+      const response = await fetch(`/api/calls/${call.id}/generate-roleplay`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          focusCategorySlug: focusCategorySlug === "all" ? null : focusCategorySlug,
+        }),
+      });
+      const payload = (await response.json().catch(() => null)) as
+        | {
+            id?: string;
+            error?: string;
+          }
+        | null;
+
+      if (!response.ok || !payload?.id) {
+        setGenerateError(payload?.error ?? "Unable to generate roleplay.");
+        return;
+      }
+
+      setIsGenerateModalOpen(false);
+      router.push(`/roleplay?sessionId=${payload.id}`);
+    } catch {
+      setGenerateError("Unable to generate roleplay.");
+    } finally {
+      setIsGeneratingRoleplay(false);
+    }
+  }
+
   return (
-    <div className="grid grid-cols-12 gap-8">
-      <div className="col-span-12 space-y-8 lg:col-span-5">
+    <>
+      <div className="grid grid-cols-12 gap-8">
+        <div className="col-span-12 space-y-8 lg:col-span-5">
         <section className="overflow-hidden rounded-[1.5rem] border border-white/8 bg-[#10131a] p-6 shadow-[0_24px_80px_rgba(2,8,23,0.32)]">
           <div className="mb-8 flex items-start justify-between gap-6">
             <div>
@@ -231,22 +335,22 @@ export function CallDetailPanel({
           </div>
 
           <div className="space-y-4">
-            {scoreCards.map(([label, value]) => {
-              const tint = scoreTint(value);
+            {scoreCards.map((scoreCard) => {
+              const tint = scoreTint(scoreCard.score);
               return (
-                <div className="flex items-center justify-between gap-4" key={label}>
+                <div className="flex items-center justify-between gap-4" key={scoreCard.slug}>
                   <span className="text-sm font-medium text-slate-300 transition-colors hover:text-[#74b1ff]">
-                    {label}
+                    {scoreCard.name}
                   </span>
                   <div className="flex items-center gap-3">
                     <div className="h-1.5 w-32 overflow-hidden rounded-full bg-black">
                       <div
                         className={`h-full rounded-full ${tint.split(" ")[0]}`}
-                        style={{ width: `${progressWidth(value)}%` }}
+                        style={{ width: `${progressWidth(scoreCard.score)}%` }}
                       />
                     </div>
                     <span className={`w-7 text-right text-xs font-bold ${tint.split(" ")[1]}`}>
-                      {value ?? "—"}
+                      {scoreCard.score ?? "—"}
                     </span>
                   </div>
                 </div>
@@ -384,8 +488,8 @@ export function CallDetailPanel({
         </section>
       </div>
 
-      <div className="col-span-12 space-y-8 lg:col-span-7">
-        <section className="relative aspect-video overflow-hidden rounded-[1.5rem] border border-white/8 bg-black shadow-[0_24px_80px_rgba(2,8,23,0.32)]">
+        <div className="col-span-12 space-y-8 lg:col-span-7">
+          <section className="relative aspect-video overflow-hidden rounded-[1.5rem] border border-white/8 bg-black shadow-[0_24px_80px_rgba(2,8,23,0.32)]">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(116,177,255,0.16),transparent_35%),linear-gradient(180deg,rgba(15,19,26,0.15),rgba(0,0,0,0.8))]" />
           <div className="absolute inset-x-0 top-0 p-6">
             <div className="flex items-center justify-between gap-4">
@@ -398,8 +502,21 @@ export function CallDetailPanel({
                 </h2>
                 <p className="mt-2 text-sm text-slate-400">{formatDate(call.createdAt)}</p>
               </div>
-              <div className="rounded-full border border-white/10 bg-black/30 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-slate-300">
-                {call.durationSeconds ? formatTimestamp(call.durationSeconds) : "No duration"}
+              <div className="flex flex-wrap items-center justify-end gap-3">
+                {call.status === "complete" ? (
+                  <button
+                    className="rounded-full border border-[#74b1ff]/20 bg-[#74b1ff]/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-[#74b1ff] transition hover:border-[#74b1ff]/40 hover:bg-[#74b1ff]/15"
+                    onClick={() => {
+                      void openGenerateRoleplayModal();
+                    }}
+                    type="button"
+                  >
+                    Generate Roleplay
+                  </button>
+                ) : null}
+                <div className="rounded-full border border-white/10 bg-black/30 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-slate-300">
+                  {call.durationSeconds ? formatTimestamp(call.durationSeconds) : "No duration"}
+                </div>
               </div>
             </div>
           </div>
@@ -425,9 +542,9 @@ export function CallDetailPanel({
               <span>{call.transcriptUrl ? "Transcript linked" : "No media linked"}</span>
             </div>
           </div>
-        </section>
+          </section>
 
-        <section className="flex h-[600px] flex-col overflow-hidden rounded-[1.5rem] border border-white/8 bg-[#10131a] shadow-[0_24px_80px_rgba(2,8,23,0.32)]">
+          <section className="flex h-[600px] flex-col overflow-hidden rounded-[1.5rem] border border-white/8 bg-[#10131a] shadow-[0_24px_80px_rgba(2,8,23,0.32)]">
           <div className="flex items-center justify-between gap-4 border-b border-white/8 bg-[#161a21] p-6">
             <h2 className="text-xl font-semibold text-white">Transcript</h2>
             <div className="flex items-center gap-3">
@@ -483,9 +600,9 @@ export function CallDetailPanel({
               </div>
             )}
           </div>
-        </section>
+          </section>
 
-        <section className="grid gap-8 xl:grid-cols-[1fr_1fr]">
+          <section className="grid gap-8 xl:grid-cols-[1fr_1fr]">
           <div className="rounded-[1.5rem] border border-white/8 bg-[#10131a] p-6 shadow-[0_24px_80px_rgba(2,8,23,0.32)]">
             <h2 className="mb-6 flex items-center gap-3 text-xl font-semibold text-white">
               <span className="material-symbols-outlined text-[#74b1ff]">insights</span>
@@ -600,8 +717,94 @@ export function CallDetailPanel({
               )}
             </div>
           </div>
-        </section>
+          </section>
+        </div>
       </div>
-    </div>
+      {isGenerateModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-8 backdrop-blur-sm">
+          <div className="w-full max-w-xl rounded-[1.5rem] border border-white/10 bg-[#10131a] p-6 shadow-[0_24px_80px_rgba(2,8,23,0.4)]">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#74b1ff]">
+                  Generated From Call
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold text-white">Generate Roleplay</h2>
+                <p className="mt-2 text-sm text-slate-400">
+                  Launch a saved roleplay from this completed call.
+                </p>
+              </div>
+              <button
+                className="rounded-full border border-white/10 bg-white/[0.03] p-2 text-slate-400 transition hover:text-white"
+                onClick={closeGenerateRoleplayModal}
+                type="button"
+              >
+                <span className="material-symbols-outlined text-base">close</span>
+              </button>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              {isLoadingGeneratePreview ? (
+                <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-5 text-sm text-slate-400">
+                  Preparing anonymized scenario preview...
+                </div>
+              ) : generatePreview ? (
+                <>
+                  <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-5">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                      Scenario
+                    </p>
+                    <p className="mt-3 text-sm leading-relaxed text-slate-200">
+                      {generatePreview.scenarioSummary}
+                    </p>
+                  </div>
+                  <label className="block">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                      Focus
+                    </span>
+                    <select
+                      className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-slate-200 outline-none transition focus:border-[#74b1ff]/40"
+                      onChange={(event) => setFocusCategorySlug(event.target.value)}
+                      value={focusCategorySlug}
+                    >
+                      {generatePreview.focusOptions.map((option) => (
+                        <option key={option.slug} value={option.slug}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </>
+              ) : null}
+
+              {generateError ? (
+                <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                  {generateError}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-white/[0.06]"
+                onClick={closeGenerateRoleplayModal}
+                type="button"
+              >
+                Cancel
+              </button>
+              <button
+                className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-5 py-2 text-sm font-extrabold text-[#002345] transition hover:opacity-90 disabled:opacity-50"
+                disabled={isLoadingGeneratePreview || isGeneratingRoleplay || !generatePreview}
+                onClick={() => {
+                  void generateRoleplay();
+                }}
+                type="button"
+              >
+                {isGeneratingRoleplay ? "Starting..." : "Generate & Start"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }

@@ -9,6 +9,7 @@ import {
   createRoleplaySession,
   getRoleplaySession,
   listRoleplaySessions,
+  normalizeRoleplaySessionCreateInput,
   type RoleplayRepository,
 } from "./service";
 
@@ -86,6 +87,13 @@ describe("createRoleplaySession", () => {
         industry: "Professional Services",
         difficulty: "beginner",
         overallScore: null,
+        origin: "manual",
+        sourceCallId: null,
+        rubricId: null,
+        focusMode: "all",
+        focusCategorySlug: null,
+        scenarioSummary: null,
+        scenarioBrief: null,
         status: "active",
         transcript: [
           {
@@ -103,10 +111,87 @@ describe("createRoleplaySession", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("Expected roleplay session");
     expect(result.data.persona).toBe("price-sensitive-smb");
+    expect(result.data.origin).toBe("manual");
+    expect(result.data.focusMode).toBe("all");
     expect(result.data.personaDetails?.name).toBe("Kevin Torres");
     expect(result.data.transcript[0]).toEqual({
       role: "assistant",
       content: "Thanks for making time. We're watching spend carefully this quarter, so keep it straightforward for me.",
+    });
+  });
+});
+
+describe("normalizeRoleplaySessionCreateInput", () => {
+  const baseInput = {
+    difficulty: "beginner" as const,
+    industry: "Professional Services",
+    orgId: "org-1",
+    persona: "price-sensitive-smb",
+    repId: "rep-1",
+    scorecard: null,
+    status: "active" as const,
+    transcript: [],
+    rubricId: null,
+    scenarioSummary: null,
+    scenarioBrief: null,
+  };
+
+  it("rejects invalid origin and source call combinations", () => {
+    expect(() =>
+      normalizeRoleplaySessionCreateInput({
+        ...baseInput,
+        origin: "manual",
+        sourceCallId: "call-1",
+        focusMode: "all",
+        focusCategorySlug: null,
+      } as never),
+    ).toThrow("Manual roleplay sessions cannot reference a source call");
+
+    expect(() =>
+      normalizeRoleplaySessionCreateInput({
+        ...baseInput,
+        origin: "generated_from_call",
+        sourceCallId: null,
+        focusMode: "category",
+        focusCategorySlug: "discovery",
+      } as never),
+    ).toThrow("Generated roleplay sessions require a source call");
+  });
+
+  it("rejects invalid focus mode and category combinations", () => {
+    expect(() =>
+      normalizeRoleplaySessionCreateInput({
+        ...baseInput,
+        origin: "manual",
+        sourceCallId: null,
+        focusMode: "category",
+        focusCategorySlug: null,
+      } as never),
+    ).toThrow("Category-focused roleplay sessions require a focus category");
+
+    expect(() =>
+      normalizeRoleplaySessionCreateInput({
+        ...baseInput,
+        origin: "manual",
+        sourceCallId: null,
+        focusMode: "all",
+        focusCategorySlug: "discovery",
+      } as never),
+    ).toThrow("All-focus roleplay sessions cannot set a focus category");
+
+    expect(
+      normalizeRoleplaySessionCreateInput({
+        ...baseInput,
+        origin: "generated_from_call",
+        sourceCallId: "call-1",
+        focusMode: "all",
+        focusCategorySlug: null,
+      } as never),
+    ).toMatchObject({
+      origin: "generated_from_call",
+      sourceCallId: "call-1",
+      focusMode: "all",
+      focusCategorySlug: null,
     });
   });
 });
@@ -138,6 +223,13 @@ describe("appendRoleplayMessage", () => {
         industry: "Manufacturing",
         difficulty: "advanced",
         overallScore: null,
+        origin: "manual",
+        sourceCallId: null,
+        rubricId: null,
+        focusMode: "all",
+        focusCategorySlug: null,
+        scenarioSummary: null,
+        scenarioBrief: null,
         status: "active",
         transcript: [
           { role: "assistant", content: "Before we go too far, show me the ROI math." },
@@ -153,6 +245,13 @@ describe("appendRoleplayMessage", () => {
         industry: "Manufacturing",
         difficulty: "advanced",
         overallScore: null,
+        origin: "manual",
+        sourceCallId: null,
+        rubricId: null,
+        focusMode: "all",
+        focusCategorySlug: null,
+        scenarioSummary: null,
+        scenarioBrief: null,
         status: patch.status ?? "active",
         transcript: patch.transcript ?? [],
         scorecard: patch.scorecard ?? null,
@@ -203,6 +302,13 @@ describe("completeRoleplaySession", () => {
         industry: "SaaS",
         difficulty: "intermediate",
         overallScore: null,
+        origin: "manual",
+        sourceCallId: null,
+        rubricId: null,
+        focusMode: "all",
+        focusCategorySlug: null,
+        scenarioSummary: null,
+        scenarioBrief: null,
         status: "active",
         transcript: [
           { role: "assistant", content: "Timing is tough right now, so tell me why this matters now." },
@@ -221,6 +327,13 @@ describe("completeRoleplaySession", () => {
         industry: "SaaS",
         difficulty: "intermediate",
         overallScore: patch.overallScore ?? null,
+        origin: "manual",
+        sourceCallId: null,
+        rubricId: null,
+        focusMode: "all",
+        focusCategorySlug: null,
+        scenarioSummary: null,
+        scenarioBrief: null,
         status: patch.status ?? "complete",
         transcript: patch.transcript ?? [],
         scorecard: patch.scorecard ?? null,
@@ -281,6 +394,13 @@ describe("listRoleplaySessions", () => {
               industry: "Manufacturing",
               difficulty: "advanced",
               overallScore: 88,
+              origin: "manual",
+              sourceCallId: null,
+              rubricId: null,
+              focusMode: "all",
+              focusCategorySlug: null,
+              scenarioSummary: null,
+              scenarioBrief: null,
               transcript: [
                 { role: "assistant", content: "Before we go too far, show me the ROI math." },
               ],
@@ -300,6 +420,13 @@ describe("listRoleplaySessions", () => {
             industry: "Professional Services",
             difficulty: "beginner",
             overallScore: 72,
+            origin: "manual",
+            sourceCallId: null,
+            rubricId: null,
+            focusMode: "all",
+            focusCategorySlug: null,
+            scenarioSummary: null,
+            scenarioBrief: null,
             transcript: [
               {
                 role: "assistant",
@@ -340,6 +467,13 @@ describe("listRoleplaySessions", () => {
           industry: "Professional Services",
           difficulty: "beginner",
           overallScore: 72,
+          origin: "manual",
+          sourceCallId: null,
+          rubricId: null,
+          focusMode: "all",
+          focusCategorySlug: null,
+          scenarioSummary: null,
+          scenarioBrief: null,
           transcript: [
             {
               role: "assistant",
@@ -366,6 +500,73 @@ describe("listRoleplaySessions", () => {
 });
 
 describe("getRoleplaySession", () => {
+  it("serializes generated-from-call metadata through getRoleplaySession", async () => {
+    mockAccessRepository({
+      actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
+      memberships: [
+        { orgId: "org-1", teamId: "team-a", userId: "mgr-1", membershipType: "manager" },
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ],
+      grants: [
+        {
+          orgId: "org-1",
+          teamId: "team-a",
+          userId: "mgr-1",
+          permissionKey: "view_team_calls",
+        },
+      ],
+    });
+
+    const repository = createRepository({
+      findSessionById: vi.fn().mockResolvedValue({
+        id: "session-generated-1",
+        repId: "rep-1",
+        orgId: "org-1",
+        persona: "technical-buyer",
+        industry: "AI / Data",
+        difficulty: "advanced",
+        overallScore: 91,
+        origin: "generated_from_call",
+        sourceCallId: "call-123",
+        rubricId: "rubric-123",
+        focusMode: "category",
+        focusCategorySlug: "discovery",
+        scenarioSummary: "The buyer needs more technical proof before moving forward.",
+        scenarioBrief: "Follow-up roleplay generated from a technical evaluation call.",
+        transcript: [
+          {
+            role: "assistant",
+            content:
+              "Before I evaluate this seriously, I need to understand how your architecture, security, and integrations hold up.",
+          },
+          {
+            role: "user",
+            content: "We use isolated tenants and signed event delivery for every integration.",
+          },
+        ],
+        scorecard: null,
+        status: "evaluating",
+        createdAt: new Date("2026-04-18T12:00:00.000Z"),
+      }),
+    });
+
+    const result = await getRoleplaySession(repository, "mgr-1", "session-generated-1");
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected generated session");
+    expect(result.data).toMatchObject({
+      id: "session-generated-1",
+      origin: "generated_from_call",
+      sourceCallId: "call-123",
+      rubricId: "rubric-123",
+      focusMode: "category",
+      focusCategorySlug: "discovery",
+      scenarioSummary: "The buyer needs more technical proof before moving forward.",
+      scenarioBrief: "Follow-up roleplay generated from a technical evaluation call.",
+    });
+    expect(result.data.personaDetails?.name).toBe("Alex Chen");
+  });
+
   it("blocks access to sessions outside a manager's team scope", async () => {
     mockAccessRepository({
       actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
@@ -393,6 +594,13 @@ describe("getRoleplaySession", () => {
         industry: "Professional Services",
         difficulty: "beginner",
         overallScore: 72,
+        origin: "manual",
+        sourceCallId: null,
+        rubricId: null,
+        focusMode: "all",
+        focusCategorySlug: null,
+        scenarioSummary: null,
+        scenarioBrief: null,
         transcript: [
           {
             role: "assistant",

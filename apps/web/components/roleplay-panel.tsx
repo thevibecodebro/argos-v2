@@ -1,17 +1,19 @@
 "use client";
 
-import { startTransition, useMemo, useRef, useState } from "react";
+import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ROLEPLAY_CATEGORY_LABELS,
   type RoleplayPersona,
   type RoleplayMessage,
+  type RoleplayCategory,
   type RoleplaySession,
 } from "@/lib/roleplay/types";
 
 type RoleplayPanelProps = {
   initialPersonas: RoleplayPersona[];
   initialSessions: RoleplaySession[];
+  initialSessionId?: string | null;
 };
 
 function formatDate(value: string) {
@@ -83,7 +85,73 @@ function parseRealtimeEvent(rawEvent: string): RoleplayMessage | null {
   }
 }
 
-export function RoleplayPanel({ initialPersonas, initialSessions }: RoleplayPanelProps) {
+function mergeSessionIntoList(
+  sessions: RoleplaySession[],
+  session: RoleplaySession,
+) {
+  const existingIndex = sessions.findIndex((candidate) => candidate.id === session.id);
+
+  if (existingIndex === -1) {
+    return [session, ...sessions];
+  }
+
+  return sessions.map((candidate) => (
+    candidate.id === session.id ? session : candidate
+  ));
+}
+
+function isGeneratedSession(session: RoleplaySession | null | undefined) {
+  return session?.origin === "generated_from_call";
+}
+
+function formatRoleplayCategoryLabel(slug: string | null) {
+  if (!slug) {
+    return "All";
+  }
+
+  return ROLEPLAY_CATEGORY_LABELS[slug as RoleplayCategory]
+    ?? slug.replace(/[_-]+/g, " ").replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function getSessionLabel(session: RoleplaySession | null) {
+  if (!session) {
+    return "No active simulation";
+  }
+
+  if (session.origin === "generated_from_call") {
+    return session.focusMode === "category"
+      ? `Generated Roleplay: ${formatRoleplayCategoryLabel(session.focusCategorySlug)}`
+      : "Generated Roleplay: All Focus Areas";
+  }
+
+  return `Live Simulation: ${session.personaDetails?.objectionType ?? "Objections Handling"}`;
+}
+
+function getSessionPersonaLabel(session: RoleplaySession) {
+  return session.personaDetails?.name
+    ?? (session.origin === "generated_from_call" ? "Anonymized buyer" : session.persona ?? "Prospect");
+}
+
+function getInitialActiveSession(
+  initialSessions: RoleplaySession[],
+  initialSessionId: string | null | undefined,
+) {
+  if (initialSessionId) {
+    const requested = initialSessions.find((session) => session.id === initialSessionId);
+
+    if (requested) {
+      return requested;
+    }
+  }
+
+  return initialSessions[0] ?? null;
+}
+
+export function RoleplayPanel({
+  initialPersonas,
+  initialSessions,
+  initialSessionId,
+}: RoleplayPanelProps) {
   const router = useRouter();
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const activeAudioUrlRef = useRef<string | null>(null);
@@ -91,14 +159,16 @@ export function RoleplayPanel({ initialPersonas, initialSessions }: RoleplayPane
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
   const transcriptEndRef = useRef<HTMLDivElement | null>(null);
+  const requestedSessionIdRef = useRef<string | null>(initialSessionId ?? null);
+  const initialActiveSession = getInitialActiveSession(initialSessions, initialSessionId);
 
   const [personas] = useState(initialPersonas);
   const [sessions, setSessions] = useState(initialSessions);
   const [activeSession, setActiveSession] = useState<RoleplaySession | null>(
-    initialSessions[0] ?? null,
+    initialActiveSession,
   );
   const [selectedPersonaId, setSelectedPersonaId] = useState(
-    initialSessions[0]?.persona ?? initialPersonas[0]?.id ?? "",
+    initialActiveSession?.persona ?? initialPersonas[0]?.id ?? "",
   );
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -113,6 +183,30 @@ export function RoleplayPanel({ initialPersonas, initialSessions }: RoleplayPane
     () => (activeSession ? [...activeSession.transcript, ...liveVoiceTranscript] : []),
     [activeSession, liveVoiceTranscript],
   );
+
+  useEffect(() => {
+    const requestedSessionId = initialSessionId ?? requestedSessionIdRef.current;
+
+    if (!requestedSessionId || requestedSessionId === activeSession?.id) {
+      return;
+    }
+
+    const existing = sessions.find((session) => session.id === requestedSessionId);
+
+    if (existing) {
+      setActiveSession(existing);
+
+      if (existing.persona) {
+        setSelectedPersonaId(existing.persona);
+      }
+
+      requestedSessionIdRef.current = requestedSessionId;
+      return;
+    }
+
+    requestedSessionIdRef.current = requestedSessionId;
+    void loadSession(requestedSessionId);
+  }, [activeSession?.id, initialSessionId, sessions]);
 
   function cleanupVoiceSession() {
     dataChannelRef.current?.close();
@@ -241,7 +335,10 @@ export function RoleplayPanel({ initialPersonas, initialSessions }: RoleplayPane
     const payload = (await res.json()) as RoleplaySession & { error?: string };
     if (!res.ok) { setError(payload.error ?? "Unable to load session."); setIsMutating(false); return; }
     setActiveSession(payload);
-    setSelectedPersonaId(payload.persona ?? selectedPersonaId);
+    setSessions((cur) => mergeSessionIntoList(cur, payload));
+    if (payload.persona) {
+      setSelectedPersonaId(payload.persona);
+    }
     setIsMutating(false);
   }
 
@@ -256,7 +353,7 @@ export function RoleplayPanel({ initialPersonas, initialSessions }: RoleplayPane
     });
     const payload = (await res.json()) as RoleplaySession & { error?: string };
     if (!res.ok) { setError(payload.error ?? "Unable to start session."); setIsMutating(false); return; }
-    setSessions((cur) => [payload, ...cur.filter((s) => s.id !== payload.id)]);
+    setSessions((cur) => mergeSessionIntoList(cur, payload));
     setActiveSession(payload);
     setDraft("");
     setIsMutating(false);
@@ -275,7 +372,7 @@ export function RoleplayPanel({ initialPersonas, initialSessions }: RoleplayPane
     const payload = (await res.json()) as RoleplaySession & { error?: string };
     if (!res.ok) { setError(payload.error ?? "Unable to send message."); setIsMutating(false); return; }
     setActiveSession(payload);
-    setSessions((cur) => cur.map((s) => (s.id === payload.id ? payload : s)));
+    setSessions((cur) => mergeSessionIntoList(cur, payload));
     setDraft("");
     setIsMutating(false);
     setTimeout(() => transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
@@ -289,13 +386,16 @@ export function RoleplayPanel({ initialPersonas, initialSessions }: RoleplayPane
     const payload = (await res.json()) as RoleplaySession & { error?: string };
     if (!res.ok) { setError(payload.error ?? "Unable to score session."); setIsMutating(false); return; }
     setActiveSession(payload);
-    setSessions((cur) => cur.map((s) => (s.id === payload.id ? payload : s)));
+    setSessions((cur) => mergeSessionIntoList(cur, payload));
     setIsMutating(false);
     startTransition(() => router.refresh());
   }
 
   const selectedPersona = personas.find((p) => p.id === selectedPersonaId) ?? activeSession?.personaDetails ?? null;
   const completedSessions = sessions.filter((s) => s.status === "complete");
+  const generatedActiveSession = activeSession?.origin === "generated_from_call"
+    ? activeSession
+    : null;
 
   return (
     <>
@@ -364,11 +464,21 @@ export function RoleplayPanel({ initialPersonas, initialSessions }: RoleplayPane
                 )}
                 <span className="material-symbols-outlined text-[#74b1ff]">videocam</span>
               </div>
-              <span className="font-['Space_Grotesk'] text-sm uppercase tracking-widest text-[#ecedf6]">
-                {activeSession
-                  ? `Live Simulation: ${activeSession.personaDetails?.objectionType ?? "Objections Handling"}`
-                  : "No active simulation"}
-              </span>
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-['Space_Grotesk'] text-sm uppercase tracking-widest text-[#ecedf6]">
+                    {getSessionLabel(activeSession)}
+                  </span>
+                  {generatedActiveSession && (
+                    <span className="rounded-full border border-[#74b1ff]/25 bg-[#74b1ff]/10 px-2.5 py-1 font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.2em] text-[#74b1ff]">
+                      Generated from call
+                    </span>
+                  )}
+                </div>
+                {generatedActiveSession?.scenarioBrief && (
+                  <p className="text-xs text-[#a9abb3]">{generatedActiveSession.scenarioBrief}</p>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-2 rounded-full bg-[#22262f] p-1">
               <button
@@ -385,6 +495,22 @@ export function RoleplayPanel({ initialPersonas, initialSessions }: RoleplayPane
               <span className="px-3 py-1.5 text-xs font-bold text-[#a9abb3]">Text</span>
             </div>
           </div>
+
+          {generatedActiveSession?.scenarioSummary && (
+            <div className="mb-4 rounded-2xl border border-[#74b1ff]/18 bg-[#121720]/80 px-5 py-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full border border-[#74b1ff]/20 bg-[#74b1ff]/10 px-2.5 py-1 font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.2em] text-[#74b1ff]">
+                  Generated from call
+                </span>
+                <span className="rounded-full border border-[#45484f]/30 bg-[#1c2028]/70 px-2.5 py-1 font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.2em] text-[#c7d7f6]">
+                  Focus: {generatedActiveSession.focusMode === "all" ? "All" : formatRoleplayCategoryLabel(generatedActiveSession.focusCategorySlug)}
+                </span>
+              </div>
+              <p className="mt-3 text-sm leading-relaxed text-[#ecedf6]">
+                {generatedActiveSession.scenarioSummary}
+              </p>
+            </div>
+          )}
 
           {/* Transcript */}
           <div
@@ -413,7 +539,7 @@ export function RoleplayPanel({ initialPersonas, initialSessions }: RoleplayPane
                       <p className="text-sm leading-relaxed text-[#ecedf6]">{msg.content}</p>
                       <div className="mt-2 flex items-center justify-between gap-3">
                         <span className="font-['Space_Grotesk'] text-[10px] font-bold uppercase tracking-widest text-[#a9abb3]">
-                          {msg.role === "user" ? "You" : (activeSession.personaDetails?.name ?? "Prospect")}
+                          {msg.role === "user" ? "You" : getSessionPersonaLabel(activeSession)}
                         </span>
                         {msg.role === "assistant" && (
                           <button
@@ -607,9 +733,16 @@ export function RoleplayPanel({ initialPersonas, initialSessions }: RoleplayPane
                       onClick={() => void loadSession(session.id)}
                     >
                       <td className="px-6 py-4 font-bold text-[#ecedf6]">
-                        {session.personaDetails?.objectionType ?? "Practice Session"}
+                        <div className="space-y-1">
+                          <p>{session.personaDetails?.objectionType ?? (isGeneratedSession(session) ? "Generated roleplay" : "Practice Session")}</p>
+                          {isGeneratedSession(session) && (
+                            <span className="inline-flex rounded-full border border-[#74b1ff]/20 bg-[#74b1ff]/10 px-2.5 py-1 font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.18em] text-[#74b1ff]">
+                              Generated from call
+                            </span>
+                          )}
+                        </div>
                       </td>
-                      <td className="px-6 py-4 text-[#a9abb3]">{session.personaDetails?.name ?? session.persona}</td>
+                      <td className="px-6 py-4 text-[#a9abb3]">{getSessionPersonaLabel(session)}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <div className="h-1.5 w-16 overflow-hidden rounded-full bg-[#22262f]">
