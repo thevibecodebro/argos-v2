@@ -6,6 +6,7 @@ import {
   mergeTeamProgressModule,
   TrainingPanel,
 } from "../components/training-panel";
+import { TrainingManagerCommandDeck } from "../components/training/training-manager-command-deck";
 import { getTrainingModuleAiContextAvailability } from "../components/training/training-manager-ai-tools";
 import { getTrainingManagerStageMetrics } from "../components/training/training-manager-stage-metrics";
 import {
@@ -316,6 +317,26 @@ describe("TrainingPanel", () => {
     expect(html).toContain("Generate with AI");
   });
 
+  it("disables manager deck actions when no module is selected", () => {
+    const html = renderToStaticMarkup(
+      <TrainingPanel
+        aiAvailable={false}
+        canManage
+        initialModules={[]}
+        initialTeamProgress={{ modules: [], repProgress: [] }}
+        initialTeamRows={[]}
+        rubricCategories={[]}
+      />,
+    );
+
+    expect(html).toContain("Select a module to open the planning deck");
+    expect(html).toContain("Choose a module to edit or assign it.");
+    expect(html).toMatch(/<button[^>]*>Create module<\/button>/);
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Edit selected module<\/button>/);
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Assign selected module<\/button>/);
+    expect(html).toMatch(/<button[^>]*aria-describedby="training-ai-unavailable"[^>]*disabled=""[^>]*>Generate with AI<\/button>/);
+  });
+
   it("shows unavailable AI copy when generation is disabled", () => {
     const html = renderToStaticMarkup(
       <TrainingPanel
@@ -331,6 +352,30 @@ describe("TrainingPanel", () => {
     expect(html).toContain('disabled=""');
     expect(html).toContain('aria-describedby="training-ai-unavailable"');
     expect(html).toContain('id="training-ai-unavailable"');
+  });
+
+  it("keeps edit and assign enabled when a selected module has an empty title", () => {
+    const html = renderToStaticMarkup(
+      <TrainingManagerCommandDeck
+        aiAvailable
+        expandedPanel={null}
+        feedback={null}
+        hasSelectedModule
+        isBusy={false}
+        moduleCount={1}
+        onAssign={() => {}}
+        onCreate={() => {}}
+        onEdit={() => {}}
+        onGenerate={() => {}}
+        repCount={2}
+        selectedModuleTitle=""
+      />,
+    );
+
+    expect(html).toContain("Selected module");
+    expect(html).toContain("Focused on the selected module.");
+    expect(html).toMatch(/<button(?:(?!disabled="").)*>Edit selected module<\/button>/s);
+    expect(html).toMatch(/<button(?:(?!disabled="").)*>Assign selected module<\/button>/s);
   });
 
   it("renders the rep shell as a curriculum studio instead of workspace tabs", () => {

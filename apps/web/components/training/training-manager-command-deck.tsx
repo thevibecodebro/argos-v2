@@ -6,6 +6,7 @@ type TrainingManagerCommandDeckProps = {
   aiAvailable: boolean;
   expandedPanel?: ReactNode;
   feedback?: ReactNode;
+  hasSelectedModule: boolean;
   isBusy: boolean;
   moduleCount: number;
   repCount: number;
@@ -20,6 +21,7 @@ export function TrainingManagerCommandDeck({
   aiAvailable,
   expandedPanel,
   feedback,
+  hasSelectedModule,
   isBusy,
   moduleCount,
   repCount,
@@ -29,14 +31,21 @@ export function TrainingManagerCommandDeck({
   onEdit,
   onGenerate,
 }: TrainingManagerCommandDeckProps) {
+  const selectedModuleHeading = hasSelectedModule
+    ? selectedModuleTitle || "Selected module"
+    : "Select a module to open the planning deck";
+  const selectedModuleSummary = hasSelectedModule
+    ? selectedModuleTitle
+      ? `Focused on ${selectedModuleTitle}.`
+      : "Focused on the selected module."
+    : "Choose a module to edit or assign it.";
+
   return (
     <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-5 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-2xl">
           <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Team pulse</p>
-          <h3 className="mt-2 text-xl font-semibold text-white">
-            {selectedModuleTitle ?? "Select a module to open the planning deck"}
-          </h3>
+          <h3 className="mt-2 text-xl font-semibold text-white">{selectedModuleHeading}</h3>
           <p className="mt-2 text-sm leading-7 text-[#a9abb3]">
             Create, refine, assign, and draft curriculum from one planning surface instead of splitting the manager
             flow across separate panels.
@@ -48,9 +57,7 @@ export function TrainingManagerCommandDeck({
           <p className="mt-1 text-sm text-[#ecedf6]">
             {moduleCount} module{moduleCount === 1 ? "" : "s"} across {repCount} rep{repCount === 1 ? "" : "s"}
           </p>
-          <p className="mt-1 text-xs text-[#a9abb3]">
-            {selectedModuleTitle ? `Focused on ${selectedModuleTitle}.` : "Choose a module to edit or assign it."}
-          </p>
+          <p className="mt-1 text-xs text-[#a9abb3]">{selectedModuleSummary}</p>
         </div>
       </div>
 
@@ -65,7 +72,7 @@ export function TrainingManagerCommandDeck({
         </button>
         <button
           className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/70 px-4 py-3 text-sm font-semibold text-white transition hover:border-[#74b1ff]/30 hover:bg-[#74b1ff]/10 disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={!selectedModuleTitle || isBusy}
+          disabled={!hasSelectedModule || isBusy}
           onClick={onEdit}
           type="button"
         >
@@ -73,7 +80,7 @@ export function TrainingManagerCommandDeck({
         </button>
         <button
           className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/70 px-4 py-3 text-sm font-semibold text-white transition hover:border-[#74b1ff]/30 hover:bg-[#74b1ff]/10 disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={!selectedModuleTitle || isBusy}
+          disabled={!hasSelectedModule || isBusy}
           onClick={onAssign}
           type="button"
         >

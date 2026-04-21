@@ -1098,6 +1098,7 @@ export function TrainingPanel({
       aiAvailable={aiAvailable}
       expandedPanel={managerPlannerPanel}
       feedback={managerFeedback}
+      hasSelectedModule={Boolean(selectedModule)}
       isBusy={isManagerBusy}
       moduleCount={modules.length}
       onAssign={() => {
