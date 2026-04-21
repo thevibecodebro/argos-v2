@@ -1,18 +1,18 @@
 import {
-  CALL_SCORING_CATEGORIES,
-  CALL_SCORE_LABELS_BY_SLUG,
+  DEFAULT_CALL_SCORING_RUBRIC,
   buildCallScoringSystemPrompt,
   computeWeightedOverallScore,
+  validateScoringRubric,
 } from "./rubric";
 import {
-  CALL_SCORING_CATEGORY_SLUGS,
   CALL_STAGE_REACHED_VALUES,
-  type CallScoringCategorySlug,
-  CallEvaluation,
-  CallEvaluationMoment,
-  CallMomentSeverity,
+  type CallCategoryScore,
+  type CallEvaluation,
+  type CallEvaluationMoment,
+  type CallMomentSeverity,
   type CallStageReached,
-  TranscriptLine,
+  type ScoringRubric,
+  type TranscriptLine,
 } from "./types";
 
 export type CallScoringInput = {
@@ -20,6 +20,7 @@ export type CallScoringInput = {
   callTopic: string | null;
   contentType: string | null;
   fileName: string;
+  rubric?: ScoringRubric;
 };
 
 export type CallScoringConfig = {
@@ -47,7 +48,7 @@ type TranscriptionResponse = {
 
 type ParsedScoringResponse = {
   callStageReached: CallStageReached;
-  categoryScores: Record<CallScoringCategorySlug, number>;
+  categoryScores: CallCategoryScore[];
   confidence: "high" | "medium" | "low";
   improvements: string[];
   moments: CallEvaluationMoment[];
@@ -202,10 +203,12 @@ export async function transcribeAudioBuffer(input: {
 export async function scoreTranscriptFromLines(input: {
   callTopic: string | null;
   durationSeconds: number;
+  rubric?: ScoringRubric;
   transcript: TranscriptLine[];
   config?: CallScoringConfig;
 }): Promise<CallEvaluation> {
   const resolved = resolveCallScoringConfig(input.config);
+  const rubric = validateScoringRubric(input.rubric ?? DEFAULT_CALL_SCORING_RUBRIC);
   const response = await fetch(`${resolved.baseUrl}/chat/completions`, {
     method: "POST",
     headers: {
@@ -218,7 +221,7 @@ export async function scoreTranscriptFromLines(input: {
       messages: [
         {
           role: "system",
-          content: buildCallScoringSystemPrompt(),
+          content: buildCallScoringSystemPrompt(rubric),
         },
         {
           role: "user",
@@ -251,20 +254,24 @@ export async function scoreTranscriptFromLines(input: {
     throw new Error("OpenAI call scoring returned an empty response");
   }
 
-  const scoring = parseScoringResponse(content, input.durationSeconds);
+  const scoring = parseScoringResponse(content, input.durationSeconds, rubric);
+  const legacyScores = toLegacyCategoryScores(scoring.categoryScores);
+  const categoryScoreRecord = toCategoryScoreRecord(scoring.categoryScores);
 
   return {
+    rubricId: rubric.id,
     confidence: scoring.confidence,
     durationSeconds: input.durationSeconds,
     callStageReached: scoring.callStageReached,
-    overallScore: computeWeightedOverallScore(scoring.categoryScores),
-    frameControlScore: scoring.categoryScores.frame_control,
-    rapportScore: scoring.categoryScores.rapport,
-    discoveryScore: scoring.categoryScores.discovery,
-    painExpansionScore: scoring.categoryScores.pain_expansion,
-    solutionScore: scoring.categoryScores.solution,
-    objectionScore: scoring.categoryScores.objection_handling,
-    closingScore: scoring.categoryScores.closing,
+    overallScore: computeWeightedOverallScore(categoryScoreRecord, rubric),
+    categoryScores: scoring.categoryScores,
+    frameControlScore: legacyScores.frameControlScore,
+    rapportScore: legacyScores.rapportScore,
+    discoveryScore: legacyScores.discoveryScore,
+    painExpansionScore: legacyScores.painExpansionScore,
+    solutionScore: legacyScores.solutionScore,
+    objectionScore: legacyScores.objectionScore,
+    closingScore: legacyScores.closingScore,
     strengths: scoring.strengths,
     improvements: scoring.improvements,
     recommendedDrills: scoring.recommendedDrills,
@@ -287,6 +294,7 @@ export async function scoreCallRecording(
   return scoreTranscriptFromLines({
     callTopic: input.callTopic,
     durationSeconds: transcription.durationSeconds,
+    rubric: input.rubric,
     transcript: transcription.transcript,
     config,
   });
@@ -329,6 +337,7 @@ function formatTimestamp(seconds: number) {
 function parseScoringResponse(
   content: string,
   durationSeconds: number,
+  rubric: ScoringRubric,
 ): ParsedScoringResponse {
   let parsed: unknown;
 
@@ -347,14 +356,7 @@ function parseScoringResponse(
     record.categoryScores && typeof record.categoryScores === "object"
       ? (record.categoryScores as Record<string, unknown>)
       : {};
-
-  const categoryScores = CALL_SCORING_CATEGORIES.reduce(
-    (scores, category) => ({
-      ...scores,
-      [category.slug]: clampScore(rawScores[category.slug]),
-    }),
-    {} as Record<CallScoringCategorySlug, number>,
-  );
+  const categoryScores = normalizeCategoryScores(rawScores, rubric);
 
   const confidence = normalizeConfidence(record.confidence);
   const callStageReached = normalizeCallStage(record.callStageReached);
@@ -362,6 +364,7 @@ function parseScoringResponse(
   const strengths = normalizeStringArray(record.strengths);
   const improvements = normalizeStringArray(record.improvements);
   const recommendedDrills = normalizeStringArray(record.recommendedDrills);
+  const categoryScoreRecord = toCategoryScoreRecord(categoryScores);
 
   return {
     confidence,
@@ -370,16 +373,16 @@ function parseScoringResponse(
     strengths:
       strengths.length > 0
         ? strengths.slice(0, 3)
-        : deriveFallbackNarratives(categoryScores, "strength"),
+        : deriveFallbackNarratives(categoryScoreRecord, rubric, "strength"),
     improvements:
       improvements.length > 0
         ? improvements.slice(0, 3)
-        : deriveFallbackNarratives(categoryScores, "improvement"),
+        : deriveFallbackNarratives(categoryScoreRecord, rubric, "improvement"),
     recommendedDrills:
       recommendedDrills.length > 0
         ? recommendedDrills.slice(0, 3)
-        : deriveFallbackDrills(categoryScores),
-    moments: normalizeMoments(record.moments, durationSeconds),
+        : deriveFallbackDrills(categoryScoreRecord, rubric),
+    moments: normalizeMoments(record.moments, durationSeconds, rubric),
   };
 }
 
@@ -406,6 +409,44 @@ function clampScore(value: unknown) {
   return Math.max(0, Math.min(100, Math.round(numeric)));
 }
 
+function normalizeCategoryScores(
+  rawScores: Record<string, unknown>,
+  rubric: ScoringRubric,
+) {
+  const missingCategories = rubric.categories
+    .filter((category) => !Object.hasOwn(rawScores, category.slug))
+    .map((category) => category.slug);
+
+  if (missingCategories.length > 0) {
+    throw new Error(
+      `OpenAI call scoring missing category scores for: ${missingCategories.join(", ")}`,
+    );
+  }
+
+  return rubric.categories.map((category) => ({
+    categoryId: category.id,
+    slug: category.slug,
+    name: category.name,
+    weight: category.weight,
+    score: parseRequiredScore(rawScores[category.slug], category.slug),
+  }));
+}
+
+function parseRequiredScore(value: unknown, slug: string) {
+  const numeric =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number.parseFloat(value)
+        : Number.NaN;
+
+  if (Number.isNaN(numeric)) {
+    throw new Error(`OpenAI call scoring returned an invalid score for category "${slug}"`);
+  }
+
+  return clampScore(numeric);
+}
+
 function normalizeStringArray(value: unknown) {
   return Array.isArray(value)
     ? value.filter(
@@ -415,7 +456,11 @@ function normalizeStringArray(value: unknown) {
     : [];
 }
 
-function normalizeMoments(value: unknown, durationSeconds: number) {
+function normalizeMoments(
+  value: unknown,
+  durationSeconds: number,
+  rubric: ScoringRubric,
+) {
   if (!Array.isArray(value)) {
     return [];
   }
@@ -423,7 +468,7 @@ function normalizeMoments(value: unknown, durationSeconds: number) {
   const moments: CallEvaluationMoment[] = [];
 
   for (const rawMoment of value) {
-    const moment = normalizeMoment(rawMoment, durationSeconds);
+    const moment = normalizeMoment(rawMoment, durationSeconds, rubric);
 
     if (moment) {
       moments.push(moment);
@@ -433,17 +478,25 @@ function normalizeMoments(value: unknown, durationSeconds: number) {
   return moments.slice(0, 5);
 }
 
-function normalizeMoment(value: unknown, durationSeconds: number) {
+function normalizeMoment(
+  value: unknown,
+  durationSeconds: number,
+  rubric: ScoringRubric,
+) {
   if (!value || typeof value !== "object") {
     return null;
   }
 
   const record = value as Record<string, unknown>;
-  const category = normalizeCategory(record.category);
+  const category = normalizeCategory(record.category, rubric);
   const observation =
     typeof record.observation === "string" ? record.observation.trim() : "";
   const recommendation =
     typeof record.recommendation === "string" ? record.recommendation.trim() : "";
+
+  if (record.category != null && !category) {
+    throw new Error("OpenAI call scoring returned a moment with an invalid category");
+  }
 
   if (!category || !observation || !recommendation) {
     return null;
@@ -477,16 +530,14 @@ function normalizeMoment(value: unknown, durationSeconds: number) {
   };
 }
 
-function normalizeCategory(value: unknown) {
+function normalizeCategory(value: unknown, rubric: ScoringRubric) {
   if (typeof value !== "string") {
     return null;
   }
 
   const normalized = value.trim().toLowerCase();
-  return CALL_SCORING_CATEGORY_SLUGS.includes(
-    normalized as CallScoringCategorySlug,
-  )
-    ? (normalized as CallScoringCategorySlug)
+  return rubric.categories.some((category) => category.slug === normalized)
+    ? normalized
     : null;
 }
 
@@ -505,11 +556,30 @@ function normalizeSeverity(value: unknown): CallMomentSeverity {
   return value === "strength" || value === "critical" ? value : "improvement";
 }
 
+function toCategoryScoreRecord(categoryScores: CallCategoryScore[]) {
+  return Object.fromEntries(categoryScores.map((category) => [category.slug, category.score]));
+}
+
+function toLegacyCategoryScores(categoryScores: CallCategoryScore[]) {
+  const record = toCategoryScoreRecord(categoryScores);
+
+  return {
+    frameControlScore: record.frame_control ?? null,
+    rapportScore: record.rapport ?? null,
+    discoveryScore: record.discovery ?? null,
+    painExpansionScore: record.pain_expansion ?? null,
+    solutionScore: record.solution ?? null,
+    objectionScore: record.objection_handling ?? null,
+    closingScore: record.closing ?? null,
+  };
+}
+
 function deriveFallbackNarratives(
-  scores: Record<CallScoringCategorySlug, number>,
+  scores: Record<string, number>,
+  rubric: ScoringRubric,
   mode: "improvement" | "strength",
 ) {
-  const sorted = [...CALL_SCORING_CATEGORIES].sort((left, right) =>
+  const sorted = [...rubric.categories].sort((left, right) =>
     mode === "strength"
       ? scores[right.slug] - scores[left.slug]
       : scores[left.slug] - scores[right.slug],
@@ -517,14 +587,14 @@ function deriveFallbackNarratives(
 
   return sorted.slice(0, 2).map((category) =>
     mode === "strength"
-      ? `${CALL_SCORE_LABELS_BY_SLUG[category.slug]} was one of the strongest parts of the call.`
-      : `${CALL_SCORE_LABELS_BY_SLUG[category.slug]} needs tighter execution and more repetition.`,
+      ? `${category.name} was one of the strongest parts of the call.`
+      : `${category.name} needs tighter execution and more repetition.`,
   );
 }
 
-function deriveFallbackDrills(scores: Record<CallScoringCategorySlug, number>) {
-  return [...CALL_SCORING_CATEGORIES]
+function deriveFallbackDrills(scores: Record<string, number>, rubric: ScoringRubric) {
+  return [...rubric.categories]
     .sort((left, right) => scores[left.slug] - scores[right.slug])
     .slice(0, 2)
-    .map((category) => `${CALL_SCORE_LABELS_BY_SLUG[category.slug]} drill`);
+    .map((category) => `${category.name} drill`);
 }

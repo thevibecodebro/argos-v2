@@ -1,5 +1,6 @@
 import { index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { callsTable } from "./calls";
+import { rubricsTable } from "./rubrics";
 
 export const CALL_PROCESSING_JOB_ORIGINS = ["manual_upload", "zoom_recording"] as const;
 export const CALL_PROCESSING_JOB_STATUSES = [
@@ -26,6 +27,7 @@ export const callProcessingJobsTable = pgTable(
       .notNull()
       .references(() => callsTable.id, { onDelete: "cascade" })
       .unique(),
+    rubricId: uuid("rubric_id").references(() => rubricsTable.id, { onDelete: "restrict" }),
     sourceOrigin: text("source_origin", { enum: CALL_PROCESSING_JOB_ORIGINS }).notNull(),
     sourceStoragePath: text("source_storage_path").notNull(),
     sourceFileName: text("source_file_name").notNull(),
@@ -45,5 +47,6 @@ export const callProcessingJobsTable = pgTable(
   (table) => [
     index("call_processing_jobs_status_next_run_idx").on(table.status, table.nextRunAt),
     index("call_processing_jobs_lock_expires_idx").on(table.lockExpiresAt),
+    index("call_processing_jobs_rubric_id_idx").on(table.rubricId),
   ],
 );

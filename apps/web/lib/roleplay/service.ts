@@ -1,6 +1,8 @@
 import "server-only";
 import { buildAccessContext, canActorViewRep, type AccessContext } from "@/lib/access/service";
 import type { DashboardUserRecord } from "@/lib/dashboard/service";
+import { createRubricsRepository } from "@/lib/rubrics/create-repository";
+import { loadActiveRubric, type RubricsRepository } from "@/lib/rubrics/service";
 import {
   normalizeRoleplaySessionCreateInput,
   ROLEPLAY_CATEGORY_LABELS,
@@ -49,6 +51,18 @@ export type RoleplayRepository = {
       transcript: RoleplayMessage[];
     }>,
   ): Promise<RoleplaySessionRecord>;
+};
+
+type RoleplayRubricCategory = {
+  slug: string;
+  name: string;
+};
+
+type RoleplayRubric = {
+  id: string;
+  name: string;
+  version: number;
+  categories: RoleplayRubricCategory[];
 };
 
 const PERSONAS: RoleplayPersona[] = [
@@ -149,16 +163,25 @@ function serializeSession(session: RoleplaySessionRecord): RoleplaySession {
   };
 }
 
-function createEmptyCategoryScores(): Record<RoleplayCategory, number | null> {
-  return {
-    closing: null,
-    discovery: null,
-    frame_control: null,
-    objection_handling: null,
-    pain_expansion: null,
-    rapport: null,
-    solution: null,
-  };
+const DEFAULT_ROLEPLAY_RUBRIC: RoleplayRubric = {
+  id: "default-roleplay-rubric",
+  name: "Roleplay Scorecard",
+  version: 1,
+  categories: Object.entries(ROLEPLAY_CATEGORY_LABELS).map(([slug, name]) => ({
+    slug,
+    name,
+  })),
+};
+
+function createEmptyCategoryScores(categories: Array<{ slug: string }>) {
+  return Object.fromEntries(categories.map((category) => [category.slug, null])) as Record<
+    string,
+    number | null
+  >;
+}
+
+function createCategoryLabels(categories: Array<{ slug: string; name: string }>) {
+  return Object.fromEntries(categories.map((category) => [category.slug, category.name]));
 }
 
 function normalizeScorecard(
@@ -169,17 +192,29 @@ function normalizeScorecard(
   }
 
   if ("confidence" in scorecard && "categoryScores" in scorecard && "callStageReached" in scorecard) {
-    return scorecard;
+    return {
+      ...scorecard,
+      categoryLabels: scorecard.categoryLabels ?? {
+        ...ROLEPLAY_CATEGORY_LABELS,
+      },
+      rubricId: scorecard.rubricId ?? null,
+      rubricName: scorecard.rubricName ?? null,
+      rubricVersion: scorecard.rubricVersion ?? null,
+    };
   }
 
-  const fallbackCategoryScores = createEmptyCategoryScores();
+  const fallbackCategoryScores = createEmptyCategoryScores(DEFAULT_ROLEPLAY_RUBRIC.categories);
   fallbackCategoryScores.solution = 74;
   fallbackCategoryScores.discovery = 68;
   fallbackCategoryScores.closing = 71;
 
   return {
+    rubricId: DEFAULT_ROLEPLAY_RUBRIC.id,
+    rubricName: DEFAULT_ROLEPLAY_RUBRIC.name,
+    rubricVersion: DEFAULT_ROLEPLAY_RUBRIC.version,
     callStageReached: "solution",
     categoryScores: fallbackCategoryScores,
+    categoryLabels: createCategoryLabels(DEFAULT_ROLEPLAY_RUBRIC.categories),
     confidence: "medium",
     summary: scorecard.summary,
     strengths: scorecard.strengths,
@@ -232,7 +267,79 @@ function buildReply(persona: RoleplayPersona, userMessage: string): string {
   }
 }
 
-function buildScorecard(transcript: RoleplayMessage[]): {
+function scoreLegacyRoleplayCategories(input: {
+  hasDiscovery: boolean;
+  hasImplementation: boolean;
+  hasNextStep: boolean;
+  hasNumericProof: boolean;
+  hasTechnical: boolean;
+}) {
+  return {
+    frame_control: input.hasNextStep ? 84 : 66,
+    rapport: input.hasDiscovery ? 76 : 63,
+    discovery: input.hasDiscovery ? 83 : 57,
+    pain_expansion: input.hasDiscovery ? 78 : 59,
+    solution: input.hasNumericProof ? 87 : 67,
+    objection_handling: input.hasTechnical || input.hasImplementation ? 81 : 64,
+    closing: input.hasNextStep ? 92 : 54,
+  } as const;
+}
+
+function matchRubricCategoryToLegacy(category: RoleplayRubricCategory): RoleplayCategory | null {
+  const value = `${category.slug} ${category.name}`.toLowerCase();
+
+  if (value.includes("frame") || value.includes("agenda") || value.includes("control")) {
+    return "frame_control";
+  }
+  if (value.includes("rapport") || value.includes("trust")) {
+    return "rapport";
+  }
+  if (value.includes("discover") || value.includes("question")) {
+    return "discovery";
+  }
+  if (value.includes("pain") || value.includes("transition")) {
+    return "pain_expansion";
+  }
+  if (value.includes("solution") || value.includes("demo") || value.includes("pitch")) {
+    return "solution";
+  }
+  if (value.includes("objection")) {
+    return "objection_handling";
+  }
+  if (value.includes("close") || value.includes("commit") || value.includes("next step")) {
+    return "closing";
+  }
+
+  return null;
+}
+
+function resolveMomentCategory(
+  preferred: RoleplayCategory,
+  categories: RoleplayRubricCategory[],
+) {
+  const exact = categories.find((category) => matchRubricCategoryToLegacy(category) === preferred);
+  return exact?.slug ?? categories[0]?.slug ?? preferred;
+}
+
+function buildRoleplayRubricCategoryScores(
+  rubric: RoleplayRubric,
+  legacyScores: Record<RoleplayCategory, number>,
+  overallScore: number,
+) {
+  const categoryScores = createEmptyCategoryScores(rubric.categories);
+
+  for (const category of rubric.categories) {
+    const mapped = matchRubricCategoryToLegacy(category);
+    categoryScores[category.slug] = mapped ? legacyScores[mapped] : overallScore;
+  }
+
+  return categoryScores;
+}
+
+function buildScorecard(
+  transcript: RoleplayMessage[],
+  rubric: RoleplayRubric = DEFAULT_ROLEPLAY_RUBRIC,
+): {
   overallScore: number;
   scorecard: RoleplayScorecard;
 } {
@@ -260,15 +367,15 @@ function buildScorecard(transcript: RoleplayMessage[]): {
   const improvements: string[] = [];
   const recommendedDrills: string[] = [];
   const moments: RoleplayScorecard["moments"] = [];
-  const categoryScores = createEmptyCategoryScores();
-
-  categoryScores.frame_control = hasNextStep ? 84 : 66;
-  categoryScores.rapport = hasDiscovery ? 76 : 63;
-  categoryScores.discovery = hasDiscovery ? 83 : 57;
-  categoryScores.pain_expansion = hasDiscovery ? 78 : 59;
-  categoryScores.solution = hasNumericProof ? 87 : 67;
-  categoryScores.objection_handling = hasTechnical || hasImplementation ? 81 : 64;
-  categoryScores.closing = hasNextStep ? 92 : 54;
+  const legacyScores = scoreLegacyRoleplayCategories({
+    hasDiscovery,
+    hasImplementation,
+    hasNextStep,
+    hasNumericProof,
+    hasTechnical,
+  });
+  const categoryScores = buildRoleplayRubricCategoryScores(rubric, legacyScores, score);
+  const categoryLabels = createCategoryLabels(rubric.categories);
 
   const confidence: RoleplayScorecard["confidence"] =
     score >= 82 ? "high" : score >= 68 ? "medium" : "low";
@@ -283,7 +390,7 @@ function buildScorecard(transcript: RoleplayMessage[]): {
   if (hasNumericProof) {
     strengths.push("Used quantified business impact instead of generic value statements.");
     moments.push({
-      category: "solution",
+      category: resolveMomentCategory("solution", rubric.categories),
       observation: "The rep used concrete numbers to support the business case.",
       recommendation: "Keep tying quantified proof directly to the buyer's current pain and urgency.",
       severity: "strength",
@@ -292,7 +399,7 @@ function buildScorecard(transcript: RoleplayMessage[]): {
     improvements.push("Bring a quantified ROI or outcome into the conversation earlier.");
     recommendedDrills.push("ROI storytelling under pressure");
     moments.push({
-      category: "solution",
+      category: resolveMomentCategory("solution", rubric.categories),
       observation: "The business case stayed mostly qualitative and left ROI assumptions unstated.",
       recommendation: "Add a sharper quantified proof point before asking for commitment.",
       severity: "improvement",
@@ -302,7 +409,7 @@ function buildScorecard(transcript: RoleplayMessage[]): {
   if (hasNextStep) {
     strengths.push("Closed toward a specific next step instead of ending vaguely.");
     moments.push({
-      category: "closing",
+      category: resolveMomentCategory("closing", rubric.categories),
       observation: "The rep proposed a concrete follow-up with ownership and timing.",
       recommendation: "Keep preserving that calendar control when the buyer starts to stall.",
       severity: "strength",
@@ -311,7 +418,7 @@ function buildScorecard(transcript: RoleplayMessage[]): {
     improvements.push("Create urgency and land a dated next step before ending the call.");
     recommendedDrills.push("Closing with calendar control");
     moments.push({
-      category: "closing",
+      category: resolveMomentCategory("closing", rubric.categories),
       observation: "The conversation ended without a committed next step or clear ownership.",
       recommendation: "Land a dated follow-up before ending the roleplay.",
       severity: "critical",
@@ -321,7 +428,7 @@ function buildScorecard(transcript: RoleplayMessage[]): {
   if (hasDiscovery) {
     strengths.push("Connected the pitch to the buyer's operational pain.");
     moments.push({
-      category: "discovery",
+      category: resolveMomentCategory("discovery", rubric.categories),
       observation: "The rep tied the pitch back to the buyer's current pain and workflow constraints.",
       recommendation: "Keep opening with buyer context before moving into proof.",
       severity: "strength",
@@ -330,7 +437,7 @@ function buildScorecard(transcript: RoleplayMessage[]): {
     improvements.push("Ask deeper discovery questions before pitching solution details.");
     recommendedDrills.push("Pain discovery ladder");
     moments.push({
-      category: "discovery",
+      category: resolveMomentCategory("discovery", rubric.categories),
       observation: "The rep moved into solution language before opening enough discovery.",
       recommendation: "Use one more diagnostic question before presenting the solution.",
       severity: "improvement",
@@ -340,7 +447,7 @@ function buildScorecard(transcript: RoleplayMessage[]): {
   if (!hasImplementation) {
     recommendedDrills.push("Implementation objection handling");
     moments.push({
-      category: "objection_handling",
+      category: resolveMomentCategory("objection_handling", rubric.categories),
       observation: "Implementation ownership and rollout lift were not addressed clearly enough.",
       recommendation: "Clarify rollout ownership and expected workload before the buyer asks twice.",
       severity: "improvement",
@@ -356,8 +463,12 @@ function buildScorecard(transcript: RoleplayMessage[]): {
   return {
     overallScore: score,
     scorecard: {
+      rubricId: rubric.id,
+      rubricName: rubric.name,
+      rubricVersion: rubric.version,
       callStageReached,
       categoryScores,
+      categoryLabels,
       confidence,
       summary:
         score >= 80
@@ -531,6 +642,46 @@ export async function listRoleplaySessions(
   };
 }
 
+async function loadPinnedRoleplayRubric(
+  rubricsRepository: RubricsRepository,
+  orgId: string,
+  rubricId: string | null,
+): Promise<RoleplayRubric | null> {
+  if (rubricId) {
+    const history = await rubricsRepository.findRubricHistoryByOrgId(orgId);
+    const pinned = history.find((rubric) => rubric.id === rubricId);
+
+    if (pinned) {
+      const categories = await rubricsRepository.findCategoriesByRubricId(pinned.id);
+      return {
+        id: pinned.id,
+        name: pinned.name,
+        version: pinned.version,
+        categories: categories.map((category) => ({
+          slug: category.slug ?? category.name,
+          name: category.name,
+        })),
+      };
+    }
+  }
+
+  const active = await loadActiveRubric(rubricsRepository, orgId);
+
+  if (!active) {
+    return null;
+  }
+
+  return {
+    id: active.id,
+    name: active.name,
+    version: active.version,
+    categories: active.categories.map((category) => ({
+      slug: category.slug ?? category.name,
+      name: category.name,
+    })),
+  };
+}
+
 export async function getRoleplaySession(
   repository: RoleplayRepository,
   authUserId: string,
@@ -552,6 +703,7 @@ export async function createRoleplaySession(
   repository: RoleplayRepository,
   authUserId: string,
   personaId: string,
+  rubricsRepository: RubricsRepository = createRubricsRepository(),
 ): Promise<ServiceResult<RoleplaySession>> {
   const accessResult = await getViewer(authUserId);
 
@@ -586,23 +738,27 @@ export async function createRoleplaySession(
     },
   ];
 
-  const session = await repository.createSession(normalizeRoleplaySessionCreateInput({
-    difficulty: persona.difficulty,
-    industry: persona.industry,
-    orgId,
-    persona: persona.id,
-    origin: "manual",
-    sourceCallId: null,
-    rubricId: null,
-    focusMode: "all",
-    focusCategorySlug: null,
-    scenarioSummary: null,
-    scenarioBrief: null,
-    repId: accessResult.data.actor.id,
-    scorecard: null,
-    status: "active",
-    transcript,
-  }) as RoleplaySessionCreateInput);
+  const rubric = await loadPinnedRoleplayRubric(rubricsRepository, orgId, null);
+
+  const session = await repository.createSession(
+    normalizeRoleplaySessionCreateInput({
+      difficulty: persona.difficulty,
+      industry: persona.industry,
+      orgId,
+      persona: persona.id,
+      origin: "manual",
+      sourceCallId: null,
+      rubricId: rubric?.id ?? null,
+      focusMode: "all",
+      focusCategorySlug: null,
+      scenarioSummary: null,
+      scenarioBrief: null,
+      repId: accessResult.data.actor.id,
+      scorecard: null,
+      status: "active",
+      transcript,
+    }) as RoleplaySessionCreateInput,
+  );
 
   return {
     ok: true,
@@ -672,6 +828,7 @@ export async function completeRoleplaySession(
   repository: RoleplayRepository,
   authUserId: string,
   sessionId: string,
+  rubricsRepository: RubricsRepository = createRubricsRepository(),
 ): Promise<ServiceResult<RoleplaySession>> {
   const sessionResult = await getAuthorizedSession(repository, authUserId, sessionId);
 
@@ -689,7 +846,15 @@ export async function completeRoleplaySession(
     };
   }
 
-  const { overallScore, scorecard } = buildScorecard(transcript);
+  const rubric = await loadPinnedRoleplayRubric(
+    rubricsRepository,
+    sessionResult.data.orgId,
+    sessionResult.data.rubricId,
+  );
+  const { overallScore, scorecard } = buildScorecard(
+    transcript,
+    rubric ?? DEFAULT_ROLEPLAY_RUBRIC,
+  );
 
   const updated = await repository.updateSession(sessionId, {
     overallScore,

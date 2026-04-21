@@ -32,6 +32,7 @@ describe("RoleplayPanel", () => {
             id: "session-1",
             repId: "rep-1",
             orgId: "org-1",
+            rubricId: "rubric-1",
             persona: "skeptical-cfo",
             personaDetails: {
               id: "skeptical-cfo",
@@ -49,7 +50,6 @@ describe("RoleplayPanel", () => {
             overallScore: 87,
             origin: "manual",
             sourceCallId: null,
-            rubricId: null,
             focusMode: "all",
             focusCategorySlug: null,
             scenarioSummary: null,

@@ -1,5 +1,7 @@
 import crypto from "node:crypto";
 import { storeZoomCallSource, type SourceAsset } from "@/lib/calls/ingestion-service";
+import { createRubricsRepository } from "@/lib/rubrics/create-repository";
+import { getActiveRubric, type RubricsRepository } from "@/lib/rubrics/service";
 import { refreshZoomToken } from "./oauth";
 
 type ZoomWebhookEnv = Partial<Record<
@@ -16,6 +18,7 @@ export interface ZoomWebhookRepository {
     consentConfirmed: boolean;
     durationSeconds: number | null;
     orgId: string;
+    rubricId?: string | null;
     recordingUrl: string | null;
     repId: string;
     status: CallStatus;
@@ -24,6 +27,7 @@ export interface ZoomWebhookRepository {
   }): Promise<{ id: string }>;
   createOrResetCallProcessingJob(input: {
     callId: string;
+    rubricId?: string | null;
     sourceOrigin: "zoom_recording";
     sourceStoragePath: string;
     sourceFileName: string;
@@ -96,6 +100,7 @@ type DownloadedRecordingAsset = {
 };
 
 type ZoomWebhookDependencies = {
+  rubricsRepository?: RubricsRepository;
   storeSourceAsset?: (input: {
     callId: string;
     bytes: Buffer;
@@ -223,11 +228,15 @@ export async function processZoomWebhookRequest(
     ? parsed.payload.object.duration * 60
     : null;
   const callTopic = parsed.payload?.object?.topic?.trim() || "Zoom cloud recording";
+  const rubricsRepository = dependencies.rubricsRepository ?? createRubricsRepository();
+  const activeRubric = await getActiveRubric(rubricsRepository, integration.orgId);
+  const rubricId = activeRubric.ok ? activeRubric.data.id : null;
   const createdNewCall = !existing;
   const callId = existing?.id ?? (
     await repository.createCall({
       orgId: integration.orgId,
       repId: owner.id,
+      rubricId,
       callTopic,
       durationSeconds,
       recordingUrl: null,
@@ -260,6 +269,7 @@ export async function processZoomWebhookRequest(
     await repository.updateCallRecording(callId, sourceAsset.publicUrl);
     await repository.createOrResetCallProcessingJob({
       callId,
+      rubricId,
       sourceOrigin: "zoom_recording",
       sourceStoragePath: sourceAsset.storagePath,
       sourceFileName: recordingAsset.fileName,

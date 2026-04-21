@@ -1,5 +1,6 @@
 import { boolean, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { organizationsTable } from "./organizations";
+import { rubricCategoriesTable, rubricsTable } from "./rubrics";
 import { usersTable } from "./users";
 
 export const callsTable = pgTable("calls", {
@@ -35,6 +36,7 @@ export const callsTable = pgTable("calls", {
   callTopic: text("call_topic"),
   transcript: jsonb("transcript"),
   crmDealId: text("crm_deal_id"),
+  rubricId: uuid("rubric_id").references(() => rubricsTable.id, { onDelete: "set null" }),
   zoomRecordingId: text("zoom_recording_id").unique(),
   zoomMeetingId: text("zoom_meeting_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -67,5 +69,17 @@ export const callAnnotationsTable = pgTable("call_annotations", {
     .references(() => usersTable.id),
   timestampSeconds: integer("timestamp_seconds"),
   note: text("note").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const callScoresTable = pgTable("call_scores", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  callId: uuid("call_id")
+    .notNull()
+    .references(() => callsTable.id, { onDelete: "cascade" }),
+  rubricCategoryId: uuid("rubric_category_id")
+    .notNull()
+    .references(() => rubricCategoriesTable.id, { onDelete: "cascade" }),
+  score: integer("score").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

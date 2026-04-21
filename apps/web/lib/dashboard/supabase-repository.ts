@@ -222,6 +222,7 @@ export class SupabaseDashboardRepository implements DashboardRepository {
       .select(`
         id,
         rep_id,
+        rubric_id,
         call_topic,
         created_at,
         overall_score,
@@ -255,9 +256,10 @@ export class SupabaseDashboardRepository implements DashboardRepository {
       throw new Error(error.message);
     }
 
-    return (data ?? []).map((call: any) => ({
+    const calls = (data ?? []).map((call: any) => ({
       id: call.id,
       repId: call.rep_id,
+      rubricId: call.rubric_id ?? null,
       callTopic: call.call_topic,
       createdAt: new Date(call.created_at),
       overallScore: call.overall_score,
@@ -270,5 +272,109 @@ export class SupabaseDashboardRepository implements DashboardRepository {
       objectionScore: call.objection_score,
       closingScore: call.closing_score,
     }));
+
+    return this.attachRubricData(calls);
+  }
+
+  private async attachRubricData<
+    T extends {
+      id: string;
+      rubricId?: string | null;
+    },
+  >(calls: T[]) {
+    if (!calls.length) {
+      return calls.map((call) => ({
+        ...call,
+        rubricVersion: null,
+        rubricName: null,
+        categoryScores: [],
+      }));
+    }
+
+    const callIds = calls.map((call) => call.id);
+    const rubricIds = Array.from(
+      new Set(
+        calls
+          .map((call) => call.rubricId)
+          .filter((value): value is string => typeof value === "string" && value.length > 0),
+      ),
+    );
+
+    if (!rubricIds.length) {
+      return calls.map((call) => ({
+        ...call,
+        rubricVersion: null,
+        rubricName: null,
+        categoryScores: [],
+      }));
+    }
+
+    const supabase = await this.getSupabase();
+    const [{ data: rubrics, error: rubricsError }, { data: categories, error: categoriesError }, { data: scores, error: scoresError }] =
+      await Promise.all([
+        supabase
+          .from("rubrics")
+          .select("id, name, version")
+          .in("id", rubricIds),
+        supabase
+          .from("rubric_categories")
+          .select("id, rubric_id, slug, name, sort_order, created_at")
+          .in("rubric_id", rubricIds)
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: true }),
+        supabase
+          .from("call_scores")
+          .select("call_id, rubric_category_id, score")
+          .in("call_id", callIds),
+      ]);
+
+    if (rubricsError) {
+      throw new Error(rubricsError.message);
+    }
+
+    if (categoriesError) {
+      throw new Error(categoriesError.message);
+    }
+
+    if (scoresError) {
+      throw new Error(scoresError.message);
+    }
+
+    const rubricById = new Map((rubrics ?? []).map((rubric: any) => [rubric.id, rubric]));
+    const categoriesByRubricId = new Map<string, any[]>();
+    const categoryRows = (categories ?? []) as any[];
+    const scoreRows = (scores ?? []) as any[];
+
+    for (const category of categoryRows) {
+      const bucket = categoriesByRubricId.get(category.rubric_id) ?? [];
+      bucket.push(category);
+      categoriesByRubricId.set(category.rubric_id, bucket);
+    }
+
+    const scoresByCallId = new Map<string, Map<string, number>>();
+
+    for (const score of scoreRows) {
+      const bucket = scoresByCallId.get(score.call_id) ?? new Map<string, number>();
+      bucket.set(score.rubric_category_id, score.score);
+      scoresByCallId.set(score.call_id, bucket);
+    }
+
+    return calls.map((call) => {
+      const rubric = call.rubricId ? rubricById.get(call.rubricId) ?? null : null;
+      const rubricCategories = call.rubricId ? categoriesByRubricId.get(call.rubricId) ?? [] : [];
+      const callScores = scoresByCallId.get(call.id) ?? new Map<string, number>();
+
+      return {
+        ...call,
+        rubricVersion: rubric?.version ?? null,
+        rubricName: rubric?.name ?? null,
+        categoryScores: rubricCategories.map((category) => ({
+          slug: category.slug,
+          name: category.name,
+          score: callScores.get(category.id) ?? null,
+          sortOrder: category.sort_order,
+        })),
+      };
+    });
   }
 }

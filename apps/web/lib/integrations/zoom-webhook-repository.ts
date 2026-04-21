@@ -23,6 +23,7 @@ export class DrizzleZoomWebhookRepository implements ZoomWebhookRepository {
     consentConfirmed: boolean;
     durationSeconds: number | null;
     orgId: string;
+    rubricId?: string | null;
     recordingUrl: string | null;
     repId: string;
     status: "uploaded" | "transcribing" | "evaluating" | "complete" | "failed";

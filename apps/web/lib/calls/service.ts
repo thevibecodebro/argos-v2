@@ -7,9 +7,12 @@ import {
 } from "@/lib/access/service";
 import type { AccessRepository } from "@/lib/access/repository.types";
 import type { DashboardUserRecord } from "@/lib/dashboard/service";
+import { createRubricsRepository } from "@/lib/rubrics/create-repository";
+import { getActiveRubric, type RubricsRepository } from "@/lib/rubrics/service";
 import type { AppUserRole } from "@/lib/users/roles";
 import { storeManualCallSource, type SourceAsset } from "./ingestion-service";
 import type { CallEvaluation, TranscriptLine } from "./types";
+import { CALL_SCORE_LABELS_BY_FIELD } from "./rubric";
 
 export type { TranscriptLine } from "./types";
 
@@ -38,6 +41,23 @@ export type CallMoment = {
   createdAt: string;
 };
 
+export type CallRubric = {
+  id: string;
+  name: string;
+  version: number;
+  status: string | null;
+};
+
+export type CallCategoryScore = {
+  categoryId: string | null;
+  slug: string;
+  name: string;
+  description: string | null;
+  weight: number | null;
+  sortOrder: number | null;
+  score: number | null;
+};
+
 export type CallAnnotation = {
   id: string;
   callId: string;
@@ -53,6 +73,8 @@ export type CallAnnotation = {
 export type CallDetail = CallSummary & {
   recordingUrl: string | null;
   transcriptUrl: string | null;
+  rubric: CallRubric | null;
+  categoryScores: CallCategoryScore[];
   frameControlScore: number | null;
   rapportScore: number | null;
   discoveryScore: number | null;
@@ -144,6 +166,7 @@ type StoreSourceAssetFunction = (input: {
 }) => Promise<SourceAsset>;
 
 type UploadCallDependencies = {
+  rubricsRepository?: RubricsRepository;
   storeSourceAsset?: StoreSourceAssetFunction;
 };
 
@@ -163,6 +186,7 @@ export type CallsRepository = {
   createCall(input: {
     orgId: string;
     repId: string;
+    rubricId?: string | null;
     callTopic: string | null;
     durationSeconds: number | null;
     recordingUrl: string | null;
@@ -205,6 +229,7 @@ export type CallsRepository = {
   }): Promise<CallAnnotationRecord>;
   createOrResetCallProcessingJob(input: {
     callId: string;
+    rubricId?: string | null;
     sourceOrigin: "manual_upload" | "zoom_recording";
     sourceStoragePath: string;
     sourceFileName: string;
@@ -248,6 +273,10 @@ function serializeMoment(moment: CallMomentRecord): CallMoment {
   };
 }
 
+function serializeCategoryScore(categoryScore: CallCategoryScore): CallCategoryScore {
+  return { ...categoryScore };
+}
+
 function serializeAnnotation(annotation: CallAnnotationRecord): CallAnnotation {
   return {
     ...annotation,
@@ -267,9 +296,90 @@ function serializeDetail(call: CallDetailRecord): CallDetail {
   return {
     ...call,
     createdAt: call.createdAt.toISOString(),
+    rubric: call.rubric ? { ...call.rubric } : null,
+    categoryScores: ((call.categoryScores?.length ? call.categoryScores : buildLegacyCategoryScores(call))
+      .map(serializeCategoryScore)),
     transcript: Array.isArray(call.transcript) ? call.transcript : null,
     moments: call.moments.map(serializeMoment),
   };
+}
+
+function buildLegacyCategoryScores(call: Pick<
+  CallDetailRecord,
+  | "closingScore"
+  | "discoveryScore"
+  | "frameControlScore"
+  | "objectionScore"
+  | "overallScore"
+  | "painExpansionScore"
+  | "rapportScore"
+  | "solutionScore"
+>): CallCategoryScore[] {
+  return [
+    {
+      categoryId: null,
+      slug: "frame_control",
+      name: CALL_SCORE_LABELS_BY_FIELD.frameControlScore,
+      description: null,
+      weight: 15,
+      sortOrder: 1,
+      score: call.frameControlScore,
+    },
+    {
+      categoryId: null,
+      slug: "rapport",
+      name: CALL_SCORE_LABELS_BY_FIELD.rapportScore,
+      description: null,
+      weight: 5,
+      sortOrder: 2,
+      score: call.rapportScore,
+    },
+    {
+      categoryId: null,
+      slug: "discovery",
+      name: CALL_SCORE_LABELS_BY_FIELD.discoveryScore,
+      description: null,
+      weight: 15,
+      sortOrder: 3,
+      score: call.discoveryScore,
+    },
+    {
+      categoryId: null,
+      slug: "pain_expansion",
+      name: CALL_SCORE_LABELS_BY_FIELD.painExpansionScore,
+      description: null,
+      weight: 5,
+      sortOrder: 4,
+      score: call.painExpansionScore,
+    },
+    {
+      categoryId: null,
+      slug: "solution",
+      name: CALL_SCORE_LABELS_BY_FIELD.solutionScore,
+      description: null,
+      weight: 15,
+      sortOrder: 5,
+      score: call.solutionScore,
+    },
+    {
+      categoryId: null,
+      slug: "objection_handling",
+      name: CALL_SCORE_LABELS_BY_FIELD.objectionScore,
+      description: null,
+      weight: 15,
+      sortOrder: 6,
+      score: call.objectionScore,
+    },
+    {
+      categoryId: null,
+      slug: "closing",
+      name: CALL_SCORE_LABELS_BY_FIELD.closingScore,
+      description: null,
+      weight: 30,
+      sortOrder: 7,
+      score: call.closingScore,
+    },
+  ];
 }
 
 function serializeTrendPoint(point: ScoreTrendRecord): ScoreTrendPoint {
@@ -905,9 +1015,13 @@ export async function uploadCall(
 
   const topic = input.callTopic?.trim() || deriveCallTopicFromFileName(input.fileName);
   const storeSourceAsset = dependencies.storeSourceAsset ?? storeManualCallSource;
+  const rubricsRepository = dependencies.rubricsRepository ?? createRubricsRepository();
+  const activeRubric = await getActiveRubric(rubricsRepository, viewer.org.id);
+  const rubricId = activeRubric.ok ? activeRubric.data.id : null;
   const created = await repository.createCall({
     orgId: viewer.org.id,
     repId: viewer.id,
+    rubricId,
     callTopic: topic,
     durationSeconds: null,
     recordingUrl: null,
@@ -927,6 +1041,7 @@ export async function uploadCall(
     await repository.updateCallRecording(created.id, sourceAsset.publicUrl);
     await repository.createOrResetCallProcessingJob({
       callId: created.id,
+      rubricId,
       sourceOrigin: "manual_upload",
       sourceStoragePath: sourceAsset.storagePath,
       sourceFileName: input.fileName,

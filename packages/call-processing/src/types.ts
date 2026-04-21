@@ -8,8 +8,7 @@ export const CALL_SCORING_CATEGORY_SLUGS = [
   "closing",
 ] as const;
 
-export type CallScoringCategorySlug =
-  (typeof CALL_SCORING_CATEGORY_SLUGS)[number];
+export type CallScoringCategorySlug = (typeof CALL_SCORING_CATEGORY_SLUGS)[number];
 
 export const CALL_STAGE_REACHED_VALUES = [
   "opening",
@@ -31,9 +30,40 @@ export type TranscriptLine = {
 
 export type CallMomentSeverity = "strength" | "improvement" | "critical";
 
+export type ScoringCriteria = {
+  excellent: string;
+  proficient: string;
+  developing: string;
+  lookFor: string[];
+};
+
+export type ScoringRubricCategory = {
+  id: string | null;
+  slug: string;
+  name: string;
+  description: string;
+  weight: number;
+  scoringCriteria: ScoringCriteria;
+};
+
+export type ScoringRubric = {
+  id: string | null;
+  name: string;
+  version: number | null;
+  categories: ScoringRubricCategory[];
+};
+
+export type CallCategoryScore = {
+  categoryId: string | null;
+  slug: string;
+  name: string;
+  weight: number;
+  score: number;
+};
+
 export type CallEvaluationMoment = {
   timestampSeconds: number;
-  category: CallScoringCategorySlug;
+  category: string;
   observation: string;
   recommendation: string;
   severity: CallMomentSeverity;
@@ -42,17 +72,19 @@ export type CallEvaluationMoment = {
 };
 
 export type CallEvaluation = {
+  rubricId: string | null;
   confidence: "high" | "medium" | "low";
   durationSeconds: number;
   callStageReached: CallStageReached;
   overallScore: number;
-  frameControlScore: number;
-  rapportScore: number;
-  discoveryScore: number;
-  painExpansionScore: number;
-  solutionScore: number;
-  objectionScore: number;
-  closingScore: number;
+  categoryScores: CallCategoryScore[];
+  frameControlScore: number | null;
+  rapportScore: number | null;
+  discoveryScore: number | null;
+  painExpansionScore: number | null;
+  solutionScore: number | null;
+  objectionScore: number | null;
+  closingScore: number | null;
   strengths: string[];
   improvements: string[];
   recommendedDrills: string[];

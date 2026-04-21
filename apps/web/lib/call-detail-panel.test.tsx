@@ -22,6 +22,50 @@ const baseCall = {
   repLastName: "Stone",
   recordingUrl: null,
   transcriptUrl: null,
+  rubric: {
+    id: "rubric-1",
+    name: "ACME Enterprise Scorecard",
+    version: 3,
+    status: "active",
+  },
+  categoryScores: [
+    {
+      categoryId: "cat-1",
+      slug: "frame_control",
+      name: "Set a Strong Frame",
+      description: "Set expectations and keep control of the meeting.",
+      weight: 15,
+      sortOrder: 1,
+      score: 86,
+    },
+    {
+      categoryId: "cat-2",
+      slug: "pain_expansion",
+      name: "Transition to Pitch",
+      description: "Bridge discovery into a focused pitch.",
+      weight: 5,
+      sortOrder: 2,
+      score: 79,
+    },
+    {
+      categoryId: "cat-3",
+      slug: "solution",
+      name: "Pitch/Demo",
+      description: "Map the product to confirmed pain.",
+      weight: 15,
+      sortOrder: 3,
+      score: 88,
+    },
+    {
+      categoryId: "cat-4",
+      slug: "objection_handling",
+      name: "Overcome Objections",
+      description: "Clarify and resolve objections.",
+      weight: 15,
+      sortOrder: 4,
+      score: 81,
+    },
+  ],
   frameControlScore: 86,
   rapportScore: 83,
   discoveryScore: 90,
@@ -89,6 +133,7 @@ describe("CallDetailPanel", () => {
     );
 
     expect(html).toContain("Manager note");
+    expect(html).toContain("ACME Enterprise Scorecard");
     expect(html).toContain("Set a Strong Frame");
     expect(html).toContain("Transition to Pitch");
     expect(html).toContain("Pitch/Demo");

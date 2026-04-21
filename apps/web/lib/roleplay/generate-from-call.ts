@@ -114,7 +114,7 @@ function getSignalLabels(call: GeneratedRoleplayPreviewInput["call"]) {
   const labels: string[] = [];
   const seen = new Set<string>();
 
-  const scoreBySlug = {
+  const scoreBySlug: Record<string, number | null> = {
     closing: call.closingScore,
     discovery: call.discoveryScore,
     frame_control: call.frameControlScore,
@@ -132,7 +132,7 @@ function getSignalLabels(call: GeneratedRoleplayPreviewInput["call"]) {
       return leftScore - rightScore;
     }
 
-    return left.label.localeCompare(right.label);
+    return left.name.localeCompare(right.name);
   })) {
     const score = scoreBySlug[category.slug];
 
@@ -140,9 +140,9 @@ function getSignalLabels(call: GeneratedRoleplayPreviewInput["call"]) {
       continue;
     }
 
-    if (!seen.has(category.label)) {
-      seen.add(category.label);
-      labels.push(category.label);
+    if (!seen.has(category.name)) {
+      seen.add(category.name);
+      labels.push(category.name);
     }
 
     if (labels.length === 2) {

@@ -1,13 +1,16 @@
-import { eq, sql } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 import {
   callMomentsTable,
   callProcessingJobsTable,
+  callScoresTable,
   callsTable,
   getDb,
   notificationsTable,
+  rubricCategoriesTable,
+  rubricsTable,
   type ArgosDb,
 } from "@argos-v2/db";
-import type { CallEvaluation } from "@argos-v2/call-processing";
+import type { CallEvaluation, ScoringRubric, ScoringRubricCategory } from "@argos-v2/call-processing";
 
 type CallProcessingJobRecord = typeof callProcessingJobsTable.$inferSelect;
 type ClaimedCallProcessingJobRecord = CallProcessingJobRecord & {
@@ -18,6 +21,7 @@ type CallStatus = typeof callsTable.$inferSelect.status;
 
 type CallProcessingJobInsert = {
   callId: string;
+  rubricId?: string | null;
   sourceOrigin: CallProcessingJobRecord["sourceOrigin"];
   sourceStoragePath: string;
   sourceFileName: string;
@@ -100,6 +104,7 @@ export class CallProcessingRepository {
       .insert(callProcessingJobsTable)
       .values({
         callId: input.callId,
+        rubricId: input.rubricId ?? null,
         sourceOrigin: input.sourceOrigin,
         sourceStoragePath: input.sourceStoragePath,
         sourceFileName: input.sourceFileName,
@@ -147,6 +152,7 @@ export class CallProcessingRepository {
           returning
             id,
             call_id as "callId",
+            rubric_id as "rubricId",
             source_origin as "sourceOrigin",
             source_storage_path as "sourceStoragePath",
             source_file_name as "sourceFileName",
@@ -166,6 +172,7 @@ export class CallProcessingRepository {
         select
           claimed.id,
           claimed."callId",
+          claimed."rubricId",
           claimed."sourceOrigin",
           claimed."sourceStoragePath",
           claimed."sourceFileName",
@@ -191,6 +198,46 @@ export class CallProcessingRepository {
     const row = rows[0];
 
     return row ? normalizeJobRecord(row) : null;
+  }
+
+  async findRubricById(rubricId: string): Promise<ScoringRubric | null> {
+    const [rubric] = await this.db
+      .select({
+        id: rubricsTable.id,
+        name: rubricsTable.name,
+        version: rubricsTable.version,
+      })
+      .from(rubricsTable)
+      .where(eq(rubricsTable.id, rubricId))
+      .limit(1);
+
+    if (!rubric) {
+      return null;
+    }
+
+    const categories = await this.db
+      .select({
+        id: rubricCategoriesTable.id,
+        slug: rubricCategoriesTable.slug,
+        name: rubricCategoriesTable.name,
+        description: rubricCategoriesTable.description,
+        weight: rubricCategoriesTable.weight,
+        scoringCriteria: rubricCategoriesTable.scoringCriteria,
+      })
+      .from(rubricCategoriesTable)
+      .where(eq(rubricCategoriesTable.rubricId, rubricId))
+      .orderBy(asc(rubricCategoriesTable.sortOrder), asc(rubricCategoriesTable.createdAt));
+
+    return {
+      id: rubric.id,
+      name: rubric.name,
+      version: rubric.version,
+      categories: categories.map((category) => ({
+        ...category,
+        weight: Number(category.weight),
+        scoringCriteria: category.scoringCriteria as ScoringRubricCategory["scoringCriteria"],
+      })),
+    };
   }
 
   async markRetryableFailure(jobId: string, input: RetryableFailureInput): Promise<void> {
@@ -266,6 +313,7 @@ export class CallProcessingRepository {
           status: "complete",
           durationSeconds: evaluation.durationSeconds,
           overallScore: evaluation.overallScore,
+          rubricId: evaluation.rubricId,
           frameControlScore: evaluation.frameControlScore,
           rapportScore: evaluation.rapportScore,
           discoveryScore: evaluation.discoveryScore,
@@ -282,7 +330,22 @@ export class CallProcessingRepository {
         })
         .where(eq(callsTable.id, callId));
 
+      await tx.delete(callScoresTable).where(eq(callScoresTable.callId, callId));
       await tx.delete(callMomentsTable).where(eq(callMomentsTable.callId, callId));
+
+      const categoryScores = evaluation.categoryScores.filter(
+        (category) => category.categoryId,
+      );
+
+      if (categoryScores.length > 0) {
+        await tx.insert(callScoresTable).values(
+          categoryScores.map((category) => ({
+            callId,
+            rubricCategoryId: category.categoryId!,
+            score: category.score,
+          })),
+        );
+      }
 
       if (evaluation.moments.length > 0) {
         await tx.insert(callMomentsTable).values(

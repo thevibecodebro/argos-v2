@@ -23,6 +23,8 @@ const call = {
   status: "complete",
   recordingUrl: null,
   transcriptUrl: null,
+  rubric: null,
+  categoryScores: [],
   durationSeconds: 1200,
   callTopic: "ACME rollout review",
   overallScore: 61,

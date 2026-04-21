@@ -76,15 +76,19 @@ type NormalizedRoleplaySessionCreateInput = RoleplaySessionCreateBase & {
 };
 
 export type RoleplayScorecard = {
+  rubricId?: string | null;
+  rubricName?: string | null;
+  rubricVersion?: number | null;
   callStageReached: "opening" | "discovery" | "solution" | "objection_handling" | "commitment";
-  categoryScores: Record<RoleplayCategory, number | null>;
+  categoryScores: Record<string, number | null>;
+  categoryLabels?: Record<string, string>;
   confidence: "high" | "medium" | "low";
   summary: string;
   strengths: string[];
   improvements: string[];
   recommendedDrills: string[];
   moments: Array<{
-    category: RoleplayCategory;
+    category: string;
     severity: "strength" | "improvement" | "critical";
     observation: string;
     recommendation: string;

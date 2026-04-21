@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { HighlightNote } from "@/components/highlight-note";
-import { CALL_SCORING_CATEGORIES } from "@/lib/calls/rubric";
 import type { CallAnnotation, CallDetail, CallMoment } from "@/lib/calls/service";
 
 type CallDetailPanelProps = {
@@ -81,28 +80,7 @@ export function CallDetailPanel({
   } | null>(null);
   const [focusCategorySlug, setFocusCategorySlug] = useState("all");
 
-  const scoreCards = useMemo(
-    () =>
-      CALL_SCORING_CATEGORIES.map((category, index) => ({
-        categoryId: null,
-        description: null,
-        name: category.label,
-        score:
-          {
-            frame_control: call.frameControlScore,
-            rapport: call.rapportScore,
-            discovery: call.discoveryScore,
-            pain_expansion: call.painExpansionScore,
-            solution: call.solutionScore,
-            objection_handling: call.objectionScore,
-            closing: call.closingScore,
-          }[category.slug] ?? null,
-        slug: category.slug,
-        sortOrder: index,
-        weight: category.weight ?? null,
-      })),
-    [call],
-  );
+  const scoreCards = useMemo(() => call.categoryScores, [call.categoryScores]);
 
   const circumference = 2 * Math.PI * 40;
   const overallScore = typeof call.overallScore === "number" ? call.overallScore : 0;
@@ -305,6 +283,10 @@ export function CallDetailPanel({
               <p className="mt-3 text-sm text-slate-400">
                 Confidence: {call.confidence ?? "unknown"} · Stage: {call.callStageReached ?? "not set"}
               </p>
+              <p className="mt-2 text-xs uppercase tracking-[0.18em] text-slate-500">
+                Scorecard: {call.rubric?.name ?? "Revenue Scorecard"}
+                {call.rubric?.version != null ? ` · v${call.rubric.version}` : ""}
+              </p>
             </div>
             <div className="relative flex items-center justify-center">
               <svg className="h-24 w-24 -rotate-90 transform">
@@ -335,22 +317,22 @@ export function CallDetailPanel({
           </div>
 
           <div className="space-y-4">
-            {scoreCards.map((scoreCard) => {
-              const tint = scoreTint(scoreCard.score);
+            {scoreCards.map((category) => {
+              const tint = scoreTint(category.score);
               return (
-                <div className="flex items-center justify-between gap-4" key={scoreCard.slug}>
+                <div className="flex items-center justify-between gap-4" key={category.slug}>
                   <span className="text-sm font-medium text-slate-300 transition-colors hover:text-[#74b1ff]">
-                    {scoreCard.name}
+                    {category.name}
                   </span>
                   <div className="flex items-center gap-3">
                     <div className="h-1.5 w-32 overflow-hidden rounded-full bg-black">
                       <div
                         className={`h-full rounded-full ${tint.split(" ")[0]}`}
-                        style={{ width: `${progressWidth(scoreCard.score)}%` }}
+                        style={{ width: `${progressWidth(category.score)}%` }}
                       />
                     </div>
                     <span className={`w-7 text-right text-xs font-bold ${tint.split(" ")[1]}`}>
-                      {scoreCard.score ?? "—"}
+                      {category.score ?? "—"}
                     </span>
                   </div>
                 </div>
