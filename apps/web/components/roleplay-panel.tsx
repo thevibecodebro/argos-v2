@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ROLEPLAY_CATEGORY_LABELS,
@@ -161,6 +161,9 @@ export function RoleplayPanel({
   const transcriptEndRef = useRef<HTMLDivElement | null>(null);
   const requestedSessionIdRef = useRef<string | null>(initialSessionId ?? null);
   const initialActiveSession = getInitialActiveSession(initialSessions, initialSessionId);
+  const activeSessionRef = useRef<RoleplaySession | null>(initialActiveSession);
+  const pendingVoiceMessagesRef = useRef<RoleplayMessage[]>([]);
+  const voicePersistenceQueueRef = useRef(Promise.resolve());
 
   const [personas] = useState(initialPersonas);
   const [sessions, setSessions] = useState(initialSessions);
@@ -176,13 +179,12 @@ export function RoleplayPanel({
   const [isStartingVoice, setIsStartingVoice] = useState(false);
   const [isVoiceActive, setIsVoiceActive] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState<string | null>(null);
-  const [liveVoiceTranscript, setLiveVoiceTranscript] = useState<RoleplayMessage[]>([]);
   const [speakingLine, setSpeakingLine] = useState<string | null>(null);
+  const displayedTranscript = activeSession?.transcript ?? [];
 
-  const displayedTranscript = useMemo(
-    () => (activeSession ? [...activeSession.transcript, ...liveVoiceTranscript] : []),
-    [activeSession, liveVoiceTranscript],
-  );
+  useEffect(() => {
+    activeSessionRef.current = activeSession;
+  }, [activeSession]);
 
   useEffect(() => {
     const requestedSessionId = initialSessionId ?? requestedSessionIdRef.current;
@@ -220,6 +222,75 @@ export function RoleplayPanel({
     setIsStartingVoice(false);
   }
 
+  function commitSession(session: RoleplaySession) {
+    activeSessionRef.current = session;
+    setActiveSession(session);
+    setSessions((cur) => mergeSessionIntoList(cur, session));
+  }
+
+  function removeFirstPendingVoiceMessage(message: RoleplayMessage) {
+    const index = pendingVoiceMessagesRef.current.findIndex(
+      (candidate) => candidate.role === message.role && candidate.content === message.content,
+    );
+
+    if (index === -1) {
+      return;
+    }
+
+    pendingVoiceMessagesRef.current = pendingVoiceMessagesRef.current.filter(
+      (_candidate, candidateIndex) => candidateIndex !== index,
+    );
+  }
+
+  function isDuplicateVoiceMessage(message: RoleplayMessage) {
+    const content = message.content.trim();
+    const savedLastMessage = activeSessionRef.current?.transcript.at(-1);
+    const queuedLastMessage = pendingVoiceMessagesRef.current.at(-1);
+
+    return (
+      (savedLastMessage?.role === message.role && savedLastMessage.content === content) ||
+      (queuedLastMessage?.role === message.role && queuedLastMessage.content === content)
+    );
+  }
+
+  function queueVoiceTranscriptPersistence(sessionId: string, message: RoleplayMessage) {
+    const content = message.content.trim();
+
+    if (!content || isDuplicateVoiceMessage(message)) {
+      return;
+    }
+
+    const transcriptMessage = { role: message.role, content } satisfies RoleplayMessage;
+    pendingVoiceMessagesRef.current = [...pendingVoiceMessagesRef.current, transcriptMessage];
+
+    voicePersistenceQueueRef.current = voicePersistenceQueueRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        const res = await fetch(`/api/roleplay/sessions/${sessionId}/transcript`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(transcriptMessage),
+        });
+        const payload = (await res.json().catch(() => null)) as (RoleplaySession & { error?: string }) | null;
+        removeFirstPendingVoiceMessage(transcriptMessage);
+
+        if (!res.ok || !payload) {
+          throw new Error(payload?.error ?? "Unable to save live voice transcript.");
+        }
+
+        if (activeSessionRef.current?.id === sessionId) {
+          commitSession(payload);
+          return;
+        }
+
+        setSessions((cur) => mergeSessionIntoList(cur, payload));
+      })
+      .catch((err) => {
+        removeFirstPendingVoiceMessage(transcriptMessage);
+        setError(err instanceof Error ? err.message : "Unable to save live voice transcript.");
+      });
+  }
+
   async function waitForIceGatheringComplete(pc: RTCPeerConnection) {
     if (pc.iceGatheringState === "complete") return;
     await new Promise<void>((resolve) => {
@@ -243,7 +314,6 @@ export function RoleplayPanel({
     setError(null);
     setVoiceStatus("Requesting microphone access…");
     setIsStartingVoice(true);
-    setLiveVoiceTranscript([]);
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -261,7 +331,9 @@ export function RoleplayPanel({
       dc.onopen = () => { setVoiceStatus("Voice practice live."); setIsVoiceActive(true); setIsStartingVoice(false); };
       dc.onmessage = (e) => {
         const msg = parseRealtimeEvent(e.data);
-        if (msg) setLiveVoiceTranscript((cur) => [...cur, msg]);
+        if (msg) {
+          queueVoiceTranscriptPersistence(activeSession.id, msg);
+        }
       };
       dc.onerror = () => setError("Voice mode lost the realtime event channel. Stop and restart.");
 
@@ -334,8 +406,7 @@ export function RoleplayPanel({
     const res = await fetch(`/api/roleplay/sessions/${sessionId}`, { cache: "no-store" });
     const payload = (await res.json()) as RoleplaySession & { error?: string };
     if (!res.ok) { setError(payload.error ?? "Unable to load session."); setIsMutating(false); return; }
-    setActiveSession(payload);
-    setSessions((cur) => mergeSessionIntoList(cur, payload));
+    commitSession(payload);
     if (payload.persona) {
       setSelectedPersonaId(payload.persona);
     }
@@ -353,8 +424,7 @@ export function RoleplayPanel({
     });
     const payload = (await res.json()) as RoleplaySession & { error?: string };
     if (!res.ok) { setError(payload.error ?? "Unable to start session."); setIsMutating(false); return; }
-    setSessions((cur) => mergeSessionIntoList(cur, payload));
-    setActiveSession(payload);
+    commitSession(payload);
     setDraft("");
     setIsMutating(false);
     startTransition(() => router.refresh());
@@ -371,8 +441,7 @@ export function RoleplayPanel({
     });
     const payload = (await res.json()) as RoleplaySession & { error?: string };
     if (!res.ok) { setError(payload.error ?? "Unable to send message."); setIsMutating(false); return; }
-    setActiveSession(payload);
-    setSessions((cur) => mergeSessionIntoList(cur, payload));
+    commitSession(payload);
     setDraft("");
     setIsMutating(false);
     setTimeout(() => transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
@@ -385,8 +454,7 @@ export function RoleplayPanel({
     const res = await fetch(`/api/roleplay/sessions/${activeSession.id}/complete`, { method: "POST" });
     const payload = (await res.json()) as RoleplaySession & { error?: string };
     if (!res.ok) { setError(payload.error ?? "Unable to score session."); setIsMutating(false); return; }
-    setActiveSession(payload);
-    setSessions((cur) => mergeSessionIntoList(cur, payload));
+    commitSession(payload);
     setIsMutating(false);
     startTransition(() => router.refresh());
   }

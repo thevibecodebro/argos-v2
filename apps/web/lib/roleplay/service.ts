@@ -824,6 +824,63 @@ export async function appendRoleplayMessage(
   };
 }
 
+export async function appendRoleplayTranscriptMessage(
+  repository: RoleplayRepository,
+  authUserId: string,
+  sessionId: string,
+  input: RoleplayMessage,
+): Promise<ServiceResult<RoleplaySession>> {
+  const sessionResult = await getAuthorizedSession(repository, authUserId, sessionId);
+
+  if (!sessionResult.ok) {
+    return sessionResult;
+  }
+
+  const content = input.content.trim();
+
+  if (!content) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Message content is required",
+    };
+  }
+
+  if (sessionResult.data.status !== "active") {
+    return {
+      ok: false,
+      status: 409,
+      error: "Roleplay session is already complete",
+    };
+  }
+
+  const transcript = normalizeTranscript(sessionResult.data.transcript);
+  const lastMessage = transcript.at(-1);
+
+  if (lastMessage?.role === input.role && lastMessage.content === content) {
+    return {
+      ok: true,
+      data: serializeSession(sessionResult.data),
+    };
+  }
+
+  const updated = await repository.updateSession(sessionId, {
+    status: "active",
+    transcript: [
+      ...transcript,
+      {
+        role: input.role,
+        content,
+      },
+    ],
+  });
+
+  return {
+    ok: true,
+    data: serializeSession(updated),
+  };
+}
+
 export async function completeRoleplaySession(
   repository: RoleplayRepository,
   authUserId: string,

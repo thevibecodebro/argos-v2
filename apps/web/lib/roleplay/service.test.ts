@@ -5,6 +5,7 @@ vi.mock("server-only", () => ({}));
 import { createAccessRepository } from "@/lib/access/create-repository";
 import {
   appendRoleplayMessage,
+  appendRoleplayTranscriptMessage,
   completeRoleplaySession,
   createRoleplaySession,
   getRoleplaySession,
@@ -316,6 +317,155 @@ describe("appendRoleplayMessage", () => {
     });
     expect(result.data.transcript[2].role).toBe("assistant");
     expect(result.data.transcript[2].content).toContain("ROI");
+  });
+});
+
+describe("appendRoleplayTranscriptMessage", () => {
+  it("appends a single realtime voice turn without generating another reply", async () => {
+    mockAccessRepository({
+      actor: { id: "rep-1", orgId: "org-1", role: "rep" },
+      memberships: [
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ],
+      grants: [],
+    });
+
+    const updateSession = vi.fn().mockImplementation(async (_sessionId, patch) => ({
+      id: "session-1",
+      repId: "rep-1",
+      orgId: "org-1",
+      persona: "stalling-vp",
+      industry: "SaaS",
+      difficulty: "intermediate",
+      overallScore: null,
+      origin: "manual",
+      sourceCallId: null,
+      rubricId: null,
+      focusMode: "all",
+      focusCategorySlug: null,
+      scenarioSummary: null,
+      scenarioBrief: null,
+      status: patch.status ?? "active",
+      transcript: patch.transcript ?? [],
+      scorecard: patch.scorecard ?? null,
+      createdAt: new Date("2026-04-03T00:00:00.000Z"),
+    }));
+
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "rep-1",
+        email: "rep@argos.ai",
+        role: "rep",
+        firstName: "Riley",
+        lastName: "Stone",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      findSessionById: vi.fn().mockResolvedValue({
+        id: "session-1",
+        repId: "rep-1",
+        orgId: "org-1",
+        persona: "stalling-vp",
+        industry: "SaaS",
+        difficulty: "intermediate",
+        overallScore: null,
+        origin: "manual",
+        sourceCallId: null,
+        rubricId: null,
+        focusMode: "all",
+        focusCategorySlug: null,
+        scenarioSummary: null,
+        scenarioBrief: null,
+        status: "active",
+        transcript: [
+          { role: "assistant", content: "Timing is tough right now, so tell me why this matters now." },
+          { role: "user", content: "Your team is missing next-step discipline and coaching visibility." },
+        ],
+        scorecard: null,
+        createdAt: new Date("2026-04-03T00:00:00.000Z"),
+      }),
+      updateSession,
+    });
+
+    const result = await appendRoleplayTranscriptMessage(repository, "rep-1", "session-1", {
+      role: "assistant",
+      content: "I still need a clear next step before I commit.",
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected updated session");
+    expect(updateSession).toHaveBeenCalledWith(
+      "session-1",
+      expect.objectContaining({
+        status: "active",
+        transcript: [
+          { role: "assistant", content: "Timing is tough right now, so tell me why this matters now." },
+          { role: "user", content: "Your team is missing next-step discipline and coaching visibility." },
+          { role: "assistant", content: "I still need a clear next step before I commit." },
+        ],
+      }),
+    );
+    expect(result.data.transcript).toHaveLength(3);
+    expect(result.data.transcript.at(-1)).toEqual({
+      role: "assistant",
+      content: "I still need a clear next step before I commit.",
+    });
+  });
+
+  it("treats an identical consecutive voice turn as a no-op", async () => {
+    mockAccessRepository({
+      actor: { id: "rep-1", orgId: "org-1", role: "rep" },
+      memberships: [
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ],
+      grants: [],
+    });
+
+    const updateSession = vi.fn();
+
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "rep-1",
+        email: "rep@argos.ai",
+        role: "rep",
+        firstName: "Riley",
+        lastName: "Stone",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      findSessionById: vi.fn().mockResolvedValue({
+        id: "session-1",
+        repId: "rep-1",
+        orgId: "org-1",
+        persona: "stalling-vp",
+        industry: "SaaS",
+        difficulty: "intermediate",
+        overallScore: null,
+        origin: "manual",
+        sourceCallId: null,
+        rubricId: null,
+        focusMode: "all",
+        focusCategorySlug: null,
+        scenarioSummary: null,
+        scenarioBrief: null,
+        status: "active",
+        transcript: [
+          { role: "assistant", content: "Timing is tough right now, so tell me why this matters now." },
+          { role: "assistant", content: "I still need a clear next step before I commit." },
+        ],
+        scorecard: null,
+        createdAt: new Date("2026-04-03T00:00:00.000Z"),
+      }),
+      updateSession,
+    });
+
+    const result = await appendRoleplayTranscriptMessage(repository, "rep-1", "session-1", {
+      role: "assistant",
+      content: "I still need a clear next step before I commit.",
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected unchanged session");
+    expect(updateSession).not.toHaveBeenCalled();
+    expect(result.data.transcript).toHaveLength(2);
   });
 });
 

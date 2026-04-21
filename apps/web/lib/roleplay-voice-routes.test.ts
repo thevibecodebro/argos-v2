@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const getAuthenticatedSupabaseUser = vi.fn();
 const createRoleplayRepository = vi.fn();
 const getRoleplaySession = vi.fn();
+const appendRoleplayTranscriptMessage = vi.fn();
 
 vi.mock("@/lib/auth/get-authenticated-user", () => ({
   getAuthenticatedSupabaseUser,
@@ -14,6 +15,7 @@ vi.mock("@/lib/roleplay/create-repository", () => ({
 
 vi.mock("@/lib/roleplay/service", () => ({
   getRoleplaySession,
+  appendRoleplayTranscriptMessage,
 }));
 
 describe("roleplay voice routes", () => {
@@ -31,6 +33,7 @@ describe("roleplay voice routes", () => {
     getAuthenticatedSupabaseUser.mockReset();
     createRoleplayRepository.mockReset();
     getRoleplaySession.mockReset();
+    appendRoleplayTranscriptMessage.mockReset();
     createRoleplayRepository.mockReturnValue({});
     getRoleplaySession.mockResolvedValue({
       ok: true,
@@ -157,5 +160,66 @@ describe("roleplay voice routes", () => {
     expect(Buffer.from(await response.arrayBuffer())).toEqual(Buffer.from(audioBytes));
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0]?.[0]).toBe("https://api.openai.com/v1/audio/speech");
+  });
+
+  it("persists a realtime transcript turn through the roleplay service", async () => {
+    appendRoleplayTranscriptMessage.mockResolvedValue({
+      ok: true,
+      data: {
+        id: "session-1",
+        repId: "rep-1",
+        orgId: "org-1",
+        persona: "skeptical-cfo",
+        personaDetails: null,
+        industry: "Manufacturing",
+        difficulty: "advanced",
+        overallScore: null,
+        origin: "manual",
+        sourceCallId: null,
+        rubricId: null,
+        focusMode: "all",
+        focusCategorySlug: null,
+        scenarioSummary: null,
+        scenarioBrief: null,
+        transcript: [
+          { role: "assistant", content: "Show me the ROI math." },
+          { role: "user", content: "We cut onboarding time by 32%." },
+          { role: "assistant", content: "I still need a clear next step before I commit." },
+        ],
+        scorecard: null,
+        status: "active",
+        createdAt: "2026-04-03T00:00:00.000Z",
+      },
+    });
+
+    const route = await import("../app/api/roleplay/sessions/[id]/transcript/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/roleplay/sessions/session-1/transcript", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: "assistant",
+          content: "I still need a clear next step before I commit.",
+        }),
+      }),
+      { params: Promise.resolve({ id: "session-1" }) },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      id: "session-1",
+      transcript: expect.arrayContaining([
+        { role: "assistant", content: "I still need a clear next step before I commit." },
+      ]),
+    });
+    expect(appendRoleplayTranscriptMessage).toHaveBeenCalledWith(
+      {},
+      "auth-user-1",
+      "session-1",
+      {
+        role: "assistant",
+        content: "I still need a clear next step before I commit.",
+      },
+    );
   });
 });
