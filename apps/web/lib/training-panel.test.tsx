@@ -36,6 +36,16 @@ const baseModules = [
   },
 ];
 
+const lessonOnlyModules = [
+  {
+    ...baseModules[0],
+    id: "module-lesson-only",
+    title: "Storytelling Through Call Structure",
+    hasQuiz: false,
+    quizData: null,
+  },
+];
+
 const initialTeamProgress = {
   modules: [
     { id: "module-1", title: "Discovery That Finds the Real Pain" },
@@ -136,7 +146,29 @@ describe("TrainingPanel", () => {
         hasQuiz: true,
         progress: null,
       }),
-    ).toEqual({ label: "Resume lesson", nextView: "lesson" });
+    ).toEqual({ kind: "view", label: "Resume lesson", nextView: "lesson" });
+  });
+
+  it("uses a completion action for reps on lesson-only modules", () => {
+    expect(
+      getTrainingStagePrimaryAction({
+        canManage: false,
+        stageView: "lesson",
+        hasQuiz: false,
+        progress: null,
+      }),
+    ).toEqual({ kind: "complete", label: "Mark complete", nextView: "lesson" });
+  });
+
+  it("uses assignment planning as the manager primary action", () => {
+    expect(
+      getTrainingStagePrimaryAction({
+        canManage: true,
+        stageView: "lesson",
+        hasQuiz: true,
+        progress: null,
+      }),
+    ).toEqual({ kind: "assign", label: "Plan assignments", nextView: "lesson" });
   });
 
   it("resets quiz answers and returns to the module view when a module is selected", () => {
@@ -235,6 +267,22 @@ describe("TrainingPanel", () => {
     expect(html).not.toContain("Training workspace quick switcher");
   });
 
+  it("renders a completion CTA for reps when a module has no quiz", () => {
+    const html = renderToStaticMarkup(
+      <TrainingPanel
+        aiAvailable={false}
+        canManage={false}
+        initialModules={lessonOnlyModules}
+        initialTeamProgress={initialTeamProgress}
+        initialTeamRows={initialTeamRows}
+        rubricCategories={[]}
+      />,
+    );
+
+    expect(html).toContain("Mark complete");
+    expect(html).not.toContain(">Quiz<");
+  });
+
   it("renders the manager shell with a command deck instead of workspace tabs", () => {
     const html = renderToStaticMarkup(
       <TrainingPanel
@@ -250,11 +298,31 @@ describe("TrainingPanel", () => {
     expect(html).toContain("Curriculum map");
     expect(html).toContain("Lesson");
     expect(html).toContain("Quiz");
+    expect(html).toContain("Plan assignments");
     expect(html).toContain("Assignments");
     expect(html).toContain("Team Progress");
     expect(html).toContain("Module AI tools");
     expect(html).not.toContain("Course overview");
     expect(html).not.toContain("Quick switcher");
+  });
+
+  it("renders active-state semantics for the curriculum map and stage switcher", () => {
+    const html = renderToStaticMarkup(
+      <TrainingPanel
+        aiAvailable={false}
+        canManage={false}
+        initialModules={baseModules}
+        initialTeamProgress={initialTeamProgress}
+        initialTeamRows={initialTeamRows}
+        rubricCategories={[]}
+      />,
+    );
+
+    expect(html).toContain('role="tablist"');
+    expect(html).toContain('role="tab"');
+    expect(html).toContain('aria-selected="true"');
+    expect(html).toContain('aria-selected="false"');
+    expect(html).toContain('aria-current="page"');
   });
 
   it("enables module-scoped AI drafting only when course context is attached", () => {

@@ -625,6 +625,27 @@ export function TrainingPanel({
     stageView: resolvedStageView,
   });
 
+  const primaryActionDisabled =
+    isSubmitting || (primaryAction.kind === "assign" ? !selectedModule || isManagerBusy : false);
+
+  function handlePrimaryAction() {
+    if (!selectedModule) {
+      return;
+    }
+
+    if (primaryAction.kind === "assign") {
+      openAssignModal(selectedModule);
+      return;
+    }
+
+    if (primaryAction.kind === "complete") {
+      void submitProgress();
+      return;
+    }
+
+    setStageView(primaryAction.nextView);
+  }
+
   const managerHeaderActions = canManage ? (
     <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-5 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -1006,10 +1027,10 @@ export function TrainingPanel({
   const stage = (
     <TrainingModuleStage
       canManage={canManage}
-      onPrimaryAction={() => setStageView(primaryAction.nextView)}
+      onPrimaryAction={handlePrimaryAction}
       onSelectView={setStageView}
       primaryAction={primaryAction.label}
-      primaryActionDisabled={isSubmitting}
+      primaryActionDisabled={primaryActionDisabled}
       quizContent={quizContent}
       selectedModule={selectedModule}
       stageView={resolvedStageView}

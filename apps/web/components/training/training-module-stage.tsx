@@ -51,26 +51,38 @@ export function TrainingModuleStage({
 
         {stageBand}
 
-        <div className="inline-flex rounded-full border border-[#45484f]/15 bg-[#161a21]/70 p-1">
+        <div
+          aria-label="Training module stage"
+          className="inline-flex rounded-full border border-[#45484f]/15 bg-[#161a21]/70 p-1"
+          role="tablist"
+        >
           <button
+            aria-controls="training-stage-panel-lesson"
+            aria-selected={stageView === "lesson"}
             className={
               stageView === "lesson"
                 ? "rounded-full bg-[#74b1ff]/12 px-4 py-2 text-xs font-semibold text-[#74b1ff]"
                 : "px-4 py-2 text-xs font-semibold text-[#a9abb3]"
             }
+            id="training-stage-tab-lesson"
             onClick={() => onSelectView("lesson")}
+            role="tab"
             type="button"
           >
             Lesson
           </button>
           {selectedModule.hasQuiz ? (
             <button
+              aria-controls="training-stage-panel-quiz"
+              aria-selected={stageView === "quiz"}
               className={
                 stageView === "quiz"
                   ? "rounded-full bg-[#74b1ff]/12 px-4 py-2 text-xs font-semibold text-[#74b1ff]"
                   : "px-4 py-2 text-xs font-semibold text-[#a9abb3]"
               }
+              id="training-stage-tab-quiz"
               onClick={() => onSelectView("quiz")}
+              role="tab"
               type="button"
             >
               Quiz
@@ -78,14 +90,21 @@ export function TrainingModuleStage({
           ) : null}
         </div>
 
-        <div className="rounded-[1.25rem] border border-[#45484f]/10 bg-[#161a21]/45 p-5">
+        <div
+          aria-labelledby={`training-stage-tab-${stageView}`}
+          className="rounded-[1.25rem] border border-[#45484f]/10 bg-[#161a21]/45 p-5"
+          id={`training-stage-panel-${stageView}`}
+          role="tabpanel"
+        >
           {stageView === "lesson" ? (
             <div className="space-y-3">
               <p className="text-sm leading-7 text-[#ecedf6]">{selectedModule.description}</p>
               <p className="text-xs text-[#a9abb3]">
                 {canManage
                   ? "Managers review the lesson while planning assignments and edits from the command deck."
-                  : "Work through the lesson, then open the quiz when you are ready."}
+                  : selectedModule.hasQuiz
+                    ? "Work through the lesson, then open the quiz when you are ready."
+                    : "Work through the lesson, then mark the module complete when you are ready."}
               </p>
             </div>
           ) : (
