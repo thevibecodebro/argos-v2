@@ -1,7 +1,10 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const outDir = path.resolve("dist/founder-pricing");
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(scriptDir, "..");
+const outDir = path.join(repoRoot, "dist/founder-pricing");
 const outFile = path.join(outDir, "index.html");
 
 const html = `<!DOCTYPE html>
