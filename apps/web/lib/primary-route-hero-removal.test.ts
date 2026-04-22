@@ -8,6 +8,10 @@ const {
   getCurrentUserProfileMock,
   getManagerDashboardMock,
   getDashboardLeaderboardMock,
+  getRepDashboardMock,
+  getRepBadgesMock,
+  getExecutiveDashboardMock,
+  getSetupStatusMock,
   createUsersRepositoryMock,
   findCurrentUserByAuthIdMock,
   createTrainingRepositoryMock,
@@ -19,6 +23,9 @@ const {
   createNotificationsRepositoryMock,
   getNotificationsMock,
   getCurrentUserDetailsMock,
+  createCallsRepositoryMock,
+  listCallsMock,
+  listHighlightsMock,
 } = vi.hoisted(() => ({
   redirectMock: vi.fn(),
   getAuthenticatedSupabaseUserMock: vi.fn(),
@@ -26,6 +33,10 @@ const {
   getCurrentUserProfileMock: vi.fn(),
   getManagerDashboardMock: vi.fn(),
   getDashboardLeaderboardMock: vi.fn(),
+  getRepDashboardMock: vi.fn(),
+  getRepBadgesMock: vi.fn(),
+  getExecutiveDashboardMock: vi.fn(),
+  getSetupStatusMock: vi.fn(),
   createUsersRepositoryMock: vi.fn(),
   findCurrentUserByAuthIdMock: vi.fn(),
   createTrainingRepositoryMock: vi.fn(),
@@ -37,6 +48,9 @@ const {
   createNotificationsRepositoryMock: vi.fn(),
   getNotificationsMock: vi.fn(),
   getCurrentUserDetailsMock: vi.fn(),
+  createCallsRepositoryMock: vi.fn(),
+  listCallsMock: vi.fn(),
+  listHighlightsMock: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -75,6 +89,10 @@ vi.mock("@/lib/dashboard/service", () => ({
   getCurrentUserProfile: getCurrentUserProfileMock,
   getManagerDashboard: getManagerDashboardMock,
   getDashboardLeaderboard: getDashboardLeaderboardMock,
+  getRepDashboard: getRepDashboardMock,
+  getRepBadges: getRepBadgesMock,
+  getExecutiveDashboard: getExecutiveDashboardMock,
+  getSetupStatus: getSetupStatusMock,
 }));
 
 vi.mock("@/lib/users/create-repository", () => ({
@@ -111,12 +129,28 @@ vi.mock("@/lib/users/service", () => ({
   getCurrentUserDetails: getCurrentUserDetailsMock,
 }));
 
+vi.mock("@/lib/calls/create-repository", () => ({
+  createCallsRepository: createCallsRepositoryMock,
+}));
+
+vi.mock("@/lib/calls/service", () => ({
+  listCalls: listCallsMock,
+  listHighlights: listHighlightsMock,
+}));
+
+vi.mock("../app/(authenticated)/calls/calls-filters", () => ({
+  CallsFilters: () => "Calls filters marker",
+}));
+
+import DashboardPage from "../app/(authenticated)/dashboard/page";
 import TeamPage from "../app/(authenticated)/team/page";
 import LeaderboardPage from "../app/(authenticated)/leaderboard/page";
 import TrainingPage from "../app/(authenticated)/training/page";
 import NotificationsPage from "../app/(authenticated)/notifications/page";
 import SettingsAccountPage from "../app/(authenticated)/settings/page";
 import UploadPage from "../app/(authenticated)/upload/page";
+import CallsPage from "../app/(authenticated)/calls/page";
+import HighlightsPage from "../app/(authenticated)/highlights/page";
 
 async function renderRoute(page: Promise<React.ReactElement> | React.ReactElement) {
   return renderToStaticMarkup(await page);
@@ -130,11 +164,51 @@ describe("primary route hero removal", () => {
 
     createDashboardRepositoryMock.mockReturnValue({});
     getCurrentUserProfileMock.mockResolvedValue({ role: "manager" });
+    getRepDashboardMock.mockResolvedValue({
+      monthlyAvgScore: 91,
+      recentCalls: [
+        {
+          id: "call-1",
+          callTopic: "Discovery follow-up",
+          createdAt: "2026-04-01T15:00:00.000Z",
+          overallScore: 88,
+          status: "complete",
+        },
+      ],
+      lowestCategories: [{ category: "Discovery", avgScore: 62 }],
+      categoryAnalyticsContextLabel: "Last 30 days",
+    });
+    getRepBadgesMock.mockResolvedValue({
+      badges: [
+        {
+          id: "badge-1",
+          emoji: "🏁",
+          name: "Fast starter",
+          description: "Completed the first scored call.",
+          earned: true,
+          earnedAt: "2026-04-02T12:00:00.000Z",
+        },
+      ],
+    });
     getManagerDashboardMock.mockResolvedValue(null);
+    getExecutiveDashboardMock.mockResolvedValue({
+      trainingStats: { completionRate: 76 },
+      skillAverages: [{ category: "Discovery", avgScore: 84 }],
+      weeklyCallVolume: [{ week: "2026-04-01T00:00:00.000Z", callCount: 12 }],
+      repSkillBreakdown: [],
+      categoryAnalyticsContextLabel: "Last 30 days",
+      skillColumns: [],
+    });
     getDashboardLeaderboardMock.mockResolvedValue({
       topQuality: [],
       topVolume: [],
       mostImproved: [],
+    });
+    getSetupStatusMock.mockResolvedValue({
+      orgSlug: "argos",
+      repsCount: 6,
+      callsCount: 24,
+      roleplayCount: 3,
     });
 
     createUsersRepositoryMock.mockReturnValue({
@@ -171,6 +245,46 @@ describe("primary route hero removal", () => {
     getNotificationsMock.mockResolvedValue({
       ok: true,
       data: { notifications: [], unreadCount: 0 },
+    });
+
+    createCallsRepositoryMock.mockReturnValue({});
+    listCallsMock.mockResolvedValue({
+      ok: true,
+      data: {
+        calls: [
+          {
+            id: "call-1",
+            callTopic: "Pricing review",
+            createdAt: "2026-04-01T15:00:00.000Z",
+            durationSeconds: 245,
+            overallScore: 89,
+            status: "complete",
+            repFirstName: "Morgan",
+            repLastName: "Lee",
+          },
+        ],
+        total: 1,
+        viewer: {
+          fullName: "Avery Manager",
+          role: "manager",
+        },
+      },
+    });
+    listHighlightsMock.mockResolvedValue({
+      ok: true,
+      data: {
+        highlights: [
+          {
+            id: "highlight-1",
+            category: "Objection Handling",
+            severity: "High",
+            observation: "Handled pricing pushback with a clear ROI recap.",
+            recommendation: "Repeat the same framing in upcoming renewals.",
+            highlightNote: "Saved for Friday coaching.",
+            callId: "call-1",
+          },
+        ],
+      },
     });
   });
 
@@ -225,6 +339,81 @@ describe("primary route hero removal", () => {
     expect(settingsHtml).toContain(">Account<");
     expect(settingsHtml).toContain(
       "Manage your display name and view your organization details.",
+    );
+  });
+
+  it("removes dashboard hero titles for rep, manager, and executive views while keeping route content", async () => {
+    getManagerDashboardMock.mockResolvedValue({
+      reps: [],
+      teamAvgScore: 84,
+      totalCallsThisMonth: 17,
+      coachingFlagsCount: 2,
+    });
+
+    getCurrentUserProfileMock.mockResolvedValueOnce({ role: "rep" });
+    const repHtml = await renderRoute(DashboardPage());
+
+    getCurrentUserProfileMock.mockResolvedValueOnce({ role: "manager" });
+    const managerHtml = await renderRoute(DashboardPage());
+
+    getCurrentUserProfileMock.mockResolvedValueOnce({ role: "executive" });
+    const executiveHtml = await renderRoute(DashboardPage());
+
+    expect(repHtml).toContain("30-day average");
+    expect(repHtml).toContain("Recent Calls");
+    expect(repHtml).toContain("Discovery follow-up");
+    expect(repHtml).not.toContain(">My Dashboard<");
+    expect(repHtml).not.toContain(
+      "Your scoring trends, focus categories, badges, and recent calls",
+    );
+
+    expect(managerHtml).toContain("Live team snapshot");
+    expect(managerHtml).toContain(
+      "Current team activity, leaderboard movement, and setup status for this cycle.",
+    );
+    expect(managerHtml).toContain("Team Avg Score");
+    expect(managerHtml).not.toContain(">Team Dashboard<");
+    expect(managerHtml).not.toContain(
+      "Your team's latest interactions and performance data",
+    );
+
+    expect(executiveHtml).toContain("Live team snapshot");
+    expect(executiveHtml).toContain("Training Completion");
+    expect(executiveHtml).toContain("Org Skill Averages");
+    expect(executiveHtml).not.toContain(">Executive Dashboard<");
+    expect(executiveHtml).not.toContain(">Team Dashboard<");
+    expect(executiveHtml).not.toContain(
+      "Org-wide analytics and team performance",
+    );
+  });
+
+  it("removes the calls hero while keeping viewer context and upload actions", async () => {
+    const callsHtml = await renderRoute(
+      CallsPage({ searchParams: Promise.resolve({}) }),
+    );
+
+    expect(callsHtml).toContain("Viewing As");
+    expect(callsHtml).toContain("Avery Manager");
+    expect(callsHtml).toContain("Upload a call");
+    expect(callsHtml).toContain("Calls filters marker");
+    expect(callsHtml).toContain("Pricing review");
+    expect(callsHtml).not.toContain(">Call Library<");
+    expect(callsHtml).not.toContain(">Intelligence archive<");
+    expect(callsHtml).not.toContain(
+      "Explore and analyze 1 recorded interaction from your team.",
+    );
+  });
+
+  it("removes the highlights hero while keeping the back-to-library action", async () => {
+    const highlightsHtml = await renderRoute(HighlightsPage());
+
+    expect(highlightsHtml).toContain("Back to call library");
+    expect(highlightsHtml).toContain(
+      "Handled pricing pushback with a clear ROI recap.",
+    );
+    expect(highlightsHtml).not.toContain(">Highlights<");
+    expect(highlightsHtml).not.toContain(
+      "Review key coaching moments and critical intelligence extracted",
     );
   });
 });

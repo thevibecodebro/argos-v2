@@ -29,17 +29,7 @@ export default async function HighlightsPage() {
   return (
     <div className="flex-1 p-8">
       <div className="mx-auto w-full max-w-5xl">
-        {/* Hero header */}
-        <section className="mb-12 flex flex-col justify-between gap-6 md:flex-row md:items-end">
-          <div>
-            <h1 className="font-['Space_Grotesk'] text-4xl font-bold tracking-tighter text-[#ecedf6] md:text-5xl">
-              Highlights
-            </h1>
-            <p className="mt-2 max-w-xl text-sm text-[#a9abb3]">
-              Review key coaching moments and critical intelligence extracted
-              from your recent call history.
-            </p>
-          </div>
+        <section className="mb-8 flex justify-end">
           <Link
             className="flex items-center gap-2 rounded-lg border border-[#45484f]/30 bg-[#22262f] px-5 py-2.5 text-[#a9abb3] transition-all hover:border-[#74b1ff]/50 hover:text-[#74b1ff] active:scale-95"
             href="/calls"
@@ -51,7 +41,6 @@ export default async function HighlightsPage() {
           </Link>
         </section>
 
-        {/* Highlights feed */}
         <div className="space-y-6">
           {highlights.map((highlight, i) => {
             const isPrimary = i % 2 === 0;
