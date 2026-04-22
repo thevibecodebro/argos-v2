@@ -39,6 +39,7 @@ export default async function SettingsPermissionsPage() {
   return (
     <PageFrame
       description="Configure permission presets and primary manager assignments per rep."
+      headerMode="hidden"
       eyebrow="Settings"
       title="Permissions"
     >

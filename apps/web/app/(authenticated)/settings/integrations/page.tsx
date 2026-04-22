@@ -27,6 +27,7 @@ export default async function SettingsIntegrationsPage() {
   return (
     <PageFrame
       description="Connect external tools to automate call imports and post-call workflows."
+      headerMode="hidden"
       eyebrow="Settings"
       title="Integrations"
     >

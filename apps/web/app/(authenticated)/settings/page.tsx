@@ -32,6 +32,7 @@ export default async function SettingsAccountPage() {
   return (
     <PageFrame
       description="Manage your display name and view your organization details."
+      headerMode="hidden"
       eyebrow="Settings"
       title="Account"
     >

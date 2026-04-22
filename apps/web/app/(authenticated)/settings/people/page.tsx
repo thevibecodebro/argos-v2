@@ -28,6 +28,7 @@ export default async function SettingsPeoplePage() {
   return (
     <PageFrame
       description="Manage org member roles and send or revoke invitations."
+      headerMode="hidden"
       eyebrow="Settings"
       title="People"
     >

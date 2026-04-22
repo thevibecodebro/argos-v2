@@ -57,16 +57,6 @@ export default async function CallsPage({
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
-            {canSeeRep && viewer ? (
-              <div className="rounded-[1.25rem] border border-white/10 bg-white/[0.04] px-5 py-4 shadow-[0_12px_40px_rgba(3,8,20,0.22)] backdrop-blur-md">
-                <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">
-                  Viewing As
-                </p>
-                <p className="mt-2 text-sm font-semibold text-white">{viewer.fullName}</p>
-                <p className="text-sm capitalize text-slate-400">{viewer.role}</p>
-              </div>
-            ) : null}
-
             <Link
               className="inline-flex items-center justify-center gap-2 rounded-[1.15rem] border border-[#74b1ff]/20 bg-white/[0.04] px-5 py-4 text-sm font-semibold text-[#74b1ff] shadow-[0_12px_40px_rgba(3,8,20,0.22)] backdrop-blur-md transition hover:border-[#74b1ff]/35 hover:bg-[#74b1ff]/10"
               href="/upload"

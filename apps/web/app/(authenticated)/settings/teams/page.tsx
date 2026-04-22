@@ -26,6 +26,7 @@ export default async function SettingsTeamsPage() {
   return (
     <PageFrame
       description="Create teams, edit metadata, and manage manager and rep assignments."
+      headerMode="hidden"
       eyebrow="Settings"
       title="Teams"
     >

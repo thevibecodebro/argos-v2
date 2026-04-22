@@ -23,9 +23,18 @@ const {
   createNotificationsRepositoryMock,
   getNotificationsMock,
   getCurrentUserDetailsMock,
+  listOrganizationMembersMock,
   createCallsRepositoryMock,
   listCallsMock,
   listHighlightsMock,
+  createInvitesRepositoryMock,
+  listPendingInvitesMock,
+  createTeamAccessRepositoryMock,
+  getTeamAccessSnapshotMock,
+  createIntegrationsRepositoryMock,
+  getIntegrationStatusesMock,
+  createComplianceRepositoryMock,
+  getComplianceStatusMock,
 } = vi.hoisted(() => ({
   redirectMock: vi.fn(),
   getAuthenticatedSupabaseUserMock: vi.fn(),
@@ -48,9 +57,18 @@ const {
   createNotificationsRepositoryMock: vi.fn(),
   getNotificationsMock: vi.fn(),
   getCurrentUserDetailsMock: vi.fn(),
+  listOrganizationMembersMock: vi.fn(),
   createCallsRepositoryMock: vi.fn(),
   listCallsMock: vi.fn(),
   listHighlightsMock: vi.fn(),
+  createInvitesRepositoryMock: vi.fn(),
+  listPendingInvitesMock: vi.fn(),
+  createTeamAccessRepositoryMock: vi.fn(),
+  getTeamAccessSnapshotMock: vi.fn(),
+  createIntegrationsRepositoryMock: vi.fn(),
+  getIntegrationStatusesMock: vi.fn(),
+  createComplianceRepositoryMock: vi.fn(),
+  getComplianceStatusMock: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -75,6 +93,26 @@ vi.mock("@/components/notifications-panel", () => ({
 
 vi.mock("@/components/settings/account-panel", () => ({
   AccountPanel: () => "Account panel marker",
+}));
+
+vi.mock("@/components/settings/people-panel", () => ({
+  PeoplePanel: () => "People panel marker",
+}));
+
+vi.mock("@/components/settings/teams-panel", () => ({
+  TeamsPanel: () => "Teams panel marker",
+}));
+
+vi.mock("@/components/settings/permissions-panel", () => ({
+  PermissionsPanel: () => "Permissions panel marker",
+}));
+
+vi.mock("@/components/settings/integrations-panel", () => ({
+  IntegrationsPanel: () => "Integrations panel marker",
+}));
+
+vi.mock("@/components/settings/compliance-panel", () => ({
+  CompliancePanel: () => "Compliance panel marker",
 }));
 
 vi.mock("@/lib/auth/get-authenticated-user", () => ({
@@ -127,6 +165,42 @@ vi.mock("@/lib/notifications/service", () => ({
 
 vi.mock("@/lib/users/service", () => ({
   getCurrentUserDetails: getCurrentUserDetailsMock,
+  listOrganizationMembers: listOrganizationMembersMock,
+}));
+
+vi.mock("@/lib/invites/create-repository", () => ({
+  createInvitesRepository: createInvitesRepositoryMock,
+}));
+
+vi.mock("@/lib/invites/service", () => ({
+  listPendingInvites: listPendingInvitesMock,
+}));
+
+vi.mock("@/lib/team-access/create-repository", () => ({
+  createTeamAccessRepository: createTeamAccessRepositoryMock,
+}));
+
+vi.mock("@/lib/team-access/service", () => ({
+  PRESET_GRANTS: {
+    standard: ["calls:read", "training:read"],
+  },
+  getTeamAccessSnapshot: getTeamAccessSnapshotMock,
+}));
+
+vi.mock("@/lib/integrations/create-repository", () => ({
+  createIntegrationsRepository: createIntegrationsRepositoryMock,
+}));
+
+vi.mock("@/lib/integrations/service", () => ({
+  getIntegrationStatuses: getIntegrationStatusesMock,
+}));
+
+vi.mock("@/lib/compliance/create-repository", () => ({
+  createComplianceRepository: createComplianceRepositoryMock,
+}));
+
+vi.mock("@/lib/compliance/service", () => ({
+  getComplianceStatus: getComplianceStatusMock,
 }));
 
 vi.mock("@/lib/calls/create-repository", () => ({
@@ -148,6 +222,11 @@ import LeaderboardPage from "../app/(authenticated)/leaderboard/page";
 import TrainingPage from "../app/(authenticated)/training/page";
 import NotificationsPage from "../app/(authenticated)/notifications/page";
 import SettingsAccountPage from "../app/(authenticated)/settings/page";
+import SettingsPeoplePage from "../app/(authenticated)/settings/people/page";
+import SettingsTeamsPage from "../app/(authenticated)/settings/teams/page";
+import SettingsPermissionsPage from "../app/(authenticated)/settings/permissions/page";
+import SettingsIntegrationsPage from "../app/(authenticated)/settings/integrations/page";
+import SettingsCompliancePage from "../app/(authenticated)/settings/compliance/page";
 import UploadPage from "../app/(authenticated)/upload/page";
 import CallsPage from "../app/(authenticated)/calls/page";
 import HighlightsPage from "../app/(authenticated)/highlights/page";
@@ -222,6 +301,57 @@ describe("primary route hero removal", () => {
         email: "user@example.com",
         fullName: "Argos User",
         orgName: "Argos",
+        role: "admin",
+      },
+    });
+    createInvitesRepositoryMock.mockReturnValue({});
+    listPendingInvitesMock.mockResolvedValue({
+      ok: true,
+      data: [],
+    });
+    createTeamAccessRepositoryMock.mockReturnValue({});
+    getTeamAccessSnapshotMock.mockResolvedValue({
+      ok: true,
+      data: {
+        grants: [],
+        managers: [],
+        memberships: [],
+        reps: [],
+        teams: [],
+      },
+    });
+    listOrganizationMembersMock.mockResolvedValue({
+      ok: true,
+      data: [],
+    });
+    createIntegrationsRepositoryMock.mockReturnValue({});
+    getIntegrationStatusesMock.mockResolvedValue({
+      ok: true,
+      data: {
+        zoom: {
+          available: true,
+          connectPath: "/api/integrations/zoom/connect",
+          connected: false,
+          connectedAt: null,
+          disconnectPath: "/api/integrations/zoom/disconnect",
+          zoomUserId: null,
+        },
+        ghl: {
+          available: true,
+          connectPath: "/api/integrations/ghl/connect",
+          connected: false,
+          connectedAt: null,
+          disconnectPath: "/api/integrations/ghl/disconnect",
+          locationId: null,
+          locationName: null,
+        },
+      },
+    });
+    createComplianceRepositoryMock.mockReturnValue({});
+    getComplianceStatusMock.mockResolvedValue({
+      ok: true,
+      data: {
+        consentedAt: null,
       },
     });
     createTrainingRepositoryMock.mockReturnValue({});
@@ -317,10 +447,9 @@ describe("primary route hero removal", () => {
   });
 
   it("keeps visible heading behavior on top-level routes outside the feature scope", async () => {
-    const [uploadHtml, notificationsHtml, settingsHtml] = await Promise.all([
+    const [uploadHtml, notificationsHtml] = await Promise.all([
       renderRoute(UploadPage()),
       renderRoute(NotificationsPage()),
-      renderRoute(SettingsAccountPage()),
     ]);
 
     expect(uploadHtml).toContain("Upload call panel marker");
@@ -334,11 +463,59 @@ describe("primary route hero removal", () => {
     expect(notificationsHtml).toContain(
       "Notifications load and update real notification rows generated by product activity.",
     );
+  });
 
-    expect(settingsHtml).toContain("Account panel marker");
-    expect(settingsHtml).toContain(">Account<");
-    expect(settingsHtml).toContain(
+  it("hides the shared hero copy on settings routes while keeping settings panels", async () => {
+    const [
+      accountHtml,
+      peopleHtml,
+      teamsHtml,
+      permissionsHtml,
+      integrationsHtml,
+      complianceHtml,
+    ] = await Promise.all([
+      renderRoute(SettingsAccountPage()),
+      renderRoute(SettingsPeoplePage()),
+      renderRoute(SettingsTeamsPage()),
+      renderRoute(SettingsPermissionsPage()),
+      renderRoute(SettingsIntegrationsPage()),
+      renderRoute(SettingsCompliancePage()),
+    ]);
+
+    expect(accountHtml).toContain("Account panel marker");
+    expect(accountHtml).not.toContain(">Account<");
+    expect(accountHtml).not.toContain(
       "Manage your display name and view your organization details.",
+    );
+
+    expect(peopleHtml).toContain("People panel marker");
+    expect(peopleHtml).not.toContain(">People<");
+    expect(peopleHtml).not.toContain(
+      "Manage org member roles and send or revoke invitations.",
+    );
+
+    expect(teamsHtml).toContain("Teams panel marker");
+    expect(teamsHtml).not.toContain(">Teams<");
+    expect(teamsHtml).not.toContain(
+      "Create teams, edit metadata, and manage manager and rep assignments.",
+    );
+
+    expect(permissionsHtml).toContain("Permissions panel marker");
+    expect(permissionsHtml).not.toContain(">Permissions<");
+    expect(permissionsHtml).not.toContain(
+      "Configure permission presets and primary manager assignments per rep.",
+    );
+
+    expect(integrationsHtml).toContain("Integrations panel marker");
+    expect(integrationsHtml).not.toContain(">Integrations<");
+    expect(integrationsHtml).not.toContain(
+      "Connect external tools to automate call imports and post-call workflows.",
+    );
+
+    expect(complianceHtml).toContain("Compliance panel marker");
+    expect(complianceHtml).not.toContain(">Compliance<");
+    expect(complianceHtml).not.toContain(
+      "Configure call recording consent and review compliance acknowledgments.",
     );
   });
 
@@ -379,13 +556,14 @@ describe("primary route hero removal", () => {
     expect(executiveHtml).not.toContain(">Team Dashboard<");
   });
 
-  it("removes the calls hero while keeping viewer context and upload actions", async () => {
+  it("removes the calls hero and viewer identity card while keeping upload actions", async () => {
     const callsHtml = await renderRoute(
       CallsPage({ searchParams: Promise.resolve({}) }),
     );
 
-    expect(callsHtml).toContain("Viewing As");
-    expect(callsHtml).toContain("Avery Manager");
+    expect(callsHtml).not.toContain("Viewing As");
+    expect(callsHtml).not.toContain("Avery Manager");
+    expect(callsHtml).not.toContain(">manager<");
     expect(callsHtml).toContain('href="/upload"');
     expect(callsHtml).toContain("Calls filters marker");
     expect(callsHtml).toContain('href="/calls/call-1"');
