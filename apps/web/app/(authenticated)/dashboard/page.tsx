@@ -93,11 +93,6 @@ function RepDashboardView({
 
   return (
     <div className="space-y-8">
-      <div className="mb-10">
-        <h2 className="text-4xl font-bold text-[#ecedf6] tracking-tight mb-2">My Dashboard</h2>
-        <p className="text-[#a9abb3]">Your scoring trends, focus categories, badges, and recent calls</p>
-      </div>
-
       <div className="grid gap-6 md:grid-cols-3">
         <MetricCard label="30-day average" value={dashboard?.monthlyAvgScore ?? "—"} />
         <MetricCard label="Calls analyzed" value={recentCalls.length} />
@@ -218,20 +213,15 @@ function ManagerDashboardView({
 
   return (
     <div className="space-y-8">
-      <div className="mb-2">
-        <h2 className="text-4xl font-bold text-[#ecedf6] tracking-tight mb-2">Team Dashboard</h2>
-        <p className="text-[#a9abb3]">Your team's latest interactions and performance data</p>
-      </div>
-
       {/* Row 1: CTA card + Org Setup */}
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12 lg:col-span-8 bg-[#10131a] rounded-xl p-6 border border-[#45484f]/10 flex flex-col justify-between relative overflow-hidden">
           <div className="relative z-10">
             <div className="flex justify-between items-start mb-6">
               <div>
-                <h3 className="text-xl font-bold mb-2 text-[#ecedf6]">Team Dashboard</h3>
+                <h3 className="text-xl font-bold mb-2 text-[#ecedf6]">Live team snapshot</h3>
                 <p className="text-[#a9abb3] text-sm max-w-md">
-                  Your team's latest interactions and performance data are syncing. Live data is loading for the current cycle.
+                  Current team activity, leaderboard movement, and setup status for this cycle.
                 </p>
               </div>
             </div>
@@ -304,20 +294,15 @@ function ExecutiveDashboardView({
 
   return (
     <div className="space-y-8">
-      <div className="mb-2">
-        <h2 className="text-4xl font-bold text-[#ecedf6] tracking-tight mb-2">Executive Dashboard</h2>
-        <p className="text-[#a9abb3]">Org-wide analytics and team performance</p>
-      </div>
-
       {/* Row 1: CTA card + Org Setup */}
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12 lg:col-span-8 bg-[#10131a] rounded-xl p-6 border border-[#45484f]/10 flex flex-col justify-between relative overflow-hidden">
           <div className="relative z-10">
             <div className="flex justify-between items-start mb-6">
               <div>
-                <h3 className="text-xl font-bold mb-2 text-[#ecedf6]">Team Dashboard</h3>
+                <h3 className="text-xl font-bold mb-2 text-[#ecedf6]">Live team snapshot</h3>
                 <p className="text-[#a9abb3] text-sm max-w-md">
-                  Your team's latest interactions and performance data are syncing. Live data is loading for the current cycle.
+                  Current team activity, leaderboard movement, and setup status for this cycle.
                 </p>
               </div>
             </div>

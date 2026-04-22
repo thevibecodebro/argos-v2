@@ -44,21 +44,16 @@ export default async function CallsPage({
       <div className="relative overflow-hidden rounded-[2rem] border border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(116,177,255,0.18),transparent_28%),radial-gradient(circle_at_top_right,rgba(109,221,255,0.08),transparent_30%),linear-gradient(180deg,rgba(15,19,26,0.98),rgba(10,13,19,0.95))] p-6 shadow-[0_24px_80px_rgba(2,8,23,0.42)] sm:p-8">
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.06),transparent_24%,transparent_72%,rgba(255,255,255,0.04))]" />
 
-        <section className="relative mb-8 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-          <div className="space-y-4">
-            <div className="inline-flex items-center rounded-full border border-[#74b1ff]/20 bg-[#74b1ff]/8 px-3 py-1 text-[11px] font-black uppercase tracking-[0.3em] text-[#74b1ff]">
-              Intelligence archive
-            </div>
-            <div className="space-y-3">
-              <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-                Call Library
-              </h1>
-              <p className="max-w-2xl text-sm leading-7 text-slate-400 sm:text-base">
-                Explore and analyze {total.toLocaleString()} recorded{" "}
-                {total === 1 ? "interaction" : "interactions"} from your team.
-                Open any row to review the scorecard, transcript, and coaching detail.
-              </p>
-            </div>
+        <section className="relative mb-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2">
+              {total.toLocaleString()} {total === 1 ? "interaction" : "interactions"}
+            </span>
+            {hasActiveFilters ? (
+              <span className="rounded-full border border-[#74b1ff]/20 bg-[#74b1ff]/8 px-3 py-2 text-[#74b1ff]">
+                Filters applied
+              </span>
+            ) : null}
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">

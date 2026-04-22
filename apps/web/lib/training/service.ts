@@ -76,6 +76,8 @@ export type TrainingRepModuleProgress = {
   status: string;
   score: number | null;
   attempts: number;
+  assignedAt: string | null;
+  dueDate: string | null;
 };
 
 export type TrainingRepProgress = {
@@ -1025,6 +1027,8 @@ export async function getTrainingTeamProgress(
                 status: entry.status,
                 score: entry.score,
                 attempts: entry.attempts,
+                assignedAt: entry.assignedAt?.toISOString() ?? null,
+                dueDate: entry.dueDate?.toISOString() ?? null,
               },
             ];
           }),
