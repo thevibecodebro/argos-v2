@@ -25,13 +25,17 @@ describe("primary route hero removal", () => {
   });
 
   it("keeps default page-frame headings on out-of-scope routes", async () => {
-    const [settings, repProfile, teamLoading] = await Promise.all([
+    const [settings, notifications, upload, repProfile, teamLoading] = await Promise.all([
       readAppFile("app/(authenticated)/settings/page.tsx"),
+      readAppFile("app/(authenticated)/notifications/page.tsx"),
+      readAppFile("app/(authenticated)/upload/page.tsx"),
       readAppFile("app/(authenticated)/team/[repId]/page.tsx"),
       readAppFile("app/(authenticated)/team/loading.tsx"),
     ]);
 
     expect(settings).toContain('title="Account"');
+    expect(notifications).toContain('title="Notifications"');
+    expect(upload).toContain('title="Upload Call"');
     expect(repProfile).toContain('title="Rep Profile"');
     expect(teamLoading).toContain('title="Team"');
   });
