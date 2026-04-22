@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { TrainingCourseShell } from "./training/training-course-shell";
 import { TrainingManagerCommandDeck } from "./training/training-manager-command-deck";
 import { TrainingManagerModal } from "./training/training-manager-modal";
@@ -392,7 +392,7 @@ export function TrainingPanel({
     }
   }
 
-  function closeManagerModal() {
+  const closeManagerModal = useCallback(() => {
     setActiveManagerModal(null);
     setEditingModuleId(null);
     setAssigningModuleId(null);
@@ -400,7 +400,7 @@ export function TrainingPanel({
     setAssignDueDate("");
     setGeneratedDrafts([]);
     setIsManagerBusy(false);
-  }
+  }, []);
 
   async function refreshTeamProgress() {
     const response = await fetch("/api/training/team-progress", {
@@ -719,12 +719,11 @@ export function TrainingPanel({
 
   const managerEmptyPanel = (
     <section className="rounded-[1.5rem] border border-dashed border-[#45484f]/20 bg-[#10131a]/78 p-5">
-      <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#74b1ff]">Curriculum studio</p>
-      <h4 className="mt-2 text-lg font-semibold text-white">Build your curriculum</h4>
+      <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#74b1ff]">Planning surface</p>
+      <h4 className="mt-2 text-lg font-semibold text-white">Create your first module</h4>
       <p className="mt-2 max-w-2xl text-sm leading-7 text-[#a9abb3]">
-        Start the studio by creating your first module or generating a draft sequence with AI. Once modules exist,
-        the planning deck opens focused overlays for editing, assignment planning, and AI drafting without disturbing
-        the main training surface.
+        Start with a single lesson. Generate a draft sequence with AI when you want a faster starting point. Once
+        modules exist, assignment and editing flows stay available from the compact planning surface below.
       </p>
       <div className="mt-4 flex flex-wrap gap-3">
         <button
@@ -1068,9 +1067,10 @@ export function TrainingPanel({
     <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
       <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#74b1ff]">Current curriculum</p>
       <div className="mt-4 rounded-[1.25rem] border border-dashed border-[#45484f]/15 bg-[#161a21]/40 p-5">
-        <h2 className="text-2xl font-semibold text-white">Build your curriculum</h2>
+        <h2 className="text-2xl font-semibold text-white">Create your first module</h2>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-[#a9abb3]">
-          Create your first lesson or generate a starter sequence from the command deck to activate the studio.
+          Start with a single lesson. Generate a draft sequence with AI when you want a faster starting point. Once
+          modules exist, assignment and editing flows stay available from the compact planning surface below.
         </p>
       </div>
     </section>
@@ -1078,9 +1078,9 @@ export function TrainingPanel({
     <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
       <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#74b1ff]">Current curriculum</p>
       <div className="mt-4 rounded-[1.25rem] border border-dashed border-[#45484f]/15 bg-[#161a21]/40 p-5">
-        <h2 className="text-2xl font-semibold text-white">No training is assigned yet</h2>
+        <h2 className="text-2xl font-semibold text-white">Nothing is assigned yet</h2>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-[#a9abb3]">
-          Your manager will surface modules here once a curriculum is assigned. Check back soon to start practice.
+          Your manager will place modules here when new training is ready. Check back soon to start practice.
         </p>
       </div>
     </section>

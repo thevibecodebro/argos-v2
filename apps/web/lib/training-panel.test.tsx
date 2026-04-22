@@ -550,7 +550,7 @@ describe("TrainingPanel", () => {
     expectCompactManagerDeckAtRest(html);
   });
 
-  it("renders the manager empty state with curriculum studio actions", () => {
+  it("renders the manager empty state as planning guidance instead of a studio splash", () => {
     const html = renderToStaticMarkup(
       <TrainingPanel
         aiAvailable
@@ -562,9 +562,11 @@ describe("TrainingPanel", () => {
       />,
     );
 
-    expect(html).toContain("Build your curriculum");
+    expect(html).toContain("Create your first module");
+    expect(html).toContain("Generate a draft sequence with AI");
     expect(html).toContain("Create module");
     expect(html).toContain("Generate with AI");
+    expect(html).not.toContain("Build your curriculum");
   });
 
   it("renders the rep empty state without manager actions", () => {
@@ -579,16 +581,17 @@ describe("TrainingPanel", () => {
       />,
     );
 
-    expect(html).toContain("No training is assigned yet");
+    expect(html).toContain("Nothing is assigned yet");
     expect(html).not.toContain("Create module");
   });
 
-  it("renders the route loading shell with training studio scaffolding", () => {
+  it("renders the loading shell with the stacked training structure", () => {
     const html = renderToStaticMarkup(<TrainingLoading />);
 
     expect(html).toContain("Loading training");
+    expect(html).toContain("Current curriculum");
     expect(html).toContain("Curriculum map");
-    expect(html).toContain("Team pulse");
+    expect(html).not.toContain("Team pulse");
   });
 
   it("renders active-state semantics for the curriculum map and stage switcher", () => {

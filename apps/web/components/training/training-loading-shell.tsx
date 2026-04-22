@@ -8,21 +8,12 @@ function LoadingBlock({ className }: { className: string }) {
 export function TrainingLoadingShell() {
   return (
     <PageFrame
-      description="Review curriculum, assign modules, and guide practice from one training studio."
+      description="Review assigned modules, complete lessons, and guide practice from one training surface."
       eyebrow="Training"
       title="Loading training"
     >
       <TrainingCourseShell
-        commandDeck={
-          <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-5 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Team pulse</p>
-            <div className="mt-4 space-y-3">
-              <LoadingBlock className="h-4 w-32" />
-              <LoadingBlock className="h-10 w-full rounded-xl" />
-              <LoadingBlock className="h-10 w-full rounded-xl" />
-            </div>
-          </section>
-        }
+        commandDeck={null}
         stage={
           <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
             <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#74b1ff]">Current curriculum</p>
