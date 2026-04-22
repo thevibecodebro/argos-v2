@@ -1,19 +1,18 @@
 import { redirect } from "next/navigation";
 import { PageFrame } from "@/components/page-frame";
-import { CompliancePanel } from "@/components/settings/compliance-panel";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { CompliancePanel } from "@/components/page-panel-loaders";
+import {
+  getCachedAuthenticatedSupabaseUser,
+  getCachedCurrentUserDetails,
+} from "@/lib/auth/request-user";
 import { createComplianceRepository } from "@/lib/compliance/create-repository";
 import { getComplianceStatus } from "@/lib/compliance/service";
-import { createUsersRepository } from "@/lib/users/create-repository";
-import { getCurrentUserDetails } from "@/lib/users/service";
-
-export const dynamic = "force-dynamic";
 
 export default async function SettingsCompliancePage() {
-  const authUser = await getAuthenticatedSupabaseUser();
+  const authUser = await getCachedAuthenticatedSupabaseUser();
   if (!authUser) redirect("/login");
 
-  const result = await getCurrentUserDetails(createUsersRepository(), authUser.id);
+  const result = await getCachedCurrentUserDetails(authUser.id);
   if (!result?.ok) redirect("/settings");
   if (result.data.role !== "admin") redirect("/settings");
 

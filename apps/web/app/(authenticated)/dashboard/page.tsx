@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import {
+  getCachedAuthenticatedSupabaseUser,
+  getCachedCurrentUserProfile,
+} from "@/lib/auth/request-user";
 import { createDashboardRepository } from "@/lib/dashboard/create-repository";
 import {
-  getCurrentUserProfile,
   getDashboardLeaderboard,
   getExecutiveDashboard,
   getManagerDashboard,
@@ -18,12 +20,10 @@ import {
 } from "@/lib/dashboard/service";
 import { PageFrame } from "@/components/page-frame";
 
-export const dynamic = "force-dynamic";
-
 export default async function DashboardPage() {
-  const authUser = await getAuthenticatedSupabaseUser();
+  const authUser = await getCachedAuthenticatedSupabaseUser();
   const repository = createDashboardRepository();
-  const profile = authUser ? await getCurrentUserProfile(repository, authUser.id) : null;
+  const profile = authUser ? await getCachedCurrentUserProfile(authUser.id) : null;
 
   if (!authUser || !profile) {
     return (

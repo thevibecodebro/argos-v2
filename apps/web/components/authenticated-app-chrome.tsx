@@ -1,7 +1,3 @@
-"use client";
-
-import React from "react";
-import { usePathname } from "next/navigation";
 import { AuthenticatedAppShell } from "./app-shell";
 
 type AuthenticatedAppChromeProps = {
@@ -18,10 +14,8 @@ export function AuthenticatedAppChrome({
   children,
   user,
 }: AuthenticatedAppChromeProps) {
-  const pathname = usePathname();
-
   return (
-    <AuthenticatedAppShell currentPath={pathname} user={user}>
+    <AuthenticatedAppShell user={user}>
       {children}
     </AuthenticatedAppShell>
   );

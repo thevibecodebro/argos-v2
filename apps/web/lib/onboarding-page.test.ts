@@ -9,6 +9,14 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
+vi.mock("next/font/google", () => ({
+  Manrope: () => ({
+    className: "",
+    style: { fontFamily: "Manrope" },
+    variable: "--font-manrope",
+  }),
+}));
+
 describe("OnboardingPage", () => {
   it("renders the archived create-or-join organization flow", async () => {
     const html = renderToStaticMarkup(await OnboardingPage());

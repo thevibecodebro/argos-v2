@@ -3,9 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   redirectMock,
-  getAuthenticatedSupabaseUserMock,
+  getCachedAuthenticatedSupabaseUserMock,
+  getCachedCurrentUserDetailsMock,
+  getCachedCurrentUserProfileMock,
   createDashboardRepositoryMock,
-  getCurrentUserProfileMock,
   getManagerDashboardMock,
   getDashboardLeaderboardMock,
   getRepDashboardMock,
@@ -22,7 +23,6 @@ const {
   getActiveRubricMock,
   createNotificationsRepositoryMock,
   getNotificationsMock,
-  getCurrentUserDetailsMock,
   listOrganizationMembersMock,
   createCallsRepositoryMock,
   listCallsMock,
@@ -37,9 +37,10 @@ const {
   getComplianceStatusMock,
 } = vi.hoisted(() => ({
   redirectMock: vi.fn(),
-  getAuthenticatedSupabaseUserMock: vi.fn(),
+  getCachedAuthenticatedSupabaseUserMock: vi.fn(),
+  getCachedCurrentUserDetailsMock: vi.fn(),
+  getCachedCurrentUserProfileMock: vi.fn(),
   createDashboardRepositoryMock: vi.fn(),
-  getCurrentUserProfileMock: vi.fn(),
   getManagerDashboardMock: vi.fn(),
   getDashboardLeaderboardMock: vi.fn(),
   getRepDashboardMock: vi.fn(),
@@ -56,7 +57,6 @@ const {
   getActiveRubricMock: vi.fn(),
   createNotificationsRepositoryMock: vi.fn(),
   getNotificationsMock: vi.fn(),
-  getCurrentUserDetailsMock: vi.fn(),
   listOrganizationMembersMock: vi.fn(),
   createCallsRepositoryMock: vi.fn(),
   listCallsMock: vi.fn(),
@@ -91,6 +91,18 @@ vi.mock("@/components/notifications-panel", () => ({
   NotificationsPanel: () => "Notifications panel marker",
 }));
 
+vi.mock("@/components/page-panel-loaders", () => ({
+  TrainingPanel: () => "Training panel marker",
+  UploadCallPanel: () => "Upload call panel marker",
+  NotificationsPanel: () => "Notifications panel marker",
+  AccountPanel: () => "Account panel marker",
+  PeoplePanel: () => "People panel marker",
+  TeamsPanel: () => "Teams panel marker",
+  PermissionsPanel: () => "Permissions panel marker",
+  IntegrationsPanel: () => "Integrations panel marker",
+  CompliancePanel: () => "Compliance panel marker",
+}));
+
 vi.mock("@/components/settings/account-panel", () => ({
   AccountPanel: () => "Account panel marker",
 }));
@@ -115,8 +127,10 @@ vi.mock("@/components/settings/compliance-panel", () => ({
   CompliancePanel: () => "Compliance panel marker",
 }));
 
-vi.mock("@/lib/auth/get-authenticated-user", () => ({
-  getAuthenticatedSupabaseUser: getAuthenticatedSupabaseUserMock,
+vi.mock("@/lib/auth/request-user", () => ({
+  getCachedAuthenticatedSupabaseUser: getCachedAuthenticatedSupabaseUserMock,
+  getCachedCurrentUserDetails: getCachedCurrentUserDetailsMock,
+  getCachedCurrentUserProfile: getCachedCurrentUserProfileMock,
 }));
 
 vi.mock("@/lib/dashboard/create-repository", () => ({
@@ -124,7 +138,6 @@ vi.mock("@/lib/dashboard/create-repository", () => ({
 }));
 
 vi.mock("@/lib/dashboard/service", () => ({
-  getCurrentUserProfile: getCurrentUserProfileMock,
   getManagerDashboard: getManagerDashboardMock,
   getDashboardLeaderboard: getDashboardLeaderboardMock,
   getRepDashboard: getRepDashboardMock,
@@ -164,7 +177,6 @@ vi.mock("@/lib/notifications/service", () => ({
 }));
 
 vi.mock("@/lib/users/service", () => ({
-  getCurrentUserDetails: getCurrentUserDetailsMock,
   listOrganizationMembers: listOrganizationMembersMock,
 }));
 
@@ -239,10 +251,10 @@ describe("primary route hero removal", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    getAuthenticatedSupabaseUserMock.mockResolvedValue({ id: "auth-user-1" });
+    getCachedAuthenticatedSupabaseUserMock.mockResolvedValue({ id: "auth-user-1" });
 
     createDashboardRepositoryMock.mockReturnValue({});
-    getCurrentUserProfileMock.mockResolvedValue({ role: "manager" });
+    getCachedCurrentUserProfileMock.mockResolvedValue({ role: "manager" });
     getRepDashboardMock.mockResolvedValue({
       monthlyAvgScore: 91,
       recentCalls: [
@@ -294,7 +306,7 @@ describe("primary route hero removal", () => {
       findCurrentUserByAuthId: findCurrentUserByAuthIdMock,
     });
     findCurrentUserByAuthIdMock.mockResolvedValue(null);
-    getCurrentUserDetailsMock.mockResolvedValue({
+    getCachedCurrentUserDetailsMock.mockResolvedValue({
       ok: true,
       data: {
         id: "user-1",
@@ -546,13 +558,13 @@ describe("primary route hero removal", () => {
       coachingFlagsCount: 2,
     });
 
-    getCurrentUserProfileMock.mockResolvedValueOnce({ role: "rep" });
+    getCachedCurrentUserProfileMock.mockResolvedValueOnce({ role: "rep" });
     const repHtml = await renderRoute(DashboardPage());
 
-    getCurrentUserProfileMock.mockResolvedValueOnce({ role: "manager" });
+    getCachedCurrentUserProfileMock.mockResolvedValueOnce({ role: "manager" });
     const managerHtml = await renderRoute(DashboardPage());
 
-    getCurrentUserProfileMock.mockResolvedValueOnce({ role: "executive" });
+    getCachedCurrentUserProfileMock.mockResolvedValueOnce({ role: "executive" });
     const executiveHtml = await renderRoute(DashboardPage());
 
     expect(repHtml).toContain('href="/calls"');

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Source_Sans_3, Manrope } from "next/font/google";
+import { Space_Grotesk, Source_Sans_3 } from "next/font/google";
 import { getDevelopmentStartupEnvError } from "@/lib/env";
 import "./globals.css";
 
@@ -13,15 +13,13 @@ const bodyFont = Source_Sans_3({
   variable: "--font-body",
 });
 
-const manropeFont = Manrope({
-  subsets: ["latin"],
-  variable: "--font-manrope",
-});
-
 export const metadata: Metadata = {
   title: "Argos",
   description: "Revenue Command Platform",
 };
+
+const materialSymbolsHref =
+  "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap";
 
 export default function RootLayout({
   children,
@@ -31,12 +29,21 @@ export default function RootLayout({
   const startupEnvError = getDevelopmentStartupEnvError();
 
   return (
-    <html className={`${displayFont.variable} ${bodyFont.variable} ${manropeFont.variable}`} lang="en">
+    <html className={`${displayFont.variable} ${bodyFont.variable}`} lang="en">
       <head>
-        <link
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
-          rel="stylesheet"
+        <link href="https://fonts.googleapis.com" rel="preconnect" />
+        <link crossOrigin="anonymous" href="https://fonts.gstatic.com" rel="preconnect" />
+        <link as="style" href={materialSymbolsHref} rel="preload" />
+        <link href={materialSymbolsHref} id="material-symbols-stylesheet" media="print" rel="stylesheet" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "document.getElementById('material-symbols-stylesheet')?.setAttribute('media','all');",
+          }}
         />
+        <noscript>
+          <link href={materialSymbolsHref} rel="stylesheet" />
+        </noscript>
       </head>
       <body>
         {startupEnvError ? (

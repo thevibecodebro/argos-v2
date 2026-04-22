@@ -12,6 +12,20 @@ type CookieToSet = {
 };
 
 export async function updateSession(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+  const isAuthSurface =
+    pathname === "/" ||
+    pathname === "/login" ||
+    isProtectedPath(pathname);
+
+  if (!isAuthSurface) {
+    return NextResponse.next({
+      request: {
+        headers: request.headers,
+      },
+    });
+  }
+
   const { supabaseUrl, supabaseAnonKey } = getWebEnv();
   let response = NextResponse.next({
     request: {
@@ -54,14 +68,14 @@ export async function updateSession(request: NextRequest) {
 
     logAuthTransportFailure({
       source: "middleware",
-      path: request.nextUrl.pathname,
+      path: pathname,
       error,
     });
   }
 
   response.headers.set("Cache-Control", "private, no-store");
 
-  if (user && (request.nextUrl.pathname === "/" || request.nextUrl.pathname === "/login")) {
+  if (user && (pathname === "/" || pathname === "/login")) {
     const redirectResponse = NextResponse.redirect(
       new URL(getAuthenticatedEntryHref(true), request.url),
     );
@@ -69,9 +83,9 @@ export async function updateSession(request: NextRequest) {
     return redirectResponse;
   }
 
-  if (!user && isProtectedPath(request.nextUrl.pathname)) {
+  if (!user && isProtectedPath(pathname)) {
     const redirectUrl = new URL(
-      getLoginHref(request.nextUrl.pathname, request.nextUrl.search),
+      getLoginHref(pathname, request.nextUrl.search),
       request.url,
     );
     const redirectResponse = NextResponse.redirect(redirectUrl);

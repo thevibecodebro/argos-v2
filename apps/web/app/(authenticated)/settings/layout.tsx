@@ -1,18 +1,19 @@
 import { redirect } from "next/navigation";
 import { SettingsNav } from "@/components/settings/settings-nav";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
-import { createUsersRepository } from "@/lib/users/create-repository";
-import { getCurrentUserDetails } from "@/lib/users/service";
+import {
+  getCachedAuthenticatedSupabaseUser,
+  getCachedCurrentUserDetails,
+} from "@/lib/auth/request-user";
 
 export default async function SettingsLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const authUser = await getAuthenticatedSupabaseUser();
+  const authUser = await getCachedAuthenticatedSupabaseUser();
   if (!authUser) redirect("/login");
 
-  const result = await getCurrentUserDetails(createUsersRepository(), authUser.id);
+  const result = await getCachedCurrentUserDetails(authUser.id);
   const role = result?.ok ? result.data.role : null;
 
   return (

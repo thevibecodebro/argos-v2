@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { cn } from "@argos-v2/ui";
 import type { AppUserRole } from "@/lib/users/roles";
 
@@ -14,7 +15,6 @@ type ShellUser = {
 
 type AuthenticatedAppShellProps = {
   children: React.ReactNode;
-  currentPath: string;
   user: ShellUser;
 };
 
@@ -73,9 +73,9 @@ const navGroups: NavGroup[] = [
 
 export function AuthenticatedAppShell({
   children,
-  currentPath,
   user,
 }: AuthenticatedAppShellProps) {
+  const currentPath = usePathname();
   const [accountOpen, setAccountOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
 

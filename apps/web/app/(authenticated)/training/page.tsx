@@ -1,27 +1,26 @@
 import { CALL_SCORING_CATEGORIES } from "@argos-v2/call-processing";
 import { PageFrame } from "@/components/page-frame";
-import { TrainingPanel } from "@/components/training-panel";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { TrainingPanel } from "@/components/page-panel-loaders";
+import {
+  getCachedAuthenticatedSupabaseUser,
+  getCachedCurrentUserDetails,
+} from "@/lib/auth/request-user";
 import { createRubricsRepository } from "@/lib/rubrics/create-repository";
 import { getActiveRubric } from "@/lib/rubrics/service";
 import { createTrainingRepository } from "@/lib/training/create-repository";
 import { getTrainingAiStatus, getTrainingModules, getTrainingTeamProgress } from "@/lib/training/service";
-import { createUsersRepository } from "@/lib/users/create-repository";
-
-export const dynamic = "force-dynamic";
 
 export default async function TrainingPage() {
-  const authUser = await getAuthenticatedSupabaseUser();
-  const appUser = authUser
-    ? await createUsersRepository().findCurrentUserByAuthId(authUser.id)
-    : null;
+  const authUser = await getCachedAuthenticatedSupabaseUser();
+  const currentUserResult = authUser ? await getCachedCurrentUserDetails(authUser.id) : null;
+  const orgId = currentUserResult?.ok ? currentUserResult.data.orgId : null;
   const [modulesResult, teamProgressResult, aiStatus, activeRubricResult] = authUser
     ? await Promise.all([
         getTrainingModules(createTrainingRepository(), authUser.id),
         getTrainingTeamProgress(createTrainingRepository(), authUser.id),
         Promise.resolve(getTrainingAiStatus()),
-        appUser?.orgId
-          ? getActiveRubric(createRubricsRepository(), appUser.orgId)
+        orgId
+          ? getActiveRubric(createRubricsRepository(), orgId)
           : Promise.resolve({ ok: false as const, status: 404 as const, error: "Active rubric not found" }),
       ])
     : [null, null, { available: false, reason: null }, null];

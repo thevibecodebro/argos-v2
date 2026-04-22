@@ -1,13 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CallDetailPanel } from "@/components/call-detail-panel";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { CallDetailPanel } from "@/components/page-panel-loaders";
+import {
+  getCachedAuthenticatedSupabaseUser,
+  getCachedCurrentUserProfile,
+} from "@/lib/auth/request-user";
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { getCallDetail, listAnnotations } from "@/lib/calls/service";
-import { createDashboardRepository } from "@/lib/dashboard/create-repository";
-import { getCurrentUserProfile } from "@/lib/dashboard/service";
-
-export const dynamic = "force-dynamic";
 
 export default async function CallDetailPage({
   params,
@@ -15,14 +14,14 @@ export default async function CallDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const authUser = await getAuthenticatedSupabaseUser();
+  const authUser = await getCachedAuthenticatedSupabaseUser();
 
   if (!authUser) {
     notFound();
   }
 
   const [profile, detailResult, annotationsResult] = await Promise.all([
-    getCurrentUserProfile(createDashboardRepository(), authUser.id),
+    getCachedCurrentUserProfile(authUser.id),
     getCallDetail(createCallsRepository(), authUser.id, id),
     listAnnotations(createCallsRepository(), authUser.id, id),
   ]);

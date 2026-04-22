@@ -2,11 +2,15 @@
 
 import { useState } from "react";
 import { buildAuthRedirectUrl, getBrowserWebEnvConfigurationError } from "@/lib/env";
-import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type LoginFormProps = {
   nextPath: string;
 };
+
+async function getSupabaseBrowserClient() {
+  const { createSupabaseBrowserClient } = await import("@/lib/supabase/browser");
+  return createSupabaseBrowserClient();
+}
 
 export function LoginForm({ nextPath }: LoginFormProps) {
   const [email, setEmail] = useState("");
@@ -38,7 +42,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
     setErrorMessage(null);
 
     try {
-      const supabase = createSupabaseBrowserClient();
+      const supabase = await getSupabaseBrowserClient();
       const redirectTo = buildAuthRedirectUrl(nextPath, {
         runtimeOrigin: window.location.origin,
       });
@@ -71,7 +75,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
     }
 
     try {
-      const supabase = createSupabaseBrowserClient();
+      const supabase = await getSupabaseBrowserClient();
       const redirectTo = buildAuthRedirectUrl(nextPath, {
         runtimeOrigin: window.location.origin,
       });

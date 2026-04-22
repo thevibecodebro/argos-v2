@@ -1,12 +1,10 @@
 import Link from "next/link";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { getCachedAuthenticatedSupabaseUser } from "@/lib/auth/request-user";
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { listHighlights } from "@/lib/calls/service";
 
-export const dynamic = "force-dynamic";
-
 export default async function HighlightsPage() {
-  const authUser = await getAuthenticatedSupabaseUser();
+  const authUser = await getCachedAuthenticatedSupabaseUser();
   const result = authUser
     ? await listHighlights(createCallsRepository(), authUser.id)
     : null;

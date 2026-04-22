@@ -1,5 +1,5 @@
 import { PageFrame } from "@/components/page-frame";
-import { UploadCallPanel } from "@/components/upload-call-panel";
+import { UploadCallPanel } from "@/components/page-panel-loaders";
 
 export default function UploadPage() {
   return (

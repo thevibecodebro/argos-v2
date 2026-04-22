@@ -1,16 +1,16 @@
 import { notFound, redirect } from "next/navigation";
 import { PageFrame } from "@/components/page-frame";
 import { TeamRepProfileView } from "@/components/team/team-views";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import {
+  getCachedAuthenticatedSupabaseUser,
+  getCachedCurrentUserProfile,
+} from "@/lib/auth/request-user";
 import { createDashboardRepository } from "@/lib/dashboard/create-repository";
 import {
-  getCurrentUserProfile,
   getManagerDashboard,
   getRepBadges,
   getRepDashboard,
 } from "@/lib/dashboard/service";
-
-export const dynamic = "force-dynamic";
 
 export default async function RepProfilePage({
   params,
@@ -18,11 +18,9 @@ export default async function RepProfilePage({
   params: Promise<{ repId: string }>;
 }) {
   const { repId } = await params;
-  const authUser = await getAuthenticatedSupabaseUser();
+  const authUser = await getCachedAuthenticatedSupabaseUser();
   const repository = createDashboardRepository();
-  const profile = authUser
-    ? await getCurrentUserProfile(repository, authUser.id)
-    : null;
+  const profile = authUser ? await getCachedCurrentUserProfile(authUser.id) : null;
 
   if (profile?.role === "rep") {
     redirect("/dashboard");

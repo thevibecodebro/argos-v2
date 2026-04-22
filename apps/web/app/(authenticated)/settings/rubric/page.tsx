@@ -1,15 +1,14 @@
 import { DEFAULT_CALL_SCORING_RUBRIC } from "@argos-v2/call-processing";
 import { redirect } from "next/navigation";
 import { PageFrame } from "@/components/page-frame";
-import { RubricsPanel } from "@/components/settings/rubrics-panel";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { RubricsPanel } from "@/components/page-panel-loaders";
+import {
+  getCachedAuthenticatedSupabaseUser,
+  getCachedCurrentUserDetails,
+} from "@/lib/auth/request-user";
 import { createRubricsRepository } from "@/lib/rubrics/create-repository";
 import type { RubricInput } from "@/lib/rubrics/types";
 import { getActiveRubric, loadRubricHistory } from "@/lib/rubrics/service";
-import { createUsersRepository } from "@/lib/users/create-repository";
-import { getCurrentUserDetails } from "@/lib/users/service";
-
-export const dynamic = "force-dynamic";
 
 function buildDefaultTemplate(): RubricInput {
   return {
@@ -32,10 +31,10 @@ function buildDefaultTemplate(): RubricInput {
 }
 
 export default async function SettingsRubricPage() {
-  const authUser = await getAuthenticatedSupabaseUser();
+  const authUser = await getCachedAuthenticatedSupabaseUser();
   if (!authUser) redirect("/login");
 
-  const userResult = await getCurrentUserDetails(createUsersRepository(), authUser.id);
+  const userResult = await getCachedCurrentUserDetails(authUser.id);
   if (!userResult.ok) redirect("/settings");
   if (userResult.data.role !== "admin") redirect("/settings");
 

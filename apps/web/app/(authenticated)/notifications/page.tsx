@@ -1,13 +1,11 @@
 import { PageFrame } from "@/components/page-frame";
-import { NotificationsPanel } from "@/components/notifications-panel";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { NotificationsPanel } from "@/components/page-panel-loaders";
+import { getCachedAuthenticatedSupabaseUser } from "@/lib/auth/request-user";
 import { createNotificationsRepository } from "@/lib/notifications/create-repository";
 import { getNotifications } from "@/lib/notifications/service";
 
-export const dynamic = "force-dynamic";
-
 export default async function NotificationsPage() {
-  const authUser = await getAuthenticatedSupabaseUser();
+  const authUser = await getCachedAuthenticatedSupabaseUser();
   const result = authUser
     ? await getNotifications(createNotificationsRepository(), authUser.id)
     : null;

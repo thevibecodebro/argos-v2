@@ -1,19 +1,18 @@
 import { redirect } from "next/navigation";
 import { PageFrame } from "@/components/page-frame";
-import { IntegrationsPanel } from "@/components/settings/integrations-panel";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { IntegrationsPanel } from "@/components/page-panel-loaders";
+import {
+  getCachedAuthenticatedSupabaseUser,
+  getCachedCurrentUserDetails,
+} from "@/lib/auth/request-user";
 import { createIntegrationsRepository } from "@/lib/integrations/create-repository";
 import { getIntegrationStatuses } from "@/lib/integrations/service";
-import { createUsersRepository } from "@/lib/users/create-repository";
-import { getCurrentUserDetails } from "@/lib/users/service";
-
-export const dynamic = "force-dynamic";
 
 export default async function SettingsIntegrationsPage() {
-  const authUser = await getAuthenticatedSupabaseUser();
+  const authUser = await getCachedAuthenticatedSupabaseUser();
   if (!authUser) redirect("/login");
 
-  const result = await getCurrentUserDetails(createUsersRepository(), authUser.id);
+  const result = await getCachedCurrentUserDetails(authUser.id);
   if (!result?.ok) redirect("/settings");
   if (result.data.role !== "admin") redirect("/settings");
 

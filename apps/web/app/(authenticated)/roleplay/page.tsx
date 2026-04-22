@@ -1,10 +1,8 @@
 import { notFound } from "next/navigation";
-import { RoleplayPanel } from "@/components/roleplay-panel";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { RoleplayPanel } from "@/components/page-panel-loaders";
+import { getCachedAuthenticatedSupabaseUser } from "@/lib/auth/request-user";
 import { createRoleplayRepository } from "@/lib/roleplay/create-repository";
 import { listRoleplaySessions } from "@/lib/roleplay/service";
-
-export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -22,7 +20,7 @@ export default async function RoleplayPage({
   searchParams: SearchParams;
 }) {
   const resolvedSearchParams = await searchParams;
-  const authUser = await getAuthenticatedSupabaseUser();
+  const authUser = await getCachedAuthenticatedSupabaseUser();
 
   if (!authUser) {
     notFound();

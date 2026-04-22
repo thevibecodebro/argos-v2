@@ -1,22 +1,23 @@
 import { redirect } from "next/navigation";
 import { AuthenticatedAppChrome } from "@/components/authenticated-app-chrome";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import {
+  getCachedAuthenticatedSupabaseUser,
+  getCachedCurrentUserProfile,
+} from "@/lib/auth/request-user";
 import { getAuthenticatedEntryHref } from "@/lib/auth-routing";
-import { createDashboardRepository } from "@/lib/dashboard/create-repository";
-import { getCurrentUserProfile } from "@/lib/dashboard/service";
 
 export default async function AuthenticatedLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const authUser = await getAuthenticatedSupabaseUser();
+  const authUser = await getCachedAuthenticatedSupabaseUser();
 
   if (!authUser) {
     redirect("/login");
   }
 
-  const currentUser = await getCurrentUserProfile(createDashboardRepository(), authUser.id);
+  const currentUser = await getCachedCurrentUserProfile(authUser.id);
 
   if (!currentUser) {
     redirect("/auth/error");

@@ -1,11 +1,9 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { getCachedAuthenticatedSupabaseUser } from "@/lib/auth/request-user";
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { listCalls } from "@/lib/calls/service";
 import { CallsFilters } from "./calls-filters";
-
-export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -15,7 +13,7 @@ export default async function CallsPage({
   searchParams: SearchParams;
 }) {
   const resolvedSearchParams = await searchParams;
-  const authUser = await getAuthenticatedSupabaseUser();
+  const authUser = await getCachedAuthenticatedSupabaseUser();
   const filters = parseFilters(resolvedSearchParams);
 
   const result = authUser

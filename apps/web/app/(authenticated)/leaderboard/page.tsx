@@ -1,13 +1,11 @@
 import Link from "next/link";
 import { PageFrame } from "@/components/page-frame";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { getCachedAuthenticatedSupabaseUser } from "@/lib/auth/request-user";
 import { createDashboardRepository } from "@/lib/dashboard/create-repository";
 import { getDashboardLeaderboard } from "@/lib/dashboard/service";
 
-export const dynamic = "force-dynamic";
-
 export default async function LeaderboardPage() {
-  const authUser = await getAuthenticatedSupabaseUser();
+  const authUser = await getCachedAuthenticatedSupabaseUser();
   const leaderboard = authUser
     ? await getDashboardLeaderboard(createDashboardRepository(), authUser.id)
     : null;

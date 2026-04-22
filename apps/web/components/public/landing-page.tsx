@@ -1,4 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
+import { manropeFont } from "@/lib/manrope-font";
 import { LegalFooterLinks } from "./legal-links";
 
 const displayFont = {
@@ -75,7 +77,7 @@ const outcomeRows = [
 
 export function LandingPage() {
   return (
-    <div className="landing-page overflow-x-hidden bg-[#0b0e14] text-[#ecedf6]" id="top">
+    <div className={`${manropeFont.variable} landing-page overflow-x-hidden bg-[#0b0e14] text-[#ecedf6]`} id="top">
       <LandingHeader />
       <main>
         <LandingHero />
@@ -217,9 +219,13 @@ function LandingHero() {
             <div className="absolute inset-0 rounded-full border border-[#74b1ff]/20 motion-safe:animate-pulse" />
             <div className="absolute inset-8 rounded-full border border-[#74b1ff]/10" />
             <div className="absolute inset-20 rounded-full bg-gradient-to-tr from-[#74b1ff]/20 to-transparent blur-2xl" />
-            <img
+            <Image
               alt="Futuristic glowing 3D orb with data streams and blue luminescent patterns on a deep obsidian black background"
-              className="h-full w-full rounded-full object-cover opacity-80 mix-blend-screen"
+              className="rounded-full object-cover opacity-80 mix-blend-screen"
+              fill
+              priority
+              quality={72}
+              sizes="(min-width: 1024px) 28rem, (min-width: 768px) 24rem, 80vw"
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZYvgLoq8FwwyySPn1bGAcniKj3e-J1UeruPdqjbyuCWl2hxCoIqRhWLYlSbj32tSK2DQVZdytnUQOpN2knCHkTI6X_N9cRCtRV2Um8wSl-UqZ_Vp3CO9i9KSHDSpsgWHSvGE518FwmOQP4cSq1-Bjv8O1qEXGQrkb6HojfKJjl2GjG76v_Uy-iO6KcSnW1vX71VWo0VtipxRh5PhKZfhvTOAJ5n7qjwF80T7LLcRhiMQC5C5WwowopTVl1d2dJXKHrOWbTRF7XaA6"
             />
 

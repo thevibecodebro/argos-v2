@@ -1,9 +1,12 @@
-import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import {
   createUploadError,
   normalizeUploadErrorPayload,
   type UploadSuccessPayload,
 } from "./upload-contract";
+
+type BrowserSupabaseClient = ReturnType<
+  (typeof import("@/lib/supabase/browser"))["createSupabaseBrowserClient"]
+>;
 
 type SignedUploadPayload = {
   path: string;
@@ -13,7 +16,7 @@ type SignedUploadPayload = {
 type BrowserUploadDependencies = {
   fetchImpl?: typeof fetch;
   onProgress?: (progress: number) => void;
-  supabase?: Pick<ReturnType<typeof createSupabaseBrowserClient>, "storage">;
+  supabase?: Pick<BrowserSupabaseClient, "storage">;
 };
 
 type BrowserUploadInput = {
@@ -26,7 +29,9 @@ export async function uploadCallFromBrowser(
   dependencies: BrowserUploadDependencies = {},
 ): Promise<UploadSuccessPayload> {
   const fetchImpl = dependencies.fetchImpl ?? fetch;
-  const supabase = dependencies.supabase ?? createSupabaseBrowserClient();
+  const supabase =
+    dependencies.supabase
+    ?? (await import("@/lib/supabase/browser")).createSupabaseBrowserClient();
 
   dependencies.onProgress?.(15);
   const prepareResponse = await fetchImpl("/api/calls/upload/prepare", {

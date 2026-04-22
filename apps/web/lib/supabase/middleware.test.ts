@@ -58,4 +58,19 @@ describe("updateSession", () => {
       "http://localhost:3000/login?next=%2Fdashboard",
     );
   });
+
+  it("skips Supabase auth work for routes outside the auth surface", async () => {
+    getUserMock.mockResolvedValue({
+      data: { user: null },
+      error: null,
+    });
+
+    const request = new NextRequest("http://localhost:3000/privacy-policy");
+
+    const response = await updateSession(request);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("location")).toBeNull();
+    expect(getUserMock).not.toHaveBeenCalled();
+  });
 });

@@ -1,4 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
+import { manropeFont } from "@/lib/manrope-font";
 
 // ─── Auth shell: split-screen design ─────────────────────────────────────────
 
@@ -9,7 +11,7 @@ type AuthShellProps = {
 export function AuthShell({ children }: AuthShellProps) {
   return (
     <div
-      className="auth-page selection:text-[#74b1ff] min-h-screen overflow-hidden"
+      className={`${manropeFont.variable} auth-page selection:text-[#74b1ff] min-h-screen overflow-hidden`}
       style={{ background: "#0b0e14", color: "#ecedf6", fontFamily: "var(--font-manrope, Manrope, sans-serif)" }}
     >
       {/* ── Fixed header ── */}
@@ -31,10 +33,13 @@ export function AuthShell({ children }: AuthShellProps) {
         <section className="auth-globe-gradient hidden lg:flex lg:w-1/2 items-center justify-center relative overflow-hidden">
           {/* Background art */}
           <div className="absolute inset-0 opacity-40">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              alt="high-tech globe with data lines"
-              className="w-full h-full object-cover mix-blend-screen"
+            <Image
+              alt=""
+              aria-hidden="true"
+              className="object-cover mix-blend-screen"
+              fill
+              quality={68}
+              sizes="(min-width: 1024px) 50vw, 0px"
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuDrlEfPdTn6nBT7qNhHh5S6M2-5aMemMqWRS0zKEHEfFvx08UiCZu4zt_e-PK0NcYwuUNeycywPWGWwICaO8VrnLtDT1h5GOcNBIdezwjyI8SrfTDnq32qsxKfcWtvQaZ3ZXBCVrFq9pMOtKYTm9cvPQHTA5MIWKBEGXHRSSKkOU4_3drNq8FlE4p2NMKDLn55EWes-oNE08o71JukVsSmXc3sNM_w3DGESVPWgC-tDHcHrDEkrFX-T3Qpzf-ASRqqZNlcvSBqHsSk9"
             />
           </div>
@@ -191,7 +196,7 @@ const authHighlights = [
 
 export function LegacyAuthShell({ children, note }: LegacyAuthShellProps) {
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#040b18_0%,#07101f_100%)] px-5 py-5 text-[#f6f9ff] sm:px-8 sm:py-8">
+    <main className={`${manropeFont.variable} min-h-screen bg-[linear-gradient(180deg,#040b18_0%,#07101f_100%)] px-5 py-5 text-[#f6f9ff] sm:px-8 sm:py-8`}>
       <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-[1500px] items-center justify-center rounded-[2rem] border border-[#172543] bg-[#050d1c] shadow-[inset_0_1px_0_rgba(142,172,255,0.06)] sm:min-h-[calc(100vh-4rem)]">
         <div className="w-full max-w-4xl px-6 py-12 sm:px-10 md:px-16 md:py-16">
           <div className="flex flex-col items-center text-center">

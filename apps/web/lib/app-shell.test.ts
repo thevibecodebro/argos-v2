@@ -1,7 +1,15 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthenticatedAppShell } from "../components/app-shell";
+
+const { usePathnameMock } = vi.hoisted(() => ({
+  usePathnameMock: vi.fn(),
+}));
+
+vi.mock("next/navigation", () => ({
+  usePathname: usePathnameMock,
+}));
 
 const managerUser = {
   email: "jared@example.com",
@@ -11,10 +19,13 @@ const managerUser = {
 };
 
 describe("AuthenticatedAppShell", () => {
+  beforeEach(() => {
+    usePathnameMock.mockReturnValue("/dashboard");
+  });
+
   it("renders clickable navigation for the recovered product routes", () => {
     const html = renderToStaticMarkup(
       createElement(AuthenticatedAppShell, {
-        currentPath: "/dashboard",
         user: managerUser,
         children: createElement("div", null, "Page body"),
       }),
@@ -38,7 +49,6 @@ describe("AuthenticatedAppShell", () => {
   it("hides the team navigation item for reps", () => {
     const html = renderToStaticMarkup(
       createElement(AuthenticatedAppShell, {
-        currentPath: "/dashboard",
         user: {
           ...managerUser,
           role: "rep" as const,
@@ -53,7 +63,6 @@ describe("AuthenticatedAppShell", () => {
   it("renders a sign out control in the authenticated shell", () => {
     const html = renderToStaticMarkup(
       createElement(AuthenticatedAppShell, {
-        currentPath: "/dashboard",
         user: managerUser,
         children: createElement("div", null, "Page body"),
       }),

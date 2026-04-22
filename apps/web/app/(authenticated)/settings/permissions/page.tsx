@@ -1,19 +1,18 @@
 import { redirect } from "next/navigation";
 import { PageFrame } from "@/components/page-frame";
-import { PermissionsPanel } from "@/components/settings/permissions-panel";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { PermissionsPanel } from "@/components/page-panel-loaders";
+import {
+  getCachedAuthenticatedSupabaseUser,
+  getCachedCurrentUserDetails,
+} from "@/lib/auth/request-user";
 import { createTeamAccessRepository } from "@/lib/team-access/create-repository";
 import { getTeamAccessSnapshot, PRESET_GRANTS } from "@/lib/team-access/service";
-import { createUsersRepository } from "@/lib/users/create-repository";
-import { getCurrentUserDetails } from "@/lib/users/service";
-
-export const dynamic = "force-dynamic";
 
 export default async function SettingsPermissionsPage() {
-  const authUser = await getAuthenticatedSupabaseUser();
+  const authUser = await getCachedAuthenticatedSupabaseUser();
   if (!authUser) redirect("/login");
 
-  const result = await getCurrentUserDetails(createUsersRepository(), authUser.id);
+  const result = await getCachedCurrentUserDetails(authUser.id);
   if (!result?.ok) redirect("/settings");
   if (result.data.role !== "admin") redirect("/settings");
 

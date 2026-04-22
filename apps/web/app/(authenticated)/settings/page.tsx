@@ -1,18 +1,17 @@
 // apps/web/app/(authenticated)/settings/page.tsx
 import { redirect } from "next/navigation";
 import { PageFrame } from "@/components/page-frame";
-import { AccountPanel } from "@/components/settings/account-panel";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
-import { createUsersRepository } from "@/lib/users/create-repository";
-import { getCurrentUserDetails } from "@/lib/users/service";
-
-export const dynamic = "force-dynamic";
+import { AccountPanel } from "@/components/page-panel-loaders";
+import {
+  getCachedAuthenticatedSupabaseUser,
+  getCachedCurrentUserDetails,
+} from "@/lib/auth/request-user";
 
 export default async function SettingsAccountPage() {
-  const authUser = await getAuthenticatedSupabaseUser();
+  const authUser = await getCachedAuthenticatedSupabaseUser();
   if (!authUser) redirect("/login");
 
-  const result = await getCurrentUserDetails(createUsersRepository(), authUser.id);
+  const result = await getCachedCurrentUserDetails(authUser.id);
 
   if (!result?.ok) {
     return (

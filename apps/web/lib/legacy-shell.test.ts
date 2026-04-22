@@ -2,9 +2,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
-  getAuthenticatedSupabaseUserMock,
+  getCachedAuthenticatedSupabaseUserMock,
   createDashboardRepositoryMock,
-  getCurrentUserProfileMock,
+  getCachedCurrentUserProfileMock,
   getDashboardLeaderboardMock,
   getExecutiveDashboardMock,
   getManagerDashboardMock,
@@ -12,9 +12,9 @@ const {
   getRepDashboardMock,
   getSetupStatusMock,
 } = vi.hoisted(() => ({
-  getAuthenticatedSupabaseUserMock: vi.fn(),
+  getCachedAuthenticatedSupabaseUserMock: vi.fn(),
   createDashboardRepositoryMock: vi.fn(),
-  getCurrentUserProfileMock: vi.fn(),
+  getCachedCurrentUserProfileMock: vi.fn(),
   getDashboardLeaderboardMock: vi.fn(),
   getExecutiveDashboardMock: vi.fn(),
   getManagerDashboardMock: vi.fn(),
@@ -23,8 +23,9 @@ const {
   getSetupStatusMock: vi.fn(),
 }));
 
-vi.mock("@/lib/auth/get-authenticated-user", () => ({
-  getAuthenticatedSupabaseUser: getAuthenticatedSupabaseUserMock,
+vi.mock("@/lib/auth/request-user", () => ({
+  getCachedAuthenticatedSupabaseUser: getCachedAuthenticatedSupabaseUserMock,
+  getCachedCurrentUserProfile: getCachedCurrentUserProfileMock,
 }));
 
 vi.mock("@/lib/dashboard/create-repository", () => ({
@@ -32,13 +33,18 @@ vi.mock("@/lib/dashboard/create-repository", () => ({
 }));
 
 vi.mock("@/lib/dashboard/service", () => ({
-  getCurrentUserProfile: getCurrentUserProfileMock,
   getDashboardLeaderboard: getDashboardLeaderboardMock,
   getExecutiveDashboard: getExecutiveDashboardMock,
   getManagerDashboard: getManagerDashboardMock,
   getRepBadges: getRepBadgesMock,
   getRepDashboard: getRepDashboardMock,
   getSetupStatus: getSetupStatusMock,
+}));
+
+vi.mock("next/font/google", () => ({
+  Manrope: () => ({
+    variable: "--font-manrope",
+  }),
 }));
 
 import HomePage from "../app/page";
@@ -73,8 +79,8 @@ describe("legacy UI shell", () => {
   });
 
   it("renders the executive dashboard shell with legacy navigation labels", async () => {
-    getAuthenticatedSupabaseUserMock.mockResolvedValue({ id: "auth-user-1" });
-    getCurrentUserProfileMock.mockResolvedValue({
+    getCachedAuthenticatedSupabaseUserMock.mockResolvedValue({ id: "auth-user-1" });
+    getCachedCurrentUserProfileMock.mockResolvedValue({
       id: "user-1",
       email: "jay@argos.ai",
       fullName: "Jay Newman",

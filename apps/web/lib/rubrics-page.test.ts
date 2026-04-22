@@ -4,18 +4,16 @@ import SettingsRubricPage from "../app/(authenticated)/settings/rubric/page";
 
 const {
   createRubricsRepository,
-  createUsersRepository,
+  getCachedAuthenticatedSupabaseUser,
+  getCachedCurrentUserDetails,
   getActiveRubric,
-  getAuthenticatedSupabaseUser,
-  getCurrentUserDetails,
   loadRubricHistory,
   redirectMock,
 } = vi.hoisted(() => ({
   createRubricsRepository: vi.fn(),
-  createUsersRepository: vi.fn(),
+  getCachedAuthenticatedSupabaseUser: vi.fn(),
+  getCachedCurrentUserDetails: vi.fn(),
   getActiveRubric: vi.fn(),
-  getAuthenticatedSupabaseUser: vi.fn(),
-  getCurrentUserDetails: vi.fn(),
   loadRubricHistory: vi.fn(),
   redirectMock: vi.fn(() => {
     throw new Error("NEXT_REDIRECT");
@@ -29,20 +27,17 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
-vi.mock("@/lib/auth/get-authenticated-user", () => ({
-  getAuthenticatedSupabaseUser,
+vi.mock("@/components/page-panel-loaders", () => ({
+  RubricsPanel: () => "Active Rubric Version History",
 }));
 
-vi.mock("@/lib/users/create-repository", () => ({
-  createUsersRepository,
+vi.mock("@/lib/auth/request-user", () => ({
+  getCachedAuthenticatedSupabaseUser,
+  getCachedCurrentUserDetails,
 }));
 
 vi.mock("@/lib/rubrics/create-repository", () => ({
   createRubricsRepository,
-}));
-
-vi.mock("@/lib/users/service", () => ({
-  getCurrentUserDetails,
 }));
 
 vi.mock("@/lib/rubrics/service", () => ({
@@ -53,10 +48,9 @@ vi.mock("@/lib/rubrics/service", () => ({
 describe("SettingsRubricPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    getAuthenticatedSupabaseUser.mockResolvedValue({ id: "auth-user-1" });
-    createUsersRepository.mockReturnValue({});
+    getCachedAuthenticatedSupabaseUser.mockResolvedValue({ id: "auth-user-1" });
     createRubricsRepository.mockReturnValue({});
-    getCurrentUserDetails.mockResolvedValue({
+    getCachedCurrentUserDetails.mockResolvedValue({
       ok: true,
       data: {
         id: "user-1",
@@ -106,7 +100,7 @@ describe("SettingsRubricPage", () => {
   });
 
   it("redirects non-admin users back to settings", async () => {
-    getCurrentUserDetails.mockResolvedValue({
+    getCachedCurrentUserDetails.mockResolvedValue({
       ok: true,
       data: {
         id: "user-1",

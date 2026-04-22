@@ -1,18 +1,17 @@
 import { redirect } from "next/navigation";
 import { PageFrame } from "@/components/page-frame";
 import { TeamRosterView } from "@/components/team/team-views";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import {
+  getCachedAuthenticatedSupabaseUser,
+  getCachedCurrentUserProfile,
+} from "@/lib/auth/request-user";
 import { createDashboardRepository } from "@/lib/dashboard/create-repository";
-import { getCurrentUserProfile, getManagerDashboard } from "@/lib/dashboard/service";
-
-export const dynamic = "force-dynamic";
+import { getManagerDashboard } from "@/lib/dashboard/service";
 
 export default async function TeamPage() {
-  const authUser = await getAuthenticatedSupabaseUser();
+  const authUser = await getCachedAuthenticatedSupabaseUser();
   const repository = createDashboardRepository();
-  const profile = authUser
-    ? await getCurrentUserProfile(repository, authUser.id)
-    : null;
+  const profile = authUser ? await getCachedCurrentUserProfile(authUser.id) : null;
 
   if (profile?.role === "rep") {
     redirect("/dashboard");
