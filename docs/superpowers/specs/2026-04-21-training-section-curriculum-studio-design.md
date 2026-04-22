@@ -1,111 +1,102 @@
-# Training Section Curriculum Studio Redesign
+# Training Section Brand-Aligned Redesign
 
 **Date:** 2026-04-21
-**Status:** Approved
-**Scope:** Redesign the authenticated `/training` experience so it feels native to Argos while improving learning flow, manager operations, and information hierarchy
+**Status:** Revised and approved in principle
+**Scope:** Reset the authenticated `/training` experience so it looks and behaves like the rest of Argos while preserving the module-led learning flow and strict rep/manager separation
 
 ---
 
 ## Overview
 
-The current training page in `apps/web` works functionally, but the user experience is structurally flat and visually dated relative to the rest of the authenticated product.
+The first curriculum-studio implementation missed the target.
 
-Today the page asks one surface to do too many things at once:
+It solved some structural problems, but the resulting page still felt off-brand because it leaned too far into a bespoke training workspace instead of the established Argos product language.
 
-- learner lesson consumption
-- learner quiz completion
-- manager authoring
-- manager assignments
-- manager reporting
+The revised direction is intentionally narrower:
 
-That creates unnecessary mode-switching and weakens the feeling that Training is a focused product area.
+- keep the existing Argos shell
+- do not introduce a promotional hero
+- make the selected module stage the visual anchor
+- use the same slab-and-panel language as Dashboard, Call Library, Highlights, and Roleplay
+- progressively disclose manager tooling instead of leaving a large inline editor open in the page
 
-This redesign turns Training into a calmer, more intentional **curriculum studio** inside the existing Argos application shell.
+This redesign should feel like the Training room inside the same application, not like a separate product or internal form builder.
 
-The approved direction is:
-
-- **same Argos application shell**
-- **split-shell layout**
-- **reps never see manager controls**
-- **manager experience is balanced, not manager-dominant**
-- **manager stage uses a hybrid module-led view with stitched-in team pulse**
-- **visual tone is editorial studio, not glowing dashboard**
-
-The page should feel like part of the same application as Dashboard, Calls, and Roleplay, but with a quieter, more learning-oriented rhythm.
+This revision supersedes the earlier "editorial studio" interpretation wherever the two conflict.
 
 ---
 
 ## Goals
 
-- Make Training feel native to the current Argos authenticated application
-- Create a stronger module-led learning flow for reps
-- Remove unnecessary internal section switching and reduce cognitive load
-- Give managers operational context without turning Training into a reporting dashboard
-- Preserve the current shared route architecture for reps and managers
-- Keep manager actions discoverable while clearly hidden from reps
+- Make Training feel visually native to the authenticated Argos product
+- Give the page one clear primary surface instead of many same-weight containers
+- Preserve a module-led learning flow for reps
+- Keep manager operations available without letting authoring dominate the page
+- Hide manager capabilities completely from reps
+- Reduce cognitive load by keeping the main canvas stable while actions open focused utilities
 
 ## Non-Goals
 
+- Rebrand Argos or introduce a new design system
+- Add a separate marketing-style hero to Training
 - Split Training into separate routes for reps and managers in this phase
-- Rebrand the page with a new palette or new global design system
-- Turn Training into a media library or video-first browsing experience
-- Rebuild the app shell, sidebar, header, or page frame outside of Training
-- Add new backend capabilities beyond what the current training workflows already support
+- Invent a new color palette, typography system, or page chrome for Training
+- Add new backend training capabilities beyond the current workflows
 
 ---
 
-## Current Problems
+## Why The Previous Result Failed
 
-### 1. Flat hierarchy
+### 1. The page looked like an internal editor, not product UI
 
-The current page uses similar-weight panels for overview, lesson, manager tools, assignments, AI tools, and team progress. This makes it hard to tell what the primary task is.
+The most visually dominant object on the page was the large inline editor. That made Training read like a back-office form builder instead of a first-class product surface.
 
-### 2. Too many workspace modes
+### 2. Too many same-weight dark slabs
 
-The current `overview / modules / quiz / assignments / teamProgress / aiTools` navigation behaves like a mini-app nested inside the page. This adds friction for both learners and managers.
+The page stacked several containers with similar color, border weight, and padding. That flattened hierarchy and made it hard to tell what deserved attention first.
 
-### 3. Role-mixing
+### 3. The composition was not aligned with the reference pages
 
-The current structure tries to satisfy learners and managers through the same page-level navigation model instead of preserving one coherent learning surface with role-specific augmentation.
+The strongest authenticated pages in Argos share a clear pattern:
 
-### 4. Visual mismatch
+- a restrained route header
+- one strong lead surface
+- a small number of quieter support surfaces
+- focused utility interactions that do not permanently take over the page
 
-Training already uses the same palette family as the rest of Argos, but the composition feels older and heavier. It relies too much on stacked panels and not enough on layout rhythm, reading flow, and content hierarchy.
+Training drifted away from that pattern.
 
-### 5. Generic admin patterns inside a learning space
+### 4. Manager tooling was always "on stage"
 
-Manager capabilities currently read like separate tool areas rather than contextual controls around a curriculum.
+Manager actions should be accessible, but the page should not permanently expose the full authoring system at rest.
 
-### 6. Critique finding worth addressing directly
+### 5. The page felt too custom
 
-The automated design scan flagged the current right-accent tab treatment in `training-workspace-nav.tsx` as an AI-style side-tab pattern. That is a signal that the current internal nav language is too generic and should be removed instead of restyled.
+The previous result tried to establish its own mood. The revised direction is to borrow more directly from the actual product primitives already working elsewhere in the app.
 
 ---
 
-## Design Direction
+## Approved Direction
 
-### Approved Direction
+### Product Reference Mix
 
-- **Shell model:** Stage + Command Deck
-- **Role strategy:** Split-shell with a strict rep/manager boundary
-- **Manager emphasis:** Balanced
-- **Manager stage model:** Hybrid
-- **Visual tone:** Editorial Studio
+The approved direction is:
 
-### What “Editorial Studio” Means Here
+- **Call Library discipline** for lead-surface hierarchy
+- **Dashboard panels** for supporting surfaces
+- **Roleplay-style focus** for high-intent interactions
 
-This is not a separate visual brand.
+This does **not** mean copying any page literally. It means Training should use the same composition logic.
 
-It means Training should use the existing Argos shell, typography, radii, shadows, and accent color, but apply them with more editorial discipline:
+### Core Decisions
 
-- stronger title and reading hierarchy
-- quieter surfaces
-- more whitespace
-- clearer content sequencing
-- fewer independent cards competing for attention
-- less “dashboard” energy
-
-The page should feel like the curriculum room inside Argos, not a detached futuristic sub-app.
+- **Page shell:** existing `PageFrame`
+- **Hero:** none
+- **Primary anchor:** selected module stage
+- **Supporting surfaces:** calmer Dashboard-style panels
+- **Manager tooling:** compact at rest, expanded on demand
+- **Rep/manager split:** strict and non-negotiable
+- **Brand tone:** same Argos product language, not a separate editorial aesthetic
 
 ---
 
@@ -113,363 +104,348 @@ The page should feel like the curriculum room inside Argos, not a detached futur
 
 ### Primary Narrative
 
-The page should always communicate one core sequence:
+The page should communicate one sequence:
 
-`current curriculum -> selected module -> next action`
+`selected module -> current learning state -> next action`
 
-That sequence becomes the page backbone for both reps and managers.
+That sequence is the page backbone for both reps and managers.
 
-### Remove Current Page-Level Training Modes
+### Remove The "Mini-App" Feeling
 
-The current workspace nav is no longer the correct IA model.
+Training should not behave like a nested application with several competing modes.
 
-These items should stop being peer destinations:
+These should no longer read as peer-level sections of equal importance:
 
-- Course overview
-- Modules
-- Quiz
-- Assignments
-- Team progress
+- modules
+- quiz
+- assignments
+- team progress
 - AI tools
 
 Instead:
 
-- the selected module becomes the page anchor
-- lesson and quiz become local subviews of that module
-- manager workflows become contextual tools around the selected module
-- team progress becomes a quiet summary with optional deeper inspection
+- the selected module is the page anchor
+- lesson and quiz are local views of that module
+- manager tools are contextual utilities around the module
+- team progress is summarized, not treated as a separate destination
 
 ---
 
 ## Layout
 
-### Stage + Command Deck
+### Route Header
 
-The training page should use a two-part desktop layout inside the existing `PageFrame`.
+Keep the existing `PageFrame` as the route-level header.
 
-### Left: Stage
+- no second hero
+- no oversized decorative treatment
+- no extra promotional section above the actual work
 
-The left side is the primary module-led workspace.
+### Lead Module Stage
+
+The first major surface below `PageFrame` should be the selected module stage.
+
+This is the main visual anchor of the page.
 
 It should contain:
 
-- module headline block
-- lesson or quiz subview
-- primary learner action
-- manager status band when relevant
+- module title
+- skill/category tag
+- concise module description
+- lesson/quiz toggle
+- primary action
+- compact state summary
+- manager status strip when relevant
 
-This area is where attention should land first.
+This panel can carry a subtle blue tint or wash, but it should still look like product UI, not a hero banner.
 
-### Right: Command Deck
+### Curriculum Map Panel
 
-The right side is a quieter contextual rail.
+The curriculum map should sit below the lead stage as a quieter support surface.
 
-For reps, it contains only learner-relevant support information.
+It should read like structured navigation, not a second hero and not a stack of mini feature cards.
 
-For managers, it becomes a planning deck, not a second dashboard.
+### Manager Planning Panel
+
+Managers should see a compact planning surface below the curriculum map.
+
+At rest, it shows:
+
+- short planning summary
+- create module
+- edit selected module
+- assign selected module
+- generate with AI
+
+It should not render the full authoring interface until one of those actions is invoked.
 
 ### Mobile Behavior
 
 On mobile the layout collapses to a single column in this order:
 
-1. stage
-2. module table of contents
-3. manager command deck if the user can manage
+1. route header
+2. lead module stage
+3. curriculum map
+4. manager planning surface if applicable
 
-No critical action should depend on side-by-side visibility.
+All critical actions must remain available without side-by-side layout assumptions.
 
 ---
 
 ## Rep Experience
 
-Reps should experience Training as a focused learning workspace.
+Reps should experience Training as a focused learning page, not as a reduced manager console.
 
-### Stage
+### Rep Surface Order
+
+Reps should see:
+
+1. route header
+2. selected module stage
+3. curriculum map
+4. rep-relevant progress or assignment context if needed
+
+They must not see dormant or hidden-looking manager controls.
+
+### Stage Behavior
 
 The rep stage should show:
 
 - selected module title
 - skill category
-- concise description
-- completion status
-- score or attempt context if relevant
+- short description
+- status or progress state
 - due date if assigned
-- primary CTA
+- primary action
 
-The default subview should be the lesson, not the quiz.
+The default view is lesson, not quiz.
 
-### Module Flow
+### Quiz Behavior
 
-The module rail should behave like a table of contents:
+Quiz remains local to the selected module.
 
-- selecting a module updates the stage in place
-- module status is visible at a glance
-- the active module is clearly marked without using a loud side-border tab pattern
+- use a compact segmented control or quiet tab switch
+- do not treat quiz like a separate page mode
+- if a module has no quiz, show a clear lesson-completion path instead of an empty quiz surface
 
-### Quiz Handling
+### Empty / Waiting States
 
-Quiz should stop behaving like a full workspace section.
+Rep-facing empty states should be calm and clear:
 
-Instead:
+- no assigned modules
+- all modules completed
+- waiting on new assignments
 
-- lesson and quiz are subviews inside the module stage
-- a lightweight toggle or segmented control switches between them
-- if a module has no quiz, the rep should see a lesson-completion path, not an empty quiz state
-
-### Rep Right Rail
-
-The learner rail should contain:
-
-- module list / table of contents
-- personal progress summary
-- due date / assigned context if relevant
-
-It should not contain manager tools or team reporting.
+They should feel intentionally designed, not like permission fallthrough.
 
 ---
 
 ## Manager Experience
 
-Managers should see the same module-led stage as reps, but with stitched-in operational context and a separate planning rail.
+Managers should still see Training as a curriculum surface first.
 
-The page should still feel like Training first.
+The difference is that they also get planning and operational context around the selected module.
 
 ### Manager Stage
 
-The selected module remains the primary anchor.
+Managers see the same module stage as reps, plus a compact operational strip inside the stage.
 
-Managers should also see a compact status band inside the stage summarizing:
+The strip should summarize the selected module with a few compact signals, such as:
 
 - assignment coverage
 - completion rate
 - due soon count
-- overdue or stalled signals when relevant
 
-This is the approved **hybrid** model:
+This should be a slim horizontal band, not three or four large metric cards competing with the module content.
 
-- not purely module-first
-- not purely team-first
-- module-led with operational context embedded
+### Manager Planning Surface
 
-### Manager Command Deck
+The resting manager surface should be operational and compact.
 
-The right deck should hold contextual controls for the selected module:
+It should answer:
 
-- create module
-- edit selected module
-- assign selected module
-- draft lesson content with AI
-- draft quiz with AI
-- compact team pulse summary
+- what can I do with this module
+- how many modules or reps are involved
+- what is the next management action
 
-These controls should feel like a quiet planning deck, not like standalone sections fighting for page priority.
-
-### Team Progress
-
-Team progress should not dominate the page by default.
-
-Instead:
-
-- show a concise summary in the command deck
-- allow deeper inline inspection through an attached drill-down surface when needed
-- keep detailed team tables secondary
-
-This preserves the learning identity of the page.
+It should not expose the entire quiz builder or content editor by default.
 
 ---
 
-## Interaction Model
+## Progressive Disclosure For Manager Tools
 
-### Selected Module As Anchor
+This is the central UX correction in the redesign.
 
-The selected module is the stable anchor for the whole page.
+### At Rest
 
-Switching modules should:
+The page shows only the compact manager planning surface.
 
-- update the stage in place
-- preserve the overall shell
-- feel like changing chapters, not navigating to a new area
+### On Action
 
-### Lesson / Quiz Subviews
+Manager tools open focused utilities:
 
-The lesson and quiz should live inside the same stage container.
+- **Create module:** right-side sheet or contained modal
+- **Edit module:** same sheet/modal pattern
+- **Assign module:** lighter modal
+- **Generate with AI:** guided utility surface, ideally reusing the create/edit sheet
 
-Recommended model:
+### Design Rule
 
-- default to lesson
-- expose quiz with a local segmented control or quiet switch
-- use the stage footer or header for the primary action state
+The page underneath should remain visually stable.
 
-The CTA label should adapt by state, for example:
+The act of editing or assigning should not transform the entire Training page into a full-page admin canvas.
 
-- Resume lesson
-- Open quiz
-- Submit quiz
-- Review results
-
-### Manager Actions
-
-Manager actions should open focused surfaces rather than reconfigure the entire page into new modes.
-
-Preferred patterns:
-
-- drawer
-- inline side panel
-- anchored command surface
-
-Avoid:
-
-- reintroducing page-level tabs for AI tools or assignments
-- large page takeovers for routine manager tasks
+If implementation constraints prevent a sheet, use a contained modal before falling back to an always-open inline editor.
 
 ---
 
 ## Visual System
 
-### Keep Existing Argos Tokens
+### Keep Existing Argos Brand Tokens
 
 Training should continue using:
 
 - existing authenticated app chrome
-- existing dark shell palette
-- existing Space Grotesk display type and body typography
-- existing accent blue
-- current radius language
-- current shadow language, but applied more selectively
+- existing dark palette
+- existing typography stack
+- existing blue accent
+- existing radius and shadow language
 
-### Tone Adjustments
+No new aesthetic system should be introduced.
 
-The page should move away from:
+### Surface Hierarchy
 
-- glow-heavy panels
-- “everything is a card”
-- operational dashboard density
-- visually loud glassmorphism
+The page should use a clearer hierarchy of emphasis:
 
-The page should move toward:
+- **lead surface:** selected module stage
+- **secondary surface:** curriculum map
+- **tertiary surface:** compact manager planning panel
 
-- clearer text hierarchy
-- quieter panel backgrounds
-- more negative space
-- stronger distinction between primary stage and secondary support areas
-- TOC-like module navigation instead of utility-nav language
+Avoid stacking several equal-emphasis slabs.
 
-### Surface Strategy
+### Panel Treatment
 
-Use panels only where hierarchy needs separation.
+Use the same family of surfaces already working elsewhere:
 
-Prefer:
-
-- grouped spacing
+- dark slab backgrounds
 - restrained borders
-- section dividers
-- a few strong surfaces rather than many medium-emphasis ones
+- selective blue emphasis
+- quiet shadows
 
-The stage should feel like the editorial focal plane.
+The lead stage can carry a slightly richer tint than the rest of the page, but secondary surfaces should remain flatter and calmer.
 
-The command deck should feel thinner and quieter.
+### Navigation Styling
+
+The curriculum map should look like structured product navigation.
+
+That means:
+
+- cleaner row rhythm
+- clearer active row emphasis
+- less card-like bulk
+- no AI-looking side-tab treatment
+
+### Copy Rhythm
+
+Training copy should be tightened across the page.
+
+Each surface should answer one question quickly:
+
+- what module is this
+- what should I do next
+- what can I manage here
+
+Avoid long paragraphs in several panels at once.
 
 ---
 
-## States
+## State Design
 
-### Empty States
+### Loading
 
-### No modules
+Loading states should mirror the actual layout:
 
-Managers should see a studio-style empty state with:
+- route header remains stable
+- lead stage skeleton
+- curriculum map skeleton
+- compact manager surface skeleton
 
-- Create module
-- Generate with AI
+Avoid generic loading blocks that do not match the final structure.
 
-This should feel like the beginning of a curriculum workspace, not an error condition.
-
-### No assigned reps
-
-Managers should see this as a planning gap:
-
-- no broken-state language
-- clear next action for assignment
-
-### Rep with no assigned work
-
-Reps should see a calm waiting state that explains whether training is unassigned, complete, or pending new curriculum.
-
-### Loading States
-
-Skeletons should mirror the new layout:
-
-- stage skeleton
-- TOC rail skeleton
-- command deck skeleton
-
-Avoid generic spinners as the primary loading treatment.
-
-### Success States
+### Success
 
 Use compact inline confirmations for:
 
 - save
-- assignment
-- AI draft load
+- assign
+- AI draft generation
 - quiz submission
 
-Avoid oversized banners that visually dominate the studio layout.
+These should confirm work without dominating the page.
 
-### Error States
+### Error
 
-Errors should stay attached to the action that failed:
+Attach errors to the action that failed:
 
-- assignment errors near assignment controls
-- AI draft errors near AI actions
-- module save errors inside edit/create flows
+- save errors in the create/edit surface
+- assignment errors in the assignment modal
+- AI errors near AI actions
 - quiz submission errors inside the stage
+
+### Empty
+
+Manager empty states should feel like the start of planning work, not like broken UI.
+
+Rep empty states should feel like a legitimate product state, not like an access problem.
 
 ---
 
 ## Role Visibility Rules
 
-These rules are explicit and non-negotiable for this redesign.
+These rules are explicit and non-negotiable.
 
-### Reps must never see:
+### Reps must never see
 
-- manager command deck
 - create module
 - edit module
 - assign module
 - AI drafting controls
-- team progress summaries
+- team-management framing
+- planning summaries intended for managers
 
-### Managers should see:
+### Managers should see
 
-- the same core learning stage
-- additional stage-level operational summary
-- a quiet right-side planning deck
+- the same core module stage
+- a compact manager status strip in the stage
+- a compact planning surface below
+- focused editing utilities only when invoked
 
-This is a hard split in visible capabilities, even though both roles use the same route.
+Both roles should feel intentionally designed.
 
 ---
 
 ## Component Impact
 
-The redesign should primarily reshape the current training components rather than introduce a brand-new route architecture.
+This redesign should reshape the current Training implementation rather than introduce a new route architecture.
 
-Likely primary touchpoints:
+### Primary touchpoints
 
-- `apps/web/components/training-panel.tsx`
-- `apps/web/components/training/training-course-shell.tsx`
-- `apps/web/components/training/training-workspace-nav.tsx`
-- `apps/web/components/training/training-manager-ai-tools.tsx`
-- `apps/web/components/training/training-quiz-editor.tsx`
 - `apps/web/app/(authenticated)/training/page.tsx`
+- `apps/web/components/page-frame.tsx`
+- `apps/web/components/training-panel.tsx`
+- `apps/web/components/training/training-module-stage.tsx`
+- `apps/web/components/training/training-module-toc.tsx`
+- `apps/web/components/training/training-manager-command-deck.tsx`
+- `apps/web/components/training/training-quiz-editor.tsx`
 
-### Expected Structural Changes
+### Likely structural changes
 
-- reduce or remove the current page-level workspace navigation
-- replace the current shell with a stage + command deck layout
-- move lesson / quiz into local stage subviews
-- demote team progress from primary panel to summarized manager support surface
-- restyle module navigation into a TOC-like curriculum rail
+- keep `PageFrame` and remove the need for a second hero-like surface
+- restyle the selected module stage to become the clear lead panel
+- restyle the curriculum map as a calmer support panel
+- collapse the manager planning area to a compact resting state
+- move create/edit/assign/generate flows into focused sheets or modals
+- reduce the number of always-visible heavy surfaces on the page
 
 ---
 
@@ -479,33 +455,31 @@ The redesign should be verified across:
 
 - rep view
 - manager view
-- empty module state
-- module without quiz
+- empty state with no modules
 - module with quiz
-- assignment state
-- AI unavailable state
+- module without quiz
+- assignment flow
+- AI unavailable flow
 - mobile collapse
 
 Verification should confirm:
 
-- rep users cannot access or see manager controls
-- manager actions remain discoverable without dominating the page
-- selected module flow remains clear
-- lesson and quiz subviews are obvious and local
-- the page feels visually coherent with the rest of Argos
+- the page now reads as part of the same application as Dashboard, Calls, Highlights, and Roleplay
+- the selected module stage is the obvious anchor
+- manager tooling no longer dominates the resting page
+- reps do not see manager controls
+- the page remains understandable when the current user resolves as a manager in local dev
 
 ---
 
-## Recommended Implementation Direction
+## Success Criteria
 
-Implement the redesign as a reshape of the existing Training surface, not as a new route or product area.
+The redesign succeeds if:
 
-The key success criteria are:
+- Training immediately feels like Argos product UI
+- the page has one obvious focal surface
+- the manager path is available but secondary at rest
+- reps get a clean learning experience
+- the screen no longer reads like an always-open admin builder
 
-- clearer page hierarchy
-- less mode switching
-- cleaner role separation
-- calmer visual rhythm
-- stronger feeling that Training belongs in the same application as the rest of Argos
-
-If the finished page still reads as a dashboard-with-tabs, the redesign has missed the target.
+If the page still feels like a stack of dark tools with the editor dominating the canvas, the redesign has failed.
