@@ -4,11 +4,13 @@ import { getDevelopmentStartupEnvError } from "@/lib/env";
 import "./globals.css";
 
 const displayFont = Space_Grotesk({
+  display: "swap",
   subsets: ["latin"],
   variable: "--font-display",
 });
 
 const bodyFont = Source_Sans_3({
+  display: "swap",
   subsets: ["latin"],
   variable: "--font-body",
 });
@@ -17,9 +19,6 @@ export const metadata: Metadata = {
   title: "Argos",
   description: "Revenue Command Platform",
 };
-
-const materialSymbolsHref =
-  "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap";
 
 export default function RootLayout({
   children,
@@ -30,21 +29,6 @@ export default function RootLayout({
 
   return (
     <html className={`${displayFont.variable} ${bodyFont.variable}`} lang="en">
-      <head>
-        <link href="https://fonts.googleapis.com" rel="preconnect" />
-        <link crossOrigin="anonymous" href="https://fonts.gstatic.com" rel="preconnect" />
-        <link as="style" href={materialSymbolsHref} rel="preload" />
-        <link href={materialSymbolsHref} id="material-symbols-stylesheet" media="print" rel="stylesheet" />
-        <script
-          dangerouslySetInnerHTML={{
-            __html:
-              "document.getElementById('material-symbols-stylesheet')?.setAttribute('media','all');",
-          }}
-        />
-        <noscript>
-          <link href={materialSymbolsHref} rel="stylesheet" />
-        </noscript>
-      </head>
       <body>
         {startupEnvError ? (
           <main className="min-h-screen bg-[#0b0e14] px-6 py-10 text-[#ecedf6]">

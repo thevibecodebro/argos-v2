@@ -143,22 +143,29 @@ p {
     radial-gradient(circle at top left, rgba(116, 177, 255, 0.14), transparent 26%),
     radial-gradient(circle at top right, rgba(109, 221, 255, 0.08), transparent 24%),
     linear-gradient(180deg, #0b0e14 0%, #0b1018 100%);
-  font-family: var(--font-manrope, "Manrope", sans-serif);
+  font-family: var(--font-body, "Source Sans 3", sans-serif);
 }
 
 .glass-card {
-  background: rgba(34, 38, 47, 0.4);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(22, 26, 33, 0.84);
   border: 1px solid rgba(69, 72, 79, 0.2);
 }
 
 .text-glow {
-  text-shadow: 0 0 15px rgba(116, 177, 255, 0.4);
+  text-shadow: 0 0 10px rgba(116, 177, 255, 0.24);
 }
 
 .gradient-bg {
   background: linear-gradient(135deg, #74b1ff 0%, #54a3ff 100%);
+}
+
+.landing-hero-orb {
+  filter: drop-shadow(0 16px 36px rgba(6, 14, 29, 0.28));
+}
+
+.landing-deferred {
+  content-visibility: auto;
+  contain-intrinsic-size: 900px;
 }
 
 .landing-noise {

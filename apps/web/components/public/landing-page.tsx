@@ -1,14 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
-import { manropeFont } from "@/lib/manrope-font";
 import { LegalFooterLinks } from "./legal-links";
 
 const displayFont = {
   fontFamily: "var(--font-display, 'Space Grotesk', sans-serif)",
-} as const;
-
-const filledSymbol = {
-  fontVariationSettings: '"FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24',
 } as const;
 
 const navLinks = [
@@ -75,9 +69,32 @@ const outcomeRows = [
   },
 ] as const;
 
+type LandingIconName =
+  | "analytics"
+  | "arrow_forward"
+  | "arrow_upward"
+  | "auto_awesome"
+  | "auto_fix_high"
+  | "check_circle"
+  | "east"
+  | "electric_bolt"
+  | "forum"
+  | "model_training"
+  | "precision_manufacturing"
+  | "psychology"
+  | "record_voice_over"
+  | "rocket_launch"
+  | "rule"
+  | "school"
+  | "security"
+  | "settings_suggest"
+  | "stars"
+  | "trending_up"
+  | "visibility";
+
 export function LandingPage() {
   return (
-    <div className={`${manropeFont.variable} landing-page overflow-x-hidden bg-[#0b0e14] text-[#ecedf6]`} id="top">
+    <div className="landing-page overflow-x-hidden bg-[#0b0e14] text-[#ecedf6]" id="top">
       <LandingHeader />
       <main>
         <LandingHero />
@@ -93,8 +110,8 @@ export function LandingPage() {
 
 function LandingHeader() {
   return (
-    <header className="sticky top-0 z-50 bg-gradient-to-b from-[#10131a] to-transparent backdrop-blur-xl">
-      <nav className="mx-auto flex w-full max-w-7xl items-center justify-between px-8 py-4">
+    <header className="sticky top-0 z-50 border-b border-white/6 bg-[#10131a]/92">
+      <nav className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4 sm:px-8">
         <Link
           className="text-2xl font-bold tracking-[-0.08em] text-[#ecedf6]"
           href="/"
@@ -124,7 +141,7 @@ function LandingHeader() {
             Login
           </Link>
           <Link
-            className="gradient-bg inline-flex items-center rounded-lg px-6 py-2.5 text-sm font-bold text-black shadow-[0px_8px_32px_0px_rgba(116,177,255,0.2)] transition-all active:scale-95 active:opacity-80"
+            className="gradient-bg inline-flex items-center rounded-lg px-6 py-2.5 text-sm font-bold text-black shadow-[0_8px_24px_rgba(116,177,255,0.18)] transition-all active:scale-95 active:opacity-80"
             href="/login"
           >
             Get Started
@@ -137,26 +154,24 @@ function LandingHeader() {
 
 function LandingHero() {
   return (
-    <section className="relative flex min-h-[921px] items-center overflow-hidden" id="platform">
+    <section className="relative flex min-h-[clamp(42rem,88vh,56rem)] items-center overflow-hidden" id="platform">
       <div className="absolute inset-0 z-0">
-        <div className="absolute right-0 top-0 h-[600px] w-[600px] translate-x-1/2 -translate-y-1/4 rounded-full bg-[#74b1ff]/10 blur-[150px]" />
-        <div className="absolute bottom-0 left-0 h-[400px] w-[400px] -translate-x-1/4 translate-y-1/4 rounded-full bg-[#6dddff]/5 blur-[120px]" />
+        <div className="absolute right-0 top-0 h-[24rem] w-[24rem] translate-x-1/3 -translate-y-1/5 rounded-full bg-[#74b1ff]/8 blur-[88px]" />
+        <div className="absolute bottom-0 left-0 h-[18rem] w-[18rem] -translate-x-1/5 translate-y-1/5 rounded-full bg-[#6dddff]/5 blur-[72px]" />
       </div>
 
-      <div className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-1 gap-16 px-8 py-24 lg:grid-cols-2 lg:gap-20 lg:py-28">
+      <div className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-1 gap-16 px-6 py-20 sm:px-8 lg:grid-cols-2 lg:gap-20 lg:py-24">
         <div className="flex flex-col justify-center">
           <div className="space-y-10 md:space-y-12">
             <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#45484f]/20 bg-[#1c2028] px-3 py-1">
-              <span className="material-symbols-outlined text-sm text-[#4da0ff]" style={filledSymbol}>
-                stars
-              </span>
+              <LandingIcon className="h-4 w-4 text-[#4da0ff]" name="stars" />
               <span className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-[#a9abb3]">
                 Intelligent Readiness
               </span>
             </div>
 
             <div className="space-y-7 md:space-y-8">
-              <h1 className="text-glow text-6xl font-bold leading-[1.1] tracking-[-0.07em] text-[#ecedf6] md:text-7xl">
+              <h1 className="text-glow text-5xl font-bold leading-[1.04] tracking-[-0.07em] text-[#ecedf6] sm:text-6xl md:text-7xl">
                 Build a sales team that <span className="text-[#4da0ff]">improves</span> after every
                 call.
               </h1>
@@ -171,14 +186,14 @@ function LandingHero() {
           <div className="pt-12 md:pt-14">
             <div className="flex flex-wrap items-center gap-5">
               <Link
-                className="gradient-bg inline-flex min-h-16 items-center gap-2 rounded-lg px-12 py-5 text-lg font-bold text-black shadow-[0px_8px_32px_0px_rgba(116,177,255,0.3)] transition-transform hover:scale-[1.02]"
+                className="gradient-bg inline-flex min-h-16 items-center gap-2 rounded-lg px-10 py-5 text-lg font-bold text-black shadow-[0_8px_28px_rgba(116,177,255,0.24)] transition-transform hover:scale-[1.02]"
                 href="/login"
               >
                 Access platform
-                <span className="material-symbols-outlined">arrow_forward</span>
+                <LandingIcon className="h-5 w-5" name="arrow_forward" />
               </Link>
 
-              <div className="flex min-h-16 items-center gap-4 rounded-lg border border-[#45484f]/30 px-6 py-4 backdrop-blur-sm">
+              <div className="flex min-h-16 items-center gap-4 rounded-lg border border-[#45484f]/30 bg-white/[0.02] px-6 py-4">
                 <span className="text-sm text-[#ecedf6]/50">Integrates with</span>
                 <div className="flex gap-3 text-[#ecedf6]/60">
                   <IntegrationBadge label="Zoom">
@@ -191,7 +206,7 @@ function LandingHero() {
               </div>
             </div>
 
-            <div className="mt-16 grid grid-cols-3 gap-8">
+            <div className="mt-16 grid grid-cols-3 gap-4 sm:gap-8">
               <div>
                 <div className="text-3xl font-bold text-[#ecedf6]">94%</div>
                 <div className="mt-1 text-xs uppercase tracking-[0.22em] text-[#a9abb3]">
@@ -216,38 +231,34 @@ function LandingHero() {
 
         <div className="relative flex items-center justify-center">
           <div className="relative aspect-square w-full max-w-md">
-            <div className="absolute inset-0 rounded-full border border-[#74b1ff]/20 motion-safe:animate-pulse" />
-            <div className="absolute inset-8 rounded-full border border-[#74b1ff]/10" />
-            <div className="absolute inset-20 rounded-full bg-gradient-to-tr from-[#74b1ff]/20 to-transparent blur-2xl" />
-            <Image
-              alt="Futuristic glowing 3D orb with data streams and blue luminescent patterns on a deep obsidian black background"
-              className="rounded-full object-cover opacity-80 mix-blend-screen"
-              fill
-              priority
-              quality={72}
-              sizes="(min-width: 1024px) 28rem, (min-width: 768px) 24rem, 80vw"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZYvgLoq8FwwyySPn1bGAcniKj3e-J1UeruPdqjbyuCWl2hxCoIqRhWLYlSbj32tSK2DQVZdytnUQOpN2knCHkTI6X_N9cRCtRV2Um8wSl-UqZ_Vp3CO9i9KSHDSpsgWHSvGE518FwmOQP4cSq1-Bjv8O1qEXGQrkb6HojfKJjl2GjG76v_Uy-iO6KcSnW1vX71VWo0VtipxRh5PhKZfhvTOAJ5n7qjwF80T7LLcRhiMQC5C5WwowopTVl1d2dJXKHrOWbTRF7XaA6"
-            />
+            <div className="absolute inset-0 rounded-full border border-[#74b1ff]/14" />
+            <div className="absolute inset-8 rounded-full border border-[#74b1ff]/8" />
+            <div className="absolute inset-16 rounded-full bg-gradient-to-tr from-[#74b1ff]/12 to-transparent blur-xl" />
+            <div className="landing-hero-orb absolute inset-0">
+              <HeroOrbIllustration />
+            </div>
 
-            <div className="glass-card absolute -right-2 top-1/4 flex items-center gap-3 rounded-xl p-4 sm:-right-10">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#54a3ff]/20 text-[#74b1ff]">
-                <span className="material-symbols-outlined">check_circle</span>
-              </div>
-              <div>
-                <div className="text-xs uppercase tracking-tight text-[#a9abb3]">Ready Score</div>
-                <div className="text-lg font-bold text-[#ecedf6]">98.4%</div>
+            <div className="glass-card absolute -right-2 top-1/4 min-w-[10.5rem] rounded-xl p-4 sm:-right-8">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#54a3ff]/16 text-[#74b1ff]">
+                  <LandingIcon className="h-5 w-5" name="check_circle" />
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-tight text-[#a9abb3]">Ready Score</div>
+                  <div className="text-lg font-bold text-[#ecedf6]">98.4%</div>
+                </div>
               </div>
             </div>
 
-            <div className="glass-card absolute -left-2 bottom-1/4 flex items-center gap-3 rounded-xl p-4 sm:-left-10">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#6dddff]/20 text-[#6dddff]">
-                <span className="material-symbols-outlined" style={filledSymbol}>
-                  electric_bolt
-                </span>
-              </div>
-              <div>
-                <div className="text-xs uppercase tracking-tight text-[#a9abb3]">AI Velocity</div>
-                <div className="text-lg font-bold text-[#ecedf6]">+14%</div>
+            <div className="glass-card absolute -left-2 bottom-1/4 min-w-[10.5rem] rounded-xl p-4 sm:-left-8">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#6dddff]/16 text-[#6dddff]">
+                  <LandingIcon className="h-5 w-5" name="electric_bolt" />
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-tight text-[#a9abb3]">AI Velocity</div>
+                  <div className="text-lg font-bold text-[#ecedf6]">+14%</div>
+                </div>
               </div>
             </div>
           </div>
@@ -259,10 +270,10 @@ function LandingHero() {
 
 function LandingWorkflow() {
   return (
-    <section className="bg-[#10131a] py-28" id="solutions">
-      <div className="mx-auto max-w-7xl px-8">
+    <section className="landing-deferred bg-[#10131a] py-28" id="solutions">
+      <div className="mx-auto max-w-7xl px-6 sm:px-8">
         <div className="mb-16 text-center md:mb-20">
-          <h2 className="mx-auto mb-5 max-w-5xl text-4xl font-bold tracking-tight leading-[1.02] text-[#ecedf6] md:text-[clamp(3rem,5vw,4.75rem)]">
+          <h2 className="mx-auto mb-5 max-w-5xl text-4xl font-bold leading-[1.02] tracking-tight text-[#ecedf6] md:text-[clamp(3rem,5vw,4.75rem)]">
             The Argos Operating Loop
           </h2>
           <p className="mx-auto max-w-4xl text-lg font-light leading-8 text-[#a9abb3]">
@@ -277,8 +288,8 @@ function LandingWorkflow() {
               className="rounded-xl border-t border-[#74b1ff]/20 bg-[#161a21] p-6 transition-all hover:bg-[#1c2028]"
               key={step.number}
             >
-              <div className="mb-4 text-[#4da0ff] transition-transform hover:scale-110">
-                <span className="material-symbols-outlined text-4xl">{step.icon}</span>
+              <div className="mb-4 text-[#4da0ff]">
+                <LandingIcon className="h-9 w-9" name={step.icon} />
               </div>
               <div className="mb-2 text-sm font-bold uppercase tracking-[0.22em] text-[#ecedf6]">
                 {step.number}
@@ -295,7 +306,7 @@ function LandingWorkflow() {
 
 function LandingCapabilities() {
   return (
-    <section className="mx-auto max-w-7xl px-8 py-28" id="capabilities">
+    <section className="landing-deferred mx-auto max-w-7xl px-6 py-28 sm:px-8" id="capabilities">
       <div className="mb-16 flex flex-col items-start gap-8 lg:mb-20 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-2xl">
           <h2 className="mb-6 text-5xl font-bold tracking-tight text-[#ecedf6]">
@@ -312,9 +323,7 @@ function LandingCapabilities() {
         <article className="glass-card group overflow-hidden rounded-2xl p-10 md:col-span-2">
           <div className="flex flex-col gap-10 md:flex-row">
             <div className="flex-1">
-              <span className="material-symbols-outlined mb-6 text-4xl text-[#74b1ff]">
-                analytics
-              </span>
+              <LandingIcon className="mb-6 h-10 w-10 text-[#74b1ff]" name="analytics" />
               <h3 className="mb-4 text-3xl font-bold text-[#ecedf6]">Call Intelligence</h3>
               <p className="mb-6 leading-relaxed text-[#a9abb3]">
                 Deep-dive into conversation dynamics. Understand objection patterns, competitor
@@ -322,15 +331,11 @@ function LandingCapabilities() {
               </p>
               <ul className="space-y-3">
                 <li className="flex items-center gap-2 text-sm text-[#a9abb3]">
-                  <span className="material-symbols-outlined text-sm text-[#74b1ff]">
-                    check_circle
-                  </span>
+                  <LandingIcon className="h-4 w-4 text-[#74b1ff]" name="check_circle" />
                   Keyword &amp; Topic Extraction
                 </li>
                 <li className="flex items-center gap-2 text-sm text-[#a9abb3]">
-                  <span className="material-symbols-outlined text-sm text-[#74b1ff]">
-                    check_circle
-                  </span>
+                  <LandingIcon className="h-4 w-4 text-[#74b1ff]" name="check_circle" />
                   Sentiment Waveform Analysis
                 </li>
               </ul>
@@ -376,9 +381,7 @@ function LandingCapabilities() {
         </article>
 
         <article className="glass-card group flex flex-col rounded-2xl p-10">
-          <span className="material-symbols-outlined mb-6 text-4xl text-[#74b1ff]">
-            auto_awesome
-          </span>
+          <LandingIcon className="mb-6 h-10 w-10 text-[#74b1ff]" name="auto_awesome" />
           <h3 className="mb-4 text-2xl font-bold text-[#ecedf6]">Coaching Highlights</h3>
           <p className="mb-8 text-sm leading-relaxed text-[#a9abb3]">
             AI-surfaced teachable moments delivered directly to managers for 1-click feedback.
@@ -387,16 +390,12 @@ function LandingCapabilities() {
             <span className="text-xs font-bold uppercase tracking-[0.22em] text-[#ecedf6]">
               Optimize Flow
             </span>
-            <span className="material-symbols-outlined text-[#74b1ff] transition-transform group-hover:translate-x-2">
-              east
-            </span>
+            <LandingIcon className="h-5 w-5 text-[#74b1ff]" name="east" />
           </div>
         </article>
 
         <article className="glass-card group flex flex-col rounded-2xl p-10">
-          <span className="material-symbols-outlined mb-6 text-4xl text-[#74b1ff]">
-            school
-          </span>
+          <LandingIcon className="mb-6 h-10 w-10 text-[#74b1ff]" name="school" />
           <h3 className="mb-4 text-2xl font-bold text-[#ecedf6]">Training Workspace</h3>
           <p className="mb-8 text-sm leading-relaxed text-[#a9abb3]">
             A centralized hub for sales playbooks and interactive training modules that update as
@@ -406,18 +405,14 @@ function LandingCapabilities() {
             <span className="text-xs font-bold uppercase tracking-[0.22em] text-[#ecedf6]">
               Learn Mode
             </span>
-            <span className="material-symbols-outlined text-[#74b1ff] transition-transform group-hover:translate-x-2">
-              east
-            </span>
+            <LandingIcon className="h-5 w-5 text-[#74b1ff]" name="east" />
           </div>
         </article>
 
         <article className="glass-card group overflow-hidden rounded-2xl p-10 md:col-span-2">
           <div className="flex flex-col gap-10 md:flex-row-reverse">
             <div className="flex-1">
-              <span className="material-symbols-outlined mb-6 text-4xl text-[#74b1ff]">
-                forum
-              </span>
+              <LandingIcon className="mb-6 h-10 w-10 text-[#74b1ff]" name="forum" />
               <h3 className="mb-4 text-3xl font-bold text-[#ecedf6]">AI Roleplay</h3>
               <p className="mb-6 leading-relaxed text-[#a9abb3]">
                 Let reps practice tough conversations with an AI that mimics your ideal or most
@@ -453,9 +448,7 @@ function LandingCapabilities() {
         </article>
 
         <article className="glass-card group flex flex-col rounded-2xl p-10">
-          <span className="material-symbols-outlined mb-6 text-4xl text-[#74b1ff]">
-            visibility
-          </span>
+          <LandingIcon className="mb-6 h-10 w-10 text-[#74b1ff]" name="visibility" />
           <h3 className="mb-4 text-2xl font-bold text-[#ecedf6]">Team Visibility</h3>
           <p className="mb-8 text-sm leading-relaxed text-[#a9abb3]">
             Birds-eye view of your entire sales organization&apos;s health and readiness at a
@@ -465,16 +458,12 @@ function LandingCapabilities() {
             <span className="text-xs font-bold uppercase tracking-[0.22em] text-[#ecedf6]">
               Admin View
             </span>
-            <span className="material-symbols-outlined text-[#74b1ff] transition-transform group-hover:translate-x-2">
-              east
-            </span>
+            <LandingIcon className="h-5 w-5 text-[#74b1ff]" name="east" />
           </div>
         </article>
 
         <article className="glass-card group flex flex-col rounded-2xl p-10">
-          <span className="material-symbols-outlined mb-6 text-4xl text-[#74b1ff]">
-            settings_suggest
-          </span>
+          <LandingIcon className="mb-6 h-10 w-10 text-[#74b1ff]" name="settings_suggest" />
           <h3 className="mb-4 text-2xl font-bold text-[#ecedf6]">Rubric Control</h3>
           <p className="mb-8 text-sm leading-relaxed text-[#a9abb3]">
             Define exactly what good looks like. Customize AI scoring rubrics for your specific
@@ -484,9 +473,7 @@ function LandingCapabilities() {
             <span className="text-xs font-bold uppercase tracking-[0.22em] text-[#ecedf6]">
               Setup Logic
             </span>
-            <span className="material-symbols-outlined text-[#74b1ff] transition-transform group-hover:translate-x-2">
-              east
-            </span>
+            <LandingIcon className="h-5 w-5 text-[#74b1ff]" name="east" />
           </div>
         </article>
       </div>
@@ -496,8 +483,8 @@ function LandingCapabilities() {
 
 function LandingOutcomes() {
   return (
-    <section className="border-y border-[#45484f]/10 bg-[#10131a] py-28" id="outcomes">
-      <div className="mx-auto flex max-w-7xl flex-col items-center gap-16 px-8 md:flex-row lg:gap-20">
+    <section className="landing-deferred border-y border-[#45484f]/10 bg-[#10131a] py-28" id="outcomes">
+      <div className="mx-auto flex max-w-7xl flex-col items-center gap-16 px-6 sm:px-8 md:flex-row lg:gap-20">
         <div className="flex-1">
           <h2 className="mb-10 text-4xl font-bold leading-tight text-[#ecedf6]">
             Strategic Outcomes for <span className="text-[#74b1ff]">Revenue Leaders</span>
@@ -507,7 +494,7 @@ function LandingOutcomes() {
             {outcomeRows.map((row) => (
               <article className="flex gap-6" key={row.title}>
                 <div className="mt-1 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[#74b1ff]/10 text-[#74b1ff]">
-                  <span className="material-symbols-outlined">{row.icon}</span>
+                  <LandingIcon className="h-6 w-6" name={row.icon} />
                 </div>
                 <div>
                   <h3 className="mb-2 text-xl font-bold text-[#ecedf6]">{row.title}</h3>
@@ -520,7 +507,7 @@ function LandingOutcomes() {
 
         <div className="flex-1">
           <div className="group relative">
-            <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-[#74b1ff] to-[#6dddff] opacity-20 blur transition duration-1000 group-hover:opacity-40 group-hover:duration-200" />
+            <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-[#74b1ff] to-[#6dddff] opacity-16 blur-lg transition duration-700 group-hover:opacity-28" />
             <div className="relative overflow-hidden rounded-2xl border border-[#45484f]/30 bg-[#0b0e14] p-4">
               <div className="rounded-xl border border-[#45484f]/25 bg-[#10131a] p-5">
                 <div className="flex items-start justify-between gap-4">
@@ -574,9 +561,9 @@ function LandingOutcomes() {
 
 function LandingFooterCta() {
   return (
-    <section className="relative overflow-hidden py-36" id="cta">
-      <div className="absolute left-1/2 top-0 h-full w-full max-w-5xl -translate-x-1/2 rounded-full bg-[#74b1ff]/5 blur-[120px]" />
-      <div className="relative z-10 mx-auto max-w-5xl px-8 text-center">
+    <section className="landing-deferred relative overflow-hidden py-36" id="cta">
+      <div className="absolute left-1/2 top-0 h-full w-full max-w-5xl -translate-x-1/2 rounded-full bg-[#74b1ff]/5 blur-[80px]" />
+      <div className="relative z-10 mx-auto max-w-5xl px-6 text-center sm:px-8">
         <div className="space-y-10 md:space-y-12">
           <h2 className="mx-auto max-w-[15ch] text-[clamp(3rem,7vw,5.75rem)] font-bold leading-[0.96] tracking-[-0.065em] text-[#ecedf6]">
             Give your sales team one place to <span className="text-[#4da0ff]">improve on purpose.</span>
@@ -585,13 +572,13 @@ function LandingFooterCta() {
           <div className="pt-10 md:pt-12">
             <div className="flex flex-col justify-center gap-5 sm:flex-row sm:items-center sm:justify-center">
               <Link
-                className="gradient-bg inline-flex min-h-[4.75rem] items-center justify-center rounded-lg px-12 py-5 text-xl font-bold text-black shadow-[0px_8px_48px_0px_rgba(116,177,255,0.4)] transition-transform hover:scale-105 sm:min-w-[19rem]"
+                className="gradient-bg inline-flex min-h-[4.75rem] items-center justify-center rounded-lg px-12 py-5 text-xl font-bold text-black shadow-[0_8px_38px_rgba(116,177,255,0.28)] transition-transform hover:scale-105 sm:min-w-[19rem]"
                 href="/login"
               >
                 Access platform
               </Link>
               <a
-                className="inline-flex min-h-[4.75rem] items-center justify-center rounded-lg border border-[#73757d]/30 bg-[#22262f]/20 px-12 py-5 text-xl font-bold text-[#ecedf6] backdrop-blur transition-colors hover:bg-[#22262f]/40 sm:min-w-[19rem]"
+                className="inline-flex min-h-[4.75rem] items-center justify-center rounded-lg border border-[#73757d]/30 bg-[#22262f]/20 px-12 py-5 text-xl font-bold text-[#ecedf6] transition-colors hover:bg-[#22262f]/40 sm:min-w-[19rem]"
                 href="/login"
               >
                 Book a Demo
@@ -647,8 +634,8 @@ function HighLevelGlyph() {
 
 function LandingFooter() {
   return (
-    <footer className="border-t border-[#45484f]/20 bg-[#0b0e14]">
-      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-8 py-12 md:flex-row">
+    <footer className="landing-deferred border-t border-[#45484f]/20 bg-[#0b0e14]">
+      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-6 py-12 sm:px-8 md:flex-row">
         <div className="flex flex-col items-center gap-2 md:items-start">
           <div className="text-xl font-bold text-[#ecedf6]" style={displayFont}>
             ARGOS
@@ -665,9 +652,226 @@ function LandingFooter() {
           className="flex h-10 w-10 items-center justify-center rounded-full border border-[#45484f]/30 text-[#74b1ff] transition-colors hover:bg-[#74b1ff]/10"
           href="#top"
         >
-          <span className="material-symbols-outlined">arrow_upward</span>
+          <LandingIcon className="h-5 w-5" name="arrow_upward" />
         </a>
       </div>
     </footer>
   );
+}
+
+function HeroOrbIllustration() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-full w-full"
+      fill="none"
+      viewBox="0 0 560 560"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle cx="280" cy="280" fill="url(#orb-surface)" r="226" />
+      <circle cx="280" cy="280" fill="url(#orb-core)" opacity="0.92" r="174" />
+      <circle cx="280" cy="280" r="226" stroke="rgba(116,177,255,0.18)" strokeWidth="3" />
+      <circle cx="280" cy="280" r="176" stroke="rgba(109,221,255,0.14)" strokeWidth="2" />
+      <path
+        d="M146 284c40-80 104-126 191-138 46 39 77 89 92 149-26 80-81 134-166 160-63-19-108-57-136-114 7-21 13-40 19-57Z"
+        stroke="#74B1FF"
+        strokeOpacity="0.42"
+        strokeWidth="12"
+      />
+      <path
+        d="M169 314c31-53 71-87 120-101 57 18 99 57 126 118-31 46-73 77-126 93-50-14-91-51-120-110Z"
+        stroke="#6DDDFF"
+        strokeOpacity="0.34"
+        strokeWidth="10"
+      />
+      <path
+        d="M208 195c34 26 73 39 118 39 45 0 85-13 119-39"
+        stroke="#6DDDFF"
+        strokeLinecap="round"
+        strokeOpacity="0.5"
+        strokeWidth="9"
+      />
+      <path
+        d="M193 370c32-24 64-36 96-36 32 0 70 12 114 36"
+        stroke="#74B1FF"
+        strokeLinecap="round"
+        strokeOpacity="0.5"
+        strokeWidth="9"
+      />
+      <path
+        d="M278 119v321"
+        stroke="url(#orb-axis)"
+        strokeLinecap="round"
+        strokeOpacity="0.72"
+        strokeWidth="8"
+      />
+      <circle cx="208" cy="221" fill="#6DDDFF" opacity="0.82" r="10" />
+      <circle cx="356" cy="215" fill="#74B1FF" opacity="0.9" r="11" />
+      <circle cx="390" cy="318" fill="#6DDDFF" opacity="0.64" r="8" />
+      <circle cx="193" cy="346" fill="#74B1FF" opacity="0.58" r="7" />
+      <defs>
+        <radialGradient id="orb-surface" cx="0" cy="0" gradientTransform="translate(252 188) rotate(54.285) scale(280)" gradientUnits="userSpaceOnUse" r="1">
+          <stop stopColor="#1F4C8B" />
+          <stop offset="0.55" stopColor="#10223D" />
+          <stop offset="1" stopColor="#050A14" />
+        </radialGradient>
+        <radialGradient id="orb-core" cx="0" cy="0" gradientTransform="translate(281 260) rotate(90) scale(194)" gradientUnits="userSpaceOnUse" r="1">
+          <stop stopColor="#6DDDFF" stopOpacity="0.95" />
+          <stop offset="0.48" stopColor="#1B3E78" stopOpacity="0.6" />
+          <stop offset="1" stopColor="#07101E" stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id="orb-axis" x1="278" x2="278" y1="119" y2="440" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#6DDDFF" />
+          <stop offset="1" stopColor="#74B1FF" stopOpacity="0.2" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
+
+function LandingIcon({
+  className,
+  name,
+}: {
+  className?: string;
+  name: LandingIconName;
+}) {
+  switch (name) {
+    case "analytics":
+      return (
+        <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
+          <path d="M4 20V9m6 11V4m6 16v-7m4 7H2" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+        </svg>
+      );
+    case "arrow_forward":
+      return (
+        <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
+          <path d="M5 12h12m-4-4 4 4-4 4" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+        </svg>
+      );
+    case "arrow_upward":
+      return (
+        <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
+          <path d="M12 18V6m0 0-4 4m4-4 4 4" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+        </svg>
+      );
+    case "auto_awesome":
+      return (
+        <svg aria-hidden="true" className={className} fill="currentColor" viewBox="0 0 24 24">
+          <path d="m12 2 1.4 4.2L17.5 8l-4.1 1.8L12 14l-1.4-4.2L6.5 8l4.1-1.8L12 2Zm7 9 .8 2.2L22 14l-2.2.8L19 17l-.8-2.2L16 14l2.2-.8L19 11ZM5 14l1.1 3L9 18l-2.9 1L5 22l-1.1-3L1 18l2.9-1L5 14Z" />
+        </svg>
+      );
+    case "auto_fix_high":
+      return (
+        <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
+          <path d="m5 19 4.5-4.5m0 0L14 10m-4.5 4.5L7 12m2.5 2.5L12 17m5.5-9.5-1.3-1.3a1.8 1.8 0 0 0-2.5 0L12 7.9l4.1 4.1 1.4-1.4a1.8 1.8 0 0 0 0-2.5Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+        </svg>
+      );
+    case "check_circle":
+      return (
+        <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.8" />
+          <path d="m8.6 12.2 2.3 2.3 4.6-5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+        </svg>
+      );
+    case "east":
+      return (
+        <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
+          <path d="M4 12h14m-4-4 4 4-4 4" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+        </svg>
+      );
+    case "electric_bolt":
+      return (
+        <svg aria-hidden="true" className={className} fill="currentColor" viewBox="0 0 24 24">
+          <path d="M13.6 2 6 13.1h4.6L9.7 22 18 10.9h-4.7L13.6 2Z" />
+        </svg>
+      );
+    case "forum":
+      return (
+        <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
+          <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h7A2.5 2.5 0 0 1 16 6.5v5A2.5 2.5 0 0 1 13.5 14H9l-3.5 3v-3H6.5A2.5 2.5 0 0 1 4 11.5v-5Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.8" />
+          <path d="M16 9h1.5A2.5 2.5 0 0 1 20 11.5v4A2.5 2.5 0 0 1 17.5 18H16v2l-2.8-2H11" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.8" />
+        </svg>
+      );
+    case "model_training":
+      return (
+        <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
+          <path d="M12 5.5 5 9l7 3.5L19 9 12 5.5Zm0 7L5 9v6l7 3.5m0-6L19 9v6l-7 3.5" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.8" />
+        </svg>
+      );
+    case "precision_manufacturing":
+      return (
+        <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
+          <path d="M7 6h10v4l-2 2v6H9v-6L7 10V6Zm3-3h4m-7 7H4m16 0h-3" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+        </svg>
+      );
+    case "psychology":
+      return (
+        <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
+          <path d="M12 4.5c-4.1 0-7 2.8-7 6.6 0 2.7 1.5 4.8 3.8 5.9v2.5l2.6-1.6c.2 0 .4.1.6.1 4.1 0 7-2.8 7-6.6 0-3.8-2.9-6.9-7-6.9Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.8" />
+          <path d="M10 10.5c.7-1 1.5-1.5 2.5-1.5 1.3 0 2.3 1 2.3 2.2 0 1.5-1.5 2.1-2.4 2.8-.5.4-.8.9-.8 1.5m.1 2h.1" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+        </svg>
+      );
+    case "record_voice_over":
+      return (
+        <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
+          <circle cx="9" cy="9" r="2.5" stroke="currentColor" strokeWidth="1.8" />
+          <path d="M4.5 18a5.5 5.5 0 0 1 9 0m6-8a4 4 0 0 1 0 6m-1.5-9a7 7 0 0 1 0 12" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+        </svg>
+      );
+    case "rocket_launch":
+      return (
+        <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
+          <path d="M14.5 4.5c2.8.5 4.5 2.2 5 5l-6.2 6.2-4.4-4.4L14.5 4.5ZM8.8 11.3 6 12l-2 4 4-2 .7-2.7Zm4.5 4.5L12 18l-2 4 4-2 2.2-1.3" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.8" />
+          <circle cx="15.2" cy="8.8" fill="currentColor" r="1.1" />
+        </svg>
+      );
+    case "rule":
+      return (
+        <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
+          <path d="M6 7.5h12M6 12h8m-8 4.5h12" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+          <path d="m18 10 1.8 1.8L22 9.6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+        </svg>
+      );
+    case "school":
+      return (
+        <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
+          <path d="m3 9 9-4 9 4-9 4-9-4Zm3 2.5v4l6 3 6-3v-4" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.8" />
+        </svg>
+      );
+    case "security":
+      return (
+        <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
+          <path d="M12 3.5 5.5 6v5.8c0 4 2.7 7.2 6.5 8.7 3.8-1.5 6.5-4.7 6.5-8.7V6L12 3.5Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.8" />
+          <path d="m9.2 12.3 1.9 1.9 3.7-4" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+        </svg>
+      );
+    case "settings_suggest":
+      return (
+        <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
+          <path d="m12 6 .9 1.8 2 .3-1.4 1.4.3 2-1.8-.9-1.8.9.3-2L9 8.1l2-.3L12 6Zm6 8 .6 1.2 1.4.2-1 .9.2 1.4-1.2-.6-1.2.6.2-1.4-1-.9 1.4-.2.6-1.2ZM7 14l.8 1.6 1.7.2-1.2 1.2.3 1.7-1.6-.8-1.6.8.3-1.7-1.2-1.2 1.7-.2L7 14Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.6" />
+        </svg>
+      );
+    case "stars":
+      return (
+        <svg aria-hidden="true" className={className} fill="currentColor" viewBox="0 0 24 24">
+          <path d="m12 2 1.6 4.6L18 8.2l-4.4 1.6L12 14.4l-1.6-4.6L6 8.2l4.4-1.6L12 2Zm6.5 9.5.8 2.1 2.2.8-2.2.8-.8 2.1-.8-2.1-2.2-.8 2.2-.8.8-2.1ZM5.5 13l1 2.7 2.7 1-2.7 1-1 2.7-1-2.7-2.7-1 2.7-1 1-2.7Z" />
+        </svg>
+      );
+    case "trending_up":
+      return (
+        <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
+          <path d="m5 15 4-4 3 3 6-6m0 0H14m4 0v4" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+        </svg>
+      );
+    case "visibility":
+      return (
+        <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
+          <path d="M2.8 12c1.8-3.4 5-5.5 9.2-5.5s7.4 2.1 9.2 5.5c-1.8 3.4-5 5.5-9.2 5.5S4.6 15.4 2.8 12Z" stroke="currentColor" strokeWidth="1.8" />
+          <circle cx="12" cy="12" r="2.8" stroke="currentColor" strokeWidth="1.8" />
+        </svg>
+      );
+    default:
+      return null;
+  }
 }

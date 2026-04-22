@@ -1,6 +1,4 @@
-import Image from "next/image";
 import Link from "next/link";
-import { manropeFont } from "@/lib/manrope-font";
 
 // ─── Auth shell: split-screen design ─────────────────────────────────────────
 
@@ -11,8 +9,8 @@ type AuthShellProps = {
 export function AuthShell({ children }: AuthShellProps) {
   return (
     <div
-      className={`${manropeFont.variable} auth-page selection:text-[#74b1ff] min-h-screen overflow-hidden`}
-      style={{ background: "#0b0e14", color: "#ecedf6", fontFamily: "var(--font-manrope, Manrope, sans-serif)" }}
+      className="auth-page min-h-screen overflow-hidden selection:text-[#74b1ff]"
+      style={{ background: "#0b0e14", color: "#ecedf6", fontFamily: "var(--font-body, 'Source Sans 3', sans-serif)" }}
     >
       {/* ── Fixed header ── */}
       <header className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-8 py-6">
@@ -32,16 +30,8 @@ export function AuthShell({ children }: AuthShellProps) {
         {/* ── Left section: Luminous Visuals ── */}
         <section className="auth-globe-gradient hidden lg:flex lg:w-1/2 items-center justify-center relative overflow-hidden">
           {/* Background art */}
-          <div className="absolute inset-0 opacity-40">
-            <Image
-              alt=""
-              aria-hidden="true"
-              className="object-cover mix-blend-screen"
-              fill
-              quality={68}
-              sizes="(min-width: 1024px) 50vw, 0px"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuDrlEfPdTn6nBT7qNhHh5S6M2-5aMemMqWRS0zKEHEfFvx08UiCZu4zt_e-PK0NcYwuUNeycywPWGWwICaO8VrnLtDT1h5GOcNBIdezwjyI8SrfTDnq32qsxKfcWtvQaZ3ZXBCVrFq9pMOtKYTm9cvPQHTA5MIWKBEGXHRSSKkOU4_3drNq8FlE4p2NMKDLn55EWes-oNE08o71JukVsSmXc3sNM_w3DGESVPWgC-tDHcHrDEkrFX-T3Qpzf-ASRqqZNlcvSBqHsSk9"
-            />
+          <div className="absolute inset-0 opacity-60">
+            <AuthShellIllustration />
           </div>
 
           <div className="relative z-10 w-full max-w-xl p-12 space-y-12">
@@ -102,21 +92,21 @@ export function AuthShell({ children }: AuthShellProps) {
           <a
             href="#"
             className="auth-footer-link text-[10px] uppercase tracking-[0.2em]"
-            style={{ fontFamily: "var(--font-manrope, sans-serif)" }}
+            style={{ fontFamily: "var(--font-body, 'Source Sans 3', sans-serif)" }}
           >
             Privacy Policy
           </a>
           <a
             href="#"
             className="auth-footer-link text-[10px] uppercase tracking-[0.2em]"
-            style={{ fontFamily: "var(--font-manrope, sans-serif)" }}
+            style={{ fontFamily: "var(--font-body, 'Source Sans 3', sans-serif)" }}
           >
             Terms of Service
           </a>
           <a
             href="#"
             className="auth-footer-link text-[10px] uppercase tracking-[0.2em]"
-            style={{ fontFamily: "var(--font-manrope, sans-serif)" }}
+            style={{ fontFamily: "var(--font-body, 'Source Sans 3', sans-serif)" }}
           >
             Security
           </a>
@@ -169,6 +159,41 @@ function HelpIcon() {
   );
 }
 
+function AuthShellIllustration() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-full w-full"
+      fill="none"
+      viewBox="0 0 720 960"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <rect fill="url(#auth-bg)" height="960" width="720" />
+      <circle cx="522" cy="264" fill="#74B1FF" opacity="0.14" r="182" />
+      <circle cx="282" cy="612" fill="#6DDDFF" opacity="0.11" r="214" />
+      <path d="M132 650c89-149 204-225 346-229 90 74 145 165 164 272-60 113-164 179-310 198-101-28-168-109-200-241Z" stroke="#74B1FF" strokeOpacity="0.34" strokeWidth="18" />
+      <path d="M176 697c71-103 156-155 256-155 104 0 187 52 249 155" stroke="#6DDDFF" strokeLinecap="round" strokeOpacity="0.28" strokeWidth="14" />
+      <path d="M200 302c82 63 172 95 272 95 100 0 191-32 272-95" stroke="#6DDDFF" strokeLinecap="round" strokeOpacity="0.3" strokeWidth="14" />
+      <path d="M357 192v533" stroke="url(#auth-axis)" strokeLinecap="round" strokeOpacity="0.6" strokeWidth="12" />
+      <circle cx="287" cy="332" fill="#6DDDFF" opacity="0.9" r="16" />
+      <circle cx="470" cy="332" fill="#74B1FF" opacity="0.82" r="18" />
+      <circle cx="532" cy="524" fill="#6DDDFF" opacity="0.66" r="13" />
+      <circle cx="240" cy="572" fill="#74B1FF" opacity="0.58" r="11" />
+      <defs>
+        <linearGradient id="auth-bg" x1="360" x2="360" y1="0" y2="960" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#102441" />
+          <stop offset="0.55" stopColor="#081527" />
+          <stop offset="1" stopColor="#040B18" />
+        </linearGradient>
+        <linearGradient id="auth-axis" x1="357" x2="357" y1="192" y2="725" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#6DDDFF" />
+          <stop offset="1" stopColor="#74B1FF" stopOpacity="0.18" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
+
 type LegacyAuthShellProps = {
   children: React.ReactNode;
   note?: string;
@@ -196,7 +221,10 @@ const authHighlights = [
 
 export function LegacyAuthShell({ children, note }: LegacyAuthShellProps) {
   return (
-    <main className={`${manropeFont.variable} min-h-screen bg-[linear-gradient(180deg,#040b18_0%,#07101f_100%)] px-5 py-5 text-[#f6f9ff] sm:px-8 sm:py-8`}>
+    <main
+      className="min-h-screen bg-[linear-gradient(180deg,#040b18_0%,#07101f_100%)] px-5 py-5 text-[#f6f9ff] sm:px-8 sm:py-8"
+      style={{ fontFamily: "var(--font-body, 'Source Sans 3', sans-serif)" }}
+    >
       <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-[1500px] items-center justify-center rounded-[2rem] border border-[#172543] bg-[#050d1c] shadow-[inset_0_1px_0_rgba(142,172,255,0.06)] sm:min-h-[calc(100vh-4rem)]">
         <div className="w-full max-w-4xl px-6 py-12 sm:px-10 md:px-16 md:py-16">
           <div className="flex flex-col items-center text-center">

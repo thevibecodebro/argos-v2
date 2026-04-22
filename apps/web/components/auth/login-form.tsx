@@ -110,7 +110,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
         </h1>
         <p
           className="text-sm uppercase tracking-[0.15em]"
-          style={{ color: "#a9abb3", fontFamily: "var(--font-manrope, Manrope, sans-serif)" }}
+          style={{ color: "#a9abb3", fontFamily: "var(--font-body, 'Source Sans 3', sans-serif)" }}
         >
           Enter your credentials to continue
         </p>
@@ -136,7 +136,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
           </svg>
           <span
             className="font-medium"
-            style={{ color: "#ecedf6", fontFamily: "var(--font-manrope, Manrope, sans-serif)" }}
+            style={{ color: "#ecedf6", fontFamily: "var(--font-body, 'Source Sans 3', sans-serif)" }}
           >
             Continue with Google
           </span>
@@ -147,7 +147,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
           <div className="h-px flex-1" style={{ background: "linear-gradient(to right, transparent, rgba(69,72,79,0.3))" }} />
           <span
             className="text-[10px] uppercase tracking-[0.2em]"
-            style={{ color: "#a9abb3", fontFamily: "var(--font-manrope, Manrope, sans-serif)" }}
+            style={{ color: "#a9abb3", fontFamily: "var(--font-body, 'Source Sans 3', sans-serif)" }}
           >
             OR
           </span>
@@ -160,7 +160,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
             <label
               className="block text-[10px] uppercase tracking-[0.15em] pl-1"
               htmlFor="auth-email"
-              style={{ color: "#a9abb3", fontFamily: "var(--font-manrope, Manrope, sans-serif)" }}
+              style={{ color: "#a9abb3", fontFamily: "var(--font-body, 'Source Sans 3', sans-serif)" }}
             >
               Work Email
             </label>
@@ -179,7 +179,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
                   background: "#000000",
                   border: "1px solid rgba(69,72,79,0.2)",
                   color: "#ecedf6",
-                  fontFamily: "var(--font-manrope, Manrope, sans-serif)",
+                  fontFamily: "var(--font-body, 'Source Sans 3', sans-serif)",
                 }}
                 onFocus={(e) => (e.currentTarget.style.borderColor = "#4da0ff")}
                 onBlur={(e) => (e.currentTarget.style.borderColor = "rgba(69,72,79,0.2)")}
@@ -194,7 +194,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
             style={{
               background: "linear-gradient(to right, #74b1ff, #54a3ff)",
               color: "#002f59",
-              fontFamily: "var(--font-manrope, Manrope, sans-serif)",
+              fontFamily: "var(--font-body, 'Source Sans 3', sans-serif)",
               opacity: (status === "submitting" || !authEnabled) ? 0.7 : 1,
             }}
           >
@@ -206,7 +206,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
       {/* Footer microcopy */}
       <p
         className="text-center text-[11px]"
-        style={{ color: "#a9abb3", fontFamily: "var(--font-manrope, Manrope, sans-serif)" }}
+        style={{ color: "#a9abb3", fontFamily: "var(--font-body, 'Source Sans 3', sans-serif)" }}
       >
         By continuing, you agree to our{" "}
         <a className="hover:underline underline-offset-4" href="#" style={{ color: "#74b1ff" }}>
