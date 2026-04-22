@@ -38,7 +38,7 @@ describe("TrainingManagerAiTools", () => {
       />,
     );
 
-    expect(html).toContain("Module AI tools");
+    expect(html).toContain("Lesson drafting");
     expect(html).toContain("Draft lesson content");
     expect(html).toContain("Draft quiz");
     expect(html).toContain("Context notes");

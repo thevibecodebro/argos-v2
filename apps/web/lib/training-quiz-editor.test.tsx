@@ -18,7 +18,7 @@ describe("TrainingQuizEditor", () => {
       />,
     );
 
-    expect(html).toContain("Quick quiz builder");
+    expect(html).toContain("Quiz builder");
     expect(html).toContain("Add question");
     expect(html).toContain("Question 1");
     expect(html).toContain("Prompt");
