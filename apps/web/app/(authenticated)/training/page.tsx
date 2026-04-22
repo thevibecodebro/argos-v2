@@ -38,6 +38,7 @@ export default async function TrainingPage() {
 
   return (
     <PageFrame
+      headerMode="hidden"
       actions={[{ href: "/highlights", label: "Open highlights" }]}
       description="Review assigned modules, complete lessons, and guide practice from one training surface."
       eyebrow="Training"

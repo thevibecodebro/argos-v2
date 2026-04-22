@@ -20,6 +20,7 @@ export default async function LeaderboardPage() {
 
   return (
     <PageFrame
+      headerMode="hidden"
       actions={[{ href: "/team", label: "Open team view" }]}
       description="Compare top-quality, top-volume, and most-improved slices across your team."
       eyebrow="Performance"
