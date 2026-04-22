@@ -404,6 +404,40 @@ describe("TrainingPanel", () => {
     expect(html).not.toContain("Training workspace quick switcher");
   });
 
+  it("renders the course shell as stacked sections instead of a wide right-rail grid", () => {
+    const html = renderToStaticMarkup(
+      <TrainingPanel
+        aiAvailable={false}
+        canManage={false}
+        initialModules={baseModules}
+        initialTeamProgress={initialTeamProgress}
+        initialTeamRows={initialTeamRows}
+        rubricCategories={[]}
+      />,
+    );
+
+    expect(html).toContain("Current curriculum");
+    expect(html).toContain("Curriculum map");
+    expect(html).not.toContain("xl:grid-cols-[minmax(0,1.7fr)_minmax(300px,0.9fr)]");
+  });
+
+  it("renders curriculum rows as navigation instead of numbered mini-cards", () => {
+    const html = renderToStaticMarkup(
+      <TrainingPanel
+        aiAvailable={false}
+        canManage={false}
+        initialModules={baseModules}
+        initialTeamProgress={initialTeamProgress}
+        initialTeamRows={initialTeamRows}
+        rubricCategories={[]}
+      />,
+    );
+
+    expect(html).toContain("Current curriculum");
+    expect(html).toContain("Discovery That Finds the Real Pain");
+    expect(html).not.toContain(">Module 1<");
+  });
+
   it("renders a completion CTA for reps when a module has no quiz", () => {
     const html = renderToStaticMarkup(
       <TrainingPanel

@@ -17,24 +17,26 @@ export function TrainingModuleToc({
       className="rounded-[1.5rem] border border-[#45484f]/10 bg-[#10131a] p-5 shadow-[0_18px_60px_rgba(2,8,23,0.24)]"
     >
       <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Curriculum map</p>
-      <div className="mt-4 space-y-2">
-        {modules.map((module, index) => (
+      <div className="mt-4 divide-y divide-white/6 overflow-hidden rounded-[1.15rem] border border-white/8 bg-white/[0.03]">
+        {modules.map((module) => (
           <button
             aria-current={module.id === selectedModuleId ? "page" : undefined}
             className={
               module.id === selectedModuleId
-                ? "w-full rounded-[1.15rem] border border-[#74b1ff]/20 bg-[#74b1ff]/8 px-4 py-4 text-left"
-                : "w-full rounded-[1.15rem] border border-[#45484f]/10 bg-[#161a21]/45 px-4 py-4 text-left transition hover:border-[#74b1ff]/25"
+                ? "w-full bg-[#74b1ff]/10 px-4 py-3.5 text-left transition"
+                : "w-full px-4 py-3.5 text-left transition hover:bg-white/[0.04]"
             }
             key={module.id}
             onClick={() => onSelectModule(module.id)}
             type="button"
           >
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#74b1ff]">
-              Module {index + 1}
-            </p>
-            <p className="mt-2 text-sm font-semibold text-white">{module.title}</p>
-            <p className="mt-2 text-xs text-[#a9abb3]">{module.progress?.status ?? "assigned"}</p>
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-white">{module.title}</p>
+                <p className="mt-1 text-xs text-[#a9abb3]">{module.progress?.status ?? "assigned"}</p>
+              </div>
+              <span className="text-xs font-semibold text-[#74b1ff]">Open</span>
+            </div>
           </button>
         ))}
       </div>

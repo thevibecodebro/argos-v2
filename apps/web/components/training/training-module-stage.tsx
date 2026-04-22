@@ -36,9 +36,10 @@ export function TrainingModuleStage({
   }
 
   return (
-    <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-      <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#74b1ff]">Current curriculum</p>
-      <div className="mt-3 space-y-3">
+    <section className="relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(116,177,255,0.16),transparent_30%),linear-gradient(180deg,rgba(16,19,26,0.98),rgba(10,13,19,0.96))] p-6 shadow-[0_24px_80px_rgba(2,8,23,0.32)] sm:p-7">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.05),transparent_24%,transparent_72%,rgba(255,255,255,0.02))]" />
+      <div className="relative space-y-5">
+        <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#74b1ff]">Current curriculum</p>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-2">
             <h2 className="text-3xl font-semibold tracking-tight text-white">{selectedModule.title}</h2>

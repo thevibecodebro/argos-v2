@@ -14,12 +14,10 @@ export function TrainingCourseShell({
   tableOfContents,
 }: TrainingCourseShellProps) {
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_minmax(300px,0.9fr)]">
+    <div className="space-y-6">
       <main className="min-w-0">{stage}</main>
-      <aside className="space-y-5">
-        {tableOfContents}
-        {commandDeck}
-      </aside>
+      <section>{tableOfContents}</section>
+      {commandDeck ? <aside>{commandDeck}</aside> : null}
     </div>
   );
 }
