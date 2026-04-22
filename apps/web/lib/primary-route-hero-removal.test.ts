@@ -446,6 +446,25 @@ describe("primary route hero removal", () => {
     expect(trainingHtml).not.toContain(">Training<");
   });
 
+  it("wraps the training route in the standard authenticated content canvas", async () => {
+    const trainingHtml = await renderRoute(TrainingPage());
+
+    expect(trainingHtml).toContain('class="px-12 pb-12 pt-8 flex-1 max-w-7xl mx-auto w-full"');
+    expect(trainingHtml).toContain("Training panel marker");
+  });
+
+  it("wraps the team and leaderboard routes in the standard authenticated content canvas", async () => {
+    const [teamHtml, leaderboardHtml] = await Promise.all([
+      renderRoute(TeamPage()),
+      renderRoute(LeaderboardPage()),
+    ]);
+
+    expect(teamHtml).toContain('class="px-12 pb-12 pt-8 flex-1 max-w-7xl mx-auto w-full"');
+    expect(teamHtml).toContain("Team roster marker");
+    expect(leaderboardHtml).toContain('class="px-12 pb-12 pt-8 flex-1 max-w-7xl mx-auto w-full"');
+    expect(leaderboardHtml).toContain("Open team view");
+  });
+
   it("keeps visible heading behavior on top-level routes outside the feature scope", async () => {
     const [uploadHtml, notificationsHtml] = await Promise.all([
       renderRoute(UploadPage()),

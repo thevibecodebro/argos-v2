@@ -591,10 +591,14 @@ describe("TrainingPanel", () => {
   it("renders the loading shell with the stacked training structure", () => {
     const html = renderToStaticMarkup(<TrainingLoading />);
 
+    expect(html).toContain('class="px-12 pb-12 pt-8 flex-1 max-w-7xl mx-auto w-full"');
     expect(html).toContain("Loading training");
     expect(html).toContain("Current curriculum");
     expect(html).toContain("Curriculum map");
     expect(html).not.toContain("Team pulse");
+    expect(html).not.toContain(
+      "Review assigned modules, complete lessons, and guide practice from one training surface.",
+    );
   });
 
   it("uses dashboard-like spacing rhythm across the training shell surfaces", () => {
