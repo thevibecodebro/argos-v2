@@ -24,6 +24,17 @@ export type RubricInput = {
   categories: RubricCategoryInput[];
 };
 
+export type RubricImportIssue = {
+  row: number | null;
+  field: string;
+  message: string;
+};
+
+export type RubricImportResult = {
+  rubric: RubricInput;
+  issues: RubricImportIssue[];
+};
+
 export type RubricCategoryRecord = {
   id: string;
   rubricId: string;
@@ -54,4 +65,3 @@ export type RubricSummary = {
 export type RubricWithCategories = RubricSummary & {
   categories: RubricCategoryRecord[];
 };
-

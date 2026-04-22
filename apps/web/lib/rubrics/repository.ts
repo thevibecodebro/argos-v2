@@ -19,6 +19,7 @@ export interface RubricsRepository {
     sourceType: "manual" | "csv_import" | "json_import";
   }): Promise<RubricWithCategories>;
   findActiveRubricByOrgId(orgId: string): Promise<RubricWithCategories | null>;
+  findRubricById(orgId: string, rubricId: string): Promise<RubricWithCategories | null>;
   findRubricHistoryByOrgId(orgId: string): Promise<RubricSummary[]>;
   findCategoriesByRubricId(rubricId: string): Promise<RubricCategoryRecord[]>;
   publishDraftRubric(input: {
@@ -199,6 +200,30 @@ export class SupabaseRubricsRepository implements RubricsRepository {
     };
   }
 
+  async findRubricById(orgId: string, rubricId: string) {
+    const supabase: any = this.supabase;
+    const { data, error } = await supabase
+      .from("rubrics")
+      .select("id, org_id, version, name, description, is_active, is_template, created_by, created_at, updated_at")
+      .eq("id", rubricId)
+      .eq("org_id", orgId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (!data) {
+      return null;
+    }
+
+    const categories = await this.fetchCategories(data.id);
+    return {
+      ...toRubricSummary(data, categories.length),
+      categories,
+    };
+  }
+
   async findRubricHistoryByOrgId(orgId: string) {
     const supabase: any = this.supabase;
     const { data, error } = await supabase
@@ -302,4 +327,3 @@ export class SupabaseRubricsRepository implements RubricsRepository {
     };
   }
 }
-

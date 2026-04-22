@@ -145,6 +145,27 @@ export async function loadRubricHistory(repository: RubricsRepository, orgId: st
   return repository.findRubricHistoryByOrgId(orgId);
 }
 
+export async function getRubricById(
+  repository: RubricsRepository,
+  orgId: string,
+  rubricId: string,
+): Promise<ServiceResult<RubricWithCategories>> {
+  const rubric = await repository.findRubricById(orgId, rubricId);
+
+  if (!rubric) {
+    return {
+      ok: false,
+      status: 404,
+      error: "Rubric not found",
+    };
+  }
+
+  return {
+    ok: true,
+    data: rubric,
+  };
+}
+
 export async function createDraftRubric(
   repository: RubricsRepository,
   input: {
