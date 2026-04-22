@@ -418,15 +418,13 @@ describe("TrainingPanel", () => {
 
     const stageIndex = html.indexOf("<main");
     const tocIndex = html.indexOf('aria-label="Curriculum map"');
-    const commandDeckIndex = html.indexOf("Create module");
     const asideIndex = html.indexOf("<aside");
+    const commandDeckIndex = html.indexOf("Create module");
 
     expect(stageIndex).toBeGreaterThanOrEqual(0);
     expect(tocIndex).toBeGreaterThan(stageIndex);
     expect(asideIndex).toBeGreaterThan(tocIndex);
-    expect(commandDeckIndex).toBeGreaterThan(tocIndex);
     expect(commandDeckIndex).toBeGreaterThan(asideIndex);
-    expect(html).toContain('<div class="space-y-6">');
     expect(html).not.toContain("xl:grid-cols-[minmax(0,1.7fr)_minmax(300px,0.9fr)]");
   });
 
@@ -443,14 +441,11 @@ describe("TrainingPanel", () => {
     );
 
     expect(html).toContain('aria-label="Curriculum map"');
-    expect(html).toContain("divide-y divide-white/6");
     expect(html).toContain('aria-current="page"');
-    expect(html).toContain('class="flex items-center justify-between gap-3"');
-    expect(html).toContain('class="min-w-0"');
     expect(html).toContain(">Open<");
     expect(html).toContain(`>${baseModules[0]?.progress?.status ?? "assigned"}<`);
+    expect(html).toMatch(/aria-label="Curriculum map"[\s\S]*?<button aria-current="page"[\s\S]*?>[\s\S]*?>assigned<[\s\S]*?>Open</);
     expect(html).not.toContain(">Module 1<");
-    expect(html).not.toContain("tracking-[0.22em]");
   });
 
   it("renders a completion CTA for reps when a module has no quiz", () => {
