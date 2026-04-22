@@ -12,5 +12,7 @@ supabase/.temp/
 .qwen/
 .worktrees/
 archive/argos-legacy/
+docs/finance/
+tmp/slides/argos-pricing-economics/
 .vercel
 .gitnexus
