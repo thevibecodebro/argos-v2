@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import localFont from "next/font/local";
 import { Space_Grotesk, Source_Sans_3 } from "next/font/google";
 import { getDevelopmentStartupEnvError } from "@/lib/env";
 import "./globals.css";
@@ -15,6 +16,12 @@ const bodyFont = Source_Sans_3({
   variable: "--font-body",
 });
 
+const materialSymbolsFont = localFont({
+  display: "block",
+  src: "./fonts/material-symbols-outlined.ttf",
+  variable: "--font-material-symbols",
+});
+
 export const metadata: Metadata = {
   title: "Argos",
   description: "Revenue Command Platform",
@@ -28,7 +35,7 @@ export default function RootLayout({
   const startupEnvError = getDevelopmentStartupEnvError();
 
   return (
-    <html className={`${displayFont.variable} ${bodyFont.variable}`} lang="en">
+    <html className={`${displayFont.variable} ${bodyFont.variable} ${materialSymbolsFont.variable}`} lang="en">
       <body>
         {startupEnvError ? (
           <main className="min-h-screen bg-[#0b0e14] px-6 py-10 text-[#ecedf6]">
