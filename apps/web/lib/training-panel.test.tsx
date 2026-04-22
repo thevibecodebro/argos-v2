@@ -7,8 +7,11 @@ import {
   mergeTeamProgressModule,
   TrainingPanel,
 } from "../components/training-panel";
+import { TrainingCourseShell } from "../components/training/training-course-shell";
 import { TrainingManagerCommandDeck } from "../components/training/training-manager-command-deck";
 import { TrainingManagerModal } from "../components/training/training-manager-modal";
+import { TrainingModuleStage } from "../components/training/training-module-stage";
+import { TrainingModuleToc } from "../components/training/training-module-toc";
 import { getTrainingModuleAiContextAvailability } from "../components/training/training-manager-ai-tools";
 import { getTrainingManagerStageMetrics } from "../components/training/training-manager-stage-metrics";
 import {
@@ -592,6 +595,56 @@ describe("TrainingPanel", () => {
     expect(html).toContain("Current curriculum");
     expect(html).toContain("Curriculum map");
     expect(html).not.toContain("Team pulse");
+  });
+
+  it("uses dashboard-like spacing rhythm across the training shell surfaces", () => {
+    const shellHtml = renderToStaticMarkup(
+      <TrainingCourseShell
+        commandDeck={<div>Command deck</div>}
+        stage={<div>Stage</div>}
+        tableOfContents={<div>Curriculum map</div>}
+      />,
+    );
+    const stageHtml = renderToStaticMarkup(
+      <TrainingModuleStage
+        canManage
+        onPrimaryAction={() => {}}
+        onSelectView={() => {}}
+        primaryAction="Plan assignments"
+        quizContent={<div>Quiz content</div>}
+        selectedModule={baseModules[0]}
+        stageBand={<div>Stage metrics</div>}
+        stageView="lesson"
+        statusMessage={null}
+      />,
+    );
+    const tocHtml = renderToStaticMarkup(
+      <TrainingModuleToc
+        modules={baseModules}
+        onSelectModule={() => {}}
+        selectedModuleId={baseModules[0]?.id ?? null}
+      />,
+    );
+    const commandDeckHtml = renderToStaticMarkup(
+      <TrainingManagerCommandDeck
+        aiAvailable
+        hasSelectedModule
+        isBusy={false}
+        moduleCount={3}
+        onAssign={() => {}}
+        onCreate={() => {}}
+        onEdit={() => {}}
+        onGenerate={() => {}}
+        repCount={5}
+        selectedModuleTitle={baseModules[0]?.title ?? null}
+      />,
+    );
+
+    expect(shellHtml).toContain('class="space-y-8"');
+    expect(stageHtml).toContain("relative space-y-6");
+    expect(stageHtml).toContain("rounded-[1.25rem] border border-[#45484f]/10 bg-[#161a21]/45 p-6");
+    expect(tocHtml).toContain("rounded-[1.5rem] border border-[#45484f]/10 bg-[#10131a] p-6");
+    expect(commandDeckHtml).toContain("rounded-[1.5rem] border border-[#45484f]/10 bg-[#10131a] p-6");
   });
 
   it("renders active-state semantics for the curriculum map and stage switcher", () => {

@@ -14,10 +14,10 @@ export function TrainingModuleToc({
   return (
     <section
       aria-label="Curriculum map"
-      className="rounded-[1.5rem] border border-[#45484f]/10 bg-[#10131a] p-5 shadow-[0_18px_60px_rgba(2,8,23,0.24)]"
+      className="rounded-[1.5rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.24)]"
     >
       <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Curriculum map</p>
-      <div className="mt-4 divide-y divide-white/6 overflow-hidden rounded-[1.15rem] border border-white/8 bg-white/[0.03]">
+      <div className="mt-5 divide-y divide-white/6 overflow-hidden rounded-[1.15rem] border border-white/8 bg-white/[0.03]">
         {modules.map((module) => (
           <button
             aria-current={module.id === selectedModuleId ? "page" : undefined}

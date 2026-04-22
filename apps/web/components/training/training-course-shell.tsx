@@ -14,7 +14,7 @@ export function TrainingCourseShell({
   tableOfContents,
 }: TrainingCourseShellProps) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <main className="min-w-0">{stage}</main>
       <section>{tableOfContents}</section>
       {commandDeck ? <aside>{commandDeck}</aside> : null}
