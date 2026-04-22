@@ -1198,5 +1198,5 @@ export function TrainingPanel({
     />
   ) : null;
 
-  return <TrainingCourseShell stage={stage} tableOfContents={tableOfContents} commandDeck={commandDeck} />;
+  return <TrainingCourseShell commandDeck={commandDeck} stage={stage} tableOfContents={tableOfContents} />;
 }
