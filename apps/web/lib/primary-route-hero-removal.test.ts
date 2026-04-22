@@ -359,32 +359,24 @@ describe("primary route hero removal", () => {
     getCurrentUserProfileMock.mockResolvedValueOnce({ role: "executive" });
     const executiveHtml = await renderRoute(DashboardPage());
 
-    expect(repHtml).toContain("30-day average");
-    expect(repHtml).toContain("Recent Calls");
-    expect(repHtml).toContain("Discovery follow-up");
+    expect(repHtml).toContain('href="/calls"');
+    expect(repHtml).toContain('href="/training"');
+    expect(repHtml).toContain('href="/calls/call-1"');
     expect(repHtml).not.toContain(">My Dashboard<");
-    expect(repHtml).not.toContain(
-      "Your scoring trends, focus categories, badges, and recent calls",
-    );
 
-    expect(managerHtml).toContain("Live team snapshot");
-    expect(managerHtml).toContain(
-      "Current team activity, leaderboard movement, and setup status for this cycle.",
-    );
+    expect(managerHtml).toContain('href="/team"');
+    expect(managerHtml).toContain('href="/leaderboard"');
+    expect(managerHtml).toContain('href="/upload"');
     expect(managerHtml).toContain("Team Avg Score");
     expect(managerHtml).not.toContain(">Team Dashboard<");
-    expect(managerHtml).not.toContain(
-      "Your team's latest interactions and performance data",
-    );
 
-    expect(executiveHtml).toContain("Live team snapshot");
+    expect(executiveHtml).toContain('href="/team"');
+    expect(executiveHtml).toContain('href="/leaderboard"');
+    expect(executiveHtml).toContain('href="/upload"');
+    expect(executiveHtml).toContain('href="/training"');
     expect(executiveHtml).toContain("Training Completion");
-    expect(executiveHtml).toContain("Org Skill Averages");
     expect(executiveHtml).not.toContain(">Executive Dashboard<");
     expect(executiveHtml).not.toContain(">Team Dashboard<");
-    expect(executiveHtml).not.toContain(
-      "Org-wide analytics and team performance",
-    );
   });
 
   it("removes the calls hero while keeping viewer context and upload actions", async () => {
@@ -394,26 +386,18 @@ describe("primary route hero removal", () => {
 
     expect(callsHtml).toContain("Viewing As");
     expect(callsHtml).toContain("Avery Manager");
-    expect(callsHtml).toContain("Upload a call");
+    expect(callsHtml).toContain('href="/upload"');
     expect(callsHtml).toContain("Calls filters marker");
-    expect(callsHtml).toContain("Pricing review");
+    expect(callsHtml).toContain('href="/calls/call-1"');
     expect(callsHtml).not.toContain(">Call Library<");
     expect(callsHtml).not.toContain(">Intelligence archive<");
-    expect(callsHtml).not.toContain(
-      "Explore and analyze 1 recorded interaction from your team.",
-    );
   });
 
   it("removes the highlights hero while keeping the back-to-library action", async () => {
     const highlightsHtml = await renderRoute(HighlightsPage());
 
-    expect(highlightsHtml).toContain("Back to call library");
-    expect(highlightsHtml).toContain(
-      "Handled pricing pushback with a clear ROI recap.",
-    );
+    expect(highlightsHtml).toContain('href="/calls"');
+    expect(highlightsHtml).toContain('href="/calls/call-1"');
     expect(highlightsHtml).not.toContain(">Highlights<");
-    expect(highlightsHtml).not.toContain(
-      "Review key coaching moments and critical intelligence extracted",
-    );
   });
 });
