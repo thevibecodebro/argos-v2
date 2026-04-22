@@ -138,7 +138,7 @@ describe("legacy UI shell", () => {
 
     const html = renderToStaticMarkup(await DashboardPage());
 
-    expect(html).toContain("Executive Dashboard");
+    expect(html).toContain("Open team");
     expect(html).toContain("Open call library");
     expect(html).toContain("Upload call");
     expect(html).toContain("Rep Skill Matrix");
