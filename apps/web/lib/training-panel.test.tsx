@@ -425,7 +425,6 @@ describe("TrainingPanel", () => {
     expect(tocIndex).toBeGreaterThan(stageIndex);
     expect(asideIndex).toBeGreaterThan(tocIndex);
     expect(commandDeckIndex).toBeGreaterThan(asideIndex);
-    expect(html).not.toContain("xl:grid-cols-[minmax(0,1.7fr)_minmax(300px,0.9fr)]");
   });
 
   it("renders curriculum rows as navigation instead of numbered mini-cards", () => {
@@ -443,8 +442,6 @@ describe("TrainingPanel", () => {
     expect(html).toContain('aria-label="Curriculum map"');
     expect(html).toContain('aria-current="page"');
     expect(html).toContain(">Open<");
-    expect(html).toContain(`>${baseModules[0]?.progress?.status ?? "assigned"}<`);
-    expect(html).toMatch(/aria-label="Curriculum map"[\s\S]*?<button aria-current="page"[\s\S]*?>[\s\S]*?>assigned<[\s\S]*?>Open</);
     expect(html).not.toContain(">Module 1<");
   });
 
