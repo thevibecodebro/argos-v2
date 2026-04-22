@@ -163,6 +163,16 @@ const managerMetricsProgress = [
   },
 ];
 
+function expectCompactManagerDeckAtRest(html: string) {
+  expect(html).toContain("Create module");
+  expect(html).toContain("Edit selected module");
+  expect(html).toContain("Assign selected module");
+  expect(html).toContain("Generate with AI");
+  expect(html).not.toContain("Draft lesson content");
+  expect(html).not.toContain("Quiz builder");
+  expect(html).not.toContain("Select reps, set an optional due date");
+}
+
 describe("TrainingPanel", () => {
   it("merges created modules into the team progress shell", () => {
     const nextProgress = mergeTeamProgressModule(initialTeamProgress, {
@@ -295,15 +305,9 @@ describe("TrainingPanel", () => {
       />,
     );
 
-    expect(html).toContain("Create module");
-    expect(html).toContain("Edit selected module");
-    expect(html).toContain("Assign selected module");
-    expect(html).toContain("Generate with AI");
+    expectCompactManagerDeckAtRest(html);
     expect(html).toContain("Team pulse");
     expect(html).toContain("Discovery That Finds the Real Pain");
-    expect(html).not.toContain("Draft lesson content");
-    expect(html).not.toContain("Quiz builder");
-    expect(html).not.toContain("Select reps, set an optional due date");
     expect(html).not.toContain("Assignments");
     expect(html).not.toContain("Team Progress");
     expect(html).not.toContain("AI tools");
@@ -404,6 +408,30 @@ describe("TrainingPanel", () => {
     expect(html).toBe("");
   });
 
+  it("renders the manager modal with dialog semantics when open", () => {
+    const html = renderToStaticMarkup(
+      <TrainingManagerModal
+        description="Shape the lesson in a focused overlay."
+        eyebrow="Create module"
+        onClose={() => {}}
+        open
+        title="Training modal"
+      >
+        <div>Modal body</div>
+      </TrainingManagerModal>,
+    );
+
+    expect(html).toContain('role="dialog"');
+    expect(html).toContain('aria-modal="true"');
+    expect(html).toContain('aria-labelledby=');
+    expect(html).toContain('aria-describedby=');
+    expect(html).toContain("Create module");
+    expect(html).toContain("Training modal");
+    expect(html).toContain("Shape the lesson in a focused overlay.");
+    expect(html).toContain("Modal body");
+    expect(html).toContain('aria-label="Close manager modal"');
+  });
+
   it("renders the rep shell as a curriculum studio instead of workspace tabs", () => {
     const html = renderToStaticMarkup(
       <TrainingPanel
@@ -499,11 +527,7 @@ describe("TrainingPanel", () => {
     expect(html).toContain("Quiz");
     expect(html).toContain("Plan assignments");
     expect(html).toContain("Team pulse");
-    expect(html).toContain("Create module");
-    expect(html).toContain("Generate with AI");
-    expect(html).not.toContain("Draft lesson content");
-    expect(html).not.toContain("Quiz builder");
-    expect(html).not.toContain("Select reps, set an optional due date");
+    expectCompactManagerDeckAtRest(html);
     expect(html).not.toContain("Assignments");
     expect(html).not.toContain("Team Progress");
     expect(html).not.toContain("AI tools");
@@ -523,13 +547,7 @@ describe("TrainingPanel", () => {
       />,
     );
 
-    expect(html).toContain("Create module");
-    expect(html).toContain("Edit selected module");
-    expect(html).toContain("Assign selected module");
-    expect(html).toContain("Generate with AI");
-    expect(html).not.toContain("Draft lesson content");
-    expect(html).not.toContain("Quiz builder");
-    expect(html).not.toContain("Select reps, set an optional due date");
+    expectCompactManagerDeckAtRest(html);
   });
 
   it("renders the manager empty state with curriculum studio actions", () => {

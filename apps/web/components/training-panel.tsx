@@ -80,6 +80,12 @@ type ModuleSubmitTarget = {
   moduleId: string | null;
 };
 
+type TrainingManagerModalMetadata = {
+  description: string;
+  eyebrow: string;
+  title: string;
+};
+
 type ModuleSelectionPatch = {
   answers: Record<number, number>;
   selectedModuleId: string;
@@ -188,6 +194,45 @@ export function getModuleSelectionPatch(moduleId: string): ModuleSelectionPatch 
     stageView: "lesson",
     statusMessage: null,
   };
+}
+
+function getTrainingManagerModalMetadata({
+  activeManagerModal,
+  assigningModuleTitle,
+  selectedModuleTitle,
+}: {
+  activeManagerModal: ManagerModal;
+  assigningModuleTitle: string | null;
+  selectedModuleTitle: string | null;
+}): TrainingManagerModalMetadata | null {
+  switch (activeManagerModal) {
+    case "edit":
+      return {
+        eyebrow: "Editing module",
+        title: selectedModuleTitle ?? "Edit module",
+        description: "Shape the lesson, quiz, and context in a focused overlay, then save it back into the curriculum map.",
+      };
+    case "assign":
+      return {
+        eyebrow: "Assignment planner",
+        title: assigningModuleTitle ?? "Assign module",
+        description: "Assign the selected module without disturbing the main training page.",
+      };
+    case "generate":
+      return {
+        eyebrow: "AI drafting",
+        title: "Generate with AI",
+        description: "Generate module drafts or module-scoped AI content from one guided utility surface.",
+      };
+    case "create":
+      return {
+        eyebrow: "Create module",
+        title: "Create module",
+        description: "Shape the lesson, quiz, and context in a focused overlay, then add it to the curriculum map.",
+      };
+    default:
+      return null;
+  }
 }
 
 export function mergeTeamProgressModule(
@@ -947,32 +992,11 @@ export function TrainingPanel({
       managerEmptyPanel
     );
 
-  const managerModalEyebrow =
-    activeManagerModal === "edit"
-      ? "Editing module"
-      : activeManagerModal === "assign"
-        ? "Assignment planner"
-        : activeManagerModal === "generate"
-          ? "AI drafting"
-          : "Create module";
-
-  const managerModalTitle =
-    activeManagerModal === "edit"
-      ? selectedModule?.title ?? "Edit module"
-      : activeManagerModal === "assign"
-        ? assigningModule?.title ?? "Assign module"
-        : activeManagerModal === "generate"
-          ? "Generate with AI"
-          : "Create module";
-
-  const managerModalDescription =
-    activeManagerModal === "edit"
-      ? "Shape the lesson, quiz, and context in a focused overlay, then save it back into the curriculum map."
-      : activeManagerModal === "assign"
-        ? "Assign the selected module without disturbing the main training page."
-        : activeManagerModal === "generate"
-          ? "Generate module drafts or module-scoped AI content from one guided utility surface."
-          : "Shape the lesson, quiz, and context in a focused overlay, then add it to the curriculum map.";
+  const managerModalMetadata = getTrainingManagerModalMetadata({
+    activeManagerModal,
+    assigningModuleTitle: assigningModule?.title ?? null,
+    selectedModuleTitle: selectedModule?.title ?? null,
+  });
 
   const quizContent = selectedModule ? (
     selectedModule.quizData?.questions?.length ? (
@@ -1100,11 +1124,11 @@ export function TrainingPanel({
 
   const managerModal = (
     <TrainingManagerModal
-      description={managerModalDescription}
-      eyebrow={managerModalEyebrow}
+      description={managerModalMetadata?.description ?? ""}
+      eyebrow={managerModalMetadata?.eyebrow ?? ""}
       onClose={closeManagerModal}
       open={activeManagerModal !== null}
-      title={managerModalTitle}
+      title={managerModalMetadata?.title ?? ""}
     >
       {activeManagerPanel}
     </TrainingManagerModal>
