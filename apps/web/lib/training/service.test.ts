@@ -156,6 +156,84 @@ describe("getTrainingModules", () => {
 });
 
 describe("getTrainingTeamProgress", () => {
+  it("includes dueDate and assignedAt in rep module progress for manager shells", async () => {
+    mockAccessRepository({
+      actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
+      memberships: [
+        { orgId: "org-1", teamId: "team-a", userId: "mgr-1", membershipType: "manager" },
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ],
+      grants: [
+        { orgId: "org-1", teamId: "team-a", userId: "mgr-1", permissionKey: "view_team_training" },
+      ],
+    });
+
+    const repository = createRepository({
+      countModulesByOrgId: vi.fn().mockResolvedValue(1),
+      findModulesByOrgId: vi.fn().mockResolvedValue([
+        {
+          id: "module-1",
+          orgId: "org-1",
+          title: "Discovery",
+          skillCategory: "Discovery",
+          videoUrl: null,
+          description: "Desc",
+          quizData: null,
+          orderIndex: 1,
+          createdAt: new Date("2026-04-21T00:00:00.000Z"),
+        },
+      ]),
+      findProgressByModuleId: vi.fn().mockResolvedValue([
+        {
+          id: "progress-1",
+          repId: "rep-1",
+          moduleId: "module-1",
+          status: "assigned",
+          score: null,
+          attempts: 0,
+          completedAt: null,
+          assignedBy: "mgr-1",
+          assignedAt: new Date("2026-04-21T12:00:00.000Z"),
+          dueDate: new Date("2026-04-24T12:00:00.000Z"),
+        },
+      ]),
+      findTeamProgressByOrgId: vi.fn().mockResolvedValue([
+        {
+          repId: "rep-1",
+          firstName: "Riley",
+          lastName: "Stone",
+          email: "riley@example.com",
+          assigned: 1,
+          passed: 0,
+          completionRate: 0,
+        },
+      ]),
+    });
+
+    const result = await getTrainingTeamProgress(repository, "mgr-1");
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected manager progress payload");
+    expect(result.data.progress.repProgress).toEqual([
+      {
+        repId: "rep-1",
+        firstName: "Riley",
+        lastName: "Stone",
+        moduleProgress: [
+          {
+            moduleId: "module-1",
+            moduleTitle: "Discovery",
+            status: "assigned",
+            score: null,
+            attempts: 0,
+            assignedAt: "2026-04-21T12:00:00.000Z",
+            dueDate: "2026-04-24T12:00:00.000Z",
+          },
+        ],
+      },
+    ]);
+  });
+
   it("provisions starter modules before reading manager progress when the org is empty", async () => {
     mockAccessRepository({
       actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
@@ -377,6 +455,8 @@ describe("getTrainingTeamProgress", () => {
               status: "passed",
               score: 93,
               attempts: 1,
+              assignedAt: "2026-04-07T00:00:00.000Z",
+              dueDate: null,
             },
           ],
         },
@@ -458,21 +538,23 @@ describe("getTrainingTeamProgress", () => {
         lastName: "Stone",
         moduleProgress: [],
       },
-      {
-        repId: "rep-2",
-        firstName: "Taylor",
-        lastName: "Jones",
-        moduleProgress: [
-          {
-            moduleId: "module-1",
-            moduleTitle: "Discovery That Finds the Real Pain",
-            status: "in_progress",
-            score: null,
-            attempts: 2,
-          },
-        ],
-      },
-    ]);
+        {
+          repId: "rep-2",
+          firstName: "Taylor",
+          lastName: "Jones",
+          moduleProgress: [
+            {
+              moduleId: "module-1",
+              moduleTitle: "Discovery That Finds the Real Pain",
+              status: "in_progress",
+              score: null,
+              attempts: 2,
+              assignedAt: "2026-04-07T00:00:00.000Z",
+              dueDate: null,
+            },
+          ],
+        },
+      ]);
   });
 });
 

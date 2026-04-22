@@ -168,16 +168,16 @@ export function TrainingManagerAiTools({
     "Add notes to ground the draft in this lesson.";
 
   return (
-    <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+    <section className="rounded-[1.15rem] border border-white/10 bg-black/20 p-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-2xl">
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Module AI tools</p>
-          <h3 className="mt-2 text-xl font-semibold text-white">
+          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Lesson drafting</p>
+          <h3 className="mt-2 text-lg font-semibold text-white">
             {selectedModule?.title ?? "Select a module to draft"}
           </h3>
           <p className="mt-2 text-sm leading-7 text-[#a9abb3]">
-            Draft lesson content or quiz questions from the current module. Drafts open in edit mode for review and
-            never auto-save.
+            Draft lesson content or quiz questions from the selected module, then review the result inline before
+            saving.
           </p>
         </div>
 
