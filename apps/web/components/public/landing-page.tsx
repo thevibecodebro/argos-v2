@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LegalFooterLinks } from "./legal-links";
 
 const workflowSteps = [
   "Capture calls",
@@ -61,6 +62,7 @@ export function LandingPage() {
         <LandingCapabilities />
         <LandingOutcomes />
         <LandingFooterCta />
+        <LandingLegalFooter />
       </div>
     </main>
   );
@@ -328,6 +330,75 @@ function LandingFooterCta() {
         </div>
       </div>
     </section>
+  );
+}
+
+function LandingLegalFooter() {
+  return (
+    <footer className="mt-6 flex flex-col gap-5 rounded-[2rem] border border-white/10 bg-[rgba(10,13,19,0.84)] px-6 py-6 shadow-[0_24px_70px_rgba(3,8,20,0.34)] sm:px-8">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="inline-flex max-w-full flex-wrap items-center gap-3 rounded-[1.5rem] border border-white/10 bg-[rgba(255,255,255,0.03)] px-4 py-3 sm:flex-nowrap sm:px-5">
+          <p className="text-sm text-[#a9abb3]">Integrates with</p>
+          <div className="flex items-center gap-3">
+            <IntegrationBadge label="Zoom">
+              <ZoomGlyph />
+            </IntegrationBadge>
+            <IntegrationBadge label="GoHighLevel">
+              <HighLevelGlyph />
+            </IntegrationBadge>
+          </div>
+        </div>
+
+        <LegalFooterLinks />
+      </div>
+
+      <p className="text-xs uppercase tracking-[0.2em] text-[#6f7586]">
+        © 2026 Argos Intelligence. All rights reserved.
+      </p>
+    </footer>
+  );
+}
+
+function IntegrationBadge({
+  children,
+  label,
+}: {
+  children: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <div
+      aria-label={label}
+      className="inline-flex h-11 items-center justify-center rounded-[1rem] border border-white/10 bg-[rgba(255,255,255,0.04)] px-3 text-[#ecedf6]"
+    >
+      {children}
+    </div>
+  );
+}
+
+function ZoomGlyph() {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#2d8cff]">
+        <svg aria-hidden="true" className="h-3.5 w-3.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M5.75 7.25A2.75 2.75 0 0 0 3 10v4a2.75 2.75 0 0 0 2.75 2.75h6.5A2.75 2.75 0 0 0 15 14v-1.12l3.85 2.56A1 1 0 0 0 20.5 14.6V9.4a1 1 0 0 0-1.65-.76L15 11.2V10a2.75 2.75 0 0 0-2.75-2.75h-6.5Z" />
+        </svg>
+      </div>
+      <span className="text-sm font-semibold tracking-[-0.02em] text-[#dfeaff]">Zoom</span>
+    </div>
+  );
+}
+
+function HighLevelGlyph() {
+  return (
+    <div className="flex items-center gap-2">
+      <svg aria-hidden="true" className="h-6 w-6" fill="none" viewBox="0 0 24 24">
+        <rect fill="#ff5a4e" height="16" rx="3" width="4" x="2.5" y="5" />
+        <rect fill="#ff8a4e" height="12" rx="3" width="4" x="10" y="9" />
+        <rect fill="#ffb14e" height="8" rx="3" width="4" x="17.5" y="13" />
+      </svg>
+      <span className="text-sm font-semibold tracking-[-0.02em] text-[#ffe6d2]">GoHighLevel</span>
+    </div>
   );
 }
 
