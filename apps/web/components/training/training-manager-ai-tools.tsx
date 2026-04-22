@@ -168,7 +168,7 @@ export function TrainingManagerAiTools({
     "Add notes to ground the draft in this lesson.";
 
   return (
-    <section className="rounded-[1.5rem] border border-[#45484f]/10 bg-[#10131a]/70 p-5">
+    <section className="rounded-[1.15rem] border border-white/10 bg-black/20 p-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-2xl">
           <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Lesson drafting</p>

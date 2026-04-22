@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { TrainingCourseShell } from "./training/training-course-shell";
 import { TrainingManagerCommandDeck } from "./training/training-manager-command-deck";
+import { TrainingManagerModal } from "./training/training-manager-modal";
 import { TrainingModuleStage } from "./training/training-module-stage";
 import { TrainingModuleToc } from "./training/training-module-toc";
 import {
@@ -671,112 +672,14 @@ export function TrainingPanel({
 
   const hasModules = modules.length > 0;
 
-  const managerPlannerPanel = (
-    <div className="space-y-4">
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
-        <section className="rounded-[1.5rem] border border-[#45484f]/10 bg-[#10131a]/72 p-5">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Coverage board</p>
-              <p className="mt-2 text-sm text-[#a9abb3]">
-                Module-level status stays visible here so managers can spot stalled reps without leaving the planning
-                deck.
-              </p>
-            </div>
-            <div className="rounded-xl border border-[#45484f]/10 bg-[#161a21]/55 px-4 py-3 text-right">
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">Live snapshot</p>
-              <p className="mt-1 text-sm text-[#ecedf6]">
-                {managerStageMetrics.assignedCount} assigned, {managerStageMetrics.dueSoonCount} due soon
-              </p>
-            </div>
-          </div>
-
-          {teamProgress.modules.length ? (
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full min-w-[720px] text-left text-sm text-[#ecedf6]">
-                <thead>
-                  <tr className="border-b border-[#45484f]/20 text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">
-                    <th className="px-4 py-3">Rep</th>
-                    {teamProgress.modules.map((module) => (
-                      <th className="px-4 py-3" key={module.id}>
-                        {module.title}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {teamProgress.repProgress.length ? (
-                    teamProgress.repProgress.map((rep) => (
-                      <tr className="border-b border-[#45484f]/10 last:border-b-0" key={rep.repId}>
-                        <td className="px-4 py-4 align-top">
-                          <p className="font-medium text-white">
-                            {[rep.firstName, rep.lastName].filter(Boolean).join(" ").trim() || rep.repId}
-                          </p>
-                        </td>
-                        {teamProgress.modules.map((module) => {
-                          const progress = rep.moduleProgress.find((entry) => entry.moduleId === module.id);
-
-                          return (
-                            <td className="px-4 py-4 align-top" key={module.id}>
-                              {progress ? (
-                                <div className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-3 py-3">
-                                  <p className="text-sm font-semibold capitalize text-white">
-                                    {progress.status.replaceAll("_", " ")}
-                                  </p>
-                                  <p className="mt-1 text-xs text-[#a9abb3]">
-                                    {progress.score === null ? "Score pending" : `${progress.score}% score`}
-                                  </p>
-                                  <p className="mt-1 text-xs text-[#a9abb3]">{progress.attempts} attempts</p>
-                                </div>
-                              ) : (
-                                <div className="rounded-xl border border-dashed border-[#45484f]/20 px-3 py-3 text-xs text-[#a9abb3]">
-                                  Not started
-                                </div>
-                              )}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td className="px-4 py-6 text-sm text-[#a9abb3]" colSpan={teamProgress.modules.length + 1}>
-                        No rep progress yet. Reps will appear here after they complete module quizzes.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="mt-4 rounded-xl border border-dashed border-[#45484f]/20 px-4 py-6 text-sm text-[#a9abb3]">
-              Create or generate modules to start tracking coverage across the team.
-            </div>
-          )}
-        </section>
-
-        <TrainingManagerAiTools
-          aiAvailable={aiAvailable}
-          canManage={canManage}
-          contextNotes={moduleAiDraftForm.contextNotes}
-          isBusy={isManagerBusy}
-          onContextNotesChange={(value) => setModuleAiDraftForm((current) => ({ ...current, contextNotes: value }))}
-          onGenerate={(mode) => {
-            void generateModuleDraft(mode);
-          }}
-          selectedModule={selectedModule}
-        />
-      </div>
-    </div>
-  );
-
   const managerEmptyPanel = (
     <section className="rounded-[1.5rem] border border-dashed border-[#45484f]/20 bg-[#10131a]/78 p-5">
       <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#74b1ff]">Curriculum studio</p>
       <h4 className="mt-2 text-lg font-semibold text-white">Build your curriculum</h4>
       <p className="mt-2 max-w-2xl text-sm leading-7 text-[#a9abb3]">
         Start the studio by creating your first module or generating a draft sequence with AI. Once modules exist,
-        the inline deck will handle editing, assignment planning, and team coverage without leaving this shell.
+        the planning deck opens focused overlays for editing, assignment planning, and AI drafting without disturbing
+        the main training surface.
       </p>
       <div className="mt-4 flex flex-wrap gap-3">
         <button
@@ -801,24 +704,6 @@ export function TrainingPanel({
   const activeManagerPanel =
     activeManagerModal === "create" || activeManagerModal === "edit" ? (
       <section className="space-y-4">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#74b1ff]">
-              {activeManagerModal === "edit" ? "Editing module" : "Create module"}
-            </p>
-            <p className="mt-2 text-sm leading-7 text-[#a9abb3]">
-              Shape the lesson, quiz, and context inline, then save it directly into the curriculum map.
-            </p>
-          </div>
-          <button
-            className="text-xs font-semibold uppercase tracking-[0.2em] text-[#a9abb3]"
-            onClick={closeManagerModal}
-            type="button"
-          >
-            Close
-          </button>
-        </div>
-
         <div className="space-y-3">
           <input
             className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
@@ -874,133 +759,120 @@ export function TrainingPanel({
       </section>
     ) : activeManagerModal === "generate" ? (
       <section className="space-y-4">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#74b1ff]">AI drafting</p>
-            <p className="mt-2 text-sm leading-7 text-[#a9abb3]">
-              Generate draft modules inside the deck, then save only the lessons that fit the curriculum arc.
-            </p>
-          </div>
-          <button
-            className="text-xs font-semibold uppercase tracking-[0.2em] text-[#a9abb3]"
-            onClick={closeManagerModal}
-            type="button"
-          >
-            Close
-          </button>
-        </div>
-
-        <div className="space-y-3">
-          <div className="grid gap-3 md:grid-cols-2">
-            <input
-              className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
-              onChange={(event) => setGenerateForm((current) => ({ ...current, topic: event.target.value }))}
-              placeholder="Topic"
-              value={generateForm.topic}
-            />
-            <input
-              className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
-              onChange={(event) => setGenerateForm((current) => ({ ...current, targetRole: event.target.value }))}
-              placeholder="Target role"
-              value={generateForm.targetRole}
-            />
-          </div>
-          <div className="grid gap-3 md:grid-cols-[1fr_160px]">
-            <input
-              className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
-              onChange={(event) => setGenerateForm((current) => ({ ...current, skillFocus: event.target.value }))}
-              placeholder="Skill focus"
-              value={generateForm.skillFocus}
-            />
-            <input
-              className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
-              min={1}
-              onChange={(event) =>
-                setGenerateForm((current) => ({
-                  ...current,
-                  moduleCount: Number.parseInt(event.target.value || "0", 10) || 0,
-                }))
-              }
-              placeholder="Count"
-              type="number"
-              value={generateForm.moduleCount}
-            />
-          </div>
-          <div className="flex justify-end">
-            <button
-              className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
-              disabled={isManagerBusy}
-              onClick={() => {
-                void submitGenerate();
-              }}
-              type="button"
-            >
-              {isManagerBusy ? "Generating..." : "Generate drafts"}
-            </button>
-          </div>
-
-          {generatedDrafts.length > 0 ? (
-            <div className="space-y-3 pt-2">
-              {generatedDrafts.map((draft) => (
-                <div
-                  className="rounded-xl border border-[#45484f]/20 bg-[#10131a]/80 p-4"
-                  key={`${draft.title}-${draft.skillCategory}`}
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-white">{draft.title}</p>
-                      <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[#74b1ff]">
-                        {draft.skillCategory}
-                      </p>
-                    </div>
-                    <button
-                      className="rounded-lg border border-[#74b1ff]/30 px-3 py-2 text-xs font-semibold text-[#ecedf6]"
-                      disabled={isManagerBusy}
-                      onClick={() => {
-                        void saveGeneratedDraft(draft);
-                      }}
-                      type="button"
-                    >
-                      Save draft
-                    </button>
-                  </div>
-                  <p className="mt-3 text-sm text-[#a9abb3]">{draft.description}</p>
-                </div>
-              ))}
+        <div className="rounded-[1.15rem] border border-white/10 bg-black/20 p-4">
+          <div className="space-y-3">
+            <div className="grid gap-3 md:grid-cols-2">
+              <input
+                className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                onChange={(event) => setGenerateForm((current) => ({ ...current, topic: event.target.value }))}
+                placeholder="Topic"
+                value={generateForm.topic}
+              />
+              <input
+                className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                onChange={(event) => setGenerateForm((current) => ({ ...current, targetRole: event.target.value }))}
+                placeholder="Target role"
+                value={generateForm.targetRole}
+              />
             </div>
-          ) : null}
+            <div className="grid gap-3 md:grid-cols-[1fr_160px]">
+              <input
+                className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                onChange={(event) => setGenerateForm((current) => ({ ...current, skillFocus: event.target.value }))}
+                placeholder="Skill focus"
+                value={generateForm.skillFocus}
+              />
+              <input
+                className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                min={1}
+                onChange={(event) =>
+                  setGenerateForm((current) => ({
+                    ...current,
+                    moduleCount: Number.parseInt(event.target.value || "0", 10) || 0,
+                  }))
+                }
+                placeholder="Count"
+                type="number"
+                value={generateForm.moduleCount}
+              />
+            </div>
+            <div className="flex justify-end">
+              <button
+                className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
+                disabled={isManagerBusy}
+                onClick={() => {
+                  void submitGenerate();
+                }}
+                type="button"
+              >
+                {isManagerBusy ? "Generating..." : "Generate drafts"}
+              </button>
+            </div>
+
+            {generatedDrafts.length > 0 ? (
+              <div className="space-y-3 pt-2">
+                {generatedDrafts.map((draft) => (
+                  <div
+                    className="rounded-xl border border-[#45484f]/20 bg-[#10131a]/80 p-4"
+                    key={`${draft.title}-${draft.skillCategory}`}
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-white">{draft.title}</p>
+                        <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[#74b1ff]">
+                          {draft.skillCategory}
+                        </p>
+                      </div>
+                      <button
+                        className="rounded-lg border border-[#74b1ff]/30 px-3 py-2 text-xs font-semibold text-[#ecedf6]"
+                        disabled={isManagerBusy}
+                        onClick={() => {
+                          void saveGeneratedDraft(draft);
+                        }}
+                        type="button"
+                      >
+                        Save draft
+                      </button>
+                    </div>
+                    <p className="mt-3 text-sm text-[#a9abb3]">{draft.description}</p>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
         </div>
+
+        <TrainingManagerAiTools
+          aiAvailable={aiAvailable}
+          canManage={canManage}
+          contextNotes={moduleAiDraftForm.contextNotes}
+          isBusy={isManagerBusy}
+          onContextNotesChange={(value) => setModuleAiDraftForm((current) => ({ ...current, contextNotes: value }))}
+          onGenerate={(mode) => {
+            void generateModuleDraft(mode);
+          }}
+          selectedModule={selectedModule}
+        />
       </section>
     ) : activeManagerModal === "assign" && assigningModule ? (
       <section className="space-y-4">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#74b1ff]">Assignment planner</p>
-            <h4 className="mt-2 text-lg font-semibold text-white">{assigningModule.title}</h4>
-            <p className="mt-2 text-sm leading-7 text-[#a9abb3]">
-              Keep assignment changes inline to the command deck so coverage stays visible while you plan.
-            </p>
-          </div>
-          <button
-            className="text-xs font-semibold uppercase tracking-[0.2em] text-[#a9abb3]"
-            onClick={closeManagerModal}
-            type="button"
-          >
-            Close
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-[#a9abb3]">
-              Select reps, set an optional due date, and remove unstarted assignments without leaving the deck.
-            </p>
-            <input
-              className="rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
-              onChange={(event) => setAssignDueDate(event.target.value)}
-              type="date"
-              value={assignDueDate}
-            />
+        <div className="rounded-[1.15rem] border border-white/10 bg-black/20 p-4">
+          <div className="grid gap-3 md:grid-cols-2">
+            <div>
+              <h4 className="text-lg font-semibold text-white">{assigningModule.title}</h4>
+              <p className="mt-2 text-sm leading-7 text-[#a9abb3]">
+                Select reps, set an optional due date, and remove unstarted assignments without leaving this focused
+                planner.
+              </p>
+            </div>
+            <div className="flex justify-end">
+              <input
+                className="rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                onChange={(event) => setAssignDueDate(event.target.value)}
+                type="date"
+                value={assignDueDate}
+              />
+            </div>
           </div>
           <div className="space-y-3">
             {teamRows.map((row) => {
@@ -1071,11 +943,36 @@ export function TrainingPanel({
           </div>
         </div>
       </section>
-    ) : hasModules ? (
-      managerPlannerPanel
     ) : (
       managerEmptyPanel
     );
+
+  const managerModalEyebrow =
+    activeManagerModal === "edit"
+      ? "Editing module"
+      : activeManagerModal === "assign"
+        ? "Assignment planner"
+        : activeManagerModal === "generate"
+          ? "AI drafting"
+          : "Create module";
+
+  const managerModalTitle =
+    activeManagerModal === "edit"
+      ? selectedModule?.title ?? "Edit module"
+      : activeManagerModal === "assign"
+        ? assigningModule?.title ?? "Assign module"
+        : activeManagerModal === "generate"
+          ? "Generate with AI"
+          : "Create module";
+
+  const managerModalDescription =
+    activeManagerModal === "edit"
+      ? "Shape the lesson, quiz, and context in a focused overlay, then save it back into the curriculum map."
+      : activeManagerModal === "assign"
+        ? "Assign the selected module without disturbing the main training page."
+        : activeManagerModal === "generate"
+          ? "Generate module drafts or module-scoped AI content from one guided utility surface."
+          : "Shape the lesson, quiz, and context in a focused overlay, then add it to the curriculum map.";
 
   const quizContent = selectedModule ? (
     selectedModule.quizData?.questions?.length ? (
@@ -1169,34 +1066,54 @@ export function TrainingPanel({
     <TrainingModuleToc modules={modules} onSelectModule={selectModule} selectedModuleId={selectedModuleId} />
   );
 
-  const commandDeck = canManage ? (
-    <TrainingManagerCommandDeck
-      aiAvailable={aiAvailable}
-      expandedPanel={activeManagerPanel}
-      feedback={managerFeedback}
-      hasSelectedModule={Boolean(selectedModule)}
-      isBusy={isManagerBusy}
-      moduleCount={modules.length}
-      onAssign={() => {
-        if (selectedModule) {
-          openAssignModal(selectedModule);
-        }
-      }}
-      onCreate={openCreateModal}
-      onEdit={() => {
-        if (selectedModule) {
-          openEditModal(selectedModule);
-        }
-      }}
-      onGenerate={() => {
-        if (aiAvailable) {
-          openGenerateModal();
-        }
-      }}
-      repCount={teamRows.length}
-      selectedModuleTitle={selectedModule?.title ?? null}
-    />
-  ) : null;
+  const commandDeck = canManage
+    ? hasModules
+      ? (
+          <TrainingManagerCommandDeck
+            aiAvailable={aiAvailable}
+            feedback={managerFeedback}
+            hasSelectedModule={Boolean(selectedModule)}
+            isBusy={isManagerBusy}
+            moduleCount={modules.length}
+            onAssign={() => {
+              if (selectedModule) {
+                openAssignModal(selectedModule);
+              }
+            }}
+            onCreate={openCreateModal}
+            onEdit={() => {
+              if (selectedModule) {
+                openEditModal(selectedModule);
+              }
+            }}
+            onGenerate={() => {
+              if (aiAvailable) {
+                openGenerateModal();
+              }
+            }}
+            repCount={teamRows.length}
+            selectedModuleTitle={selectedModule?.title ?? null}
+          />
+        )
+      : managerEmptyPanel
+    : null;
 
-  return <TrainingCourseShell commandDeck={commandDeck} stage={stage} tableOfContents={tableOfContents} />;
+  const managerModal = (
+    <TrainingManagerModal
+      description={managerModalDescription}
+      eyebrow={managerModalEyebrow}
+      onClose={closeManagerModal}
+      open={activeManagerModal !== null}
+      title={managerModalTitle}
+    >
+      {activeManagerPanel}
+    </TrainingManagerModal>
+  );
+
+  return (
+    <>
+      <TrainingCourseShell commandDeck={commandDeck} stage={stage} tableOfContents={tableOfContents} />
+      {managerModal}
+    </>
+  );
 }

@@ -142,7 +142,7 @@ export function TrainingQuizEditor({ onChange, value }: TrainingQuizEditorProps)
   }
 
   return (
-    <section className="rounded-2xl border border-[#45484f]/15 bg-[#161a21]/60 p-4">
+    <section className="rounded-[1.15rem] border border-white/10 bg-black/20 p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#74b1ff]">

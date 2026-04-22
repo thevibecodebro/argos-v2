@@ -8,6 +8,7 @@ import {
   TrainingPanel,
 } from "../components/training-panel";
 import { TrainingManagerCommandDeck } from "../components/training/training-manager-command-deck";
+import { TrainingManagerModal } from "../components/training/training-manager-modal";
 import { getTrainingModuleAiContextAvailability } from "../components/training/training-manager-ai-tools";
 import { getTrainingManagerStageMetrics } from "../components/training/training-manager-stage-metrics";
 import {
@@ -297,12 +298,12 @@ describe("TrainingPanel", () => {
     expect(html).toContain("Create module");
     expect(html).toContain("Edit selected module");
     expect(html).toContain("Assign selected module");
-    expect(html).toContain("Assignment coverage");
+    expect(html).toContain("Generate with AI");
     expect(html).toContain("Team pulse");
-    expect(html).toContain("Draft lesson content");
     expect(html).toContain("Discovery That Finds the Real Pain");
-    expect(html).toContain("Maya Chen");
-    expect(html).toContain("passed");
+    expect(html).not.toContain("Draft lesson content");
+    expect(html).not.toContain("Quiz builder");
+    expect(html).not.toContain("Select reps, set an optional due date");
     expect(html).not.toContain("Assignments");
     expect(html).not.toContain("Team Progress");
     expect(html).not.toContain("AI tools");
@@ -324,13 +325,18 @@ describe("TrainingPanel", () => {
 
   it("disables manager deck actions when no module is selected", () => {
     const html = renderToStaticMarkup(
-      <TrainingPanel
+      <TrainingManagerCommandDeck
         aiAvailable={false}
-        canManage
-        initialModules={[]}
-        initialTeamProgress={{ modules: [], repProgress: [] }}
-        initialTeamRows={[]}
-        rubricCategories={[]}
+        feedback={null}
+        hasSelectedModule={false}
+        isBusy={false}
+        moduleCount={0}
+        onAssign={() => {}}
+        onCreate={() => {}}
+        onEdit={() => {}}
+        onGenerate={() => {}}
+        repCount={0}
+        selectedModuleTitle={null}
       />,
     );
 
@@ -363,7 +369,6 @@ describe("TrainingPanel", () => {
     const html = renderToStaticMarkup(
       <TrainingManagerCommandDeck
         aiAvailable
-        expandedPanel={null}
         feedback={null}
         hasSelectedModule
         isBusy={false}
@@ -381,6 +386,22 @@ describe("TrainingPanel", () => {
     expect(html).toContain("Focused on the selected module.");
     expect(html).toMatch(/<button(?:(?!disabled="").)*>Edit selected module<\/button>/s);
     expect(html).toMatch(/<button(?:(?!disabled="").)*>Assign selected module<\/button>/s);
+  });
+
+  it("does not render the manager modal when closed", () => {
+    const html = renderToStaticMarkup(
+      <TrainingManagerModal
+        description="Description"
+        eyebrow="Eyebrow"
+        onClose={() => {}}
+        open={false}
+        title="Title"
+      >
+        <div>Modal body</div>
+      </TrainingManagerModal>,
+    );
+
+    expect(html).toBe("");
   });
 
   it("renders the rep shell as a curriculum studio instead of workspace tabs", () => {
@@ -477,15 +498,38 @@ describe("TrainingPanel", () => {
     expect(html).toContain("Lesson");
     expect(html).toContain("Quiz");
     expect(html).toContain("Plan assignments");
-    expect(html).toContain("Assignment coverage");
     expect(html).toContain("Team pulse");
     expect(html).toContain("Create module");
-    expect(html).toContain("Draft lesson content");
+    expect(html).toContain("Generate with AI");
+    expect(html).not.toContain("Draft lesson content");
+    expect(html).not.toContain("Quiz builder");
+    expect(html).not.toContain("Select reps, set an optional due date");
     expect(html).not.toContain("Assignments");
     expect(html).not.toContain("Team Progress");
     expect(html).not.toContain("AI tools");
     expect(html).not.toContain("Course overview");
     expect(html).not.toContain("Quick switcher");
+  });
+
+  it("keeps the manager deck compact at rest", () => {
+    const html = renderToStaticMarkup(
+      <TrainingPanel
+        aiAvailable
+        canManage
+        initialModules={baseModules}
+        initialTeamProgress={initialTeamProgress}
+        initialTeamRows={initialTeamRows}
+        rubricCategories={[]}
+      />,
+    );
+
+    expect(html).toContain("Create module");
+    expect(html).toContain("Edit selected module");
+    expect(html).toContain("Assign selected module");
+    expect(html).toContain("Generate with AI");
+    expect(html).not.toContain("Draft lesson content");
+    expect(html).not.toContain("Quiz builder");
+    expect(html).not.toContain("Select reps, set an optional due date");
   });
 
   it("renders the manager empty state with curriculum studio actions", () => {
