@@ -17,8 +17,10 @@ describe("HomePage", () => {
     const html = renderToStaticMarkup(await HomePage());
 
     expect(redirectMock).not.toHaveBeenCalled();
-    expect(html).toContain("Build a sales team that improves after every call.");
+    expect(html).toContain("Build a sales team that");
+    expect(html).toContain("after every call.");
     expect(html).toContain('href="/login"');
-    expect(html).toContain('href="#system"');
+    expect(html).toContain("Access platform");
+    expect(html).toContain('href="#platform"');
   });
 });
