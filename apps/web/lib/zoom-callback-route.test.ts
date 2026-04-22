@@ -41,7 +41,7 @@ describe("zoom callback route", () => {
     registerZoomWebhook.mockReset();
   });
 
-  it("persists a webhook token and registers the Zoom webhook on success", async () => {
+  it("persists the Zoom integration without attempting legacy webhook registration", async () => {
     const repository = {
       findCurrentUserByAuthId: vi.fn().mockResolvedValue({
         id: "user-1",
@@ -62,7 +62,6 @@ describe("zoom callback route", () => {
       zoomAccountId: "zoom-account-1",
       zoomUserId: "zoom-user-1",
     });
-    registerZoomWebhook.mockResolvedValue(undefined);
 
     const state = Buffer.from(
       JSON.stringify({
@@ -86,19 +85,15 @@ describe("zoom callback route", () => {
       accessToken: "zoom-access",
       orgId: "org-1",
       refreshToken: "zoom-refresh",
+      webhookId: null,
+      webhookToken: null,
       zoomAccountId: "zoom-account-1",
       zoomUserId: "zoom-user-1",
     });
-    expect(savedIntegration.webhookToken).toEqual(expect.any(String));
-    expect(registerZoomWebhook).toHaveBeenCalledWith({
-      accessToken: "zoom-access",
-      webhookToken: savedIntegration.webhookToken,
-      webhookUrl: "https://app.argos.ai/api/webhooks/zoom",
-      zoomAccountId: "zoom-account-1",
-    });
+    expect(registerZoomWebhook).not.toHaveBeenCalled();
   });
 
-  it("keeps the integration connected and surfaces a notice when webhook registration fails", async () => {
+  it("keeps the integration connected when a prior webhook token is cleared", async () => {
     const repository = {
       findCurrentUserByAuthId: vi.fn().mockResolvedValue({
         id: "user-1",
@@ -119,7 +114,6 @@ describe("zoom callback route", () => {
       zoomAccountId: "zoom-account-1",
       zoomUserId: "zoom-user-1",
     });
-    registerZoomWebhook.mockRejectedValue(new Error("boom"));
 
     const state = Buffer.from(
       JSON.stringify({
@@ -136,9 +130,8 @@ describe("zoom callback route", () => {
       ),
     );
 
-    expect(response.headers.get("location")).toBe(
-      "https://app.argos.ai/settings?zoom_connected=true&zoom_notice=webhook_registration_failed",
-    );
+    expect(response.headers.get("location")).toBe("https://app.argos.ai/settings?zoom_connected=true");
     expect(repository.upsertZoomIntegration).toHaveBeenCalledTimes(1);
+    expect(registerZoomWebhook).not.toHaveBeenCalled();
   });
 });

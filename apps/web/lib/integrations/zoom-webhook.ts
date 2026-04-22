@@ -135,7 +135,7 @@ export async function processZoomWebhookRequest(
   const integration = accountId
     ? await repository.findZoomIntegrationByAccountId(accountId)
     : null;
-  const secret = integration?.webhookToken ?? env.ZOOM_WEBHOOK_SECRET_TOKEN;
+  const secret = env.ZOOM_WEBHOOK_SECRET_TOKEN ?? integration?.webhookToken;
 
   if (
     !secret ||

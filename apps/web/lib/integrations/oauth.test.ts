@@ -32,7 +32,7 @@ describe("integration oauth helpers", () => {
     );
   });
 
-  it("builds provider authorization urls with the archived scopes", () => {
+  it("builds provider authorization urls without legacy Zoom scope overrides", () => {
     const zoomUrl = new URL(
       buildZoomOAuthUrl({
         clientId: "zoom-client",
@@ -45,7 +45,7 @@ describe("integration oauth helpers", () => {
     expect(zoomUrl.searchParams.get("redirect_uri")).toBe(
       "http://localhost:3100/api/integrations/zoom/callback",
     );
-    expect(zoomUrl.searchParams.get("scope")).toBe("recording:read webhook:write");
+    expect(zoomUrl.searchParams.get("scope")).toBeNull();
 
     const ghlUrl = new URL(
       buildGhlOAuthUrl({

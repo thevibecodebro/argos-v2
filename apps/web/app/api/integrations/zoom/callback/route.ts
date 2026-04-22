@@ -1,4 +1,3 @@
-import crypto from "node:crypto";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
@@ -8,9 +7,7 @@ import {
   exchangeZoomCode,
   getRequestOrigin,
   integrationOAuthCookieNames,
-  registerZoomWebhook,
   resolveZoomRedirectUri,
-  resolveZoomWebhookUrl,
   timingSafeNonceMatch,
 } from "@/lib/integrations/oauth";
 
@@ -19,31 +16,6 @@ export const dynamic = "force-dynamic";
 function settingsRedirect(request: Request, key: string, value: string, clearNonce = false) {
   const target = new URL("/settings", getRequestOrigin(request));
   target.searchParams.set(key, value);
-  const response = NextResponse.redirect(target);
-
-  if (clearNonce) {
-    response.cookies.set(integrationOAuthCookieNames.zoom, "", {
-      httpOnly: true,
-      maxAge: 0,
-      path: "/",
-      sameSite: "lax",
-    });
-  }
-
-  return response;
-}
-
-function settingsRedirectWithNotice(
-  request: Request,
-  params: Record<string, string>,
-  clearNonce = false,
-) {
-  const target = new URL("/settings", getRequestOrigin(request));
-
-  Object.entries(params).forEach(([key, value]) => {
-    target.searchParams.set(key, value);
-  });
-
   const response = NextResponse.redirect(target);
 
   if (clearNonce) {
@@ -114,48 +86,17 @@ export async function GET(request: Request) {
   try {
     const redirectUri = resolveZoomRedirectUri(getRequestOrigin(request));
     const tokens = await exchangeZoomCode(code, redirectUri);
-    const webhookToken = crypto.randomBytes(32).toString("hex");
 
     await repository.upsertZoomIntegration({
       accessToken: tokens.accessToken,
       orgId: viewer.org.id,
       refreshToken: tokens.refreshToken,
       tokenExpiresAt: tokens.tokenExpiresAt,
-      webhookToken,
+      webhookId: null,
+      webhookToken: null,
       zoomAccountId: tokens.zoomAccountId,
       zoomUserId: tokens.zoomUserId,
     });
-
-    try {
-      const webhookId = await registerZoomWebhook({
-        accessToken: tokens.accessToken,
-        webhookToken,
-        webhookUrl: resolveZoomWebhookUrl(getRequestOrigin(request)),
-        zoomAccountId: tokens.zoomAccountId,
-      });
-
-      if (webhookId) {
-        await repository.upsertZoomIntegration({
-          accessToken: tokens.accessToken,
-          orgId: viewer.org.id,
-          refreshToken: tokens.refreshToken,
-          tokenExpiresAt: tokens.tokenExpiresAt,
-          webhookId,
-          webhookToken,
-          zoomAccountId: tokens.zoomAccountId,
-          zoomUserId: tokens.zoomUserId,
-        });
-      }
-    } catch {
-      return settingsRedirectWithNotice(
-        request,
-        {
-          zoom_connected: "true",
-          zoom_notice: "webhook_registration_failed",
-        },
-        true,
-      );
-    }
 
     return settingsRedirect(request, "zoom_connected", "true", true);
   } catch {

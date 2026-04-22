@@ -25,7 +25,6 @@ export function buildZoomOAuthUrl(input: {
   authUrl.searchParams.set("client_id", input.clientId);
   authUrl.searchParams.set("redirect_uri", input.redirectUri);
   authUrl.searchParams.set("state", input.state);
-  authUrl.searchParams.set("scope", "recording:read webhook:write");
   return authUrl.toString();
 }
 

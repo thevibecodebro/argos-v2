@@ -86,6 +86,52 @@ describe("processZoomWebhookRequest", () => {
     });
   });
 
+  it("prefers the app-level webhook secret over a stale integration token", async () => {
+    const repository = createRepository({
+      findCallByZoomRecordingId: vi.fn().mockResolvedValue(null),
+      findPreferredCallOwner: vi.fn().mockResolvedValue(null),
+      findZoomIntegrationByAccountId: vi.fn().mockResolvedValue({
+        orgId: "org-1",
+        webhookToken: "stale-integration-secret",
+        accessToken: "zoom-access",
+        refreshToken: "zoom-refresh",
+        tokenExpiresAt: new Date("2026-04-18T00:00:00.000Z"),
+      }),
+    });
+    const rawBody = JSON.stringify({
+      event: "recording.completed",
+      payload: {
+        account_id: "zoom-account-1",
+        object: {
+          id: "meeting-1",
+          recording_files: [
+            {
+              id: "recording-1",
+              download_url: "https://zoom.example/download",
+              file_extension: "M4A",
+              file_type: "M4A",
+              recording_type: "audio_only",
+            },
+          ],
+        },
+      },
+    });
+    const { signature, timestamp } = sign("app-level-secret", rawBody);
+
+    const result = await processZoomWebhookRequest(repository, {
+      headers: { signature, timestamp },
+      rawBody,
+      env: {
+        ZOOM_WEBHOOK_SECRET_TOKEN: "app-level-secret",
+      },
+    });
+
+    expect(result).toEqual({
+      status: 200,
+      body: { received: true },
+    });
+  });
+
   it("stores the preferred Zoom asset and enqueues processing without scoring inline", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(Buffer.from("zoom-audio"), {
