@@ -95,7 +95,7 @@ test("founder pricing controller drives the single deck flow and appendix naviga
 
   assert.ok(
     windowObject.__founderPricingController,
-    "expected the controller to initialize for the single deck flow",
+    "expected the controller to initialize without memo-mode internals; the old implementation still depends on memo-view",
   );
   assert.equal(windowObject.__founderPricingController.mode, "deck");
   assert.equal(elements.prevButton.disabled, true);
@@ -195,7 +195,6 @@ function createMockElement({ dataset = {}, hidden = false, id = "" } = {}) {
 
 function createControllerHarness({ initialHash = "" } = {}) {
   const deckView = createMockElement({ id: "deck-view" });
-  const memoView = createMockElement({ id: "memo-view", hidden: true });
   const slides = Array.from({ length: 10 }, (_, index) =>
     createMockElement({
       id:
@@ -241,7 +240,6 @@ function createControllerHarness({ initialHash = "" } = {}) {
       return (
         {
           "deck-view": deckView,
-          "memo-view": memoView,
           "slide-appendix-rate-card": slides[9],
           "slide-cover": slides[0],
           "slide-filler-10": slides[9],
@@ -313,7 +311,6 @@ function createControllerHarness({ initialHash = "" } = {}) {
       deckLinks: [deckLinkOne, deckLinkTwo],
       deckView,
       document,
-      memoView,
       nextButton,
       prevButton,
       slides,
