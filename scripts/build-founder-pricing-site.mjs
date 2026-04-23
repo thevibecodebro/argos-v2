@@ -17,11 +17,64 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
-function renderHighlights(items = []) {
-  return items.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+function joinNatural(items = []) {
+  if (items.length <= 1) {
+    return items[0] ?? "";
+  }
+
+  if (items.length === 2) {
+    return `${items[0]} and ${items[1]}`;
+  }
+
+  return `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}`;
 }
 
-const { meta, theme, controls, slides, memoSections } = founderPricingContent;
+function renderFactValue(fact) {
+  if (!fact) {
+    return "";
+  }
+
+  if (Array.isArray(fact.values)) {
+    return joinNatural(fact.values.map((item) => escapeHtml(item)));
+  }
+
+  return escapeHtml(fact.value ?? "");
+}
+
+function renderFactCard(fact) {
+  if (!fact) {
+    return "";
+  }
+
+  const key = escapeHtml(fact.id);
+  const label = escapeHtml(fact.label);
+  const value = renderFactValue(fact);
+
+  return `
+    <article class="card" data-fact-key="${key}">
+      <div class="label">${label}</div>
+      <div>${value}</div>
+    </article>
+  `;
+}
+
+function renderTemplate(template, facts) {
+  return template.replace(/\{([a-zA-Z0-9_-]+)\}/g, (_, factKey) => {
+    const fact = facts[factKey];
+
+    if (!fact) {
+      return "";
+    }
+
+    if (Array.isArray(fact.values)) {
+      return joinNatural(fact.values.map((item) => escapeHtml(item)));
+    }
+
+    return escapeHtml(fact.value ?? "");
+  });
+}
+
+const { meta, theme, counts, facts, slides, memoSections } = founderPricingContent;
 
 const html = `<!DOCTYPE html>
 <html lang="en">
@@ -139,18 +192,12 @@ const html = `<!DOCTYPE html>
   </head>
   <body>
     <main>
-      <header>
+      <header data-content-slides="${counts.slides}" data-content-memo-sections="${counts.memoSections}" data-content-facts="${counts.facts}">
         <div class="label">Founder pricing deck</div>
         <h1>${escapeHtml(meta.title)}</h1>
         <div class="meta-grid">
-          <div class="card">
-            <div class="label">Verification date</div>
-            <div>${escapeHtml(meta.verificationDate)}</div>
-          </div>
-          <div class="card">
-            <div class="label">Published path</div>
-            <div>${escapeHtml(meta.publishedPath)}</div>
-          </div>
+          ${renderFactCard(facts.verificationDate)}
+          ${renderFactCard(facts.publishedPath)}
         </div>
         <div class="mode-switch" aria-label="Mode switch">
           <button data-mode="deck" type="button">Deck</button>
@@ -158,35 +205,27 @@ const html = `<!DOCTYPE html>
         </div>
       </header>
 
-      <section data-mode="deck" aria-labelledby="deck-title">
+      <section data-mode="deck" aria-labelledby="deck-title" data-slide-count="${counts.slides}">
         <h2 id="deck-title">Deck</h2>
         <div class="controls">
-          <div class="card">
-            <div class="label">Seat pricing</div>
-            <div>${escapeHtml(controls.pricing.seatPrice)}</div>
-          </div>
-          <div class="card">
-            <div class="label">Minimum</div>
-            <div>${escapeHtml(controls.pricing.seatMinimum)}</div>
-          </div>
-          <div class="card">
-            <div class="label">Voice allowance</div>
-            <div>${escapeHtml(controls.pricing.voiceAllowance)}</div>
-          </div>
-          <div class="card">
-            <div class="label">Org estimate</div>
-            <div>${escapeHtml(controls.pricing.orgEstimate)}</div>
-          </div>
+          ${renderFactCard(facts.seatPrice)}
+          ${renderFactCard(facts.seatMinimum)}
+          ${renderFactCard(facts.voiceAllowance)}
+          ${renderFactCard(facts.orgEstimate)}
         </div>
-        <div class="deck-grid" style="margin-top: 16px;">
+        <div class="deck-grid" style="margin-top: 16px;" data-slide-ids="${slides.map((slide) => slide.id).join(" ")}">
           ${slides
             .map(
               (slide) => `
-                <article class="card" data-slide-id="${escapeHtml(slide.id)}">
+                <article class="card" data-slide-id="${escapeHtml(slide.id)}" data-fact-ids="${escapeHtml((slide.factIds ?? []).join(" "))}">
                   <div class="label">Slide</div>
                   <h3>${escapeHtml(slide.title)}</h3>
                   <p>${escapeHtml(slide.summary)}</p>
-                  ${slide.highlights?.length ? `<ul>${renderHighlights(slide.highlights)}</ul>` : ""}
+                  ${(slide.factIds ?? []).length
+                    ? `<div class="controls">${slide.factIds
+                        .map((factId) => renderFactCard(facts[factId]))
+                        .join("")}</div>`
+                    : ""}
                 </article>
               `,
             )
@@ -194,16 +233,23 @@ const html = `<!DOCTYPE html>
         </div>
       </section>
 
-      <section data-mode="memo" aria-labelledby="memo-title">
+      <section data-mode="memo" aria-labelledby="memo-title" data-memo-count="${counts.memoSections}">
         <h2 id="memo-title">Memo</h2>
         <div class="cards">
           ${memoSections
             .map(
               (section) => `
-                <article class="card" data-section-id="${escapeHtml(section.id)}">
+                <article class="card" data-section-id="${escapeHtml(section.id)}" data-fact-ids="${escapeHtml((section.factIds ?? []).join(" "))}">
                   <div class="label">Section</div>
                   <h3>${escapeHtml(section.title)}</h3>
-                  ${(section.paragraphs ?? []).map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("")}
+                  ${(section.factIds ?? []).length
+                    ? `<div class="controls">${section.factIds
+                        .map((factId) => renderFactCard(facts[factId]))
+                        .join("")}</div>`
+                    : ""}
+                  ${(section.paragraphTemplates ?? [])
+                    .map((paragraph) => `<p>${renderTemplate(paragraph, facts)}</p>`)
+                    .join("")}
                 </article>
               `,
             )
