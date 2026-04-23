@@ -9,28 +9,53 @@ const require = createRequire(import.meta.url);
 const renderModule = require("./render.js");
 const { renderFounderPricingHtml, __test: renderTestExports } = renderModule;
 
-test("canonical founder pricing model encodes approved assumptions and derived values", () => {
+test("canonical founder pricing model encodes approved assumptions, verified rates, and derived economics", () => {
   assert.equal(founderPricingModel.verifiedAt, "April 23, 2026");
 
   assert.deepEqual(founderPricingModel.plans.solo, {
+    label: "Solo",
     priceMonthly: 79,
     includedVoiceMinutes: 120,
     overageRate: 0.39,
   });
   assert.deepEqual(founderPricingModel.plans.team, {
+    label: "Team",
     pricePerSeatMonthly: 50,
     seatMinimum: 3,
     includedVoiceMinutesPerSeat: 120,
     overageRate: 0.29,
   });
-
   assert.equal(founderPricingModel.annualDiscountRate, 0.1);
+
   assert.deepEqual(founderPricingModel.packs, {
-    solo: [{ minutes: 250, price: 125, expiresInDays: 90 }],
+    solo: [{ label: "Solo 250", minutes: 250, price: 125, expiresInDays: 90 }],
     team: [
-      { minutes: 500, price: 175, expiresInDays: 90 },
-      { minutes: 2000, price: 600, expiresInDays: 90 },
+      { label: "Team 500", minutes: 500, price: 175, expiresInDays: 90 },
+      { label: "Team 2000", minutes: 2000, price: 600, expiresInDays: 90 },
     ],
+  });
+  assert.deepEqual(founderPricingModel.derived.packCatalog, {
+    solo250: {
+      label: "Solo 250",
+      minutes: 250,
+      price: 125,
+      expiresInDays: 90,
+      pricePerMinute: 0.5,
+    },
+    team500: {
+      label: "Team 500",
+      minutes: 500,
+      price: 175,
+      expiresInDays: 90,
+      pricePerMinute: 0.35,
+    },
+    team2000: {
+      label: "Team 2000",
+      minutes: 2000,
+      price: 600,
+      expiresInDays: 90,
+      pricePerMinute: 0.3,
+    },
   });
 
   assert.deepEqual(founderPricingModel.stripeFees, {
@@ -47,34 +72,178 @@ test("canonical founder pricing model encodes approved assumptions and derived v
       "Supabase",
       "Fly.io",
       "HighLevel",
+      "Resend",
       "Stripe processing",
       "Stripe Billing",
     ],
   );
-  assert.equal(
-    founderPricingModel.vendors.find((vendor) => vendor.name === "HighLevel")?.monthlyCost,
-    97,
+  assert.match(
+    founderPricingModel.vendors.find((vendor) => vendor.name === "OpenAI")?.rateText ?? "",
+    /GPT-realtime-1\.5 audio \$32 \/ 1M input tokens and \$64 \/ 1M output tokens/,
   );
-  for (const vendor of founderPricingModel.vendors) {
-    assert.equal(typeof vendor.sourceLabel, "string");
-    assert.notEqual(vendor.sourceLabel.length, 0);
-  }
+  assert.match(
+    founderPricingModel.vendors.find((vendor) => vendor.name === "Vercel")?.rateText ?? "",
+    /Pro \$20 \/ month includes 1 deploy seat and \$20 usage credit/,
+  );
+  assert.match(
+    founderPricingModel.vendors.find((vendor) => vendor.name === "Supabase")?.rateText ?? "",
+    /Pro \$25 \/ org \/ month includes \$10 compute credits/,
+  );
+  assert.match(
+    founderPricingModel.vendors.find((vendor) => vendor.name === "Resend")?.rateText ?? "",
+    /Pro \$20 \/ month includes 50,000 emails/,
+  );
+
+  assert.equal(founderPricingModel.assumptions.usage.liveVoicePlanningCostPerMinute, 0.08);
+  assert.equal(founderPricingModel.assumptions.usage.scoredCallCostPerCall, 0.325);
+  assert.equal(founderPricingModel.assumptions.softwareFloor.baseRecurringMonthly, 173.83);
+  assert.equal(founderPricingModel.assumptions.softwareFloor.sharedFloorPerOrgMonthly, 6.95);
 
   assert.equal(founderPricingModel.derived.solo.priceAnnual, 853.2);
+  assert.equal(founderPricingModel.derived.solo.annualListRevenue, 948);
+  assert.equal(founderPricingModel.derived.solo.annualListStripeFee, 34.43);
+  assert.equal(founderPricingModel.derived.solo.annualPrepayStripeFee, 31.02);
+  assert.equal(founderPricingModel.derived.solo.annualBillingEfficiencySavings, 3.25);
+  assert.equal(founderPricingModel.derived.team.seatAnnual, 540);
   assert.equal(founderPricingModel.derived.team.minimumMonthly, 150);
   assert.equal(founderPricingModel.derived.team.minimumAnnual, 1620);
   assert.equal(founderPricingModel.derived.team.minimumIncludedVoiceMinutes, 360);
-  assert.equal(founderPricingModel.derived.team.minimumBillingFeeMonthly, 1.05);
   assert.equal(founderPricingModel.derived.team.minimumCardFeeMonthly, 4.65);
+  assert.equal(founderPricingModel.derived.team.minimumBillingFeeMonthly, 1.05);
+  assert.equal(founderPricingModel.derived.team.annualizedMinimumRevenueAtList, 1800);
+  assert.equal(founderPricingModel.derived.team.annualizedMinimumStripeFeesAtListVolume, 65.1);
+  assert.equal(founderPricingModel.derived.team.annualMinimumBillingEfficiencySavings, 3.3);
 
+  assert.equal(founderPricingModel.derived.scenarios.solo.aiRuntimeCost, 10.9);
+  assert.equal(founderPricingModel.derived.scenarios.solo.productGrossMargin, "86.20%");
+  assert.equal(founderPricingModel.derived.scenarios.solo.collectedGrossMargin, "82.23%");
+  assert.equal(
+    founderPricingModel.derived.scenarios.teamMinimum.productGrossMarginAfterFloor,
+    "73.57%",
+  );
+  assert.equal(
+    founderPricingModel.derived.scenarios.teamTenSeat.collectedGrossMarginAfterFloor,
+    "73.15%",
+  );
+
+  assertDeclarativeTable(founderPricingModel.derived.vendorRateCardTable);
+  assertDeclarativeTable(founderPricingModel.derived.formulaTable);
+  assertDeclarativeTable(founderPricingModel.derived.annualBillingTable);
   assertDeclarativeTable(founderPricingModel.derived.seatEconomicsTable);
-  assertDeclarativeTable(founderPricingModel.derived.marginTable);
   assertDeclarativeTable(founderPricingModel.derived.voiceSensitivityTable);
   assertDeclarativeTable(founderPricingModel.derived.orgMarginTable);
+
+  assert.deepEqual(founderPricingModel.derived.annualBillingTable.rows, [
+    {
+      label: "Solo",
+      monthlyRevenue: 79,
+      annualRevenue: 853.2,
+      annualizedMonthlyStripeFees: 37.68,
+      annualStripeFeesAtListVolume: 34.43,
+      annualStripeFees: 31.02,
+      annualBillingEfficiencySavings: 3.25,
+    },
+    {
+      label: "Team minimum",
+      monthlyRevenue: 150,
+      annualRevenue: 1620,
+      annualizedMonthlyStripeFees: 68.4,
+      annualStripeFeesAtListVolume: 65.1,
+      annualStripeFees: 58.62,
+      annualBillingEfficiencySavings: 3.3,
+    },
+    {
+      label: "Team 10-seat",
+      monthlyRevenue: 500,
+      annualRevenue: 5400,
+      annualizedMonthlyStripeFees: 219.6,
+      annualStripeFeesAtListVolume: 216.3,
+      annualStripeFees: 194.7,
+      annualBillingEfficiencySavings: 3.3,
+    },
+  ]);
+  assert.deepEqual(founderPricingModel.derived.seatEconomicsTable.rows, [
+    {
+      label: "Solo",
+      monthlyRevenue: 79,
+      totalVoiceMinutes: 120,
+      aiRuntimeCost: 10.9,
+      productGrossMargin: "86.20%",
+      collectedGrossMargin: "82.23%",
+    },
+    {
+      label: "Team minimum",
+      monthlyRevenue: 150,
+      totalVoiceMinutes: 360,
+      aiRuntimeCost: 32.7,
+      productGrossMargin: "78.20%",
+      collectedGrossMargin: "74.40%",
+    },
+    {
+      label: "Team 10-seat",
+      monthlyRevenue: 500,
+      totalVoiceMinutes: 1200,
+      aiRuntimeCost: 109,
+      productGrossMargin: "78.20%",
+      collectedGrossMargin: "74.54%",
+    },
+  ]);
+  assert.deepEqual(founderPricingModel.derived.orgMarginTable.rows, [
+    {
+      label: "Solo",
+      monthlyRevenue: 79,
+      aiRuntimeCost: 10.9,
+      sharedSoftwareFloor: 6.95,
+      productGrossMarginAfterFloor: "77.41%",
+      collectedGrossMarginAfterFloor: "73.43%",
+    },
+    {
+      label: "Team minimum",
+      monthlyRevenue: 150,
+      aiRuntimeCost: 32.7,
+      sharedSoftwareFloor: 6.95,
+      productGrossMarginAfterFloor: "73.57%",
+      collectedGrossMarginAfterFloor: "69.77%",
+    },
+    {
+      label: "Team 10-seat",
+      monthlyRevenue: 500,
+      aiRuntimeCost: 109,
+      sharedSoftwareFloor: 6.95,
+      productGrossMarginAfterFloor: "76.81%",
+      collectedGrossMarginAfterFloor: "73.15%",
+    },
+  ]);
+  assert.deepEqual(founderPricingModel.derived.voiceSensitivityTable.rows, [
+    {
+      label: "Included only",
+      monthlyRevenue: 150,
+      totalVoiceMinutes: 360,
+      aiRuntimeCost: 32.7,
+      productGrossMargin: "78.20%",
+      collectedGrossMargin: "74.40%",
+    },
+    {
+      label: "+500 pack",
+      monthlyRevenue: 325,
+      totalVoiceMinutes: 860,
+      aiRuntimeCost: 72.7,
+      productGrossMargin: "77.63%",
+      collectedGrossMargin: "73.94%",
+    },
+    {
+      label: "+2,000 pack",
+      monthlyRevenue: 750,
+      totalVoiceMinutes: 2360,
+      aiRuntimeCost: 192.7,
+      productGrossMargin: "74.31%",
+      collectedGrossMargin: "70.67%",
+    },
+  ]);
 });
 
-test("founder pricing content exports the new deck and appendix contract", () => {
-  assert.equal(founderPricingContent.meta.title, "Founder Pricing & COGS");
+test("founder pricing content exports the pricing-only investor deck contract", () => {
+  assert.equal(founderPricingContent.meta.title, "Argos Pricing & Unit Economics");
   assert.equal(founderPricingContent.meta.verificationDate, "April 23, 2026");
   assert.equal(founderPricingContent.meta.publishedPath, "/argos-v2/founder-pricing/");
 
@@ -90,6 +259,20 @@ test("founder pricing content exports the new deck and appendix contract", () =>
 
   assert.equal(founderPricingContent.slides.length, 9);
   assert.equal(founderPricingContent.appendix.length, 5);
+  assert.deepEqual(
+    founderPricingContent.slides.map((slide) => slide.title),
+    [
+      "Argos Pricing & Unit Economics",
+      "Included Usage & Voice Policy",
+      "Base Usage Assumptions",
+      "Official Vendor Cost Stack",
+      "Seat Economics: Solo vs Team",
+      "Org-Level Margin Outcomes",
+      "Monthly vs Annual Billing Economics",
+      "Voice Sensitivity & Downside Control",
+      "Closing Thesis",
+    ],
+  );
   assert.equal("facts" in founderPricingContent, false);
   assert.equal("memoSections" in founderPricingContent, false);
   assert.equal("controls" in founderPricingContent, false);
@@ -126,43 +309,63 @@ test("renderer produces a continuous investor deck shell with main and appendix 
   assert.match(html, /data-slide-kind="thesis"/);
   assert.match(html, /data-slide-kind="appendix-table"/);
   assert.match(html, /data-slide-kind="sensitivity-table"/);
-  assert.match(html, /data-nav="prev"/);
-  assert.match(html, /data-nav="next"/);
-  assert.match(html, /data-slide-status/);
 });
 
-test("renderer outputs investor deck primitives for tables and appendix sections", () => {
+test("renderer outputs verified pricing, vendor, and appendix detail in HTML", () => {
   const html = renderFounderPricingHtml(founderPricingContent);
 
-  assert.match(html, /class="metric-grid"/);
-  assert.match(html, /class="policy-grid"/);
-  assert.match(html, /class="rate-stack"/);
-  assert.match(html, /class="assumption-list"/);
-  assert.match(html, /class="comparison-table"/);
-  assert.match(html, /class="appendix-grid"/);
-  assert.match(html, /class="appendix-section"/);
-  assert.match(html, /Solo subscription/);
-  assert.match(html, /Team minimum/);
-  assert.match(html, /Voice sensitivity rows/);
+  assert.match(html, /Argos Pricing &amp; Unit Economics/);
+  assert.match(html, /Official Vendor Cost Stack/);
+  assert.match(html, /Resend/);
+  assert.match(html, /GPT-realtime-1\.5 audio \$32 \/ 1M input tokens and \$64 \/ 1M output tokens/);
+  assert.match(html, /Pro \$20 \/ month includes 1 deploy seat and \$20 usage credit/);
+  assert.match(html, /shared-cpu-2x with 2GB RAM is \$11\.83 \/ month/);
+  assert.match(html, /Starter \$97 \/ month/);
+  assert.match(html, /2\.9% \+ \$0\.30 per successful card charge/);
+  assert.match(html, /0\.7% of billing volume on pay-as-you-go pricing/);
+  assert.match(html, /Zoom is excluded from the base recurring model\./);
+  assert.match(
+    html,
+    /Internal underwriting rates remain \$0\.39\/minute for Solo and \$0\.29\/minute for Team/,
+  );
+  assert.match(html, /Team 10-seat/);
+  assert.match(html, /Verified vendor rates/);
+  assert.match(html, /Key formulas/);
 });
 
-test("renderer preserves declared bullets for nonthesis slide kinds", () => {
+test("pricing policy slide no longer exposes raw public per-minute overage copy", () => {
   const html = renderFounderPricingHtml(founderPricingContent);
-  const usageSlide = getSlideMarkup(html, "included-usage");
+  const policySlide = getSlideMarkup(html, "pricing-architecture");
+  const assumptionsSlide = getSlideMarkup(html, "included-usage");
+
+  assert.match(policySlide, /prepaid pack/i);
+  assert.doesNotMatch(policySlide, /\$0\.39\/minute overage pricing/);
+  assert.doesNotMatch(policySlide, /\$0\.29\/minute overage pricing/);
+  assert.match(assumptionsSlide, /\$0\.08 \/ min/);
+  assert.match(assumptionsSlide, /\$173\.83 \/ mo/);
+});
+
+test("renderer preserves declared bullets for the updated deck narrative", () => {
+  const html = renderFounderPricingHtml(founderPricingContent);
+  const assumptionsSlide = getSlideMarkup(html, "included-usage");
   const vendorSlide = getSlideMarkup(html, "vendor-cost-stack");
-  const annualSlide = getSlideMarkup(html, "annual-vs-monthly");
+  const voiceSlide = getSlideMarkup(html, "voice-expansion-packs");
 
   for (const bullet of founderPricingContent.slides.find((slide) => slide.id === "included-usage").bullets) {
-    assert.match(usageSlide, new RegExp(escapeRegExp(bullet)));
+    assert.match(assumptionsSlide, new RegExp(escapeRegExp(bullet)));
   }
 
   for (const bullet of founderPricingContent.slides.find((slide) => slide.id === "vendor-cost-stack").bullets) {
     assert.match(vendorSlide, new RegExp(escapeRegExp(bullet)));
   }
 
-  for (const bullet of founderPricingContent.slides.find((slide) => slide.id === "annual-vs-monthly").bullets) {
-    assert.match(annualSlide, new RegExp(escapeRegExp(bullet)));
+  for (const bullet of founderPricingContent.slides.find((slide) => slide.id === "voice-expansion-packs").bullets) {
+    assert.match(voiceSlide, new RegExp(escapeRegExp(bullet)));
   }
+
+  assert.match(voiceSlide, /Included only/);
+  assert.match(voiceSlide, /\+500 pack/);
+  assert.match(voiceSlide, /70\.67%/);
 });
 
 test("renderer uses explicit slide definitions for kinds and payload sources", () => {
@@ -178,7 +381,7 @@ test("renderer uses explicit slide definitions for kinds and payload sources", (
   });
   assert.deepEqual(resolveSlideDefinition("solo-unit-economics", "main"), {
     kind: "comparison-table",
-    payloadKey: "marginTable",
+    payloadKey: "seatEconomicsTable",
   });
   assert.deepEqual(resolveSlideDefinition("team-unit-economics", "main"), {
     kind: "comparison-table",
@@ -186,7 +389,11 @@ test("renderer uses explicit slide definitions for kinds and payload sources", (
   });
   assert.deepEqual(resolveSlideDefinition("annual-vs-monthly", "main"), {
     kind: "comparison-table",
-    payloadKey: "seatEconomicsTable",
+    payloadKey: "annualBillingTable",
+  });
+  assert.deepEqual(resolveSlideDefinition("voice-expansion-packs", "main"), {
+    kind: "comparison-table",
+    payloadKey: "voiceSensitivityTable",
   });
   assert.deepEqual(resolveSlideDefinition("appendix-rate-card", "appendix"), {
     kind: "appendix-table",
@@ -196,10 +403,45 @@ test("renderer uses explicit slide definitions for kinds and payload sources", (
     kind: "sensitivity-table",
     payloadKey: "sections",
   });
-  assert.throws(
-    () => resolveSlideDefinition("unknown-slide", "main"),
-    /Missing slide definition/,
+});
+
+test("payload builders read named pack catalog entries instead of fragile positional arrays", () => {
+  const { PAYLOAD_BUILDERS } = renderTestExports;
+  const coverPayload = PAYLOAD_BUILDERS.coverMetrics(founderPricingContent.slides[0], founderPricingModel);
+  const policyPayload = PAYLOAD_BUILDERS.pricingArchitecturePolicies(
+    founderPricingContent.slides[1],
+    founderPricingModel,
   );
+  const sensitivityPayload = PAYLOAD_BUILDERS.voiceSensitivityTable(
+    founderPricingContent.slides[7],
+    founderPricingModel,
+  );
+
+  assert.deepEqual(coverPayload.metrics[3], {
+    label: "Voice expansion",
+    value: "$175",
+    detail: "500-minute team growth pack",
+  });
+  assert.match(policyPayload.cards[0].body, /250-minute prepaid pack/);
+  assert.match(policyPayload.cards[1].body, /prepaid team packs/);
+  assert.deepEqual(sensitivityPayload.table.rows, founderPricingModel.derived.voiceSensitivityTable.rows);
+  assert.deepEqual(PAYLOAD_BUILDERS.voiceExpansionPacks(founderPricingContent.slides[7], founderPricingModel).items, [
+    {
+      label: "Solo pack",
+      value: "250 min / $125",
+      detail: "Public overage pack valid for 90 days.",
+    },
+    {
+      label: "Team growth pack",
+      value: "500 min / $175",
+      detail: "Public overage pack valid for 90 days.",
+    },
+    {
+      label: "Team scale pack",
+      value: "2,000 min / $600",
+      detail: "Public overage pack valid for 90 days.",
+    },
+  ]);
 });
 
 test("responsive CSS preserves viewport lock without internal scrolling", () => {
@@ -232,10 +474,6 @@ test("slide kind inference supports the required investor deck slide types", () 
   assert.equal(
     inferSlideKind({ id: "appendix-voice-sensitivity" }, "appendix"),
     "sensitivity-table",
-  );
-  assert.equal(
-    inferSlideKind({ id: "explicit-kind", kind: "comparison-table" }, "main"),
-    "comparison-table",
   );
 });
 
@@ -390,21 +628,21 @@ function createControllerHarness() {
       group: "main",
       ordinal: 0,
       hidden: false,
-      title: "Founder Pricing & Cogs",
+      title: "Argos Pricing & Unit Economics",
     }),
     createSlide({
       id: "pricing-architecture",
       group: "main",
       ordinal: 1,
       hidden: true,
-      title: "Pricing Architecture",
+      title: "Included Usage & Voice Policy",
     }),
     createSlide({
       id: "appendix-rate-card",
       group: "appendix",
       ordinal: 0,
       hidden: true,
-      title: "Appendix: Rate Card",
+      title: "Appendix: Vendor Rate Card",
     }),
   ];
 
@@ -418,7 +656,7 @@ function createControllerHarness() {
   const nextButton = new FakeNode();
   const statusNode = new FakeNode();
   const groupNode = new FakeNode({ textContent: "Main deck" });
-  const titleNode = new FakeNode({ textContent: "Founder Pricing & Cogs" });
+  const titleNode = new FakeNode({ textContent: "Argos Pricing & Unit Economics" });
 
   const document = {
     querySelectorAll(selector) {
@@ -472,6 +710,13 @@ function createControllerHarness() {
     matchMedia() {
       return { matches: false };
     },
+    setTimeout(callback) {
+      if (typeof callback === "function") {
+        callback();
+      }
+      return 1;
+    },
+    clearTimeout() {},
     addEventListener(type, handler) {
       listeners.set(type, handler);
     },
@@ -480,10 +725,6 @@ function createControllerHarness() {
       if (handler) {
         handler(event);
       }
-    },
-    setTimeout(handler) {
-      handler();
-      return 0;
     },
   };
 

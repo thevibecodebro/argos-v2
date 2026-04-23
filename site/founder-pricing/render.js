@@ -194,10 +194,10 @@ const MAIN_SLIDE_DEFINITIONS = {
   "pricing-architecture": { kind: "policy-grid", payloadKey: "pricingArchitecturePolicies" },
   "included-usage": { kind: "rate-stack", payloadKey: "includedUsageRates" },
   "vendor-cost-stack": { kind: "assumption-list", payloadKey: "vendorAssumptions" },
-  "solo-unit-economics": { kind: "comparison-table", payloadKey: "marginTable" },
+  "solo-unit-economics": { kind: "comparison-table", payloadKey: "seatEconomicsTable" },
   "team-unit-economics": { kind: "comparison-table", payloadKey: "orgMarginTable" },
-  "annual-vs-monthly": { kind: "comparison-table", payloadKey: "seatEconomicsTable" },
-  "voice-expansion-packs": { kind: "rate-stack", payloadKey: "voiceExpansionPacks" },
+  "annual-vs-monthly": { kind: "comparison-table", payloadKey: "annualBillingTable" },
+  "voice-expansion-packs": { kind: "comparison-table", payloadKey: "voiceSensitivityTable" },
   "founder-close": { kind: "thesis", payloadKey: "thesisBullets" },
 };
 
@@ -250,8 +250,8 @@ const PAYLOAD_BUILDERS = {
         },
         {
           label: "Voice expansion",
-          value: formatCurrency(model.packs.team[0].price),
-          detail: `${model.packs.team[0].minutes}-minute team growth pack`,
+          value: formatCurrency(model.derived.packCatalog.team500.price),
+          detail: `${model.derived.packCatalog.team500.minutes}-minute team growth pack`,
         },
       ],
       bullets: entry.bullets ?? [],
@@ -263,17 +263,17 @@ const PAYLOAD_BUILDERS = {
         {
           label: "Solo",
           title: `${formatCurrency(model.plans.solo.priceMonthly)} / month`,
-          body: `${model.plans.solo.includedVoiceMinutes} included voice minutes before ${formatCurrency(model.plans.solo.overageRate)}/minute overage pricing.`,
+          body: `${model.plans.solo.includedVoiceMinutes} included live voice minutes, then expansion through the ${model.derived.packCatalog.solo250.minutes}-minute prepaid pack.`,
         },
         {
           label: "Team",
           title: `${formatCurrency(model.plans.team.pricePerSeatMonthly)} / seat / month`,
-          body: `${model.plans.team.seatMinimum}-seat minimum with ${model.plans.team.includedVoiceMinutesPerSeat} included voice minutes per seat.`,
+          body: `${model.plans.team.seatMinimum}-seat minimum with ${model.plans.team.includedVoiceMinutesPerSeat} pooled live voice minutes per seat and prepaid team packs for overage.`,
         },
         {
           label: "Annual",
-          title: "Prepaid incentive",
-          body: "Annual billing gives a 10% discount while keeping the public menu simple.",
+          title: "10% prepaid discount",
+          body: "Annual billing improves cash collection and fee efficiency without changing the public menu.",
         },
       ],
       bullets: entry.bullets ?? [],
@@ -283,19 +283,19 @@ const PAYLOAD_BUILDERS = {
     return {
       items: [
         {
-          label: "Solo allowance",
-          value: `${model.plans.solo.includedVoiceMinutes} min`,
-          detail: `Internal overage starts at ${formatCurrency(model.plans.solo.overageRate)}/minute.`,
+          label: "Live voice model",
+          value: `${formatCurrency(model.assumptions.usage.liveVoicePlanningCostPerMinute)} / min`,
+          detail: "Internal planning conversion from OpenAI realtime token pricing, not an official vendor minute quote.",
         },
         {
-          label: "Team allowance",
-          value: `${model.derived.team.minimumIncludedVoiceMinutes} min`,
-          detail: "Three-seat minimum defines the baseline usage envelope.",
+          label: "Scored call model",
+          value: `$${model.assumptions.usage.scoredCallCostPerCall.toFixed(3)} / call`,
+          detail: `${model.assumptions.usage.averageScoredCallMinutes} transcription minutes plus a small GPT-5 mini scoring buffer, with ${model.assumptions.usage.scoredCallsPerSeatMonthly} calls per seat monthly.`,
         },
         {
-          label: "Monetization lever",
-          value: "Expansion packs",
-          detail: "Usage spikes monetize cleanly without forcing plan migration.",
+          label: "Shared software floor",
+          value: `${formatCurrency(model.assumptions.softwareFloor.baseRecurringMonthly)} / mo`,
+          detail: `Vercel, Supabase, Fly, HighLevel, and Resend spread across ${model.assumptions.softwareFloor.activePayingOrgsBaseCase} active paying orgs in the base case.`,
         },
       ],
       bullets: entry.bullets ?? [],
@@ -306,18 +306,18 @@ const PAYLOAD_BUILDERS = {
       items: [
         {
           label: "Solo pack",
-          value: `${model.packs.solo[0].minutes} min / ${formatCurrency(model.packs.solo[0].price)}`,
-          detail: `Valid for ${model.packs.solo[0].expiresInDays} days.`,
+          value: `${formatNumber(model.derived.packCatalog.solo250.minutes)} min / ${formatCurrency(model.derived.packCatalog.solo250.price)}`,
+          detail: `Public overage pack valid for ${model.derived.packCatalog.solo250.expiresInDays} days.`,
         },
         {
           label: "Team growth pack",
-          value: `${model.packs.team[0].minutes} min / ${formatCurrency(model.packs.team[0].price)}`,
-          detail: `Valid for ${model.packs.team[0].expiresInDays} days.`,
+          value: `${formatNumber(model.derived.packCatalog.team500.minutes)} min / ${formatCurrency(model.derived.packCatalog.team500.price)}`,
+          detail: `Public overage pack valid for ${model.derived.packCatalog.team500.expiresInDays} days.`,
         },
         {
           label: "Team scale pack",
-          value: `${model.packs.team[1].minutes} min / ${formatCurrency(model.packs.team[1].price)}`,
-          detail: `Valid for ${model.packs.team[1].expiresInDays} days.`,
+          value: `${formatNumber(model.derived.packCatalog.team2000.minutes)} min / ${formatCurrency(model.derived.packCatalog.team2000.price)}`,
+          detail: `Public overage pack valid for ${model.derived.packCatalog.team2000.expiresInDays} days.`,
         },
       ],
       bullets: entry.bullets ?? [],
@@ -327,24 +327,26 @@ const PAYLOAD_BUILDERS = {
     return {
       items: model.vendors.map((vendor) => ({
         label: vendor.name,
-        value: vendor.monthlyCost
-          ? `${formatCurrency(vendor.monthlyCost)} / month`
-          : vendor.percentRate
-            ? `${vendor.percentRate * 100}%${vendor.fixedFee ? ` + ${formatCurrency(vendor.fixedFee)}` : ""}`
-            : vendor.sourceLabel,
+        value: vendor.slideText ?? vendor.rateText ?? vendor.sourceLabel,
       })),
-      bullets: entry.bullets ?? [],
-    };
-  },
-  marginTable(entry, model) {
-    return {
-      table: model.derived.marginTable,
       bullets: entry.bullets ?? [],
     };
   },
   orgMarginTable(entry, model) {
     return {
       table: model.derived.orgMarginTable,
+      bullets: entry.bullets ?? [],
+    };
+  },
+  annualBillingTable(entry, model) {
+    return {
+      table: model.derived.annualBillingTable,
+      bullets: entry.bullets ?? [],
+    };
+  },
+  voiceSensitivityTable(entry, model) {
+    return {
+      table: model.derived.voiceSensitivityTable,
       bullets: entry.bullets ?? [],
     };
   },
@@ -1289,6 +1291,7 @@ module.exports = {
   __test: {
     CONTROLLER_SOURCE,
     inferSlideKind,
+    PAYLOAD_BUILDERS,
     resolveSlideDefinition,
   },
 };
