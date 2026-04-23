@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/founder-pricing-pages.yml
       - package.json
+      - package-lock.json
       - scripts/build-founder-pricing-site.mjs
       - site/founder-pricing/**
   workflow_dispatch:
@@ -49,7 +50,7 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist/founder-pricing
+          path: dist
 
   deploy:
     environment:

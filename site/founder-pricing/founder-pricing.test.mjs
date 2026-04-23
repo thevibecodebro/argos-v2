@@ -178,6 +178,12 @@ test("github pages workflow exists for founder pricing site", () => {
   );
 
   assert.equal(existsSync(workflowFile), true);
+  const workflow = readFileSync(workflowFile, "utf8");
+
+  assert.match(workflow, /package-lock\.json/);
+  assert.match(workflow, /npm run test:founder-pricing/);
+  assert.match(workflow, /npm run build:founder-pricing/);
+  assert.match(workflow, /path:\s+dist\b/);
 });
 
 function buildHtml() {
