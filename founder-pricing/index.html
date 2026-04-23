@@ -3,9 +3,9 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="verification-date" content="2026-04-22" />
+    <meta name="verification-date" content="April 23, 2026" />
     <meta name="published-path" content="/argos-v2/founder-pricing/" />
-    <title>Founder Pricing &amp; COGS</title>
+    <title>Argos Pricing &amp; Unit Economics</title>
     <style>
       @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&display=swap");
 
@@ -23,7 +23,8 @@
         --outline: #45484f;
         --display-font: "Space Grotesk", sans-serif;
         --body-font: "Source Sans 3", sans-serif;
-        --max-width: 1240px;
+        --shell-width: 1440px;
+        --slide-height: min(calc(100vh - 250px), 760px);
       }
 
       * {
@@ -32,17 +33,16 @@
 
       html {
         background: var(--background);
-        scroll-behavior: smooth;
       }
 
       body {
         margin: 0;
         min-height: 100vh;
         background:
-          radial-gradient(circle at 0% 0%, rgba(116, 177, 255, 0.22), transparent 28%),
-          radial-gradient(circle at 100% 0%, rgba(109, 221, 255, 0.16), transparent 22%),
-          linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 28%),
-          #0b0e14;
+          radial-gradient(circle at 0% 0%, rgba(116, 177, 255, 0.18), transparent 22%),
+          radial-gradient(circle at 100% 0%, rgba(109, 221, 255, 0.14), transparent 18%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 28%),
+          var(--background);
         color: var(--primary-text);
         font-family: var(--body-font);
       }
@@ -52,274 +52,141 @@
         text-decoration: none;
       }
 
-      .site-shell {
-        width: min(calc(100% - 32px), var(--max-width));
-        margin: 24px auto 64px;
-      }
-
-      .shell-frame {
-        position: relative;
-        overflow: hidden;
-        border: 1px solid color-mix(in srgb, var(--outline) 84%, transparent);
-        border-radius: 28px;
+      .deck-shell {
+        width: min(calc(100% - 36px), var(--shell-width));
+        margin: 20px auto;
+        padding: 22px;
+        border: 1px solid color-mix(in srgb, var(--outline) 86%, transparent);
+        border-radius: 30px;
         background:
-          linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 18%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 18%),
           color-mix(in srgb, var(--primary-surface) 94%, transparent);
         box-shadow:
-          0 24px 64px rgba(0, 0, 0, 0.32),
-          inset 0 1px 0 rgba(255, 255, 255, 0.04);
+          0 32px 82px rgba(0, 0, 0, 0.34),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05);
       }
 
-      .shell-frame::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        background:
-          radial-gradient(circle at 15% 0%, rgba(116, 177, 255, 0.14), transparent 26%),
-          radial-gradient(circle at 85% 10%, rgba(109, 221, 255, 0.1), transparent 18%);
+      .deck-header,
+      .status-footer {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 16px;
+        align-items: center;
       }
 
-      .shell-topbar {
-        position: sticky;
-        top: 0;
-        z-index: 10;
+      .deck-header {
+        padding-bottom: 18px;
+        border-bottom: 1px solid color-mix(in srgb, var(--outline) 80%, transparent);
+      }
+
+      .brand-lockup {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        gap: 18px;
-        padding: 18px 24px;
-        border-bottom: 1px solid color-mix(in srgb, var(--outline) 78%, transparent);
-        background: color-mix(in srgb, var(--primary-surface) 92%, transparent);
-        backdrop-filter: blur(16px);
-      }
-
-      .brand-lockup,
-      .topbar-actions,
-      .mode-switch {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-
-      .brand-mark,
-      .capsule,
-      .mode-chip {
-        border-radius: 999px;
-        border: 1px solid color-mix(in srgb, var(--outline) 80%, transparent);
-        background: color-mix(in srgb, var(--secondary-surface) 88%, transparent);
+        gap: 14px;
       }
 
       .brand-mark {
+        width: 42px;
+        height: 42px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 36px;
-        height: 36px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(116, 177, 255, 0.22), rgba(109, 221, 255, 0.1));
+        border: 1px solid rgba(116, 177, 255, 0.34);
         font-family: var(--display-font);
-        font-size: 0.95rem;
         letter-spacing: 0.08em;
-        color: var(--primary-accent);
-      }
-
-      .brand-copy strong,
-      h1,
-      h2,
-      h3,
-      h4 {
-        font-family: var(--display-font);
       }
 
       .brand-copy {
         display: grid;
-        gap: 2px;
+        gap: 4px;
       }
 
-      .brand-copy strong {
-        font-size: 0.98rem;
+      .brand-copy strong,
+      .slide-copy h1,
+      .policy-card h3 {
+        font-family: var(--display-font);
       }
 
       .brand-copy span,
-      .capsule,
-      .kicker,
-      .rail-label,
-      .label {
+      .meta-pill,
+      .eyebrow,
+      .rail-title,
+      .slide-order {
         color: var(--secondary-text);
         letter-spacing: 0.12em;
         text-transform: uppercase;
+        font-size: 0.72rem;
       }
 
-      .brand-copy span,
-      .capsule,
-      .kicker,
-      .rail-label,
-      .label {
-        font-size: 0.74rem;
+      .header-meta,
+      .control-row {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 10px;
       }
 
-      .capsule,
-      .mode-chip {
-        padding: 9px 14px;
+      .meta-pill,
+      .control-button {
+        border-radius: 999px;
+        border: 1px solid color-mix(in srgb, var(--outline) 82%, transparent);
+        background: color-mix(in srgb, var(--secondary-surface) 88%, transparent);
       }
 
-      .mode-switch {
-        gap: 8px;
+      .meta-pill {
+        padding: 10px 14px;
       }
 
-      .mode-chip {
-        appearance: none;
-        color: var(--primary-text);
-        font: inherit;
-      }
-
-      .mode-chip[data-active="true"] {
-        border-color: rgba(116, 177, 255, 0.54);
-        box-shadow: inset 0 0 0 1px rgba(116, 177, 255, 0.18);
-      }
-
-      .mode-button {
-        cursor: pointer;
-      }
-
-      .shell-content {
-        position: relative;
-        padding: 28px 24px 32px;
-      }
-
-      .hero-grid {
+      .deck-layout {
         display: grid;
+        grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.8fr) minmax(220px, 0.8fr);
         gap: 18px;
-        grid-template-columns: minmax(0, 1.6fr) minmax(300px, 0.9fr);
-        margin-bottom: 18px;
+        padding: 20px 0;
+        align-items: stretch;
       }
 
-      .hero-card,
-      .summary-card,
       .rail-card,
-      .view-card,
-      .slide-card,
-      .memo-card,
-      .card {
-        position: relative;
+      .slide-shell,
+      .metric-card,
+      .policy-card,
+      .rate-card,
+      .appendix-section {
         border: 1px solid color-mix(in srgb, var(--outline) 80%, transparent);
-        border-radius: 22px;
+        border-radius: 24px;
         background:
           linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 20%),
-          color-mix(in srgb, var(--elevated-surface) 92%, transparent);
-      }
-
-      .hero-card,
-      .summary-card,
-      .rail-card,
-      .view-card,
-      .memo-card {
-        padding: 22px;
-      }
-
-      .hero-card h1 {
-        margin: 0 0 14px;
-        font-size: clamp(2.25rem, 4vw, 3.8rem);
-        line-height: 0.95;
-      }
-
-      .hero-card p,
-      .summary-card p,
-      .memo-card p,
-      .slide-card p {
-        margin: 0;
-        color: var(--secondary-text);
-        line-height: 1.6;
-      }
-
-      .hero-card .hero-copy {
-        max-width: 56ch;
-      }
-
-      .hero-facts,
-      .fact-grid,
-      .slide-facts,
-      .memo-facts {
-        display: grid;
-        gap: 12px;
-      }
-
-      .hero-facts {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        margin-top: 22px;
-      }
-
-      .summary-card {
-        display: grid;
-        gap: 16px;
-      }
-
-      .summary-card .fact-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .view-grid {
-        display: grid;
-        gap: 18px;
-      }
-
-      .view-card {
-        display: grid;
-        gap: 18px;
-      }
-
-      .view-header {
-        display: flex;
-        align-items: end;
-        justify-content: space-between;
-        gap: 18px;
-      }
-
-      .view-header h2 {
-        margin: 0;
-        font-size: clamp(1.45rem, 2vw, 2rem);
-      }
-
-      .view-header p {
-        max-width: 60ch;
-        margin: 10px 0 0;
-        color: var(--secondary-text);
-      }
-
-      .view-layout {
-        display: grid;
-        gap: 18px;
-        grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.7fr);
+          color-mix(in srgb, var(--elevated-surface) 94%, transparent);
       }
 
       .rail-card {
-        align-self: start;
-        position: sticky;
-        top: 92px;
+        padding: 18px;
       }
 
       .rail-list {
+        list-style: none;
         margin: 14px 0 0;
         padding: 0;
-        list-style: none;
         display: grid;
         gap: 10px;
       }
 
-      .rail-list li a {
+      .rail-list a {
         display: grid;
         grid-template-columns: auto 1fr;
         gap: 12px;
-        align-items: center;
-        padding: 10px 12px;
-        border-radius: 14px;
+        padding: 12px;
+        border-radius: 16px;
         border: 1px solid transparent;
         color: var(--secondary-text);
-        transition: border-color 140ms ease, color 140ms ease, background 140ms ease;
+        transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
       }
 
-      .rail-list li a:hover {
+      .rail-list a:hover,
+      .rail-list a[data-active="true"] {
         color: var(--primary-text);
-        border-color: color-mix(in srgb, var(--outline) 70%, transparent);
+        border-color: rgba(116, 177, 255, 0.34);
         background: color-mix(in srgb, var(--secondary-surface) 84%, transparent);
       }
 
@@ -329,985 +196,1671 @@
         font-family: var(--display-font);
       }
 
-      .slide-stack,
-      .memo-stack {
+      .rail-copy {
+        display: grid;
+        gap: 4px;
+      }
+
+      .rail-copy small {
+        color: var(--secondary-text);
+        line-height: 1.35;
+      }
+
+      .deck-track {
+        position: relative;
+      }
+
+      .deck-slide {
+        min-height: var(--slide-height);
+        max-height: var(--slide-height);
+      }
+
+      .slide-shell {
+        height: 100%;
+        padding: 24px;
+        display: grid;
+        grid-template-rows: auto auto minmax(0, 1fr);
+        gap: 18px;
+        overflow: hidden;
+      }
+
+      .slide-header,
+      .status-summary,
+      .assumption-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      .slide-counter {
+        padding: 8px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(116, 177, 255, 0.26);
+        color: var(--primary-accent);
+        font-size: 0.82rem;
+      }
+
+      .slide-copy {
+        display: grid;
+        gap: 10px;
+        max-width: 72ch;
+      }
+
+      .slide-copy h1 {
+        margin: 0;
+        font-size: clamp(2rem, 3.6vw, 3.7rem);
+        line-height: 0.96;
+      }
+
+      .slide-copy p,
+      .metric-card p,
+      .policy-card p,
+      .rate-card p,
+      .thesis-summary,
+      .comparison-table td,
+      .comparison-table th,
+      .appendix-list li,
+      .bullet-list li {
+        margin: 0;
+        color: var(--secondary-text);
+        line-height: 1.45;
+      }
+
+      .slide-body {
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      .metric-grid,
+      .policy-grid,
+      .appendix-grid {
         display: grid;
         gap: 16px;
       }
 
-      .slide-card {
-        padding: 20px;
+      .metric-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
-      .card-header {
+      .policy-grid,
+      .appendix-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .metric-card,
+      .policy-card,
+      .rate-card,
+      .appendix-section {
+        padding: 18px;
+      }
+
+      .metric-card strong,
+      .rate-card strong {
+        display: block;
+        margin: 6px 0 10px;
+        font-size: clamp(1.3rem, 2.1vw, 2rem);
+      }
+
+      .policy-card h3 {
+        margin: 8px 0;
+        font-size: 1.15rem;
+      }
+
+      .rate-stack,
+      .assumption-list {
         display: grid;
-        gap: 8px;
-        margin-bottom: 14px;
-      }
-
-      .slide-card h3,
-      .memo-card h3 {
-        margin: 0;
-        font-size: clamp(1.18rem, 2vw, 1.5rem);
-      }
-
-      .slide-meta {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-      }
-
-      .deck-controls {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
         gap: 12px;
-        padding: 14px 16px;
+      }
+
+      .rate-row {
+        display: grid;
+        grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+        gap: 18px;
+        align-items: center;
+      }
+
+      .assumption-row {
+        padding: 14px 0;
+        border-bottom: 1px solid color-mix(in srgb, var(--outline) 72%, transparent);
+      }
+
+      .assumption-row:last-child {
+        border-bottom: 0;
+      }
+
+      .assumption-row span {
+        text-align: right;
+        color: var(--secondary-text);
+      }
+
+      .bullet-list,
+      .appendix-list {
+        margin: 0;
+        padding-left: 18px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .table-shell {
+        overflow: hidden;
+        border-radius: 22px;
+        border: 1px solid color-mix(in srgb, var(--outline) 78%, transparent);
+        background: color-mix(in srgb, var(--elevated-surface-alt) 94%, transparent);
+      }
+
+      .comparison-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .comparison-table th,
+      .comparison-table td {
+        padding: 13px 15px;
+        text-align: left;
+        border-bottom: 1px solid color-mix(in srgb, var(--outline) 72%, transparent);
+      }
+
+      .comparison-table tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .comparison-table th {
+        color: var(--primary-text);
+        font-size: 0.78rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .thesis-panel {
+        display: grid;
+        gap: 18px;
+        align-content: start;
+      }
+
+      .thesis-summary {
+        font-size: 1.08rem;
+        max-width: 60ch;
+      }
+
+      .status-footer {
+        padding-top: 18px;
+        border-top: 1px solid color-mix(in srgb, var(--outline) 80%, transparent);
+      }
+
+      .status-summary {
+        padding: 12px 16px;
         border-radius: 18px;
-        border: 1px solid color-mix(in srgb, var(--outline) 76%, transparent);
+        border: 1px solid color-mix(in srgb, var(--outline) 80%, transparent);
         background: color-mix(in srgb, var(--secondary-surface) 86%, transparent);
+      }
+
+      .status-summary strong {
+        font-size: 1rem;
       }
 
       .control-button {
         appearance: none;
-        border: 1px solid color-mix(in srgb, var(--outline) 80%, transparent);
-        border-radius: 999px;
-        padding: 10px 14px;
-        background: color-mix(in srgb, var(--primary-surface) 88%, transparent);
+        padding: 11px 16px;
         color: var(--primary-text);
         font: inherit;
         cursor: pointer;
       }
 
       .control-button[disabled] {
-        opacity: 0.48;
+        opacity: 0.44;
         cursor: not-allowed;
       }
 
-      .slide-status {
-        margin: 0;
-        color: var(--secondary-text);
-        text-align: center;
-      }
-
-      .deck-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 7px 11px;
-        border-radius: 999px;
-        border: 1px solid color-mix(in srgb, var(--outline) 76%, transparent);
-        background: color-mix(in srgb, var(--secondary-surface) 86%, transparent);
-        color: var(--secondary-text);
-        font-size: 0.78rem;
-      }
-
-      .fact-grid,
-      .slide-facts,
-      .memo-facts {
-        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-      }
-
-      .card {
-        padding: 14px 15px;
-      }
-
-      .fact-value {
-        color: var(--primary-text);
-        line-height: 1.5;
-      }
-
-      .memo-card {
-        scroll-margin-top: 96px;
-      }
-
-      .memo-card + .memo-card {
-        margin-top: 16px;
-      }
-
-      .memo-card p + p {
-        margin-top: 12px;
-      }
-
       @media (prefers-reduced-motion: reduce) {
-        html {
-          scroll-behavior: auto;
-        }
-
-        .rail-list li a {
+        .rail-list a {
           transition: none;
         }
       }
 
-      @media (max-width: 980px) {
-        .hero-grid,
-        .view-layout {
+      @media (max-width: 1180px) {
+        .deck-layout {
           grid-template-columns: 1fr;
         }
 
-        .rail-card {
-          position: static;
+        .deck-shell {
+          padding: 18px;
+        }
+
+        .slide-shell {
+          padding: 20px;
+          gap: 16px;
+        }
+
+        .slide-copy h1 {
+          font-size: clamp(1.8rem, 3vw, 3rem);
+        }
+
+        .slide-copy {
+          gap: 8px;
+        }
+
+        .metric-card,
+        .policy-card,
+        .rate-card,
+        .appendix-section {
+          padding: 14px;
+        }
+
+        .metric-grid,
+        .policy-grid,
+        .appendix-grid {
+          gap: 12px;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+          padding: 10px 12px;
+        }
+
+        .policy-grid,
+        .appendix-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
       }
 
-      @media (max-width: 720px) {
-        .site-shell {
-          width: min(calc(100% - 20px), var(--max-width));
-          margin: 12px auto 40px;
+      @media (max-width: 760px) {
+        .deck-shell {
+          width: min(calc(100% - 20px), var(--shell-width));
+          padding: 16px;
         }
 
-        .shell-topbar,
-        .shell-content {
-          padding-left: 16px;
-          padding-right: 16px;
-        }
-
-        .shell-topbar,
-        .view-header {
-          flex-direction: column;
-          align-items: flex-start;
-        }
-
-        .deck-controls {
-          flex-direction: column;
-          align-items: stretch;
-        }
-
-        .hero-facts {
+        .deck-header,
+        .status-footer {
           grid-template-columns: 1fr;
+        }
+
+        .header-meta,
+        .control-row {
+          justify-content: flex-start;
+        }
+
+        .metric-grid,
+        .policy-grid,
+        .appendix-grid,
+        .rate-row {
+          grid-template-columns: 1fr;
+        }
+
+        .slide-header,
+        .status-summary,
+        .assumption-row {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .slide-shell {
+          padding: 18px;
         }
       }
     </style>
   </head>
   <body>
-    <main class="site-shell">
-      <div class="shell-frame">
-        <header class="shell-topbar" data-content-slides="9" data-content-memo-sections="8" data-content-facts="7">
-          <div class="brand-lockup">
-            <div class="brand-mark">A</div>
-            <div class="brand-copy">
-              <strong>Argos Founder Pricing</strong>
-              <span>Founder OS view of pricing and unit economics</span>
-            </div>
+    <main
+      class="deck-shell"
+      data-content-main-slides="9"
+      data-content-appendix-slides="5"
+      data-content-total-slides="14"
+    >
+      <header class="deck-header">
+        <div class="brand-lockup">
+          <div class="brand-mark">A</div>
+          <div class="brand-copy">
+            <strong>Argos Founder Pricing</strong>
+            <span>Continuous investor deck for pricing and unit economics</span>
           </div>
-          <div class="topbar-actions">
-            <div class="capsule">2026-04-22</div>
-            <div class="mode-switch" aria-label="Mode switch">
-              <button class="mode-chip mode-button" data-mode="deck" data-active="true" type="button" aria-controls="deck-view" aria-pressed="true">Deck</button>
-              <button class="mode-chip mode-button" data-mode="memo" data-active="false" type="button" aria-controls="memo-view" aria-pressed="false">Memo</button>
-            </div>
-          </div>
-        </header>
+        </div>
+        <div class="header-meta">
+          <div class="meta-pill">April 23, 2026</div>
+          <div class="meta-pill">/argos-v2/founder-pricing/</div>
+        </div>
+      </header>
 
-        <div class="shell-content">
-          <section class="hero-grid" aria-label="Founder pricing overview">
-            <article class="hero-card">
-              <div class="kicker">Founder pricing deck</div>
-              <h1>Founder Pricing &amp; COGS</h1>
-              <p class="hero-copy">
-                The seat price is simple. The underwriting variable is live voice usage, and the HTML artifact needs to explain that in the same design language as the product.
-              </p>
-              <div class="hero-facts">
-                
-    <article class="card" data-fact-key="verificationDate">
-      <div class="label">Verification date</div>
-      <div class="fact-value">2026-04-22</div>
-    </article>
-  
-                
-    <article class="card" data-fact-key="publishedPath">
-      <div class="label">Published path</div>
-      <div class="fact-value">/argos-v2/founder-pricing/</div>
-    </article>
-  
-              </div>
-            </article>
-
-            <aside class="summary-card">
-              <div>
-                <div class="kicker">Founder controls</div>
-                <p>Public packaging: $50 / seat / month, 3-seat minimum, and 120 pooled live voice minutes per paid seat per month.</p>
-              </div>
-              <div class="fact-grid">
-                
-    <article class="card" data-fact-key="seatPrice">
-      <div class="label">Seat price</div>
-      <div class="fact-value">$50 / seat / month</div>
-    </article>
-  
-    <article class="card" data-fact-key="seatMinimum">
-      <div class="label">Seat minimum</div>
-      <div class="fact-value">3-seat minimum</div>
-    </article>
-  
-    <article class="card" data-fact-key="voiceAllowance">
-      <div class="label">Voice allowance</div>
-      <div class="fact-value">120 pooled live voice minutes per paid seat per month</div>
-    </article>
-  
-    <article class="card" data-fact-key="orgEstimate">
-      <div class="label">Org estimate</div>
-      <div class="fact-value">~$58 / org / month</div>
-    </article>
-  
-              </div>
-            </aside>
-          </section>
-
-          <div class="view-grid">
-            <section id="deck-view" class="view-card" data-mode="deck" aria-labelledby="deck-title" data-slide-count="9">
-              <div class="view-header">
-                <div>
-                  <div class="kicker">Deck mode</div>
-                  <h2 id="deck-title">Presentation narrative</h2>
-                  <p>Slide-first framing for fundraising, pricing review, and founder discussion. This view is staged like the Argos shell rather than a detached microsite.</p>
-                </div>
-                <div class="slide-meta">
-                  <span class="deck-pill">9 slides</span>
-                  <span class="deck-pill">Official Vendor Rate Card</span>
-                </div>
-              </div>
-              <div class="deck-controls">
-                <button class="control-button" type="button" data-nav="prev">Previous</button>
-                <p class="slide-status" data-slide-status aria-live="polite">Slide 1 of 9</p>
-                <button class="control-button" type="button" data-nav="next">Next</button>
-              </div>
-              <div class="view-layout">
-                
-    <nav class="rail-card" aria-label="Deck outline">
-      <div class="rail-label">Deck outline</div>
+      <div class="deck-layout">
+        
+    <nav class="rail-card" aria-label="Slide rail">
+      <div class="rail-title">Slide rail</div>
       <ol class="rail-list">
         
               <li>
                 <a href="#slide-cover" data-slide-target="cover">
                   <span class="rail-index">01</span>
-                  <span>Founder Pricing &amp; COGS</span>
-                </a>
-              </li>
-            
-              <li>
-                <a href="#slide-product-truth" data-slide-target="product-truth">
-                  <span class="rail-index">02</span>
-                  <span>Product Truth From The Codebase</span>
-                </a>
-              </li>
-            
-              <li>
-                <a href="#slide-vendor-rate-card" data-slide-target="vendor-rate-card">
-                  <span class="rail-index">03</span>
-                  <span>Official Vendor Rate Card</span>
+                  <span class="rail-copy">
+                    <strong>Argos Pricing &amp; Unit Economics</strong>
+                    <small>Simple subscription pricing, bounded live voice exposure, and a named vendor stack.</small>
+                  </span>
                 </a>
               </li>
             
               <li>
                 <a href="#slide-pricing-architecture" data-slide-target="pricing-architecture">
+                  <span class="rail-index">02</span>
+                  <span class="rail-copy">
+                    <strong>Included Usage &amp; Voice Policy</strong>
+                    <small>The commercial promise is subscriptions plus prepaid voice packs, not open-ended public metering.</small>
+                  </span>
+                </a>
+              </li>
+            
+              <li>
+                <a href="#slide-included-usage" data-slide-target="included-usage">
+                  <span class="rail-index">03</span>
+                  <span class="rail-copy">
+                    <strong>Base Usage Assumptions</strong>
+                    <small>The model uses explicit inputs for voice, scored calls, and shared software floor rather than hidden averages.</small>
+                  </span>
+                </a>
+              </li>
+            
+              <li>
+                <a href="#slide-vendor-cost-stack" data-slide-target="vendor-cost-stack">
                   <span class="rail-index">04</span>
-                  <span>Pricing Architecture And Controls</span>
+                  <span class="rail-copy">
+                    <strong>Official Vendor Cost Stack</strong>
+                    <small>The recurring stack is narrow, named directly, and tied back to official vendor rate cards.</small>
+                  </span>
                 </a>
               </li>
             
               <li>
-                <a href="#slide-direct-cost-stack" data-slide-target="direct-cost-stack">
+                <a href="#slide-solo-unit-economics" data-slide-target="solo-unit-economics">
                   <span class="rail-index">05</span>
-                  <span>Direct Cost Stack</span>
+                  <span class="rail-copy">
+                    <strong>Seat Economics: Solo Vs Team</strong>
+                    <small>Unit economics assume full included live voice usage and four scored calls per seat per month.</small>
+                  </span>
                 </a>
               </li>
             
               <li>
-                <a href="#slide-team-size-economics" data-slide-target="team-size-economics">
+                <a href="#slide-team-unit-economics" data-slide-target="team-unit-economics">
                   <span class="rail-index">06</span>
-                  <span>Team-Size Economics Under The Standard Allowance</span>
+                  <span class="rail-copy">
+                    <strong>Org-Level Margin Outcomes</strong>
+                    <small>A small shared software floor is layered on top of AI/runtime cost to show real delivered margin.</small>
+                  </span>
                 </a>
               </li>
             
               <li>
-                <a href="#slide-voice-sensitivity" data-slide-target="voice-sensitivity">
+                <a href="#slide-annual-vs-monthly" data-slide-target="annual-vs-monthly">
                   <span class="rail-index">07</span>
-                  <span>Voice Sensitivity</span>
+                  <span class="rail-copy">
+                    <strong>Monthly Vs Annual Billing Economics</strong>
+                    <small>Annual prepay is a cash collection tool with modest but real payment-fee efficiency.</small>
+                  </span>
                 </a>
               </li>
             
               <li>
-                <a href="#slide-arr-scale" data-slide-target="arr-scale">
+                <a href="#slide-voice-expansion-packs" data-slide-target="voice-expansion-packs">
                   <span class="rail-index">08</span>
-                  <span>ARR Scale</span>
+                  <span class="rail-copy">
+                    <strong>Voice Sensitivity &amp; Downside Control</strong>
+                    <small>Live voice is the main variable, but the downside is bounded because usage is pooled and overage is prepaid.</small>
+                  </span>
                 </a>
               </li>
             
               <li>
-                <a href="#slide-founder-conclusion" data-slide-target="founder-conclusion">
+                <a href="#slide-founder-close" data-slide-target="founder-close">
                   <span class="rail-index">09</span>
-                  <span>Founder Conclusion</span>
+                  <span class="rail-copy">
+                    <strong>Closing Thesis</strong>
+                    <small>The pricing system stays simple, the margin structure is readable, and live voice is monetized rather than subsidized.</small>
+                  </span>
                 </a>
               </li>
             
       </ol>
     </nav>
   
-                <div class="slide-stack" data-slide-ids="cover product-truth vendor-rate-card pricing-architecture direct-cost-stack team-size-economics voice-sensitivity arr-scale founder-conclusion">
-                  
-                        <article id="slide-cover" class="slide-card slide" data-slide-id="cover" data-fact-ids="publishedPath verificationDate" aria-hidden="false" data-active="true">
-                          <div class="card-header">
-                            <div class="label">Slide 01</div>
-                            <h3>Founder Pricing &amp; COGS</h3>
-                          </div>
-                          <p>A pricing story that stays product-native, investor-ready, and grounded in current cost structure.</p>
-                          <div class="slide-facts">
-    <article class="card" data-fact-key="publishedPath">
-      <div class="label">Published path</div>
-      <div class="fact-value">/argos-v2/founder-pricing/</div>
+        <section id="deck-track" class="deck-track" aria-live="polite">
+          
+    <article
+      id="slide-cover"
+      class="deck-slide kind-hero-metrics"
+      data-slide-id="cover"
+      data-slide-group="main"
+      data-slide-kind="hero-metrics"
+      data-slide-ordinal="0"
+      
+      aria-hidden="false"
+      data-active="true"
+    >
+      <div class="slide-shell">
+        <header class="slide-header">
+          <div>
+            <div class="eyebrow">Main deck</div>
+            <div class="slide-order">Slide 01</div>
+          </div>
+          <div class="slide-counter">1 / 9</div>
+        </header>
+        <div class="slide-copy">
+          <h1>Argos Pricing &amp; Unit Economics</h1>
+          <p>Simple subscription pricing, bounded live voice exposure, and a named vendor stack.</p>
+        </div>
+        <div class="slide-body">
+          
+        
+    <div class="metric-grid">
+      
+            <article class="metric-card">
+              <div class="eyebrow">Solo subscription</div>
+              <strong>$79</strong>
+              <p>120 included voice minutes per month</p>
+            </article>
+          
+            <article class="metric-card">
+              <div class="eyebrow">Team floor</div>
+              <strong>$150</strong>
+              <p>3 seats minimum at $50/seat</p>
+            </article>
+          
+            <article class="metric-card">
+              <div class="eyebrow">Annual discount</div>
+              <strong>10%</strong>
+              <p>Applies to both plans without adding another packaging tier</p>
+            </article>
+          
+            <article class="metric-card">
+              <div class="eyebrow">Voice expansion</div>
+              <strong>$175</strong>
+              <p>500-minute team growth pack</p>
+            </article>
+          
+    </div>
+  
+        
+    <ul class="bullet-list">
+      <li>Verified: April 23, 2026.</li><li>This deck is pricing and unit economics only. Stripe stays separate from product COGS.</li>
+    </ul>
+  
+      
+        </div>
+      </div>
     </article>
   
-    <article class="card" data-fact-key="verificationDate">
-      <div class="label">Verification date</div>
-      <div class="fact-value">2026-04-22</div>
-    </article>
-  </div>
-                        </article>
-                      
-                        <article id="slide-product-truth" class="slide-card slide" data-slide-id="product-truth" data-fact-ids="publishedPath" hidden aria-hidden="true" data-active="false">
-                          <div class="card-header">
-                            <div class="label">Slide 02</div>
-                            <h3>Product Truth From The Codebase</h3>
-                          </div>
-                          <p>The pricing narrative is anchored to the shipped product surface, not an invented packaging model.</p>
-                          <div class="slide-facts">
-    <article class="card" data-fact-key="publishedPath">
-      <div class="label">Published path</div>
-      <div class="fact-value">/argos-v2/founder-pricing/</div>
-    </article>
-  </div>
-                        </article>
-                      
-                        <article id="slide-vendor-rate-card" class="slide-card slide" data-slide-id="vendor-rate-card" data-fact-ids="vendorStack" hidden aria-hidden="true" data-active="false">
-                          <div class="card-header">
-                            <div class="label">Slide 03</div>
-                            <h3>Official Vendor Rate Card</h3>
-                          </div>
-                          <p>The model references the vendor stack directly so the pricing story stays tied to actual infrastructure inputs.</p>
-                          <div class="slide-facts">
-    <article class="card" data-fact-key="vendorStack">
-      <div class="label">Vendor stack</div>
-      <div class="fact-value">OpenAI, Vercel, Supabase, and Fly.io</div>
-    </article>
-  </div>
-                        </article>
-                      
-                        <article id="slide-pricing-architecture" class="slide-card slide" data-slide-id="pricing-architecture" data-fact-ids="seatPrice seatMinimum voiceAllowance" hidden aria-hidden="true" data-active="false">
-                          <div class="card-header">
-                            <div class="label">Slide 04</div>
-                            <h3>Pricing Architecture And Controls</h3>
-                          </div>
-                          <p>The founder package is constrained by a clear seat floor and a pooled voice allowance.</p>
-                          <div class="slide-facts">
-    <article class="card" data-fact-key="seatPrice">
-      <div class="label">Seat price</div>
-      <div class="fact-value">$50 / seat / month</div>
+    <article
+      id="slide-pricing-architecture"
+      class="deck-slide kind-policy-grid"
+      data-slide-id="pricing-architecture"
+      data-slide-group="main"
+      data-slide-kind="policy-grid"
+      data-slide-ordinal="1"
+      hidden
+      aria-hidden="true"
+      data-active="false"
+    >
+      <div class="slide-shell">
+        <header class="slide-header">
+          <div>
+            <div class="eyebrow">Main deck</div>
+            <div class="slide-order">Slide 02</div>
+          </div>
+          <div class="slide-counter">2 / 9</div>
+        </header>
+        <div class="slide-copy">
+          <h1>Included Usage &amp; Voice Policy</h1>
+          <p>The commercial promise is subscriptions plus prepaid voice packs, not open-ended public metering.</p>
+        </div>
+        <div class="slide-body">
+          
+        
+    <div class="policy-grid">
+      
+            <article class="policy-card">
+              <div class="eyebrow">Solo</div>
+              <h3>$79 / month</h3>
+              <p>120 included live voice minutes, then expansion through the 250-minute prepaid pack.</p>
+            </article>
+          
+            <article class="policy-card">
+              <div class="eyebrow">Team</div>
+              <h3>$50 / seat / month</h3>
+              <p>3-seat minimum with 120 pooled live voice minutes per seat and prepaid team packs for overage.</p>
+            </article>
+          
+            <article class="policy-card">
+              <div class="eyebrow">Annual</div>
+              <h3>10% prepaid discount</h3>
+              <p>Annual billing improves cash collection and fee efficiency without changing the public menu.</p>
+            </article>
+          
+    </div>
+  
+        
+    <ul class="bullet-list">
+      <li>Solo includes 120 live voice minutes each month and expands through a 250-minute pack.</li><li>Team includes 120 live minutes per seat, pooled at the org level, with 500- and 2000-minute packs for overage.</li><li>Internal per-minute underwriting rates stay in the appendix; the public packaging stays on subscriptions and packs.</li>
+    </ul>
+  
+      
+        </div>
+      </div>
     </article>
   
-    <article class="card" data-fact-key="seatMinimum">
-      <div class="label">Seat minimum</div>
-      <div class="fact-value">3-seat minimum</div>
-    </article>
-  
-    <article class="card" data-fact-key="voiceAllowance">
-      <div class="label">Voice allowance</div>
-      <div class="fact-value">120 pooled live voice minutes per paid seat per month</div>
-    </article>
-  </div>
-                        </article>
-                      
-                        <article id="slide-direct-cost-stack" class="slide-card slide" data-slide-id="direct-cost-stack" data-fact-ids="orgEstimate vendorStack" hidden aria-hidden="true" data-active="false">
-                          <div class="card-header">
-                            <div class="label">Slide 05</div>
-                            <h3>Direct Cost Stack</h3>
-                          </div>
-                          <p>The org-level estimate sits near the lower end of the founder-friendly range while preserving margin room.</p>
-                          <div class="slide-facts">
-    <article class="card" data-fact-key="orgEstimate">
-      <div class="label">Org estimate</div>
-      <div class="fact-value">~$58 / org / month</div>
-    </article>
-  
-    <article class="card" data-fact-key="vendorStack">
-      <div class="label">Vendor stack</div>
-      <div class="fact-value">OpenAI, Vercel, Supabase, and Fly.io</div>
-    </article>
-  </div>
-                        </article>
-                      
-                        <article id="slide-team-size-economics" class="slide-card slide" data-slide-id="team-size-economics" data-fact-ids="seatMinimum voiceAllowance" hidden aria-hidden="true" data-active="false">
-                          <div class="card-header">
-                            <div class="label">Slide 06</div>
-                            <h3>Team-Size Economics Under The Standard Allowance</h3>
-                          </div>
-                          <p>The minimum seat commitment matters more than the headline seat price when the allowance is pooled.</p>
-                          <div class="slide-facts">
-    <article class="card" data-fact-key="seatMinimum">
-      <div class="label">Seat minimum</div>
-      <div class="fact-value">3-seat minimum</div>
-    </article>
-  
-    <article class="card" data-fact-key="voiceAllowance">
-      <div class="label">Voice allowance</div>
-      <div class="fact-value">120 pooled live voice minutes per paid seat per month</div>
-    </article>
-  </div>
-                        </article>
-                      
-                        <article id="slide-voice-sensitivity" class="slide-card slide" data-slide-id="voice-sensitivity" data-fact-ids="voiceAllowance vendorStack" hidden aria-hidden="true" data-active="false">
-                          <div class="card-header">
-                            <div class="label">Slide 07</div>
-                            <h3>Voice Sensitivity</h3>
-                          </div>
-                          <p>Voice usage is the primary variable that can change the economics faster than steady software-only usage.</p>
-                          <div class="slide-facts">
-    <article class="card" data-fact-key="voiceAllowance">
-      <div class="label">Voice allowance</div>
-      <div class="fact-value">120 pooled live voice minutes per paid seat per month</div>
-    </article>
-  
-    <article class="card" data-fact-key="vendorStack">
-      <div class="label">Vendor stack</div>
-      <div class="fact-value">OpenAI, Vercel, Supabase, and Fly.io</div>
-    </article>
-  </div>
-                        </article>
-                      
-                        <article id="slide-arr-scale" class="slide-card slide" data-slide-id="arr-scale" data-fact-ids="seatPrice orgEstimate" hidden aria-hidden="true" data-active="false">
-                          <div class="card-header">
-                            <div class="label">Slide 08</div>
-                            <h3>ARR Scale</h3>
-                          </div>
-                          <p>The pricing structure leaves room to scale revenue while keeping the first cohort easy to explain.</p>
-                          <div class="slide-facts">
-    <article class="card" data-fact-key="seatPrice">
-      <div class="label">Seat price</div>
-      <div class="fact-value">$50 / seat / month</div>
-    </article>
-  
-    <article class="card" data-fact-key="orgEstimate">
-      <div class="label">Org estimate</div>
-      <div class="fact-value">~$58 / org / month</div>
-    </article>
-  </div>
-                        </article>
-                      
-                        <article id="slide-founder-conclusion" class="slide-card slide" data-slide-id="founder-conclusion" data-fact-ids="vendorStack publishedPath" hidden aria-hidden="true" data-active="false">
-                          <div class="card-header">
-                            <div class="label">Slide 09</div>
-                            <h3>Founder Conclusion</h3>
-                          </div>
-                          <p>Use the disciplined package as the default and keep the voice and infrastructure guardrails explicit.</p>
-                          <div class="slide-facts">
-    <article class="card" data-fact-key="vendorStack">
-      <div class="label">Vendor stack</div>
-      <div class="fact-value">OpenAI, Vercel, Supabase, and Fly.io</div>
-    </article>
-  
-    <article class="card" data-fact-key="publishedPath">
-      <div class="label">Published path</div>
-      <div class="fact-value">/argos-v2/founder-pricing/</div>
-    </article>
-  </div>
-                        </article>
-                      
-                </div>
-              </div>
-            </section>
-
-            <section id="memo-view" class="view-card" data-mode="memo" aria-labelledby="memo-title" data-memo-count="8" hidden aria-hidden="true">
-              <div class="view-header">
+    <article
+      id="slide-included-usage"
+      class="deck-slide kind-rate-stack"
+      data-slide-id="included-usage"
+      data-slide-group="main"
+      data-slide-kind="rate-stack"
+      data-slide-ordinal="2"
+      hidden
+      aria-hidden="true"
+      data-active="false"
+    >
+      <div class="slide-shell">
+        <header class="slide-header">
+          <div>
+            <div class="eyebrow">Main deck</div>
+            <div class="slide-order">Slide 03</div>
+          </div>
+          <div class="slide-counter">3 / 9</div>
+        </header>
+        <div class="slide-copy">
+          <h1>Base Usage Assumptions</h1>
+          <p>The model uses explicit inputs for voice, scored calls, and shared software floor rather than hidden averages.</p>
+        </div>
+        <div class="slide-body">
+          
+        
+    <div class="rate-stack">
+      
+            <article class="rate-card">
+              <div class="rate-row">
                 <div>
-                  <div class="kicker">Memo mode</div>
-                  <h2 id="memo-title">Founder documentation</h2>
-                  <p>Longer-form diligence notes with the same underlying content model, vendor references, and packaging assumptions as the presentation layer.</p>
+                  <div class="eyebrow">Live voice model</div>
+                  <strong>$0.08 / min</strong>
                 </div>
-                <div class="slide-meta">
-                  <span class="deck-pill">8 sections</span>
-                  <span class="deck-pill">Founder Recommendations</span>
-                </div>
+                <p>Internal planning conversion from OpenAI realtime token pricing, not an official vendor minute quote.</p>
               </div>
-              <div class="view-layout">
-                
-    <nav class="rail-card" aria-label="Memo contents">
-      <div class="rail-label">Memo contents</div>
+            </article>
+          
+            <article class="rate-card">
+              <div class="rate-row">
+                <div>
+                  <div class="eyebrow">Scored call model</div>
+                  <strong>$0.325 / call</strong>
+                </div>
+                <p>52.5 transcription minutes plus a small GPT-5 mini scoring buffer, with 4 calls per seat monthly.</p>
+              </div>
+            </article>
+          
+            <article class="rate-card">
+              <div class="rate-row">
+                <div>
+                  <div class="eyebrow">Shared software floor</div>
+                  <strong>$173.83 / mo</strong>
+                </div>
+                <p>Vercel, Supabase, Fly, HighLevel, and Resend spread across 25 active paying orgs in the base case.</p>
+              </div>
+            </article>
+          
+    </div>
+  
+        
+    <ul class="bullet-list">
+      <li>Live voice is modeled at $0.08 per minute; this is an internal conversion from OpenAI realtime token pricing, not an official minute quote.</li><li>Scored calls are modeled at $0.325 per 45-60 minute call, using 52.5 minutes of transcription plus a small GPT-5 mini scoring buffer.</li><li>Base usage assumes 4 scored calls per seat per month and spreads the $173.83 software floor across 25 active paying orgs.</li><li>Optional gpt-4o-mini-tts playback is ~$0.015 per minute and is excluded from base live voice metering.</li>
+    </ul>
+  
+      
+        </div>
+      </div>
+    </article>
+  
+    <article
+      id="slide-vendor-cost-stack"
+      class="deck-slide kind-assumption-list"
+      data-slide-id="vendor-cost-stack"
+      data-slide-group="main"
+      data-slide-kind="assumption-list"
+      data-slide-ordinal="3"
+      hidden
+      aria-hidden="true"
+      data-active="false"
+    >
+      <div class="slide-shell">
+        <header class="slide-header">
+          <div>
+            <div class="eyebrow">Main deck</div>
+            <div class="slide-order">Slide 04</div>
+          </div>
+          <div class="slide-counter">4 / 9</div>
+        </header>
+        <div class="slide-copy">
+          <h1>Official Vendor Cost Stack</h1>
+          <p>The recurring stack is narrow, named directly, and tied back to official vendor rate cards.</p>
+        </div>
+        <div class="slide-body">
+          
+        
+    <div class="assumption-list">
+      
+            <article class="assumption-row">
+              <strong>OpenAI</strong>
+              <span>Realtime voice, transcription, scoring, and optional TTS</span>
+            </article>
+          
+            <article class="assumption-row">
+              <strong>Vercel</strong>
+              <span>Pro $20 / month with 1 deploy seat and $20 usage credit</span>
+            </article>
+          
+            <article class="assumption-row">
+              <strong>Supabase</strong>
+              <span>Pro $25 / org / month with $10 compute credits</span>
+            </article>
+          
+            <article class="assumption-row">
+              <strong>Fly.io</strong>
+              <span>Worker planning anchor $11.83 / month for shared-cpu-2x 2GB</span>
+            </article>
+          
+            <article class="assumption-row">
+              <strong>HighLevel</strong>
+              <span>Starter $97 / month</span>
+            </article>
+          
+            <article class="assumption-row">
+              <strong>Resend</strong>
+              <span>Pro $20 / month with 50k emails included</span>
+            </article>
+          
+            <article class="assumption-row">
+              <strong>Stripe processing</strong>
+              <span>2.9% + $0.30 per card charge</span>
+            </article>
+          
+            <article class="assumption-row">
+              <strong>Stripe Billing</strong>
+              <span>0.7% recurring billing volume</span>
+            </article>
+          
+    </div>
+  
+        
+    <ul class="bullet-list">
+      <li>OpenAI, Vercel, Supabase, Fly.io, HighLevel, and Resend make up the base software and API stack.</li><li>Zoom is excluded from the base recurring model.</li><li>Stripe processing and Stripe Billing are shown as collection drag, not buried inside product gross margin.</li>
+    </ul>
+  
+      
+        </div>
+      </div>
+    </article>
+  
+    <article
+      id="slide-solo-unit-economics"
+      class="deck-slide kind-comparison-table"
+      data-slide-id="solo-unit-economics"
+      data-slide-group="main"
+      data-slide-kind="comparison-table"
+      data-slide-ordinal="4"
+      hidden
+      aria-hidden="true"
+      data-active="false"
+    >
+      <div class="slide-shell">
+        <header class="slide-header">
+          <div>
+            <div class="eyebrow">Main deck</div>
+            <div class="slide-order">Slide 05</div>
+          </div>
+          <div class="slide-counter">5 / 9</div>
+        </header>
+        <div class="slide-copy">
+          <h1>Seat Economics: Solo Vs Team</h1>
+          <p>Unit economics assume full included live voice usage and four scored calls per seat per month.</p>
+        </div>
+        <div class="slide-body">
+          
+        
+    <div class="table-shell">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Scenario</th><th>Monthly list</th><th>Included voice</th><th>AI/runtime COGS</th><th>Product GM</th><th>Collected GM</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+                <tr>
+                  <td>Solo</td><td>$79</td><td>120</td><td>$10.9</td><td>86.20%</td><td>82.23%</td>
+                </tr>
+              
+                <tr>
+                  <td>Team minimum</td><td>$150</td><td>360</td><td>$32.7</td><td>78.20%</td><td>74.40%</td>
+                </tr>
+              
+                <tr>
+                  <td>Team 10-seat</td><td>$500</td><td>1,200</td><td>$109</td><td>78.20%</td><td>74.54%</td>
+                </tr>
+              
+        </tbody>
+      </table>
+    </div>
+  
+        
+    <ul class="bullet-list">
+      <li>The seat view is intentionally hard-nosed: it uses the full included voice allowance instead of optimistic utilization.</li><li>The comparison keeps the three-seat minimum and a representative ten-seat team in the same frame.</li>
+    </ul>
+  
+      
+        </div>
+      </div>
+    </article>
+  
+    <article
+      id="slide-team-unit-economics"
+      class="deck-slide kind-comparison-table"
+      data-slide-id="team-unit-economics"
+      data-slide-group="main"
+      data-slide-kind="comparison-table"
+      data-slide-ordinal="5"
+      hidden
+      aria-hidden="true"
+      data-active="false"
+    >
+      <div class="slide-shell">
+        <header class="slide-header">
+          <div>
+            <div class="eyebrow">Main deck</div>
+            <div class="slide-order">Slide 06</div>
+          </div>
+          <div class="slide-counter">6 / 9</div>
+        </header>
+        <div class="slide-copy">
+          <h1>Org-Level Margin Outcomes</h1>
+          <p>A small shared software floor is layered on top of AI/runtime cost to show real delivered margin.</p>
+        </div>
+        <div class="slide-body">
+          
+        
+    <div class="table-shell">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Scenario</th><th>Monthly list</th><th>AI/runtime COGS</th><th>Shared floor</th><th>Product GM after floor</th><th>Collected GM after floor</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+                <tr>
+                  <td>Solo</td><td>$79</td><td>$10.9</td><td>$6.95</td><td>77.41%</td><td>73.43%</td>
+                </tr>
+              
+                <tr>
+                  <td>Team minimum</td><td>$150</td><td>$32.7</td><td>$6.95</td><td>73.57%</td><td>69.77%</td>
+                </tr>
+              
+                <tr>
+                  <td>Team 10-seat</td><td>$500</td><td>$109</td><td>$6.95</td><td>76.81%</td><td>73.15%</td>
+                </tr>
+              
+        </tbody>
+      </table>
+    </div>
+  
+        
+    <ul class="bullet-list">
+      <li>The base case allocates $6.95 per org from the $173.83 recurring software floor.</li><li>The three-seat minimum protects the weakest team cohort, while larger teams widen the margin cushion.</li>
+    </ul>
+  
+      
+        </div>
+      </div>
+    </article>
+  
+    <article
+      id="slide-annual-vs-monthly"
+      class="deck-slide kind-comparison-table"
+      data-slide-id="annual-vs-monthly"
+      data-slide-group="main"
+      data-slide-kind="comparison-table"
+      data-slide-ordinal="6"
+      hidden
+      aria-hidden="true"
+      data-active="false"
+    >
+      <div class="slide-shell">
+        <header class="slide-header">
+          <div>
+            <div class="eyebrow">Main deck</div>
+            <div class="slide-order">Slide 07</div>
+          </div>
+          <div class="slide-counter">7 / 9</div>
+        </header>
+        <div class="slide-copy">
+          <h1>Monthly Vs Annual Billing Economics</h1>
+          <p>Annual prepay is a cash collection tool with modest but real payment-fee efficiency.</p>
+        </div>
+        <div class="slide-body">
+          
+        
+    <div class="table-shell">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Scenario</th><th>Monthly list</th><th>Annual prepay</th><th>Stripe if billed monthly</th><th>Stripe once at list volume</th><th>Stripe on annual prepay</th><th>Billing frequency savings</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+                <tr>
+                  <td>Solo</td><td>$79</td><td>$853.2</td><td>$37.68</td><td>$34.43</td><td>$31.02</td><td>$3.25</td>
+                </tr>
+              
+                <tr>
+                  <td>Team minimum</td><td>$150</td><td>$1,620</td><td>$68.4</td><td>$65.1</td><td>$58.62</td><td>$3.3</td>
+                </tr>
+              
+                <tr>
+                  <td>Team 10-seat</td><td>$500</td><td>$5,400</td><td>$219.6</td><td>$216.3</td><td>$194.7</td><td>$3.3</td>
+                </tr>
+              
+        </tbody>
+      </table>
+    </div>
+  
+        
+    <ul class="bullet-list">
+      <li>Annual pricing is a 10% concession, not a separate tier.</li><li>The fee improvement comes from charging once instead of repeating the fixed 30-cent card component twelve times.</li>
+    </ul>
+  
+      
+        </div>
+      </div>
+    </article>
+  
+    <article
+      id="slide-voice-expansion-packs"
+      class="deck-slide kind-comparison-table"
+      data-slide-id="voice-expansion-packs"
+      data-slide-group="main"
+      data-slide-kind="comparison-table"
+      data-slide-ordinal="7"
+      hidden
+      aria-hidden="true"
+      data-active="false"
+    >
+      <div class="slide-shell">
+        <header class="slide-header">
+          <div>
+            <div class="eyebrow">Main deck</div>
+            <div class="slide-order">Slide 08</div>
+          </div>
+          <div class="slide-counter">8 / 9</div>
+        </header>
+        <div class="slide-copy">
+          <h1>Voice Sensitivity &amp; Downside Control</h1>
+          <p>Live voice is the main variable, but the downside is bounded because usage is pooled and overage is prepaid.</p>
+        </div>
+        <div class="slide-body">
+          
+        
+    <div class="table-shell">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Scenario</th><th>Monthly revenue</th><th>Total voice minutes</th><th>AI/runtime COGS</th><th>Product GM</th><th>Collected GM</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+                <tr>
+                  <td>Included only</td><td>$150</td><td>360</td><td>$32.7</td><td>78.20%</td><td>74.40%</td>
+                </tr>
+              
+                <tr>
+                  <td>+500 pack</td><td>$325</td><td>860</td><td>$72.7</td><td>77.63%</td><td>73.94%</td>
+                </tr>
+              
+                <tr>
+                  <td>+2,000 pack</td><td>$750</td><td>2,360</td><td>$192.7</td><td>74.31%</td><td>70.67%</td>
+                </tr>
+              
+        </tbody>
+      </table>
+    </div>
+  
+        
+    <ul class="bullet-list">
+      <li>Included minutes are bounded and team usage is pooled at the org level.</li><li>Heavy voice usage monetizes through prepaid packs rather than unlimited live access.</li><li>The shown pack cases keep collected margin above 70% in the modeled three-seat team scenarios.</li>
+    </ul>
+  
+      
+        </div>
+      </div>
+    </article>
+  
+    <article
+      id="slide-founder-close"
+      class="deck-slide kind-thesis"
+      data-slide-id="founder-close"
+      data-slide-group="main"
+      data-slide-kind="thesis"
+      data-slide-ordinal="8"
+      hidden
+      aria-hidden="true"
+      data-active="false"
+    >
+      <div class="slide-shell">
+        <header class="slide-header">
+          <div>
+            <div class="eyebrow">Main deck</div>
+            <div class="slide-order">Slide 09</div>
+          </div>
+          <div class="slide-counter">9 / 9</div>
+        </header>
+        <div class="slide-copy">
+          <h1>Closing Thesis</h1>
+          <p>The pricing system stays simple, the margin structure is readable, and live voice is monetized rather than subsidized.</p>
+        </div>
+        <div class="slide-body">
+          
+        <div class="thesis-panel">
+          <p class="thesis-summary">The pricing system stays simple, the margin structure is readable, and live voice is monetized rather than subsidized.</p>
+          
+    <ul class="bullet-list">
+      <li>Two subscription plans cover the menu: Solo for individuals and Team with a hard three-seat floor.</li><li>Product gross margins remain strong under full included voice assumptions.</li><li>Stripe drag is visible and manageable rather than hidden.</li><li>Voice expansion is bounded, pooled, and monetized through prepaid packs.</li>
+    </ul>
+  
+        </div>
+      
+        </div>
+      </div>
+    </article>
+  
+    <article
+      id="slide-appendix-rate-card"
+      class="deck-slide kind-appendix-table"
+      data-slide-id="appendix-rate-card"
+      data-slide-group="appendix"
+      data-slide-kind="appendix-table"
+      data-slide-ordinal="0"
+      hidden
+      aria-hidden="true"
+      data-active="false"
+    >
+      <div class="slide-shell">
+        <header class="slide-header">
+          <div>
+            <div class="eyebrow">Appendix</div>
+            <div class="slide-order">Appendix 01</div>
+          </div>
+          <div class="slide-counter">1 / 5</div>
+        </header>
+        <div class="slide-copy">
+          <h1>Appendix: Vendor Rate Card</h1>
+          <p>Exact vendor rates, planning uses, and source labels used in the deck.</p>
+        </div>
+        <div class="slide-body">
+          
+        <div class="appendix-grid">
+          
+    <article class="appendix-section">
+      <div class="eyebrow">Verified vendor rates</div>
+      
+      
+    <div class="table-shell">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Vendor</th><th>Official rate</th><th>Planning use</th><th>Source</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+                <tr>
+                  <td>OpenAI</td><td>GPT-realtime-1.5 audio $32 / 1M input tokens and $64 / 1M output tokens; gpt-4o-transcribe-diarize ~$0.006 / minute; gpt-5-mini $0.25 / 1M input and $2.00 / 1M output; gpt-4o-mini-tts ~$0.015 / minute</td><td>Live voice modeled at $0.08 / minute internally; scored calls modeled at ~$0.325 per 45-60 minute call.</td><td>openai.com/api/pricing + platform.openai.com/docs/pricing</td>
+                </tr>
+              
+                <tr>
+                  <td>Vercel</td><td>Pro $20 / month includes 1 deploy seat and $20 usage credit; extra deploy seats $20 / month</td><td>Base model uses one Pro seat and treats over-credit usage as variable, not fixed floor.</td><td>vercel.com/pricing + vercel.com/docs/plans/pro</td>
+                </tr>
+              
+                <tr>
+                  <td>Supabase</td><td>Pro $25 / org / month includes $10 compute credits; one Micro project bills to $25 in the official example</td><td>Base model assumes one active Pro org with one Micro project.</td><td>supabase.com/docs/guides/platform/billing-on-supabase + supabase.com/docs/guides/platform/manage-your-usage/compute</td>
+                </tr>
+              
+                <tr>
+                  <td>Fly.io</td><td>shared-cpu-2x with 2GB RAM is $11.83 / month in the published pricing table example</td><td>Current worker is shared / 2 CPUs / 2048 MB; model uses $11.83 / month as the planning anchor.</td><td>fly.io/docs/about/pricing</td>
+                </tr>
+              
+                <tr>
+                  <td>HighLevel</td><td>Starter $97 / month</td><td>Included in the recurring software floor.</td><td>gohighlevel.com/pricing</td>
+                </tr>
+              
+                <tr>
+                  <td>Resend</td><td>Pro $20 / month includes 50,000 emails; overage is $0.90 / 1,000 emails</td><td>Included because the current app uses Resend for invites.</td><td>resend.com/pricing</td>
+                </tr>
+              
+                <tr>
+                  <td>Stripe processing</td><td>2.9% + $0.30 per successful card charge</td><td>Excluded from product gross margin; shown separately in collected gross margin.</td><td>stripe.com/us/pricing</td>
+                </tr>
+              
+                <tr>
+                  <td>Stripe Billing</td><td>0.7% of billing volume on pay-as-you-go pricing</td><td>Excluded from product gross margin; included in collected gross margin.</td><td>stripe.com/us/billing/pricing</td>
+                </tr>
+              
+        </tbody>
+      </table>
+    </div>
+  
+    </article>
+  
+        </div>
+      
+        </div>
+      </div>
+    </article>
+  
+    <article
+      id="slide-appendix-formulas"
+      class="deck-slide kind-appendix-table"
+      data-slide-id="appendix-formulas"
+      data-slide-group="appendix"
+      data-slide-kind="appendix-table"
+      data-slide-ordinal="1"
+      hidden
+      aria-hidden="true"
+      data-active="false"
+    >
+      <div class="slide-shell">
+        <header class="slide-header">
+          <div>
+            <div class="eyebrow">Appendix</div>
+            <div class="slide-order">Appendix 02</div>
+          </div>
+          <div class="slide-counter">2 / 5</div>
+        </header>
+        <div class="slide-copy">
+          <h1>Appendix: Formula Detail</h1>
+          <p>The core formulas and planning conversions behind the seat model.</p>
+        </div>
+        <div class="slide-body">
+          
+        <div class="appendix-grid">
+          
+    <article class="appendix-section">
+      <div class="eyebrow">Key formulas</div>
+      
+      
+    <div class="table-shell">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Metric</th><th>Formula</th><th>Output</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+                <tr>
+                  <td>Live voice planning cost</td><td>Derived internally from GPT-realtime-1.5 token pricing</td><td>$0.08 / minute</td>
+                </tr>
+              
+                <tr>
+                  <td>Scored call planning cost</td><td>52.5 min × $0.006 transcription + $0.01 GPT-5-mini scoring buffer</td><td>$0.325 / call</td>
+                </tr>
+              
+                <tr>
+                  <td>Shared software floor</td><td>$20 Vercel + $25 Supabase + $11.83 Fly + $97 HighLevel + $20 Resend</td><td>$173.83 / month</td>
+                </tr>
+              
+                <tr>
+                  <td>Base-case floor allocation</td><td>$173.83 / 25 active paying orgs</td><td>$6.95 / org / month</td>
+                </tr>
+              
+                <tr>
+                  <td>Collected gross margin</td><td>Product gross margin minus Stripe processing and Stripe Billing fees</td><td>Stripe shown separately from product COGS</td>
+                </tr>
+              
+                <tr>
+                  <td>Internal underwriting rates</td><td>Used only for pack sizing and margin guardrails</td><td>Solo 0.39 / min; Team 0.29 / min</td>
+                </tr>
+              
+        </tbody>
+      </table>
+    </div>
+  
+    </article>
+  
+    <article class="appendix-section">
+      <div class="eyebrow">Modeling notes</div>
+      
+    <ul class="appendix-list">
+      <li>Live voice planning cost is derived from official OpenAI token pricing and presented as an internal minute conversion.</li><li>Product gross margin excludes Stripe. Collected gross margin subtracts Stripe processing and Stripe Billing fees.</li><li>Internal underwriting rates remain $0.39/minute for Solo and $0.29/minute for Team, but public overage is sold through prepaid packs.</li><li>Purchased voice packs are modeled with 90-day validity in the current implementation plan.</li>
+    </ul>
+  
+      
+    </article>
+  
+        </div>
+      
+        </div>
+      </div>
+    </article>
+  
+    <article
+      id="slide-appendix-seat-economics"
+      class="deck-slide kind-appendix-table"
+      data-slide-id="appendix-seat-economics"
+      data-slide-group="appendix"
+      data-slide-kind="appendix-table"
+      data-slide-ordinal="2"
+      hidden
+      aria-hidden="true"
+      data-active="false"
+    >
+      <div class="slide-shell">
+        <header class="slide-header">
+          <div>
+            <div class="eyebrow">Appendix</div>
+            <div class="slide-order">Appendix 03</div>
+          </div>
+          <div class="slide-counter">3 / 5</div>
+        </header>
+        <div class="slide-copy">
+          <h1>Appendix: Seat Economics</h1>
+          <p>Detailed seat-level comparison across Solo, Team minimum, and Team 10-seat.</p>
+        </div>
+        <div class="slide-body">
+          
+        <div class="appendix-grid">
+          
+    <article class="appendix-section">
+      <div class="eyebrow">Seat economics rows</div>
+      
+      
+    <div class="table-shell">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Scenario</th><th>Monthly list</th><th>Included voice</th><th>AI/runtime COGS</th><th>Product GM</th><th>Collected GM</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+                <tr>
+                  <td>Solo</td><td>$79</td><td>120</td><td>$10.9</td><td>86.20%</td><td>82.23%</td>
+                </tr>
+              
+                <tr>
+                  <td>Team minimum</td><td>$150</td><td>360</td><td>$32.7</td><td>78.20%</td><td>74.40%</td>
+                </tr>
+              
+                <tr>
+                  <td>Team 10-seat</td><td>$500</td><td>1,200</td><td>$109</td><td>78.20%</td><td>74.54%</td>
+                </tr>
+              
+        </tbody>
+      </table>
+    </div>
+  
+    </article>
+  
+        </div>
+      
+        </div>
+      </div>
+    </article>
+  
+    <article
+      id="slide-appendix-margin-bridge"
+      class="deck-slide kind-appendix-table"
+      data-slide-id="appendix-margin-bridge"
+      data-slide-group="appendix"
+      data-slide-kind="appendix-table"
+      data-slide-ordinal="3"
+      hidden
+      aria-hidden="true"
+      data-active="false"
+    >
+      <div class="slide-shell">
+        <header class="slide-header">
+          <div>
+            <div class="eyebrow">Appendix</div>
+            <div class="slide-order">Appendix 04</div>
+          </div>
+          <div class="slide-counter">4 / 5</div>
+        </header>
+        <div class="slide-copy">
+          <h1>Appendix: Margin Bridge</h1>
+          <p>How shared software floor and Stripe turn product margin into collected margin.</p>
+        </div>
+        <div class="slide-body">
+          
+        <div class="appendix-grid">
+          
+    <article class="appendix-section">
+      <div class="eyebrow">Org-level margin rows</div>
+      
+      
+    <div class="table-shell">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Scenario</th><th>Monthly list</th><th>AI/runtime COGS</th><th>Shared floor</th><th>Product GM after floor</th><th>Collected GM after floor</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+                <tr>
+                  <td>Solo</td><td>$79</td><td>$10.9</td><td>$6.95</td><td>77.41%</td><td>73.43%</td>
+                </tr>
+              
+                <tr>
+                  <td>Team minimum</td><td>$150</td><td>$32.7</td><td>$6.95</td><td>73.57%</td><td>69.77%</td>
+                </tr>
+              
+                <tr>
+                  <td>Team 10-seat</td><td>$500</td><td>$109</td><td>$6.95</td><td>76.81%</td><td>73.15%</td>
+                </tr>
+              
+        </tbody>
+      </table>
+    </div>
+  
+    </article>
+  
+    <article class="appendix-section">
+      <div class="eyebrow">Annual billing rows</div>
+      
+      
+    <div class="table-shell">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Scenario</th><th>Monthly list</th><th>Annual prepay</th><th>Stripe if billed monthly</th><th>Stripe once at list volume</th><th>Stripe on annual prepay</th><th>Billing frequency savings</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+                <tr>
+                  <td>Solo</td><td>$79</td><td>$853.2</td><td>$37.68</td><td>$34.43</td><td>$31.02</td><td>$3.25</td>
+                </tr>
+              
+                <tr>
+                  <td>Team minimum</td><td>$150</td><td>$1,620</td><td>$68.4</td><td>$65.1</td><td>$58.62</td><td>$3.3</td>
+                </tr>
+              
+                <tr>
+                  <td>Team 10-seat</td><td>$500</td><td>$5,400</td><td>$219.6</td><td>$216.3</td><td>$194.7</td><td>$3.3</td>
+                </tr>
+              
+        </tbody>
+      </table>
+    </div>
+  
+    </article>
+  
+        </div>
+      
+        </div>
+      </div>
+    </article>
+  
+    <article
+      id="slide-appendix-voice-sensitivity"
+      class="deck-slide kind-sensitivity-table"
+      data-slide-id="appendix-voice-sensitivity"
+      data-slide-group="appendix"
+      data-slide-kind="sensitivity-table"
+      data-slide-ordinal="4"
+      hidden
+      aria-hidden="true"
+      data-active="false"
+    >
+      <div class="slide-shell">
+        <header class="slide-header">
+          <div>
+            <div class="eyebrow">Appendix</div>
+            <div class="slide-order">Appendix 05</div>
+          </div>
+          <div class="slide-counter">5 / 5</div>
+        </header>
+        <div class="slide-copy">
+          <h1>Appendix: Voice Sensitivity</h1>
+          <p>Team minimum scenarios showing how pack revenue absorbs heavier voice usage.</p>
+        </div>
+        <div class="slide-body">
+          
+        <div class="appendix-grid">
+          
+    <article class="appendix-section">
+      <div class="eyebrow">Voice sensitivity rows</div>
+      
+      
+    <div class="table-shell">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Scenario</th><th>Monthly revenue</th><th>Total voice minutes</th><th>AI/runtime COGS</th><th>Product GM</th><th>Collected GM</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+                <tr>
+                  <td>Included only</td><td>$150</td><td>360</td><td>$32.7</td><td>78.20%</td><td>74.40%</td>
+                </tr>
+              
+                <tr>
+                  <td>+500 pack</td><td>$325</td><td>860</td><td>$72.7</td><td>77.63%</td><td>73.94%</td>
+                </tr>
+              
+                <tr>
+                  <td>+2,000 pack</td><td>$750</td><td>2,360</td><td>$192.7</td><td>74.31%</td><td>70.67%</td>
+                </tr>
+              
+        </tbody>
+      </table>
+    </div>
+  
+    </article>
+  
+    <article class="appendix-section">
+      <div class="eyebrow">Pack policy</div>
+      
+    <ul class="appendix-list">
+      <li>Solo pack: 250 minutes for $125 valid for 90 days.</li><li>Team growth pack: 500 minutes for $175 valid for 90 days.</li><li>Team scale pack: 2000 minutes for $600 valid for 90 days.</li>
+    </ul>
+  
+      
+    </article>
+  
+        </div>
+      
+        </div>
+      </div>
+    </article>
+  
+        </section>
+        
+    <nav class="rail-card" aria-label="Appendix rail">
+      <div class="rail-title">Appendix rail</div>
       <ol class="rail-list">
         
               <li>
-                <a href="#memo-executive-summary" data-section-target="executive-summary">
+                <a href="#slide-appendix-rate-card" data-slide-target="appendix-rate-card">
                   <span class="rail-index">01</span>
-                  <span>Executive Summary</span>
+                  <span class="rail-copy">
+                    <strong>Appendix: Vendor Rate Card</strong>
+                    <small>Exact vendor rates, planning uses, and source labels used in the deck.</small>
+                  </span>
                 </a>
               </li>
             
               <li>
-                <a href="#memo-product-truth" data-section-target="product-truth">
+                <a href="#slide-appendix-formulas" data-slide-target="appendix-formulas">
                   <span class="rail-index">02</span>
-                  <span>Product Truth From The Current Codebase</span>
+                  <span class="rail-copy">
+                    <strong>Appendix: Formula Detail</strong>
+                    <small>The core formulas and planning conversions behind the seat model.</small>
+                  </span>
                 </a>
               </li>
             
               <li>
-                <a href="#memo-official-vendor-pricing" data-section-target="official-vendor-pricing">
+                <a href="#slide-appendix-seat-economics" data-slide-target="appendix-seat-economics">
                   <span class="rail-index">03</span>
-                  <span>Official Vendor Pricing</span>
+                  <span class="rail-copy">
+                    <strong>Appendix: Seat Economics</strong>
+                    <small>Detailed seat-level comparison across Solo, Team minimum, and Team 10-seat.</small>
+                  </span>
                 </a>
               </li>
             
               <li>
-                <a href="#memo-modeling-boundary" data-section-target="modeling-boundary">
+                <a href="#slide-appendix-margin-bridge" data-slide-target="appendix-margin-bridge">
                   <span class="rail-index">04</span>
-                  <span>Modeling Boundary: Core COGS Vs Optional Software Vs Internal Tooling</span>
+                  <span class="rail-copy">
+                    <strong>Appendix: Margin Bridge</strong>
+                    <small>How shared software floor and Stripe turn product margin into collected margin.</small>
+                  </span>
                 </a>
               </li>
             
               <li>
-                <a href="#memo-packaging-recommendation" data-section-target="packaging-recommendation">
+                <a href="#slide-appendix-voice-sensitivity" data-slide-target="appendix-voice-sensitivity">
                   <span class="rail-index">05</span>
-                  <span>Packaging Recommendation And Voice Guardrails</span>
-                </a>
-              </li>
-            
-              <li>
-                <a href="#memo-unit-economics" data-section-target="unit-economics">
-                  <span class="rail-index">06</span>
-                  <span>Unit Economics And Margin Sensitivity</span>
-                </a>
-              </li>
-            
-              <li>
-                <a href="#memo-founder-recommendations" data-section-target="founder-recommendations">
-                  <span class="rail-index">07</span>
-                  <span>Founder Recommendations</span>
-                </a>
-              </li>
-            
-              <li>
-                <a href="#memo-sources-and-verification" data-section-target="sources-and-verification">
-                  <span class="rail-index">08</span>
-                  <span>Sources And Verification Date</span>
+                  <span class="rail-copy">
+                    <strong>Appendix: Voice Sensitivity</strong>
+                    <small>Team minimum scenarios showing how pack revenue absorbs heavier voice usage.</small>
+                  </span>
                 </a>
               </li>
             
       </ol>
     </nav>
   
-                <div class="memo-stack">
-                  
-                        <article id="memo-executive-summary" class="memo-card" data-section-id="executive-summary" data-fact-ids="seatPrice seatMinimum voiceAllowance orgEstimate">
-                          <div class="card-header">
-                            <div class="label">Section</div>
-                            <h3>Executive Summary</h3>
-                          </div>
-                          <div class="memo-facts">
-    <article class="card" data-fact-key="seatPrice">
-      <div class="label">Seat price</div>
-      <div class="fact-value">$50 / seat / month</div>
-    </article>
-  
-    <article class="card" data-fact-key="seatMinimum">
-      <div class="label">Seat minimum</div>
-      <div class="fact-value">3-seat minimum</div>
-    </article>
-  
-    <article class="card" data-fact-key="voiceAllowance">
-      <div class="label">Voice allowance</div>
-      <div class="fact-value">120 pooled live voice minutes per paid seat per month</div>
-    </article>
-  
-    <article class="card" data-fact-key="orgEstimate">
-      <div class="label">Org estimate</div>
-      <div class="fact-value">~$58 / org / month</div>
-    </article>
-  </div>
-                          <p>The founder pricing package is intentionally simple: a $50 / seat / month monthly price, a 3-seat minimum, and a 120 pooled live voice minutes per paid seat per month that keeps the package legible for founders and investors.</p><p>The org-level estimate is about ~$58 / org / month under the canonical assumptions captured in this deck.</p>
-                        </article>
-                      
-                        <article id="memo-product-truth" class="memo-card" data-section-id="product-truth" data-fact-ids="publishedPath">
-                          <div class="card-header">
-                            <div class="label">Section</div>
-                            <h3>Product Truth From The Current Codebase</h3>
-                          </div>
-                          <div class="memo-facts">
-    <article class="card" data-fact-key="publishedPath">
-      <div class="label">Published path</div>
-      <div class="fact-value">/argos-v2/founder-pricing/</div>
-    </article>
-  </div>
-                          <p>The pricing story should stay tied to the current product surface and the repository's actual deployment footprint.</p><p>The canonical implementation uses one shared content object so the deck and memo remain aligned.</p>
-                        </article>
-                      
-                        <article id="memo-official-vendor-pricing" class="memo-card" data-section-id="official-vendor-pricing" data-fact-ids="vendorStack">
-                          <div class="card-header">
-                            <div class="label">Section</div>
-                            <h3>Official Vendor Pricing</h3>
-                          </div>
-                          <div class="memo-facts">
-    <article class="card" data-fact-key="vendorStack">
-      <div class="label">Vendor stack</div>
-      <div class="fact-value">OpenAI, Vercel, Supabase, and Fly.io</div>
-    </article>
-  </div>
-                          <p>The rate card explicitly names the vendor stack: OpenAI, Vercel, Supabase, and Fly.io.</p><p>Those vendors are carried through the HTML so the generated artifact surfaces the same canonical references as the source model.</p>
-                        </article>
-                      
-                        <article id="memo-modeling-boundary" class="memo-card" data-section-id="modeling-boundary" data-fact-ids="seatPrice orgEstimate">
-                          <div class="card-header">
-                            <div class="label">Section</div>
-                            <h3>Modeling Boundary: Core COGS Vs Optional Software Vs Internal Tooling</h3>
-                          </div>
-                          <div class="memo-facts">
-    <article class="card" data-fact-key="seatPrice">
-      <div class="label">Seat price</div>
-      <div class="fact-value">$50 / seat / month</div>
-    </article>
-  
-    <article class="card" data-fact-key="orgEstimate">
-      <div class="label">Org estimate</div>
-      <div class="fact-value">~$58 / org / month</div>
-    </article>
-  </div>
-                          <p>The founder model keeps the direct cost boundary clean so the core pricing story remains easy to audit.</p><p>Optional software and internal tooling are called out separately rather than being hidden inside the base seat price.</p>
-                        </article>
-                      
-                        <article id="memo-packaging-recommendation" class="memo-card" data-section-id="packaging-recommendation" data-fact-ids="seatMinimum voiceAllowance">
-                          <div class="card-header">
-                            <div class="label">Section</div>
-                            <h3>Packaging Recommendation And Voice Guardrails</h3>
-                          </div>
-                          <div class="memo-facts">
-    <article class="card" data-fact-key="seatMinimum">
-      <div class="label">Seat minimum</div>
-      <div class="fact-value">3-seat minimum</div>
-    </article>
-  
-    <article class="card" data-fact-key="voiceAllowance">
-      <div class="label">Voice allowance</div>
-      <div class="fact-value">120 pooled live voice minutes per paid seat per month</div>
-    </article>
-  </div>
-                          <p>Keep the packaging anchored to the seat minimum and the pooled live voice allowance.</p><p>Voice usage is the main guardrail that must be stated clearly to avoid ambiguity in founder conversations.</p>
-                        </article>
-                      
-                        <article id="memo-unit-economics" class="memo-card" data-section-id="unit-economics" data-fact-ids="orgEstimate voiceAllowance">
-                          <div class="card-header">
-                            <div class="label">Section</div>
-                            <h3>Unit Economics And Margin Sensitivity</h3>
-                          </div>
-                          <div class="memo-facts">
-    <article class="card" data-fact-key="orgEstimate">
-      <div class="label">Org estimate</div>
-      <div class="fact-value">~$58 / org / month</div>
-    </article>
-  
-    <article class="card" data-fact-key="voiceAllowance">
-      <div class="label">Voice allowance</div>
-      <div class="fact-value">120 pooled live voice minutes per paid seat per month</div>
-    </article>
-  </div>
-                          <p>The canonical estimate of ~$58 / org / month leaves room for software delivery while preserving a straightforward founder story.</p><p>If usage intensity changes, the voice cost line should be the first place the model is revisited.</p>
-                        </article>
-                      
-                        <article id="memo-founder-recommendations" class="memo-card" data-section-id="founder-recommendations" data-fact-ids="seatPrice seatMinimum vendorStack">
-                          <div class="card-header">
-                            <div class="label">Section</div>
-                            <h3>Founder Recommendations</h3>
-                          </div>
-                          <div class="memo-facts">
-    <article class="card" data-fact-key="seatPrice">
-      <div class="label">Seat price</div>
-      <div class="fact-value">$50 / seat / month</div>
-    </article>
-  
-    <article class="card" data-fact-key="seatMinimum">
-      <div class="label">Seat minimum</div>
-      <div class="fact-value">3-seat minimum</div>
-    </article>
-  
-    <article class="card" data-fact-key="vendorStack">
-      <div class="label">Vendor stack</div>
-      <div class="fact-value">OpenAI, Vercel, Supabase, and Fly.io</div>
-    </article>
-  </div>
-                          <p>Lead with the seat price and minimum, then explain the pooled voice allowance as the reason the package remains usable.</p><p>Keep the vendor stack visible so the model reads as grounded operationally rather than aspirationally priced.</p>
-                        </article>
-                      
-                        <article id="memo-sources-and-verification" class="memo-card" data-section-id="sources-and-verification" data-fact-ids="verificationDate publishedPath">
-                          <div class="card-header">
-                            <div class="label">Section</div>
-                            <h3>Sources And Verification Date</h3>
-                          </div>
-                          <div class="memo-facts">
-    <article class="card" data-fact-key="verificationDate">
-      <div class="label">Verification date</div>
-      <div class="fact-value">2026-04-22</div>
-    </article>
-  
-    <article class="card" data-fact-key="publishedPath">
-      <div class="label">Published path</div>
-      <div class="fact-value">/argos-v2/founder-pricing/</div>
-    </article>
-  </div>
-                          <p>Verification date: 2026-04-22.</p><p>Published path: /argos-v2/founder-pricing/.</p>
-                        </article>
-                      
-                </div>
-              </div>
-            </section>
-          </div>
-        </div>
       </div>
+
+      <footer class="status-footer">
+        <div class="status-summary">
+          <div>
+            <div class="eyebrow" data-active-group>Main deck</div>
+            <strong data-active-title>Argos Pricing &amp; Unit Economics</strong>
+          </div>
+          <span data-slide-status>Slide 1 of 9</span>
+        </div>
+        <div class="control-row">
+          <button class="control-button" type="button" data-nav="prev" disabled>Previous</button>
+          <button class="control-button" type="button" data-nav="next">Next</button>
+        </div>
+      </footer>
     </main>
     
     <script>
-      class FounderPricingController {
-        constructor() {
-          this.deckView = document.getElementById("deck-view");
-          this.memoView = document.getElementById("memo-view");
-          this.slideNodes = Array.from(document.querySelectorAll(".slide"));
-          this.modeButtons = Array.from(document.querySelectorAll(".mode-button[data-mode]"));
-          this.deckLinks = Array.from(document.querySelectorAll("[data-slide-target]"));
-          this.memoLinks = Array.from(document.querySelectorAll("[data-section-target]"));
-          this.prevButton = document.querySelector('[data-nav="prev"]');
-          this.nextButton = document.querySelector('[data-nav="next"]');
-          this.statusNode = document.querySelector("[data-slide-status]");
-          this.touchStartX = 0;
-          this.touchStartY = 0;
-          this.wheelLocked = false;
-          this.motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-          this.mode = "deck";
-          this.initialHash = window.location?.hash?.replace(/^#/, "") ?? "";
-          this.index = Math.max(
-            0,
-            this.slideNodes.findIndex((slide) => !slide.hidden),
-          );
+      
+class FounderPricingController {
+  constructor() {
+    this.slideNodes = Array.from(document.querySelectorAll(".deck-slide"));
+    this.slideLinks = Array.from(document.querySelectorAll("[data-slide-target]"));
+    this.prevButton = document.querySelector('[data-nav="prev"]');
+    this.nextButton = document.querySelector('[data-nav="next"]');
+    this.statusNode = document.querySelector("[data-slide-status]");
+    this.groupNode = document.querySelector("[data-active-group]");
+    this.titleNode = document.querySelector("[data-active-title]");
+    this.touchStartX = 0;
+    this.touchStartY = 0;
+    this.wheelLocked = false;
+    this.motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    this.initialHash = window.location?.hash?.replace(/^#/, "") ?? "";
+    this.index = Math.max(0, this.slideNodes.findIndex((slide) => !slide.hidden));
 
-          this.bind();
-          this.setMode("deck");
-          this.syncFromHash(this.initialHash);
-        }
+    this.mainSlideCount = this.slideNodes.filter(
+      (slide) => slide.dataset.slideGroup === "main",
+    ).length;
+    this.appendixSlideCount = this.slideNodes.filter(
+      (slide) => slide.dataset.slideGroup === "appendix",
+    ).length;
 
-        bind() {
-          this.modeButtons.forEach((button) => {
-            button.addEventListener("click", () => this.setMode(button.dataset.mode));
-          });
+    this.bind();
+    this.syncFromHash(this.initialHash);
+    this.update();
+  }
 
-          this.prevButton?.addEventListener("click", () => this.go(-1));
-          this.nextButton?.addEventListener("click", () => this.go(1));
+  bind() {
+    this.prevButton?.addEventListener("click", () => this.go(-1));
+    this.nextButton?.addEventListener("click", () => this.go(1));
 
-          this.deckLinks.forEach((link) => {
-            link.addEventListener("click", (event) => {
-              event.preventDefault();
-              this.setMode("deck");
-              this.showSlideById(link.dataset.slideTarget);
-            });
-          });
+    this.slideLinks.forEach((link) => {
+      link.addEventListener("click", (event) => {
+        event.preventDefault();
+        this.showSlideById(link.dataset.slideTarget);
+      });
+    });
 
-          this.memoLinks.forEach((link) => {
-            link.addEventListener("click", (event) => {
-              event.preventDefault();
-              this.setMode("memo");
-              this.syncHash(`memo-${link.dataset.sectionTarget}`);
-              this.scrollToNode(document.getElementById(`memo-${link.dataset.sectionTarget}`));
-            });
-          });
-
-          window.addEventListener("keydown", (event) => {
-            if (this.mode !== "deck") {
-              return;
-            }
-
-            if (event.key === "ArrowRight" || event.key === "PageDown") {
-              event.preventDefault();
-              this.go(1);
-            }
-
-            if (event.key === "ArrowLeft" || event.key === "PageUp") {
-              event.preventDefault();
-              this.go(-1);
-            }
-          });
-
-          window.addEventListener(
-            "wheel",
-            (event) => {
-              if (this.mode !== "deck" || this.wheelLocked || Math.abs(event.deltaY) < 28) {
-                return;
-              }
-
-              this.wheelLocked = true;
-              this.go(event.deltaY > 0 ? 1 : -1);
-              window.setTimeout(() => {
-                this.wheelLocked = false;
-              }, 450);
-            },
-            { passive: true },
-          );
-
-          window.addEventListener(
-            "touchstart",
-            (event) => {
-              this.touchStartX = event.changedTouches[0]?.clientX ?? 0;
-              this.touchStartY = event.changedTouches[0]?.clientY ?? 0;
-            },
-            { passive: true },
-          );
-
-          window.addEventListener(
-            "touchend",
-            (event) => {
-              if (this.mode !== "deck") {
-                return;
-              }
-
-              const endX = event.changedTouches[0]?.clientX ?? 0;
-              const endY = event.changedTouches[0]?.clientY ?? 0;
-              const deltaX = endX - this.touchStartX;
-              const deltaY = endY - this.touchStartY;
-
-              if (Math.abs(deltaX) < 40 || Math.abs(deltaX) < Math.abs(deltaY)) {
-                return;
-              }
-
-              this.go(deltaX < 0 ? 1 : -1);
-            },
-            { passive: true },
-          );
-
-          window.addEventListener("hashchange", () => {
-            this.syncFromHash();
-          });
-        }
-
-        setMode(mode) {
-          const isDeck = mode === "deck";
-
-          this.mode = isDeck ? "deck" : "memo";
-          this.deckView.hidden = !isDeck;
-          this.memoView.hidden = isDeck;
-          this.deckView.setAttribute("aria-hidden", String(!isDeck));
-          this.memoView.setAttribute("aria-hidden", String(isDeck));
-
-          this.modeButtons.forEach((button) => {
-            const isActive = button.dataset.mode === this.mode;
-            button.dataset.active = String(isActive);
-            button.setAttribute("aria-pressed", String(isActive));
-          });
-
-          this.update();
-        }
-
-        showSlideById(slideId) {
-          const nextIndex = this.slideNodes.findIndex((slide) => slide.dataset.slideId === slideId);
-
-          if (nextIndex < 0) {
-            return;
-          }
-
-          this.index = nextIndex;
-          this.update();
-        }
-
-        go(direction) {
-          if (this.mode !== "deck") {
-            return;
-          }
-
-          const nextIndex = Math.max(
-            0,
-            Math.min(this.slideNodes.length - 1, this.index + direction),
-          );
-
-          if (nextIndex === this.index) {
-            return;
-          }
-
-          this.index = nextIndex;
-          this.update();
-        }
-
-        scrollToNode(node) {
-          if (!node || this.motionQuery.matches) {
-            return;
-          }
-
-          node.scrollIntoView({
-            behavior: "smooth",
-            block: "nearest",
-          });
-        }
-
-        syncHash(nextHash) {
-          if (!window.location || !nextHash) {
-            return;
-          }
-
-          const hashValue = `#${nextHash}`;
-
-          if (window.history?.replaceState) {
-            window.history.replaceState(null, "", hashValue);
-            return;
-          }
-
-          window.location.hash = hashValue;
-        }
-
-        syncFromHash(hash = window.location?.hash?.replace(/^#/, "") ?? "") {
-
-          if (!hash) {
-            return;
-          }
-
-          if (hash.startsWith("slide-")) {
-            this.setMode("deck");
-            this.showSlideById(hash.replace(/^slide-/, ""));
-            return;
-          }
-
-          if (hash.startsWith("memo-")) {
-            this.setMode("memo");
-            this.scrollToNode(document.getElementById(hash));
-          }
-        }
-
-        update() {
-          this.slideNodes.forEach((slide, index) => {
-            const isVisible = this.mode === "deck" && index === this.index;
-
-            slide.hidden = !isVisible;
-            slide.setAttribute("aria-hidden", String(!isVisible));
-            slide.dataset.active = String(isVisible);
-          });
-
-          if (this.prevButton) {
-            this.prevButton.disabled = this.mode !== "deck" || this.index === 0;
-          }
-
-          if (this.nextButton) {
-            this.nextButton.disabled =
-              this.mode !== "deck" || this.index === this.slideNodes.length - 1;
-          }
-
-          if (this.statusNode) {
-            this.statusNode.textContent =
-              this.mode === "deck"
-                ? `Slide ${this.index + 1} of ${this.slideNodes.length}`
-                : "Memo mode";
-          }
-
-          if (this.mode === "deck") {
-            this.syncHash(`slide-${this.slideNodes[this.index]?.dataset.slideId ?? ""}`);
-            this.scrollToNode(this.slideNodes[this.index]);
-          }
-        }
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowRight" || event.key === "PageDown") {
+        event.preventDefault();
+        this.go(1);
       }
 
-      window.addEventListener("DOMContentLoaded", () => {
-        if (document.getElementById("deck-view") && document.getElementById("memo-view")) {
-          window.__founderPricingController = new FounderPricingController();
+      if (event.key === "ArrowLeft" || event.key === "PageUp") {
+        event.preventDefault();
+        this.go(-1);
+      }
+    });
+
+    window.addEventListener(
+      "wheel",
+      (event) => {
+        if (this.wheelLocked || Math.abs(event.deltaY) < 28) {
+          return;
         }
-      });
+
+        this.wheelLocked = true;
+        this.go(event.deltaY > 0 ? 1 : -1);
+        window.setTimeout(() => {
+          this.wheelLocked = false;
+        }, 450);
+      },
+      { passive: true },
+    );
+
+    window.addEventListener(
+      "touchstart",
+      (event) => {
+        this.touchStartX = event.changedTouches[0]?.clientX ?? 0;
+        this.touchStartY = event.changedTouches[0]?.clientY ?? 0;
+      },
+      { passive: true },
+    );
+
+    window.addEventListener(
+      "touchend",
+      (event) => {
+        const endX = event.changedTouches[0]?.clientX ?? 0;
+        const endY = event.changedTouches[0]?.clientY ?? 0;
+        const deltaX = endX - this.touchStartX;
+        const deltaY = endY - this.touchStartY;
+
+        if (Math.abs(deltaX) < 40 || Math.abs(deltaX) < Math.abs(deltaY)) {
+          return;
+        }
+
+        this.go(deltaX < 0 ? 1 : -1);
+      },
+      { passive: true },
+    );
+
+    window.addEventListener("hashchange", () => {
+      this.syncFromHash();
+    });
+  }
+
+  showSlideById(slideId) {
+    const nextIndex = this.slideNodes.findIndex((slide) => slide.dataset.slideId === slideId);
+
+    if (nextIndex < 0) {
+      return;
+    }
+
+    this.index = nextIndex;
+    this.update();
+  }
+
+  go(direction) {
+    const nextIndex = Math.max(0, Math.min(this.slideNodes.length - 1, this.index + direction));
+
+    if (nextIndex === this.index) {
+      return;
+    }
+
+    this.index = nextIndex;
+    this.update();
+  }
+
+  syncHash(nextHash) {
+    if (!window.location || !nextHash) {
+      return;
+    }
+
+    const hashValue = '#' + nextHash;
+    if (window.history?.replaceState) {
+      window.history.replaceState(null, "", hashValue);
+      return;
+    }
+
+    window.location.hash = hashValue;
+  }
+
+  syncFromHash(hash = window.location?.hash?.replace(/^#/, "") ?? "") {
+    if (!hash) {
+      return;
+    }
+
+    if (hash.startsWith("slide-")) {
+      this.showSlideById(hash.replace(/^slide-/, ""));
+    }
+  }
+
+  update() {
+    const activeSlide = this.slideNodes[this.index];
+
+    this.slideNodes.forEach((slide, index) => {
+      const isActive = index === this.index;
+      slide.hidden = !isActive;
+      slide.dataset.active = String(isActive);
+      slide.setAttribute("aria-hidden", String(!isActive));
+    });
+
+    this.slideLinks.forEach((link) => {
+      const isActive = link.dataset.slideTarget === activeSlide?.dataset.slideId;
+      link.dataset.active = String(isActive);
+      link.setAttribute("aria-current", isActive ? "true" : "false");
+    });
+
+    if (this.prevButton) {
+      this.prevButton.disabled = this.index === 0;
+    }
+
+    if (this.nextButton) {
+      this.nextButton.disabled = this.index === this.slideNodes.length - 1;
+    }
+
+    if (activeSlide && this.statusNode) {
+      const isAppendix = activeSlide.dataset.slideGroup === "appendix";
+      const ordinal = Number(activeSlide.dataset.slideOrdinal) + 1;
+      this.statusNode.textContent = isAppendix
+        ? 'Appendix ' + ordinal + ' of ' + this.appendixSlideCount
+        : 'Slide ' + ordinal + ' of ' + this.mainSlideCount;
+    }
+
+    if (activeSlide && this.groupNode) {
+      this.groupNode.textContent =
+        activeSlide.dataset.slideGroup === "appendix" ? "Appendix" : "Main deck";
+    }
+
+    if (activeSlide && this.titleNode) {
+      this.titleNode.textContent = activeSlide.querySelector("h1")?.textContent ?? "";
+    }
+
+    if (activeSlide) {
+      this.syncHash('slide-' + activeSlide.dataset.slideId);
+
+      if (!this.motionQuery.matches) {
+        activeSlide.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+        });
+      }
+    }
+  }
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  if (document.querySelector(".deck-slide")) {
+    window.__founderPricingController = new FounderPricingController();
+  }
+});
+
     </script>
   
   </body>
