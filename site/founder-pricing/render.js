@@ -122,6 +122,10 @@ function renderMemoRail(memoSections) {
   `;
 }
 
+function getTitleById(items, id) {
+  return titleCase(items.find((item) => item.id === id)?.title ?? "");
+}
+
 function renderFounderPricingHtml(content) {
   const { controls, counts, facts, memoSections, meta, slides, theme } = content;
   const pricingFacts = [
@@ -132,6 +136,11 @@ function renderFounderPricingHtml(content) {
   ];
   const deckLabelMap = new Map(
     slides.map((slide, index) => [slide.id, `Slide ${String(index + 1).padStart(2, "0")}`]),
+  );
+  const vendorRateCardTitle = getTitleById(slides, "vendor-rate-card");
+  const founderRecommendationsTitle = getTitleById(
+    memoSections,
+    "founder-recommendations",
   );
 
   return `<!DOCTYPE html>
@@ -620,7 +629,7 @@ function renderFounderPricingHtml(content) {
                 </div>
                 <div class="slide-meta">
                   <span class="deck-pill">${counts.slides} slides</span>
-                  <span class="deck-pill">${escapeHtml(titleCase(slides[2]?.title ?? ""))}</span>
+                  <span class="deck-pill">${escapeHtml(vendorRateCardTitle)}</span>
                 </div>
               </div>
               <div class="view-layout">
@@ -657,7 +666,7 @@ function renderFounderPricingHtml(content) {
                 </div>
                 <div class="slide-meta">
                   <span class="deck-pill">${counts.memoSections} sections</span>
-                  <span class="deck-pill">${escapeHtml(titleCase(memoSections[6]?.title ?? ""))}</span>
+                  <span class="deck-pill">${escapeHtml(founderRecommendationsTitle)}</span>
                 </div>
               </div>
               <div class="view-layout">

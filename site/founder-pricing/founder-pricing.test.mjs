@@ -5,6 +5,9 @@ import { readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import founderPricingContent from "./content.js";
+import renderModule from "./render.js";
+
+const { renderFounderPricingHtml } = renderModule;
 
 test("build:founder-pricing emits a publishable HTML document", () => {
   const testDir = path.dirname(fileURLToPath(import.meta.url));
@@ -21,8 +24,10 @@ test("build:founder-pricing emits a publishable HTML document", () => {
   });
 
   const html = readFileSync(outFile, "utf8");
+  const directHtml = renderFounderPricingHtml(founderPricingContent);
 
   assert.match(html, /<!DOCTYPE html>/);
+  assert.equal(html, directHtml);
   assert.match(html, /Founder Pricing &amp; COGS/);
   assert.match(html, /#0b0e14/);
   assert.match(html, /Space Grotesk/);
