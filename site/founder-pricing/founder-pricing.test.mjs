@@ -12,7 +12,7 @@ const { renderFounderPricingHtml } = renderModule;
 
 test("build:founder-pricing emits a publishable HTML document", () => {
   const { directHtml, html } = buildHtml();
-  const { counts, facts, meta, memoSections, slides } = founderPricingContent;
+  const { counts, facts, meta, slides } = founderPricingContent;
 
   assert.match(html, /<!DOCTYPE html>/);
   assert.equal(html, directHtml);
@@ -21,31 +21,33 @@ test("build:founder-pricing emits a publishable HTML document", () => {
   assert.match(html, /Space Grotesk/);
   assert.match(html, /Source Sans 3/);
   assert.match(html, /id="deck-view"/);
-  assert.match(html, /id="memo-view"/);
   assert.match(html, /data-mode="deck"/);
-  assert.match(html, /data-mode="memo"/);
+  assert.doesNotMatch(html, /id="memo-view"/);
+  assert.doesNotMatch(html, /data-mode="memo"/);
   assert.match(html, /class FounderPricingController/);
   assert.match(html, /data-nav="next"/);
   assert.match(html, /data-nav="prev"/);
   assert.match(html, /aria-live="polite"/);
   assert.match(html, /prefers-reduced-motion/);
-  assert.match(html, /Official Vendor Rate Card/);
-  assert.match(html, /Founder Recommendations/);
+  assert.match(html, /Solo, \$79 \/ month/);
+  assert.match(html, /Team, \$50 \/ seat \/ month/);
+  assert.match(html, /3-seat minimum/);
+  assert.match(html, /120 live minutes per seat/);
+  assert.match(html, /250 minutes for \$125/);
+  assert.match(html, /500 minutes for \$175/);
+  assert.match(html, /2,000 minutes for \$600/);
+  assert.match(html, /Verified: April 23, 2026/);
+  assert.match(html, /Official Vendor Cost Stack/);
+  assert.match(html, /Monthly vs Annual Billing Economics/);
+  assert.match(html, /Appendix/);
   assert.match(html, new RegExp(`data-content-slides="${counts.slides}"`));
-  assert.match(html, new RegExp(`data-content-memo-sections="${counts.memoSections}"`));
   assert.match(html, new RegExp(`data-content-facts="${counts.facts}"`));
 
   assert.equal((html.match(/data-slide-id="/g) ?? []).length, slides.length);
-  assert.equal((html.match(/data-section-id="/g) ?? []).length, memoSections.length);
 
   for (const slide of slides) {
     assert.match(html, new RegExp(`data-slide-id="${slide.id}"`));
     assert.match(html, new RegExp(`data-fact-ids="${slide.factIds.join(" ")}"`));
-  }
-
-  for (const section of memoSections) {
-    assert.match(html, new RegExp(`data-section-id="${section.id}"`));
-    assert.match(html, new RegExp(`data-fact-ids="${section.factIds.join(" ")}"`));
   }
 
   for (const fact of Object.values(facts)) {
@@ -57,21 +59,21 @@ test("build:founder-pricing emits a publishable HTML document", () => {
   assert.match(html, /data-fact-key="seatPrice"/);
   assert.match(html, /data-fact-key="seatMinimum"/);
   assert.match(html, /data-fact-key="voiceAllowance"/);
-  assert.match(html, /data-fact-key="orgEstimate"/);
   assert.match(html, /data-fact-key="vendorStack"/);
   assert.match(html, /data-fact-key="verificationDate"/);
   assert.match(html, /data-fact-key="publishedPath"/);
+  assert.match(html, /\$79 \/ month/);
   assert.match(html, /\$50 \/ seat \/ month/);
-  assert.match(html, /3-seat minimum/);
-  assert.match(html, /120 pooled live voice minutes per paid seat per month/);
-  assert.match(html, /~\$58 \/ org \/ month/);
+  assert.match(html, /250 minutes for \$125/);
+  assert.match(html, /500 minutes for \$175/);
+  assert.match(html, /2,000 minutes for \$600/);
   assert.match(html, /OpenAI/);
   assert.match(html, /Vercel/);
   assert.match(html, /Supabase/);
   assert.match(html, /Fly\.io/);
 });
 
-test("founder pricing controller drives deck and memo behavior", () => {
+test("founder pricing controller drives the single deck flow and appendix navigation", () => {
   const { html } = buildHtml();
   const { elements, windowObject } = createControllerHarness();
   const script = extractInlineScript(html);
@@ -86,85 +88,20 @@ test("founder pricing controller drives deck and memo behavior", () => {
   vm.runInNewContext(script, context);
   windowObject.dispatch("DOMContentLoaded");
 
+  assert.ok(
+    windowObject.__founderPricingController,
+    "expected the controller to initialize for the single deck flow",
+  );
   assert.equal(windowObject.__founderPricingController.mode, "deck");
-  assert.equal(elements.deckView.hidden, false);
-  assert.equal(elements.memoView.hidden, true);
-  assert.equal(elements.slides[0].hidden, false);
-  assert.equal(elements.slides[1].hidden, true);
   assert.equal(elements.prevButton.disabled, true);
   assert.equal(elements.nextButton.disabled, false);
-  assert.equal(elements.statusNode.textContent, "Slide 1 of 2");
 
   elements.nextButton.emit("click");
-  assert.equal(windowObject.__founderPricingController.index, 1);
-  assert.equal(elements.slides[0].hidden, true);
-  assert.equal(elements.slides[1].hidden, false);
-  assert.equal(elements.prevButton.disabled, false);
-  assert.equal(elements.nextButton.disabled, true);
-  assert.equal(windowObject.location.hash, "#slide-product-truth");
+  assert.equal(windowObject.location.hash, "#slide-included-usage");
 
-  elements.memoButton.emit("click");
-  assert.equal(windowObject.__founderPricingController.mode, "memo");
-  assert.equal(elements.deckView.hidden, true);
-  assert.equal(elements.memoView.hidden, false);
-  assert.equal(elements.prevButton.disabled, true);
-  assert.equal(elements.nextButton.disabled, true);
-  assert.equal(elements.statusNode.textContent, "Memo mode");
-
-  windowObject.dispatch("wheel", { deltaY: -120 });
-  assert.equal(windowObject.__founderPricingController.index, 1);
-
-  elements.deckLinks[0].emit("click");
-  assert.equal(windowObject.__founderPricingController.mode, "deck");
-  assert.equal(windowObject.__founderPricingController.index, 0);
-  assert.equal(windowObject.location.hash, "#slide-cover");
-
-  windowObject.dispatch("touchstart", {
-    changedTouches: [{ clientX: 120, clientY: 8 }],
-  });
-  windowObject.dispatch("touchend", {
-    changedTouches: [{ clientX: 20, clientY: 12 }],
-  });
-  assert.equal(windowObject.__founderPricingController.index, 1);
-
-  windowObject.dispatch("keydown", {
-    key: "ArrowLeft",
-    preventDefault() {},
-  });
-  assert.equal(windowObject.__founderPricingController.index, 0);
-
-  windowObject.dispatch("wheel", { deltaY: 120 });
-  assert.equal(windowObject.__founderPricingController.index, 1);
-
-  windowObject.location.hash = "#memo-executive-summary";
-  windowObject.dispatch("hashchange");
-  assert.equal(windowObject.__founderPricingController.mode, "memo");
-  assert.equal(elements.memoView.hidden, false);
-  assert.equal(elements.memoSection.scrollIntoViewCalls.length > 0, true);
-});
-
-test("founder pricing controller respects initial slide deep links", () => {
-  const { html } = buildHtml();
-  const { elements, windowObject } = createControllerHarness({
-    initialHash: "#slide-product-truth",
-  });
-  const script = extractInlineScript(html);
-  const context = {
-    console,
-    document: elements.document,
-    window: windowObject,
-  };
-
-  context.globalThis = context;
-
-  vm.runInNewContext(script, context);
-  windowObject.dispatch("DOMContentLoaded");
-
-  assert.equal(windowObject.__founderPricingController.mode, "deck");
-  assert.equal(windowObject.__founderPricingController.index, 1);
-  assert.equal(elements.slides[0].hidden, true);
-  assert.equal(elements.slides[1].hidden, false);
-  assert.equal(windowObject.location.hash, "#slide-product-truth");
+  elements.appendixLink.emit("click");
+  assert.equal(windowObject.location.hash, "#slide-appendix-rate-card");
+  assert.equal(windowObject.__founderPricingController.index, 9);
 });
 
 test("github pages workflow exists for founder pricing site", () => {
@@ -253,21 +190,32 @@ function createMockElement({ dataset = {}, hidden = false, id = "" } = {}) {
 
 function createControllerHarness({ initialHash = "" } = {}) {
   const deckView = createMockElement({ id: "deck-view" });
-  const memoView = createMockElement({ id: "memo-view", hidden: true });
-  const slideOne = createMockElement({
-    id: "slide-cover",
-    dataset: { active: "true", slideId: "cover" },
-  });
-  const slideTwo = createMockElement({
-    id: "slide-product-truth",
-    dataset: { active: "false", slideId: "product-truth" },
-    hidden: true,
-  });
+  const slides = Array.from({ length: 10 }, (_, index) =>
+    createMockElement({
+      id:
+        index === 0
+          ? "slide-cover"
+          : index === 1
+            ? "slide-included-usage"
+            : index === 9
+              ? "slide-appendix-rate-card"
+              : `slide-filler-${index + 1}`,
+      dataset: {
+        active: index === 0 ? "true" : "false",
+        slideId:
+          index === 0
+            ? "cover"
+            : index === 1
+              ? "included-usage"
+              : index === 9
+                ? "appendix-rate-card"
+                : `filler-${index + 1}`,
+      },
+      hidden: index !== 0,
+    }),
+  );
   const deckButton = createMockElement({
     dataset: { active: "true", mode: "deck" },
-  });
-  const memoButton = createMockElement({
-    dataset: { active: "false", mode: "memo" },
   });
   const prevButton = createMockElement();
   const nextButton = createMockElement();
@@ -276,22 +224,22 @@ function createControllerHarness({ initialHash = "" } = {}) {
     dataset: { slideTarget: "cover" },
   });
   const deckLinkTwo = createMockElement({
-    dataset: { slideTarget: "product-truth" },
+    dataset: { slideTarget: "included-usage" },
   });
-  const memoLink = createMockElement({
-    dataset: { sectionTarget: "executive-summary" },
+  const appendixLink = createMockElement({
+    dataset: { appendixTarget: "rate-card" },
   });
-  const memoSection = createMockElement({ id: "memo-executive-summary" });
   const windowListeners = {};
   const document = {
     getElementById(id) {
       return (
         {
           "deck-view": deckView,
-          "memo-executive-summary": memoSection,
-          "memo-view": memoView,
-          "slide-cover": slideOne,
-          "slide-product-truth": slideTwo,
+          "slide-appendix-rate-card": slides[9],
+          "slide-cover": slides[0],
+          "slide-filler-10": slides[9],
+          "slide-filler-2": slides[1],
+          "slide-included-usage": slides[1],
         }[id] ?? null
       );
     },
@@ -307,9 +255,9 @@ function createControllerHarness({ initialHash = "" } = {}) {
     querySelectorAll(selector) {
       return (
         {
-          ".mode-button[data-mode]": [deckButton, memoButton],
-          ".slide": [slideOne, slideTwo],
-          "[data-section-target]": [memoLink],
+          ".mode-button[data-mode]": [deckButton],
+          ".slide": slides,
+          "[data-appendix-target]": [appendixLink],
           "[data-slide-target]": [deckLinkOne, deckLinkTwo],
         }[selector] ?? []
       );
@@ -353,16 +301,14 @@ function createControllerHarness({ initialHash = "" } = {}) {
 
   return {
     elements: {
+      appendixLink,
       deckButton,
       deckLinks: [deckLinkOne, deckLinkTwo],
       deckView,
       document,
-      memoButton,
-      memoSection,
-      memoView,
       nextButton,
       prevButton,
-      slides: [slideOne, slideTwo],
+      slides,
       statusNode,
     },
     windowObject,
