@@ -13,6 +13,28 @@ const { renderFounderPricingHtml } = renderModule;
 test("build:founder-pricing emits a publishable HTML document", () => {
   const { directHtml, html } = buildHtml();
   const { counts, facts, meta, slides } = founderPricingContent;
+  const requiredPhrases = [
+    "Solo, $79 / month",
+    "Team, $50 / seat / month",
+    "3-seat minimum",
+    "120 live minutes per seat",
+    "250 minutes for $125",
+    "500 minutes for $175",
+    "2,000 minutes for $600",
+    "Verified: April 23, 2026",
+    "Official Vendor Cost Stack",
+    "Monthly vs Annual Billing Economics",
+    "Appendix",
+  ];
+  const requiredFactKeys = [
+    "seatPrice",
+    "seatMinimum",
+    "voiceAllowance",
+    "vendorStack",
+    "verificationDate",
+    "publishedPath",
+  ];
+  const requiredVendorNames = ["OpenAI", "Vercel", "Supabase", "Fly.io"];
 
   assert.match(html, /<!DOCTYPE html>/);
   assert.equal(html, directHtml);
@@ -29,17 +51,9 @@ test("build:founder-pricing emits a publishable HTML document", () => {
   assert.match(html, /data-nav="prev"/);
   assert.match(html, /aria-live="polite"/);
   assert.match(html, /prefers-reduced-motion/);
-  assert.match(html, /Solo, \$79 \/ month/);
-  assert.match(html, /Team, \$50 \/ seat \/ month/);
-  assert.match(html, /3-seat minimum/);
-  assert.match(html, /120 live minutes per seat/);
-  assert.match(html, /250 minutes for \$125/);
-  assert.match(html, /500 minutes for \$175/);
-  assert.match(html, /2,000 minutes for \$600/);
-  assert.match(html, /Verified: April 23, 2026/);
-  assert.match(html, /Official Vendor Cost Stack/);
-  assert.match(html, /Monthly vs Annual Billing Economics/);
-  assert.match(html, /Appendix/);
+  for (const phrase of requiredPhrases) {
+    assert.match(html, new RegExp(escapeRegExp(phrase)));
+  }
   assert.match(html, new RegExp(`data-content-slides="${counts.slides}"`));
   assert.match(html, new RegExp(`data-content-facts="${counts.facts}"`));
 
@@ -56,21 +70,12 @@ test("build:founder-pricing emits a publishable HTML document", () => {
 
   assert.match(html, new RegExp(escapeRegExp(meta.verificationDate)));
   assert.match(html, new RegExp(escapeRegExp(meta.publishedPath)));
-  assert.match(html, /data-fact-key="seatPrice"/);
-  assert.match(html, /data-fact-key="seatMinimum"/);
-  assert.match(html, /data-fact-key="voiceAllowance"/);
-  assert.match(html, /data-fact-key="vendorStack"/);
-  assert.match(html, /data-fact-key="verificationDate"/);
-  assert.match(html, /data-fact-key="publishedPath"/);
-  assert.match(html, /\$79 \/ month/);
-  assert.match(html, /\$50 \/ seat \/ month/);
-  assert.match(html, /250 minutes for \$125/);
-  assert.match(html, /500 minutes for \$175/);
-  assert.match(html, /2,000 minutes for \$600/);
-  assert.match(html, /OpenAI/);
-  assert.match(html, /Vercel/);
-  assert.match(html, /Supabase/);
-  assert.match(html, /Fly\.io/);
+  for (const factKey of requiredFactKeys) {
+    assert.match(html, new RegExp(`data-fact-key="${factKey}"`));
+  }
+  for (const vendorName of requiredVendorNames) {
+    assert.match(html, new RegExp(escapeRegExp(vendorName)));
+  }
 });
 
 test("founder pricing controller drives the single deck flow and appendix navigation", () => {
@@ -190,6 +195,7 @@ function createMockElement({ dataset = {}, hidden = false, id = "" } = {}) {
 
 function createControllerHarness({ initialHash = "" } = {}) {
   const deckView = createMockElement({ id: "deck-view" });
+  const memoView = createMockElement({ id: "memo-view", hidden: true });
   const slides = Array.from({ length: 10 }, (_, index) =>
     createMockElement({
       id:
@@ -235,6 +241,7 @@ function createControllerHarness({ initialHash = "" } = {}) {
       return (
         {
           "deck-view": deckView,
+          "memo-view": memoView,
           "slide-appendix-rate-card": slides[9],
           "slide-cover": slides[0],
           "slide-filler-10": slides[9],
@@ -306,6 +313,7 @@ function createControllerHarness({ initialHash = "" } = {}) {
       deckLinks: [deckLinkOne, deckLinkTwo],
       deckView,
       document,
+      memoView,
       nextButton,
       prevButton,
       slides,
