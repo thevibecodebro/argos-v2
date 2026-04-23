@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="verification-date" content="2026-04-22" />
+    <meta name="published-path" content="/argos-v2/founder-pricing/" />
+    <title>Founder Pricing &amp; COGS</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&display=swap");
+
+      :root {
+        color-scheme: dark;
+        --background: #0b0e14;
+        --primary-surface: #10131a;
+        --secondary-surface: #161a21;
+        --elevated-surface: #1c2028;
+        --elevated-surface-alt: #22262f;
+        --primary-text: #ecedf6;
+        --secondary-text: #a9abb3;
+        --primary-accent: #74b1ff;
+        --tertiary-accent: #6dddff;
+        --outline: #45484f;
+        --display-font: "Space Grotesk", sans-serif;
+        --body-font: "Source Sans 3", sans-serif;
+        --max-width: 1240px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        background: var(--background);
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at 0% 0%, rgba(116, 177, 255, 0.22), transparent 28%),
+          radial-gradient(circle at 100% 0%, rgba(109, 221, 255, 0.16), transparent 22%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 28%),
+          #0b0e14;
+        color: var(--primary-text);
+        font-family: var(--body-font);
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .site-shell {
+        width: min(calc(100% - 32px), var(--max-width));
+        margin: 24px auto 64px;
+      }
+
+      .shell-frame {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid color-mix(in srgb, var(--outline) 84%, transparent);
+        border-radius: 28px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 18%),
+          color-mix(in srgb, var(--primary-surface) 94%, transparent);
+        box-shadow:
+          0 24px 64px rgba(0, 0, 0, 0.32),
+          inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      }
+
+      .shell-frame::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+          radial-gradient(circle at 15% 0%, rgba(116, 177, 255, 0.14), transparent 26%),
+          radial-gradient(circle at 85% 10%, rgba(109, 221, 255, 0.1), transparent 18%);
+      }
+
+      .shell-topbar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 18px 24px;
+        border-bottom: 1px solid color-mix(in srgb, var(--outline) 78%, transparent);
+        background: color-mix(in srgb, var(--primary-surface) 92%, transparent);
+        backdrop-filter: blur(16px);
+      }
+
+      .brand-lockup,
+      .topbar-actions,
+      .mode-switch {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .brand-mark,
+      .capsule,
+      .mode-chip {
+        border-radius: 999px;
+        border: 1px solid color-mix(in srgb, var(--outline) 80%, transparent);
+        background: color-mix(in srgb, var(--secondary-surface) 88%, transparent);
+      }
+
+      .brand-mark {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        font-family: var(--display-font);
+        font-size: 0.95rem;
+        letter-spacing: 0.08em;
+        color: var(--primary-accent);
+      }
+
+      .brand-copy strong,
+      h1,
+      h2,
+      h3,
+      h4 {
+        font-family: var(--display-font);
+      }
+
+      .brand-copy {
+        display: grid;
+        gap: 2px;
+      }
+
+      .brand-copy strong {
+        font-size: 0.98rem;
+      }
+
+      .brand-copy span,
+      .capsule,
+      .kicker,
+      .rail-label,
+      .label {
+        color: var(--secondary-text);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .brand-copy span,
+      .capsule,
+      .kicker,
+      .rail-label,
+      .label {
+        font-size: 0.74rem;
+      }
+
+      .capsule,
+      .mode-chip {
+        padding: 9px 14px;
+      }
+
+      .mode-switch {
+        gap: 8px;
+      }
+
+      .mode-chip {
+        appearance: none;
+        color: var(--primary-text);
+        font: inherit;
+      }
+
+      .mode-chip[data-active="true"] {
+        border-color: rgba(116, 177, 255, 0.54);
+        box-shadow: inset 0 0 0 1px rgba(116, 177, 255, 0.18);
+      }
+
+      .mode-button {
+        cursor: pointer;
+      }
+
+      .shell-content {
+        position: relative;
+        padding: 28px 24px 32px;
+      }
+
+      .hero-grid {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: minmax(0, 1.6fr) minmax(300px, 0.9fr);
+        margin-bottom: 18px;
+      }
+
+      .hero-card,
+      .summary-card,
+      .rail-card,
+      .view-card,
+      .slide-card,
+      .memo-card,
+      .card {
+        position: relative;
+        border: 1px solid color-mix(in srgb, var(--outline) 80%, transparent);
+        border-radius: 22px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 20%),
+          color-mix(in srgb, var(--elevated-surface) 92%, transparent);
+      }
+
+      .hero-card,
+      .summary-card,
+      .rail-card,
+      .view-card,
+      .memo-card {
+        padding: 22px;
+      }
+
+      .hero-card h1 {
+        margin: 0 0 14px;
+        font-size: clamp(2.25rem, 4vw, 3.8rem);
+        line-height: 0.95;
+      }
+
+      .hero-card p,
+      .summary-card p,
+      .memo-card p,
+      .slide-card p {
+        margin: 0;
+        color: var(--secondary-text);
+        line-height: 1.6;
+      }
+
+      .hero-card .hero-copy {
+        max-width: 56ch;
+      }
+
+      .hero-facts,
+      .fact-grid,
+      .slide-facts,
+      .memo-facts {
+        display: grid;
+        gap: 12px;
+      }
+
+      .hero-facts {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-top: 22px;
+      }
+
+      .summary-card {
+        display: grid;
+        gap: 16px;
+      }
+
+      .summary-card .fact-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .view-grid {
+        display: grid;
+        gap: 18px;
+      }
+
+      .view-card {
+        display: grid;
+        gap: 18px;
+      }
+
+      .view-header {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 18px;
+      }
+
+      .view-header h2 {
+        margin: 0;
+        font-size: clamp(1.45rem, 2vw, 2rem);
+      }
+
+      .view-header p {
+        max-width: 60ch;
+        margin: 10px 0 0;
+        color: var(--secondary-text);
+      }
+
+      .view-layout {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.7fr);
+      }
+
+      .rail-card {
+        align-self: start;
+        position: sticky;
+        top: 92px;
+      }
+
+      .rail-list {
+        margin: 14px 0 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 10px;
+      }
+
+      .rail-list li a {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 12px;
+        align-items: center;
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid transparent;
+        color: var(--secondary-text);
+        transition: border-color 140ms ease, color 140ms ease, background 140ms ease;
+      }
+
+      .rail-list li a:hover {
+        color: var(--primary-text);
+        border-color: color-mix(in srgb, var(--outline) 70%, transparent);
+        background: color-mix(in srgb, var(--secondary-surface) 84%, transparent);
+      }
+
+      .rail-index {
+        min-width: 2ch;
+        color: var(--primary-accent);
+        font-family: var(--display-font);
+      }
+
+      .slide-stack,
+      .memo-stack {
+        display: grid;
+        gap: 16px;
+      }
+
+      .slide-card {
+        padding: 20px;
+      }
+
+      .card-header {
+        display: grid;
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+
+      .slide-card h3,
+      .memo-card h3 {
+        margin: 0;
+        font-size: clamp(1.18rem, 2vw, 1.5rem);
+      }
+
+      .slide-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .deck-controls {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px;
+        border-radius: 18px;
+        border: 1px solid color-mix(in srgb, var(--outline) 76%, transparent);
+        background: color-mix(in srgb, var(--secondary-surface) 86%, transparent);
+      }
+
+      .control-button {
+        appearance: none;
+        border: 1px solid color-mix(in srgb, var(--outline) 80%, transparent);
+        border-radius: 999px;
+        padding: 10px 14px;
+        background: color-mix(in srgb, var(--primary-surface) 88%, transparent);
+        color: var(--primary-text);
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .control-button[disabled] {
+        opacity: 0.48;
+        cursor: not-allowed;
+      }
+
+      .slide-status {
+        margin: 0;
+        color: var(--secondary-text);
+        text-align: center;
+      }
+
+      .deck-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 11px;
+        border-radius: 999px;
+        border: 1px solid color-mix(in srgb, var(--outline) 76%, transparent);
+        background: color-mix(in srgb, var(--secondary-surface) 86%, transparent);
+        color: var(--secondary-text);
+        font-size: 0.78rem;
+      }
+
+      .fact-grid,
+      .slide-facts,
+      .memo-facts {
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      }
+
+      .card {
+        padding: 14px 15px;
+      }
+
+      .fact-value {
+        color: var(--primary-text);
+        line-height: 1.5;
+      }
+
+      .memo-card {
+        scroll-margin-top: 96px;
+      }
+
+      .memo-card + .memo-card {
+        margin-top: 16px;
+      }
+
+      .memo-card p + p {
+        margin-top: 12px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+
+        .rail-list li a {
+          transition: none;
+        }
+      }
+
+      @media (max-width: 980px) {
+        .hero-grid,
+        .view-layout {
+          grid-template-columns: 1fr;
+        }
+
+        .rail-card {
+          position: static;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .site-shell {
+          width: min(calc(100% - 20px), var(--max-width));
+          margin: 12px auto 40px;
+        }
+
+        .shell-topbar,
+        .shell-content {
+          padding-left: 16px;
+          padding-right: 16px;
+        }
+
+        .shell-topbar,
+        .view-header {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .deck-controls {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .hero-facts {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="site-shell">
+      <div class="shell-frame">
+        <header class="shell-topbar" data-content-slides="9" data-content-memo-sections="8" data-content-facts="7">
+          <div class="brand-lockup">
+            <div class="brand-mark">A</div>
+            <div class="brand-copy">
+              <strong>Argos Founder Pricing</strong>
+              <span>Founder OS view of pricing and unit economics</span>
+            </div>
+          </div>
+          <div class="topbar-actions">
+            <div class="capsule">2026-04-22</div>
+            <div class="mode-switch" aria-label="Mode switch">
+              <button class="mode-chip mode-button" data-mode="deck" data-active="true" type="button" aria-controls="deck-view" aria-pressed="true">Deck</button>
+              <button class="mode-chip mode-button" data-mode="memo" data-active="false" type="button" aria-controls="memo-view" aria-pressed="false">Memo</button>
+            </div>
+          </div>
+        </header>
+
+        <div class="shell-content">
+          <section class="hero-grid" aria-label="Founder pricing overview">
+            <article class="hero-card">
+              <div class="kicker">Founder pricing deck</div>
+              <h1>Founder Pricing &amp; COGS</h1>
+              <p class="hero-copy">
+                The seat price is simple. The underwriting variable is live voice usage, and the HTML artifact needs to explain that in the same design language as the product.
+              </p>
+              <div class="hero-facts">
+                
+    <article class="card" data-fact-key="verificationDate">
+      <div class="label">Verification date</div>
+      <div class="fact-value">2026-04-22</div>
+    </article>
+  
+                
+    <article class="card" data-fact-key="publishedPath">
+      <div class="label">Published path</div>
+      <div class="fact-value">/argos-v2/founder-pricing/</div>
+    </article>
+  
+              </div>
+            </article>
+
+            <aside class="summary-card">
+              <div>
+                <div class="kicker">Founder controls</div>
+                <p>Public packaging: $50 / seat / month, 3-seat minimum, and 120 pooled live voice minutes per paid seat per month.</p>
+              </div>
+              <div class="fact-grid">
+                
+    <article class="card" data-fact-key="seatPrice">
+      <div class="label">Seat price</div>
+      <div class="fact-value">$50 / seat / month</div>
+    </article>
+  
+    <article class="card" data-fact-key="seatMinimum">
+      <div class="label">Seat minimum</div>
+      <div class="fact-value">3-seat minimum</div>
+    </article>
+  
+    <article class="card" data-fact-key="voiceAllowance">
+      <div class="label">Voice allowance</div>
+      <div class="fact-value">120 pooled live voice minutes per paid seat per month</div>
+    </article>
+  
+    <article class="card" data-fact-key="orgEstimate">
+      <div class="label">Org estimate</div>
+      <div class="fact-value">~$58 / org / month</div>
+    </article>
+  
+              </div>
+            </aside>
+          </section>
+
+          <div class="view-grid">
+            <section id="deck-view" class="view-card" data-mode="deck" aria-labelledby="deck-title" data-slide-count="9">
+              <div class="view-header">
+                <div>
+                  <div class="kicker">Deck mode</div>
+                  <h2 id="deck-title">Presentation narrative</h2>
+                  <p>Slide-first framing for fundraising, pricing review, and founder discussion. This view is staged like the Argos shell rather than a detached microsite.</p>
+                </div>
+                <div class="slide-meta">
+                  <span class="deck-pill">9 slides</span>
+                  <span class="deck-pill">Official Vendor Rate Card</span>
+                </div>
+              </div>
+              <div class="deck-controls">
+                <button class="control-button" type="button" data-nav="prev">Previous</button>
+                <p class="slide-status" data-slide-status aria-live="polite">Slide 1 of 9</p>
+                <button class="control-button" type="button" data-nav="next">Next</button>
+              </div>
+              <div class="view-layout">
+                
+    <nav class="rail-card" aria-label="Deck outline">
+      <div class="rail-label">Deck outline</div>
+      <ol class="rail-list">
+        
+              <li>
+                <a href="#slide-cover" data-slide-target="cover">
+                  <span class="rail-index">01</span>
+                  <span>Founder Pricing &amp; COGS</span>
+                </a>
+              </li>
+            
+              <li>
+                <a href="#slide-product-truth" data-slide-target="product-truth">
+                  <span class="rail-index">02</span>
+                  <span>Product Truth From The Codebase</span>
+                </a>
+              </li>
+            
+              <li>
+                <a href="#slide-vendor-rate-card" data-slide-target="vendor-rate-card">
+                  <span class="rail-index">03</span>
+                  <span>Official Vendor Rate Card</span>
+                </a>
+              </li>
+            
+              <li>
+                <a href="#slide-pricing-architecture" data-slide-target="pricing-architecture">
+                  <span class="rail-index">04</span>
+                  <span>Pricing Architecture And Controls</span>
+                </a>
+              </li>
+            
+              <li>
+                <a href="#slide-direct-cost-stack" data-slide-target="direct-cost-stack">
+                  <span class="rail-index">05</span>
+                  <span>Direct Cost Stack</span>
+                </a>
+              </li>
+            
+              <li>
+                <a href="#slide-team-size-economics" data-slide-target="team-size-economics">
+                  <span class="rail-index">06</span>
+                  <span>Team-Size Economics Under The Standard Allowance</span>
+                </a>
+              </li>
+            
+              <li>
+                <a href="#slide-voice-sensitivity" data-slide-target="voice-sensitivity">
+                  <span class="rail-index">07</span>
+                  <span>Voice Sensitivity</span>
+                </a>
+              </li>
+            
+              <li>
+                <a href="#slide-arr-scale" data-slide-target="arr-scale">
+                  <span class="rail-index">08</span>
+                  <span>ARR Scale</span>
+                </a>
+              </li>
+            
+              <li>
+                <a href="#slide-founder-conclusion" data-slide-target="founder-conclusion">
+                  <span class="rail-index">09</span>
+                  <span>Founder Conclusion</span>
+                </a>
+              </li>
+            
+      </ol>
+    </nav>
+  
+                <div class="slide-stack" data-slide-ids="cover product-truth vendor-rate-card pricing-architecture direct-cost-stack team-size-economics voice-sensitivity arr-scale founder-conclusion">
+                  
+                        <article id="slide-cover" class="slide-card slide" data-slide-id="cover" data-fact-ids="publishedPath verificationDate" aria-hidden="false" data-active="true">
+                          <div class="card-header">
+                            <div class="label">Slide 01</div>
+                            <h3>Founder Pricing &amp; COGS</h3>
+                          </div>
+                          <p>A pricing story that stays product-native, investor-ready, and grounded in current cost structure.</p>
+                          <div class="slide-facts">
+    <article class="card" data-fact-key="publishedPath">
+      <div class="label">Published path</div>
+      <div class="fact-value">/argos-v2/founder-pricing/</div>
+    </article>
+  
+    <article class="card" data-fact-key="verificationDate">
+      <div class="label">Verification date</div>
+      <div class="fact-value">2026-04-22</div>
+    </article>
+  </div>
+                        </article>
+                      
+                        <article id="slide-product-truth" class="slide-card slide" data-slide-id="product-truth" data-fact-ids="publishedPath" hidden aria-hidden="true" data-active="false">
+                          <div class="card-header">
+                            <div class="label">Slide 02</div>
+                            <h3>Product Truth From The Codebase</h3>
+                          </div>
+                          <p>The pricing narrative is anchored to the shipped product surface, not an invented packaging model.</p>
+                          <div class="slide-facts">
+    <article class="card" data-fact-key="publishedPath">
+      <div class="label">Published path</div>
+      <div class="fact-value">/argos-v2/founder-pricing/</div>
+    </article>
+  </div>
+                        </article>
+                      
+                        <article id="slide-vendor-rate-card" class="slide-card slide" data-slide-id="vendor-rate-card" data-fact-ids="vendorStack" hidden aria-hidden="true" data-active="false">
+                          <div class="card-header">
+                            <div class="label">Slide 03</div>
+                            <h3>Official Vendor Rate Card</h3>
+                          </div>
+                          <p>The model references the vendor stack directly so the pricing story stays tied to actual infrastructure inputs.</p>
+                          <div class="slide-facts">
+    <article class="card" data-fact-key="vendorStack">
+      <div class="label">Vendor stack</div>
+      <div class="fact-value">OpenAI, Vercel, Supabase, and Fly.io</div>
+    </article>
+  </div>
+                        </article>
+                      
+                        <article id="slide-pricing-architecture" class="slide-card slide" data-slide-id="pricing-architecture" data-fact-ids="seatPrice seatMinimum voiceAllowance" hidden aria-hidden="true" data-active="false">
+                          <div class="card-header">
+                            <div class="label">Slide 04</div>
+                            <h3>Pricing Architecture And Controls</h3>
+                          </div>
+                          <p>The founder package is constrained by a clear seat floor and a pooled voice allowance.</p>
+                          <div class="slide-facts">
+    <article class="card" data-fact-key="seatPrice">
+      <div class="label">Seat price</div>
+      <div class="fact-value">$50 / seat / month</div>
+    </article>
+  
+    <article class="card" data-fact-key="seatMinimum">
+      <div class="label">Seat minimum</div>
+      <div class="fact-value">3-seat minimum</div>
+    </article>
+  
+    <article class="card" data-fact-key="voiceAllowance">
+      <div class="label">Voice allowance</div>
+      <div class="fact-value">120 pooled live voice minutes per paid seat per month</div>
+    </article>
+  </div>
+                        </article>
+                      
+                        <article id="slide-direct-cost-stack" class="slide-card slide" data-slide-id="direct-cost-stack" data-fact-ids="orgEstimate vendorStack" hidden aria-hidden="true" data-active="false">
+                          <div class="card-header">
+                            <div class="label">Slide 05</div>
+                            <h3>Direct Cost Stack</h3>
+                          </div>
+                          <p>The org-level estimate sits near the lower end of the founder-friendly range while preserving margin room.</p>
+                          <div class="slide-facts">
+    <article class="card" data-fact-key="orgEstimate">
+      <div class="label">Org estimate</div>
+      <div class="fact-value">~$58 / org / month</div>
+    </article>
+  
+    <article class="card" data-fact-key="vendorStack">
+      <div class="label">Vendor stack</div>
+      <div class="fact-value">OpenAI, Vercel, Supabase, and Fly.io</div>
+    </article>
+  </div>
+                        </article>
+                      
+                        <article id="slide-team-size-economics" class="slide-card slide" data-slide-id="team-size-economics" data-fact-ids="seatMinimum voiceAllowance" hidden aria-hidden="true" data-active="false">
+                          <div class="card-header">
+                            <div class="label">Slide 06</div>
+                            <h3>Team-Size Economics Under The Standard Allowance</h3>
+                          </div>
+                          <p>The minimum seat commitment matters more than the headline seat price when the allowance is pooled.</p>
+                          <div class="slide-facts">
+    <article class="card" data-fact-key="seatMinimum">
+      <div class="label">Seat minimum</div>
+      <div class="fact-value">3-seat minimum</div>
+    </article>
+  
+    <article class="card" data-fact-key="voiceAllowance">
+      <div class="label">Voice allowance</div>
+      <div class="fact-value">120 pooled live voice minutes per paid seat per month</div>
+    </article>
+  </div>
+                        </article>
+                      
+                        <article id="slide-voice-sensitivity" class="slide-card slide" data-slide-id="voice-sensitivity" data-fact-ids="voiceAllowance vendorStack" hidden aria-hidden="true" data-active="false">
+                          <div class="card-header">
+                            <div class="label">Slide 07</div>
+                            <h3>Voice Sensitivity</h3>
+                          </div>
+                          <p>Voice usage is the primary variable that can change the economics faster than steady software-only usage.</p>
+                          <div class="slide-facts">
+    <article class="card" data-fact-key="voiceAllowance">
+      <div class="label">Voice allowance</div>
+      <div class="fact-value">120 pooled live voice minutes per paid seat per month</div>
+    </article>
+  
+    <article class="card" data-fact-key="vendorStack">
+      <div class="label">Vendor stack</div>
+      <div class="fact-value">OpenAI, Vercel, Supabase, and Fly.io</div>
+    </article>
+  </div>
+                        </article>
+                      
+                        <article id="slide-arr-scale" class="slide-card slide" data-slide-id="arr-scale" data-fact-ids="seatPrice orgEstimate" hidden aria-hidden="true" data-active="false">
+                          <div class="card-header">
+                            <div class="label">Slide 08</div>
+                            <h3>ARR Scale</h3>
+                          </div>
+                          <p>The pricing structure leaves room to scale revenue while keeping the first cohort easy to explain.</p>
+                          <div class="slide-facts">
+    <article class="card" data-fact-key="seatPrice">
+      <div class="label">Seat price</div>
+      <div class="fact-value">$50 / seat / month</div>
+    </article>
+  
+    <article class="card" data-fact-key="orgEstimate">
+      <div class="label">Org estimate</div>
+      <div class="fact-value">~$58 / org / month</div>
+    </article>
+  </div>
+                        </article>
+                      
+                        <article id="slide-founder-conclusion" class="slide-card slide" data-slide-id="founder-conclusion" data-fact-ids="vendorStack publishedPath" hidden aria-hidden="true" data-active="false">
+                          <div class="card-header">
+                            <div class="label">Slide 09</div>
+                            <h3>Founder Conclusion</h3>
+                          </div>
+                          <p>Use the disciplined package as the default and keep the voice and infrastructure guardrails explicit.</p>
+                          <div class="slide-facts">
+    <article class="card" data-fact-key="vendorStack">
+      <div class="label">Vendor stack</div>
+      <div class="fact-value">OpenAI, Vercel, Supabase, and Fly.io</div>
+    </article>
+  
+    <article class="card" data-fact-key="publishedPath">
+      <div class="label">Published path</div>
+      <div class="fact-value">/argos-v2/founder-pricing/</div>
+    </article>
+  </div>
+                        </article>
+                      
+                </div>
+              </div>
+            </section>
+
+            <section id="memo-view" class="view-card" data-mode="memo" aria-labelledby="memo-title" data-memo-count="8" hidden aria-hidden="true">
+              <div class="view-header">
+                <div>
+                  <div class="kicker">Memo mode</div>
+                  <h2 id="memo-title">Founder documentation</h2>
+                  <p>Longer-form diligence notes with the same underlying content model, vendor references, and packaging assumptions as the presentation layer.</p>
+                </div>
+                <div class="slide-meta">
+                  <span class="deck-pill">8 sections</span>
+                  <span class="deck-pill">Founder Recommendations</span>
+                </div>
+              </div>
+              <div class="view-layout">
+                
+    <nav class="rail-card" aria-label="Memo contents">
+      <div class="rail-label">Memo contents</div>
+      <ol class="rail-list">
+        
+              <li>
+                <a href="#memo-executive-summary" data-section-target="executive-summary">
+                  <span class="rail-index">01</span>
+                  <span>Executive Summary</span>
+                </a>
+              </li>
+            
+              <li>
+                <a href="#memo-product-truth" data-section-target="product-truth">
+                  <span class="rail-index">02</span>
+                  <span>Product Truth From The Current Codebase</span>
+                </a>
+              </li>
+            
+              <li>
+                <a href="#memo-official-vendor-pricing" data-section-target="official-vendor-pricing">
+                  <span class="rail-index">03</span>
+                  <span>Official Vendor Pricing</span>
+                </a>
+              </li>
+            
+              <li>
+                <a href="#memo-modeling-boundary" data-section-target="modeling-boundary">
+                  <span class="rail-index">04</span>
+                  <span>Modeling Boundary: Core COGS Vs Optional Software Vs Internal Tooling</span>
+                </a>
+              </li>
+            
+              <li>
+                <a href="#memo-packaging-recommendation" data-section-target="packaging-recommendation">
+                  <span class="rail-index">05</span>
+                  <span>Packaging Recommendation And Voice Guardrails</span>
+                </a>
+              </li>
+            
+              <li>
+                <a href="#memo-unit-economics" data-section-target="unit-economics">
+                  <span class="rail-index">06</span>
+                  <span>Unit Economics And Margin Sensitivity</span>
+                </a>
+              </li>
+            
+              <li>
+                <a href="#memo-founder-recommendations" data-section-target="founder-recommendations">
+                  <span class="rail-index">07</span>
+                  <span>Founder Recommendations</span>
+                </a>
+              </li>
+            
+              <li>
+                <a href="#memo-sources-and-verification" data-section-target="sources-and-verification">
+                  <span class="rail-index">08</span>
+                  <span>Sources And Verification Date</span>
+                </a>
+              </li>
+            
+      </ol>
+    </nav>
+  
+                <div class="memo-stack">
+                  
+                        <article id="memo-executive-summary" class="memo-card" data-section-id="executive-summary" data-fact-ids="seatPrice seatMinimum voiceAllowance orgEstimate">
+                          <div class="card-header">
+                            <div class="label">Section</div>
+                            <h3>Executive Summary</h3>
+                          </div>
+                          <div class="memo-facts">
+    <article class="card" data-fact-key="seatPrice">
+      <div class="label">Seat price</div>
+      <div class="fact-value">$50 / seat / month</div>
+    </article>
+  
+    <article class="card" data-fact-key="seatMinimum">
+      <div class="label">Seat minimum</div>
+      <div class="fact-value">3-seat minimum</div>
+    </article>
+  
+    <article class="card" data-fact-key="voiceAllowance">
+      <div class="label">Voice allowance</div>
+      <div class="fact-value">120 pooled live voice minutes per paid seat per month</div>
+    </article>
+  
+    <article class="card" data-fact-key="orgEstimate">
+      <div class="label">Org estimate</div>
+      <div class="fact-value">~$58 / org / month</div>
+    </article>
+  </div>
+                          <p>The founder pricing package is intentionally simple: a $50 / seat / month monthly price, a 3-seat minimum, and a 120 pooled live voice minutes per paid seat per month that keeps the package legible for founders and investors.</p><p>The org-level estimate is about ~$58 / org / month under the canonical assumptions captured in this deck.</p>
+                        </article>
+                      
+                        <article id="memo-product-truth" class="memo-card" data-section-id="product-truth" data-fact-ids="publishedPath">
+                          <div class="card-header">
+                            <div class="label">Section</div>
+                            <h3>Product Truth From The Current Codebase</h3>
+                          </div>
+                          <div class="memo-facts">
+    <article class="card" data-fact-key="publishedPath">
+      <div class="label">Published path</div>
+      <div class="fact-value">/argos-v2/founder-pricing/</div>
+    </article>
+  </div>
+                          <p>The pricing story should stay tied to the current product surface and the repository's actual deployment footprint.</p><p>The canonical implementation uses one shared content object so the deck and memo remain aligned.</p>
+                        </article>
+                      
+                        <article id="memo-official-vendor-pricing" class="memo-card" data-section-id="official-vendor-pricing" data-fact-ids="vendorStack">
+                          <div class="card-header">
+                            <div class="label">Section</div>
+                            <h3>Official Vendor Pricing</h3>
+                          </div>
+                          <div class="memo-facts">
+    <article class="card" data-fact-key="vendorStack">
+      <div class="label">Vendor stack</div>
+      <div class="fact-value">OpenAI, Vercel, Supabase, and Fly.io</div>
+    </article>
+  </div>
+                          <p>The rate card explicitly names the vendor stack: OpenAI, Vercel, Supabase, and Fly.io.</p><p>Those vendors are carried through the HTML so the generated artifact surfaces the same canonical references as the source model.</p>
+                        </article>
+                      
+                        <article id="memo-modeling-boundary" class="memo-card" data-section-id="modeling-boundary" data-fact-ids="seatPrice orgEstimate">
+                          <div class="card-header">
+                            <div class="label">Section</div>
+                            <h3>Modeling Boundary: Core COGS Vs Optional Software Vs Internal Tooling</h3>
+                          </div>
+                          <div class="memo-facts">
+    <article class="card" data-fact-key="seatPrice">
+      <div class="label">Seat price</div>
+      <div class="fact-value">$50 / seat / month</div>
+    </article>
+  
+    <article class="card" data-fact-key="orgEstimate">
+      <div class="label">Org estimate</div>
+      <div class="fact-value">~$58 / org / month</div>
+    </article>
+  </div>
+                          <p>The founder model keeps the direct cost boundary clean so the core pricing story remains easy to audit.</p><p>Optional software and internal tooling are called out separately rather than being hidden inside the base seat price.</p>
+                        </article>
+                      
+                        <article id="memo-packaging-recommendation" class="memo-card" data-section-id="packaging-recommendation" data-fact-ids="seatMinimum voiceAllowance">
+                          <div class="card-header">
+                            <div class="label">Section</div>
+                            <h3>Packaging Recommendation And Voice Guardrails</h3>
+                          </div>
+                          <div class="memo-facts">
+    <article class="card" data-fact-key="seatMinimum">
+      <div class="label">Seat minimum</div>
+      <div class="fact-value">3-seat minimum</div>
+    </article>
+  
+    <article class="card" data-fact-key="voiceAllowance">
+      <div class="label">Voice allowance</div>
+      <div class="fact-value">120 pooled live voice minutes per paid seat per month</div>
+    </article>
+  </div>
+                          <p>Keep the packaging anchored to the seat minimum and the pooled live voice allowance.</p><p>Voice usage is the main guardrail that must be stated clearly to avoid ambiguity in founder conversations.</p>
+                        </article>
+                      
+                        <article id="memo-unit-economics" class="memo-card" data-section-id="unit-economics" data-fact-ids="orgEstimate voiceAllowance">
+                          <div class="card-header">
+                            <div class="label">Section</div>
+                            <h3>Unit Economics And Margin Sensitivity</h3>
+                          </div>
+                          <div class="memo-facts">
+    <article class="card" data-fact-key="orgEstimate">
+      <div class="label">Org estimate</div>
+      <div class="fact-value">~$58 / org / month</div>
+    </article>
+  
+    <article class="card" data-fact-key="voiceAllowance">
+      <div class="label">Voice allowance</div>
+      <div class="fact-value">120 pooled live voice minutes per paid seat per month</div>
+    </article>
+  </div>
+                          <p>The canonical estimate of ~$58 / org / month leaves room for software delivery while preserving a straightforward founder story.</p><p>If usage intensity changes, the voice cost line should be the first place the model is revisited.</p>
+                        </article>
+                      
+                        <article id="memo-founder-recommendations" class="memo-card" data-section-id="founder-recommendations" data-fact-ids="seatPrice seatMinimum vendorStack">
+                          <div class="card-header">
+                            <div class="label">Section</div>
+                            <h3>Founder Recommendations</h3>
+                          </div>
+                          <div class="memo-facts">
+    <article class="card" data-fact-key="seatPrice">
+      <div class="label">Seat price</div>
+      <div class="fact-value">$50 / seat / month</div>
+    </article>
+  
+    <article class="card" data-fact-key="seatMinimum">
+      <div class="label">Seat minimum</div>
+      <div class="fact-value">3-seat minimum</div>
+    </article>
+  
+    <article class="card" data-fact-key="vendorStack">
+      <div class="label">Vendor stack</div>
+      <div class="fact-value">OpenAI, Vercel, Supabase, and Fly.io</div>
+    </article>
+  </div>
+                          <p>Lead with the seat price and minimum, then explain the pooled voice allowance as the reason the package remains usable.</p><p>Keep the vendor stack visible so the model reads as grounded operationally rather than aspirationally priced.</p>
+                        </article>
+                      
+                        <article id="memo-sources-and-verification" class="memo-card" data-section-id="sources-and-verification" data-fact-ids="verificationDate publishedPath">
+                          <div class="card-header">
+                            <div class="label">Section</div>
+                            <h3>Sources And Verification Date</h3>
+                          </div>
+                          <div class="memo-facts">
+    <article class="card" data-fact-key="verificationDate">
+      <div class="label">Verification date</div>
+      <div class="fact-value">2026-04-22</div>
+    </article>
+  
+    <article class="card" data-fact-key="publishedPath">
+      <div class="label">Published path</div>
+      <div class="fact-value">/argos-v2/founder-pricing/</div>
+    </article>
+  </div>
+                          <p>Verification date: 2026-04-22.</p><p>Published path: /argos-v2/founder-pricing/.</p>
+                        </article>
+                      
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </main>
+    
+    <script>
+      class FounderPricingController {
+        constructor() {
+          this.deckView = document.getElementById("deck-view");
+          this.memoView = document.getElementById("memo-view");
+          this.slideNodes = Array.from(document.querySelectorAll(".slide"));
+          this.modeButtons = Array.from(document.querySelectorAll(".mode-button[data-mode]"));
+          this.deckLinks = Array.from(document.querySelectorAll("[data-slide-target]"));
+          this.memoLinks = Array.from(document.querySelectorAll("[data-section-target]"));
+          this.prevButton = document.querySelector('[data-nav="prev"]');
+          this.nextButton = document.querySelector('[data-nav="next"]');
+          this.statusNode = document.querySelector("[data-slide-status]");
+          this.touchStartX = 0;
+          this.touchStartY = 0;
+          this.wheelLocked = false;
+          this.motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+          this.mode = "deck";
+          this.initialHash = window.location?.hash?.replace(/^#/, "") ?? "";
+          this.index = Math.max(
+            0,
+            this.slideNodes.findIndex((slide) => !slide.hidden),
+          );
+
+          this.bind();
+          this.setMode("deck");
+          this.syncFromHash(this.initialHash);
+        }
+
+        bind() {
+          this.modeButtons.forEach((button) => {
+            button.addEventListener("click", () => this.setMode(button.dataset.mode));
+          });
+
+          this.prevButton?.addEventListener("click", () => this.go(-1));
+          this.nextButton?.addEventListener("click", () => this.go(1));
+
+          this.deckLinks.forEach((link) => {
+            link.addEventListener("click", (event) => {
+              event.preventDefault();
+              this.setMode("deck");
+              this.showSlideById(link.dataset.slideTarget);
+            });
+          });
+
+          this.memoLinks.forEach((link) => {
+            link.addEventListener("click", (event) => {
+              event.preventDefault();
+              this.setMode("memo");
+              this.syncHash(`memo-${link.dataset.sectionTarget}`);
+              this.scrollToNode(document.getElementById(`memo-${link.dataset.sectionTarget}`));
+            });
+          });
+
+          window.addEventListener("keydown", (event) => {
+            if (this.mode !== "deck") {
+              return;
+            }
+
+            if (event.key === "ArrowRight" || event.key === "PageDown") {
+              event.preventDefault();
+              this.go(1);
+            }
+
+            if (event.key === "ArrowLeft" || event.key === "PageUp") {
+              event.preventDefault();
+              this.go(-1);
+            }
+          });
+
+          window.addEventListener(
+            "wheel",
+            (event) => {
+              if (this.mode !== "deck" || this.wheelLocked || Math.abs(event.deltaY) < 28) {
+                return;
+              }
+
+              this.wheelLocked = true;
+              this.go(event.deltaY > 0 ? 1 : -1);
+              window.setTimeout(() => {
+                this.wheelLocked = false;
+              }, 450);
+            },
+            { passive: true },
+          );
+
+          window.addEventListener(
+            "touchstart",
+            (event) => {
+              this.touchStartX = event.changedTouches[0]?.clientX ?? 0;
+              this.touchStartY = event.changedTouches[0]?.clientY ?? 0;
+            },
+            { passive: true },
+          );
+
+          window.addEventListener(
+            "touchend",
+            (event) => {
+              if (this.mode !== "deck") {
+                return;
+              }
+
+              const endX = event.changedTouches[0]?.clientX ?? 0;
+              const endY = event.changedTouches[0]?.clientY ?? 0;
+              const deltaX = endX - this.touchStartX;
+              const deltaY = endY - this.touchStartY;
+
+              if (Math.abs(deltaX) < 40 || Math.abs(deltaX) < Math.abs(deltaY)) {
+                return;
+              }
+
+              this.go(deltaX < 0 ? 1 : -1);
+            },
+            { passive: true },
+          );
+
+          window.addEventListener("hashchange", () => {
+            this.syncFromHash();
+          });
+        }
+
+        setMode(mode) {
+          const isDeck = mode === "deck";
+
+          this.mode = isDeck ? "deck" : "memo";
+          this.deckView.hidden = !isDeck;
+          this.memoView.hidden = isDeck;
+          this.deckView.setAttribute("aria-hidden", String(!isDeck));
+          this.memoView.setAttribute("aria-hidden", String(isDeck));
+
+          this.modeButtons.forEach((button) => {
+            const isActive = button.dataset.mode === this.mode;
+            button.dataset.active = String(isActive);
+            button.setAttribute("aria-pressed", String(isActive));
+          });
+
+          this.update();
+        }
+
+        showSlideById(slideId) {
+          const nextIndex = this.slideNodes.findIndex((slide) => slide.dataset.slideId === slideId);
+
+          if (nextIndex < 0) {
+            return;
+          }
+
+          this.index = nextIndex;
+          this.update();
+        }
+
+        go(direction) {
+          if (this.mode !== "deck") {
+            return;
+          }
+
+          const nextIndex = Math.max(
+            0,
+            Math.min(this.slideNodes.length - 1, this.index + direction),
+          );
+
+          if (nextIndex === this.index) {
+            return;
+          }
+
+          this.index = nextIndex;
+          this.update();
+        }
+
+        scrollToNode(node) {
+          if (!node || this.motionQuery.matches) {
+            return;
+          }
+
+          node.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+          });
+        }
+
+        syncHash(nextHash) {
+          if (!window.location || !nextHash) {
+            return;
+          }
+
+          const hashValue = `#${nextHash}`;
+
+          if (window.history?.replaceState) {
+            window.history.replaceState(null, "", hashValue);
+            return;
+          }
+
+          window.location.hash = hashValue;
+        }
+
+        syncFromHash(hash = window.location?.hash?.replace(/^#/, "") ?? "") {
+
+          if (!hash) {
+            return;
+          }
+
+          if (hash.startsWith("slide-")) {
+            this.setMode("deck");
+            this.showSlideById(hash.replace(/^slide-/, ""));
+            return;
+          }
+
+          if (hash.startsWith("memo-")) {
+            this.setMode("memo");
+            this.scrollToNode(document.getElementById(hash));
+          }
+        }
+
+        update() {
+          this.slideNodes.forEach((slide, index) => {
+            const isVisible = this.mode === "deck" && index === this.index;
+
+            slide.hidden = !isVisible;
+            slide.setAttribute("aria-hidden", String(!isVisible));
+            slide.dataset.active = String(isVisible);
+          });
+
+          if (this.prevButton) {
+            this.prevButton.disabled = this.mode !== "deck" || this.index === 0;
+          }
+
+          if (this.nextButton) {
+            this.nextButton.disabled =
+              this.mode !== "deck" || this.index === this.slideNodes.length - 1;
+          }
+
+          if (this.statusNode) {
+            this.statusNode.textContent =
+              this.mode === "deck"
+                ? `Slide ${this.index + 1} of ${this.slideNodes.length}`
+                : "Memo mode";
+          }
+
+          if (this.mode === "deck") {
+            this.syncHash(`slide-${this.slideNodes[this.index]?.dataset.slideId ?? ""}`);
+            this.scrollToNode(this.slideNodes[this.index]);
+          }
+        }
+      }
+
+      window.addEventListener("DOMContentLoaded", () => {
+        if (document.getElementById("deck-view") && document.getElementById("memo-view")) {
+          window.__founderPricingController = new FounderPricingController();
+        }
+      });
+    </script>
+  
+  </body>
+</html>
