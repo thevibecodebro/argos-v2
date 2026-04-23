@@ -10,6 +10,16 @@ test("build:founder-pricing emits a publishable HTML document", () => {
   const repoRoot = path.resolve(testDir, "..", "..");
   const outDir = path.join(repoRoot, "dist/founder-pricing");
   const outFile = path.join(outDir, "index.html");
+  const requiredStrings = [
+    "$50 / seat / month",
+    "3-seat minimum",
+    "120 pooled live voice minutes per paid seat per month",
+    "~$58 / org / month",
+    "OpenAI",
+    "Vercel",
+    "Supabase",
+    "Fly.io",
+  ];
 
   rmSync(outDir, { recursive: true, force: true });
 
@@ -21,7 +31,11 @@ test("build:founder-pricing emits a publishable HTML document", () => {
   const html = readFileSync(outFile, "utf8");
 
   assert.match(html, /<!DOCTYPE html>/);
-  assert.match(html, /Founder Pricing & COGS/);
+  assert.match(html, /Founder Pricing &amp; COGS/);
   assert.match(html, /data-mode="deck"/);
   assert.match(html, /data-mode="memo"/);
+
+  for (const requiredString of requiredStrings) {
+    assert.ok(html.includes(requiredString), `expected HTML to include "${requiredString}"`);
+  }
 });
