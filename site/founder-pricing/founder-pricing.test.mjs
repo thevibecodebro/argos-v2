@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { readFileSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
@@ -165,6 +165,19 @@ test("founder pricing controller respects initial slide deep links", () => {
   assert.equal(elements.slides[0].hidden, true);
   assert.equal(elements.slides[1].hidden, false);
   assert.equal(windowObject.location.hash, "#slide-product-truth");
+});
+
+test("github pages workflow exists for founder pricing site", () => {
+  const workflowFile = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "..",
+    "..",
+    ".github",
+    "workflows",
+    "founder-pricing-pages.yml",
+  );
+
+  assert.equal(existsSync(workflowFile), true);
 });
 
 function buildHtml() {
