@@ -143,6 +143,30 @@ test("founder pricing controller drives deck and memo behavior", () => {
   assert.equal(elements.memoSection.scrollIntoViewCalls.length > 0, true);
 });
 
+test("founder pricing controller respects initial slide deep links", () => {
+  const { html } = buildHtml();
+  const { elements, windowObject } = createControllerHarness({
+    initialHash: "#slide-product-truth",
+  });
+  const script = extractInlineScript(html);
+  const context = {
+    console,
+    document: elements.document,
+    window: windowObject,
+  };
+
+  context.globalThis = context;
+
+  vm.runInNewContext(script, context);
+  windowObject.dispatch("DOMContentLoaded");
+
+  assert.equal(windowObject.__founderPricingController.mode, "deck");
+  assert.equal(windowObject.__founderPricingController.index, 1);
+  assert.equal(elements.slides[0].hidden, true);
+  assert.equal(elements.slides[1].hidden, false);
+  assert.equal(windowObject.location.hash, "#slide-product-truth");
+});
+
 function buildHtml() {
   const testDir = path.dirname(fileURLToPath(import.meta.url));
   const repoRoot = path.resolve(testDir, "..", "..");
@@ -208,7 +232,7 @@ function createMockElement({ dataset = {}, hidden = false, id = "" } = {}) {
   };
 }
 
-function createControllerHarness() {
+function createControllerHarness({ initialHash = "" } = {}) {
   const deckView = createMockElement({ id: "deck-view" });
   const memoView = createMockElement({ id: "memo-view", hidden: true });
   const slideOne = createMockElement({
@@ -279,7 +303,7 @@ function createControllerHarness() {
         windowObject.location.hash = hash;
       },
     },
-    location: { hash: "" },
+    location: { hash: initialHash },
     addEventListener(type, handler) {
       windowListeners[type] ??= [];
       windowListeners[type].push(handler);

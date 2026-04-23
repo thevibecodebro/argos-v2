@@ -145,6 +145,7 @@ function renderControllerScript() {
           this.wheelLocked = false;
           this.motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
           this.mode = "deck";
+          this.initialHash = window.location?.hash?.replace(/^#/, "") ?? "";
           this.index = Math.max(
             0,
             this.slideNodes.findIndex((slide) => !slide.hidden),
@@ -152,6 +153,7 @@ function renderControllerScript() {
 
           this.bind();
           this.setMode("deck");
+          this.syncFromHash(this.initialHash);
         }
 
         bind() {
@@ -319,8 +321,7 @@ function renderControllerScript() {
           window.location.hash = hashValue;
         }
 
-        syncFromHash() {
-          const hash = window.location?.hash?.replace(/^#/, "") ?? "";
+        syncFromHash(hash = window.location?.hash?.replace(/^#/, "") ?? "") {
 
           if (!hash) {
             return;
