@@ -1,19 +1,187 @@
-const pricing = {
-  seatPrice: "$50 / seat / month",
-  seatMinimum: "3-seat minimum",
-  voiceAllowance: "120 pooled live voice minutes per paid seat per month",
-  orgEstimate: "~$58 / org / month",
-};
+const model = require("./model.js");
 
-const vendorStack = ["OpenAI", "Vercel", "Supabase", "Fly.io"];
-const verificationDate = "2026-04-22";
-const publishedPath = "/argos-v2/founder-pricing/";
+const currency = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+});
+
+function money(value) {
+  return currency.format(value);
+}
+
+function percent(value) {
+  return `${Number((value * 100).toFixed(2))}%`;
+}
+
+const soloPack = model.derived.packs.solo[0];
+const teamGrowthPack = model.derived.packs.team[0];
+const teamScalePack = model.derived.packs.team[1];
+const slides = [
+  {
+    id: "cover",
+    title: "Founder Pricing & COGS",
+    summary:
+      "A two-plan pricing system built around predictable subscription revenue and explicit voice expansion levers.",
+    bullets: [
+      `Verified against the approved assumption set on ${model.verifiedAt}.`,
+      "Deck structure is now driven by a canonical pricing model rather than ad hoc facts and memo sections.",
+    ],
+  },
+  {
+    id: "pricing-architecture",
+    title: "Pricing Architecture",
+    summary:
+      "Argos keeps the menu simple: a solo subscription for individual operators and a team subscription with a hard seat floor.",
+    bullets: [
+      `Solo is ${money(model.plans.solo.priceMonthly)} per month with ${model.plans.solo.includedVoiceMinutes} included voice minutes.`,
+      `Team is ${money(model.plans.team.pricePerSeatMonthly)} per seat per month with a ${model.plans.team.seatMinimum}-seat minimum.`,
+      `Annual billing carries a ${percent(model.annualDiscountRate)} discount across both plans.`,
+    ],
+  },
+  {
+    id: "included-usage",
+    title: "Included Usage Guardrails",
+    summary:
+      "Included minutes define the baseline value envelope and make overage policy legible to investors and operators.",
+    bullets: [
+      `Solo includes ${model.plans.solo.includedVoiceMinutes} voice minutes each month before internal overage billing starts at ${money(model.plans.solo.overageRate)}/minute.`,
+      `Team includes ${model.plans.team.includedVoiceMinutesPerSeat} voice minutes per seat, or ${model.derived.team.minimumIncludedVoiceMinutes} minutes per month at the 3-seat floor.`,
+      "Voice packs extend usage without changing the core subscription architecture.",
+    ],
+  },
+  {
+    id: "vendor-cost-stack",
+    title: "Vendor Cost Stack",
+    summary:
+      "The operating stack is intentionally narrow and named directly so the model can be audited without hidden infrastructure assumptions.",
+    bullets: model.vendors.map((vendor) =>
+      vendor.monthlyCost
+        ? `${vendor.name}: ${money(vendor.monthlyCost)}/month base subscription`
+        : vendor.percentRate
+          ? `${vendor.name}: ${percent(vendor.percentRate)}${vendor.fixedFee ? ` + ${money(vendor.fixedFee)}` : ""}`
+          : vendor.name,
+    ),
+  },
+  {
+    id: "solo-unit-economics",
+    title: "Solo Unit Economics",
+    summary:
+      "The solo plan is priced for easy founder adoption while preserving room for software and payment overhead.",
+    bullets: [
+      `Monthly gross revenue per solo customer is ${money(model.plans.solo.priceMonthly)}.`,
+      `Annual prepay lands at ${money(model.derived.solo.priceAnnual)} after discount.`,
+      `Stripe processing on the monthly solo charge is ${money(model.derived.solo.cardFeeMonthly)} plus ${money(model.derived.solo.billingFeeMonthly)} for Stripe Billing.`,
+    ],
+  },
+  {
+    id: "team-unit-economics",
+    title: "Team Minimum Economics",
+    summary:
+      "The 3-seat floor does most of the margin protection work because it locks in baseline revenue and baseline included usage.",
+    bullets: [
+      `Minimum team MRR is ${money(model.derived.team.minimumMonthly)} at ${model.plans.team.seatMinimum} seats.`,
+      `Minimum annual team contract value is ${money(model.derived.team.minimumAnnual)} after discount.`,
+      `Minimum monthly payment overhead is ${money(model.derived.team.minimumCardFeeMonthly)} for card processing and ${money(model.derived.team.minimumBillingFeeMonthly)} for billing.`,
+    ],
+  },
+  {
+    id: "annual-vs-monthly",
+    title: "Annual vs Monthly",
+    summary:
+      "Annual billing trades a modest discount for stronger cash collection and lower churn risk on the first cohorts.",
+    bullets: [
+      `Solo monthly vs annual: ${money(model.plans.solo.priceMonthly)} monthly or ${money(model.derived.solo.priceAnnual)} annual.`,
+      `Team floor monthly vs annual: ${money(model.derived.team.minimumMonthly)} monthly or ${money(model.derived.team.minimumAnnual)} annual.`,
+      "The annual discount is a packaging incentive, not a separate pricing tier.",
+    ],
+  },
+  {
+    id: "voice-expansion-packs",
+    title: "Voice Expansion Packs",
+    summary:
+      "Expansion packs absorb usage spikes without forcing a plan migration and create a second monetization lane for heavy voice accounts.",
+    bullets: [
+      `Solo pack: ${soloPack.minutes} minutes for ${money(soloPack.price)} valid for ${soloPack.expiresInDays} days.`,
+      `Team growth pack: ${teamGrowthPack.minutes} minutes for ${money(teamGrowthPack.price)} valid for ${teamGrowthPack.expiresInDays} days.`,
+      `Team scale pack: ${teamScalePack.minutes} minutes for ${money(teamScalePack.price)} valid for ${teamScalePack.expiresInDays} days.`,
+    ],
+  },
+  {
+    id: "founder-close",
+    title: "Founder Close",
+    summary:
+      "The recommended investor story is disciplined packaging, transparent payment economics, and a clean voice monetization rule.",
+    bullets: [
+      "Keep the initial deck centered on the two-plan architecture rather than proliferating packages.",
+      "Use the appendix to show that every number comes from a single canonical pricing model.",
+    ],
+  },
+];
+const appendix = [
+  {
+    id: "appendix-rate-card",
+    title: "Appendix: Rate Card",
+    summary: "Approved founder pricing assumptions with direct rates and plan boundaries.",
+    sections: [
+      {
+        label: "Subscriptions",
+        items: [
+          `Solo: ${money(model.plans.solo.priceMonthly)}/month`,
+          `Team: ${money(model.plans.team.pricePerSeatMonthly)}/seat/month, ${model.plans.team.seatMinimum}-seat minimum`,
+          `Annual discount: ${percent(model.annualDiscountRate)}`,
+        ],
+      },
+      {
+        label: "Included minutes and overages",
+        items: [
+          `Solo included minutes: ${model.plans.solo.includedVoiceMinutes}`,
+          `Team included minutes per seat: ${model.plans.team.includedVoiceMinutesPerSeat}`,
+          `Internal overage rates: solo ${money(model.plans.solo.overageRate)}/minute, team ${money(model.plans.team.overageRate)}/minute`,
+        ],
+      },
+      {
+        label: "Expansion packs",
+        items: [
+          `Solo: ${soloPack.minutes} / ${money(soloPack.price)} / ${soloPack.expiresInDays} days`,
+          `Team: ${teamGrowthPack.minutes} / ${money(teamGrowthPack.price)} / ${teamGrowthPack.expiresInDays} days`,
+          `Team: ${teamScalePack.minutes} / ${money(teamScalePack.price)} / ${teamScalePack.expiresInDays} days`,
+        ],
+      },
+    ],
+  },
+  {
+    id: "appendix-formulas",
+    title: "Appendix: Formulas",
+    summary: "Derived values used across the deck so later renderer work can stay declarative.",
+    sections: [
+      {
+        label: "Subscription formulas",
+        items: [
+          `Solo annual = ${money(model.plans.solo.priceMonthly)} × 12 × (1 - ${model.annualDiscountRate}) = ${money(model.derived.solo.priceAnnual)}`,
+          `Team annual floor = ${money(model.derived.team.minimumMonthly)} × 12 × (1 - ${model.annualDiscountRate}) = ${money(model.derived.team.minimumAnnual)}`,
+          `Team included minutes floor = ${model.plans.team.includedVoiceMinutesPerSeat} × ${model.plans.team.seatMinimum} = ${model.derived.team.minimumIncludedVoiceMinutes}`,
+        ],
+      },
+      {
+        label: "Payment formulas",
+        items: [
+          `Stripe card fee = gross × ${model.stripeFees.cardPercent} + ${money(model.stripeFees.cardFixed)}`,
+          `Stripe Billing fee = gross × ${model.stripeFees.billingPercent}`,
+          `Team floor billing overhead = ${money(model.derived.team.minimumCardFeeMonthly)} card + ${money(model.derived.team.minimumBillingFeeMonthly)} billing per month`,
+        ],
+      },
+    ],
+  },
+];
 
 const founderPricingContent = {
   meta: {
     title: "Founder Pricing & COGS",
-    verificationDate,
-    publishedPath,
+    verifiedAt: model.verifiedAt,
+    publishedPath: "/argos-v2/founder-pricing/",
+    subtitle: "Canonical founder pricing deck with appendix-backed formulas",
   },
   theme: {
     colors: {
@@ -33,182 +201,13 @@ const founderPricingContent = {
       body: "Source Sans 3",
     },
   },
-  controls: {
-    pricing,
-    vendorStack,
-  },
+  model,
   counts: {
-    slides: 9,
-    memoSections: 8,
-    facts: 7,
+    mainSlides: slides.length,
+    appendixSlides: appendix.length,
   },
-  facts: {
-    seatPrice: {
-      id: "seatPrice",
-      label: "Seat price",
-      value: pricing.seatPrice,
-    },
-    seatMinimum: {
-      id: "seatMinimum",
-      label: "Seat minimum",
-      value: pricing.seatMinimum,
-    },
-    voiceAllowance: {
-      id: "voiceAllowance",
-      label: "Voice allowance",
-      value: pricing.voiceAllowance,
-    },
-    orgEstimate: {
-      id: "orgEstimate",
-      label: "Org estimate",
-      value: pricing.orgEstimate,
-    },
-    vendorStack: {
-      id: "vendorStack",
-      label: "Vendor stack",
-      values: vendorStack,
-    },
-    verificationDate: {
-      id: "verificationDate",
-      label: "Verification date",
-      value: verificationDate,
-    },
-    publishedPath: {
-      id: "publishedPath",
-      label: "Published path",
-      value: publishedPath,
-    },
-  },
-  slides: [
-    {
-      id: "cover",
-      title: "Founder Pricing & COGS",
-      summary: "A pricing story that stays product-native, investor-ready, and grounded in current cost structure.",
-      factIds: ["publishedPath", "verificationDate"],
-    },
-    {
-      id: "product-truth",
-      title: "Product truth from the codebase",
-      summary: "The pricing narrative is anchored to the shipped product surface, not an invented packaging model.",
-      factIds: ["publishedPath"],
-    },
-    {
-      id: "vendor-rate-card",
-      title: "Official vendor rate card",
-      summary: "The model references the vendor stack directly so the pricing story stays tied to actual infrastructure inputs.",
-      factIds: ["vendorStack"],
-    },
-    {
-      id: "pricing-architecture",
-      title: "Pricing architecture and controls",
-      summary: "The founder package is constrained by a clear seat floor and a pooled voice allowance.",
-      factIds: ["seatPrice", "seatMinimum", "voiceAllowance"],
-    },
-    {
-      id: "direct-cost-stack",
-      title: "Direct cost stack",
-      summary: "The org-level estimate sits near the lower end of the founder-friendly range while preserving margin room.",
-      factIds: ["orgEstimate", "vendorStack"],
-    },
-    {
-      id: "team-size-economics",
-      title: "Team-size economics under the standard allowance",
-      summary: "The minimum seat commitment matters more than the headline seat price when the allowance is pooled.",
-      factIds: ["seatMinimum", "voiceAllowance"],
-    },
-    {
-      id: "voice-sensitivity",
-      title: "Voice sensitivity",
-      summary: "Voice usage is the primary variable that can change the economics faster than steady software-only usage.",
-      factIds: ["voiceAllowance", "vendorStack"],
-    },
-    {
-      id: "arr-scale",
-      title: "ARR scale",
-      summary: "The pricing structure leaves room to scale revenue while keeping the first cohort easy to explain.",
-      factIds: ["seatPrice", "orgEstimate"],
-    },
-    {
-      id: "founder-conclusion",
-      title: "Founder conclusion",
-      summary: "Use the disciplined package as the default and keep the voice and infrastructure guardrails explicit.",
-      factIds: ["vendorStack", "publishedPath"],
-    },
-  ],
-  memoSections: [
-    {
-      id: "executive-summary",
-      title: "Executive summary",
-      factIds: ["seatPrice", "seatMinimum", "voiceAllowance", "orgEstimate"],
-      paragraphTemplates: [
-        "The founder pricing package is intentionally simple: a {seatPrice} monthly price, a {seatMinimum}, and a {voiceAllowance} that keeps the package legible for founders and investors.",
-        "The org-level estimate is about {orgEstimate} under the canonical assumptions captured in this deck.",
-      ],
-    },
-    {
-      id: "product-truth",
-      title: "Product truth from the current codebase",
-      factIds: ["publishedPath"],
-      paragraphTemplates: [
-        "The pricing story should stay tied to the current product surface and the repository's actual deployment footprint.",
-        "The canonical implementation uses one shared content object so the deck and memo remain aligned.",
-      ],
-    },
-    {
-      id: "official-vendor-pricing",
-      title: "Official vendor pricing",
-      factIds: ["vendorStack"],
-      paragraphTemplates: [
-        "The rate card explicitly names the vendor stack: {vendorStack}.",
-        "Those vendors are carried through the HTML so the generated artifact surfaces the same canonical references as the source model.",
-      ],
-    },
-    {
-      id: "modeling-boundary",
-      title: "Modeling boundary: core COGS vs optional software vs internal tooling",
-      factIds: ["seatPrice", "orgEstimate"],
-      paragraphTemplates: [
-        "The founder model keeps the direct cost boundary clean so the core pricing story remains easy to audit.",
-        "Optional software and internal tooling are called out separately rather than being hidden inside the base seat price.",
-      ],
-    },
-    {
-      id: "packaging-recommendation",
-      title: "Packaging recommendation and voice guardrails",
-      factIds: ["seatMinimum", "voiceAllowance"],
-      paragraphTemplates: [
-        "Keep the packaging anchored to the seat minimum and the pooled live voice allowance.",
-        "Voice usage is the main guardrail that must be stated clearly to avoid ambiguity in founder conversations.",
-      ],
-    },
-    {
-      id: "unit-economics",
-      title: "Unit economics and margin sensitivity",
-      factIds: ["orgEstimate", "voiceAllowance"],
-      paragraphTemplates: [
-        "The canonical estimate of {orgEstimate} leaves room for software delivery while preserving a straightforward founder story.",
-        "If usage intensity changes, the voice cost line should be the first place the model is revisited.",
-      ],
-    },
-    {
-      id: "founder-recommendations",
-      title: "Founder recommendations",
-      factIds: ["seatPrice", "seatMinimum", "vendorStack"],
-      paragraphTemplates: [
-        "Lead with the seat price and minimum, then explain the pooled voice allowance as the reason the package remains usable.",
-        "Keep the vendor stack visible so the model reads as grounded operationally rather than aspirationally priced.",
-      ],
-    },
-    {
-      id: "sources-and-verification",
-      title: "Sources and verification date",
-      factIds: ["verificationDate", "publishedPath"],
-      paragraphTemplates: [
-        "Verification date: {verificationDate}.",
-        "Published path: {publishedPath}.",
-      ],
-    },
-  ],
+  slides,
+  appendix,
 };
 
 module.exports = founderPricingContent;
