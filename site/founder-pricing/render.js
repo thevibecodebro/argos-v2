@@ -189,164 +189,201 @@ function renderAppendixSection(section) {
   `;
 }
 
+const MAIN_SLIDE_DEFINITIONS = {
+  cover: { kind: "hero-metrics", payloadKey: "coverMetrics" },
+  "pricing-architecture": { kind: "policy-grid", payloadKey: "pricingArchitecturePolicies" },
+  "included-usage": { kind: "rate-stack", payloadKey: "includedUsageRates" },
+  "vendor-cost-stack": { kind: "assumption-list", payloadKey: "vendorAssumptions" },
+  "solo-unit-economics": { kind: "comparison-table", payloadKey: "marginTable" },
+  "team-unit-economics": { kind: "comparison-table", payloadKey: "orgMarginTable" },
+  "annual-vs-monthly": { kind: "comparison-table", payloadKey: "seatEconomicsTable" },
+  "voice-expansion-packs": { kind: "rate-stack", payloadKey: "voiceExpansionPacks" },
+  "founder-close": { kind: "thesis", payloadKey: "thesisBullets" },
+};
+
+const APPENDIX_SLIDE_DEFINITIONS = {
+  "appendix-rate-card": { kind: "appendix-table", payloadKey: "sections" },
+  "appendix-formulas": { kind: "appendix-table", payloadKey: "sections" },
+  "appendix-seat-economics": { kind: "appendix-table", payloadKey: "sections" },
+  "appendix-margin-bridge": { kind: "appendix-table", payloadKey: "sections" },
+  "appendix-voice-sensitivity": { kind: "sensitivity-table", payloadKey: "sections" },
+};
+
+function resolveSlideDefinition(slideId, group = "main") {
+  const definitionMap =
+    group === "appendix" ? APPENDIX_SLIDE_DEFINITIONS : MAIN_SLIDE_DEFINITIONS;
+  const definition = definitionMap[slideId];
+
+  if (!definition) {
+    throw new Error(`Missing slide definition for ${group} slide: ${slideId}`);
+  }
+
+  return definition;
+}
+
 function inferSlideKind(entry, group = "main") {
   if (entry.kind) {
     return entry.kind;
   }
 
-  if (group === "appendix") {
-    if (entry.id === "appendix-voice-sensitivity") {
-      return "sensitivity-table";
-    }
-
-    return "appendix-table";
-  }
-
-  return (
-    {
-      cover: "hero-metrics",
-      "pricing-architecture": "policy-grid",
-      "included-usage": "rate-stack",
-      "vendor-cost-stack": "assumption-list",
-      "solo-unit-economics": "comparison-table",
-      "team-unit-economics": "comparison-table",
-      "annual-vs-monthly": "comparison-table",
-      "voice-expansion-packs": "rate-stack",
-      "founder-close": "thesis",
-    }[entry.id] ?? "thesis"
-  );
+  return resolveSlideDefinition(entry.id, group).kind;
 }
 
-function buildSlidePayload(entry, kind, group, model) {
-  if (group === "appendix") {
+const PAYLOAD_BUILDERS = {
+  coverMetrics(entry, model) {
+    return {
+      metrics: [
+        {
+          label: "Solo subscription",
+          value: formatCurrency(model.plans.solo.priceMonthly),
+          detail: `${model.plans.solo.includedVoiceMinutes} included voice minutes per month`,
+        },
+        {
+          label: "Team floor",
+          value: formatCurrency(model.derived.team.minimumMonthly),
+          detail: `${model.plans.team.seatMinimum} seats minimum at ${formatCurrency(model.plans.team.pricePerSeatMonthly)}/seat`,
+        },
+        {
+          label: "Annual discount",
+          value: "10%",
+          detail: "Applies to both plans without adding another packaging tier",
+        },
+        {
+          label: "Voice expansion",
+          value: formatCurrency(model.packs.team[0].price),
+          detail: `${model.packs.team[0].minutes}-minute team growth pack`,
+        },
+      ],
+      bullets: entry.bullets ?? [],
+    };
+  },
+  pricingArchitecturePolicies(entry, model) {
+    return {
+      cards: [
+        {
+          label: "Solo",
+          title: `${formatCurrency(model.plans.solo.priceMonthly)} / month`,
+          body: `${model.plans.solo.includedVoiceMinutes} included voice minutes before ${formatCurrency(model.plans.solo.overageRate)}/minute overage pricing.`,
+        },
+        {
+          label: "Team",
+          title: `${formatCurrency(model.plans.team.pricePerSeatMonthly)} / seat / month`,
+          body: `${model.plans.team.seatMinimum}-seat minimum with ${model.plans.team.includedVoiceMinutesPerSeat} included voice minutes per seat.`,
+        },
+        {
+          label: "Annual",
+          title: "Prepaid incentive",
+          body: "Annual billing gives a 10% discount while keeping the public menu simple.",
+        },
+      ],
+      bullets: entry.bullets ?? [],
+    };
+  },
+  includedUsageRates(entry, model) {
+    return {
+      items: [
+        {
+          label: "Solo allowance",
+          value: `${model.plans.solo.includedVoiceMinutes} min`,
+          detail: `Internal overage starts at ${formatCurrency(model.plans.solo.overageRate)}/minute.`,
+        },
+        {
+          label: "Team allowance",
+          value: `${model.derived.team.minimumIncludedVoiceMinutes} min`,
+          detail: "Three-seat minimum defines the baseline usage envelope.",
+        },
+        {
+          label: "Monetization lever",
+          value: "Expansion packs",
+          detail: "Usage spikes monetize cleanly without forcing plan migration.",
+        },
+      ],
+      bullets: entry.bullets ?? [],
+    };
+  },
+  voiceExpansionPacks(entry, model) {
+    return {
+      items: [
+        {
+          label: "Solo pack",
+          value: `${model.packs.solo[0].minutes} min / ${formatCurrency(model.packs.solo[0].price)}`,
+          detail: `Valid for ${model.packs.solo[0].expiresInDays} days.`,
+        },
+        {
+          label: "Team growth pack",
+          value: `${model.packs.team[0].minutes} min / ${formatCurrency(model.packs.team[0].price)}`,
+          detail: `Valid for ${model.packs.team[0].expiresInDays} days.`,
+        },
+        {
+          label: "Team scale pack",
+          value: `${model.packs.team[1].minutes} min / ${formatCurrency(model.packs.team[1].price)}`,
+          detail: `Valid for ${model.packs.team[1].expiresInDays} days.`,
+        },
+      ],
+      bullets: entry.bullets ?? [],
+    };
+  },
+  vendorAssumptions(entry, model) {
+    return {
+      items: model.vendors.map((vendor) => ({
+        label: vendor.name,
+        value: vendor.monthlyCost
+          ? `${formatCurrency(vendor.monthlyCost)} / month`
+          : vendor.percentRate
+            ? `${vendor.percentRate * 100}%${vendor.fixedFee ? ` + ${formatCurrency(vendor.fixedFee)}` : ""}`
+            : vendor.sourceLabel,
+      })),
+      bullets: entry.bullets ?? [],
+    };
+  },
+  marginTable(entry, model) {
+    return {
+      table: model.derived.marginTable,
+      bullets: entry.bullets ?? [],
+    };
+  },
+  orgMarginTable(entry, model) {
+    return {
+      table: model.derived.orgMarginTable,
+      bullets: entry.bullets ?? [],
+    };
+  },
+  seatEconomicsTable(entry, model) {
+    return {
+      table: model.derived.seatEconomicsTable,
+      bullets: entry.bullets ?? [],
+    };
+  },
+  thesisBullets(entry) {
+    return {
+      bullets: entry.bullets ?? [],
+    };
+  },
+  sections(entry) {
     return {
       sections: entry.sections ?? [],
       table: entry.sections?.find((section) => section.table)?.table ?? null,
       bullets: entry.bullets ?? [],
     };
+  },
+};
+
+function buildSlidePayload(entry, group, model) {
+  const definition = resolveSlideDefinition(entry.id, group);
+  const payloadBuilder = PAYLOAD_BUILDERS[definition.payloadKey];
+
+  if (!payloadBuilder) {
+    throw new Error(
+      `Missing payload builder for ${group} slide: ${entry.id} (${definition.payloadKey})`,
+    );
   }
 
-  switch (kind) {
-    case "hero-metrics":
-      return {
-        metrics: [
-          {
-            label: "Solo subscription",
-            value: formatCurrency(model.plans.solo.priceMonthly),
-            detail: `${model.plans.solo.includedVoiceMinutes} included voice minutes per month`,
-          },
-          {
-            label: "Team floor",
-            value: formatCurrency(model.derived.team.minimumMonthly),
-            detail: `${model.plans.team.seatMinimum} seats minimum at ${formatCurrency(model.plans.team.pricePerSeatMonthly)}/seat`,
-          },
-          {
-            label: "Annual discount",
-            value: "10%",
-            detail: "Applies to both plans without adding another packaging tier",
-          },
-          {
-            label: "Voice expansion",
-            value: formatCurrency(model.packs.team[0].price),
-            detail: `${model.packs.team[0].minutes}-minute team growth pack`,
-          },
-        ],
-        bullets: entry.bullets ?? [],
-      };
-    case "policy-grid":
-      return {
-        cards: [
-          {
-            label: "Solo",
-            title: `${formatCurrency(model.plans.solo.priceMonthly)} / month`,
-            body: `${model.plans.solo.includedVoiceMinutes} included voice minutes before ${formatCurrency(model.plans.solo.overageRate)}/minute overage pricing.`,
-          },
-          {
-            label: "Team",
-            title: `${formatCurrency(model.plans.team.pricePerSeatMonthly)} / seat / month`,
-            body: `${model.plans.team.seatMinimum}-seat minimum with ${model.plans.team.includedVoiceMinutesPerSeat} included voice minutes per seat.`,
-          },
-          {
-            label: "Annual",
-            title: "Prepaid incentive",
-            body: "Annual billing gives a 10% discount while keeping the public menu simple.",
-          },
-        ],
-        bullets: entry.bullets ?? [],
-      };
-    case "rate-stack":
-      if (entry.id === "voice-expansion-packs") {
-        return {
-          items: [
-            {
-              label: "Solo pack",
-              value: `${model.packs.solo[0].minutes} min / ${formatCurrency(model.packs.solo[0].price)}`,
-              detail: `Valid for ${model.packs.solo[0].expiresInDays} days.`,
-            },
-            {
-              label: "Team growth pack",
-              value: `${model.packs.team[0].minutes} min / ${formatCurrency(model.packs.team[0].price)}`,
-              detail: `Valid for ${model.packs.team[0].expiresInDays} days.`,
-            },
-            {
-              label: "Team scale pack",
-              value: `${model.packs.team[1].minutes} min / ${formatCurrency(model.packs.team[1].price)}`,
-              detail: `Valid for ${model.packs.team[1].expiresInDays} days.`,
-            },
-          ],
-        };
-      }
-
-      return {
-        items: [
-          {
-            label: "Solo allowance",
-            value: `${model.plans.solo.includedVoiceMinutes} min`,
-            detail: `Internal overage starts at ${formatCurrency(model.plans.solo.overageRate)}/minute.`,
-          },
-          {
-            label: "Team allowance",
-            value: `${model.derived.team.minimumIncludedVoiceMinutes} min`,
-            detail: "Three-seat minimum defines the baseline usage envelope.",
-          },
-          {
-            label: "Monetization lever",
-            value: "Expansion packs",
-            detail: "Usage spikes monetize cleanly without forcing plan migration.",
-          },
-        ],
-      };
-    case "assumption-list":
-      return {
-        items: model.vendors.map((vendor) => ({
-          label: vendor.name,
-          value: vendor.monthlyCost
-            ? `${formatCurrency(vendor.monthlyCost)} / month`
-            : vendor.percentRate
-              ? `${vendor.percentRate * 100}%${vendor.fixedFee ? ` + ${formatCurrency(vendor.fixedFee)}` : ""}`
-              : vendor.sourceLabel,
-        })),
-      };
-    case "comparison-table":
-      if (entry.id === "solo-unit-economics") {
-        return { table: model.derived.marginTable };
-      }
-
-      if (entry.id === "team-unit-economics") {
-        return { table: model.derived.orgMarginTable };
-      }
-
-      return { table: model.derived.seatEconomicsTable };
-    case "thesis":
-    default:
-      return {
-        bullets: entry.bullets ?? [],
-      };
-  }
+  return payloadBuilder(entry, model);
 }
 
 function normalizeEntry(entry, group, index, counts, model) {
-  const kind = inferSlideKind(entry, group);
+  const definition = resolveSlideDefinition(entry.id, group);
+  const kind = entry.kind ?? definition.kind;
   return {
     ...entry,
     group,
@@ -361,7 +398,7 @@ function normalizeEntry(entry, group, index, counts, model) {
         ? `${index + 1} / ${counts.appendixSlides}`
         : `${index + 1} / ${counts.mainSlides}`,
     ordinal: index,
-    payload: buildSlidePayload(entry, kind, group, model),
+    payload: buildSlidePayload(entry, group, model),
   };
 }
 
@@ -403,11 +440,20 @@ function renderSlideBody(slide) {
         ${renderList(slide.payload.bullets)}
       `;
     case "rate-stack":
-      return renderRateStack(slide.payload.items);
+      return `
+        ${renderRateStack(slide.payload.items)}
+        ${renderList(slide.payload.bullets)}
+      `;
     case "assumption-list":
-      return renderAssumptionList(slide.payload.items);
+      return `
+        ${renderAssumptionList(slide.payload.items)}
+        ${renderList(slide.payload.bullets)}
+      `;
     case "comparison-table":
-      return renderComparisonTable(slide.payload.table);
+      return `
+        ${renderComparisonTable(slide.payload.table)}
+        ${renderList(slide.payload.bullets)}
+      `;
     case "sensitivity-table":
       return `
         <div class="appendix-grid">
@@ -1243,6 +1289,7 @@ module.exports = {
   __test: {
     CONTROLLER_SOURCE,
     inferSlideKind,
+    resolveSlideDefinition,
   },
 };
 module.exports.default = renderFounderPricingHtml;

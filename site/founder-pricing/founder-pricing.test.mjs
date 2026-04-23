@@ -146,6 +146,62 @@ test("renderer outputs investor deck primitives for tables and appendix sections
   assert.match(html, /Voice sensitivity rows/);
 });
 
+test("renderer preserves declared bullets for nonthesis slide kinds", () => {
+  const html = renderFounderPricingHtml(founderPricingContent);
+  const usageSlide = getSlideMarkup(html, "included-usage");
+  const vendorSlide = getSlideMarkup(html, "vendor-cost-stack");
+  const annualSlide = getSlideMarkup(html, "annual-vs-monthly");
+
+  for (const bullet of founderPricingContent.slides.find((slide) => slide.id === "included-usage").bullets) {
+    assert.match(usageSlide, new RegExp(escapeRegExp(bullet)));
+  }
+
+  for (const bullet of founderPricingContent.slides.find((slide) => slide.id === "vendor-cost-stack").bullets) {
+    assert.match(vendorSlide, new RegExp(escapeRegExp(bullet)));
+  }
+
+  for (const bullet of founderPricingContent.slides.find((slide) => slide.id === "annual-vs-monthly").bullets) {
+    assert.match(annualSlide, new RegExp(escapeRegExp(bullet)));
+  }
+});
+
+test("renderer uses explicit slide definitions for kinds and payload sources", () => {
+  const { resolveSlideDefinition } = renderTestExports;
+
+  assert.deepEqual(resolveSlideDefinition("included-usage", "main"), {
+    kind: "rate-stack",
+    payloadKey: "includedUsageRates",
+  });
+  assert.deepEqual(resolveSlideDefinition("vendor-cost-stack", "main"), {
+    kind: "assumption-list",
+    payloadKey: "vendorAssumptions",
+  });
+  assert.deepEqual(resolveSlideDefinition("solo-unit-economics", "main"), {
+    kind: "comparison-table",
+    payloadKey: "marginTable",
+  });
+  assert.deepEqual(resolveSlideDefinition("team-unit-economics", "main"), {
+    kind: "comparison-table",
+    payloadKey: "orgMarginTable",
+  });
+  assert.deepEqual(resolveSlideDefinition("annual-vs-monthly", "main"), {
+    kind: "comparison-table",
+    payloadKey: "seatEconomicsTable",
+  });
+  assert.deepEqual(resolveSlideDefinition("appendix-rate-card", "appendix"), {
+    kind: "appendix-table",
+    payloadKey: "sections",
+  });
+  assert.deepEqual(resolveSlideDefinition("appendix-voice-sensitivity", "appendix"), {
+    kind: "sensitivity-table",
+    payloadKey: "sections",
+  });
+  assert.throws(
+    () => resolveSlideDefinition("unknown-slide", "main"),
+    /Missing slide definition/,
+  );
+});
+
 test("responsive CSS preserves viewport lock without internal scrolling", () => {
   const html = renderFounderPricingHtml(founderPricingContent);
 
@@ -246,6 +302,24 @@ function assertDeclarativeTable(table) {
 
 function countMatches(value, pattern) {
   return [...value.matchAll(pattern)].length;
+}
+
+function getSlideMarkup(html, slideId) {
+  const startToken = `id="slide-${slideId}"`;
+  const startIndex = html.indexOf(startToken);
+
+  assert.notEqual(startIndex, -1, `Expected markup for slide ${slideId}`);
+
+  const articleStart = html.lastIndexOf("<article", startIndex);
+  const nextSlideMarker = '\n    <article\n      id="slide-';
+  const nextArticleStart = html.indexOf(nextSlideMarker, startIndex + startToken.length);
+  const articleEnd = nextArticleStart === -1 ? html.length : nextArticleStart;
+
+  return html.slice(articleStart, articleEnd);
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function runController(window, document) {
