@@ -16,23 +16,6 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
-function titleCase(value) {
-  return String(value ?? "")
-    .split(/(\s+|[-/&:])/)
-    .map((token) => {
-      if (!token.trim() || /[-/&:]/.test(token)) {
-        return token;
-      }
-
-      if (token === token.toUpperCase()) {
-        return token;
-      }
-
-      return `${token.charAt(0).toUpperCase()}${token.slice(1)}`;
-    })
-    .join("");
-}
-
 function formatCurrency(value) {
   return currencyFormatter.format(value);
 }
@@ -74,7 +57,7 @@ function renderMetricCards(metrics = []) {
       ${metrics
         .map(
           (metric) => `
-            <article class="metric-card">
+            <article class="metric-card panel">
               <div class="eyebrow">${escapeHtml(metric.label)}</div>
               <strong>${escapeHtml(metric.value)}</strong>
               <p>${escapeHtml(metric.detail)}</p>
@@ -92,7 +75,7 @@ function renderPolicyGrid(cards = []) {
       ${cards
         .map(
           (card) => `
-            <article class="policy-card">
+            <article class="policy-card panel">
               <div class="eyebrow">${escapeHtml(card.label)}</div>
               <h3>${escapeHtml(card.title)}</h3>
               <p>${escapeHtml(card.body)}</p>
@@ -110,14 +93,12 @@ function renderRateStack(items = []) {
       ${items
         .map(
           (item) => `
-            <article class="rate-card">
-              <div class="rate-row">
-                <div>
-                  <div class="eyebrow">${escapeHtml(item.label)}</div>
-                  <strong>${escapeHtml(item.value)}</strong>
-                </div>
-                <p>${escapeHtml(item.detail)}</p>
+            <article class="rate-card panel">
+              <div class="rate-head">
+                <div class="eyebrow">${escapeHtml(item.label)}</div>
+                <strong>${escapeHtml(item.value)}</strong>
               </div>
+              <p>${escapeHtml(item.detail)}</p>
             </article>
           `,
         )
@@ -128,13 +109,13 @@ function renderRateStack(items = []) {
 
 function renderAssumptionList(items = []) {
   return `
-    <div class="assumption-list">
+    <div class="assumption-grid">
       ${items
         .map(
           (item) => `
-            <article class="assumption-row">
-              <strong>${escapeHtml(item.label)}</strong>
-              <span>${escapeHtml(item.value)}</span>
+            <article class="assumption-card panel">
+              <div class="eyebrow">${escapeHtml(item.label)}</div>
+              <strong>${escapeHtml(item.value)}</strong>
             </article>
           `,
         )
@@ -149,7 +130,7 @@ function renderComparisonTable(table) {
   }
 
   return `
-    <div class="table-shell">
+    <div class="table-shell panel">
       <table class="comparison-table">
         <thead>
           <tr>
@@ -181,7 +162,7 @@ function renderComparisonTable(table) {
 
 function renderAppendixSection(section) {
   return `
-    <article class="appendix-section">
+    <article class="appendix-section panel">
       <div class="eyebrow">${escapeHtml(section.label)}</div>
       ${section.items?.length ? renderList(section.items, "appendix-list") : ""}
       ${section.table ? renderComparisonTable(section.table) : ""}
@@ -206,7 +187,7 @@ const APPENDIX_SLIDE_DEFINITIONS = {
   "appendix-formulas": { kind: "appendix-table", payloadKey: "sections" },
   "appendix-seat-economics": { kind: "appendix-table", payloadKey: "sections" },
   "appendix-margin-bridge": { kind: "appendix-table", payloadKey: "sections" },
-  "appendix-voice-sensitivity": { kind: "sensitivity-table", payloadKey: "sections" },
+  "appendix-voice-sensitivity": { kind: "appendix-table", payloadKey: "sections" },
 };
 
 function resolveSlideDefinition(slideId, group = "main") {
@@ -285,7 +266,8 @@ const PAYLOAD_BUILDERS = {
         {
           label: "Live voice model",
           value: `${formatCurrency(model.assumptions.usage.liveVoicePlanningCostPerMinute)} / min`,
-          detail: "Internal planning conversion from OpenAI realtime token pricing, not an official vendor minute quote.",
+          detail:
+            "Internal planning conversion from OpenAI realtime token pricing, not an official vendor minute quote.",
         },
         {
           label: "Scored call model",
@@ -301,7 +283,7 @@ const PAYLOAD_BUILDERS = {
       bullets: entry.bullets ?? [],
     };
   },
-  voiceExpansionPacks(entry, model) {
+  voiceExpansionPacks(_entry, model) {
     return {
       items: [
         {
@@ -320,7 +302,6 @@ const PAYLOAD_BUILDERS = {
           detail: `Public overage pack valid for ${model.derived.packCatalog.team2000.expiresInDays} days.`,
         },
       ],
-      bullets: entry.bullets ?? [],
     };
   },
   vendorAssumptions(entry, model) {
@@ -364,7 +345,6 @@ const PAYLOAD_BUILDERS = {
   sections(entry) {
     return {
       sections: entry.sections ?? [],
-      table: entry.sections?.find((section) => section.table)?.table ?? null,
       bullets: entry.bullets ?? [],
     };
   },
@@ -383,14 +363,32 @@ function buildSlidePayload(entry, group, model) {
   return payloadBuilder(entry, model);
 }
 
+function buildMarkerLabel(group, index) {
+  if (group === "appendix") {
+    return `A${String(index + 1).padStart(2, "0")}`;
+  }
+
+  return String(index + 1).padStart(2, "0");
+}
+
+function shouldTopAlign(slide) {
+  return (
+    slide.group === "appendix" ||
+    slide.kind === "comparison-table" ||
+    slide.kind === "assumption-list" ||
+    slide.kind === "rate-stack"
+  );
+}
+
 function normalizeEntry(entry, group, index, counts, model) {
   const definition = resolveSlideDefinition(entry.id, group);
   const kind = entry.kind ?? definition.kind;
+
   return {
     ...entry,
     group,
     kind,
-    title: titleCase(entry.title),
+    title: entry.title,
     orderLabel:
       group === "appendix"
         ? `Appendix ${String(index + 1).padStart(2, "0")}`
@@ -399,42 +397,22 @@ function normalizeEntry(entry, group, index, counts, model) {
       group === "appendix"
         ? `${index + 1} / ${counts.appendixSlides}`
         : `${index + 1} / ${counts.mainSlides}`,
+    markerLabel: buildMarkerLabel(group, index),
     ordinal: index,
     payload: buildSlidePayload(entry, group, model),
   };
-}
-
-function renderRail(items, label) {
-  return `
-    <nav class="rail-card" aria-label="${escapeHtml(label)}">
-      <div class="rail-title">${escapeHtml(label)}</div>
-      <ol class="rail-list">
-        ${items
-          .map(
-            (item) => `
-              <li>
-                <a href="#slide-${escapeHtml(item.id)}" data-slide-target="${escapeHtml(item.id)}">
-                  <span class="rail-index">${escapeHtml(item.orderLabel.replace(/^[^0-9]+/, ""))}</span>
-                  <span class="rail-copy">
-                    <strong>${escapeHtml(item.title)}</strong>
-                    <small>${escapeHtml(item.summary)}</small>
-                  </span>
-                </a>
-              </li>
-            `,
-          )
-          .join("")}
-      </ol>
-    </nav>
-  `;
 }
 
 function renderSlideBody(slide) {
   switch (slide.kind) {
     case "hero-metrics":
       return `
-        ${renderMetricCards(slide.payload.metrics)}
-        ${renderList(slide.payload.bullets)}
+        <div class="hero-layout">
+          <div class="hero-notes panel">
+            ${renderList(slide.payload.bullets)}
+          </div>
+          ${renderMetricCards(slide.payload.metrics)}
+        </div>
       `;
     case "policy-grid":
       return `
@@ -456,22 +434,16 @@ function renderSlideBody(slide) {
         ${renderComparisonTable(slide.payload.table)}
         ${renderList(slide.payload.bullets)}
       `;
-    case "sensitivity-table":
-      return `
-        <div class="appendix-grid">
-          ${slide.payload.sections.map((section) => renderAppendixSection(section)).join("")}
-        </div>
-      `;
     case "appendix-table":
+    default:
       return `
         <div class="appendix-grid">
           ${slide.payload.sections.map((section) => renderAppendixSection(section)).join("")}
         </div>
       `;
     case "thesis":
-    default:
       return `
-        <div class="thesis-panel">
+        <div class="thesis-panel panel">
           <p class="thesis-summary">${escapeHtml(slide.summary)}</p>
           ${renderList(slide.payload.bullets)}
         </div>
@@ -481,156 +453,123 @@ function renderSlideBody(slide) {
 
 function renderSlide(slide, active = false) {
   return `
-    <article
+    <section
       id="slide-${escapeHtml(slide.id)}"
-      class="deck-slide kind-${escapeHtml(slide.kind)}"
+      class="slide kind-${escapeHtml(slide.kind)}"
       data-slide-id="${escapeHtml(slide.id)}"
       data-slide-group="${escapeHtml(slide.group)}"
       data-slide-kind="${escapeHtml(slide.kind)}"
       data-slide-ordinal="${slide.ordinal}"
-      ${active ? "" : "hidden"}
-      aria-hidden="${active ? "false" : "true"}"
       data-active="${active ? "true" : "false"}"
+      aria-current="${active ? "true" : "false"}"
     >
-      <div class="slide-shell">
-        <header class="slide-header">
-          <div>
-            <div class="eyebrow">${escapeHtml(slide.group === "appendix" ? "Appendix" : "Main deck")}</div>
-            <div class="slide-order">${escapeHtml(slide.orderLabel)}</div>
-          </div>
-          <div class="slide-counter">${escapeHtml(slide.countLabel)}</div>
-        </header>
+      <div class="slide-mark" aria-hidden="true">${escapeHtml(slide.markerLabel)}</div>
+      <div class="slide-content ${shouldTopAlign(slide) ? "top" : ""}">
+        <div class="section-kicker">
+          ${escapeHtml(slide.group === "appendix" ? "Appendix" : "Main deck")} · ${escapeHtml(slide.orderLabel)}
+        </div>
         <div class="slide-copy">
           <h1>${escapeHtml(slide.title)}</h1>
-          <p>${escapeHtml(slide.summary)}</p>
+          <p class="lede">${escapeHtml(slide.summary)}</p>
         </div>
         <div class="slide-body">
           ${renderSlideBody(slide)}
         </div>
       </div>
-    </article>
+    </section>
   `;
 }
 
 const CONTROLLER_SOURCE = `
 class FounderPricingController {
   constructor() {
-    this.slideNodes = Array.from(document.querySelectorAll(".deck-slide"));
-    this.slideLinks = Array.from(document.querySelectorAll("[data-slide-target]"));
-    this.prevButton = document.querySelector('[data-nav="prev"]');
-    this.nextButton = document.querySelector('[data-nav="next"]');
+    this.slideNodes = Array.from(document.querySelectorAll(".slide"));
     this.statusNode = document.querySelector("[data-slide-status]");
     this.groupNode = document.querySelector("[data-active-group]");
     this.titleNode = document.querySelector("[data-active-title]");
-    this.touchStartX = 0;
-    this.touchStartY = 0;
-    this.wheelLocked = false;
+    this.progressNode = document.querySelector("[data-progress-bar]");
     this.motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     this.initialHash = window.location?.hash?.replace(/^#/, "") ?? "";
-    this.index = Math.max(0, this.slideNodes.findIndex((slide) => !slide.hidden));
-
-    this.mainSlideCount = this.slideNodes.filter(
-      (slide) => slide.dataset.slideGroup === "main",
-    ).length;
-    this.appendixSlideCount = this.slideNodes.filter(
-      (slide) => slide.dataset.slideGroup === "appendix",
-    ).length;
+    this.index = 0;
+    this.mainSlideCount = this.slideNodes.filter((slide) => slide.dataset.slideGroup === "main").length;
+    this.appendixSlideCount = this.slideNodes.filter((slide) => slide.dataset.slideGroup === "appendix").length;
 
     this.bind();
+    this.observe();
     this.syncFromHash(this.initialHash);
     this.update();
   }
 
   bind() {
-    this.prevButton?.addEventListener("click", () => this.go(-1));
-    this.nextButton?.addEventListener("click", () => this.go(1));
-
-    this.slideLinks.forEach((link) => {
-      link.addEventListener("click", (event) => {
-        event.preventDefault();
-        this.showSlideById(link.dataset.slideTarget);
-      });
-    });
-
     window.addEventListener("keydown", (event) => {
-      if (event.key === "ArrowRight" || event.key === "PageDown") {
+      if (event.key === "ArrowRight" || event.key === "PageDown" || event.key === "ArrowDown") {
         event.preventDefault();
         this.go(1);
       }
 
-      if (event.key === "ArrowLeft" || event.key === "PageUp") {
+      if (event.key === "ArrowLeft" || event.key === "PageUp" || event.key === "ArrowUp") {
         event.preventDefault();
         this.go(-1);
       }
     });
-
-    window.addEventListener(
-      "wheel",
-      (event) => {
-        if (this.wheelLocked || Math.abs(event.deltaY) < 28) {
-          return;
-        }
-
-        this.wheelLocked = true;
-        this.go(event.deltaY > 0 ? 1 : -1);
-        window.setTimeout(() => {
-          this.wheelLocked = false;
-        }, 450);
-      },
-      { passive: true },
-    );
-
-    window.addEventListener(
-      "touchstart",
-      (event) => {
-        this.touchStartX = event.changedTouches[0]?.clientX ?? 0;
-        this.touchStartY = event.changedTouches[0]?.clientY ?? 0;
-      },
-      { passive: true },
-    );
-
-    window.addEventListener(
-      "touchend",
-      (event) => {
-        const endX = event.changedTouches[0]?.clientX ?? 0;
-        const endY = event.changedTouches[0]?.clientY ?? 0;
-        const deltaX = endX - this.touchStartX;
-        const deltaY = endY - this.touchStartY;
-
-        if (Math.abs(deltaX) < 40 || Math.abs(deltaX) < Math.abs(deltaY)) {
-          return;
-        }
-
-        this.go(deltaX < 0 ? 1 : -1);
-      },
-      { passive: true },
-    );
 
     window.addEventListener("hashchange", () => {
       this.syncFromHash();
     });
   }
 
-  showSlideById(slideId) {
-    const nextIndex = this.slideNodes.findIndex((slide) => slide.dataset.slideId === slideId);
+  observe() {
+    if (!window.IntersectionObserver) {
+      return;
+    }
 
+    this.observer = new window.IntersectionObserver(
+      (entries) => {
+        const nextEntry = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+
+        if (!nextEntry) {
+          return;
+        }
+
+        const nextIndex = this.slideNodes.indexOf(nextEntry.target);
+        if (nextIndex === -1 || nextIndex === this.index) {
+          return;
+        }
+
+        this.index = nextIndex;
+        this.update({ syncHash: true, scroll: false });
+      },
+      {
+        threshold: [0.35, 0.55, 0.75],
+      },
+    );
+
+    this.slideNodes.forEach((slide) => this.observer.observe(slide));
+  }
+
+  showSlideById(slideId, options = {}) {
+    const nextIndex = this.slideNodes.findIndex((slide) => slide.dataset.slideId === slideId);
     if (nextIndex < 0) {
       return;
     }
 
     this.index = nextIndex;
-    this.update();
+    this.update({
+      syncHash: true,
+      scroll: options.scroll !== false,
+    });
   }
 
   go(direction) {
     const nextIndex = Math.max(0, Math.min(this.slideNodes.length - 1, this.index + direction));
-
     if (nextIndex === this.index) {
       return;
     }
 
     this.index = nextIndex;
-    this.update();
+    this.update({ syncHash: true, scroll: true });
   }
 
   syncHash(nextHash) {
@@ -638,7 +577,7 @@ class FounderPricingController {
       return;
     }
 
-    const hashValue = '#' + nextHash;
+    const hashValue = "#" + nextHash;
     if (window.history?.replaceState) {
       window.history.replaceState(null, "", hashValue);
       return;
@@ -648,71 +587,63 @@ class FounderPricingController {
   }
 
   syncFromHash(hash = window.location?.hash?.replace(/^#/, "") ?? "") {
-    if (!hash) {
+    if (!hash || !hash.startsWith("slide-")) {
       return;
     }
 
-    if (hash.startsWith("slide-")) {
-      this.showSlideById(hash.replace(/^slide-/, ""));
-    }
+    this.showSlideById(hash.replace(/^slide-/, ""), {
+      scroll: true,
+    });
   }
 
-  update() {
+  update(options = {}) {
     const activeSlide = this.slideNodes[this.index];
+    if (!activeSlide) {
+      return;
+    }
 
     this.slideNodes.forEach((slide, index) => {
       const isActive = index === this.index;
-      slide.hidden = !isActive;
       slide.dataset.active = String(isActive);
-      slide.setAttribute("aria-hidden", String(!isActive));
+      slide.setAttribute("aria-current", String(isActive));
     });
 
-    this.slideLinks.forEach((link) => {
-      const isActive = link.dataset.slideTarget === activeSlide?.dataset.slideId;
-      link.dataset.active = String(isActive);
-      link.setAttribute("aria-current", isActive ? "true" : "false");
-    });
+    const isAppendix = activeSlide.dataset.slideGroup === "appendix";
+    const ordinal = Number(activeSlide.dataset.slideOrdinal) + 1;
+    const total = isAppendix ? this.appendixSlideCount : this.mainSlideCount;
+    const overallProgress = ((this.index + 1) / this.slideNodes.length) * 100;
 
-    if (this.prevButton) {
-      this.prevButton.disabled = this.index === 0;
+    if (this.statusNode) {
+      this.statusNode.textContent = (isAppendix ? "Appendix " : "Slide ") + ordinal + " of " + total;
     }
 
-    if (this.nextButton) {
-      this.nextButton.disabled = this.index === this.slideNodes.length - 1;
+    if (this.groupNode) {
+      this.groupNode.textContent = isAppendix ? "Appendix" : "Main deck";
     }
 
-    if (activeSlide && this.statusNode) {
-      const isAppendix = activeSlide.dataset.slideGroup === "appendix";
-      const ordinal = Number(activeSlide.dataset.slideOrdinal) + 1;
-      this.statusNode.textContent = isAppendix
-        ? 'Appendix ' + ordinal + ' of ' + this.appendixSlideCount
-        : 'Slide ' + ordinal + ' of ' + this.mainSlideCount;
-    }
-
-    if (activeSlide && this.groupNode) {
-      this.groupNode.textContent =
-        activeSlide.dataset.slideGroup === "appendix" ? "Appendix" : "Main deck";
-    }
-
-    if (activeSlide && this.titleNode) {
+    if (this.titleNode) {
       this.titleNode.textContent = activeSlide.querySelector("h1")?.textContent ?? "";
     }
 
-    if (activeSlide) {
-      this.syncHash('slide-' + activeSlide.dataset.slideId);
+    if (this.progressNode) {
+      this.progressNode.style.width = overallProgress + "%";
+    }
 
-      if (!this.motionQuery.matches) {
-        activeSlide.scrollIntoView({
-          behavior: "smooth",
-          block: "nearest",
-        });
-      }
+    if (options.syncHash) {
+      this.syncHash("slide-" + activeSlide.dataset.slideId);
+    }
+
+    if (options.scroll) {
+      activeSlide.scrollIntoView({
+        behavior: this.motionQuery.matches ? "auto" : "smooth",
+        block: "start",
+      });
     }
   }
 }
 
 window.addEventListener("DOMContentLoaded", () => {
-  if (document.querySelector(".deck-slide")) {
+  if (document.querySelector(".slide")) {
     window.__founderPricingController = new FounderPricingController();
   }
 });
@@ -748,41 +679,64 @@ function renderFounderPricingHtml(content) {
       @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&display=swap");
 
       :root {
-        color-scheme: dark;
-        --background: ${theme.colors.background};
-        --primary-surface: ${theme.colors.primarySurface};
-        --secondary-surface: ${theme.colors.secondarySurface};
-        --elevated-surface: ${theme.colors.elevatedSurface};
-        --elevated-surface-alt: ${theme.colors.elevatedSurfaceAlt};
-        --primary-text: ${theme.colors.primaryText};
-        --secondary-text: ${theme.colors.secondaryText};
-        --primary-accent: ${theme.colors.primaryAccent};
-        --tertiary-accent: ${theme.colors.tertiaryAccent};
-        --outline: ${theme.colors.outline};
+        --bg: ${theme.colors.background};
+        --bg-2: ${theme.colors.primarySurface};
+        --panel: rgba(255, 255, 255, 0.06);
+        --panel-strong: rgba(255, 255, 255, 0.1);
+        --text: ${theme.colors.primaryText};
+        --muted: color-mix(in srgb, ${theme.colors.secondaryText} 90%, white 8%);
+        --soft: color-mix(in srgb, ${theme.colors.secondaryText} 80%, transparent);
+        --line: rgba(116, 177, 255, 0.18);
+        --accent: ${theme.colors.primaryAccent};
+        --accent-2: ${theme.colors.tertiaryAccent};
+        --warning: #ffd37a;
+        --success: #97e28b;
+        --shadow: 0 32px 80px rgba(0, 0, 0, 0.36);
         --display-font: "${escapeHtml(theme.typography.display)}", sans-serif;
         --body-font: "${escapeHtml(theme.typography.body)}", sans-serif;
-        --shell-width: 1440px;
-        --slide-height: min(calc(100vh - 250px), 760px);
+        --title-size: clamp(1.8rem, 5vw, 4.4rem);
+        --h2-size: clamp(1.2rem, 3.2vw, 2.3rem);
+        --h3-size: clamp(0.98rem, 2vw, 1.45rem);
+        --body-size: clamp(0.72rem, 1.22vw, 1rem);
+        --small-size: clamp(0.62rem, 0.92vw, 0.82rem);
+        --tiny-size: clamp(0.58rem, 0.84vw, 0.74rem);
+        --slide-padding: clamp(1rem, 3.8vw, 3.6rem);
+        --content-gap: clamp(0.6rem, 1.6vw, 1.5rem);
+        --element-gap: clamp(0.4rem, 1vw, 0.9rem);
       }
 
-      * {
-        box-sizing: border-box;
+      html,
+      body {
+        height: 100%;
+        overflow-x: hidden;
       }
 
       html {
-        background: var(--background);
+        scroll-snap-type: y mandatory;
+        scroll-behavior: smooth;
       }
 
       body {
         margin: 0;
-        min-height: 100vh;
-        background:
-          radial-gradient(circle at 0% 0%, rgba(116, 177, 255, 0.18), transparent 22%),
-          radial-gradient(circle at 100% 0%, rgba(109, 221, 255, 0.14), transparent 18%),
-          linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 28%),
-          var(--background);
-        color: var(--primary-text);
         font-family: var(--body-font);
+        background:
+          radial-gradient(circle at 18% 12%, rgba(116, 177, 255, 0.16), transparent 24%),
+          radial-gradient(circle at 84% 18%, rgba(109, 221, 255, 0.12), transparent 20%),
+          linear-gradient(180deg, color-mix(in srgb, var(--bg-2) 90%, black 10%) 0%, #06080d 100%);
+        color: var(--text);
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+        background-size: 34px 34px;
+        mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.75), transparent 88%);
+        pointer-events: none;
+        opacity: 0.42;
       }
 
       a {
@@ -790,496 +744,435 @@ function renderFounderPricingHtml(content) {
         text-decoration: none;
       }
 
-      .deck-shell {
-        width: min(calc(100% - 36px), var(--shell-width));
-        margin: 20px auto;
-        padding: 22px;
-        border: 1px solid color-mix(in srgb, var(--outline) 86%, transparent);
-        border-radius: 30px;
-        background:
-          linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 18%),
-          color-mix(in srgb, var(--primary-surface) 94%, transparent);
-        box-shadow:
-          0 32px 82px rgba(0, 0, 0, 0.34),
-          inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      h1,
+      h2,
+      h3,
+      p,
+      ul,
+      ol {
+        margin: 0;
       }
 
-      .deck-header,
-      .status-footer {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 16px;
-        align-items: center;
-      }
-
-      .deck-header {
-        padding-bottom: 18px;
-        border-bottom: 1px solid color-mix(in srgb, var(--outline) 80%, transparent);
-      }
-
-      .brand-lockup {
+      .deck-brand {
+        position: fixed;
+        top: clamp(0.6rem, 1.8vw, 1rem);
+        left: clamp(0.7rem, 2vw, 1.4rem);
+        z-index: 50;
         display: flex;
         align-items: center;
-        gap: 14px;
+        gap: 0.7rem;
+        padding: 0.72rem 0.92rem;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: rgba(12, 14, 20, 0.78);
+        backdrop-filter: blur(18px);
+        box-shadow: var(--shadow);
       }
 
       .brand-mark {
-        width: 42px;
-        height: 42px;
+        width: 34px;
+        height: 34px;
+        border-radius: 12px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        border-radius: 14px;
-        background: linear-gradient(135deg, rgba(116, 177, 255, 0.22), rgba(109, 221, 255, 0.1));
-        border: 1px solid rgba(116, 177, 255, 0.34);
+        background: linear-gradient(135deg, rgba(116, 177, 255, 0.22), rgba(109, 221, 255, 0.08));
+        border: 1px solid rgba(116, 177, 255, 0.32);
+        color: var(--text);
         font-family: var(--display-font);
         letter-spacing: 0.08em;
       }
 
       .brand-copy {
         display: grid;
-        gap: 4px;
+        gap: 0.14rem;
       }
 
       .brand-copy strong,
-      .slide-copy h1,
-      .policy-card h3 {
+      h1,
+      h2 {
         font-family: var(--display-font);
       }
 
       .brand-copy span,
-      .meta-pill,
-      .eyebrow,
-      .rail-title,
-      .slide-order {
-        color: var(--secondary-text);
-        letter-spacing: 0.12em;
+      .section-kicker,
+      .slide-counter {
+        font-size: var(--tiny-size);
+        letter-spacing: 0.16em;
         text-transform: uppercase;
-        font-size: 0.72rem;
+        color: var(--muted);
       }
 
-      .header-meta,
-      .control-row {
+      .deck-status {
+        position: fixed;
+        top: clamp(0.6rem, 1.8vw, 1rem);
+        right: clamp(0.7rem, 2vw, 1.4rem);
+        z-index: 50;
+        width: min(300px, calc(100vw - 1.4rem));
         display: flex;
-        flex-wrap: wrap;
-        justify-content: flex-end;
-        gap: 10px;
-      }
-
-      .meta-pill,
-      .control-button {
-        border-radius: 999px;
-        border: 1px solid color-mix(in srgb, var(--outline) 82%, transparent);
-        background: color-mix(in srgb, var(--secondary-surface) 88%, transparent);
-      }
-
-      .meta-pill {
-        padding: 10px 14px;
-      }
-
-      .deck-layout {
-        display: grid;
-        grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.8fr) minmax(220px, 0.8fr);
-        gap: 18px;
-        padding: 20px 0;
-        align-items: stretch;
-      }
-
-      .rail-card,
-      .slide-shell,
-      .metric-card,
-      .policy-card,
-      .rate-card,
-      .appendix-section {
-        border: 1px solid color-mix(in srgb, var(--outline) 80%, transparent);
-        border-radius: 24px;
-        background:
-          linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 20%),
-          color-mix(in srgb, var(--elevated-surface) 94%, transparent);
-      }
-
-      .rail-card {
-        padding: 18px;
-      }
-
-      .rail-list {
-        list-style: none;
-        margin: 14px 0 0;
-        padding: 0;
-        display: grid;
-        gap: 10px;
-      }
-
-      .rail-list a {
-        display: grid;
-        grid-template-columns: auto 1fr;
-        gap: 12px;
-        padding: 12px;
+        flex-direction: column;
+        gap: 0.45rem;
+        padding: 0.78rem 0.9rem;
+        border: 1px solid var(--line);
         border-radius: 16px;
-        border: 1px solid transparent;
-        color: var(--secondary-text);
-        transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+        background: rgba(12, 14, 20, 0.78);
+        backdrop-filter: blur(18px);
+        box-shadow: var(--shadow);
       }
 
-      .rail-list a:hover,
-      .rail-list a[data-active="true"] {
-        color: var(--primary-text);
-        border-color: rgba(116, 177, 255, 0.34);
-        background: color-mix(in srgb, var(--secondary-surface) 84%, transparent);
-      }
-
-      .rail-index {
-        min-width: 2ch;
-        color: var(--primary-accent);
-        font-family: var(--display-font);
-      }
-
-      .rail-copy {
-        display: grid;
-        gap: 4px;
-      }
-
-      .rail-copy small {
-        color: var(--secondary-text);
-        line-height: 1.35;
-      }
-
-      .deck-track {
-        position: relative;
-      }
-
-      .deck-slide {
-        min-height: var(--slide-height);
-        max-height: var(--slide-height);
-      }
-
-      .slide-shell {
-        height: 100%;
-        padding: 24px;
-        display: grid;
-        grid-template-rows: auto auto minmax(0, 1fr);
-        gap: 18px;
+      .progress-track {
+        height: 6px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
         overflow: hidden;
       }
 
-      .slide-header,
-      .status-summary,
-      .assumption-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 14px;
+      .progress-bar {
+        width: 0;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        transition: width 280ms ease;
       }
 
-      .slide-counter {
-        padding: 8px 12px;
-        border-radius: 999px;
-        border: 1px solid rgba(116, 177, 255, 0.26);
-        color: var(--primary-accent);
-        font-size: 0.82rem;
+      .status-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.8rem;
+        align-items: center;
+      }
+
+      .status-title {
+        font-size: var(--small-size);
+        color: var(--text);
+        line-height: 1.25;
+      }
+
+      .deck {
+        position: relative;
+      }
+
+      .slide {
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
+        scroll-snap-align: start;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+      }
+
+      .slide::after {
+        content: "";
+        position: absolute;
+        inset: auto auto 0 0;
+        width: min(30vw, 360px);
+        height: min(24vw, 280px);
+        background: radial-gradient(circle, rgba(116, 177, 255, 0.16), transparent 70%);
+        pointer-events: none;
+      }
+
+      .slide-mark {
+        position: absolute;
+        top: clamp(0.9rem, 2.4vw, 1.8rem);
+        left: clamp(0.95rem, 2.4vw, 1.8rem);
+        font-family: var(--display-font);
+        font-size: clamp(3rem, 11vw, 8.8rem);
+        line-height: 0.9;
+        letter-spacing: -0.08em;
+        color: rgba(116, 177, 255, 0.12);
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .slide-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        max-height: 100%;
+        overflow: hidden;
+        padding: var(--slide-padding);
+        gap: var(--content-gap);
+        position: relative;
+        z-index: 1;
+      }
+
+      .slide-content.top {
+        justify-content: flex-start;
+      }
+
+      .section-kicker {
+        position: relative;
+        z-index: 1;
+        color: color-mix(in srgb, var(--accent-2) 72%, white 10%);
       }
 
       .slide-copy {
         display: grid;
-        gap: 10px;
-        max-width: 72ch;
+        gap: var(--element-gap);
+        max-width: 78rem;
       }
 
-      .slide-copy h1 {
-        margin: 0;
-        font-size: clamp(2rem, 3.6vw, 3.7rem);
-        line-height: 0.96;
+      h1 {
+        font-size: var(--title-size);
+        line-height: 0.92;
+        max-width: 13ch;
+        letter-spacing: -0.05em;
       }
 
-      .slide-copy p,
-      .metric-card p,
-      .policy-card p,
-      .rate-card p,
-      .thesis-summary,
-      .comparison-table td,
-      .comparison-table th,
-      .appendix-list li,
-      .bullet-list li {
-        margin: 0;
-        color: var(--secondary-text);
-        line-height: 1.45;
+      .lede {
+        max-width: 58rem;
+        font-size: var(--body-size);
+        line-height: 1.4;
+        color: var(--muted);
       }
 
       .slide-body {
+        display: grid;
+        flex: 1 1 auto;
+        gap: var(--content-gap);
         min-height: 0;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: clamp(16px, 2vw, 26px);
+        box-shadow: var(--shadow);
         overflow: hidden;
+      }
+
+      .hero-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.2fr);
+        gap: clamp(0.7rem, 1.4vw, 1rem);
+        align-items: stretch;
+      }
+
+      .hero-notes {
+        padding: clamp(0.85rem, 1.8vw, 1.2rem);
       }
 
       .metric-grid,
       .policy-grid,
-      .appendix-grid {
+      .assumption-grid {
         display: grid;
-        gap: 16px;
+        gap: clamp(0.65rem, 1.25vw, 1rem);
       }
 
       .metric-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
-      .policy-grid,
-      .appendix-grid {
+      .policy-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .assumption-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
       }
 
       .metric-card,
       .policy-card,
       .rate-card,
-      .appendix-section {
-        padding: 18px;
+      .assumption-card,
+      .appendix-section,
+      .thesis-panel,
+      .table-shell {
+        padding: clamp(0.8rem, 1.8vw, 1.2rem);
       }
 
       .metric-card strong,
-      .rate-card strong {
+      .policy-card h3,
+      .rate-card strong,
+      .assumption-card strong {
         display: block;
-        margin: 6px 0 10px;
-        font-size: clamp(1.3rem, 2.1vw, 2rem);
+        margin-top: 0.35rem;
+      }
+
+      .metric-card strong,
+      .rate-card strong,
+      .assumption-card strong {
+        font-size: clamp(1rem, 2vw, 1.45rem);
+        line-height: 1.08;
       }
 
       .policy-card h3 {
-        margin: 8px 0;
-        font-size: 1.15rem;
+        font-size: var(--h3-size);
+        line-height: 1.08;
       }
 
-      .rate-stack,
-      .assumption-list {
+      .metric-card p,
+      .policy-card p,
+      .rate-card p,
+      .thesis-summary,
+      .comparison-table td,
+      .comparison-table th,
+      .bullet-list li,
+      .appendix-list li {
+        font-size: var(--body-size);
+        line-height: 1.36;
+      }
+
+      .metric-card p,
+      .policy-card p,
+      .rate-card p,
+      .appendix-list li,
+      .bullet-list li,
+      .thesis-summary {
+        color: var(--muted);
+      }
+
+      .rate-stack {
         display: grid;
-        gap: 12px;
+        gap: clamp(0.65rem, 1vw, 0.9rem);
       }
 
-      .rate-row {
+      .rate-card {
         display: grid;
-        grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
-        gap: 18px;
-        align-items: center;
+        gap: 0.5rem;
       }
 
-      .assumption-row {
-        padding: 14px 0;
-        border-bottom: 1px solid color-mix(in srgb, var(--outline) 72%, transparent);
-      }
-
-      .assumption-row:last-child {
-        border-bottom: 0;
-      }
-
-      .assumption-row span {
-        text-align: right;
-        color: var(--secondary-text);
+      .rate-head {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 0.75rem;
       }
 
       .bullet-list,
       .appendix-list {
-        margin: 0;
-        padding-left: 18px;
+        padding-left: 1.15rem;
         display: grid;
-        gap: 10px;
+        gap: 0.45rem;
+        max-width: 68rem;
       }
 
       .table-shell {
-        overflow: hidden;
-        border-radius: 22px;
-        border: 1px solid color-mix(in srgb, var(--outline) 78%, transparent);
-        background: color-mix(in srgb, var(--elevated-surface-alt) 94%, transparent);
+        max-width: 100%;
+        min-height: 0;
+        overflow: auto;
+        overscroll-behavior-x: contain;
+        overscroll-behavior-y: auto;
+        -webkit-overflow-scrolling: touch;
       }
 
       .comparison-table {
-        width: 100%;
+        width: max-content;
+        min-width: 100%;
         border-collapse: collapse;
       }
 
       .comparison-table th,
       .comparison-table td {
-        padding: 13px 15px;
+        padding: 0.62rem 0.66rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         text-align: left;
-        border-bottom: 1px solid color-mix(in srgb, var(--outline) 72%, transparent);
-      }
-
-      .comparison-table tr:last-child td {
-        border-bottom: 0;
+        vertical-align: top;
       }
 
       .comparison-table th {
-        color: var(--primary-text);
-        font-size: 0.78rem;
-        letter-spacing: 0.08em;
+        color: color-mix(in srgb, var(--accent-2) 72%, white 12%);
+        font-size: var(--tiny-size);
+        letter-spacing: 0.12em;
         text-transform: uppercase;
       }
 
-      .thesis-panel {
+      .comparison-table tbody tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .appendix-grid {
         display: grid;
-        gap: 18px;
-        align-content: start;
+        gap: clamp(0.65rem, 1vw, 0.9rem);
+        grid-template-columns: 1fr;
       }
 
-      .thesis-summary {
-        font-size: 1.08rem;
-        max-width: 60ch;
+      .thesis-panel {
+        max-width: 54rem;
+        display: grid;
+        gap: 0.85rem;
+        background: rgba(255, 255, 255, 0.05);
       }
 
-      .status-footer {
-        padding-top: 18px;
-        border-top: 1px solid color-mix(in srgb, var(--outline) 80%, transparent);
-      }
-
-      .status-summary {
-        padding: 12px 16px;
-        border-radius: 18px;
-        border: 1px solid color-mix(in srgb, var(--outline) 80%, transparent);
-        background: color-mix(in srgb, var(--secondary-surface) 86%, transparent);
-      }
-
-      .status-summary strong {
-        font-size: 1rem;
-      }
-
-      .control-button {
-        appearance: none;
-        padding: 11px 16px;
-        color: var(--primary-text);
-        font: inherit;
-        cursor: pointer;
-      }
-
-      .control-button[disabled] {
-        opacity: 0.44;
-        cursor: not-allowed;
+      .slide[data-active="true"] .slide-mark {
+        color: rgba(109, 221, 255, 0.18);
       }
 
       @media (prefers-reduced-motion: reduce) {
-        .rail-list a {
+        html {
+          scroll-behavior: auto;
+        }
+
+        .progress-bar {
           transition: none;
         }
       }
 
       @media (max-width: 1180px) {
-        .deck-layout {
+        .hero-layout,
+        .policy-grid,
+        .metric-grid,
+        .assumption-grid {
           grid-template-columns: 1fr;
         }
 
-        .deck-shell {
-          padding: 18px;
-        }
-
-        .slide-shell {
-          padding: 20px;
-          gap: 16px;
-        }
-
         .slide-copy h1 {
-          font-size: clamp(1.8rem, 3vw, 3rem);
-        }
-
-        .slide-copy {
-          gap: 8px;
-        }
-
-        .metric-card,
-        .policy-card,
-        .rate-card,
-        .appendix-section {
-          padding: 14px;
-        }
-
-        .metric-grid,
-        .policy-grid,
-        .appendix-grid {
-          gap: 12px;
-        }
-
-        .comparison-table th,
-        .comparison-table td {
-          padding: 10px 12px;
-        }
-
-        .policy-grid,
-        .appendix-grid {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+          max-width: 15ch;
         }
       }
 
       @media (max-width: 760px) {
-        .deck-shell {
-          width: min(calc(100% - 20px), var(--shell-width));
-          padding: 16px;
+        .deck-brand {
+          top: auto;
+          bottom: 0.8rem;
         }
 
-        .deck-header,
-        .status-footer {
-          grid-template-columns: 1fr;
+        .deck-status {
+          width: min(320px, calc(100vw - 1.2rem));
         }
 
-        .header-meta,
-        .control-row {
-          justify-content: flex-start;
+        .slide-copy h1 {
+          font-size: clamp(1.7rem, 10vw, 2.9rem);
         }
 
-        .metric-grid,
-        .policy-grid,
-        .appendix-grid,
-        .rate-row {
-          grid-template-columns: 1fr;
-        }
-
-        .slide-header,
-        .status-summary,
-        .assumption-row {
-          align-items: flex-start;
-          flex-direction: column;
-        }
-
-        .slide-shell {
-          padding: 18px;
+        .comparison-table th,
+        .comparison-table td {
+          padding: 0.5rem 0.45rem;
         }
       }
     </style>
   </head>
   <body>
+    <div class="deck-brand">
+      <div class="brand-mark">A</div>
+      <div class="brand-copy">
+        <strong>Argos Founder Pricing</strong>
+        <span>Investor deck · ${escapeHtml(meta.verificationDate)}</span>
+      </div>
+    </div>
+
+    <div class="deck-status" aria-label="Deck status">
+      <div class="progress-track">
+        <div class="progress-bar" data-progress-bar></div>
+      </div>
+      <div class="status-row slide-counter">
+        <span data-active-group>Main deck</span>
+        <span data-slide-status>Slide 1 of ${mainSlides.length}</span>
+      </div>
+      <strong class="status-title" data-active-title>${escapeHtml(mainSlides[0]?.title ?? meta.title)}</strong>
+    </div>
+
     <main
-      class="deck-shell"
+      id="deck-track"
+      class="deck"
       data-content-main-slides="${counts.mainSlides}"
       data-content-appendix-slides="${counts.appendixSlides}"
       data-content-total-slides="${allSlides.length}"
     >
-      <header class="deck-header">
-        <div class="brand-lockup">
-          <div class="brand-mark">A</div>
-          <div class="brand-copy">
-            <strong>Argos Founder Pricing</strong>
-            <span>Continuous investor deck for pricing and unit economics</span>
-          </div>
-        </div>
-        <div class="header-meta">
-          <div class="meta-pill">${escapeHtml(meta.verificationDate)}</div>
-          <div class="meta-pill">${escapeHtml(meta.publishedPath)}</div>
-        </div>
-      </header>
-
-      <div class="deck-layout">
-        ${renderRail(mainSlides, "Slide rail")}
-        <section id="deck-track" class="deck-track" aria-live="polite">
-          ${allSlides.map((slide, index) => renderSlide(slide, index === 0)).join("")}
-        </section>
-        ${renderRail(appendixSlides, "Appendix rail")}
-      </div>
-
-      <footer class="status-footer">
-        <div class="status-summary">
-          <div>
-            <div class="eyebrow" data-active-group>Main deck</div>
-            <strong data-active-title>${escapeHtml(allSlides[0]?.title ?? meta.title)}</strong>
-          </div>
-          <span data-slide-status>Slide 1 of ${counts.mainSlides}</span>
-        </div>
-        <div class="control-row">
-          <button class="control-button" type="button" data-nav="prev" disabled>Previous</button>
-          <button class="control-button" type="button" data-nav="next">Next</button>
-        </div>
-      </footer>
+      ${allSlides.map((slide, index) => renderSlide(slide, index === 0)).join("")}
     </main>
     ${renderControllerScript()}
   </body>

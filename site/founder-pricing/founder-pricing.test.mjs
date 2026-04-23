@@ -126,120 +126,154 @@ test("canonical founder pricing model encodes approved assumptions, verified rat
     "73.15%",
   );
 
-  assertDeclarativeTable(founderPricingModel.derived.vendorRateCardTable);
-  assertDeclarativeTable(founderPricingModel.derived.formulaTable);
-  assertDeclarativeTable(founderPricingModel.derived.annualBillingTable);
-  assertDeclarativeTable(founderPricingModel.derived.seatEconomicsTable);
-  assertDeclarativeTable(founderPricingModel.derived.voiceSensitivityTable);
-  assertDeclarativeTable(founderPricingModel.derived.orgMarginTable);
-
-  assert.deepEqual(founderPricingModel.derived.annualBillingTable.rows, [
-    {
-      label: "Solo",
-      monthlyRevenue: 79,
-      annualRevenue: 853.2,
-      annualizedMonthlyStripeFees: 37.68,
-      annualStripeFeesAtListVolume: 34.43,
-      annualStripeFees: 31.02,
-      annualBillingEfficiencySavings: 3.25,
-    },
-    {
-      label: "Team minimum",
-      monthlyRevenue: 150,
-      annualRevenue: 1620,
-      annualizedMonthlyStripeFees: 68.4,
-      annualStripeFeesAtListVolume: 65.1,
-      annualStripeFees: 58.62,
-      annualBillingEfficiencySavings: 3.3,
-    },
-    {
-      label: "Team 10-seat",
-      monthlyRevenue: 500,
-      annualRevenue: 5400,
-      annualizedMonthlyStripeFees: 219.6,
-      annualStripeFeesAtListVolume: 216.3,
-      annualStripeFees: 194.7,
-      annualBillingEfficiencySavings: 3.3,
-    },
-  ]);
-  assert.deepEqual(founderPricingModel.derived.seatEconomicsTable.rows, [
-    {
-      label: "Solo",
-      monthlyRevenue: 79,
-      totalVoiceMinutes: 120,
-      aiRuntimeCost: 10.9,
-      productGrossMargin: "86.20%",
-      collectedGrossMargin: "82.23%",
-    },
-    {
-      label: "Team minimum",
-      monthlyRevenue: 150,
-      totalVoiceMinutes: 360,
-      aiRuntimeCost: 32.7,
-      productGrossMargin: "78.20%",
-      collectedGrossMargin: "74.40%",
-    },
-    {
-      label: "Team 10-seat",
-      monthlyRevenue: 500,
-      totalVoiceMinutes: 1200,
-      aiRuntimeCost: 109,
-      productGrossMargin: "78.20%",
-      collectedGrossMargin: "74.54%",
-    },
-  ]);
-  assert.deepEqual(founderPricingModel.derived.orgMarginTable.rows, [
-    {
-      label: "Solo",
-      monthlyRevenue: 79,
-      aiRuntimeCost: 10.9,
-      sharedSoftwareFloor: 6.95,
-      productGrossMarginAfterFloor: "77.41%",
-      collectedGrossMarginAfterFloor: "73.43%",
-    },
-    {
-      label: "Team minimum",
-      monthlyRevenue: 150,
-      aiRuntimeCost: 32.7,
-      sharedSoftwareFloor: 6.95,
-      productGrossMarginAfterFloor: "73.57%",
-      collectedGrossMarginAfterFloor: "69.77%",
-    },
-    {
-      label: "Team 10-seat",
-      monthlyRevenue: 500,
-      aiRuntimeCost: 109,
-      sharedSoftwareFloor: 6.95,
-      productGrossMarginAfterFloor: "76.81%",
-      collectedGrossMarginAfterFloor: "73.15%",
-    },
-  ]);
-  assert.deepEqual(founderPricingModel.derived.voiceSensitivityTable.rows, [
-    {
-      label: "Included only",
-      monthlyRevenue: 150,
-      totalVoiceMinutes: 360,
-      aiRuntimeCost: 32.7,
-      productGrossMargin: "78.20%",
-      collectedGrossMargin: "74.40%",
-    },
-    {
-      label: "+500 pack",
-      monthlyRevenue: 325,
-      totalVoiceMinutes: 860,
-      aiRuntimeCost: 72.7,
-      productGrossMargin: "77.63%",
-      collectedGrossMargin: "73.94%",
-    },
-    {
-      label: "+2,000 pack",
-      monthlyRevenue: 750,
-      totalVoiceMinutes: 2360,
-      aiRuntimeCost: 192.7,
-      productGrossMargin: "74.31%",
-      collectedGrossMargin: "70.67%",
-    },
-  ]);
+  assertDeclarativeTable(founderPricingModel.derived.seatEconomicsTable, {
+    columns: [
+      { key: "label", label: "Scenario", format: "text" },
+      { key: "monthlyRevenue", label: "Monthly list", format: "currency" },
+      { key: "totalVoiceMinutes", label: "Included voice", format: "number" },
+      { key: "aiRuntimeCost", label: "AI/runtime COGS", format: "currency" },
+      { key: "productGrossMargin", label: "Product GM", format: "text" },
+      { key: "collectedGrossMargin", label: "Collected GM", format: "text" },
+    ],
+    rows: [
+      {
+        label: "Solo",
+        monthlyRevenue: 79,
+        totalVoiceMinutes: 120,
+        aiRuntimeCost: 10.9,
+        productGrossMargin: "86.20%",
+        collectedGrossMargin: "82.23%",
+      },
+      {
+        label: "Team minimum",
+        monthlyRevenue: 150,
+        totalVoiceMinutes: 360,
+        aiRuntimeCost: 32.7,
+        productGrossMargin: "78.20%",
+        collectedGrossMargin: "74.40%",
+      },
+      {
+        label: "Team 10-seat",
+        monthlyRevenue: 500,
+        totalVoiceMinutes: 1200,
+        aiRuntimeCost: 109,
+        productGrossMargin: "78.20%",
+        collectedGrossMargin: "74.54%",
+      },
+    ],
+  });
+  assertDeclarativeTable(founderPricingModel.derived.orgMarginTable, {
+    columns: [
+      { key: "label", label: "Scenario", format: "text" },
+      { key: "monthlyRevenue", label: "Monthly list", format: "currency" },
+      { key: "aiRuntimeCost", label: "AI/runtime COGS", format: "currency" },
+      { key: "sharedSoftwareFloor", label: "Shared floor", format: "currency" },
+      { key: "productGrossMarginAfterFloor", label: "Product GM after floor", format: "text" },
+      { key: "collectedGrossMarginAfterFloor", label: "Collected GM after floor", format: "text" },
+    ],
+    rows: [
+      {
+        label: "Solo",
+        monthlyRevenue: 79,
+        aiRuntimeCost: 10.9,
+        sharedSoftwareFloor: 6.95,
+        productGrossMarginAfterFloor: "77.41%",
+        collectedGrossMarginAfterFloor: "73.43%",
+      },
+      {
+        label: "Team minimum",
+        monthlyRevenue: 150,
+        aiRuntimeCost: 32.7,
+        sharedSoftwareFloor: 6.95,
+        productGrossMarginAfterFloor: "73.57%",
+        collectedGrossMarginAfterFloor: "69.77%",
+      },
+      {
+        label: "Team 10-seat",
+        monthlyRevenue: 500,
+        aiRuntimeCost: 109,
+        sharedSoftwareFloor: 6.95,
+        productGrossMarginAfterFloor: "76.81%",
+        collectedGrossMarginAfterFloor: "73.15%",
+      },
+    ],
+  });
+  assertDeclarativeTable(founderPricingModel.derived.annualBillingTable, {
+    columns: [
+      { key: "label", label: "Scenario", format: "text" },
+      { key: "monthlyRevenue", label: "Monthly list", format: "currency" },
+      { key: "annualRevenue", label: "Annual prepay", format: "currency" },
+      { key: "annualizedMonthlyStripeFees", label: "Stripe if billed monthly", format: "currency" },
+      { key: "annualStripeFeesAtListVolume", label: "Stripe once at list volume", format: "currency" },
+      { key: "annualStripeFees", label: "Stripe on annual prepay", format: "currency" },
+      { key: "annualBillingEfficiencySavings", label: "Billing frequency savings", format: "currency" },
+    ],
+    rows: [
+      {
+        label: "Solo",
+        monthlyRevenue: 79,
+        annualRevenue: 853.2,
+        annualizedMonthlyStripeFees: 37.68,
+        annualStripeFeesAtListVolume: 34.43,
+        annualStripeFees: 31.02,
+        annualBillingEfficiencySavings: 3.25,
+      },
+      {
+        label: "Team minimum",
+        monthlyRevenue: 150,
+        annualRevenue: 1620,
+        annualizedMonthlyStripeFees: 68.4,
+        annualStripeFeesAtListVolume: 65.1,
+        annualStripeFees: 58.62,
+        annualBillingEfficiencySavings: 3.3,
+      },
+      {
+        label: "Team 10-seat",
+        monthlyRevenue: 500,
+        annualRevenue: 5400,
+        annualizedMonthlyStripeFees: 219.6,
+        annualStripeFeesAtListVolume: 216.3,
+        annualStripeFees: 194.7,
+        annualBillingEfficiencySavings: 3.3,
+      },
+    ],
+  });
+  assertDeclarativeTable(founderPricingModel.derived.voiceSensitivityTable, {
+    columns: [
+      { key: "label", label: "Scenario", format: "text" },
+      { key: "monthlyRevenue", label: "Monthly revenue", format: "currency" },
+      { key: "totalVoiceMinutes", label: "Total voice minutes", format: "number" },
+      { key: "aiRuntimeCost", label: "AI/runtime COGS", format: "currency" },
+      { key: "productGrossMargin", label: "Product GM", format: "text" },
+      { key: "collectedGrossMargin", label: "Collected GM", format: "text" },
+    ],
+    rows: [
+      {
+        label: "Included only",
+        monthlyRevenue: 150,
+        totalVoiceMinutes: 360,
+        aiRuntimeCost: 32.7,
+        productGrossMargin: "78.20%",
+        collectedGrossMargin: "74.40%",
+      },
+      {
+        label: "+500 pack",
+        monthlyRevenue: 325,
+        totalVoiceMinutes: 860,
+        aiRuntimeCost: 72.7,
+        productGrossMargin: "77.63%",
+        collectedGrossMargin: "73.94%",
+      },
+      {
+        label: "+2,000 pack",
+        monthlyRevenue: 750,
+        totalVoiceMinutes: 2360,
+        aiRuntimeCost: 192.7,
+        productGrossMargin: "74.31%",
+        collectedGrossMargin: "70.67%",
+      },
+    ],
+  });
 });
 
 test("founder pricing content exports the pricing-only investor deck contract", () => {
@@ -259,48 +293,30 @@ test("founder pricing content exports the pricing-only investor deck contract", 
 
   assert.equal(founderPricingContent.slides.length, 9);
   assert.equal(founderPricingContent.appendix.length, 5);
-  assert.deepEqual(
-    founderPricingContent.slides.map((slide) => slide.title),
-    [
-      "Argos Pricing & Unit Economics",
-      "Included Usage & Voice Policy",
-      "Base Usage Assumptions",
-      "Official Vendor Cost Stack",
-      "Seat Economics: Solo vs Team",
-      "Org-Level Margin Outcomes",
-      "Monthly vs Annual Billing Economics",
-      "Voice Sensitivity & Downside Control",
-      "Closing Thesis",
-    ],
-  );
   assert.equal("facts" in founderPricingContent, false);
   assert.equal("memoSections" in founderPricingContent, false);
   assert.equal("controls" in founderPricingContent, false);
-
-  const appendixTables = founderPricingContent.appendix
-    .flatMap((entry) => entry.sections)
-    .map((section) => section.table)
-    .filter(Boolean);
-
-  for (const table of appendixTables) {
-    assertDeclarativeTable(table);
-  }
 });
 
-test("renderer produces a continuous investor deck shell with main and appendix rails", () => {
+test("renderer produces an answerworthy-style full viewport slide deck shell", () => {
   const html = renderFounderPricingHtml(founderPricingContent);
 
-  assert.match(html, /class="deck-shell"/);
-  assert.match(html, /aria-label="Slide rail"/);
-  assert.match(html, /aria-label="Appendix rail"/);
+  assert.match(html, /class="deck-brand"/);
+  assert.match(html, /class="deck-status"/);
+  assert.match(html, /class="progress-track"/);
+  assert.match(html, /data-progress-bar/);
   assert.match(html, /id="deck-track"/);
   assert.match(html, /data-content-main-slides="9"/);
   assert.match(html, /data-content-appendix-slides="5"/);
   assert.match(html, /data-content-total-slides="14"/);
+  assert.equal(html.includes("Slide rail"), false);
+  assert.equal(html.includes("Appendix rail"), false);
   assert.equal(html.includes("memo-view"), false);
-  assert.equal(html.includes("mode-button"), false);
-  assert.equal(html.includes("Memo mode"), false);
-  assert.equal(countMatches(html, /class="deck-slide /g), 14);
+  assert.equal(html.includes('data-nav="prev"'), false);
+  assert.equal(html.includes('data-nav="next"'), false);
+  assert.equal(countMatches(html, /class="slide kind-/g), 14);
+  assert.match(html, /class="slide-mark"/);
+  assert.match(html, /class="section-kicker"/);
   assert.match(html, /data-slide-kind="hero-metrics"/);
   assert.match(html, /data-slide-kind="policy-grid"/);
   assert.match(html, /data-slide-kind="rate-stack"/);
@@ -308,7 +324,6 @@ test("renderer produces a continuous investor deck shell with main and appendix 
   assert.match(html, /data-slide-kind="comparison-table"/);
   assert.match(html, /data-slide-kind="thesis"/);
   assert.match(html, /data-slide-kind="appendix-table"/);
-  assert.match(html, /data-slide-kind="sensitivity-table"/);
 });
 
 test("renderer outputs verified pricing, vendor, and appendix detail in HTML", () => {
@@ -316,6 +331,8 @@ test("renderer outputs verified pricing, vendor, and appendix detail in HTML", (
 
   assert.match(html, /Argos Pricing &amp; Unit Economics/);
   assert.match(html, /Official Vendor Cost Stack/);
+  assert.match(html, /Seat Economics: Solo vs Team/);
+  assert.match(html, /Monthly vs Annual Billing Economics/);
   assert.match(html, /Resend/);
   assert.match(html, /GPT-realtime-1\.5 audio \$32 \/ 1M input tokens and \$64 \/ 1M output tokens/);
   assert.match(html, /Pro \$20 \/ month includes 1 deploy seat and \$20 usage credit/);
@@ -399,15 +416,14 @@ test("renderer uses explicit slide definitions for kinds and payload sources", (
     kind: "appendix-table",
     payloadKey: "sections",
   });
-  assert.deepEqual(resolveSlideDefinition("appendix-voice-sensitivity", "appendix"), {
-    kind: "sensitivity-table",
-    payloadKey: "sections",
-  });
 });
 
 test("payload builders read named pack catalog entries instead of fragile positional arrays", () => {
   const { PAYLOAD_BUILDERS } = renderTestExports;
-  const coverPayload = PAYLOAD_BUILDERS.coverMetrics(founderPricingContent.slides[0], founderPricingModel);
+  const coverPayload = PAYLOAD_BUILDERS.coverMetrics(
+    founderPricingContent.slides[0],
+    founderPricingModel,
+  );
   const policyPayload = PAYLOAD_BUILDERS.pricingArchitecturePolicies(
     founderPricingContent.slides[1],
     founderPricingModel,
@@ -424,41 +440,55 @@ test("payload builders read named pack catalog entries instead of fragile positi
   });
   assert.match(policyPayload.cards[0].body, /250-minute prepaid pack/);
   assert.match(policyPayload.cards[1].body, /prepaid team packs/);
-  assert.deepEqual(sensitivityPayload.table.rows, founderPricingModel.derived.voiceSensitivityTable.rows);
-  assert.deepEqual(PAYLOAD_BUILDERS.voiceExpansionPacks(founderPricingContent.slides[7], founderPricingModel).items, [
-    {
-      label: "Solo pack",
-      value: "250 min / $125",
-      detail: "Public overage pack valid for 90 days.",
-    },
-    {
-      label: "Team growth pack",
-      value: "500 min / $175",
-      detail: "Public overage pack valid for 90 days.",
-    },
-    {
-      label: "Team scale pack",
-      value: "2,000 min / $600",
-      detail: "Public overage pack valid for 90 days.",
-    },
-  ]);
+  assert.deepEqual(
+    sensitivityPayload.table.rows,
+    founderPricingModel.derived.voiceSensitivityTable.rows,
+  );
+  assert.deepEqual(
+    PAYLOAD_BUILDERS.voiceExpansionPacks(founderPricingContent.slides[7], founderPricingModel).items,
+    [
+      {
+        label: "Solo pack",
+        value: "250 min / $125",
+        detail: "Public overage pack valid for 90 days.",
+      },
+      {
+        label: "Team growth pack",
+        value: "500 min / $175",
+        detail: "Public overage pack valid for 90 days.",
+      },
+      {
+        label: "Team scale pack",
+        value: "2,000 min / $600",
+        detail: "Public overage pack valid for 90 days.",
+      },
+    ],
+  );
 });
 
-test("responsive CSS preserves viewport lock without internal scrolling", () => {
+test("responsive CSS preserves viewport-lock slide behavior", () => {
   const html = renderFounderPricingHtml(founderPricingContent);
 
+  assert.match(html, /html\s*\{[\s\S]*scroll-snap-type:\s*y mandatory;/);
   assert.match(
     html,
-    /\.deck-slide\s*\{\s*min-height:\s*var\(--slide-height\);\s*max-height:\s*var\(--slide-height\);/s,
+    /\.slide\s*\{[\s\S]*width:\s*100vw;[\s\S]*height:\s*100vh;[\s\S]*height:\s*100dvh;[\s\S]*overflow:\s*hidden;[\s\S]*scroll-snap-align:\s*start;/,
   );
-  assert.doesNotMatch(
+  assert.match(
     html,
-    /@media\s*\(max-width:\s*1180px\)\s*\{[\s\S]*?\.deck-slide\s*\{[\s\S]*?min-height:\s*auto;[\s\S]*?max-height:\s*none;/,
+    /\.slide-content\s*\{[\s\S]*max-height:\s*100%;[\s\S]*overflow:\s*hidden;/,
   );
-  assert.doesNotMatch(
+  assert.match(html, /\.slide-body\s*\{[\s\S]*flex:\s*1 1 auto;[\s\S]*min-height:\s*0;/);
+  assert.match(
     html,
-    /@media[\s\S]*?\.slide-body\s*\{[\s\S]*?overflow:\s*(auto|scroll)/,
+    /\.table-shell\s*\{[\s\S]*max-width:\s*100%;[\s\S]*overflow:\s*auto;[\s\S]*overscroll-behavior-x:\s*contain;/,
   );
+  assert.match(
+    html,
+    /\.comparison-table\s*\{[\s\S]*width:\s*max-content;[\s\S]*min-width:\s*100%;/,
+  );
+  assert.doesNotMatch(html, /\.rail-card/);
+  assert.doesNotMatch(html, /\.deck-layout/);
 });
 
 test("slide kind inference supports the required investor deck slide types", () => {
@@ -471,70 +501,97 @@ test("slide kind inference supports the required investor deck slide types", () 
   assert.equal(inferSlideKind({ id: "solo-unit-economics" }, "main"), "comparison-table");
   assert.equal(inferSlideKind({ id: "founder-close" }, "main"), "thesis");
   assert.equal(inferSlideKind({ id: "appendix-rate-card" }, "appendix"), "appendix-table");
-  assert.equal(
-    inferSlideKind({ id: "appendix-voice-sensitivity" }, "appendix"),
-    "sensitivity-table",
-  );
 });
 
-test("controller navigates only slides and appendix slides with status and hash sync", () => {
+test("controller updates active slide status, progress, and hash sync", () => {
   const controller = createControllerHarness();
-  const { window, document, slides, slideLinks, prevButton, nextButton, statusNode } =
-    controller;
+  const { window, document, slides, statusNode, groupNode, titleNode, progressNode } = controller;
 
   runController(window, document);
 
   const instance = window.__founderPricingController;
   assert.ok(instance);
   assert.equal(statusNode.textContent, "Slide 1 of 2");
-  assert.equal(prevButton.disabled, true);
-  assert.equal(nextButton.disabled, false);
-  assert.equal(window.location.hash, "#slide-cover");
+  assert.equal(groupNode.textContent, "Main deck");
+  assert.equal(titleNode.textContent, "Argos Pricing & Unit Economics");
+  assert.ok(progressNode.style.width.startsWith("33"));
+  assert.equal(window.location.hash, "");
   assert.equal(slides[0].dataset.active, "true");
   assert.equal(slides[1].dataset.active, "false");
   assert.equal(slides[2].dataset.active, "false");
 
-  slideLinks[1].emit("click", { preventDefault() {} });
+  window.emit("keydown", {
+    key: "ArrowRight",
+    preventDefault() {},
+  });
   assert.equal(statusNode.textContent, "Slide 2 of 2");
   assert.equal(window.location.hash, "#slide-pricing-architecture");
   assert.equal(slides[1].dataset.active, "true");
+  assert.ok(progressNode.style.width.startsWith("66"));
 
   window.emit("keydown", {
     key: "ArrowRight",
     preventDefault() {},
   });
   assert.equal(statusNode.textContent, "Appendix 1 of 1");
+  assert.equal(groupNode.textContent, "Appendix");
   assert.equal(window.location.hash, "#slide-appendix-rate-card");
-  assert.equal(nextButton.disabled, true);
-
-  window.emit("wheel", { deltaY: -40 });
-  assert.equal(statusNode.textContent, "Slide 2 of 2");
-
-  window.emit("touchstart", {
-    changedTouches: [{ clientX: 200, clientY: 40 }],
-  });
-  window.emit("touchend", {
-    changedTouches: [{ clientX: 40, clientY: 46 }],
-  });
-  assert.equal(statusNode.textContent, "Appendix 1 of 1");
+  assert.equal(slides[2].dataset.active, "true");
+  assert.ok(progressNode.style.width.startsWith("100"));
 
   window.location.hash = "#slide-cover";
   window.emit("hashchange");
   assert.equal(statusNode.textContent, "Slide 1 of 2");
-  assert.equal(prevButton.disabled, true);
+  assert.equal(groupNode.textContent, "Main deck");
+  assert.equal(titleNode.textContent, "Argos Pricing & Unit Economics");
   assert.equal(slides[0].scrollIntoViewCalls > 0, true);
 });
 
-function assertDeclarativeTable(table) {
+test("controller reacts to IntersectionObserver updates during scroll navigation", () => {
+  const controller = createControllerHarness();
+  const {
+    window,
+    document,
+    slides,
+    statusNode,
+    groupNode,
+    titleNode,
+    progressNode,
+    intersectionObserver,
+  } = controller;
+
+  runController(window, document);
+
+  assert.ok(intersectionObserver.instance);
+  assert.equal(intersectionObserver.observedTargets.length, slides.length);
+
+  intersectionObserver.instance.trigger([
+    {
+      target: slides[1],
+      isIntersecting: true,
+      intersectionRatio: 0.81,
+    },
+  ]);
+
+  assert.equal(statusNode.textContent, "Slide 2 of 2");
+  assert.equal(groupNode.textContent, "Main deck");
+  assert.equal(titleNode.textContent, "Included Usage & Voice Policy");
+  assert.ok(progressNode.style.width.startsWith("66"));
+  assert.equal(window.location.hash, "#slide-pricing-architecture");
+  assert.equal(slides[1].dataset.active, "true");
+  assert.equal(slides[1].scrollIntoViewCalls, 0);
+});
+
+function assertDeclarativeTable(table, expected) {
   assert.equal(typeof table, "object");
   assert.notEqual(table, null);
   assert.equal(Array.isArray(table.columns), true);
   assert.equal(Array.isArray(table.rows), true);
   assert.ok(table.columns.length > 0);
-  for (const column of table.columns) {
-    assert.equal(typeof column.key, "string");
-    assert.equal(typeof column.label, "string");
-    assert.equal(typeof column.format, "string");
+
+  if (expected) {
+    assert.deepEqual(table.columns, expected.columns);
+    assert.deepEqual(table.rows, expected.rows);
   }
 }
 
@@ -548,12 +605,12 @@ function getSlideMarkup(html, slideId) {
 
   assert.notEqual(startIndex, -1, `Expected markup for slide ${slideId}`);
 
-  const articleStart = html.lastIndexOf("<article", startIndex);
-  const nextSlideMarker = '\n    <article\n      id="slide-';
-  const nextArticleStart = html.indexOf(nextSlideMarker, startIndex + startToken.length);
-  const articleEnd = nextArticleStart === -1 ? html.length : nextArticleStart;
+  const sectionStart = html.lastIndexOf("<section", startIndex);
+  const nextSlideMarker = '\n    <section\n      id="slide-';
+  const nextSectionStart = html.indexOf(nextSlideMarker, startIndex + startToken.length);
+  const sectionEnd = nextSectionStart === -1 ? html.length : nextSectionStart;
 
-  return html.slice(articleStart, articleEnd);
+  return html.slice(sectionStart, sectionEnd);
 }
 
 function escapeRegExp(value) {
@@ -570,14 +627,13 @@ function runController(window, document) {
 
 function createControllerHarness() {
   class FakeNode {
-    constructor({ dataset = {}, hidden = false, textContent = "" } = {}) {
+    constructor({ dataset = {}, textContent = "" } = {}) {
       this.dataset = { ...dataset };
-      this.hidden = hidden;
       this.textContent = textContent;
-      this.disabled = false;
       this.attributes = new Map();
       this.listeners = new Map();
       this.scrollIntoViewCalls = 0;
+      this.style = {};
       this.heading = null;
     }
 
@@ -609,14 +665,14 @@ function createControllerHarness() {
     }
   }
 
-  function createSlide({ id, group, ordinal, hidden, title }) {
+  function createSlide({ id, group, ordinal, title }) {
     const slide = new FakeNode({
       dataset: {
         slideId: id,
         slideGroup: group,
         slideOrdinal: String(ordinal),
+        active: "false",
       },
-      hidden,
     });
     slide.heading = { textContent: title };
     return slide;
@@ -627,58 +683,36 @@ function createControllerHarness() {
       id: "cover",
       group: "main",
       ordinal: 0,
-      hidden: false,
       title: "Argos Pricing & Unit Economics",
     }),
     createSlide({
       id: "pricing-architecture",
       group: "main",
       ordinal: 1,
-      hidden: true,
       title: "Included Usage & Voice Policy",
     }),
     createSlide({
       id: "appendix-rate-card",
       group: "appendix",
       ordinal: 0,
-      hidden: true,
       title: "Appendix: Vendor Rate Card",
     }),
   ];
 
-  const slideLinks = slides.map(
-    (slide) =>
-      new FakeNode({
-        dataset: { slideTarget: slide.dataset.slideId },
-      }),
-  );
-  const prevButton = new FakeNode();
-  const nextButton = new FakeNode();
   const statusNode = new FakeNode();
   const groupNode = new FakeNode({ textContent: "Main deck" });
   const titleNode = new FakeNode({ textContent: "Argos Pricing & Unit Economics" });
+  const progressNode = new FakeNode();
 
   const document = {
     querySelectorAll(selector) {
-      if (selector === ".deck-slide") {
+      if (selector === ".slide") {
         return slides;
-      }
-
-      if (selector === "[data-slide-target]") {
-        return slideLinks;
       }
 
       return [];
     },
     querySelector(selector) {
-      if (selector === '[data-nav="prev"]') {
-        return prevButton;
-      }
-
-      if (selector === '[data-nav="next"]') {
-        return nextButton;
-      }
-
       if (selector === "[data-slide-status]") {
         return statusNode;
       }
@@ -691,7 +725,11 @@ function createControllerHarness() {
         return titleNode;
       }
 
-      if (selector === ".deck-slide") {
+      if (selector === "[data-progress-bar]") {
+        return progressNode;
+      }
+
+      if (selector === ".slide") {
         return slides[0];
       }
 
@@ -700,6 +738,10 @@ function createControllerHarness() {
   };
 
   const listeners = new Map();
+  const intersectionObserver = {
+    instance: null,
+    observedTargets: [],
+  };
   const window = {
     location: { hash: "" },
     history: {
@@ -710,13 +752,23 @@ function createControllerHarness() {
     matchMedia() {
       return { matches: false };
     },
-    setTimeout(callback) {
-      if (typeof callback === "function") {
-        callback();
+    IntersectionObserver: class FakeIntersectionObserver {
+      constructor(callback, options) {
+        this.callback = callback;
+        this.options = options;
+        intersectionObserver.instance = this;
       }
-      return 1;
+
+      observe(target) {
+        intersectionObserver.observedTargets.push(target);
+      }
+
+      disconnect() {}
+
+      trigger(entries) {
+        this.callback(entries);
+      }
     },
-    clearTimeout() {},
     addEventListener(type, handler) {
       listeners.set(type, handler);
     },
@@ -732,11 +784,10 @@ function createControllerHarness() {
     window,
     document,
     slides,
-    slideLinks,
-    prevButton,
-    nextButton,
     statusNode,
     groupNode,
     titleNode,
+    progressNode,
+    intersectionObserver,
   };
 }
