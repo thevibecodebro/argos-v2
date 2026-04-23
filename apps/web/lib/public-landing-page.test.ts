@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { LandingPage } from "../components/public/landing-page";
 
 describe("LandingPage", () => {
-  it("renders the public homepage sections, updated integrations, and legal footer", () => {
+  it("renders the public homepage sections, pricing, updated integrations, and legal footer", () => {
     const html = renderToStaticMarkup(createElement(LandingPage));
 
     expect(html).toContain("Intelligent Readiness");
@@ -34,6 +34,25 @@ describe("LandingPage", () => {
     expect(html).toContain('href="/security-policy"');
     expect(html).toContain("© 2026 Argos Intelligence. All rights reserved.");
     expect(html).toContain('id="outcomes"');
+    expect(html).toContain('id="pricing"');
+    expect(html).toContain("Pricing");
+    expect(html).toContain("Solo");
+    expect(html).toContain("$79/month");
+    expect(html).toContain("120 live voice minutes/month");
+    expect(html).toContain("Individual workspace only");
+    expect(html).toContain("Team");
+    expect(html).toContain("$50/seat/month");
+    expect(html).toContain("3-seat minimum");
+    expect(html).toContain("120 live voice minutes per seat/month");
+    expect(html).toContain("Pooled at the org level");
+    expect(html).toContain("Save 10% annually");
+    expect(html).toContain("Extra voice");
+    expect(html).toContain("250 extra minutes for $125");
+    expect(html).toContain("500 for $175");
+    expect(html).toContain("2,000 for $600");
+    expect(html).toContain("Included minutes are used first");
+    expect(html).toContain("Purchased packs do not expire while subscribed");
+    expect(html).not.toContain(">Trial<");
     expect(html).toContain("glass-card");
     expect(html).toContain("text-glow");
     expect(html).toContain("gradient-bg");

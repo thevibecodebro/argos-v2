@@ -9,7 +9,7 @@ const navLinks = [
   { label: "Platform", href: "#platform" },
   { label: "Solutions", href: "#solutions" },
   { label: "Resources", href: "#capabilities" },
-  { label: "Pricing", href: "#cta" },
+  { label: "Pricing", href: "#pricing" },
 ] as const;
 
 const workflowSteps = [
@@ -69,6 +69,44 @@ const outcomeRows = [
   },
 ] as const;
 
+const pricingPlans = [
+  {
+    name: "Solo",
+    price: "$79",
+    cadence: "/month",
+    usage: "120 live voice minutes/month",
+    note: "For individual reps and founders practicing on their own.",
+    access: [
+      "Individual workspace only",
+      "Calls, highlights, uploads, training, and AI roleplay",
+      "Save 10% annually",
+    ],
+    badge: "Individual focus",
+    accentClass: "from-[#74b1ff]/18 via-[#10131a] to-transparent",
+  },
+  {
+    name: "Team",
+    price: "$50",
+    cadence: "/seat/month",
+    usage: "120 live voice minutes per seat/month",
+    note: "For coaching teams that need shared visibility and pooled voice usage.",
+    access: [
+      "3-seat minimum",
+      "Pooled at the org level",
+      "Team analytics, leaderboards, and admin controls",
+      "Save 10% annually",
+    ],
+    badge: "Org coaching",
+    accentClass: "from-[#6dddff]/14 via-[#10131a] to-transparent",
+  },
+] as const;
+
+const extraVoicePacks = [
+  { audience: "Solo", label: "250 extra minutes for $125" },
+  { audience: "Team", label: "500 for $175" },
+  { audience: "Team", label: "2,000 for $600" },
+] as const;
+
 type LandingIconName =
   | "analytics"
   | "arrow_forward"
@@ -100,6 +138,7 @@ export function LandingPage() {
         <LandingHero />
         <LandingWorkflow />
         <LandingCapabilities />
+        <LandingPricing />
         <LandingOutcomes />
         <LandingFooterCta />
       </main>
@@ -476,6 +515,114 @@ function LandingCapabilities() {
             <LandingIcon className="h-5 w-5 text-[#74b1ff]" name="east" />
           </div>
         </article>
+      </div>
+    </section>
+  );
+}
+
+function LandingPricing() {
+  return (
+    <section className="landing-deferred mx-auto max-w-7xl px-6 py-28 sm:px-8" id="pricing">
+      <div className="mb-16 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+        <div className="max-w-3xl">
+          <div className="mb-4 text-sm font-bold uppercase tracking-[0.24em] text-[#74b1ff]">
+            Pricing
+          </div>
+          <h2 className="text-5xl font-bold tracking-tight text-[#ecedf6]">
+            Voice coaching access for{" "}
+            <span className="text-[#74b1ff]">solo reps and team operators</span>
+          </h2>
+          <p className="mt-6 max-w-2xl text-lg leading-8 text-[#a9abb3]">
+            Keep the same operating loop, choose the workspace shape that matches how you coach,
+            and scale live practice with prepaid minutes only when your included pool is exhausted.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-[#45484f]/25 bg-[#10131a] px-5 py-4 text-sm leading-7 text-[#a9abb3]">
+          Annual billing available.
+          <div className="font-semibold text-[#ecedf6]">Save 10% annually</div>
+        </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        {pricingPlans.map((plan) => (
+          <article
+            className="glass-card relative overflow-hidden rounded-[1.75rem] p-8 sm:p-10"
+            key={plan.name}
+          >
+            <div className={`absolute inset-x-0 top-0 h-28 bg-gradient-to-b ${plan.accentClass}`} />
+            <div className="relative">
+              <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <div className="mb-3 text-[0.72rem] font-bold uppercase tracking-[0.22em] text-[#a9abb3]">
+                    {plan.name}
+                  </div>
+                  <div className="flex items-end gap-1">
+                    <span className="text-5xl font-bold tracking-[-0.06em] text-[#ecedf6]">
+                      {plan.price}
+                    </span>
+                    <span className="pb-1 text-lg text-[#a9abb3]">{plan.cadence}</span>
+                  </div>
+                  <span className="sr-only">{`${plan.price}${plan.cadence}`}</span>
+                </div>
+                <div className="rounded-full border border-[#74b1ff]/20 bg-[#74b1ff]/10 px-4 py-2 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#74b1ff]">
+                  {plan.badge}
+                </div>
+              </div>
+
+              <div className="mb-8 rounded-2xl border border-[#45484f]/25 bg-[#0b0e14] px-5 py-4">
+                <div className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#a9abb3]">
+                  Included voice
+                </div>
+                <div className="mt-2 text-lg font-semibold text-[#ecedf6]">{plan.usage}</div>
+              </div>
+
+              <p className="mb-8 max-w-[38ch] text-base leading-7 text-[#a9abb3]">{plan.note}</p>
+
+              <ul className="space-y-4">
+                {plan.access.map((item) => (
+                  <li className="flex items-start gap-3 text-sm leading-6 text-[#d8dde7]" key={item}>
+                    <LandingIcon
+                      className="mt-1 h-4 w-4 flex-shrink-0 text-[#74b1ff]"
+                      name="check_circle"
+                    />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-8 rounded-[1.75rem] border border-[#45484f]/25 bg-[#10131a] p-8 sm:p-10">
+        <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-2xl">
+            <div className="mb-3 text-sm font-bold uppercase tracking-[0.24em] text-[#74b1ff]">
+              Extra voice
+            </div>
+            <h3 className="text-3xl font-bold tracking-tight text-[#ecedf6]">
+              Top up minutes without changing your plan structure
+            </h3>
+            <div className="mt-4 space-y-2 text-sm leading-7 text-[#a9abb3]">
+              <p>Included minutes are used first</p>
+              <p>Purchased packs do not expire while subscribed</p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3 lg:min-w-[34rem]">
+            {extraVoicePacks.map((pack) => (
+              <article
+                className="rounded-2xl border border-[#45484f]/25 bg-[#0b0e14] px-5 py-5"
+                key={`${pack.audience}-${pack.label}`}
+              >
+                <div className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#a9abb3]">
+                  {pack.audience}
+                </div>
+                <div className="mt-3 text-lg font-semibold text-[#ecedf6]">{pack.label}</div>
+              </article>
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   );

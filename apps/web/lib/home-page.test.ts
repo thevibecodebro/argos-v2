@@ -13,7 +13,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("HomePage", () => {
-  it("renders the public landing page instead of redirecting to login", async () => {
+  it("renders the public landing page without redirecting to login and includes the pricing anchor and content", async () => {
     const html = renderToStaticMarkup(await HomePage());
 
     expect(redirectMock).not.toHaveBeenCalled();
@@ -22,5 +22,9 @@ describe("HomePage", () => {
     expect(html).toContain('href="/login"');
     expect(html).toContain("Access platform");
     expect(html).toContain('href="#platform"');
+    expect(html).toContain('href="#pricing"');
+    expect(html).toContain("Solo");
+    expect(html).toContain("Team");
+    expect(html).toContain("Extra voice");
   });
 });
