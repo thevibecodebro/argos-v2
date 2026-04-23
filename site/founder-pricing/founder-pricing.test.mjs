@@ -36,6 +36,11 @@ test("build:founder-pricing emits a publishable HTML document", () => {
   assert.match(html, /id="memo-view"/);
   assert.match(html, /data-mode="deck"/);
   assert.match(html, /data-mode="memo"/);
+  assert.match(html, /class FounderPricingController/);
+  assert.match(html, /data-nav="next"/);
+  assert.match(html, /data-nav="prev"/);
+  assert.match(html, /aria-live="polite"/);
+  assert.match(html, /prefers-reduced-motion/);
   assert.match(html, /Official Vendor Rate Card/);
   assert.match(html, /Founder Recommendations/);
   assert.match(html, new RegExp(`data-content-slides="${counts.slides}"`));

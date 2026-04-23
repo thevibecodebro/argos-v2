@@ -126,6 +126,184 @@ function getTitleById(items, id) {
   return titleCase(items.find((item) => item.id === id)?.title ?? "");
 }
 
+function renderControllerScript() {
+  return `
+    <script>
+      class FounderPricingController {
+        constructor() {
+          this.deckView = document.getElementById("deck-view");
+          this.memoView = document.getElementById("memo-view");
+          this.slideNodes = Array.from(document.querySelectorAll(".slide"));
+          this.modeButtons = Array.from(document.querySelectorAll(".mode-button[data-mode]"));
+          this.prevButton = document.querySelector('[data-nav="prev"]');
+          this.nextButton = document.querySelector('[data-nav="next"]');
+          this.statusNode = document.querySelector("[data-slide-status]");
+          this.touchStartX = 0;
+          this.touchStartY = 0;
+          this.wheelLocked = false;
+          this.motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+          this.mode = "deck";
+          this.index = Math.max(
+            0,
+            this.slideNodes.findIndex((slide) => !slide.hidden),
+          );
+
+          this.bind();
+          this.setMode("deck");
+        }
+
+        bind() {
+          this.modeButtons.forEach((button) => {
+            button.addEventListener("click", () => this.setMode(button.dataset.mode));
+          });
+
+          this.prevButton?.addEventListener("click", () => this.go(-1));
+          this.nextButton?.addEventListener("click", () => this.go(1));
+
+          window.addEventListener("keydown", (event) => {
+            if (this.mode !== "deck") {
+              return;
+            }
+
+            if (event.key === "ArrowRight" || event.key === "PageDown") {
+              event.preventDefault();
+              this.go(1);
+            }
+
+            if (event.key === "ArrowLeft" || event.key === "PageUp") {
+              event.preventDefault();
+              this.go(-1);
+            }
+          });
+
+          window.addEventListener(
+            "wheel",
+            (event) => {
+              if (this.mode !== "deck" || this.wheelLocked || Math.abs(event.deltaY) < 28) {
+                return;
+              }
+
+              this.wheelLocked = true;
+              this.go(event.deltaY > 0 ? 1 : -1);
+              window.setTimeout(() => {
+                this.wheelLocked = false;
+              }, 450);
+            },
+            { passive: true },
+          );
+
+          window.addEventListener(
+            "touchstart",
+            (event) => {
+              this.touchStartX = event.changedTouches[0]?.clientX ?? 0;
+              this.touchStartY = event.changedTouches[0]?.clientY ?? 0;
+            },
+            { passive: true },
+          );
+
+          window.addEventListener(
+            "touchend",
+            (event) => {
+              if (this.mode !== "deck") {
+                return;
+              }
+
+              const endX = event.changedTouches[0]?.clientX ?? 0;
+              const endY = event.changedTouches[0]?.clientY ?? 0;
+              const deltaX = endX - this.touchStartX;
+              const deltaY = endY - this.touchStartY;
+
+              if (Math.abs(deltaX) < 40 || Math.abs(deltaX) < Math.abs(deltaY)) {
+                return;
+              }
+
+              this.go(deltaX < 0 ? 1 : -1);
+            },
+            { passive: true },
+          );
+        }
+
+        setMode(mode) {
+          const isDeck = mode === "deck";
+
+          this.mode = isDeck ? "deck" : "memo";
+          this.deckView.hidden = !isDeck;
+          this.memoView.hidden = isDeck;
+          this.deckView.setAttribute("aria-hidden", String(!isDeck));
+          this.memoView.setAttribute("aria-hidden", String(isDeck));
+
+          this.modeButtons.forEach((button) => {
+            const isActive = button.dataset.mode === this.mode;
+            button.dataset.active = String(isActive);
+            button.setAttribute("aria-pressed", String(isActive));
+          });
+
+          this.update();
+        }
+
+        go(direction) {
+          if (this.mode !== "deck") {
+            return;
+          }
+
+          const nextIndex = Math.max(
+            0,
+            Math.min(this.slideNodes.length - 1, this.index + direction),
+          );
+
+          if (nextIndex === this.index) {
+            return;
+          }
+
+          this.index = nextIndex;
+          this.update();
+        }
+
+        update() {
+          this.slideNodes.forEach((slide, index) => {
+            const isVisible = this.mode === "deck" && index === this.index;
+
+            slide.hidden = !isVisible;
+            slide.setAttribute("aria-hidden", String(!isVisible));
+            slide.dataset.active = String(isVisible);
+          });
+
+          if (this.prevButton) {
+            this.prevButton.disabled = this.mode !== "deck" || this.index === 0;
+          }
+
+          if (this.nextButton) {
+            this.nextButton.disabled =
+              this.mode !== "deck" || this.index === this.slideNodes.length - 1;
+          }
+
+          if (this.statusNode) {
+            this.statusNode.textContent =
+              this.mode === "deck"
+                ? \`Slide \${this.index + 1} of \${this.slideNodes.length}\`
+                : "Memo mode";
+          }
+
+          if (this.mode !== "deck" || this.motionQuery.matches) {
+            return;
+          }
+
+          this.slideNodes[this.index]?.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+          });
+        }
+      }
+
+      window.addEventListener("DOMContentLoaded", () => {
+        if (document.getElementById("deck-view") && document.getElementById("memo-view")) {
+          new FounderPricingController();
+        }
+      });
+    </script>
+  `;
+}
+
 function renderFounderPricingHtml(content) {
   const { controls, counts, facts, memoSections, meta, slides, theme } = content;
   const pricingFacts = [
@@ -322,6 +500,10 @@ function renderFounderPricingHtml(content) {
         box-shadow: inset 0 0 0 1px rgba(116, 177, 255, 0.18);
       }
 
+      .mode-button {
+        cursor: pointer;
+      }
+
       .shell-content {
         position: relative;
         padding: 28px 24px 32px;
@@ -498,6 +680,39 @@ function renderFounderPricingHtml(content) {
         gap: 8px;
       }
 
+      .deck-controls {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px;
+        border-radius: 18px;
+        border: 1px solid color-mix(in srgb, var(--outline) 76%, transparent);
+        background: color-mix(in srgb, var(--secondary-surface) 86%, transparent);
+      }
+
+      .control-button {
+        appearance: none;
+        border: 1px solid color-mix(in srgb, var(--outline) 80%, transparent);
+        border-radius: 999px;
+        padding: 10px 14px;
+        background: color-mix(in srgb, var(--primary-surface) 88%, transparent);
+        color: var(--primary-text);
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .control-button[disabled] {
+        opacity: 0.48;
+        cursor: not-allowed;
+      }
+
+      .slide-status {
+        margin: 0;
+        color: var(--secondary-text);
+        text-align: center;
+      }
+
       .deck-pill {
         display: inline-flex;
         align-items: center;
@@ -537,6 +752,16 @@ function renderFounderPricingHtml(content) {
         margin-top: 12px;
       }
 
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+
+        .rail-list li a {
+          transition: none;
+        }
+      }
+
       @media (max-width: 980px) {
         .hero-grid,
         .view-layout {
@@ -566,6 +791,11 @@ function renderFounderPricingHtml(content) {
           align-items: flex-start;
         }
 
+        .deck-controls {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
         .hero-facts {
           grid-template-columns: 1fr;
         }
@@ -586,8 +816,8 @@ function renderFounderPricingHtml(content) {
           <div class="topbar-actions">
             <div class="capsule">${escapeHtml(meta.verificationDate)}</div>
             <div class="mode-switch" aria-label="Mode switch">
-              <button class="mode-chip" data-mode="deck" data-active="true" type="button">Deck</button>
-              <button class="mode-chip" data-mode="memo" data-active="false" type="button">Memo</button>
+              <button class="mode-chip mode-button" data-mode="deck" data-active="true" type="button" aria-controls="deck-view" aria-pressed="true">Deck</button>
+              <button class="mode-chip mode-button" data-mode="memo" data-active="false" type="button" aria-controls="memo-view" aria-pressed="false">Memo</button>
             </div>
           </div>
         </header>
@@ -632,13 +862,18 @@ function renderFounderPricingHtml(content) {
                   <span class="deck-pill">${escapeHtml(vendorRateCardTitle)}</span>
                 </div>
               </div>
+              <div class="deck-controls">
+                <button class="control-button" type="button" data-nav="prev">Previous</button>
+                <p class="slide-status" data-slide-status aria-live="polite">Slide 1 of ${counts.slides}</p>
+                <button class="control-button" type="button" data-nav="next">Next</button>
+              </div>
               <div class="view-layout">
                 ${renderDeckRail(slides)}
                 <div class="slide-stack" data-slide-ids="${slides.map((slide) => slide.id).join(" ")}">
                   ${slides
                     .map(
-                      (slide) => `
-                        <article id="slide-${escapeHtml(slide.id)}" class="slide-card" data-slide-id="${escapeHtml(slide.id)}" data-fact-ids="${escapeHtml((slide.factIds ?? []).join(" "))}">
+                      (slide, index) => `
+                        <article id="slide-${escapeHtml(slide.id)}" class="slide-card slide" data-slide-id="${escapeHtml(slide.id)}" data-fact-ids="${escapeHtml((slide.factIds ?? []).join(" "))}"${index === 0 ? "" : " hidden"} aria-hidden="${index === 0 ? "false" : "true"}" data-active="${index === 0 ? "true" : "false"}">
                           <div class="card-header">
                             <div class="label">${escapeHtml(deckLabelMap.get(slide.id) ?? "Slide")}</div>
                             <h3>${escapeHtml(titleCase(slide.title))}</h3>
@@ -657,7 +892,7 @@ function renderFounderPricingHtml(content) {
               </div>
             </section>
 
-            <section id="memo-view" class="view-card" data-mode="memo" aria-labelledby="memo-title" data-memo-count="${counts.memoSections}">
+            <section id="memo-view" class="view-card" data-mode="memo" aria-labelledby="memo-title" data-memo-count="${counts.memoSections}" hidden aria-hidden="true">
               <div class="view-header">
                 <div>
                   <div class="kicker">Memo mode</div>
@@ -699,6 +934,7 @@ function renderFounderPricingHtml(content) {
         </div>
       </div>
     </main>
+    ${renderControllerScript()}
   </body>
 </html>`;
 }
