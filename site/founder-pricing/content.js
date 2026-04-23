@@ -215,7 +215,7 @@ const founderPricingContent = {
       sections: [
         {
           label: "Seat economics rows",
-          rows: model.derived.seatEconomicsRows,
+          table: model.derived.seatEconomicsTable,
         },
       ],
     },
@@ -226,11 +226,11 @@ const founderPricingContent = {
       sections: [
         {
           label: "Margin rows",
-          rows: model.derived.marginRows,
+          table: model.derived.marginTable,
         },
         {
           label: "Org margin rows",
-          rows: model.derived.orgMarginRows,
+          table: model.derived.orgMarginTable,
         },
       ],
     },
@@ -241,7 +241,7 @@ const founderPricingContent = {
       sections: [
         {
           label: "Voice sensitivity rows",
-          rows: model.derived.voiceSensitivityRows,
+          table: model.derived.voiceSensitivityTable,
         },
       ],
     },

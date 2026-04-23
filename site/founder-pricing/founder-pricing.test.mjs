@@ -1,6 +1,5 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import founderPricingContent from "./content.js";
 import founderPricingModel from "./model.js";
 
@@ -62,41 +61,48 @@ test("canonical founder pricing model encodes approved assumptions and derived v
   assert.equal(founderPricingModel.derived.team.minimumBillingFeeMonthly, 1.05);
   assert.equal(founderPricingModel.derived.team.minimumCardFeeMonthly, 4.65);
 
-  assert.equal(Array.isArray(founderPricingModel.derived.seatEconomicsRows), true);
-  assert.equal(Array.isArray(founderPricingModel.derived.marginRows), true);
-  assert.equal(Array.isArray(founderPricingModel.derived.voiceSensitivityRows), true);
-  assert.equal(Array.isArray(founderPricingModel.derived.orgMarginRows), true);
-  assert.deepEqual(founderPricingModel.derived.seatEconomicsRows[0], {
+  assertDeclarativeTable(founderPricingModel.derived.seatEconomicsTable);
+  assertDeclarativeTable(founderPricingModel.derived.marginTable);
+  assertDeclarativeTable(founderPricingModel.derived.voiceSensitivityTable);
+  assertDeclarativeTable(founderPricingModel.derived.orgMarginTable);
+  assert.deepEqual(founderPricingModel.derived.seatEconomicsTable.columns, [
+    { key: "label", label: "Plan", format: "text" },
+    { key: "monthlyRevenue", label: "Monthly revenue", format: "currency" },
+    { key: "annualRevenue", label: "Annual revenue", format: "currency" },
+    { key: "includedVoiceMinutes", label: "Included voice minutes", format: "number" },
+    { key: "overageRate", label: "Overage rate", format: "currency" },
+  ]);
+  assert.deepEqual(founderPricingModel.derived.seatEconomicsTable.rows[0], {
     label: "Solo",
     monthlyRevenue: 79,
     annualRevenue: 853.2,
     includedVoiceMinutes: 120,
     overageRate: 0.39,
   });
-  assert.deepEqual(founderPricingModel.derived.seatEconomicsRows[1], {
+  assert.deepEqual(founderPricingModel.derived.seatEconomicsTable.rows[1], {
     label: "Team minimum",
     monthlyRevenue: 150,
     annualRevenue: 1620,
     includedVoiceMinutes: 360,
     overageRate: 0.29,
   });
-  assert.deepEqual(founderPricingModel.derived.marginRows[0], {
+  assert.deepEqual(founderPricingModel.derived.marginTable.rows[0], {
     label: "Solo monthly",
     revenue: 79,
     stripeFees: 3.14,
     netAfterStripe: 75.86,
   });
-  assert.deepEqual(founderPricingModel.derived.voiceSensitivityRows[0], {
+  assert.deepEqual(founderPricingModel.derived.voiceSensitivityTable.rows[0], {
     label: "Solo included",
     voiceMinutes: 120,
     incrementalRevenue: 0,
   });
-  assert.deepEqual(founderPricingModel.derived.voiceSensitivityRows[1], {
+  assert.deepEqual(founderPricingModel.derived.voiceSensitivityTable.rows[1], {
     label: "Solo +250 pack",
     voiceMinutes: 370,
     incrementalRevenue: 125,
   });
-  assert.deepEqual(founderPricingModel.derived.orgMarginRows[0], {
+  assert.deepEqual(founderPricingModel.derived.orgMarginTable.rows[0], {
     label: "Solo",
     revenue: 79,
     stripeFees: 3.14,
@@ -159,36 +165,42 @@ test("founder pricing content exports the new deck and appendix contract", () =>
   );
   assert.equal(
     founderPricingContent.appendix.find((entry) => entry.id === "appendix-seat-economics")
-      ?.sections[0]?.rows,
-    founderPricingModel.derived.seatEconomicsRows,
+      ?.sections[0]?.table,
+    founderPricingModel.derived.seatEconomicsTable,
   );
   assert.equal(
     founderPricingContent.appendix.find((entry) => entry.id === "appendix-margin-bridge")
-      ?.sections[0]?.rows,
-    founderPricingModel.derived.marginRows,
+      ?.sections[0]?.table,
+    founderPricingModel.derived.marginTable,
+  );
+  assert.equal(
+    founderPricingContent.appendix.find((entry) => entry.id === "appendix-margin-bridge")
+      ?.sections[1]?.table,
+    founderPricingModel.derived.orgMarginTable,
   );
   assert.equal(
     founderPricingContent.appendix.find((entry) => entry.id === "appendix-voice-sensitivity")
-      ?.sections[0]?.rows,
-    founderPricingModel.derived.voiceSensitivityRows,
+      ?.sections[0]?.table,
+    founderPricingModel.derived.voiceSensitivityTable,
   );
+  const appendixTables = founderPricingContent.appendix
+    .flatMap((entry) => entry.sections)
+    .map((section) => section.table)
+    .filter(Boolean);
+  for (const table of appendixTables) {
+    assertDeclarativeTable(table);
+  }
 });
 
-test("build currently fails on renderer/controller gaps, not missing model or content exports", () => {
-  assert.throws(
-    () =>
-      execFileSync("npm", ["run", "build:founder-pricing"], {
-        cwd: new URL("../..", import.meta.url),
-        stdio: "pipe",
-      }),
-    (error) => {
-      const output = `${error.stdout ?? ""}\n${error.stderr ?? ""}`;
-
-      assert.match(output, /render|memo|facts|slides|appendix|controller/i);
-      assert.doesNotMatch(output, /Cannot find module ['"].*model\.js['"]/);
-      assert.doesNotMatch(output, /content\.js.*does not provide an export/i);
-
-      return true;
-    },
-  );
-});
+function assertDeclarativeTable(table) {
+  assert.equal(typeof table, "object");
+  assert.notEqual(table, null);
+  assert.equal(Array.isArray(table.columns), true);
+  assert.equal(Array.isArray(table.rows), true);
+  assert.ok(table.columns.length > 0);
+  for (const column of table.columns) {
+    assert.equal(typeof column.key, "string");
+    assert.equal(typeof column.label, "string");
+    assert.equal(typeof column.format, "string");
+  }
+}

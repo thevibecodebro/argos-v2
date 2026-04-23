@@ -107,6 +107,10 @@ function marginAfterSoftware(amount, softwareCost) {
   return roundCurrency(netAfterStripe(amount) - softwareCost);
 }
 
+function createTable(columns, rows) {
+  return { columns, rows };
+}
+
 const TEAM_MINIMUM_MONTHLY = PLANS.team.pricePerSeatMonthly * PLANS.team.seatMinimum;
 const TEAM_MINIMUM_INCLUDED_MINUTES =
   PLANS.team.includedVoiceMinutesPerSeat * PLANS.team.seatMinimum;
@@ -149,80 +153,117 @@ const founderPricingModel = {
       solo: PACKS.solo.map(packWithDerivedValues),
       team: PACKS.team.map(packWithDerivedValues),
     },
-    seatEconomicsRows: [
-      {
-        label: "Solo",
-        monthlyRevenue: PLANS.solo.priceMonthly,
-        annualRevenue: SOLO_ANNUAL,
-        includedVoiceMinutes: PLANS.solo.includedVoiceMinutes,
-        overageRate: PLANS.solo.overageRate,
-      },
-      {
-        label: "Team minimum",
-        monthlyRevenue: TEAM_MINIMUM_MONTHLY,
-        annualRevenue: TEAM_MINIMUM_ANNUAL,
-        includedVoiceMinutes: TEAM_MINIMUM_INCLUDED_MINUTES,
-        overageRate: PLANS.team.overageRate,
-      },
-    ],
-    marginRows: [
-      {
-        label: "Solo monthly",
-        revenue: PLANS.solo.priceMonthly,
-        stripeFees: SOLO_STRIPE_FEES,
-        netAfterStripe: netAfterStripe(PLANS.solo.priceMonthly),
-      },
-      {
-        label: "Team minimum monthly",
-        revenue: TEAM_MINIMUM_MONTHLY,
-        stripeFees: TEAM_MINIMUM_STRIPE_FEES,
-        netAfterStripe: netAfterStripe(TEAM_MINIMUM_MONTHLY),
-      },
-    ],
-    voiceSensitivityRows: [
-      {
-        label: "Solo included",
-        voiceMinutes: PLANS.solo.includedVoiceMinutes,
-        incrementalRevenue: 0,
-      },
-      {
-        label: "Solo +250 pack",
-        voiceMinutes: PLANS.solo.includedVoiceMinutes + PACKS.solo[0].minutes,
-        incrementalRevenue: PACKS.solo[0].price,
-      },
-      {
-        label: "Team minimum included",
-        voiceMinutes: TEAM_MINIMUM_INCLUDED_MINUTES,
-        incrementalRevenue: 0,
-      },
-      {
-        label: "Team +500 pack",
-        voiceMinutes: TEAM_MINIMUM_INCLUDED_MINUTES + PACKS.team[0].minutes,
-        incrementalRevenue: PACKS.team[0].price,
-      },
-    ],
-    orgMarginRows: [
-      {
-        label: "Solo",
-        revenue: PLANS.solo.priceMonthly,
-        stripeFees: SOLO_STRIPE_FEES,
-        softwareCost: HIGHLEVEL_MONTHLY_COST,
-        marginAfterSoftware: marginAfterSoftware(
-          PLANS.solo.priceMonthly,
-          HIGHLEVEL_MONTHLY_COST,
-        ),
-      },
-      {
-        label: "Team minimum",
-        revenue: TEAM_MINIMUM_MONTHLY,
-        stripeFees: TEAM_MINIMUM_STRIPE_FEES,
-        softwareCost: HIGHLEVEL_MONTHLY_COST,
-        marginAfterSoftware: marginAfterSoftware(
-          TEAM_MINIMUM_MONTHLY,
-          HIGHLEVEL_MONTHLY_COST,
-        ),
-      },
-    ],
+    seatEconomicsTable: createTable(
+      [
+        { key: "label", label: "Plan", format: "text" },
+        { key: "monthlyRevenue", label: "Monthly revenue", format: "currency" },
+        { key: "annualRevenue", label: "Annual revenue", format: "currency" },
+        { key: "includedVoiceMinutes", label: "Included voice minutes", format: "number" },
+        { key: "overageRate", label: "Overage rate", format: "currency" },
+      ],
+      [
+        {
+          label: "Solo",
+          monthlyRevenue: PLANS.solo.priceMonthly,
+          annualRevenue: SOLO_ANNUAL,
+          includedVoiceMinutes: PLANS.solo.includedVoiceMinutes,
+          overageRate: PLANS.solo.overageRate,
+        },
+        {
+          label: "Team minimum",
+          monthlyRevenue: TEAM_MINIMUM_MONTHLY,
+          annualRevenue: TEAM_MINIMUM_ANNUAL,
+          includedVoiceMinutes: TEAM_MINIMUM_INCLUDED_MINUTES,
+          overageRate: PLANS.team.overageRate,
+        },
+      ],
+    ),
+    marginTable: createTable(
+      [
+        { key: "label", label: "Scenario", format: "text" },
+        { key: "revenue", label: "Revenue", format: "currency" },
+        { key: "stripeFees", label: "Stripe fees", format: "currency" },
+        { key: "netAfterStripe", label: "Net after Stripe", format: "currency" },
+      ],
+      [
+        {
+          label: "Solo monthly",
+          revenue: PLANS.solo.priceMonthly,
+          stripeFees: SOLO_STRIPE_FEES,
+          netAfterStripe: netAfterStripe(PLANS.solo.priceMonthly),
+        },
+        {
+          label: "Team minimum monthly",
+          revenue: TEAM_MINIMUM_MONTHLY,
+          stripeFees: TEAM_MINIMUM_STRIPE_FEES,
+          netAfterStripe: netAfterStripe(TEAM_MINIMUM_MONTHLY),
+        },
+      ],
+    ),
+    voiceSensitivityTable: createTable(
+      [
+        { key: "label", label: "Scenario", format: "text" },
+        { key: "voiceMinutes", label: "Voice minutes", format: "number" },
+        { key: "incrementalRevenue", label: "Incremental revenue", format: "currency" },
+      ],
+      [
+        {
+          label: "Solo included",
+          voiceMinutes: PLANS.solo.includedVoiceMinutes,
+          incrementalRevenue: 0,
+        },
+        {
+          label: "Solo +250 pack",
+          voiceMinutes: PLANS.solo.includedVoiceMinutes + PACKS.solo[0].minutes,
+          incrementalRevenue: PACKS.solo[0].price,
+        },
+        {
+          label: "Team minimum included",
+          voiceMinutes: TEAM_MINIMUM_INCLUDED_MINUTES,
+          incrementalRevenue: 0,
+        },
+        {
+          label: "Team +500 pack",
+          voiceMinutes: TEAM_MINIMUM_INCLUDED_MINUTES + PACKS.team[0].minutes,
+          incrementalRevenue: PACKS.team[0].price,
+        },
+      ],
+    ),
+    orgMarginTable: createTable(
+      [
+        { key: "label", label: "Plan", format: "text" },
+        { key: "revenue", label: "Revenue", format: "currency" },
+        { key: "stripeFees", label: "Stripe fees", format: "currency" },
+        { key: "softwareCost", label: "Software cost", format: "currency" },
+        {
+          key: "marginAfterSoftware",
+          label: "Margin after software",
+          format: "currency",
+        },
+      ],
+      [
+        {
+          label: "Solo",
+          revenue: PLANS.solo.priceMonthly,
+          stripeFees: SOLO_STRIPE_FEES,
+          softwareCost: HIGHLEVEL_MONTHLY_COST,
+          marginAfterSoftware: marginAfterSoftware(
+            PLANS.solo.priceMonthly,
+            HIGHLEVEL_MONTHLY_COST,
+          ),
+        },
+        {
+          label: "Team minimum",
+          revenue: TEAM_MINIMUM_MONTHLY,
+          stripeFees: TEAM_MINIMUM_STRIPE_FEES,
+          softwareCost: HIGHLEVEL_MONTHLY_COST,
+          marginAfterSoftware: marginAfterSoftware(
+            TEAM_MINIMUM_MONTHLY,
+            HIGHLEVEL_MONTHLY_COST,
+          ),
+        },
+      ],
+    ),
   },
 };
 
