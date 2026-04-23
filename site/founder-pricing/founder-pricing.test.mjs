@@ -95,6 +95,9 @@ test("canonical founder pricing model encodes approved assumptions, verified rat
   );
 
   assert.equal(founderPricingModel.assumptions.usage.liveVoicePlanningCostPerMinute, 0.08);
+  assert.equal(founderPricingModel.assumptions.usage.soloScoredCallsMonthly, 20);
+  assert.equal(founderPricingModel.assumptions.usage.teamMinimumScoredCallsMonthly, 100);
+  assert.equal(founderPricingModel.assumptions.usage.teamTenSeatScoredCallsMonthly, 150);
   assert.equal(founderPricingModel.assumptions.usage.scoredCallCostPerCall, 0.325);
   assert.equal(founderPricingModel.assumptions.softwareFloor.baseRecurringMonthly, 173.83);
   assert.equal(founderPricingModel.assumptions.softwareFloor.sharedFloorPerOrgMonthly, 6.95);
@@ -114,23 +117,23 @@ test("canonical founder pricing model encodes approved assumptions, verified rat
   assert.equal(founderPricingModel.derived.team.annualizedMinimumStripeFeesAtListVolume, 65.1);
   assert.equal(founderPricingModel.derived.team.annualMinimumBillingEfficiencySavings, 3.3);
 
-  assert.equal(founderPricingModel.derived.scenarios.solo.aiRuntimeCost, 10.9);
-  assert.equal(founderPricingModel.derived.scenarios.solo.productGrossMargin, "86.20%");
-  assert.equal(founderPricingModel.derived.scenarios.solo.collectedGrossMargin, "82.23%");
+  assert.equal(founderPricingModel.derived.scenarios.solo.aiRuntimeCost, 16.1);
+  assert.equal(founderPricingModel.derived.scenarios.solo.productGrossMargin, "79.62%");
+  assert.equal(founderPricingModel.derived.scenarios.solo.collectedGrossMargin, "75.65%");
   assert.equal(
     founderPricingModel.derived.scenarios.teamMinimum.productGrossMarginAfterFloor,
-    "73.57%",
+    "54.50%",
   );
   assert.equal(
     founderPricingModel.derived.scenarios.teamTenSeat.collectedGrossMarginAfterFloor,
-    "73.15%",
+    "66.00%",
   );
 
   assertDeclarativeTable(founderPricingModel.derived.seatEconomicsTable, {
     columns: [
       { key: "label", label: "Scenario", format: "text" },
       { key: "monthlyRevenue", label: "Monthly list", format: "currency" },
-      { key: "totalVoiceMinutes", label: "Included voice", format: "number" },
+      { key: "usageBasis", label: "Modeled usage", format: "text" },
       { key: "aiRuntimeCost", label: "AI/runtime COGS", format: "currency" },
       { key: "productGrossMargin", label: "Product GM", format: "text" },
       { key: "collectedGrossMargin", label: "Collected GM", format: "text" },
@@ -139,26 +142,26 @@ test("canonical founder pricing model encodes approved assumptions, verified rat
       {
         label: "Solo",
         monthlyRevenue: 79,
-        totalVoiceMinutes: 120,
-        aiRuntimeCost: 10.9,
-        productGrossMargin: "86.20%",
-        collectedGrossMargin: "82.23%",
+        usageBasis: "120 voice / 20 scored",
+        aiRuntimeCost: 16.1,
+        productGrossMargin: "79.62%",
+        collectedGrossMargin: "75.65%",
       },
       {
         label: "Team minimum",
         monthlyRevenue: 150,
-        totalVoiceMinutes: 360,
-        aiRuntimeCost: 32.7,
-        productGrossMargin: "78.20%",
-        collectedGrossMargin: "74.40%",
+        usageBasis: "360 voice / 100 scored",
+        aiRuntimeCost: 61.3,
+        productGrossMargin: "59.13%",
+        collectedGrossMargin: "55.33%",
       },
       {
         label: "Team 10-seat",
         monthlyRevenue: 500,
-        totalVoiceMinutes: 1200,
-        aiRuntimeCost: 109,
-        productGrossMargin: "78.20%",
-        collectedGrossMargin: "74.54%",
+        usageBasis: "1,200 voice / 150 scored",
+        aiRuntimeCost: 144.75,
+        productGrossMargin: "71.05%",
+        collectedGrossMargin: "67.39%",
       },
     ],
   });
@@ -175,26 +178,26 @@ test("canonical founder pricing model encodes approved assumptions, verified rat
       {
         label: "Solo",
         monthlyRevenue: 79,
-        aiRuntimeCost: 10.9,
+        aiRuntimeCost: 16.1,
         sharedSoftwareFloor: 6.95,
-        productGrossMarginAfterFloor: "77.41%",
-        collectedGrossMarginAfterFloor: "73.43%",
+        productGrossMarginAfterFloor: "70.82%",
+        collectedGrossMarginAfterFloor: "66.85%",
       },
       {
         label: "Team minimum",
         monthlyRevenue: 150,
-        aiRuntimeCost: 32.7,
+        aiRuntimeCost: 61.3,
         sharedSoftwareFloor: 6.95,
-        productGrossMarginAfterFloor: "73.57%",
-        collectedGrossMarginAfterFloor: "69.77%",
+        productGrossMarginAfterFloor: "54.50%",
+        collectedGrossMarginAfterFloor: "50.70%",
       },
       {
         label: "Team 10-seat",
         monthlyRevenue: 500,
-        aiRuntimeCost: 109,
+        aiRuntimeCost: 144.75,
         sharedSoftwareFloor: 6.95,
-        productGrossMarginAfterFloor: "76.81%",
-        collectedGrossMarginAfterFloor: "73.15%",
+        productGrossMarginAfterFloor: "69.66%",
+        collectedGrossMarginAfterFloor: "66.00%",
       },
     ],
   });
@@ -252,25 +255,25 @@ test("canonical founder pricing model encodes approved assumptions, verified rat
         label: "Included only",
         monthlyRevenue: 150,
         totalVoiceMinutes: 360,
-        aiRuntimeCost: 32.7,
-        productGrossMargin: "78.20%",
-        collectedGrossMargin: "74.40%",
+        aiRuntimeCost: 61.3,
+        productGrossMargin: "59.13%",
+        collectedGrossMargin: "55.33%",
       },
       {
         label: "+500 pack",
         monthlyRevenue: 325,
         totalVoiceMinutes: 860,
-        aiRuntimeCost: 72.7,
-        productGrossMargin: "77.63%",
-        collectedGrossMargin: "73.94%",
+        aiRuntimeCost: 101.3,
+        productGrossMargin: "68.83%",
+        collectedGrossMargin: "65.14%",
       },
       {
         label: "+2,000 pack",
         monthlyRevenue: 750,
         totalVoiceMinutes: 2360,
-        aiRuntimeCost: 192.7,
-        productGrossMargin: "74.31%",
-        collectedGrossMargin: "70.67%",
+        aiRuntimeCost: 221.3,
+        productGrossMargin: "70.49%",
+        collectedGrossMargin: "66.85%",
       },
     ],
   });
@@ -360,6 +363,7 @@ test("pricing policy slide no longer exposes raw public per-minute overage copy"
   assert.doesNotMatch(policySlide, /\$0\.29\/minute overage pricing/);
   assert.match(assumptionsSlide, /\$0\.08 \/ min/);
   assert.match(assumptionsSlide, /\$173\.83 \/ mo/);
+  assert.match(assumptionsSlide, /Solo models 20 calls monthly; Team minimum 100; Team 10-seat 150\./);
 });
 
 test("renderer preserves declared bullets for the updated deck narrative", () => {
@@ -382,7 +386,7 @@ test("renderer preserves declared bullets for the updated deck narrative", () =>
 
   assert.match(voiceSlide, /Included only/);
   assert.match(voiceSlide, /\+500 pack/);
-  assert.match(voiceSlide, /70\.67%/);
+  assert.match(voiceSlide, /66\.85%/);
 });
 
 test("renderer uses explicit slide definitions for kinds and payload sources", () => {

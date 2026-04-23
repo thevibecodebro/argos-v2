@@ -272,7 +272,7 @@ const PAYLOAD_BUILDERS = {
         {
           label: "Scored call model",
           value: `$${model.assumptions.usage.scoredCallCostPerCall.toFixed(3)} / call`,
-          detail: `${model.assumptions.usage.averageScoredCallMinutes} transcription minutes plus a small GPT-5 mini scoring buffer, with ${model.assumptions.usage.scoredCallsPerSeatMonthly} calls per seat monthly.`,
+          detail: `${model.assumptions.usage.averageScoredCallMinutes} transcription minutes plus a small GPT-5 mini buffer. Solo models ${model.assumptions.usage.soloScoredCallsMonthly} calls monthly; Team minimum ${model.assumptions.usage.teamMinimumScoredCallsMonthly}; Team 10-seat ${model.assumptions.usage.teamTenSeatScoredCallsMonthly}.`,
         },
         {
           label: "Shared software floor",
@@ -681,8 +681,8 @@ function renderFounderPricingHtml(content) {
       :root {
         --bg: ${theme.colors.background};
         --bg-2: ${theme.colors.primarySurface};
-        --panel: rgba(255, 255, 255, 0.06);
-        --panel-strong: rgba(255, 255, 255, 0.1);
+        --panel: rgba(255, 255, 255, 0.08);
+        --panel-strong: rgba(255, 255, 255, 0.16);
         --text: ${theme.colors.primaryText};
         --muted: color-mix(in srgb, ${theme.colors.secondaryText} 90%, white 8%);
         --soft: color-mix(in srgb, ${theme.colors.secondaryText} 80%, transparent);
@@ -694,15 +694,15 @@ function renderFounderPricingHtml(content) {
         --shadow: 0 32px 80px rgba(0, 0, 0, 0.36);
         --display-font: "${escapeHtml(theme.typography.display)}", sans-serif;
         --body-font: "${escapeHtml(theme.typography.body)}", sans-serif;
-        --title-size: clamp(1.8rem, 5vw, 4.4rem);
-        --h2-size: clamp(1.2rem, 3.2vw, 2.3rem);
-        --h3-size: clamp(0.98rem, 2vw, 1.45rem);
-        --body-size: clamp(0.72rem, 1.22vw, 1rem);
-        --small-size: clamp(0.62rem, 0.92vw, 0.82rem);
-        --tiny-size: clamp(0.58rem, 0.84vw, 0.74rem);
-        --slide-padding: clamp(1rem, 3.8vw, 3.6rem);
-        --content-gap: clamp(0.6rem, 1.6vw, 1.5rem);
-        --element-gap: clamp(0.4rem, 1vw, 0.9rem);
+        --title-size: clamp(2rem, 5.4vw, 4.8rem);
+        --h2-size: clamp(1.25rem, 3.4vw, 2.35rem);
+        --h3-size: clamp(1.02rem, 2.15vw, 1.5rem);
+        --body-size: clamp(0.82rem, 1.28vw, 1.05rem);
+        --small-size: clamp(0.68rem, 1vw, 0.9rem);
+        --tiny-size: clamp(0.62rem, 0.88vw, 0.78rem);
+        --slide-padding: clamp(1.15rem, 4vw, 4rem);
+        --content-gap: clamp(0.75rem, 1.9vw, 1.75rem);
+        --element-gap: clamp(0.5rem, 1.15vw, 0.95rem);
       }
 
       html,
@@ -912,20 +912,20 @@ function renderFounderPricingHtml(content) {
       .slide-copy {
         display: grid;
         gap: var(--element-gap);
-        max-width: 78rem;
+        max-width: 64rem;
       }
 
       h1 {
         font-size: var(--title-size);
-        line-height: 0.92;
-        max-width: 13ch;
+        line-height: 0.95;
+        max-width: 11ch;
         letter-spacing: -0.05em;
       }
 
       .lede {
-        max-width: 58rem;
-        font-size: var(--body-size);
-        line-height: 1.4;
+        max-width: 46rem;
+        font-size: clamp(0.9rem, 1.4vw, 1.14rem);
+        line-height: 1.52;
         color: var(--muted);
       }
 
@@ -937,11 +937,21 @@ function renderFounderPricingHtml(content) {
       }
 
       .panel {
-        background: var(--panel);
-        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03)),
+          var(--panel);
+        border: 1px solid rgba(116, 177, 255, 0.24);
         border-radius: clamp(16px, 2vw, 26px);
         box-shadow: var(--shadow);
         overflow: hidden;
+      }
+
+      .eyebrow {
+        font-size: var(--tiny-size);
+        line-height: 1.2;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: color-mix(in srgb, var(--accent-2) 75%, white 12%);
       }
 
       .hero-layout {
@@ -981,7 +991,7 @@ function renderFounderPricingHtml(content) {
       .appendix-section,
       .thesis-panel,
       .table-shell {
-        padding: clamp(0.8rem, 1.8vw, 1.2rem);
+        padding: clamp(0.95rem, 2vw, 1.35rem);
       }
 
       .metric-card strong,
@@ -995,8 +1005,8 @@ function renderFounderPricingHtml(content) {
       .metric-card strong,
       .rate-card strong,
       .assumption-card strong {
-        font-size: clamp(1rem, 2vw, 1.45rem);
-        line-height: 1.08;
+        font-size: clamp(1.08rem, 2.05vw, 1.56rem);
+        line-height: 1.12;
       }
 
       .policy-card h3 {
@@ -1013,7 +1023,7 @@ function renderFounderPricingHtml(content) {
       .bullet-list li,
       .appendix-list li {
         font-size: var(--body-size);
-        line-height: 1.36;
+        line-height: 1.44;
       }
 
       .metric-card p,
@@ -1046,8 +1056,8 @@ function renderFounderPricingHtml(content) {
       .appendix-list {
         padding-left: 1.15rem;
         display: grid;
-        gap: 0.45rem;
-        max-width: 68rem;
+        gap: 0.55rem;
+        max-width: 56rem;
       }
 
       .table-shell {
@@ -1067,17 +1077,37 @@ function renderFounderPricingHtml(content) {
 
       .comparison-table th,
       .comparison-table td {
-        padding: 0.62rem 0.66rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 0.78rem 0.84rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         text-align: left;
         vertical-align: top;
       }
 
       .comparison-table th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: color-mix(in srgb, var(--bg-2) 92%, black 8%);
         color: color-mix(in srgb, var(--accent-2) 72%, white 12%);
         font-size: var(--tiny-size);
         letter-spacing: 0.12em;
         text-transform: uppercase;
+      }
+
+      .comparison-table th:first-child,
+      .comparison-table td:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 1;
+        background: color-mix(in srgb, var(--bg-2) 90%, black 10%);
+      }
+
+      .comparison-table th:first-child {
+        z-index: 3;
+      }
+
+      .comparison-table tbody tr:nth-child(odd) td {
+        background: rgba(255, 255, 255, 0.025);
       }
 
       .comparison-table tbody tr:last-child td {

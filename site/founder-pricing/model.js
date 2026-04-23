@@ -1,6 +1,7 @@
 const VERIFIED_AT = "April 23, 2026";
 const ANNUAL_DISCOUNT_RATE = 0.1;
 const MONTHS_PER_YEAR = 12;
+const numberFormatter = new Intl.NumberFormat("en-US");
 
 const STRIPE_FEES = {
   cardPercent: 0.029,
@@ -66,7 +67,9 @@ const USAGE_ASSUMPTIONS = {
   averageScoredCallMinutes: 52.5,
   transcriptionCostPerMinute: 0.006,
   scoringBufferPerCall: 0.01,
-  scoredCallsPerSeatMonthly: 4,
+  soloScoredCallsMonthly: 20,
+  teamMinimumScoredCallsMonthly: 100,
+  teamTenSeatScoredCallsMonthly: 150,
   optionalTtsPlaybackCostPerMinute: 0.015,
 };
 
@@ -195,17 +198,15 @@ function createTable(columns, rows) {
   return { columns, rows };
 }
 
-function buildAiRuntimeCost({ seats, totalVoiceMinutes }) {
+function buildAiRuntimeCost({ scoredCallsMonthly, totalVoiceMinutes }) {
   return roundCurrency(
     totalVoiceMinutes * USAGE_ASSUMPTIONS.liveVoicePlanningCostPerMinute +
-      seats *
-        USAGE_ASSUMPTIONS.scoredCallsPerSeatMonthly *
-        USAGE_ASSUMPTIONS.scoredCallCostPerCall,
+      scoredCallsMonthly * USAGE_ASSUMPTIONS.scoredCallCostPerCall,
   );
 }
 
-function buildScenario({ label, seats, revenueMonthly, totalVoiceMinutes }) {
-  const aiRuntimeCost = buildAiRuntimeCost({ seats, totalVoiceMinutes });
+function buildScenario({ label, seats, revenueMonthly, scoredCallsMonthly, totalVoiceMinutes }) {
+  const aiRuntimeCost = buildAiRuntimeCost({ scoredCallsMonthly, totalVoiceMinutes });
   const monthlyStripeFees = combinedStripeFees(revenueMonthly);
   const annualListRevenue = roundCurrency(revenueMonthly * MONTHS_PER_YEAR);
   const annualRevenue = discountAnnual(revenueMonthly);
@@ -219,6 +220,7 @@ function buildScenario({ label, seats, revenueMonthly, totalVoiceMinutes }) {
     revenueMonthly,
     annualListRevenue,
     annualRevenue,
+    scoredCallsMonthly,
     totalVoiceMinutes,
     aiRuntimeCost,
     monthlyStripeFees,
@@ -257,30 +259,35 @@ const SCENARIOS = {
     label: "Solo",
     seats: 1,
     revenueMonthly: PLANS.solo.priceMonthly,
+    scoredCallsMonthly: USAGE_ASSUMPTIONS.soloScoredCallsMonthly,
     totalVoiceMinutes: PLANS.solo.includedVoiceMinutes,
   }),
   teamMinimum: buildScenario({
     label: "Team minimum",
     seats: PLANS.team.seatMinimum,
     revenueMonthly: TEAM_MINIMUM_MONTHLY,
+    scoredCallsMonthly: USAGE_ASSUMPTIONS.teamMinimumScoredCallsMonthly,
     totalVoiceMinutes: TEAM_MINIMUM_INCLUDED_MINUTES,
   }),
   teamTenSeat: buildScenario({
     label: "Team 10-seat",
     seats: 10,
     revenueMonthly: PLANS.team.pricePerSeatMonthly * 10,
+    scoredCallsMonthly: USAGE_ASSUMPTIONS.teamTenSeatScoredCallsMonthly,
     totalVoiceMinutes: PLANS.team.includedVoiceMinutesPerSeat * 10,
   }),
   teamMinimumWithGrowthPack: buildScenario({
     label: "+500 pack",
     seats: PLANS.team.seatMinimum,
     revenueMonthly: TEAM_MINIMUM_MONTHLY + PACK_CATALOG.team500.price,
+    scoredCallsMonthly: USAGE_ASSUMPTIONS.teamMinimumScoredCallsMonthly,
     totalVoiceMinutes: TEAM_MINIMUM_INCLUDED_MINUTES + PACK_CATALOG.team500.minutes,
   }),
   teamMinimumWithScalePack: buildScenario({
     label: "+2,000 pack",
     seats: PLANS.team.seatMinimum,
     revenueMonthly: TEAM_MINIMUM_MONTHLY + PACK_CATALOG.team2000.price,
+    scoredCallsMonthly: USAGE_ASSUMPTIONS.teamMinimumScoredCallsMonthly,
     totalVoiceMinutes: TEAM_MINIMUM_INCLUDED_MINUTES + PACK_CATALOG.team2000.minutes,
   }),
 };
@@ -316,6 +323,11 @@ const formulaTable = createTable(
       metric: "Scored call planning cost",
       formula: "52.5 min × $0.006 transcription + $0.01 GPT-5-mini scoring buffer",
       output: `$${USAGE_ASSUMPTIONS.scoredCallCostPerCall.toFixed(3)} / call`,
+    },
+    {
+      metric: "Base scored-call load",
+      formula: "Solo: 20 / month; Team minimum: 100 / month; Team 10-seat: 150 / month",
+      output: "Plan-specific org volume, not a flat per-seat average",
     },
     {
       metric: "Shared software floor",
@@ -377,7 +389,7 @@ const seatEconomicsTable = createTable(
   [
     { key: "label", label: "Scenario", format: "text" },
     { key: "monthlyRevenue", label: "Monthly list", format: "currency" },
-    { key: "totalVoiceMinutes", label: "Included voice", format: "number" },
+    { key: "usageBasis", label: "Modeled usage", format: "text" },
     { key: "aiRuntimeCost", label: "AI/runtime COGS", format: "currency" },
     { key: "productGrossMargin", label: "Product GM", format: "text" },
     { key: "collectedGrossMargin", label: "Collected GM", format: "text" },
@@ -385,7 +397,7 @@ const seatEconomicsTable = createTable(
   [SCENARIOS.solo, SCENARIOS.teamMinimum, SCENARIOS.teamTenSeat].map((scenario) => ({
     label: scenario.label,
     monthlyRevenue: scenario.revenueMonthly,
-    totalVoiceMinutes: scenario.totalVoiceMinutes,
+    usageBasis: `${numberFormatter.format(scenario.totalVoiceMinutes)} voice / ${numberFormatter.format(scenario.scoredCallsMonthly)} scored`,
     aiRuntimeCost: scenario.aiRuntimeCost,
     productGrossMargin: scenario.productGrossMargin,
     collectedGrossMargin: scenario.collectedGrossMargin,

@@ -24,7 +24,7 @@ const slides = [
     id: "cover",
     title: "Argos Pricing & Unit Economics",
     summary:
-      "Simple subscription pricing, bounded live voice exposure, and a named vendor stack.",
+      "Simple subscription pricing, bounded voice exposure, and a named vendor stack.",
     bullets: [
       `Verified: ${model.verifiedAt}.`,
       "This deck is pricing and unit economics only. Stripe stays separate from product COGS.",
@@ -34,23 +34,22 @@ const slides = [
     id: "pricing-architecture",
     title: "Included Usage & Voice Policy",
     summary:
-      "The commercial promise is subscriptions plus prepaid voice packs, not open-ended public metering.",
+      "The public menu is subscriptions plus prepaid voice packs, not open-ended metering.",
     bullets: [
-      `Solo includes ${model.plans.solo.includedVoiceMinutes} live voice minutes each month and expands through a ${soloPack.minutes}-minute pack.`,
-      `Team includes ${model.plans.team.includedVoiceMinutesPerSeat} live minutes per seat, pooled at the org level, with ${teamGrowthPack.minutes}- and ${teamScalePack.minutes}-minute packs for overage.`,
-      "Internal per-minute underwriting rates stay in the appendix; the public packaging stays on subscriptions and packs.",
+      `Solo: ${model.plans.solo.includedVoiceMinutes} live minutes, then a ${soloPack.minutes}-minute prepaid pack.`,
+      `Team: ${model.plans.team.includedVoiceMinutesPerSeat} pooled live minutes per seat, then ${teamGrowthPack.minutes}- and ${teamScalePack.minutes}-minute packs.`,
+      "Internal per-minute underwriting stays in the appendix.",
     ],
   },
   {
     id: "included-usage",
     title: "Base Usage Assumptions",
     summary:
-      "The model uses explicit inputs for voice, scored calls, and shared software floor rather than hidden averages.",
+      "The model uses explicit voice, scored-call, and software-floor inputs rather than hidden averages.",
     bullets: [
-      `Live voice is modeled at ${money(model.assumptions.usage.liveVoicePlanningCostPerMinute)} per minute; this is an internal conversion from OpenAI realtime token pricing, not an official minute quote.`,
-      `Scored calls are modeled at $${model.assumptions.usage.scoredCallCostPerCall.toFixed(3)} per 45-60 minute call, using ${model.assumptions.usage.averageScoredCallMinutes} minutes of transcription plus a small GPT-5 mini scoring buffer.`,
-      `Base usage assumes ${model.assumptions.usage.scoredCallsPerSeatMonthly} scored calls per seat per month and spreads the ${money(model.assumptions.softwareFloor.baseRecurringMonthly)} software floor across ${model.assumptions.softwareFloor.activePayingOrgsBaseCase} active paying orgs.`,
-      `Optional gpt-4o-mini-tts playback is ~$${model.assumptions.usage.optionalTtsPlaybackCostPerMinute.toFixed(3)} per minute and is excluded from base live voice metering.`,
+      `Solo is modeled at ${model.assumptions.usage.soloScoredCallsMonthly} scored calls per month.`,
+      `Team minimum is modeled at ${model.assumptions.usage.teamMinimumScoredCallsMonthly} scored calls per month; the 10-seat reference case uses ${model.assumptions.usage.teamTenSeatScoredCallsMonthly}.`,
+      `Optional gpt-4o-mini-tts playback is ~$${model.assumptions.usage.optionalTtsPlaybackCostPerMinute.toFixed(3)} per minute and excluded from base live voice metering.`,
     ],
   },
   {
@@ -68,10 +67,11 @@ const slides = [
     id: "solo-unit-economics",
     title: "Seat Economics: Solo vs Team",
     summary:
-      "Unit economics assume full included live voice usage and four scored calls per seat per month.",
+      "Unit economics assume full included voice usage plus plan-specific scored-call volume.",
     bullets: [
-      "The seat view is intentionally hard-nosed: it uses the full included voice allowance instead of optimistic utilization.",
-      "The comparison keeps the three-seat minimum and a representative ten-seat team in the same frame.",
+      `Solo: ${model.plans.solo.includedVoiceMinutes} voice minutes and ${model.assumptions.usage.soloScoredCallsMonthly} scored calls.`,
+      `Team minimum: ${model.derived.team.minimumIncludedVoiceMinutes} voice minutes and ${model.assumptions.usage.teamMinimumScoredCallsMonthly} scored calls.`,
+      `Team 10-seat: ${model.plans.team.includedVoiceMinutesPerSeat * 10} voice minutes and ${model.assumptions.usage.teamTenSeatScoredCallsMonthly} scored calls.`,
     ],
   },
   {
@@ -80,8 +80,9 @@ const slides = [
     summary:
       "A small shared software floor is layered on top of AI/runtime cost to show real delivered margin.",
     bullets: [
-      `The base case allocates ${money(model.assumptions.softwareFloor.sharedFloorPerOrgMonthly)} per org from the ${money(model.assumptions.softwareFloor.baseRecurringMonthly)} recurring software floor.`,
-      "The three-seat minimum protects the weakest team cohort, while larger teams widen the margin cushion.",
+      `The base case allocates ${money(model.assumptions.softwareFloor.sharedFloorPerOrgMonthly)} per org from the ${money(model.assumptions.softwareFloor.baseRecurringMonthly)} recurring floor.`,
+      "The 3-seat minimum remains the weakest margin cohort under a 100-call team floor.",
+      "Scaled teams still widen the margin cushion.",
     ],
   },
   {
@@ -91,7 +92,7 @@ const slides = [
       "Annual prepay is a cash collection tool with modest but real payment-fee efficiency.",
     bullets: [
       `Annual pricing is a ${percent(model.annualDiscountRate)} concession, not a separate tier.`,
-      "The fee improvement comes from charging once instead of repeating the fixed 30-cent card component twelve times.",
+      "The gain comes from charging once instead of repeating the fixed 30-cent card component twelve times.",
     ],
   },
   {
@@ -102,19 +103,19 @@ const slides = [
     bullets: [
       "Included minutes are bounded and team usage is pooled at the org level.",
       "Heavy voice usage monetizes through prepaid packs rather than unlimited live access.",
-      "The shown pack cases keep collected margin above 70% in the modeled three-seat team scenarios.",
+      "The pack cases keep collected margin in the mid-60s even on the three-seat team floor.",
     ],
   },
   {
     id: "founder-close",
     title: "Closing Thesis",
     summary:
-      "The pricing system stays simple, the margin structure is readable, and live voice is monetized rather than subsidized.",
+      "The pricing stays simple, the cost stack is explicit, and live voice is monetized rather than subsidized.",
     bullets: [
-      "Two subscription plans cover the menu: Solo for individuals and Team with a hard three-seat floor.",
-      "Product gross margins remain strong under full included voice assumptions.",
-      "Stripe drag is visible and manageable rather than hidden.",
-      "Voice expansion is bounded, pooled, and monetized through prepaid packs.",
+      "Solo is straightforward.",
+      "Team is viable, but the three-seat floor is the least efficient cohort.",
+      "Scaled team margins remain healthy even under heavier scoring assumptions.",
+      "Voice expansion is bounded, pooled, and prepaid.",
     ],
   },
 ];
@@ -145,6 +146,7 @@ const appendix = [
         items: [
           "Live voice planning cost is derived from official OpenAI token pricing and presented as an internal minute conversion.",
           "Product gross margin excludes Stripe. Collected gross margin subtracts Stripe processing and Stripe Billing fees.",
+          `Solo is modeled at ${model.assumptions.usage.soloScoredCallsMonthly} scored calls per month; Team minimum at ${model.assumptions.usage.teamMinimumScoredCallsMonthly}; Team 10-seat at ${model.assumptions.usage.teamTenSeatScoredCallsMonthly}.`,
           `Internal underwriting rates remain ${money(model.plans.solo.overageRate)}/minute for Solo and ${money(model.plans.team.overageRate)}/minute for Team, but public overage is sold through prepaid packs.`,
           "Purchased voice packs are modeled with 90-day validity in the current implementation plan.",
         ],
