@@ -87,7 +87,7 @@ function renderDeckRail(slides) {
           .map(
             (slide, index) => `
               <li>
-                <a href="#slide-${escapeHtml(slide.id)}">
+                <a href="#slide-${escapeHtml(slide.id)}" data-slide-target="${escapeHtml(slide.id)}">
                   <span class="rail-index">${String(index + 1).padStart(2, "0")}</span>
                   <span>${escapeHtml(titleCase(slide.title))}</span>
                 </a>
@@ -109,7 +109,7 @@ function renderMemoRail(memoSections) {
           .map(
             (section, index) => `
               <li>
-                <a href="#memo-${escapeHtml(section.id)}">
+                <a href="#memo-${escapeHtml(section.id)}" data-section-target="${escapeHtml(section.id)}">
                   <span class="rail-index">${String(index + 1).padStart(2, "0")}</span>
                   <span>${escapeHtml(titleCase(section.title))}</span>
                 </a>
@@ -135,6 +135,8 @@ function renderControllerScript() {
           this.memoView = document.getElementById("memo-view");
           this.slideNodes = Array.from(document.querySelectorAll(".slide"));
           this.modeButtons = Array.from(document.querySelectorAll(".mode-button[data-mode]"));
+          this.deckLinks = Array.from(document.querySelectorAll("[data-slide-target]"));
+          this.memoLinks = Array.from(document.querySelectorAll("[data-section-target]"));
           this.prevButton = document.querySelector('[data-nav="prev"]');
           this.nextButton = document.querySelector('[data-nav="next"]');
           this.statusNode = document.querySelector("[data-slide-status]");
@@ -159,6 +161,23 @@ function renderControllerScript() {
 
           this.prevButton?.addEventListener("click", () => this.go(-1));
           this.nextButton?.addEventListener("click", () => this.go(1));
+
+          this.deckLinks.forEach((link) => {
+            link.addEventListener("click", (event) => {
+              event.preventDefault();
+              this.setMode("deck");
+              this.showSlideById(link.dataset.slideTarget);
+            });
+          });
+
+          this.memoLinks.forEach((link) => {
+            link.addEventListener("click", (event) => {
+              event.preventDefault();
+              this.setMode("memo");
+              this.syncHash(\`memo-\${link.dataset.sectionTarget}\`);
+              this.scrollToNode(document.getElementById(\`memo-\${link.dataset.sectionTarget}\`));
+            });
+          });
 
           window.addEventListener("keydown", (event) => {
             if (this.mode !== "deck") {
@@ -221,6 +240,10 @@ function renderControllerScript() {
             },
             { passive: true },
           );
+
+          window.addEventListener("hashchange", () => {
+            this.syncFromHash();
+          });
         }
 
         setMode(mode) {
@@ -241,6 +264,17 @@ function renderControllerScript() {
           this.update();
         }
 
+        showSlideById(slideId) {
+          const nextIndex = this.slideNodes.findIndex((slide) => slide.dataset.slideId === slideId);
+
+          if (nextIndex < 0) {
+            return;
+          }
+
+          this.index = nextIndex;
+          this.update();
+        }
+
         go(direction) {
           if (this.mode !== "deck") {
             return;
@@ -257,6 +291,51 @@ function renderControllerScript() {
 
           this.index = nextIndex;
           this.update();
+        }
+
+        scrollToNode(node) {
+          if (!node || this.motionQuery.matches) {
+            return;
+          }
+
+          node.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+          });
+        }
+
+        syncHash(nextHash) {
+          if (!window.location || !nextHash) {
+            return;
+          }
+
+          const hashValue = \`#\${nextHash}\`;
+
+          if (window.history?.replaceState) {
+            window.history.replaceState(null, "", hashValue);
+            return;
+          }
+
+          window.location.hash = hashValue;
+        }
+
+        syncFromHash() {
+          const hash = window.location?.hash?.replace(/^#/, "") ?? "";
+
+          if (!hash) {
+            return;
+          }
+
+          if (hash.startsWith("slide-")) {
+            this.setMode("deck");
+            this.showSlideById(hash.replace(/^slide-/, ""));
+            return;
+          }
+
+          if (hash.startsWith("memo-")) {
+            this.setMode("memo");
+            this.scrollToNode(document.getElementById(hash));
+          }
         }
 
         update() {
@@ -284,20 +363,16 @@ function renderControllerScript() {
                 : "Memo mode";
           }
 
-          if (this.mode !== "deck" || this.motionQuery.matches) {
-            return;
+          if (this.mode === "deck") {
+            this.syncHash(\`slide-\${this.slideNodes[this.index]?.dataset.slideId ?? ""}\`);
+            this.scrollToNode(this.slideNodes[this.index]);
           }
-
-          this.slideNodes[this.index]?.scrollIntoView({
-            behavior: "smooth",
-            block: "nearest",
-          });
         }
       }
 
       window.addEventListener("DOMContentLoaded", () => {
         if (document.getElementById("deck-view") && document.getElementById("memo-view")) {
-          new FounderPricingController();
+          window.__founderPricingController = new FounderPricingController();
         }
       });
     </script>
