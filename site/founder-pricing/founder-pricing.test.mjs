@@ -50,6 +50,10 @@ test("canonical founder pricing model encodes approved assumptions and derived v
     founderPricingModel.vendors.find((vendor) => vendor.name === "HighLevel")?.monthlyCost,
     97,
   );
+  for (const vendor of founderPricingModel.vendors) {
+    assert.equal(typeof vendor.sourceLabel, "string");
+    assert.notEqual(vendor.sourceLabel.length, 0);
+  }
 
   assert.equal(founderPricingModel.derived.solo.priceAnnual, 853.2);
   assert.equal(founderPricingModel.derived.team.minimumMonthly, 150);
@@ -57,12 +61,59 @@ test("canonical founder pricing model encodes approved assumptions and derived v
   assert.equal(founderPricingModel.derived.team.minimumIncludedVoiceMinutes, 360);
   assert.equal(founderPricingModel.derived.team.minimumBillingFeeMonthly, 1.05);
   assert.equal(founderPricingModel.derived.team.minimumCardFeeMonthly, 4.65);
+
+  assert.equal(Array.isArray(founderPricingModel.derived.seatEconomicsRows), true);
+  assert.equal(Array.isArray(founderPricingModel.derived.marginRows), true);
+  assert.equal(Array.isArray(founderPricingModel.derived.voiceSensitivityRows), true);
+  assert.equal(Array.isArray(founderPricingModel.derived.orgMarginRows), true);
+  assert.deepEqual(founderPricingModel.derived.seatEconomicsRows[0], {
+    label: "Solo",
+    monthlyRevenue: 79,
+    annualRevenue: 853.2,
+    includedVoiceMinutes: 120,
+    overageRate: 0.39,
+  });
+  assert.deepEqual(founderPricingModel.derived.seatEconomicsRows[1], {
+    label: "Team minimum",
+    monthlyRevenue: 150,
+    annualRevenue: 1620,
+    includedVoiceMinutes: 360,
+    overageRate: 0.29,
+  });
+  assert.deepEqual(founderPricingModel.derived.marginRows[0], {
+    label: "Solo monthly",
+    revenue: 79,
+    stripeFees: 3.14,
+    netAfterStripe: 75.86,
+  });
+  assert.deepEqual(founderPricingModel.derived.voiceSensitivityRows[0], {
+    label: "Solo included",
+    voiceMinutes: 120,
+    incrementalRevenue: 0,
+  });
+  assert.deepEqual(founderPricingModel.derived.voiceSensitivityRows[1], {
+    label: "Solo +250 pack",
+    voiceMinutes: 370,
+    incrementalRevenue: 125,
+  });
+  assert.deepEqual(founderPricingModel.derived.orgMarginRows[0], {
+    label: "Solo",
+    revenue: 79,
+    stripeFees: 3.14,
+    softwareCost: 97,
+    marginAfterSoftware: -21.14,
+  });
 });
 
 test("founder pricing content exports the new deck and appendix contract", () => {
   assert.equal(founderPricingContent.meta.title, "Founder Pricing & COGS");
-  assert.equal(founderPricingContent.meta.verifiedAt, "April 23, 2026");
+  assert.equal(founderPricingContent.meta.verificationDate, "April 23, 2026");
   assert.equal(founderPricingContent.meta.publishedPath, "/argos-v2/founder-pricing/");
+  assert.deepEqual(Object.keys(founderPricingContent.meta).sort(), [
+    "publishedPath",
+    "title",
+    "verificationDate",
+  ]);
 
   assert.equal(founderPricingContent.theme.typography.display, "Space Grotesk");
   assert.equal(founderPricingContent.theme.typography.body, "Source Sans 3");
@@ -70,12 +121,14 @@ test("founder pricing content exports the new deck and appendix contract", () =>
 
   assert.equal(founderPricingContent.model, founderPricingModel);
   assert.deepEqual(founderPricingContent.counts, {
-    mainSlides: founderPricingContent.slides.length,
-    appendixSlides: founderPricingContent.appendix.length,
+    mainSlides: 9,
+    appendixSlides: 5,
   });
 
   assert.equal(Array.isArray(founderPricingContent.slides), true);
   assert.equal(Array.isArray(founderPricingContent.appendix), true);
+  assert.equal(founderPricingContent.slides.length, 9);
+  assert.equal(founderPricingContent.appendix.length, 5);
   assert.equal("facts" in founderPricingContent, false);
   assert.equal("memoSections" in founderPricingContent, false);
   assert.equal("controls" in founderPricingContent, false);
@@ -96,7 +149,28 @@ test("founder pricing content exports the new deck and appendix contract", () =>
   );
   assert.deepEqual(
     founderPricingContent.appendix.map(({ id }) => id),
-    ["appendix-rate-card", "appendix-formulas"],
+    [
+      "appendix-rate-card",
+      "appendix-formulas",
+      "appendix-seat-economics",
+      "appendix-margin-bridge",
+      "appendix-voice-sensitivity",
+    ],
+  );
+  assert.equal(
+    founderPricingContent.appendix.find((entry) => entry.id === "appendix-seat-economics")
+      ?.sections[0]?.rows,
+    founderPricingModel.derived.seatEconomicsRows,
+  );
+  assert.equal(
+    founderPricingContent.appendix.find((entry) => entry.id === "appendix-margin-bridge")
+      ?.sections[0]?.rows,
+    founderPricingModel.derived.marginRows,
+  );
+  assert.equal(
+    founderPricingContent.appendix.find((entry) => entry.id === "appendix-voice-sensitivity")
+      ?.sections[0]?.rows,
+    founderPricingModel.derived.voiceSensitivityRows,
   );
 });
 

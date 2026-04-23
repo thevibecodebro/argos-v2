@@ -179,9 +179,8 @@ const appendix = [
 const founderPricingContent = {
   meta: {
     title: "Founder Pricing & COGS",
-    verifiedAt: model.verifiedAt,
+    verificationDate: model.verifiedAt,
     publishedPath: "/argos-v2/founder-pricing/",
-    subtitle: "Canonical founder pricing deck with appendix-backed formulas",
   },
   theme: {
     colors: {
@@ -203,11 +202,50 @@ const founderPricingContent = {
   },
   model,
   counts: {
-    mainSlides: slides.length,
-    appendixSlides: appendix.length,
+    mainSlides: 9,
+    appendixSlides: 5,
   },
   slides,
-  appendix,
+  appendix: [
+    ...appendix,
+    {
+      id: "appendix-seat-economics",
+      title: "Appendix: Seat Economics",
+      summary: "Direct comparison rows for solo versus minimum-team packaging.",
+      sections: [
+        {
+          label: "Seat economics rows",
+          rows: model.derived.seatEconomicsRows,
+        },
+      ],
+    },
+    {
+      id: "appendix-margin-bridge",
+      title: "Appendix: Margin Bridge",
+      summary: "Render-ready rows for Stripe overhead and simple org margin framing.",
+      sections: [
+        {
+          label: "Margin rows",
+          rows: model.derived.marginRows,
+        },
+        {
+          label: "Org margin rows",
+          rows: model.derived.orgMarginRows,
+        },
+      ],
+    },
+    {
+      id: "appendix-voice-sensitivity",
+      title: "Appendix: Voice Sensitivity",
+      summary: "Usage expansion cases for included minutes and add-on packs.",
+      sections: [
+        {
+          label: "Voice sensitivity rows",
+          rows: model.derived.voiceSensitivityRows,
+        },
+      ],
+    },
+  ],
 };
 
 module.exports = founderPricingContent;
