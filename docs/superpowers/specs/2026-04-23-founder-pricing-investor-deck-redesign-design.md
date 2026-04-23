@@ -42,7 +42,7 @@ These assumptions were explicitly approved in design review and must remain inte
   - `Solo`: `250 minutes for $125`
   - `Team`: `500 minutes for $175`
   - `Team`: `2,000 minutes for $600`
-- credit packs expire after `90 days`
+- purchased credit packs do not expire while the customer remains subscribed
 - `HighLevel $97 / month` is included in the base recurring software stack
 - `Zoom` is excluded from the base recurring software stack
 - Stripe is shown separately from core product COGS
@@ -164,6 +164,7 @@ Show:
 - `120 live minutes included per seat`
 - pooled at the org level for Team
 - public overage through prepaid credit packs
+- purchased credit packs do not expire while the customer remains subscribed
 - internal underwriting rates are not the public pricing mechanic
 
 This slide must make the usage promise legible without exposing internal finance jargon.
@@ -397,6 +398,7 @@ These questions are now settled and should not be re-opened during implementatio
 - both monthly and annual pricing are shown
 - annual uses a `10%` discount
 - public overage is packaged as credit packs, not public metered billing
+- purchased credit packs do not expire while the customer remains subscribed
 - `HighLevel` stays in the base software stack
 - `Zoom` stays out of the base software stack
 
