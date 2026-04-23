@@ -1113,9 +1113,39 @@ function renderFounderPricingHtml(content) {
           grid-template-columns: 1fr;
         }
 
-        .deck-slide {
-          min-height: auto;
-          max-height: none;
+        .deck-shell {
+          padding: 18px;
+        }
+
+        .slide-shell {
+          padding: 20px;
+          gap: 16px;
+        }
+
+        .slide-copy h1 {
+          font-size: clamp(1.8rem, 3vw, 3rem);
+        }
+
+        .slide-copy {
+          gap: 8px;
+        }
+
+        .metric-card,
+        .policy-card,
+        .rate-card,
+        .appendix-section {
+          padding: 14px;
+        }
+
+        .metric-grid,
+        .policy-grid,
+        .appendix-grid {
+          gap: 12px;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+          padding: 10px 12px;
         }
 
         .policy-grid,

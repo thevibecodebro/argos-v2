@@ -146,6 +146,23 @@ test("renderer outputs investor deck primitives for tables and appendix sections
   assert.match(html, /Voice sensitivity rows/);
 });
 
+test("responsive CSS preserves viewport lock without internal scrolling", () => {
+  const html = renderFounderPricingHtml(founderPricingContent);
+
+  assert.match(
+    html,
+    /\.deck-slide\s*\{\s*min-height:\s*var\(--slide-height\);\s*max-height:\s*var\(--slide-height\);/s,
+  );
+  assert.doesNotMatch(
+    html,
+    /@media\s*\(max-width:\s*1180px\)\s*\{[\s\S]*?\.deck-slide\s*\{[\s\S]*?min-height:\s*auto;[\s\S]*?max-height:\s*none;/,
+  );
+  assert.doesNotMatch(
+    html,
+    /@media[\s\S]*?\.slide-body\s*\{[\s\S]*?overflow:\s*(auto|scroll)/,
+  );
+});
+
 test("slide kind inference supports the required investor deck slide types", () => {
   const { inferSlideKind } = renderTestExports;
 
