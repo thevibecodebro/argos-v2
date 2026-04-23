@@ -12,8 +12,8 @@
       :root {
         --bg: #0b0e14;
         --bg-2: #10131a;
-        --panel: rgba(255, 255, 255, 0.06);
-        --panel-strong: rgba(255, 255, 255, 0.1);
+        --panel: rgba(255, 255, 255, 0.08);
+        --panel-strong: rgba(255, 255, 255, 0.16);
         --text: #ecedf6;
         --muted: color-mix(in srgb, #a9abb3 90%, white 8%);
         --soft: color-mix(in srgb, #a9abb3 80%, transparent);
@@ -25,15 +25,15 @@
         --shadow: 0 32px 80px rgba(0, 0, 0, 0.36);
         --display-font: "Space Grotesk", sans-serif;
         --body-font: "Source Sans 3", sans-serif;
-        --title-size: clamp(1.8rem, 5vw, 4.4rem);
-        --h2-size: clamp(1.2rem, 3.2vw, 2.3rem);
-        --h3-size: clamp(0.98rem, 2vw, 1.45rem);
-        --body-size: clamp(0.72rem, 1.22vw, 1rem);
-        --small-size: clamp(0.62rem, 0.92vw, 0.82rem);
-        --tiny-size: clamp(0.58rem, 0.84vw, 0.74rem);
-        --slide-padding: clamp(1rem, 3.8vw, 3.6rem);
-        --content-gap: clamp(0.6rem, 1.6vw, 1.5rem);
-        --element-gap: clamp(0.4rem, 1vw, 0.9rem);
+        --title-size: clamp(2rem, 5.4vw, 4.8rem);
+        --h2-size: clamp(1.25rem, 3.4vw, 2.35rem);
+        --h3-size: clamp(1.02rem, 2.15vw, 1.5rem);
+        --body-size: clamp(0.82rem, 1.28vw, 1.05rem);
+        --small-size: clamp(0.68rem, 1vw, 0.9rem);
+        --tiny-size: clamp(0.62rem, 0.88vw, 0.78rem);
+        --slide-padding: clamp(1.15rem, 4vw, 4rem);
+        --content-gap: clamp(0.75rem, 1.9vw, 1.75rem);
+        --element-gap: clamp(0.5rem, 1.15vw, 0.95rem);
       }
 
       html,
@@ -243,20 +243,20 @@
       .slide-copy {
         display: grid;
         gap: var(--element-gap);
-        max-width: 78rem;
+        max-width: 64rem;
       }
 
       h1 {
         font-size: var(--title-size);
-        line-height: 0.92;
-        max-width: 13ch;
+        line-height: 0.95;
+        max-width: 11ch;
         letter-spacing: -0.05em;
       }
 
       .lede {
-        max-width: 58rem;
-        font-size: var(--body-size);
-        line-height: 1.4;
+        max-width: 46rem;
+        font-size: clamp(0.9rem, 1.4vw, 1.14rem);
+        line-height: 1.52;
         color: var(--muted);
       }
 
@@ -268,11 +268,21 @@
       }
 
       .panel {
-        background: var(--panel);
-        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03)),
+          var(--panel);
+        border: 1px solid rgba(116, 177, 255, 0.24);
         border-radius: clamp(16px, 2vw, 26px);
         box-shadow: var(--shadow);
         overflow: hidden;
+      }
+
+      .eyebrow {
+        font-size: var(--tiny-size);
+        line-height: 1.2;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: color-mix(in srgb, var(--accent-2) 75%, white 12%);
       }
 
       .hero-layout {
@@ -312,7 +322,7 @@
       .appendix-section,
       .thesis-panel,
       .table-shell {
-        padding: clamp(0.8rem, 1.8vw, 1.2rem);
+        padding: clamp(0.95rem, 2vw, 1.35rem);
       }
 
       .metric-card strong,
@@ -326,8 +336,8 @@
       .metric-card strong,
       .rate-card strong,
       .assumption-card strong {
-        font-size: clamp(1rem, 2vw, 1.45rem);
-        line-height: 1.08;
+        font-size: clamp(1.08rem, 2.05vw, 1.56rem);
+        line-height: 1.12;
       }
 
       .policy-card h3 {
@@ -344,7 +354,7 @@
       .bullet-list li,
       .appendix-list li {
         font-size: var(--body-size);
-        line-height: 1.36;
+        line-height: 1.44;
       }
 
       .metric-card p,
@@ -377,8 +387,8 @@
       .appendix-list {
         padding-left: 1.15rem;
         display: grid;
-        gap: 0.45rem;
-        max-width: 68rem;
+        gap: 0.55rem;
+        max-width: 56rem;
       }
 
       .table-shell {
@@ -398,17 +408,37 @@
 
       .comparison-table th,
       .comparison-table td {
-        padding: 0.62rem 0.66rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 0.78rem 0.84rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         text-align: left;
         vertical-align: top;
       }
 
       .comparison-table th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: color-mix(in srgb, var(--bg-2) 92%, black 8%);
         color: color-mix(in srgb, var(--accent-2) 72%, white 12%);
         font-size: var(--tiny-size);
         letter-spacing: 0.12em;
         text-transform: uppercase;
+      }
+
+      .comparison-table th:first-child,
+      .comparison-table td:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 1;
+        background: color-mix(in srgb, var(--bg-2) 90%, black 10%);
+      }
+
+      .comparison-table th:first-child {
+        z-index: 3;
+      }
+
+      .comparison-table tbody tr:nth-child(odd) td {
+        background: rgba(255, 255, 255, 0.025);
       }
 
       .comparison-table tbody tr:last-child td {
@@ -521,7 +551,7 @@
         </div>
         <div class="slide-copy">
           <h1>Argos Pricing &amp; Unit Economics</h1>
-          <p class="lede">Simple subscription pricing, bounded live voice exposure, and a named vendor stack.</p>
+          <p class="lede">Simple subscription pricing, bounded voice exposure, and a named vendor stack.</p>
         </div>
         <div class="slide-body">
           
@@ -585,7 +615,7 @@
         </div>
         <div class="slide-copy">
           <h1>Included Usage &amp; Voice Policy</h1>
-          <p class="lede">The commercial promise is subscriptions plus prepaid voice packs, not open-ended public metering.</p>
+          <p class="lede">The public menu is subscriptions plus prepaid voice packs, not open-ended metering.</p>
         </div>
         <div class="slide-body">
           
@@ -614,7 +644,7 @@
   
         
     <ul class="bullet-list">
-      <li>Solo includes 120 live voice minutes each month and expands through a 250-minute pack.</li><li>Team includes 120 live minutes per seat, pooled at the org level, with 500- and 2000-minute packs for overage.</li><li>Internal per-minute underwriting rates stay in the appendix; the public packaging stays on subscriptions and packs.</li>
+      <li>Solo: 120 live minutes, then a 250-minute prepaid pack.</li><li>Team: 120 pooled live minutes per seat, then 500- and 2000-minute packs.</li><li>Internal per-minute underwriting stays in the appendix.</li>
     </ul>
   
       
@@ -639,7 +669,7 @@
         </div>
         <div class="slide-copy">
           <h1>Base Usage Assumptions</h1>
-          <p class="lede">The model uses explicit inputs for voice, scored calls, and shared software floor rather than hidden averages.</p>
+          <p class="lede">The model uses explicit voice, scored-call, and software-floor inputs rather than hidden averages.</p>
         </div>
         <div class="slide-body">
           
@@ -659,7 +689,7 @@
                 <div class="eyebrow">Scored call model</div>
                 <strong>$0.325 / call</strong>
               </div>
-              <p>52.5 transcription minutes plus a small GPT-5 mini scoring buffer, with 4 calls per seat monthly.</p>
+              <p>52.5 transcription minutes plus a small GPT-5 mini buffer. Solo models 20 calls monthly; Team minimum 100; Team 10-seat 150.</p>
             </article>
           
             <article class="rate-card panel">
@@ -674,7 +704,7 @@
   
         
     <ul class="bullet-list">
-      <li>Live voice is modeled at $0.08 per minute; this is an internal conversion from OpenAI realtime token pricing, not an official minute quote.</li><li>Scored calls are modeled at $0.325 per 45-60 minute call, using 52.5 minutes of transcription plus a small GPT-5 mini scoring buffer.</li><li>Base usage assumes 4 scored calls per seat per month and spreads the $173.83 software floor across 25 active paying orgs.</li><li>Optional gpt-4o-mini-tts playback is ~$0.015 per minute and is excluded from base live voice metering.</li>
+      <li>Solo is modeled at 20 scored calls per month.</li><li>Team minimum is modeled at 100 scored calls per month; the 10-seat reference case uses 150.</li><li>Optional gpt-4o-mini-tts playback is ~$0.015 per minute and excluded from base live voice metering.</li>
     </ul>
   
       
@@ -775,7 +805,7 @@
         </div>
         <div class="slide-copy">
           <h1>Seat Economics: Solo vs Team</h1>
-          <p class="lede">Unit economics assume full included live voice usage and four scored calls per seat per month.</p>
+          <p class="lede">Unit economics assume full included voice usage plus plan-specific scored-call volume.</p>
         </div>
         <div class="slide-body">
           
@@ -784,21 +814,21 @@
       <table class="comparison-table">
         <thead>
           <tr>
-            <th>Scenario</th><th>Monthly list</th><th>Included voice</th><th>AI/runtime COGS</th><th>Product GM</th><th>Collected GM</th>
+            <th>Scenario</th><th>Monthly list</th><th>Modeled usage</th><th>AI/runtime COGS</th><th>Product GM</th><th>Collected GM</th>
           </tr>
         </thead>
         <tbody>
           
                 <tr>
-                  <td>Solo</td><td>$79</td><td>120</td><td>$10.9</td><td>86.20%</td><td>82.23%</td>
+                  <td>Solo</td><td>$79</td><td>120 voice / 20 scored</td><td>$16.1</td><td>79.62%</td><td>75.65%</td>
                 </tr>
               
                 <tr>
-                  <td>Team minimum</td><td>$150</td><td>360</td><td>$32.7</td><td>78.20%</td><td>74.40%</td>
+                  <td>Team minimum</td><td>$150</td><td>360 voice / 100 scored</td><td>$61.3</td><td>59.13%</td><td>55.33%</td>
                 </tr>
               
                 <tr>
-                  <td>Team 10-seat</td><td>$500</td><td>1,200</td><td>$109</td><td>78.20%</td><td>74.54%</td>
+                  <td>Team 10-seat</td><td>$500</td><td>1,200 voice / 150 scored</td><td>$144.75</td><td>71.05%</td><td>67.39%</td>
                 </tr>
               
         </tbody>
@@ -807,7 +837,7 @@
   
         
     <ul class="bullet-list">
-      <li>The seat view is intentionally hard-nosed: it uses the full included voice allowance instead of optimistic utilization.</li><li>The comparison keeps the three-seat minimum and a representative ten-seat team in the same frame.</li>
+      <li>Solo: 120 voice minutes and 20 scored calls.</li><li>Team minimum: 360 voice minutes and 100 scored calls.</li><li>Team 10-seat: 1200 voice minutes and 150 scored calls.</li>
     </ul>
   
       
@@ -847,15 +877,15 @@
         <tbody>
           
                 <tr>
-                  <td>Solo</td><td>$79</td><td>$10.9</td><td>$6.95</td><td>77.41%</td><td>73.43%</td>
+                  <td>Solo</td><td>$79</td><td>$16.1</td><td>$6.95</td><td>70.82%</td><td>66.85%</td>
                 </tr>
               
                 <tr>
-                  <td>Team minimum</td><td>$150</td><td>$32.7</td><td>$6.95</td><td>73.57%</td><td>69.77%</td>
+                  <td>Team minimum</td><td>$150</td><td>$61.3</td><td>$6.95</td><td>54.50%</td><td>50.70%</td>
                 </tr>
               
                 <tr>
-                  <td>Team 10-seat</td><td>$500</td><td>$109</td><td>$6.95</td><td>76.81%</td><td>73.15%</td>
+                  <td>Team 10-seat</td><td>$500</td><td>$144.75</td><td>$6.95</td><td>69.66%</td><td>66.00%</td>
                 </tr>
               
         </tbody>
@@ -864,7 +894,7 @@
   
         
     <ul class="bullet-list">
-      <li>The base case allocates $6.95 per org from the $173.83 recurring software floor.</li><li>The three-seat minimum protects the weakest team cohort, while larger teams widen the margin cushion.</li>
+      <li>The base case allocates $6.95 per org from the $173.83 recurring floor.</li><li>The 3-seat minimum remains the weakest margin cohort under a 100-call team floor.</li><li>Scaled teams still widen the margin cushion.</li>
     </ul>
   
       
@@ -921,7 +951,7 @@
   
         
     <ul class="bullet-list">
-      <li>Annual pricing is a 10% concession, not a separate tier.</li><li>The fee improvement comes from charging once instead of repeating the fixed 30-cent card component twelve times.</li>
+      <li>Annual pricing is a 10% concession, not a separate tier.</li><li>The gain comes from charging once instead of repeating the fixed 30-cent card component twelve times.</li>
     </ul>
   
       
@@ -961,15 +991,15 @@
         <tbody>
           
                 <tr>
-                  <td>Included only</td><td>$150</td><td>360</td><td>$32.7</td><td>78.20%</td><td>74.40%</td>
+                  <td>Included only</td><td>$150</td><td>360</td><td>$61.3</td><td>59.13%</td><td>55.33%</td>
                 </tr>
               
                 <tr>
-                  <td>+500 pack</td><td>$325</td><td>860</td><td>$72.7</td><td>77.63%</td><td>73.94%</td>
+                  <td>+500 pack</td><td>$325</td><td>860</td><td>$101.3</td><td>68.83%</td><td>65.14%</td>
                 </tr>
               
                 <tr>
-                  <td>+2,000 pack</td><td>$750</td><td>2,360</td><td>$192.7</td><td>74.31%</td><td>70.67%</td>
+                  <td>+2,000 pack</td><td>$750</td><td>2,360</td><td>$221.3</td><td>70.49%</td><td>66.85%</td>
                 </tr>
               
         </tbody>
@@ -978,7 +1008,7 @@
   
         
     <ul class="bullet-list">
-      <li>Included minutes are bounded and team usage is pooled at the org level.</li><li>Heavy voice usage monetizes through prepaid packs rather than unlimited live access.</li><li>The shown pack cases keep collected margin above 70% in the modeled three-seat team scenarios.</li>
+      <li>Included minutes are bounded and team usage is pooled at the org level.</li><li>Heavy voice usage monetizes through prepaid packs rather than unlimited live access.</li><li>The pack cases keep collected margin in the mid-60s even on the three-seat team floor.</li>
     </ul>
   
       
@@ -1003,15 +1033,15 @@
         </div>
         <div class="slide-copy">
           <h1>Closing Thesis</h1>
-          <p class="lede">The pricing system stays simple, the margin structure is readable, and live voice is monetized rather than subsidized.</p>
+          <p class="lede">The pricing stays simple, the cost stack is explicit, and live voice is monetized rather than subsidized.</p>
         </div>
         <div class="slide-body">
           
         <div class="thesis-panel panel">
-          <p class="thesis-summary">The pricing system stays simple, the margin structure is readable, and live voice is monetized rather than subsidized.</p>
+          <p class="thesis-summary">The pricing stays simple, the cost stack is explicit, and live voice is monetized rather than subsidized.</p>
           
     <ul class="bullet-list">
-      <li>Two subscription plans cover the menu: Solo for individuals and Team with a hard three-seat floor.</li><li>Product gross margins remain strong under full included voice assumptions.</li><li>Stripe drag is visible and manageable rather than hidden.</li><li>Voice expansion is bounded, pooled, and monetized through prepaid packs.</li>
+      <li>Solo is straightforward.</li><li>Team is viable, but the three-seat floor is the least efficient cohort.</li><li>Scaled team margins remain healthy even under heavier scoring assumptions.</li><li>Voice expansion is bounded, pooled, and prepaid.</li>
     </ul>
   
         </div>
@@ -1145,6 +1175,10 @@
                 </tr>
               
                 <tr>
+                  <td>Base scored-call load</td><td>Solo: 20 / month; Team minimum: 100 / month; Team 10-seat: 150 / month</td><td>Plan-specific org volume, not a flat per-seat average</td>
+                </tr>
+              
+                <tr>
                   <td>Shared software floor</td><td>$20 Vercel + $25 Supabase + $11.83 Fly + $97 HighLevel + $20 Resend</td><td>$173.83 / month</td>
                 </tr>
               
@@ -1170,7 +1204,7 @@
       <div class="eyebrow">Modeling notes</div>
       
     <ul class="appendix-list">
-      <li>Live voice planning cost is derived from official OpenAI token pricing and presented as an internal minute conversion.</li><li>Product gross margin excludes Stripe. Collected gross margin subtracts Stripe processing and Stripe Billing fees.</li><li>Internal underwriting rates remain $0.39/minute for Solo and $0.29/minute for Team, but public overage is sold through prepaid packs.</li><li>Purchased voice packs are modeled with 90-day validity in the current implementation plan.</li>
+      <li>Live voice planning cost is derived from official OpenAI token pricing and presented as an internal minute conversion.</li><li>Product gross margin excludes Stripe. Collected gross margin subtracts Stripe processing and Stripe Billing fees.</li><li>Solo is modeled at 20 scored calls per month; Team minimum at 100; Team 10-seat at 150.</li><li>Internal underwriting rates remain $0.39/minute for Solo and $0.29/minute for Team, but public overage is sold through prepaid packs.</li><li>Purchased voice packs are modeled with 90-day validity in the current implementation plan.</li>
     </ul>
   
       
@@ -1213,21 +1247,21 @@
       <table class="comparison-table">
         <thead>
           <tr>
-            <th>Scenario</th><th>Monthly list</th><th>Included voice</th><th>AI/runtime COGS</th><th>Product GM</th><th>Collected GM</th>
+            <th>Scenario</th><th>Monthly list</th><th>Modeled usage</th><th>AI/runtime COGS</th><th>Product GM</th><th>Collected GM</th>
           </tr>
         </thead>
         <tbody>
           
                 <tr>
-                  <td>Solo</td><td>$79</td><td>120</td><td>$10.9</td><td>86.20%</td><td>82.23%</td>
+                  <td>Solo</td><td>$79</td><td>120 voice / 20 scored</td><td>$16.1</td><td>79.62%</td><td>75.65%</td>
                 </tr>
               
                 <tr>
-                  <td>Team minimum</td><td>$150</td><td>360</td><td>$32.7</td><td>78.20%</td><td>74.40%</td>
+                  <td>Team minimum</td><td>$150</td><td>360 voice / 100 scored</td><td>$61.3</td><td>59.13%</td><td>55.33%</td>
                 </tr>
               
                 <tr>
-                  <td>Team 10-seat</td><td>$500</td><td>1,200</td><td>$109</td><td>78.20%</td><td>74.54%</td>
+                  <td>Team 10-seat</td><td>$500</td><td>1,200 voice / 150 scored</td><td>$144.75</td><td>71.05%</td><td>67.39%</td>
                 </tr>
               
         </tbody>
@@ -1279,15 +1313,15 @@
         <tbody>
           
                 <tr>
-                  <td>Solo</td><td>$79</td><td>$10.9</td><td>$6.95</td><td>77.41%</td><td>73.43%</td>
+                  <td>Solo</td><td>$79</td><td>$16.1</td><td>$6.95</td><td>70.82%</td><td>66.85%</td>
                 </tr>
               
                 <tr>
-                  <td>Team minimum</td><td>$150</td><td>$32.7</td><td>$6.95</td><td>73.57%</td><td>69.77%</td>
+                  <td>Team minimum</td><td>$150</td><td>$61.3</td><td>$6.95</td><td>54.50%</td><td>50.70%</td>
                 </tr>
               
                 <tr>
-                  <td>Team 10-seat</td><td>$500</td><td>$109</td><td>$6.95</td><td>76.81%</td><td>73.15%</td>
+                  <td>Team 10-seat</td><td>$500</td><td>$144.75</td><td>$6.95</td><td>69.66%</td><td>66.00%</td>
                 </tr>
               
         </tbody>
@@ -1370,15 +1404,15 @@
         <tbody>
           
                 <tr>
-                  <td>Included only</td><td>$150</td><td>360</td><td>$32.7</td><td>78.20%</td><td>74.40%</td>
+                  <td>Included only</td><td>$150</td><td>360</td><td>$61.3</td><td>59.13%</td><td>55.33%</td>
                 </tr>
               
                 <tr>
-                  <td>+500 pack</td><td>$325</td><td>860</td><td>$72.7</td><td>77.63%</td><td>73.94%</td>
+                  <td>+500 pack</td><td>$325</td><td>860</td><td>$101.3</td><td>68.83%</td><td>65.14%</td>
                 </tr>
               
                 <tr>
-                  <td>+2,000 pack</td><td>$750</td><td>2,360</td><td>$192.7</td><td>74.31%</td><td>70.67%</td>
+                  <td>+2,000 pack</td><td>$750</td><td>2,360</td><td>$221.3</td><td>70.49%</td><td>66.85%</td>
                 </tr>
               
         </tbody>
