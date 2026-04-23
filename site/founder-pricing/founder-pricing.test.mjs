@@ -24,8 +24,15 @@ test("build:founder-pricing emits a publishable HTML document", () => {
 
   assert.match(html, /<!DOCTYPE html>/);
   assert.match(html, /Founder Pricing &amp; COGS/);
+  assert.match(html, /#0b0e14/);
+  assert.match(html, /Space Grotesk/);
+  assert.match(html, /Source Sans 3/);
+  assert.match(html, /id="deck-view"/);
+  assert.match(html, /id="memo-view"/);
   assert.match(html, /data-mode="deck"/);
   assert.match(html, /data-mode="memo"/);
+  assert.match(html, /Official Vendor Rate Card/);
+  assert.match(html, /Founder Recommendations/);
   assert.match(html, new RegExp(`data-content-slides="${counts.slides}"`));
   assert.match(html, new RegExp(`data-content-memo-sections="${counts.memoSections}"`));
   assert.match(html, new RegExp(`data-content-facts="${counts.facts}"`));
