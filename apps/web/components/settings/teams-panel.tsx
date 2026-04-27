@@ -378,37 +378,37 @@ export function TeamsPanel({
 
   return (
     <div className="space-y-5">
-      <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+      <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
               Teams
             </p>
-            <p className="mt-2 text-sm text-[#a9abb3]">
+            <p className="mt-2 text-sm text-[var(--forge-muted)]">
               Create teams, edit team metadata, and manage manager and rep membership.
             </p>
           </div>
-          <span className="rounded-full border border-[#45484f]/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#a9abb3]">
+          <span className="rounded-full border border-[var(--forge-border-strong)]/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
             {localTeams.length} {localTeams.length === 1 ? "team" : "teams"}
           </span>
         </div>
 
         {error ? (
-          <div className="mt-4 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          <div className="mt-4 rounded-xl border border-[rgba(255,113,108,0.26)] bg-[rgba(255,113,108,0.1)] px-4 py-3 text-sm text-[var(--forge-danger)]">
             {error}
           </div>
         ) : null}
         {notice ? (
-          <div className="mt-4 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+          <div className="mt-4 rounded-xl border border-[rgba(139,215,168,0.24)] bg-[rgba(139,215,168,0.1)] px-4 py-3 text-sm text-[var(--forge-success)]">
             {notice}
           </div>
         ) : null}
 
-        <div className="mt-5 rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 p-4">
+        <div className="mt-5 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-white">Create team</p>
-              <p className="mt-1 text-sm text-[#a9abb3]">
+              <p className="mt-1 text-sm text-[var(--forge-muted)]">
                 Teams define the manager and rep roster. Rep-level primary manager assignments still
                 live in{" "}
                 <a className="underline hover:text-white" href="/settings/permissions">
@@ -419,20 +419,20 @@ export function TeamsPanel({
             </div>
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-            <label className="space-y-2 text-sm text-[#a9abb3]">
+            <label className="space-y-2 text-sm text-[var(--forge-muted)]">
               <span>Team name</span>
               <input
-                className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-2 text-sm text-white outline-none transition focus:border-[#74b1ff]/60"
+                className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
                 onChange={(event) =>
                   setNewTeam((current) => ({ ...current, name: event.target.value }))
                 }
                 value={newTeam.name}
               />
             </label>
-            <label className="space-y-2 text-sm text-[#a9abb3]">
+            <label className="space-y-2 text-sm text-[var(--forge-muted)]">
               <span>Description</span>
               <input
-                className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-2 text-sm text-white outline-none transition focus:border-[#74b1ff]/60"
+                className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
                 onChange={(event) =>
                   setNewTeam((current) => ({ ...current, description: event.target.value }))
                 }
@@ -441,7 +441,7 @@ export function TeamsPanel({
             </label>
             <div className="flex items-end">
               <button
-                className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-2 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
+                className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-2 text-sm font-semibold text-[#170d07] transition hover:brightness-110 disabled:opacity-50"
                 disabled={pendingKey === "create-team"}
                 onClick={() => {
                   void handleCreateTeam();
@@ -456,9 +456,9 @@ export function TeamsPanel({
 
         <div className="mt-5 space-y-4">
           {localTeams.length === 0 ? (
-            <div className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-5 py-6 text-center">
-              <p className="text-sm font-medium text-[#ecedf6]">No teams yet</p>
-              <p className="mt-2 text-sm text-[#a9abb3]">
+            <div className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-5 py-6 text-center">
+              <p className="text-sm font-medium text-[var(--forge-text)]">No teams yet</p>
+              <p className="mt-2 text-sm text-[var(--forge-muted)]">
                 Create your first team above to start organizing managers and reps.
               </p>
             </div>
@@ -487,34 +487,34 @@ export function TeamsPanel({
 
               return (
                 <section
-                  className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 p-4"
+                  className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4"
                   key={team.id}
                 >
                   <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_180px_auto]">
-                    <label className="space-y-2 text-sm text-[#a9abb3]">
+                    <label className="space-y-2 text-sm text-[var(--forge-muted)]">
                       <span>Team name</span>
                       <input
-                        className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-2 text-sm text-white outline-none transition focus:border-[#74b1ff]/60"
+                        className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
                         onChange={(event) =>
                           updateDraft(team.id, { name: event.target.value })
                         }
                         value={draft.name}
                       />
                     </label>
-                    <label className="space-y-2 text-sm text-[#a9abb3]">
+                    <label className="space-y-2 text-sm text-[var(--forge-muted)]">
                       <span>Description</span>
                       <input
-                        className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-2 text-sm text-white outline-none transition focus:border-[#74b1ff]/60"
+                        className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
                         onChange={(event) =>
                           updateDraft(team.id, { description: event.target.value })
                         }
                         value={draft.description}
                       />
                     </label>
-                    <label className="space-y-2 text-sm text-[#a9abb3]">
+                    <label className="space-y-2 text-sm text-[var(--forge-muted)]">
                       <span>Status</span>
                       <select
-                        className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-2 text-sm text-white outline-none transition focus:border-[#74b1ff]/60"
+                        className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
                         onChange={(event) =>
                           updateDraft(team.id, { status: event.target.value })
                         }
@@ -526,7 +526,7 @@ export function TeamsPanel({
                     </label>
                     <div className="flex items-end">
                       <button
-                        className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-2 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
+                        className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-2 text-sm font-semibold text-[#170d07] transition hover:brightness-110 disabled:opacity-50"
                         disabled={pendingKey === `save:${team.id}`}
                         onClick={() => {
                           void handleSaveTeam(team.id);
@@ -538,7 +538,7 @@ export function TeamsPanel({
                     </div>
                   </div>
 
-                  <p className="mt-4 text-xs text-[#a9abb3]">
+                  <p className="mt-4 text-xs text-[var(--forge-muted)]">
                     Team membership is managed here. Rep-level primary manager assignments stay on{" "}
                     <a className="underline hover:text-white" href="/settings/permissions">
                       /settings/permissions
@@ -547,24 +547,24 @@ export function TeamsPanel({
                   </p>
 
                   <div className="mt-5 grid gap-4 xl:grid-cols-2">
-                    <div className="rounded-xl border border-[#45484f]/20 bg-[#10131a]/60 p-4">
+                    <div className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)]/60 p-4">
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">
+                          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">
                             Managers
                           </p>
-                          <p className="mt-1 text-sm text-[#a9abb3]">
+                          <p className="mt-1 text-sm text-[var(--forge-muted)]">
                             Team-level coaching and management membership.
                           </p>
                         </div>
-                        <span className="text-xs uppercase tracking-[0.18em] text-[#a9abb3]">
+                        <span className="text-xs uppercase tracking-[0.18em] text-[var(--forge-muted)]">
                           {teamManagers.length}
                         </span>
                       </div>
 
                       <div className="mt-4 flex gap-2">
                         <select
-                          className="min-w-0 flex-1 rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-3 py-2 text-sm text-white outline-none transition focus:border-[#74b1ff]/60"
+                          className="min-w-0 flex-1 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
                           onChange={(event) =>
                             setManagerSelectionByTeamId((current) => ({
                               ...current,
@@ -581,7 +581,7 @@ export function TeamsPanel({
                           ))}
                         </select>
                         <button
-                          className="rounded-xl border border-[#74b1ff]/20 px-3 py-2 text-sm font-semibold text-[#74b1ff] transition hover:bg-[#74b1ff]/10 disabled:opacity-50"
+                          className="rounded-xl border border-[var(--forge-gold)]/20 px-3 py-2 text-sm font-semibold text-[var(--forge-gold)] transition hover:bg-[var(--forge-gold)]/10 disabled:opacity-50"
                           disabled={pendingKey === `add:manager:${team.id}`}
                           onClick={() => {
                             void handleAddMembership(team.id, "manager");
@@ -594,16 +594,16 @@ export function TeamsPanel({
 
                       <ul className="mt-4 space-y-2">
                         {teamManagers.length === 0 ? (
-                          <li className="text-sm text-[#a9abb3]">No managers on this team yet.</li>
+                          <li className="text-sm text-[var(--forge-muted)]">No managers on this team yet.</li>
                         ) : (
                           teamManagers.map((membership) => (
                             <li
-                              className="flex items-center justify-between gap-3 rounded-lg border border-[#45484f]/20 bg-[#161a21]/50 px-3 py-2 text-sm text-[#ecedf6]"
+                              className="flex items-center justify-between gap-3 rounded-lg border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-3 py-2 text-sm text-[var(--forge-text)]"
                               key={`${membership.teamId}:${membership.userId}:${membership.membershipType}`}
                             >
                               <span>{managerNames.get(membership.userId) ?? membership.userId}</span>
                               <button
-                                className="text-xs font-medium uppercase tracking-[0.14em] text-[#a9abb3] transition hover:text-red-300"
+                                className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--forge-muted)] transition hover:text-[var(--forge-danger)]"
                                 disabled={
                                   pendingKey ===
                                   `remove:manager:${team.id}:${membership.userId}`
@@ -625,24 +625,24 @@ export function TeamsPanel({
                       </ul>
                     </div>
 
-                    <div className="rounded-xl border border-[#45484f]/20 bg-[#10131a]/60 p-4">
+                    <div className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)]/60 p-4">
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">
+                          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">
                             Reps
                           </p>
-                          <p className="mt-1 text-sm text-[#a9abb3]">
+                          <p className="mt-1 text-sm text-[var(--forge-muted)]">
                             Sales reps assigned to this team.
                           </p>
                         </div>
-                        <span className="text-xs uppercase tracking-[0.18em] text-[#a9abb3]">
+                        <span className="text-xs uppercase tracking-[0.18em] text-[var(--forge-muted)]">
                           {teamReps.length}
                         </span>
                       </div>
 
                       <div className="mt-4 flex gap-2">
                         <select
-                          className="min-w-0 flex-1 rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-3 py-2 text-sm text-white outline-none transition focus:border-[#74b1ff]/60"
+                          className="min-w-0 flex-1 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
                           onChange={(event) =>
                             setRepSelectionByTeamId((current) => ({
                               ...current,
@@ -659,7 +659,7 @@ export function TeamsPanel({
                           ))}
                         </select>
                         <button
-                          className="rounded-xl border border-[#74b1ff]/20 px-3 py-2 text-sm font-semibold text-[#74b1ff] transition hover:bg-[#74b1ff]/10 disabled:opacity-50"
+                          className="rounded-xl border border-[var(--forge-gold)]/20 px-3 py-2 text-sm font-semibold text-[var(--forge-gold)] transition hover:bg-[var(--forge-gold)]/10 disabled:opacity-50"
                           disabled={pendingKey === `add:rep:${team.id}`}
                           onClick={() => {
                             void handleAddMembership(team.id, "rep");
@@ -672,16 +672,16 @@ export function TeamsPanel({
 
                       <ul className="mt-4 space-y-2">
                         {teamReps.length === 0 ? (
-                          <li className="text-sm text-[#a9abb3]">No reps on this team yet.</li>
+                          <li className="text-sm text-[var(--forge-muted)]">No reps on this team yet.</li>
                         ) : (
                           teamReps.map((membership) => (
                             <li
-                              className="flex items-center justify-between gap-3 rounded-lg border border-[#45484f]/20 bg-[#161a21]/50 px-3 py-2 text-sm text-[#ecedf6]"
+                              className="flex items-center justify-between gap-3 rounded-lg border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-3 py-2 text-sm text-[var(--forge-text)]"
                               key={`${membership.teamId}:${membership.userId}:${membership.membershipType}`}
                             >
                               <span>{repNames.get(membership.userId) ?? membership.userId}</span>
                               <button
-                                className="text-xs font-medium uppercase tracking-[0.14em] text-[#a9abb3] transition hover:text-red-300"
+                                className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--forge-muted)] transition hover:text-[var(--forge-danger)]"
                                 disabled={
                                   pendingKey === `remove:rep:${team.id}:${membership.userId}`
                                 }

@@ -105,7 +105,7 @@ export function TrainingManagerModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-8 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-8 "
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
@@ -116,24 +116,24 @@ export function TrainingManagerModal({
         aria-modal="true"
         aria-describedby={descriptionId}
         aria-labelledby={titleId}
-        className="w-full max-w-4xl rounded-[1.5rem] border border-white/10 bg-[#10131a] p-6 shadow-[0_24px_80px_rgba(2,8,23,0.4)]"
+        className="w-full max-w-4xl rounded-[1.5rem] border border-white/10 bg-[var(--forge-surface)] p-6 shadow-[0_24px_80px_rgba(2,8,23,0.4)]"
         role="dialog"
         ref={dialogRef}
         tabIndex={-1}
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#74b1ff]">{eyebrow}</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-gold)]">{eyebrow}</p>
             <h2 className="mt-2 text-2xl font-semibold text-white" id={titleId}>
               {title}
             </h2>
-            <p className="mt-2 text-sm text-[#a9abb3]" id={descriptionId}>
+            <p className="mt-2 text-sm text-[var(--forge-muted)]" id={descriptionId}>
               {description}
             </p>
           </div>
           <button
             aria-label="Close manager modal"
-            className="rounded-full border border-white/10 bg-white/[0.03] p-2 text-[#a9abb3] transition hover:text-white"
+            className="rounded-full border border-white/10 bg-white/[0.03] p-2 text-[var(--forge-muted)] transition hover:text-white"
             onClick={onClose}
             type="button"
           >

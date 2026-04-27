@@ -26,6 +26,9 @@ describe("SettingsNav", () => {
 
     expect(html).toContain('href="/settings/rubric"');
     expect(html).toContain("Rubrics");
+    expect(html).toContain("Workspace");
+    expect(html).toContain("People");
+    expect(html).toContain("Coaching system");
     expect(html).toContain('aria-current="page"');
   });
 
@@ -34,5 +37,14 @@ describe("SettingsNav", () => {
 
     expect(html).not.toContain('href="/settings/rubric"');
     expect(html).not.toContain("Rubrics");
+  });
+
+  it("uses the forge settings rail active state instead of the old side stripe", () => {
+    const html = renderToStaticMarkup(createElement(SettingsNav, { role: "admin" }));
+
+    expect(html).toContain('data-settings-nav-theme="forge"');
+    expect(html).toContain('aria-current="page"');
+    expect(html).not.toContain("#74b1ff");
+    expect(html).not.toContain("border-r-2");
   });
 });

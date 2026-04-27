@@ -74,40 +74,40 @@ function ZoomCard({
   }
 
   return (
-    <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+    <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">
+          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
             Zoom
           </p>
           <p className="mt-2 text-xl font-semibold text-white">Call Recording Ingest</p>
         </div>
 
         {isConnected ? (
-          <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300">
+          <span className="rounded-full border border-[rgba(139,215,168,0.24)] bg-[rgba(139,215,168,0.1)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-success)]">
             Connected
           </span>
         ) : (
-          <span className="rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">
+          <span className="rounded-full border border-[rgba(255,159,95,0.26)] bg-[rgba(255,159,95,0.1)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-ember)]">
             Not connected
           </span>
         )}
       </div>
 
-      <p className="mt-3 text-sm leading-7 text-[#a9abb3]">
+      <p className="mt-3 text-sm leading-7 text-[var(--forge-muted)]">
         Connect your Zoom account to automatically import call recordings and transcripts.
       </p>
 
       {isConnected ? (
         <div className="mt-4 space-y-1">
           {zoomUserIdState ? (
-            <p className="text-sm text-[#a9abb3]">
-              <span className="text-[#a9abb3]">User ID:</span>{" "}
-              <span className="font-medium text-[#ecedf6]">{zoomUserIdState}</span>
+            <p className="text-sm text-[var(--forge-muted)]">
+              <span className="text-[var(--forge-muted)]">User ID:</span>{" "}
+              <span className="font-medium text-[var(--forge-text)]">{zoomUserIdState}</span>
             </p>
           ) : null}
           {connectedAtState ? (
-            <p className="text-sm text-[#a9abb3]">
+            <p className="text-sm text-[var(--forge-muted)]">
               Connected {formatConnectedAt(connectedAtState)}
             </p>
           ) : null}
@@ -115,7 +115,7 @@ function ZoomCard({
       ) : null}
 
       {!available && !isConnected ? (
-        <p className="mt-3 text-sm text-amber-200/80">
+        <p className="mt-3 text-sm text-[rgba(255,159,95,0.82)]">
           OAuth credentials for Zoom are not yet configured in this environment.
         </p>
       ) : null}
@@ -124,9 +124,9 @@ function ZoomCard({
         {isConnected ? (
           confirmDisconnect ? (
             <>
-              <p className="text-sm text-[#a9abb3]">Are you sure?</p>
+              <p className="text-sm text-[var(--forge-muted)]">Are you sure?</p>
               <button
-                className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-sm font-medium text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
+                className="rounded-xl border border-[rgba(255,113,108,0.3)] bg-[rgba(255,113,108,0.1)] px-3 py-1.5 text-sm font-medium text-[var(--forge-danger)] transition hover:bg-[rgba(255,113,108,0.18)] disabled:opacity-50"
                 disabled={isMutating}
                 onClick={() => {
                   void handleDisconnect();
@@ -136,7 +136,7 @@ function ZoomCard({
                 {isMutating ? "Disconnecting..." : "Yes, disconnect"}
               </button>
               <button
-                className="rounded-xl border border-[#45484f]/20 px-3 py-1.5 text-sm font-medium text-[#a9abb3] transition hover:border-slate-600 hover:text-[#ecedf6]"
+                className="rounded-xl border border-[var(--forge-border-strong)]/20 px-3 py-1.5 text-sm font-medium text-[var(--forge-muted)] transition hover:border-[rgba(255,244,230,0.24)] hover:text-[var(--forge-text)]"
                 disabled={isMutating}
                 onClick={() => setConfirmDisconnect(false)}
                 type="button"
@@ -146,7 +146,7 @@ function ZoomCard({
             </>
           ) : (
             <button
-              className="rounded-xl border border-[#45484f]/20 px-3 py-1.5 text-sm font-medium text-[#a9abb3] transition hover:border-red-500/30 hover:text-red-300"
+              className="rounded-xl border border-[var(--forge-border-strong)]/20 px-3 py-1.5 text-sm font-medium text-[var(--forge-muted)] transition hover:border-[rgba(255,113,108,0.3)] hover:text-[var(--forge-danger)]"
               onClick={() => setConfirmDisconnect(true)}
               type="button"
             >
@@ -155,7 +155,7 @@ function ZoomCard({
           )
         ) : (
           <button
-            className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-2 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
+            className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-2 text-sm font-semibold text-[#170d07] transition hover:brightness-110 disabled:opacity-50"
             disabled={!available}
             onClick={() => router.push(connectPath)}
             type="button"
@@ -207,40 +207,40 @@ function GhlCard({
   }
 
   return (
-    <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+    <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">
+          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
             Go High Level
           </p>
           <p className="mt-2 text-xl font-semibold text-white">CRM &amp; Workflow Automation</p>
         </div>
 
         {isConnected ? (
-          <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300">
+          <span className="rounded-full border border-[rgba(139,215,168,0.24)] bg-[rgba(139,215,168,0.1)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-success)]">
             Connected
           </span>
         ) : (
-          <span className="rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">
+          <span className="rounded-full border border-[rgba(255,159,95,0.26)] bg-[rgba(255,159,95,0.1)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-ember)]">
             Not connected
           </span>
         )}
       </div>
 
-      <p className="mt-3 text-sm leading-7 text-[#a9abb3]">
+      <p className="mt-3 text-sm leading-7 text-[var(--forge-muted)]">
         Connect Go High Level to sync contacts and automate post-call workflows.
       </p>
 
       {isConnected ? (
         <div className="mt-4 space-y-1">
           {locationNameState ? (
-            <p className="text-sm text-[#a9abb3]">
-              <span className="text-[#a9abb3]">Location:</span>{" "}
-              <span className="font-medium text-[#ecedf6]">{locationNameState}</span>
+            <p className="text-sm text-[var(--forge-muted)]">
+              <span className="text-[var(--forge-muted)]">Location:</span>{" "}
+              <span className="font-medium text-[var(--forge-text)]">{locationNameState}</span>
             </p>
           ) : null}
           {connectedAtState ? (
-            <p className="text-sm text-[#a9abb3]">
+            <p className="text-sm text-[var(--forge-muted)]">
               Connected {formatConnectedAt(connectedAtState)}
             </p>
           ) : null}
@@ -248,7 +248,7 @@ function GhlCard({
       ) : null}
 
       {!available && !isConnected ? (
-        <p className="mt-3 text-sm text-amber-200/80">
+        <p className="mt-3 text-sm text-[rgba(255,159,95,0.82)]">
           OAuth credentials for Go High Level are not yet configured in this environment.
         </p>
       ) : null}
@@ -257,9 +257,9 @@ function GhlCard({
         {isConnected ? (
           confirmDisconnect ? (
             <>
-              <p className="text-sm text-[#a9abb3]">Are you sure?</p>
+              <p className="text-sm text-[var(--forge-muted)]">Are you sure?</p>
               <button
-                className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-sm font-medium text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
+                className="rounded-xl border border-[rgba(255,113,108,0.3)] bg-[rgba(255,113,108,0.1)] px-3 py-1.5 text-sm font-medium text-[var(--forge-danger)] transition hover:bg-[rgba(255,113,108,0.18)] disabled:opacity-50"
                 disabled={isMutating}
                 onClick={() => {
                   void handleDisconnect();
@@ -269,7 +269,7 @@ function GhlCard({
                 {isMutating ? "Disconnecting..." : "Yes, disconnect"}
               </button>
               <button
-                className="rounded-xl border border-[#45484f]/20 px-3 py-1.5 text-sm font-medium text-[#a9abb3] transition hover:border-slate-600 hover:text-[#ecedf6]"
+                className="rounded-xl border border-[var(--forge-border-strong)]/20 px-3 py-1.5 text-sm font-medium text-[var(--forge-muted)] transition hover:border-[rgba(255,244,230,0.24)] hover:text-[var(--forge-text)]"
                 disabled={isMutating}
                 onClick={() => setConfirmDisconnect(false)}
                 type="button"
@@ -279,7 +279,7 @@ function GhlCard({
             </>
           ) : (
             <button
-              className="rounded-xl border border-[#45484f]/20 px-3 py-1.5 text-sm font-medium text-[#a9abb3] transition hover:border-red-500/30 hover:text-red-300"
+              className="rounded-xl border border-[var(--forge-border-strong)]/20 px-3 py-1.5 text-sm font-medium text-[var(--forge-muted)] transition hover:border-[rgba(255,113,108,0.3)] hover:text-[var(--forge-danger)]"
               onClick={() => setConfirmDisconnect(true)}
               type="button"
             >
@@ -288,7 +288,7 @@ function GhlCard({
           )
         ) : (
           <button
-            className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-2 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
+            className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-2 text-sm font-semibold text-[#170d07] transition hover:brightness-110 disabled:opacity-50"
             disabled={!available}
             onClick={() => router.push(connectPath)}
             type="button"

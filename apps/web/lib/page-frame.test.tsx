@@ -24,6 +24,24 @@ describe("PageFrame", () => {
     expect(html).toContain("Training body");
   });
 
+  it("renders the shared forge page header treatment", () => {
+    const html = renderToStaticMarkup(
+      createElement(PageFrame, {
+        title: "Calls",
+        description: "Review scored calls, transcripts, coaching moments, and processing status.",
+        eyebrow: "Call intake",
+        actions: [{ href: "/upload", label: "Upload call" }],
+        children: createElement("div", null, "Calls body"),
+      }),
+    );
+
+    expect(html).toContain('data-page-header="forge"');
+    expect(html).toContain("forge-page-header");
+    expect(html).toContain("Upload call");
+    expect(html).not.toContain("#74b1ff");
+    expect(html).not.toContain("#10131a");
+  });
+
   it("keeps route actions while hiding the hero copy in hidden mode", () => {
     const html = renderToStaticMarkup(
       createElement(PageFrame, {

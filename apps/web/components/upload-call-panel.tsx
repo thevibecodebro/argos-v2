@@ -78,15 +78,15 @@ export function UploadCallPanel() {
   }
 
   return (
-    <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+    <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
       <div className="space-y-5">
         <div
           className={`rounded-xl border-2 border-dashed p-10 text-center transition ${
             isDragging
-              ? "border-[#74b1ff]/60 bg-[#74b1ff]/8"
+              ? "border-[var(--forge-gold)]/60 bg-[var(--forge-gold)]/8"
               : file
-                ? "border-emerald-500/40 bg-emerald-500/5"
-                : "border-[#45484f]/20 bg-[#161a21]/50 hover:border-[#45484f]/40"
+                ? "border-[rgba(139,215,168,0.36)] bg-[rgba(139,215,168,0.06)]"
+                : "border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 hover:border-[var(--forge-border-strong)]/40"
           }`}
           onClick={() => !file && fileInputRef.current?.click()}
           onDragLeave={() => setIsDragging(false)}
@@ -118,10 +118,10 @@ export function UploadCallPanel() {
 
           {file ? (
             <div className="space-y-3">
-              <p className="text-lg font-semibold text-emerald-300">{file.name}</p>
-              <p className="text-sm text-[#a9abb3]">{formatBytes(file.size)}</p>
+              <p className="text-lg font-semibold text-[var(--forge-success)]">{file.name}</p>
+              <p className="text-sm text-[var(--forge-muted)]">{formatBytes(file.size)}</p>
               <button
-                className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-300 transition hover:bg-red-500/15"
+                className="rounded-xl border border-[rgba(255,113,108,0.22)] bg-[rgba(255,113,108,0.1)] px-4 py-2 text-sm font-medium text-[var(--forge-danger)] transition hover:bg-[rgba(255,113,108,0.15)]"
                 onClick={(event) => {
                   event.stopPropagation();
                   setFile(null);
@@ -133,18 +133,18 @@ export function UploadCallPanel() {
             </div>
           ) : (
             <div className="space-y-3">
-              <p className="text-lg font-semibold text-[#ecedf6]">Drop a call recording here</p>
-              <p className="text-sm text-[#a9abb3]">MP3, WAV, M4A, MP4, or WebM up to 500 MB</p>
+              <p className="text-lg font-semibold text-[var(--forge-text)]">Drop a call recording here</p>
+              <p className="text-sm text-[var(--forge-muted)]">MP3, WAV, M4A, MP4, or WebM up to 500 MB</p>
             </div>
           )}
         </div>
 
         <label className="block space-y-2">
-          <span className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">
+          <span className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
             Call Name
           </span>
           <input
-            className="w-full rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-3 text-base text-[#ecedf6] outline-none transition placeholder:text-[#a9abb3] focus:border-[#74b1ff]/60 focus:ring-4 focus:ring-[#74b1ff]/10"
+            className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3 text-base text-[var(--forge-text)] outline-none transition placeholder:text-[var(--forge-muted)] focus:border-[var(--forge-gold)]/60 focus:ring-4 focus:ring-[var(--forge-gold)]/10"
             onChange={(event) => setCallTopic(event.target.value)}
             placeholder="Discovery call with ACME"
             type="text"
@@ -154,24 +154,24 @@ export function UploadCallPanel() {
 
         {isUploading ? (
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.22em] text-[#a9abb3]">
+            <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.22em] text-[var(--forge-muted)]">
               <span>{progress < 100 ? "Uploading" : "Scoring"}</span>
               <span>{progress}%</span>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-[#22262f]">
-              <div className="h-full rounded-full bg-[#74b1ff] transition-all" style={{ width: `${progress}%` }} />
+            <div className="h-2 overflow-hidden rounded-full bg-[var(--forge-surface-3)]">
+              <div className="h-full rounded-full bg-[var(--forge-gold)] transition-all" style={{ width: `${progress}%` }} />
             </div>
           </div>
         ) : null}
 
         {error ? (
-          <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          <div className="rounded-xl border border-[rgba(255,113,108,0.22)] bg-[rgba(255,113,108,0.1)] px-4 py-3 text-sm text-[var(--forge-danger)]">
             {error}
           </div>
         ) : null}
 
         <button
-          className="w-full rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-5 py-4 text-base font-bold text-[#002345] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-5 py-4 text-base font-bold text-[#170d07] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
           disabled={!file || isUploading}
           onClick={() => {
             void submit();

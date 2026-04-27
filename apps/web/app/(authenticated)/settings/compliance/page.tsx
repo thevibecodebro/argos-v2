@@ -24,8 +24,7 @@ export default async function SettingsCompliancePage() {
 
   return (
     <PageFrame
-      description="Configure call recording consent and review compliance acknowledgments."
-      headerMode="hidden"
+      description="Manage consent, retention, and coaching safeguards."
       eyebrow="Settings"
       title="Compliance"
     >

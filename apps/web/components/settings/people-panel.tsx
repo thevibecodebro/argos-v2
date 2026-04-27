@@ -136,26 +136,26 @@ export function PeoplePanel({
   return (
     <div className="space-y-5">
       {/* Members section */}
-      <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+      <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Members</p>
-            <p className="mt-2 text-sm text-[#a9abb3]">Manage roles for everyone in your organization.</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">Members</p>
+            <p className="mt-2 text-sm text-[var(--forge-muted)]">Manage roles for everyone in your organization.</p>
           </div>
-          <span className="rounded-full border border-[#45484f]/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#a9abb3]">
+          <span className="rounded-full border border-[var(--forge-border-strong)]/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
             {members.length} {members.length === 1 ? "member" : "members"}
           </span>
         </div>
 
         {memberError ? (
-          <div className="mt-4 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          <div className="mt-4 rounded-xl border border-[rgba(255,113,108,0.26)] bg-[rgba(255,113,108,0.1)] px-4 py-3 text-sm text-[var(--forge-danger)]">
             {memberError}
           </div>
         ) : null}
 
         <div className="mt-5 space-y-3">
           {members.length === 0 ? (
-            <p className="text-sm text-[#a9abb3]">No other members yet. Invite teammates to get started.</p>
+            <p className="text-sm text-[var(--forge-muted)]">No other members yet. Invite teammates to get started.</p>
           ) : (
             members.map((member) => {
               const isSelf = member.id === currentUserId;
@@ -169,19 +169,19 @@ export function PeoplePanel({
               return (
                 <div
                   key={member.id}
-                  className="flex flex-col gap-3 rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-4 md:flex-row md:items-center md:justify-between"
+                  className="flex flex-col gap-3 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-4 md:flex-row md:items-center md:justify-between"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#74b1ff]/20 bg-[#74b1ff]/8 text-sm font-semibold text-[#74b1ff]">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/8 text-sm font-semibold text-[var(--forge-gold)]">
                       {initials(member.firstName, member.lastName, member.email)}
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-white">
                         {memberName}
-                        {isSelf ? <span className="ml-2 text-xs font-medium text-[#a9abb3]">(you)</span> : null}
+                        {isSelf ? <span className="ml-2 text-xs font-medium text-[var(--forge-muted)]">(you)</span> : null}
                       </p>
-                      <p className="mt-1 text-sm text-[#a9abb3]">{member.email}</p>
-                      <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[#a9abb3]">
+                      <p className="mt-1 text-sm text-[var(--forge-muted)]">{member.email}</p>
+                      <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[var(--forge-muted)]">
                         {member.callCount} calls · joined {formatDate(member.joinedAt)}
                       </p>
                     </div>
@@ -191,7 +191,7 @@ export function PeoplePanel({
                     <div className="flex items-center gap-2 flex-wrap">
                       {/* Two-step role change */}
                       <select
-                        className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-3 py-2 text-sm text-[#ecedf6] outline-none transition focus:border-[#74b1ff]/60 disabled:opacity-50"
+                        className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60 disabled:opacity-50"
                         disabled={isSavingRole}
                         onChange={(e) => setStagedRoles((current) => ({ ...current, [member.id]: e.target.value }))}
                         value={stagedRole ?? member.role ?? "rep"}
@@ -203,7 +203,7 @@ export function PeoplePanel({
                       </select>
                       {hasUnappliedChange ? (
                         <button
-                          className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-3 py-2 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
+                          className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-3 py-2 text-sm font-semibold text-[#170d07] transition hover:brightness-110 disabled:opacity-50"
                           disabled={isSavingRole}
                           onClick={() => void applyRoleChange(member.id)}
                           type="button"
@@ -215,9 +215,9 @@ export function PeoplePanel({
                       {/* Two-step remove */}
                       {isConfirmingRemove ? (
                         <>
-                          <span className="text-xs text-[#a9abb3]">Remove {memberName}?</span>
+                          <span className="text-xs text-[var(--forge-muted)]">Remove {memberName}?</span>
                           <button
-                            className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-200 transition hover:bg-red-500/20 disabled:opacity-50"
+                            className="rounded-xl border border-[rgba(255,113,108,0.3)] bg-[rgba(255,113,108,0.1)] px-3 py-2 text-sm font-medium text-[var(--forge-danger)] transition hover:bg-[rgba(255,113,108,0.18)] disabled:opacity-50"
                             disabled={isRemoving}
                             onClick={() => void removeMember(member.id)}
                             type="button"
@@ -225,7 +225,7 @@ export function PeoplePanel({
                             {isRemoving ? "Removing..." : "Confirm remove"}
                           </button>
                           <button
-                            className="rounded-xl border border-[#45484f]/20 px-3 py-2 text-sm font-medium text-[#a9abb3] transition hover:text-white"
+                            className="rounded-xl border border-[var(--forge-border-strong)]/20 px-3 py-2 text-sm font-medium text-[var(--forge-muted)] transition hover:text-white"
                             onClick={() => setConfirmRemoveId(null)}
                             type="button"
                           >
@@ -234,7 +234,7 @@ export function PeoplePanel({
                         </>
                       ) : (
                         <button
-                          className="rounded-xl border border-[#45484f]/20 px-3 py-2 text-sm font-medium text-[#a9abb3] transition hover:border-red-500/30 hover:text-red-300"
+                          className="rounded-xl border border-[var(--forge-border-strong)]/20 px-3 py-2 text-sm font-medium text-[var(--forge-muted)] transition hover:border-[rgba(255,113,108,0.3)] hover:text-[var(--forge-danger)]"
                           onClick={() => setConfirmRemoveId(member.id)}
                           type="button"
                         >
@@ -251,17 +251,17 @@ export function PeoplePanel({
       </section>
 
       {/* Invites section */}
-      <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+      <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Invites</p>
-            <p className="mt-2 text-sm text-[#a9abb3]">
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">Invites</p>
+            <p className="mt-2 text-sm text-[var(--forge-muted)]">
               Invite links expire in 7 days. Revoke a pending invite to invalidate it immediately.
             </p>
           </div>
           {!showInviteForm ? (
             <button
-              className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-2 text-sm font-semibold text-[#002345] transition hover:brightness-110"
+              className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-2 text-sm font-semibold text-[#170d07] transition hover:brightness-110"
               onClick={() => setShowInviteForm(true)}
               type="button"
             >
@@ -271,11 +271,11 @@ export function PeoplePanel({
         </div>
 
         {showInviteForm ? (
-          <div className="mt-5 rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 p-5 space-y-4">
+          <div className="mt-5 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-5 space-y-4">
             <label className="block">
-              <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">Email</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">Email</span>
               <input
-                className="mt-2 w-full rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[#74b1ff]/60"
+                className="mt-2 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3 text-sm text-white outline-none transition placeholder:text-[rgba(255,244,230,0.34)] focus:border-[var(--forge-gold)]/60"
                 onChange={(e) => setInviteEmail(e.target.value)}
                 placeholder="teammate@company.com"
                 type="email"
@@ -284,9 +284,9 @@ export function PeoplePanel({
             </label>
 
             <label className="block">
-              <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">Role</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">Role</span>
               <select
-                className="mt-2 w-full rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-3 text-sm text-white outline-none transition focus:border-[#74b1ff]/60"
+                className="mt-2 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
                 onChange={(e) => {
                   setInviteRole(e.target.value as typeof inviteRole);
                   setInviteTeamIds([]);
@@ -302,7 +302,7 @@ export function PeoplePanel({
 
             {showTeamPicker && initialTeams.length > 0 ? (
               <div>
-                <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">
+                <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">
                   Teams (optional)
                 </span>
                 <div className="mt-2 space-y-2">
@@ -310,7 +310,7 @@ export function PeoplePanel({
                     <label key={team.id} className="flex items-center gap-2 text-sm text-white cursor-pointer">
                       <input
                         checked={inviteTeamIds.includes(team.id)}
-                        className="accent-[#74b1ff]"
+                        className="accent-[var(--forge-gold)]"
                         onChange={(e) =>
                           setInviteTeamIds((prev) =>
                             e.target.checked ? [...prev, team.id] : prev.filter((id) => id !== team.id),
@@ -325,11 +325,11 @@ export function PeoplePanel({
               </div>
             ) : null}
 
-            {inviteError ? <p className="text-sm text-red-300">{inviteError}</p> : null}
+            {inviteError ? <p className="text-sm text-[var(--forge-danger)]">{inviteError}</p> : null}
 
             <div className="flex gap-3">
               <button
-                className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-2.5 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
+                className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-2.5 text-sm font-semibold text-[#170d07] transition hover:brightness-110 disabled:opacity-50"
                 disabled={!inviteEmail.trim() || inviteSending}
                 onClick={() => void sendInvite()}
                 type="button"
@@ -337,7 +337,7 @@ export function PeoplePanel({
                 {inviteSending ? "Sending..." : "Send invite"}
               </button>
               <button
-                className="rounded-xl border border-[#45484f]/20 px-4 py-2.5 text-sm font-medium text-[#a9abb3] transition hover:text-white"
+                className="rounded-xl border border-[var(--forge-border-strong)]/20 px-4 py-2.5 text-sm font-medium text-[var(--forge-muted)] transition hover:text-white"
                 disabled={inviteSending}
                 onClick={() => {
                   setShowInviteForm(false);
@@ -355,7 +355,7 @@ export function PeoplePanel({
 
         <div className="mt-5">
           {pendingInvites.length === 0 ? (
-            <p className="text-sm text-[#a9abb3]">
+            <p className="text-sm text-[var(--forge-muted)]">
               No pending invites. Use the "Invite member" button above to add teammates.
             </p>
           ) : (
@@ -363,17 +363,17 @@ export function PeoplePanel({
               {pendingInvites.map((invite) => (
                 <li
                   key={invite.id}
-                  className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-3"
+                  className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-sm font-medium text-white">{invite.email}</p>
-                      <p className="mt-1 text-xs text-[#a9abb3] uppercase tracking-[0.18em]">
+                      <p className="mt-1 text-xs text-[var(--forge-muted)] uppercase tracking-[0.18em]">
                         {invite.role} · expires {new Date(invite.expiresAt).toLocaleDateString()}
                       </p>
                     </div>
                     <button
-                      className="rounded-xl border border-[#45484f]/20 px-3 py-1.5 text-sm font-medium text-[#a9abb3] transition hover:border-red-500/30 hover:text-red-300 disabled:opacity-50"
+                      className="rounded-xl border border-[var(--forge-border-strong)]/20 px-3 py-1.5 text-sm font-medium text-[var(--forge-muted)] transition hover:border-[rgba(255,113,108,0.3)] hover:text-[var(--forge-danger)] disabled:opacity-50"
                       disabled={revokingId === invite.id}
                       onClick={() => void revokeInvite(invite)}
                       type="button"
@@ -382,7 +382,7 @@ export function PeoplePanel({
                     </button>
                   </div>
                   {revokeErrors[invite.id] ? (
-                    <p className="mt-2 text-xs text-red-300">{revokeErrors[invite.id]}</p>
+                    <p className="mt-2 text-xs text-[var(--forge-danger)]">{revokeErrors[invite.id]}</p>
                   ) : null}
                 </li>
               ))}

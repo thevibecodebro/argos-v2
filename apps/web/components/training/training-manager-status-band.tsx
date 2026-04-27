@@ -29,12 +29,12 @@ export function TrainingManagerStatusBand({ metrics }: TrainingManagerStatusBand
     <div className="grid gap-3 md:grid-cols-3">
       {items.map((item) => (
         <div
-          className="rounded-[1.25rem] border border-[#45484f]/12 bg-[#161a21]/60 px-4 py-4"
+          className="rounded-[1.25rem] border border-[var(--forge-border-strong)]/12 bg-[var(--forge-surface-2)]/60 px-4 py-4"
           key={item.label}
         >
-          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#a9abb3]">{item.label}</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-muted)]">{item.label}</p>
           <p className="mt-3 text-2xl font-semibold tracking-tight text-white">{item.value}</p>
-          <p className="mt-1 text-xs leading-5 text-[#a9abb3]">{item.detail}</p>
+          <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">{item.detail}</p>
         </div>
       ))}
     </div>

@@ -31,31 +31,27 @@ type NavGroup = {
   visibleTo?: AppUserRole[];
 };
 
-// ── Navigation config ────────────────────────────────────────────────────────
-
-const standaloneRoutes: NavItem[] = [
-  {
-    href: "/dashboard",
-    label: "Dashboard",
-    icon: "dashboard",
-  },
-];
+type CurrentArea = {
+  eyebrow: string;
+  label: string;
+};
 
 const navGroups: NavGroup[] = [
   {
-    label: "Calls",
-    icon: "library_books",
+    label: "Review",
+    icon: "query_stats",
     items: [
-      { href: "/calls", label: "Call Library", icon: "library_books" },
+      { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
+      { href: "/calls", label: "Calls", icon: "library_books" },
       { href: "/highlights", label: "Highlights", icon: "auto_awesome" },
     ],
   },
   {
-    label: "Coaching",
+    label: "Coach",
     icon: "psychology",
     items: [
-      { href: "/roleplay", label: "Roleplay", icon: "psychology" },
       { href: "/training", label: "Training", icon: "school" },
+      { href: "/roleplay", label: "Roleplay", icon: "psychology" },
     ],
   },
   {
@@ -67,9 +63,15 @@ const navGroups: NavGroup[] = [
       { href: "/leaderboard", label: "Leaderboard", icon: "leaderboard" },
     ],
   },
+  {
+    label: "System",
+    icon: "settings",
+    items: [
+      { href: "/notifications", label: "Notifications", icon: "notifications" },
+      { href: "/settings", label: "Settings", icon: "settings" },
+    ],
+  },
 ];
-
-// ── Shell ─────────────────────────────────────────────────────────────────────
 
 export function AuthenticatedAppShell({
   children,
@@ -77,9 +79,13 @@ export function AuthenticatedAppShell({
 }: AuthenticatedAppShellProps) {
   const currentPath = usePathname();
   const [accountOpen, setAccountOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
 
   const initials = getInitials(user.fullName || user.email);
+  const currentArea = getCurrentArea(currentPath);
+  const roleLabel = formatRole(user.role);
+  const roleContext = user.role ? `${roleLabel} view` : "Workspace view";
 
   const visibleGroups = navGroups.filter((group) => {
     if (!group.visibleTo) return true;
@@ -87,7 +93,6 @@ export function AuthenticatedAppShell({
     return group.visibleTo.includes(user.role);
   });
 
-  // Close account dropdown on outside click
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (accountRef.current && !accountRef.current.contains(e.target as Node)) {
@@ -100,167 +105,226 @@ export function AuthenticatedAppShell({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [accountOpen]);
 
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [currentPath]);
+
   return (
-    <div className="bg-[#0b0e14] text-[#ecedf6] min-h-screen">
-      {/* ── Sidebar ── */}
-      <aside className="h-screen w-60 fixed left-0 top-0 bg-[#0b0e14] flex flex-col py-8 px-4 z-50 border-r border-[#45484f]/10">
-        {/* Brand */}
-        <div className="mb-10 px-3">
-          <h1 className="text-2xl font-bold tracking-tighter text-[#ecedf6] font-[var(--font-display)]">
-            Argos
-          </h1>
-          <p className="tracking-wider uppercase text-[0.65rem] font-bold text-[#45484f] font-[var(--font-display)] mt-0.5">
-            {user.orgName ?? "Command Center"}
-          </p>
+    <div className="forge-shell min-h-dvh text-[var(--forge-text)]" data-shell-theme="forge">
+      {mobileNavOpen ? (
+        <button
+          aria-label="Close navigation"
+          className="fixed inset-0 z-40 bg-black/55 lg:hidden"
+          onClick={() => setMobileNavOpen(false)}
+          type="button"
+        />
+      ) : null}
+
+      <aside
+        className={cn(
+          "forge-sidebar fixed inset-y-0 left-0 z-50 flex h-dvh w-64 flex-col px-4 py-5 transition-transform duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
+          mobileNavOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+        )}
+        id="auth-navigation"
+      >
+        <div className="mb-7 rounded-[1.35rem] border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] p-3 shadow-[inset_0_1px_0_rgba(255,244,230,0.055)]">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h1 className="font-[var(--font-display)] text-2xl font-bold tracking-[-0.04em] text-[var(--forge-text)]">
+                Argos
+              </h1>
+              <p className="mt-0.5 font-[var(--font-display)] text-[0.62rem] font-bold uppercase tracking-[0.24em] text-[var(--forge-gold)]">
+                Sales forge
+              </p>
+            </div>
+            <span
+              aria-hidden="true"
+              className="material-symbols-outlined forge-icon text-[var(--forge-gold)]"
+              style={{ fontSize: "21px" }}
+            >
+              insights
+            </span>
+          </div>
+          <div className="mt-4 rounded-2xl border border-[var(--forge-border)] bg-[rgba(5,4,3,0.38)] p-3">
+            <p className="font-[var(--font-display)] text-[0.58rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-gold)]">
+              Workspace scope
+            </p>
+            <p className="mt-1 truncate text-xs font-semibold text-[var(--forge-text)]">
+              {user.orgName ?? "Command workspace"}
+            </p>
+            <p className="mt-0.5 truncate text-xs text-[var(--forge-muted)]">
+              {roleContext}
+            </p>
+          </div>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 overflow-y-auto space-y-1" aria-label="Primary navigation">
-          {/* Standalone items */}
-          {standaloneRoutes.map((route) => {
-            const active = isRouteActive(currentPath, route.href);
-            return (
-              <NavLink key={route.href} href={route.href} label={route.label} icon={route.icon} active={active} />
-            );
-          })}
-
-          {/* Grouped items */}
+        <nav className="flex-1 space-y-1 overflow-y-auto pr-1" aria-label="Primary navigation">
           {visibleGroups.map((group) => {
             const groupActive = group.items.some((item) => isRouteActive(currentPath, item.href));
             return (
-              <div key={group.label} className="mt-3">
-                <p className={cn(
-                  "px-3 mb-1 text-[0.6rem] font-bold uppercase tracking-[0.2em] font-[var(--font-display)]",
-                  groupActive ? "text-[#74b1ff]/60" : "text-[#45484f]/70",
-                )}>
+              <div className="mt-4" key={group.label}>
+                <p
+                  className="forge-nav-section-label mb-1 px-3"
+                  data-active={groupActive ? "true" : "false"}
+                >
                   {group.label}
                 </p>
-                {group.items.map((item) => {
-                  const active = isRouteActive(currentPath, item.href);
-                  return (
-                    <NavLink key={item.href} href={item.href} label={item.label} icon={item.icon} active={active} />
-                  );
-                })}
+                <div className="space-y-1">
+                  {group.items.map((item) => {
+                    const active = isRouteActive(currentPath, item.href);
+                    return (
+                      <NavLink
+                        active={active}
+                        href={item.href}
+                        icon={item.icon}
+                        key={item.href}
+                        label={item.label}
+                      />
+                    );
+                  })}
+                </div>
               </div>
             );
           })}
         </nav>
 
-        {/* Bottom nav */}
-        <div className="pt-3 border-t border-[#45484f]/10">
-          <NavLink
-            href="/settings"
-            label="Settings"
-            icon="settings"
-            active={isRouteActive(currentPath, "/settings")}
-          />
+        <div className="mt-4 border-t border-[var(--forge-border)] pt-3 text-xs leading-5 text-[var(--forge-muted)]">
+          <span className="font-[var(--font-display)] font-bold uppercase tracking-[0.16em] text-[var(--forge-gold)]">
+            Active scope
+          </span>
+          <span className="mt-1 block truncate">{roleContext}</span>
         </div>
       </aside>
 
-      {/* ── Main area ── */}
-      <div className="ml-60 min-h-screen flex flex-col">
-        {/* Fixed header */}
-        <header className="fixed top-0 right-0 w-[calc(100%-15rem)] z-40 bg-[#0b0e14]/80 backdrop-blur-xl flex justify-end items-center px-10 py-4 border-b border-[#45484f]/10 gap-4">
-          {/* Upload CTA */}
-          <Link
-            href="/upload"
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider font-[var(--font-display)] transition-all",
-              isRouteActive(currentPath, "/upload")
-                ? "bg-[#74b1ff]/20 text-[#74b1ff] border border-[#74b1ff]/30"
-                : "bg-[#74b1ff]/10 text-[#74b1ff] border border-[#74b1ff]/20 hover:bg-[#74b1ff]/20",
-            )}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>cloud_upload</span>
-            Upload
-          </Link>
-
-          {/* Notifications */}
-          <Link
-            href="/notifications"
-            aria-label="Notifications"
-            className={cn(
-              "w-9 h-9 rounded-lg flex items-center justify-center transition-all",
-              isRouteActive(currentPath, "/notifications")
-                ? "text-[#74b1ff] bg-[#74b1ff]/10"
-                : "text-[#a9abb3] hover:text-[#74b1ff] hover:bg-[#74b1ff]/5",
-            )}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>notifications</span>
-          </Link>
-
-          {/* Account menu */}
-          <div className="relative" ref={accountRef}>
+      <div className="min-h-dvh lg:pl-64">
+        <header className="forge-topbar fixed left-0 right-0 top-0 z-30 flex min-h-16 items-center justify-between gap-3 px-4 py-3 backdrop-blur-xl lg:left-64 lg:px-7">
+          <div className="flex min-w-0 items-center gap-3">
             <button
-              aria-expanded={accountOpen}
-              aria-haspopup="true"
-              aria-label="Account menu"
-              className="w-9 h-9 rounded-full bg-[#22262f] border border-[#45484f]/30 flex items-center justify-center text-sm font-bold text-[#74b1ff] hover:border-[#74b1ff]/40 transition-all select-none"
-              onClick={() => setAccountOpen((v) => !v)}
+              aria-controls="auth-navigation"
+              aria-expanded={mobileNavOpen}
+              aria-label="Open navigation"
+              className="forge-icon-button flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl lg:hidden"
+              onClick={() => setMobileNavOpen(true)}
               type="button"
             >
-              {initials}
+              <span className="material-symbols-outlined forge-icon" style={{ fontSize: "22px" }}>
+                filter_list
+              </span>
             </button>
 
-            <div
+            <div className="min-w-0">
+              <p className="font-[var(--font-display)] text-[0.62rem] font-bold uppercase tracking-[0.24em] text-[var(--forge-gold)]">
+                {currentArea.eyebrow}
+              </p>
+              <p className="truncate text-sm font-semibold text-[var(--forge-text)]">
+                {currentArea.label}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <div className="hidden rounded-2xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-2 text-right sm:block">
+              <p className="max-w-40 truncate text-xs font-semibold text-[var(--forge-text)]">
+                {user.orgName ?? "Argos"}
+              </p>
+              <p className="font-[var(--font-display)] text-[0.58rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
+                {roleLabel}
+              </p>
+            </div>
+
+            <Link
               className={cn(
-                "absolute right-0 top-full mt-2 w-56 rounded-xl bg-[#13161e] border border-[#45484f]/20 shadow-[0_16px_48px_rgba(0,0,0,0.5)] overflow-hidden z-50 transition-all duration-150",
-                accountOpen ? "opacity-100 pointer-events-auto translate-y-0" : "opacity-0 pointer-events-none -translate-y-1",
+                "forge-button hidden px-3 py-2 text-xs uppercase tracking-[0.18em] sm:inline-flex",
+                isRouteActive(currentPath, "/upload")
+                  ? "forge-button-primary"
+                  : "forge-button-secondary",
               )}
-              aria-hidden={!accountOpen}
+              href="/upload"
             >
-              {/* User info */}
-              <div className="px-4 py-3 border-b border-[#45484f]/10">
-                <p className="text-sm font-semibold text-[#ecedf6] truncate">{user.fullName || user.email}</p>
-                {user.fullName && (
-                  <p className="text-xs text-[#45484f] truncate mt-0.5">{user.email}</p>
-                )}
-                {user.role && (
-                  <p className="text-[0.6rem] uppercase tracking-[0.18em] text-[#45484f] font-bold mt-1">{user.role}</p>
-                )}
-              </div>
+              <span className="material-symbols-outlined forge-icon" style={{ fontSize: "16px" }}>
+                cloud_upload
+              </span>
+              Upload call
+            </Link>
 
-              {/* Settings */}
-              <Link
-                href="/settings"
-                className="flex items-center gap-3 px-4 py-3 text-sm text-[#a9abb3] hover:text-[#ecedf6] hover:bg-[#74b1ff]/5 transition-all"
-                onClick={() => setAccountOpen(false)}
+            <Link
+              aria-label="Notifications"
+              className="forge-icon-button flex h-10 w-10 items-center justify-center rounded-2xl"
+              data-active={isRouteActive(currentPath, "/notifications") ? "true" : "false"}
+              href="/notifications"
+            >
+              <span className="material-symbols-outlined forge-icon" style={{ fontSize: "20px" }}>
+                notifications
+              </span>
+            </Link>
+
+            <div className="relative" ref={accountRef}>
+              <button
+                aria-expanded={accountOpen}
+                aria-haspopup="true"
+                aria-label="Account menu"
+                className="forge-icon-button flex h-10 w-10 items-center justify-center rounded-full font-[var(--font-display)] text-sm font-bold text-[var(--forge-gold)]"
+                onClick={() => setAccountOpen((v) => !v)}
+                type="button"
               >
-                <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>settings</span>
-                Settings
-              </Link>
+                {initials}
+              </button>
 
-              <div className="border-t border-[#45484f]/10">
-                <form action="/auth/signout" method="post">
-                  <button
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#a9abb3] hover:text-[#ecedf6] hover:bg-[#74b1ff]/5 transition-all text-left"
-                    type="submit"
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>logout</span>
-                    Sign out
-                  </button>
-                </form>
+              <div
+                aria-hidden={!accountOpen}
+                className={cn(
+                  "forge-account-menu absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-3xl transition duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]",
+                  accountOpen
+                    ? "pointer-events-auto translate-y-0 opacity-100"
+                    : "pointer-events-none -translate-y-1 opacity-0",
+                )}
+              >
+                <div className="border-b border-[var(--forge-border)] px-4 py-3">
+                  <p className="truncate text-sm font-semibold text-[var(--forge-text)]">
+                    {user.fullName || user.email}
+                  </p>
+                  {user.fullName ? (
+                    <p className="mt-0.5 truncate text-xs text-[var(--forge-muted)]">{user.email}</p>
+                  ) : null}
+                  <p className="mt-1 font-[var(--font-display)] text-[0.6rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-gold)]">
+                    {roleLabel}
+                  </p>
+                </div>
+
+                <Link
+                  className="flex items-center gap-3 px-4 py-3 text-sm text-[var(--forge-muted)] transition hover:bg-[rgba(241,191,123,0.07)] hover:text-[var(--forge-text)]"
+                  href="/settings"
+                  onClick={() => setAccountOpen(false)}
+                >
+                  <span className="material-symbols-outlined forge-icon" style={{ fontSize: "17px" }}>
+                    settings
+                  </span>
+                  Settings
+                </Link>
+
+                <div className="border-t border-[var(--forge-border)]">
+                  <form action="/auth/signout" method="post">
+                    <button
+                      className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-[var(--forge-muted)] transition hover:bg-[rgba(255,113,108,0.09)] hover:text-[var(--forge-text)]"
+                      type="submit"
+                    >
+                      <span className="material-symbols-outlined forge-icon" style={{ fontSize: "17px" }}>
+                        logout
+                      </span>
+                      Sign out
+                    </button>
+                  </form>
+                </div>
               </div>
             </div>
           </div>
         </header>
 
-        {/* Page content */}
-        <main className="mt-[65px] flex-1">
-          {children}
-        </main>
-      </div>
-
-      {/* Ambient background glows */}
-      <div className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10 overflow-hidden">
-        <div className="absolute top-1/4 -right-20 w-[500px] h-[500px] bg-[#74b1ff]/5 blur-[120px] rounded-full" />
-        <div className="absolute -bottom-20 -left-20 w-[600px] h-[600px] bg-[#6dddff]/5 blur-[150px] rounded-full" />
+        <main className="min-h-dvh pt-16">{children}</main>
       </div>
     </div>
   );
 }
-
-// ── Sub-components ────────────────────────────────────────────────────────────
 
 function NavLink({
   href,
@@ -275,24 +339,20 @@ function NavLink({
 }) {
   return (
     <Link
-      href={href}
-      className={cn(
-        "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 font-[var(--font-display)] tracking-wider uppercase text-[0.7rem] font-bold",
-        active
-          ? "text-[#74b1ff] bg-[#74b1ff]/10 border-r-2 border-[#74b1ff]"
-          : "text-[#45484f] hover:text-[#ecedf6] hover:bg-[#ffffff]/5",
-      )}
       aria-current={active ? "page" : undefined}
+      className={cn(
+        "forge-nav-link flex items-center gap-3 rounded-2xl px-3 py-2.5 font-[var(--font-display)] text-[0.7rem] font-bold uppercase tracking-[0.16em]",
+        active && "forge-nav-link--active",
+      )}
+      href={href}
     >
-      <span className="material-symbols-outlined shrink-0" style={{ fontSize: "18px" }}>
+      <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
         {icon}
       </span>
-      {label}
+      <span className="truncate">{label}</span>
     </Link>
   );
 }
-
-// ── Utilities ─────────────────────────────────────────────────────────────────
 
 function isRouteActive(currentPath: string, href: string) {
   return currentPath === href || currentPath.startsWith(`${href}/`);
@@ -305,4 +365,23 @@ function getInitials(value: string) {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("");
+}
+
+function formatRole(role: AppUserRole | null) {
+  if (!role) return "Workspace";
+  return role.charAt(0).toUpperCase() + role.slice(1);
+}
+
+function getCurrentArea(currentPath: string): CurrentArea {
+  if (currentPath === "/dashboard") return { eyebrow: "Operating pulse", label: "Dashboard" };
+  if (currentPath.startsWith("/calls")) return { eyebrow: "Call intake", label: "Calls" };
+  if (currentPath.startsWith("/highlights")) return { eyebrow: "Coaching evidence", label: "Highlights" };
+  if (currentPath.startsWith("/upload")) return { eyebrow: "Call intake", label: "Upload call" };
+  if (currentPath.startsWith("/roleplay")) return { eyebrow: "Simulation bay", label: "Roleplay" };
+  if (currentPath.startsWith("/training")) return { eyebrow: "Curriculum bench", label: "Training" };
+  if (currentPath.startsWith("/team")) return { eyebrow: "People operations", label: "Team" };
+  if (currentPath.startsWith("/leaderboard")) return { eyebrow: "Performance ranks", label: "Leaderboard" };
+  if (currentPath.startsWith("/notifications")) return { eyebrow: "Activity inbox", label: "Notifications" };
+  if (currentPath.startsWith("/settings")) return { eyebrow: "System settings", label: "Settings" };
+  return { eyebrow: "Sales forge", label: "Workspace" };
 }

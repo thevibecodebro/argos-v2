@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ForgeButton, ForgeChip, ForgeSurface } from "@/components/forge";
 import { CallDetailPanel } from "@/components/page-panel-loaders";
 import {
   getCachedAuthenticatedSupabaseUser,
@@ -34,42 +35,55 @@ export default async function CallDetailPage({
   const topic = call.callTopic ?? "Untitled call";
 
   return (
-    <div className="mx-auto w-full max-w-[1600px] px-6 py-8 sm:px-8 lg:px-10">
-      <div className="mb-8 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-        <div className="space-y-3">
-          <nav className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.24em] text-[#74b1ff]">
-            <Link className="opacity-60 transition hover:opacity-100" href="/calls">
+    <div
+      className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8"
+      data-call-detail-shell="forge-review-bench"
+    >
+      <ForgeSurface className="mb-6 p-4 sm:p-5">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0 space-y-4">
+            <nav className="flex items-center gap-2 font-[var(--font-display)] text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-gold)]">
+              <Link className="text-[var(--forge-muted)] transition hover:text-[var(--forge-gold)]" href="/calls">
+                Call Library
+              </Link>
+              <span className="material-symbols-outlined forge-icon text-[var(--forge-muted)]" style={{ fontSize: "16px" }}>
+                chevron_right
+              </span>
+              <span className="truncate">{topic}</span>
+            </nav>
+
+            <div>
+              <p className="font-[var(--font-display)] text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
+                Review bench
+              </p>
+              <h1 className="mt-2 max-w-4xl truncate font-[var(--font-display)] text-3xl font-semibold tracking-[-0.02em] text-[var(--forge-text)]">
+                {topic}
+              </h1>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <ForgeChip icon="query_stats" tone="cyan">
+                  {call.overallScore ?? "No score"}
+                </ForgeChip>
+                <ForgeChip icon="history" tone="muted">
+                  {call.status}
+                </ForgeChip>
+                <ForgeChip tone="gold">#{id}</ForgeChip>
+                <ForgeChip tone="muted">
+                  {profile?.fullName ?? profile?.email ?? "Unknown"} / {profile?.role ?? "member"}
+                </ForgeChip>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <ForgeButton href="/calls" icon="arrow_back" variant="secondary">
               Call Library
-            </Link>
-            <span className="material-symbols-outlined text-sm">chevron_right</span>
-            <span className="truncate">{topic}</span>
-          </nav>
-          <div>
-            <h1 className="text-4xl font-semibold tracking-tight text-white">
-              Call Detail
-              <span className="ml-4 break-all text-2xl font-light text-[#74b1ff]/40">#{id}</span>
-            </h1>
-            <p className="mt-2 text-sm text-slate-500">
-              Viewer: {profile?.fullName ?? profile?.email ?? "Unknown"} · {profile?.role ?? "member"}
-            </p>
+            </ForgeButton>
+            <ForgeButton href="/highlights" icon="insights" variant="primary">
+              Share Insight
+            </ForgeButton>
           </div>
         </div>
-
-        <div className="flex flex-wrap gap-3">
-          <Link
-            className="rounded-xl border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/[0.07]"
-            href="/calls"
-          >
-            Back to library
-          </Link>
-          <Link
-            className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-5 py-3 text-sm font-extrabold text-[#002345] shadow-[0_0_20px_rgba(116,177,255,0.15)] transition hover:opacity-90"
-            href="/highlights"
-          >
-            Share Insight
-          </Link>
-        </div>
-      </div>
+      </ForgeSurface>
 
       <CallDetailPanel
         annotations={annotationsResult.ok ? annotationsResult.data.annotations : []}

@@ -76,9 +76,9 @@ export function NotificationsPanel({
 
   if (notifications.length === 0) {
     return (
-      <section className="rounded-xl border border-dashed border-[#45484f]/20 bg-[#161a21]/20 px-6 py-12 text-center">
-        <p className="text-lg font-medium text-[#ecedf6]">No notifications yet</p>
-        <p className="mt-2 text-sm text-[#a9abb3]">
+      <section className="rounded-xl border border-dashed border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/20 px-6 py-12 text-center">
+        <p className="text-lg font-medium text-[var(--forge-text)]">No notifications yet</p>
+        <p className="mt-2 text-sm text-[var(--forge-muted)]">
           Uploading a call, adding annotations, and completing training modules will start populating this feed.
         </p>
       </section>
@@ -86,14 +86,14 @@ export function NotificationsPanel({
   }
 
   return (
-    <section className="space-y-5 rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+    <section className="space-y-5 rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-[#ecedf6]">{unreadCount} unread</p>
-          <p className="mt-1 text-sm text-[#a9abb3]">Scoring, coaching, and training activity across your account.</p>
+          <p className="text-sm font-semibold text-[var(--forge-text)]">{unreadCount} unread</p>
+          <p className="mt-1 text-sm text-[var(--forge-muted)]">Scoring, coaching, and training activity across your account.</p>
         </div>
         <button
-          className="rounded-xl border border-[#74b1ff]/20 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-[#74b1ff] transition hover:border-[#74b1ff]/35 hover:bg-[#74b1ff]/10 disabled:opacity-50"
+          className="rounded-xl border border-[var(--forge-gold)]/20 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-[var(--forge-gold)] transition hover:border-[var(--forge-gold)]/35 hover:bg-[var(--forge-gold)]/10 disabled:opacity-50"
           disabled={unreadCount === 0 || isMutating}
           onClick={() => {
             void markAllRead();
@@ -107,7 +107,7 @@ export function NotificationsPanel({
       <div className="space-y-6">
         {grouped.map(([day, items]) => (
           <div key={day}>
-            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
               {new Intl.DateTimeFormat("en-US", { dateStyle: "full" }).format(new Date(day))}
             </p>
             <div className="mt-3 space-y-3">
@@ -115,8 +115,8 @@ export function NotificationsPanel({
                 <button
                   className={`w-full rounded-xl border px-4 py-4 text-left transition ${
                     notification.read
-                      ? "border-[#45484f]/20 bg-[#161a21]/50"
-                      : "border-[#74b1ff]/20 bg-[#74b1ff]/5"
+                      ? "border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50"
+                      : "border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/5"
                   }`}
                   key={notification.id}
                   onClick={() => {
@@ -126,10 +126,10 @@ export function NotificationsPanel({
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-sm font-semibold text-[#ecedf6]">{notification.title}</p>
-                      <p className="mt-2 text-sm leading-7 text-[#a9abb3]">{notification.body}</p>
+                      <p className="text-sm font-semibold text-[var(--forge-text)]">{notification.title}</p>
+                      <p className="mt-2 text-sm leading-7 text-[var(--forge-muted)]">{notification.body}</p>
                     </div>
-                    <span className="shrink-0 text-xs uppercase tracking-[0.22em] text-[#a9abb3]">
+                    <span className="shrink-0 text-xs uppercase tracking-[0.22em] text-[var(--forge-muted)]">
                       {timeAgo(notification.createdAt)}
                     </span>
                   </div>

@@ -19,7 +19,7 @@ type TeamRepProfileViewProps = {
 };
 
 const shellPanelClass =
-  "rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(16,19,26,0.92),rgba(10,13,19,0.98))] shadow-[0_24px_70px_rgba(3,8,20,0.34)] backdrop-blur-xl";
+  "rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(16,19,26,0.92),rgba(10,13,19,0.98))] shadow-[0_24px_70px_rgba(3,8,20,0.34)] ";
 
 const insetPanelClass =
   "rounded-[1.5rem] border border-white/10 bg-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]";
@@ -47,22 +47,14 @@ export function TeamRosterView({ dashboard }: TeamRosterViewProps) {
     <div className="space-y-6">
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.9fr)]">
         <article className={cn(shellPanelClass, "relative overflow-hidden p-6 sm:p-7")}>
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-[-20%] top-[-35%] h-48 rounded-full bg-[radial-gradient(circle,rgba(116,177,255,0.22),transparent_68%)] blur-3xl"
-          />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute bottom-0 right-0 h-40 w-40 translate-x-10 translate-y-10 rounded-full border border-[#74b1ff]/10 bg-[#74b1ff]/5 blur-2xl"
-          />
           <div className="relative grid gap-8 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
             <div className="space-y-4">
               <SectionEyebrow>Roster overview</SectionEyebrow>
               <div className="space-y-3">
-                <h3 className="max-w-lg text-3xl font-semibold tracking-tight text-[#ecedf6] md:text-[2.6rem] md:leading-[1.02]">
+                <h3 className="max-w-lg text-3xl font-semibold tracking-tight text-[var(--forge-text)] md:text-[2.6rem] md:leading-[1.02]">
                   Keep the team readable at a glance, then drill into the rep who needs attention.
                 </h3>
-                <p className="max-w-[62ch] text-sm leading-7 text-[#a9abb3]">
+                <p className="max-w-[62ch] text-sm leading-7 text-[var(--forge-muted)]">
                   Review team performance with week-over-week trend, call volume, and coaching flags.
                 </p>
               </div>
@@ -123,11 +115,11 @@ export function TeamRosterView({ dashboard }: TeamRosterViewProps) {
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div className="space-y-2">
               <SectionEyebrow>Rep roster</SectionEyebrow>
-              <p className="text-sm leading-7 text-[#a9abb3]">
+              <p className="text-sm leading-7 text-[var(--forge-muted)]">
                 Open any rep to review focus areas, recent calls, and badges.
               </p>
             </div>
-            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#a9abb3]">
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--forge-muted)]">
               {reps.length} {reps.length === 1 ? "rep" : "reps"}
             </span>
           </div>
@@ -145,7 +137,7 @@ export function TeamRosterView({ dashboard }: TeamRosterViewProps) {
                   <Link
                     className={cn(
                       insetPanelClass,
-                      "group block p-4 transition duration-300 hover:border-[#74b1ff]/30 hover:bg-[#74b1ff]/[0.06] active:scale-[0.99]",
+                      "group block p-4 transition duration-300 hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/[0.06] active:scale-[0.99]",
                     )}
                     href={`/team/${rep.id}`}
                     key={rep.id}
@@ -154,13 +146,13 @@ export function TeamRosterView({ dashboard }: TeamRosterViewProps) {
                       <div className="flex items-center gap-3">
                         <RepAvatar rep={rep} size="md" />
                         <div className="space-y-1">
-                          <p className="text-base font-semibold text-[#ecedf6]">{formatRepName(rep)}</p>
+                          <p className="text-base font-semibold text-[var(--forge-text)]">{formatRepName(rep)}</p>
                           <p className="text-xs uppercase tracking-[0.22em] text-[#7f8796]">
                             Open profile
                           </p>
                         </div>
                       </div>
-                      <span className="material-symbols-outlined text-[#74b1ff] transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5">
+                      <span className="material-symbols-outlined text-[var(--forge-gold)] transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5">
                         north_east
                       </span>
                     </div>
@@ -195,7 +187,7 @@ export function TeamRosterView({ dashboard }: TeamRosterViewProps) {
               <div className="divide-y divide-white/[0.08]">
                 {reps.map((rep, index) => (
                   <Link
-                    className="group grid grid-cols-[minmax(0,1.8fr)_minmax(140px,0.75fr)_minmax(150px,0.75fr)_minmax(120px,0.65fr)_minmax(170px,0.8fr)_42px] gap-4 px-6 py-4 transition duration-300 hover:bg-[#74b1ff]/5 active:scale-[0.998]"
+                    className="group grid grid-cols-[minmax(0,1.8fr)_minmax(140px,0.75fr)_minmax(150px,0.75fr)_minmax(120px,0.65fr)_minmax(170px,0.8fr)_42px] gap-4 px-6 py-4 transition duration-300 hover:bg-[var(--forge-gold)]/5 active:scale-[0.998]"
                     href={`/team/${rep.id}`}
                     key={rep.id}
                     style={{ animationDelay: `${index * 60}ms` }}
@@ -204,7 +196,7 @@ export function TeamRosterView({ dashboard }: TeamRosterViewProps) {
                       <div className="flex items-center gap-3">
                         <RepAvatar rep={rep} />
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-[#ecedf6]">
+                          <p className="truncate text-sm font-semibold text-[var(--forge-text)]">
                             {formatRepName(rep)}
                           </p>
                           <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-[#7f8796]">
@@ -224,7 +216,7 @@ export function TeamRosterView({ dashboard }: TeamRosterViewProps) {
                     </div>
 
                     <div className="flex flex-col items-end justify-center">
-                      <p className="text-lg font-semibold text-[#ecedf6]">{rep.callCount}</p>
+                      <p className="text-lg font-semibold text-[var(--forge-text)]">{rep.callCount}</p>
                       <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-[#7f8796]">
                         reviewed
                       </p>
@@ -238,7 +230,7 @@ export function TeamRosterView({ dashboard }: TeamRosterViewProps) {
                     </div>
 
                     <div className="flex items-center justify-end">
-                      <span className="material-symbols-outlined text-[#74b1ff] transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5">
+                      <span className="material-symbols-outlined text-[var(--forge-gold)] transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5">
                         arrow_outward
                       </span>
                     </div>
@@ -272,20 +264,16 @@ export function TeamRepProfileView({
     <div className="space-y-6">
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(340px,0.95fr)]">
         <article className={cn(shellPanelClass, "relative overflow-hidden p-6 sm:p-7")}>
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 right-[-10%] w-56 rounded-full bg-[radial-gradient(circle,rgba(116,177,255,0.16),transparent_72%)] blur-3xl"
-          />
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex min-w-0 items-start gap-4">
               <RepAvatar rep={rep} size="xl" />
               <div className="min-w-0 space-y-3">
                 <SectionEyebrow>Team member</SectionEyebrow>
                 <div className="space-y-2">
-                  <h3 className="truncate text-3xl font-semibold tracking-tight text-[#ecedf6] md:text-[2.5rem]">
+                  <h3 className="truncate text-3xl font-semibold tracking-tight text-[var(--forge-text)] md:text-[2.5rem]">
                     {formatRepName(rep)}
                   </h3>
-                  <p className="max-w-[58ch] text-sm leading-7 text-[#a9abb3]">
+                  <p className="max-w-[58ch] text-sm leading-7 text-[var(--forge-muted)]">
                     Review score trends, focus categories, badges, and recent calls for the selected
                     team member.
                   </p>
@@ -349,11 +337,11 @@ export function TeamRepProfileView({
             <div className="space-y-2">
               <SectionEyebrow>Focus areas</SectionEyebrow>
               {repDashboard.categoryAnalyticsContextLabel ? (
-                <p className="text-sm leading-7 text-[#a9abb3]">
+                <p className="text-sm leading-7 text-[var(--forge-muted)]">
                   {repDashboard.categoryAnalyticsContextLabel}
                 </p>
               ) : (
-                <p className="text-sm leading-7 text-[#a9abb3]">
+                <p className="text-sm leading-7 text-[var(--forge-muted)]">
                   Lowest-scoring categories across recent calls.
                 </p>
               )}
@@ -365,7 +353,7 @@ export function TeamRepProfileView({
               {repDashboard.lowestCategories.map((category) => (
                 <div className="space-y-2" key={category.category}>
                   <div className="flex items-center justify-between gap-4">
-                    <span className="text-sm font-medium text-[#ecedf6]">{category.category}</span>
+                    <span className="text-sm font-medium text-[var(--forge-text)]">{category.category}</span>
                     <span className={cn("text-sm font-semibold", scoreTextTone(category.avgScore))}>
                       {Math.round(category.avgScore)}
                     </span>
@@ -388,9 +376,9 @@ export function TeamRepProfileView({
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div className="space-y-2">
               <SectionEyebrow>Weekly trend</SectionEyebrow>
-              <p className="text-sm leading-7 text-[#a9abb3]">Past 12 weeks of scored-call performance.</p>
+              <p className="text-sm leading-7 text-[var(--forge-muted)]">Past 12 weeks of scored-call performance.</p>
             </div>
-            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#a9abb3]">
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--forge-muted)]">
               {totalTrendCalls} calls reviewed
             </span>
           </div>
@@ -404,10 +392,10 @@ export function TeamRepProfileView({
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div className="space-y-2">
               <SectionEyebrow>Recent calls</SectionEyebrow>
-              <p className="text-sm leading-7 text-[#a9abb3]">Most recent scored calls available for review.</p>
+              <p className="text-sm leading-7 text-[var(--forge-muted)]">Most recent scored calls available for review.</p>
             </div>
             <Link
-              className="rounded-full border border-[#74b1ff]/20 bg-[#74b1ff]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#74b1ff] transition hover:border-[#74b1ff]/35 hover:bg-[#74b1ff]/[0.15] active:scale-[0.98]"
+              className="rounded-full border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--forge-gold)] transition hover:border-[var(--forge-gold)]/35 hover:bg-[var(--forge-gold)]/[0.15] active:scale-[0.98]"
               href="/calls"
             >
               Open calls
@@ -420,13 +408,13 @@ export function TeamRepProfileView({
                 <Link
                   className={cn(
                     insetPanelClass,
-                    "group flex flex-col gap-3 p-4 transition duration-300 hover:border-[#74b1ff]/30 hover:bg-[#74b1ff]/5 active:scale-[0.99] sm:flex-row sm:items-center sm:justify-between",
+                    "group flex flex-col gap-3 p-4 transition duration-300 hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/5 active:scale-[0.99] sm:flex-row sm:items-center sm:justify-between",
                   )}
                   href={`/calls/${call.id}`}
                   key={call.id}
                 >
                   <div className="space-y-2">
-                    <p className="text-sm font-semibold text-[#ecedf6]">
+                    <p className="text-sm font-semibold text-[var(--forge-text)]">
                       {call.callTopic ?? "Untitled call"}
                     </p>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs uppercase tracking-[0.18em] text-[#7f8796]">
@@ -447,7 +435,7 @@ export function TeamRepProfileView({
                         Overall score
                       </p>
                     </div>
-                    <span className="material-symbols-outlined text-[#74b1ff] transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5">
+                    <span className="material-symbols-outlined text-[var(--forge-gold)] transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5">
                       arrow_outward
                     </span>
                   </div>
@@ -462,7 +450,7 @@ export function TeamRepProfileView({
         <article className={cn(shellPanelClass, "p-6 sm:p-7")}>
           <div className="space-y-2">
             <SectionEyebrow>Badges &amp; milestones</SectionEyebrow>
-            <p className="text-sm leading-7 text-[#a9abb3]">Progress markers already earned or still in progress.</p>
+            <p className="text-sm leading-7 text-[var(--forge-muted)]">Progress markers already earned or still in progress.</p>
           </div>
 
           {(badges?.badges ?? []).length ? (
@@ -473,16 +461,16 @@ export function TeamRepProfileView({
                     insetPanelClass,
                     "flex items-start gap-4 p-4",
                     badge.earned
-                      ? "border-[#74b1ff]/20 bg-[#74b1ff]/[0.08]"
+                      ? "border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/[0.08]"
                       : "opacity-80",
                   )}
                   key={badge.id}
                 >
                   <div
                     className={cn(
-                      "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border text-[#ecedf6]",
+                      "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border text-[var(--forge-text)]",
                       badge.earned
-                        ? "border-[#74b1ff]/25 bg-[#74b1ff]/[0.12] text-[#74b1ff]"
+                        ? "border-[var(--forge-gold)]/25 bg-[var(--forge-gold)]/[0.12] text-[var(--forge-gold)]"
                         : "border-white/10 bg-white/[0.03] text-[#7f8796]",
                     )}
                   >
@@ -490,10 +478,10 @@ export function TeamRepProfileView({
                   </div>
                   <div className="min-w-0 space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-semibold text-[#ecedf6]">{badge.name}</p>
+                      <p className="text-sm font-semibold text-[var(--forge-text)]">{badge.name}</p>
                       <StatusChip label={badge.earned ? "Earned" : "In progress"} tone={badge.earned ? "blue" : "slate"} />
                     </div>
-                    <p className="text-sm leading-6 text-[#a9abb3]">{badge.description}</p>
+                    <p className="text-sm leading-6 text-[var(--forge-muted)]">{badge.description}</p>
                     <p className="text-[11px] uppercase tracking-[0.18em] text-[#7f8796]">
                       {badge.earnedAt ? `Earned ${formatShortDate(badge.earnedAt)}` : "Not earned yet"}
                     </p>
@@ -536,7 +524,7 @@ function HighlightStat({
           <span className="material-symbols-outlined">{icon}</span>
         </div>
       </div>
-      <p className="mt-4 text-sm leading-6 text-[#a9abb3]">{description}</p>
+      <p className="mt-4 text-sm leading-6 text-[var(--forge-muted)]">{description}</p>
     </article>
   );
 }
@@ -567,7 +555,7 @@ function MetricPanel({
           <span className="material-symbols-outlined">{icon}</span>
         </div>
       </div>
-      <p className="mt-4 text-sm leading-6 text-[#a9abb3]">{description}</p>
+      <p className="mt-4 text-sm leading-6 text-[var(--forge-muted)]">{description}</p>
     </article>
   );
 }
@@ -582,7 +570,7 @@ function CompactMetric({
   return (
     <div className={cn(insetPanelClass, "p-3")}>
       <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#7f8796]">{label}</p>
-      <p className="mt-2 text-lg font-semibold text-[#ecedf6]">{value}</p>
+      <p className="mt-2 text-lg font-semibold text-[var(--forge-text)]">{value}</p>
     </div>
   );
 }
@@ -672,7 +660,7 @@ function InlineSummary({
   return (
     <div className="flex items-center justify-between gap-4 border-b border-white/[0.08] pb-3 last:border-b-0 last:pb-0">
       <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7f8796]">{label}</span>
-      <span className="text-base font-semibold text-[#ecedf6]">{value}</span>
+      <span className="text-base font-semibold text-[var(--forge-text)]">{value}</span>
     </div>
   );
 }
@@ -688,11 +676,11 @@ function EmptyState({
 }) {
   return (
     <div className="px-6 py-12 text-center">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] text-[#74b1ff]">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] text-[var(--forge-gold)]">
         <span className="material-symbols-outlined">{icon}</span>
       </div>
-      <p className="mt-4 text-lg font-semibold text-[#ecedf6]">{title}</p>
-      <p className="mx-auto mt-2 max-w-lg text-sm leading-7 text-[#a9abb3]">{body}</p>
+      <p className="mt-4 text-lg font-semibold text-[var(--forge-text)]">{title}</p>
+      <p className="mx-auto mt-2 max-w-lg text-sm leading-7 text-[var(--forge-muted)]">{body}</p>
     </div>
   );
 }
@@ -708,10 +696,10 @@ function EmptyInsetState({
 }) {
   return (
     <div className={cn(insetPanelClass, "flex flex-col items-center justify-center gap-3 px-5 py-8 text-center", className)}>
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] text-[#74b1ff]">
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] text-[var(--forge-gold)]">
         <span className="material-symbols-outlined">{icon}</span>
       </div>
-      <p className="max-w-sm text-sm leading-7 text-[#a9abb3]">{body}</p>
+      <p className="max-w-sm text-sm leading-7 text-[var(--forge-muted)]">{body}</p>
     </div>
   );
 }
@@ -739,7 +727,7 @@ function RepAvatar({
   return (
     <div
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-2xl border border-[#74b1ff]/20 bg-[#74b1ff]/10 font-semibold text-[#74b1ff]",
+        "flex shrink-0 items-center justify-center rounded-2xl border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/10 font-semibold text-[var(--forge-gold)]",
         sizeClass,
       )}
     >
@@ -763,7 +751,7 @@ function StatusChip({
 }
 
 function SectionEyebrow({ children }: { children: string }) {
-  return <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#74b1ff]">{children}</p>;
+  return <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-gold)]">{children}</p>;
 }
 
 function formatRepName(rep: Pick<RepCard, "firstName" | "lastName">) {
@@ -835,34 +823,34 @@ function deltaTone(value: number | null | undefined): Tone {
 }
 
 function trendTextTone(value: number | null | undefined) {
-  if (typeof value !== "number") return "text-[#a9abb3]";
-  if (value > 0) return "text-emerald-400";
-  if (value < 0) return "text-amber-300";
-  return "text-[#ecedf6]";
+  if (typeof value !== "number") return "text-[var(--forge-muted)]";
+  if (value > 0) return "text-[var(--forge-success)]";
+  if (value < 0) return "text-[var(--forge-ember)]";
+  return "text-[var(--forge-text)]";
 }
 
 function toneTextClass(tone: Tone) {
-  if (tone === "emerald") return "text-emerald-400";
-  if (tone === "amber") return "text-amber-300";
-  if (tone === "red") return "text-red-400";
-  if (tone === "slate") return "text-[#ecedf6]";
-  return "text-[#74b1ff]";
+  if (tone === "emerald") return "text-[var(--forge-success)]";
+  if (tone === "amber") return "text-[var(--forge-ember)]";
+  if (tone === "red") return "text-[var(--forge-danger)]";
+  if (tone === "slate") return "text-[var(--forge-text)]";
+  return "text-[var(--forge-gold)]";
 }
 
 function toneIconClass(tone: Tone) {
-  if (tone === "emerald") return "border-emerald-400/20 bg-emerald-400/10 text-emerald-300";
-  if (tone === "amber") return "border-amber-400/20 bg-amber-400/10 text-amber-300";
-  if (tone === "red") return "border-red-400/20 bg-red-400/10 text-red-300";
-  if (tone === "slate") return "border-white/10 bg-white/[0.04] text-[#a9abb3]";
-  return "border-[#74b1ff]/20 bg-[#74b1ff]/10 text-[#74b1ff]";
+  if (tone === "emerald") return "border-[rgba(139,215,168,0.24)] bg-[rgba(139,215,168,0.1)] text-[var(--forge-success)]";
+  if (tone === "amber") return "border-[rgba(255,159,95,0.26)] bg-[rgba(255,159,95,0.1)] text-[var(--forge-ember)]";
+  if (tone === "red") return "border-[rgba(255,113,108,0.24)] bg-[rgba(255,113,108,0.1)] text-[var(--forge-danger)]";
+  if (tone === "slate") return "border-white/10 bg-white/[0.04] text-[var(--forge-muted)]";
+  return "border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/10 text-[var(--forge-gold)]";
 }
 
 function toneChipClass(tone: Tone) {
-  if (tone === "emerald") return "border-emerald-400/20 bg-emerald-400/10 text-emerald-300";
-  if (tone === "amber") return "border-amber-400/20 bg-amber-400/10 text-amber-300";
-  if (tone === "red") return "border-red-400/20 bg-red-400/10 text-red-300";
-  if (tone === "slate") return "border-white/10 bg-white/[0.04] text-[#a9abb3]";
-  return "border-[#74b1ff]/20 bg-[#74b1ff]/10 text-[#74b1ff]";
+  if (tone === "emerald") return "border-[rgba(139,215,168,0.24)] bg-[rgba(139,215,168,0.1)] text-[var(--forge-success)]";
+  if (tone === "amber") return "border-[rgba(255,159,95,0.26)] bg-[rgba(255,159,95,0.1)] text-[var(--forge-ember)]";
+  if (tone === "red") return "border-[rgba(255,113,108,0.24)] bg-[rgba(255,113,108,0.1)] text-[var(--forge-danger)]";
+  if (tone === "slate") return "border-white/10 bg-white/[0.04] text-[var(--forge-muted)]";
+  return "border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/10 text-[var(--forge-gold)]";
 }
 
 function scoreTextTone(value: number | null | undefined) {
@@ -872,19 +860,19 @@ function scoreTextTone(value: number | null | undefined) {
 function scoreBarTone(value: number | null | undefined) {
   const tone = scoreTone(value);
 
-  if (tone === "emerald") return "bg-emerald-400";
-  if (tone === "amber") return "bg-amber-300";
-  if (tone === "red") return "bg-red-400";
+  if (tone === "emerald") return "bg-[var(--forge-success)]";
+  if (tone === "amber") return "bg-[var(--forge-ember)]";
+  if (tone === "red") return "bg-[var(--forge-danger)]";
   if (tone === "slate") return "bg-white/[0.15]";
-  return "bg-[#74b1ff]";
+  return "bg-[var(--forge-gold)]";
 }
 
 function deltaTrackTone(value: number | null | undefined) {
   const tone = deltaTone(value);
 
-  if (tone === "emerald") return "bg-emerald-400";
-  if (tone === "amber") return "bg-amber-300";
-  if (tone === "red") return "bg-red-400";
-  if (tone === "slate") return "bg-[#a9abb3]";
-  return "bg-[#74b1ff]";
+  if (tone === "emerald") return "bg-[var(--forge-success)]";
+  if (tone === "amber") return "bg-[var(--forge-ember)]";
+  if (tone === "red") return "bg-[var(--forge-danger)]";
+  if (tone === "slate") return "bg-[rgba(255,244,230,0.46)]";
+  return "bg-[var(--forge-gold)]";
 }

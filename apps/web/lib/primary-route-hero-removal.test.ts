@@ -430,7 +430,7 @@ describe("primary route hero removal", () => {
     });
   });
 
-  it("hides the shared hero copy on the three primary routes while keeping top actions", async () => {
+  it("keeps compact route headers on primary pages while removing old hero copy", async () => {
     const [teamHtml, leaderboardHtml, trainingHtml] = await Promise.all([
       renderRoute(TeamPage()),
       renderRoute(LeaderboardPage()),
@@ -442,20 +442,26 @@ describe("primary route hero removal", () => {
     expect(teamHtml).not.toContain(
       "Review team performance with week-over-week trend, call volume, and coaching flags.",
     );
-    expect(teamHtml).not.toContain(">Team<");
+    expect(teamHtml).toContain(">Team<");
+    expect(teamHtml).toContain(
+      "Review team performance, coaching focus, and rep-level score movement.",
+    );
 
     expect(leaderboardHtml).toContain("Open team view");
     expect(leaderboardHtml).not.toContain(
       "Compare top-quality, top-volume, and most-improved slices across your team.",
     );
-    expect(leaderboardHtml).not.toContain(">Leaderboard<");
+    expect(leaderboardHtml).toContain(">Leaderboard<");
+    expect(leaderboardHtml).toContain(
+      "Compare rank, score quality, call volume, and improvement across your team.",
+    );
 
     expect(trainingHtml).toContain("Open highlights");
     expect(trainingHtml).toContain("Training panel marker");
-    expect(trainingHtml).not.toContain(
+    expect(trainingHtml).toContain(
       "Review assigned modules, complete lessons, and guide practice from one training surface.",
     );
-    expect(trainingHtml).not.toContain(">Training<");
+    expect(trainingHtml).toContain(">Training<");
   });
 
   it("wraps the training route in the standard authenticated content canvas", async () => {
@@ -496,7 +502,7 @@ describe("primary route hero removal", () => {
     );
   });
 
-  it("hides the shared hero copy on settings routes while keeping settings panels", async () => {
+  it("shows the settings control room while keeping settings panels", async () => {
     const [
       accountHtml,
       peopleHtml,
@@ -514,40 +520,44 @@ describe("primary route hero removal", () => {
     ]);
 
     expect(accountHtml).toContain("Account panel marker");
-    expect(accountHtml).not.toContain(">Account<");
-    expect(accountHtml).not.toContain(
-      "Manage your display name and view your organization details.",
-    );
+    expect(accountHtml).toContain(">Control room<");
+    expect(accountHtml).toContain(">Workspace map<");
+    expect(accountHtml).toContain('href="/settings/people"');
 
     expect(peopleHtml).toContain("People panel marker");
-    expect(peopleHtml).not.toContain(">People<");
+    expect(peopleHtml).toContain(">People<");
     expect(peopleHtml).not.toContain(
       "Manage org member roles and send or revoke invitations.",
     );
+    expect(peopleHtml).toContain("Manage users, invitations, and account access.");
 
     expect(teamsHtml).toContain("Teams panel marker");
-    expect(teamsHtml).not.toContain(">Teams<");
+    expect(teamsHtml).toContain(">Teams<");
     expect(teamsHtml).not.toContain(
       "Create teams, edit metadata, and manage manager and rep assignments.",
     );
+    expect(teamsHtml).toContain("Configure teams and manager assignments.");
 
     expect(permissionsHtml).toContain("Permissions panel marker");
-    expect(permissionsHtml).not.toContain(">Permissions<");
+    expect(permissionsHtml).toContain(">Permissions<");
     expect(permissionsHtml).not.toContain(
       "Configure permission presets and primary manager assignments per rep.",
     );
+    expect(permissionsHtml).toContain("Review role scopes and permission boundaries.");
 
     expect(integrationsHtml).toContain("Integrations panel marker");
-    expect(integrationsHtml).not.toContain(">Integrations<");
+    expect(integrationsHtml).toContain(">Integrations<");
     expect(integrationsHtml).not.toContain(
       "Connect external tools to automate call imports and post-call workflows.",
     );
+    expect(integrationsHtml).toContain("Connect and monitor supported providers.");
 
     expect(complianceHtml).toContain("Compliance panel marker");
-    expect(complianceHtml).not.toContain(">Compliance<");
+    expect(complianceHtml).toContain(">Compliance<");
     expect(complianceHtml).not.toContain(
       "Configure call recording consent and review compliance acknowledgments.",
     );
+    expect(complianceHtml).toContain("Manage consent, retention, and coaching safeguards.");
   });
 
   it("removes dashboard hero titles for rep, manager, and executive views while keeping route content", async () => {
@@ -598,8 +608,38 @@ describe("primary route hero removal", () => {
     expect(callsHtml).toContain('href="/upload"');
     expect(callsHtml).toContain("Calls filters marker");
     expect(callsHtml).toContain('href="/calls/call-1"');
+    expect(callsHtml).toContain('data-calls-surface="forge-ledger"');
+    expect(callsHtml).toContain('data-forge-table="true"');
+    expect(callsHtml).toContain('data-forge-chip="success"');
+    expect(callsHtml).not.toContain("#74b1ff");
+    expect(callsHtml).not.toContain("#6dddff");
+    expect(callsHtml).not.toContain("backdrop-blur-md");
     expect(callsHtml).not.toContain(">Call Library<");
     expect(callsHtml).not.toContain(">Intelligence archive<");
+  });
+
+  it("uses the forge empty state for the calls library without changing upload flow", async () => {
+    listCallsMock.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        calls: [],
+        total: 0,
+        viewer: {
+          fullName: "Avery Manager",
+          role: "manager",
+        },
+      },
+    });
+
+    const callsHtml = await renderRoute(
+      CallsPage({ searchParams: Promise.resolve({}) }),
+    );
+
+    expect(callsHtml).toContain('data-forge-empty-state="true"');
+    expect(callsHtml).toContain("No calls yet");
+    expect(callsHtml).toContain('href="/upload"');
+    expect(callsHtml).not.toContain("#74b1ff");
+    expect(callsHtml).not.toContain("backdrop-blur-md");
   });
 
   it("removes the highlights hero while keeping the back-to-library action", async () => {

@@ -91,12 +91,13 @@ describe("SettingsRubricPage", () => {
     loadRubricHistory.mockResolvedValue([]);
   });
 
-  it("renders the admin rubrics settings workflow inside a hidden PageFrame header", async () => {
+  it("renders the admin rubrics settings workflow inside a visible compact PageFrame header", async () => {
     const html = renderToStaticMarkup(await SettingsRubricPage());
 
     expect(html).toContain("Active Rubric");
     expect(html).toContain("Version History");
-    expect(html).not.toContain(">Rubrics<");
+    expect(html).toContain(">Rubrics<");
+    expect(html).toContain("Configure the scoring rubric used across reviewed calls.");
   });
 
   it("redirects non-admin users back to settings", async () => {

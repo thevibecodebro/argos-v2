@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import type { ComponentProps } from "react";
+import { ForgeSkeleton } from "./forge";
 
 function PanelSkeleton({
   className = "",
@@ -10,24 +11,7 @@ function PanelSkeleton({
   className?: string;
   lines?: number;
 }) {
-  return (
-    <div
-      aria-busy="true"
-      className={`rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)] ${className}`}
-    >
-      <div className="space-y-4">
-        <div className="h-8 w-48 animate-pulse rounded-full bg-white/[0.08]" />
-        <div className="grid gap-3">
-          {Array.from({ length: lines }).map((_, index) => (
-            <div
-              className="h-12 animate-pulse rounded-2xl bg-white/[0.06]"
-              key={index}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+  return <ForgeSkeleton className={className} lines={lines} />;
 }
 
 type LoginFormProps = {

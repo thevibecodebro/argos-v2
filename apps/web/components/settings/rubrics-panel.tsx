@@ -432,22 +432,22 @@ export function RubricsPanel({
 
   return (
     <div className="space-y-5">
-      <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+      <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Active Rubric</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">Active Rubric</p>
             <h3 className="mt-2 text-xl font-semibold text-white">
               {activeRubric ? activeRubric.name : "No active rubric yet"}
             </h3>
-            <p className="mt-2 max-w-2xl text-sm leading-7 text-[#a9abb3]">
+            <p className="mt-2 max-w-2xl text-sm leading-7 text-[var(--forge-muted)]">
               {activeRubric
                 ? activeRubric.description || "This version is currently attached to new scoring jobs."
                 : "Publish the first rubric version to start attaching it to new scoring jobs."}
             </p>
           </div>
           {activeRubric ? (
-            <div className="rounded-2xl border border-[#74b1ff]/20 bg-[#74b1ff]/10 px-4 py-3 text-right text-sm text-[#cfe4ff]">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#74b1ff]">Live</p>
+            <div className="rounded-2xl border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/10 px-4 py-3 text-right text-sm text-[#cfe4ff]">
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-gold)]">Live</p>
               <p className="mt-2 font-semibold">Version {activeRubric.version}</p>
               <p className="mt-1 text-xs text-[#9fc4ff]">{activeRubric.categoryCount} categories</p>
             </div>
@@ -455,7 +455,7 @@ export function RubricsPanel({
         </div>
       </section>
 
-      <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+      <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
         <div className="flex flex-wrap gap-2">
           {[
             ["source", "Choose Source"],
@@ -466,8 +466,8 @@ export function RubricsPanel({
             <div
               className={`rounded-full px-4 py-2 text-xs font-black uppercase tracking-[0.22em] ${
                 step === id
-                  ? "bg-[#74b1ff] text-[#002345]"
-                  : "border border-[#45484f]/20 bg-[#161a21]/60 text-[#a9abb3]"
+                  ? "bg-[var(--forge-gold)] text-[#170d07]"
+                  : "border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/60 text-[var(--forge-muted)]"
               }`}
               key={id}
             >
@@ -477,13 +477,13 @@ export function RubricsPanel({
         </div>
 
         {statusMessage ? (
-          <div className="mt-4 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+          <div className="mt-4 rounded-2xl border border-[rgba(139,215,168,0.24)] bg-[rgba(139,215,168,0.1)] px-4 py-3 text-sm text-[var(--forge-success)]">
             {statusMessage}
           </div>
         ) : null}
 
         {errorMessage ? (
-          <div className="mt-4 rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          <div className="mt-4 rounded-2xl border border-[rgba(255,113,108,0.26)] bg-[rgba(255,113,108,0.1)] px-4 py-3 text-sm text-[var(--forge-danger)]">
             {errorMessage}
           </div>
         ) : null}
@@ -492,7 +492,7 @@ export function RubricsPanel({
           <div className="mt-6 space-y-4">
             <div className="grid gap-4 lg:grid-cols-2">
               <button
-                className="rounded-2xl border border-[#45484f]/20 bg-[#161a21]/60 p-5 text-left transition hover:border-[#74b1ff]/35 hover:bg-[#74b1ff]/10 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/60 p-5 text-left transition hover:border-[var(--forge-gold)]/35 hover:bg-[var(--forge-gold)]/10 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={!activeRubric}
                 onClick={() => {
                   if (!activeRubric) {
@@ -504,38 +504,38 @@ export function RubricsPanel({
                 }}
                 type="button"
               >
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#74b1ff]">Primary</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-gold)]">Primary</p>
                 <h3 className="mt-2 text-lg font-semibold text-white">New Draft from Active</h3>
-                <p className="mt-2 text-sm leading-7 text-[#a9abb3]">
+                <p className="mt-2 text-sm leading-7 text-[var(--forge-muted)]">
                   Start from the currently published rubric without changing any historical scores.
                 </p>
               </button>
 
               <button
-                className="rounded-2xl border border-[#45484f]/20 bg-[#161a21]/60 p-5 text-left transition hover:border-[#74b1ff]/35 hover:bg-[#74b1ff]/10"
+                className="rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/60 p-5 text-left transition hover:border-[var(--forge-gold)]/35 hover:bg-[var(--forge-gold)]/10"
                 onClick={() => {
                   setSourceIssues([]);
                   beginDraft(defaultTemplate, "Started from Default Template", "manual");
                 }}
                 type="button"
               >
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#74b1ff]">Secondary</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-gold)]">Secondary</p>
                 <h3 className="mt-2 text-lg font-semibold text-white">Start from Default Template</h3>
-                <p className="mt-2 text-sm leading-7 text-[#a9abb3]">
+                <p className="mt-2 text-sm leading-7 text-[var(--forge-muted)]">
                   Begin from the built-in Revenue Scorecard baseline and edit from there.
                 </p>
               </button>
             </div>
 
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
-              <div className="rounded-2xl border border-[#45484f]/20 bg-[#161a21]/60 p-5">
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#74b1ff]">Secondary</p>
+              <div className="rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/60 p-5">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-gold)]">Secondary</p>
                 <h3 className="mt-2 text-lg font-semibold text-white">Clone Historical Version</h3>
-                <p className="mt-2 text-sm leading-7 text-[#a9abb3]">
+                <p className="mt-2 text-sm leading-7 text-[var(--forge-muted)]">
                   Pull a prior version into the editor, make changes locally, and publish a new immutable version later.
                 </p>
                 <select
-                  className="mt-4 w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-2 text-sm text-[#ecedf6] outline-none"
+                  className="mt-4 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none"
                   onChange={(event) => setSelectedHistoryId(event.target.value)}
                   value={selectedHistoryId}
                 >
@@ -548,7 +548,7 @@ export function RubricsPanel({
                 </select>
               </div>
               <button
-                className="self-end rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110"
+                className="self-end rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-3 text-sm font-semibold text-[#170d07] transition hover:brightness-110"
                 onClick={() => void handleCloneHistory()}
                 type="button"
               >
@@ -556,13 +556,13 @@ export function RubricsPanel({
               </button>
             </div>
 
-            <div className="rounded-2xl border border-[#45484f]/20 bg-[#161a21]/60 p-5">
+            <div className="rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/60 p-5">
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   className={`rounded-full px-3 py-2 text-xs font-black uppercase tracking-[0.2em] ${
                     importMode === "csv_import"
-                      ? "bg-[#74b1ff] text-[#002345]"
-                      : "border border-[#45484f]/20 text-[#a9abb3]"
+                      ? "bg-[var(--forge-gold)] text-[#170d07]"
+                      : "border border-[var(--forge-border-strong)]/20 text-[var(--forge-muted)]"
                   }`}
                   onClick={() => setImportMode("csv_import")}
                   type="button"
@@ -572,8 +572,8 @@ export function RubricsPanel({
                 <button
                   className={`rounded-full px-3 py-2 text-xs font-black uppercase tracking-[0.2em] ${
                     importMode === "json_import"
-                      ? "bg-[#74b1ff] text-[#002345]"
-                      : "border border-[#45484f]/20 text-[#a9abb3]"
+                      ? "bg-[var(--forge-gold)] text-[#170d07]"
+                      : "border border-[var(--forge-border-strong)]/20 text-[var(--forge-muted)]"
                   }`}
                   onClick={() => setImportMode("json_import")}
                   type="button"
@@ -581,17 +581,17 @@ export function RubricsPanel({
                   Import JSON
                 </button>
               </div>
-              <p className="mt-4 text-sm leading-7 text-[#a9abb3]">
+              <p className="mt-4 text-sm leading-7 text-[var(--forge-muted)]">
                 Upload a rubric file to preview the normalized draft locally. Invalid rows stay out of the draft and are reported for cleanup.
               </p>
               <input
                 accept={importMode === "csv_import" ? ".csv,text/csv" : ".json,application/json"}
-                className="mt-4 block w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-2 text-sm text-[#ecedf6]"
+                className="mt-4 block w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2 text-sm text-[var(--forge-text)]"
                 onChange={(event) => setImportFile(event.target.files?.[0] ?? null)}
                 type="file"
               />
               <button
-                className="mt-4 rounded-xl border border-[#74b1ff]/25 bg-[#74b1ff]/10 px-4 py-2 text-sm font-semibold text-[#cfe4ff] transition hover:border-[#74b1ff]/45 hover:bg-[#74b1ff]/15"
+                className="mt-4 rounded-xl border border-[var(--forge-gold)]/25 bg-[var(--forge-gold)]/10 px-4 py-2 text-sm font-semibold text-[#cfe4ff] transition hover:border-[var(--forge-gold)]/45 hover:bg-[var(--forge-gold)]/15"
                 onClick={() => void handleImportPreview()}
                 type="button"
               >
@@ -603,11 +603,11 @@ export function RubricsPanel({
 
         {step === "edit" && draft ? (
           <div className="mt-6 space-y-5">
-            <div className="rounded-2xl border border-[#45484f]/20 bg-[#161a21]/60 p-5">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#74b1ff]">Draft Source</p>
-              <p className="mt-2 text-sm text-[#ecedf6]">{draftSourceLabel}</p>
+            <div className="rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/60 p-5">
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-gold)]">Draft Source</p>
+              <p className="mt-2 text-sm text-[var(--forge-text)]">{draftSourceLabel}</p>
               {sourceIssues.length > 0 ? (
-                <p className="mt-2 text-sm text-amber-200">
+                <p className="mt-2 text-sm text-[var(--forge-ember)]">
                   Import preview dropped {sourceIssues.length} invalid field issue{sourceIssues.length === 1 ? "" : "s"}.
                 </p>
               ) : null}
@@ -615,9 +615,9 @@ export function RubricsPanel({
 
             <div className="grid gap-4 lg:grid-cols-2">
               <label className="space-y-2">
-                <span className="text-xs font-black uppercase tracking-[0.2em] text-[#a9abb3]">Rubric name</span>
+                <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Rubric name</span>
                 <input
-                  className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-3 text-sm text-[#ecedf6] outline-none"
+                  className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-3 text-sm text-[var(--forge-text)] outline-none"
                   onChange={(event) =>
                     updateDraft((current) => ({ ...current, name: event.target.value }))
                   }
@@ -625,9 +625,9 @@ export function RubricsPanel({
                 />
               </label>
               <label className="space-y-2">
-                <span className="text-xs font-black uppercase tracking-[0.2em] text-[#a9abb3]">Description</span>
+                <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Description</span>
                 <input
-                  className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-3 text-sm text-[#ecedf6] outline-none"
+                  className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-3 text-sm text-[var(--forge-text)] outline-none"
                   onChange={(event) =>
                     updateDraft((current) => ({ ...current, description: event.target.value || null }))
                   }
@@ -639,18 +639,18 @@ export function RubricsPanel({
             <div className="space-y-4">
               {draft.categories.map((category, index) => (
                 <section
-                  className="rounded-2xl border border-[#45484f]/20 bg-[#161a21]/60 p-5"
+                  className="rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/60 p-5"
                   key={`${category.slug || "category"}-${index}`}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#74b1ff]">
+                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-gold)]">
                         Category {index + 1}
                       </p>
-                      <p className="mt-2 text-sm text-[#a9abb3]">Edit category metadata and scoring guidance.</p>
+                      <p className="mt-2 text-sm text-[var(--forge-muted)]">Edit category metadata and scoring guidance.</p>
                     </div>
                     <button
-                      className="rounded-xl border border-red-500/25 px-3 py-2 text-sm font-medium text-red-200 transition hover:bg-red-500/10"
+                      className="rounded-xl border border-[rgba(255,113,108,0.26)] px-3 py-2 text-sm font-medium text-[var(--forge-danger)] transition hover:bg-[rgba(255,113,108,0.1)]"
                       onClick={() =>
                         updateDraft((current) => ({
                           ...current,
@@ -667,9 +667,9 @@ export function RubricsPanel({
 
                   <div className="mt-4 grid gap-4 lg:grid-cols-3">
                     <label className="space-y-2">
-                      <span className="text-xs font-black uppercase tracking-[0.2em] text-[#a9abb3]">Name</span>
+                      <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Name</span>
                       <input
-                        className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-3 text-sm text-[#ecedf6] outline-none"
+                        className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-3 text-sm text-[var(--forge-text)] outline-none"
                         onChange={(event) =>
                           updateDraft((current) => ({
                             ...current,
@@ -682,9 +682,9 @@ export function RubricsPanel({
                       />
                     </label>
                     <label className="space-y-2">
-                      <span className="text-xs font-black uppercase tracking-[0.2em] text-[#a9abb3]">Slug</span>
+                      <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Slug</span>
                       <input
-                        className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-3 text-sm text-[#ecedf6] outline-none"
+                        className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-3 text-sm text-[var(--forge-text)] outline-none"
                         onChange={(event) =>
                           updateDraft((current) => ({
                             ...current,
@@ -697,9 +697,9 @@ export function RubricsPanel({
                       />
                     </label>
                     <label className="space-y-2">
-                      <span className="text-xs font-black uppercase tracking-[0.2em] text-[#a9abb3]">Weight</span>
+                      <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Weight</span>
                       <input
-                        className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-3 text-sm text-[#ecedf6] outline-none"
+                        className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-3 text-sm text-[var(--forge-text)] outline-none"
                         min={1}
                         onChange={(event) =>
                           updateDraft((current) => ({
@@ -718,9 +718,9 @@ export function RubricsPanel({
                   </div>
 
                   <label className="mt-4 block space-y-2">
-                    <span className="text-xs font-black uppercase tracking-[0.2em] text-[#a9abb3]">Description</span>
+                    <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Description</span>
                     <textarea
-                      className="min-h-24 w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-3 text-sm text-[#ecedf6] outline-none"
+                      className="min-h-24 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-3 text-sm text-[var(--forge-text)] outline-none"
                       onChange={(event) =>
                         updateDraft((current) => ({
                           ...current,
@@ -740,9 +740,9 @@ export function RubricsPanel({
                       ["Developing", "developing"],
                     ].map(([label, field]) => (
                       <label className="space-y-2" key={field}>
-                        <span className="text-xs font-black uppercase tracking-[0.2em] text-[#a9abb3]">{label}</span>
+                        <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">{label}</span>
                         <textarea
-                          className="min-h-24 w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-3 text-sm text-[#ecedf6] outline-none"
+                          className="min-h-24 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-3 text-sm text-[var(--forge-text)] outline-none"
                           onChange={(event) =>
                             updateDraft((current) => ({
                               ...current,
@@ -766,11 +766,11 @@ export function RubricsPanel({
                   </div>
 
                   <label className="mt-4 block space-y-2">
-                    <span className="text-xs font-black uppercase tracking-[0.2em] text-[#a9abb3]">
+                    <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
                       Look For
                     </span>
                     <input
-                      className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-3 text-sm text-[#ecedf6] outline-none"
+                      className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-3 text-sm text-[var(--forge-text)] outline-none"
                       onChange={(event) =>
                         updateDraft((current) => ({
                           ...current,
@@ -799,7 +799,7 @@ export function RubricsPanel({
 
             <div className="flex flex-wrap gap-3">
               <button
-                className="rounded-xl border border-[#45484f]/20 px-4 py-3 text-sm font-semibold text-[#a9abb3] transition hover:text-white"
+                className="rounded-xl border border-[var(--forge-border-strong)]/20 px-4 py-3 text-sm font-semibold text-[var(--forge-muted)] transition hover:text-white"
                 onClick={() =>
                   updateDraft((current) => ({
                     ...current,
@@ -811,14 +811,14 @@ export function RubricsPanel({
                 Add Category
               </button>
               <button
-                className="rounded-xl border border-[#45484f]/20 px-4 py-3 text-sm font-semibold text-[#a9abb3] transition hover:text-white"
+                className="rounded-xl border border-[var(--forge-border-strong)]/20 px-4 py-3 text-sm font-semibold text-[var(--forge-muted)] transition hover:text-white"
                 onClick={() => setStep("source")}
                 type="button"
               >
                 Back to Sources
               </button>
               <button
-                className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110"
+                className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-3 text-sm font-semibold text-[#170d07] transition hover:brightness-110"
                 onClick={() => setStep("review")}
                 type="button"
               >
@@ -830,17 +830,17 @@ export function RubricsPanel({
 
         {step === "review" && draft ? (
           <div className="mt-6 space-y-4">
-            <div className="rounded-2xl border border-[#45484f]/20 bg-[#161a21]/60 p-5">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#74b1ff]">Review</p>
+            <div className="rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/60 p-5">
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-gold)]">Review</p>
               <h3 className="mt-2 text-lg font-semibold text-white">{draft.name || "Untitled draft"}</h3>
-              <p className="mt-2 text-sm leading-7 text-[#a9abb3]">
+              <p className="mt-2 text-sm leading-7 text-[var(--forge-muted)]">
                 {draft.categories.length} categories ready for publish review. Only the final publish action changes the active version.
               </p>
             </div>
 
             {draftIssues.length > 0 ? (
-              <div className="rounded-2xl border border-red-500/25 bg-red-500/10 p-5 text-sm text-red-100">
-                <p className="font-semibold text-red-50">Fix before publish</p>
+              <div className="rounded-2xl border border-[rgba(255,113,108,0.26)] bg-[rgba(255,113,108,0.1)] p-5 text-sm text-[rgba(255,113,108,0.82)]">
+                <p className="font-semibold text-[var(--forge-danger)]">Fix before publish</p>
                 <ul className="mt-3 space-y-2">
                   {draftIssues.map((issue, index) => (
                     <li key={`${issue.row ?? "global"}-${issue.field}-${index}`}>
@@ -850,14 +850,14 @@ export function RubricsPanel({
                 </ul>
               </div>
             ) : (
-              <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-5 text-sm text-emerald-100">
+              <div className="rounded-2xl border border-[rgba(139,215,168,0.24)] bg-[rgba(139,215,168,0.1)] p-5 text-sm text-[rgba(139,215,168,0.82)]">
                 The local draft is valid and ready to become a server-side draft.
               </div>
             )}
 
             {sourceIssues.length > 0 ? (
-              <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 p-5 text-sm text-amber-100">
-                <p className="font-semibold text-amber-50">Import warnings</p>
+              <div className="rounded-2xl border border-[rgba(255,159,95,0.26)] bg-[rgba(255,159,95,0.1)] p-5 text-sm text-[var(--forge-ember)]">
+                <p className="font-semibold text-[var(--forge-ember)]">Import warnings</p>
                 <ul className="mt-3 space-y-2">
                   {sourceIssues.map((issue, index) => (
                     <li key={`${issue.row ?? "import"}-${issue.field}-${index}`}>
@@ -870,14 +870,14 @@ export function RubricsPanel({
 
             <div className="flex flex-wrap gap-3">
               <button
-                className="rounded-xl border border-[#45484f]/20 px-4 py-3 text-sm font-semibold text-[#a9abb3] transition hover:text-white"
+                className="rounded-xl border border-[var(--forge-border-strong)]/20 px-4 py-3 text-sm font-semibold text-[var(--forge-muted)] transition hover:text-white"
                 onClick={() => setStep("edit")}
                 type="button"
               >
                 Back to Edit
               </button>
               <button
-                className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110"
+                className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-3 text-sm font-semibold text-[#170d07] transition hover:brightness-110"
                 onClick={() => void handlePreparePublish()}
                 type="button"
               >
@@ -889,16 +889,16 @@ export function RubricsPanel({
 
         {step === "publish" ? (
           <div className="mt-6 space-y-4">
-            <div className="rounded-2xl border border-[#45484f]/20 bg-[#161a21]/60 p-5">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#74b1ff]">Publish</p>
+            <div className="rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/60 p-5">
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-gold)]">Publish</p>
               <h3 className="mt-2 text-lg font-semibold text-white">
                 {serverDraft ? serverDraft.name : "Prepare a server draft first"}
               </h3>
-              <p className="mt-2 text-sm leading-7 text-[#a9abb3]">
+              <p className="mt-2 text-sm leading-7 text-[var(--forge-muted)]">
                 Creating a draft does not activate it. Only the publish button below makes the new version live.
               </p>
               {serverDraft ? (
-                <div className="mt-4 rounded-2xl border border-[#74b1ff]/20 bg-[#74b1ff]/10 px-4 py-3 text-sm text-[#cfe4ff]">
+                <div className="mt-4 rounded-2xl border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/10 px-4 py-3 text-sm text-[#cfe4ff]">
                   Draft version {serverDraft.version} · {serverDraft.categoryCount} categories
                 </div>
               ) : null}
@@ -906,14 +906,14 @@ export function RubricsPanel({
 
             <div className="flex flex-wrap gap-3">
               <button
-                className="rounded-xl border border-[#45484f]/20 px-4 py-3 text-sm font-semibold text-[#a9abb3] transition hover:text-white"
+                className="rounded-xl border border-[var(--forge-border-strong)]/20 px-4 py-3 text-sm font-semibold text-[var(--forge-muted)] transition hover:text-white"
                 onClick={() => setStep("review")}
                 type="button"
               >
                 Back to Review
               </button>
               <button
-                className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-3 text-sm font-semibold text-[#170d07] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={!serverDraft || isPending}
                 onClick={() => void handlePublish()}
                 type="button"
@@ -925,26 +925,26 @@ export function RubricsPanel({
         ) : null}
       </section>
 
-      <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+      <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Version History</p>
-            <p className="mt-2 text-sm leading-7 text-[#a9abb3]">
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">Version History</p>
+            <p className="mt-2 text-sm leading-7 text-[var(--forge-muted)]">
               Every published version stays pinned for historical call scores. Clone any prior version to branch new work.
             </p>
           </div>
-          <span className="rounded-full border border-[#45484f]/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#a9abb3]">
+          <span className="rounded-full border border-[var(--forge-border-strong)]/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
             {history.length} versions
           </span>
         </div>
 
         <div className="mt-5 space-y-3">
           {history.length === 0 ? (
-            <p className="text-sm text-[#a9abb3]">No rubric versions yet.</p>
+            <p className="text-sm text-[var(--forge-muted)]">No rubric versions yet.</p>
           ) : (
             history.map((entry) => (
               <div
-                className="flex flex-col gap-3 rounded-2xl border border-[#45484f]/20 bg-[#161a21]/60 px-4 py-4 lg:flex-row lg:items-center lg:justify-between"
+                className="flex flex-col gap-3 rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/60 px-4 py-4 lg:flex-row lg:items-center lg:justify-between"
                 key={entry.id}
               >
                 <div>
@@ -955,18 +955,18 @@ export function RubricsPanel({
                     <span
                       className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${
                         entry.isActive
-                          ? "bg-emerald-500/15 text-emerald-200"
-                          : "border border-[#45484f]/20 text-[#a9abb3]"
+                          ? "bg-[rgba(139,215,168,0.15)] text-[var(--forge-success)]"
+                          : "border border-[var(--forge-border-strong)]/20 text-[var(--forge-muted)]"
                       }`}
                     >
                       {entry.isActive ? "Active" : entry.status}
                     </span>
                   </div>
-                  <p className="mt-2 text-sm text-[#a9abb3]">
+                  <p className="mt-2 text-sm text-[var(--forge-muted)]">
                     {entry.description || "No description provided."}
                   </p>
                 </div>
-                <div className="text-sm text-[#a9abb3]">
+                <div className="text-sm text-[var(--forge-muted)]">
                   <p>{entry.categoryCount} categories</p>
                   <p className="mt-1">Updated {formatDate(entry.updatedAt)}</p>
                 </div>

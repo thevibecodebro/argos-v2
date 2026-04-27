@@ -596,7 +596,7 @@ describe("TrainingPanel", () => {
     expect(html).toContain("Current curriculum");
     expect(html).toContain("Curriculum map");
     expect(html).not.toContain("Team pulse");
-    expect(html).not.toContain(
+    expect(html).toContain(
       "Review assigned modules, complete lessons, and guide practice from one training surface.",
     );
   });
@@ -646,9 +646,10 @@ describe("TrainingPanel", () => {
 
     expect(shellHtml).toContain('class="space-y-8"');
     expect(stageHtml).toContain("relative space-y-6");
-    expect(stageHtml).toContain("rounded-[1.25rem] border border-[#45484f]/10 bg-[#161a21]/45 p-6");
-    expect(tocHtml).toContain("rounded-[1.5rem] border border-[#45484f]/10 bg-[#10131a] p-6");
-    expect(commandDeckHtml).toContain("rounded-[1.5rem] border border-[#45484f]/10 bg-[#10131a] p-6");
+    expect(stageHtml).toContain("rounded-[1.25rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface-2)]/45 p-6");
+    expect(tocHtml).toContain("rounded-[1.5rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6");
+    expect(commandDeckHtml).toContain("rounded-[1.5rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6");
+    expect(`${stageHtml}${tocHtml}${commandDeckHtml}`).not.toContain("#74b1ff");
   });
 
   it("renders active-state semantics for the curriculum map and stage switcher", () => {
