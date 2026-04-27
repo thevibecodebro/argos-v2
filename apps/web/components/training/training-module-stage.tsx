@@ -35,11 +35,19 @@ export function TrainingModuleStage({
     );
   }
 
+  const workspaceLabel = canManage ? "Course builder" : "Course player";
+  const stageLabel = canManage ? "Module editor preview" : "Lesson workspace";
+
   return (
     <section className="relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[linear-gradient(180deg,rgba(32,21,15,0.98),rgba(13,9,7,0.96))] p-6 shadow-[0_24px_80px_rgba(5,3,2,0.32)] sm:p-7">
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.05),transparent_24%,transparent_72%,rgba(255,255,255,0.02))]" />
       <div className="relative space-y-6">
-        <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[var(--forge-gold)]">Current curriculum</p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[var(--forge-gold)]">{stageLabel}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--forge-muted)]">
+            Training / {workspaceLabel}
+          </p>
+        </div>
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div className="space-y-3">
             <h2 className="text-3xl font-semibold tracking-tight text-white">{selectedModule.title}</h2>

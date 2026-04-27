@@ -15,9 +15,10 @@ export function TrainingLoadingShell() {
       >
         <TrainingCourseShell
           commandDeck={null}
+          mode="learner"
           stage={
             <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-              <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[var(--forge-gold)]">Current curriculum</p>
+              <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[var(--forge-gold)]">Course player</p>
               <h2 className="mt-4 text-3xl font-semibold tracking-tight text-white">Loading training</h2>
               <div className="mt-6 space-y-5">
                 <LoadingBlock className="h-4 w-40" />
@@ -36,7 +37,8 @@ export function TrainingLoadingShell() {
               aria-label="Curriculum map"
               className="rounded-[1.5rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.24)]"
             >
-              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">Curriculum map</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-gold)]">Course structure</p>
+              <p className="mt-1 text-xs text-[var(--forge-muted)]">Curriculum map</p>
               <div className="mt-5 space-y-3">
                 <LoadingBlock className="h-20 w-full rounded-[1.15rem]" />
                 <LoadingBlock className="h-20 w-full rounded-[1.15rem]" />

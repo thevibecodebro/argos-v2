@@ -39,28 +39,26 @@ export function TrainingManagerCommandDeck({
     : "Choose a module to edit or assign it.";
 
   return (
-    <section className="rounded-[1.5rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.24)]">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="max-w-2xl">
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">Team pulse</p>
-          <h3 className="mt-2 text-xl font-semibold text-white">{selectedModuleHeading}</h3>
-          <p className="mt-2 text-sm leading-7 text-[var(--forge-muted)]">
-            Keep planning compact at rest, then open focused overlays when it is time to author, assign, or draft.
-          </p>
-        </div>
-
-        <div className="rounded-xl border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface-2)]/55 px-4 py-3 text-right">
-          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">Planning summary</p>
-          <p className="mt-1 text-sm text-[var(--forge-text)]">
-            {moduleCount} module{moduleCount === 1 ? "" : "s"} across {repCount} rep{repCount === 1 ? "" : "s"}
-          </p>
-          <p className="mt-1 text-xs text-[var(--forge-muted)]">{selectedModuleSummary}</p>
-        </div>
+    <section className="rounded-[1.5rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-5 shadow-[0_18px_60px_rgba(2,8,23,0.24)]">
+      <div>
+        <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-gold)]">Builder controls</p>
+        <h3 className="mt-2 text-lg font-semibold text-white">{selectedModuleHeading}</h3>
+        <p className="mt-2 text-sm leading-6 text-[var(--forge-muted)]">
+          Create, edit, assign, or draft training from the selected module.
+        </p>
       </div>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-5 rounded-xl border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface-2)]/55 px-4 py-3">
+        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">Planning summary</p>
+        <p className="mt-1 text-sm text-[var(--forge-text)]">
+          {moduleCount} module{moduleCount === 1 ? "" : "s"} across {repCount} rep{repCount === 1 ? "" : "s"}
+        </p>
+        <p className="mt-1 text-xs text-[var(--forge-muted)]">{selectedModuleSummary}</p>
+      </div>
+
+      <div className="mt-5 grid gap-3">
         <button
-          className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/70 px-4 py-3 text-sm font-semibold text-white transition hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/10 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/70 px-4 py-3 text-left text-sm font-semibold text-white transition hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/10 disabled:cursor-not-allowed disabled:opacity-50"
           disabled={isBusy}
           onClick={onCreate}
           type="button"
@@ -68,7 +66,7 @@ export function TrainingManagerCommandDeck({
           Create module
         </button>
         <button
-          className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/70 px-4 py-3 text-sm font-semibold text-white transition hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/10 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/70 px-4 py-3 text-left text-sm font-semibold text-white transition hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/10 disabled:cursor-not-allowed disabled:opacity-50"
           disabled={!hasSelectedModule || isBusy}
           onClick={onEdit}
           type="button"
@@ -76,7 +74,7 @@ export function TrainingManagerCommandDeck({
           Edit selected module
         </button>
         <button
-          className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/70 px-4 py-3 text-sm font-semibold text-white transition hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/10 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/70 px-4 py-3 text-left text-sm font-semibold text-white transition hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/10 disabled:cursor-not-allowed disabled:opacity-50"
           disabled={!hasSelectedModule || isBusy}
           onClick={onAssign}
           type="button"
@@ -85,7 +83,7 @@ export function TrainingManagerCommandDeck({
         </button>
         <button
           aria-describedby={!aiAvailable ? "training-ai-unavailable" : undefined}
-          className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-3 text-sm font-semibold text-[#170d07] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-3 text-left text-sm font-semibold text-[#170d07] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
           disabled={!aiAvailable || isBusy}
           onClick={onGenerate}
           type="button"

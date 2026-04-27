@@ -116,7 +116,7 @@ const defaultTemplate = {
 };
 
 describe("RubricsPanel", () => {
-  it("renders the active rubric summary, wizard entry points, and version history", () => {
+  it("renders the scoring builder rail, compact category editor, and publish readiness panel", () => {
     const html = renderToStaticMarkup(
       createElement(RubricsPanel, {
         initialActiveRubric: activeRubric,
@@ -125,8 +125,21 @@ describe("RubricsPanel", () => {
       }),
     );
 
+    expect(html).toContain('data-rubric-builder-rail=""');
+    expect(html).toContain('data-rubric-category-editor=""');
+    expect(html).toContain('data-rubric-readiness-panel=""');
+    expect(html).toContain("Source and versions");
     expect(html).toContain("Active Rubric");
     expect(html).toContain("Revenue Scorecard v4");
+    expect(html).toContain("Category editor");
+    expect(html).toContain("Published scoring categories");
+    expect(html).toContain("Build Rapport");
+    expect(html).toContain("Weight");
+    expect(html).toContain("Readiness panel");
+    expect(html).toContain("Validation issues");
+    expect(html).toContain("Import warnings");
+    expect(html).toContain("Server draft");
+    expect(html).toContain("No draft started");
     expect(html).toContain("Choose Source");
     expect(html).toContain("Edit Draft");
     expect(html).toContain("Review &amp; Fix");
@@ -136,6 +149,8 @@ describe("RubricsPanel", () => {
     expect(html).toContain("Start from Default Template");
     expect(html).toContain("Import CSV");
     expect(html).toContain("Import JSON");
+    expect(html).toContain("Preview Import");
+    expect(html).toContain("Publish Draft");
     expect(html).toContain("Version History");
   });
 

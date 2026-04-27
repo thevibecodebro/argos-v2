@@ -1065,18 +1065,18 @@ export function TrainingPanel({
     />
   ) : canManage ? (
     <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-      <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[var(--forge-gold)]">Current curriculum</p>
+      <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[var(--forge-gold)]">Course builder</p>
       <div className="mt-4 rounded-[1.25rem] border border-dashed border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface-2)]/40 p-5">
         <h2 className="text-2xl font-semibold text-white">Create your first module</h2>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--forge-muted)]">
           Start with a single lesson. Generate a draft sequence with AI when you want a faster starting point. Once
-          modules exist, assignment and editing flows stay available from the compact planning surface below.
+          modules exist, assignment and editing flows stay available from the builder controls.
         </p>
       </div>
     </section>
   ) : (
     <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-      <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[var(--forge-gold)]">Current curriculum</p>
+      <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[var(--forge-gold)]">Course player</p>
       <div className="mt-4 rounded-[1.25rem] border border-dashed border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface-2)]/40 p-5">
         <h2 className="text-2xl font-semibold text-white">Nothing is assigned yet</h2>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--forge-muted)]">
@@ -1136,7 +1136,12 @@ export function TrainingPanel({
 
   return (
     <>
-      <TrainingCourseShell commandDeck={commandDeck} stage={stage} tableOfContents={tableOfContents} />
+      <TrainingCourseShell
+        commandDeck={commandDeck}
+        mode={canManage ? "manager" : "learner"}
+        stage={stage}
+        tableOfContents={tableOfContents}
+      />
       {managerModal}
     </>
   );

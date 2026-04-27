@@ -374,10 +374,11 @@ Acceptance:
 
 ### Phase 3: High-Value Workflow Pages
 
+- Redesign `/training` as a courses workspace: learner course player for reps, course builder for managers.
+- Redesign `/settings/rubric` as the scorecard forge: source/version rail, compact category editor, readiness/publish panel.
 - Redesign `/calls` and `/calls/[id]` as the call intake and review bench.
 - Redesign `/dashboard` as the role-aware operating pulse.
 - Redesign `/roleplay` as the simulation bay.
-- Redesign `/settings/rubric` as the scorecard forge.
 
 Acceptance:
 
@@ -410,6 +411,16 @@ Acceptance:
 - Utility and density are preserved.
 - The homepage inspires the atmosphere, but authenticated pages remain tools.
 
+## Comparable Page Mapping
+
+- `/training`: course player for reps and course builder for managers, with structure rail, selected lesson/module workspace, and persistent action/readiness controls.
+- `/settings/rubric`: scoring-system builder with source/version rail, dense category editor, and publish readiness panel.
+- `/calls`: call ledger for intake, filtering, review status, and bulk scanning.
+- `/calls/[id]`: review workbench with score, evidence, transcript, and coaching actions in one bench.
+- `/team`, `/settings/people`, `/settings/teams`, `/settings/permissions`: management tables with dense rows, inline state, and staged admin actions.
+- `/settings/integrations`: connected-app settings with provider status, setup controls, and troubleshooting state.
+- `/roleplay`: simulation workspace with scenario context, live practice surface, scoring, and session history.
+
 ## Highest-Priority Screen Concepts
 
 ### App Shell
@@ -430,7 +441,7 @@ Two-column review bench. Left: score gauge, rubric categories, key moments. Righ
 
 ### Training
 
-Main module stage first, curriculum map below, manager deck below that. Keep current learner-first direction. Use gold for selected module, cyan for progress and scoring, ember only for overdue or blocked assignments.
+Reps see a course-player workspace: sticky curriculum rail, main lesson/quiz player, progress band, and completion CTA near the lesson. Managers see a course-builder workspace: sticky module tree, selected-module editor preview, and right command panel for create, edit, assign, and AI draft actions.
 
 ### Roleplay
 
@@ -438,4 +449,4 @@ Compact scenario selector across the top. Active simulation dominates the page w
 
 ### Settings
 
-Forge settings rail with Account, People, Teams, Permissions, Integrations, Rubrics, Compliance. Main panel uses ledgers and grouped fieldsets, not large repeated cards. Rubrics get a proper step rail and persistent active-version context.
+Forge settings rail with Account, People, Teams, Permissions, Integrations, Rubrics, Compliance. Main panel uses ledgers and grouped fieldsets, not large repeated cards. Rubrics use a source/version rail, compact scoring rows, and persistent readiness/publish controls.
