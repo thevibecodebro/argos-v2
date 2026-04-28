@@ -37,68 +37,86 @@ export function TrainingManagerCommandDeck({
       ? `Focused on ${selectedModuleTitle}.`
       : "Focused on the selected module."
     : "Choose a module to edit or assign it.";
+  const navButtonClass =
+    "forge-nav-link flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left font-[var(--font-display)] text-[0.7rem] font-bold uppercase tracking-[0.16em] disabled:cursor-not-allowed disabled:opacity-45";
 
   return (
-    <section className="rounded-[1.5rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-5 shadow-[0_18px_60px_rgba(2,8,23,0.24)]">
-      <div>
-        <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-gold)]">Builder controls</p>
-        <h3 className="mt-2 text-lg font-semibold text-white">{selectedModuleHeading}</h3>
-        <p className="mt-2 text-sm leading-6 text-[var(--forge-muted)]">
-          Create, edit, assign, or draft training from the selected module.
-        </p>
+    <section className="rounded-[1.35rem] border border-[var(--forge-border)] bg-[rgba(5,4,3,0.56)] p-4 shadow-[inset_0_1px_0_rgba(255,244,230,0.055)]">
+      <div className="mb-5 rounded-[1.15rem] border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] p-4">
+        <p className="forge-page-eyebrow">Admin controls</p>
+        <h3 className="mt-2 text-base font-semibold text-[var(--forge-text)]">{selectedModuleHeading}</h3>
+        <p className="mt-2 text-xs leading-5 text-[var(--forge-muted)]">{selectedModuleSummary}</p>
       </div>
 
-      <div className="mt-5 rounded-xl border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface-2)]/55 px-4 py-3">
-        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">Planning summary</p>
-        <p className="mt-1 text-sm text-[var(--forge-text)]">
-          {moduleCount} module{moduleCount === 1 ? "" : "s"} across {repCount} rep{repCount === 1 ? "" : "s"}
-        </p>
-        <p className="mt-1 text-xs text-[var(--forge-muted)]">{selectedModuleSummary}</p>
-      </div>
+      <nav aria-label="Training admin controls" className="space-y-5" data-settings-nav-theme="forge">
+        <div>
+          <p className="forge-nav-section-label mb-2 px-3">Builder controls</p>
+          <div className="space-y-1">
+            <button className={navButtonClass} disabled={isBusy} onClick={onCreate} type="button">
+              <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
+                add_circle
+              </span>
+              <span className="truncate">Create module</span>
+            </button>
+            <button
+              className={navButtonClass}
+              disabled={!hasSelectedModule || isBusy}
+              onClick={onEdit}
+              type="button"
+            >
+              <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
+                edit_square
+              </span>
+              <span className="truncate">Edit selected module</span>
+            </button>
+            <button
+              className={navButtonClass}
+              disabled={!hasSelectedModule || isBusy}
+              onClick={onAssign}
+              type="button"
+            >
+              <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
+                assignment_ind
+              </span>
+              <span className="truncate">Assign selected module</span>
+            </button>
+            <button
+              aria-describedby={!aiAvailable ? "training-ai-unavailable" : undefined}
+              className={`${navButtonClass} ${aiAvailable ? "forge-nav-link--active" : ""}`}
+              disabled={!aiAvailable || isBusy}
+              onClick={onGenerate}
+              type="button"
+            >
+              <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
+                auto_awesome
+              </span>
+              <span className="truncate">Generate with AI</span>
+            </button>
+          </div>
+        </div>
 
-      <div className="mt-5 grid gap-3">
-        <button
-          className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/70 px-4 py-3 text-left text-sm font-semibold text-white transition hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/10 disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={isBusy}
-          onClick={onCreate}
-          type="button"
-        >
-          Create module
-        </button>
-        <button
-          className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/70 px-4 py-3 text-left text-sm font-semibold text-white transition hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/10 disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={!hasSelectedModule || isBusy}
-          onClick={onEdit}
-          type="button"
-        >
-          Edit selected module
-        </button>
-        <button
-          className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/70 px-4 py-3 text-left text-sm font-semibold text-white transition hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/10 disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={!hasSelectedModule || isBusy}
-          onClick={onAssign}
-          type="button"
-        >
-          Assign selected module
-        </button>
-        <button
-          aria-describedby={!aiAvailable ? "training-ai-unavailable" : undefined}
-          className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-3 text-left text-sm font-semibold text-[#170d07] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={!aiAvailable || isBusy}
-          onClick={onGenerate}
-          type="button"
-        >
-          Generate with AI
-        </button>
-      </div>
+        <div>
+          <p className="forge-nav-section-label mb-2 px-3">Planning summary</p>
+          <div className="rounded-2xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3">
+            <p className="text-sm font-semibold text-[var(--forge-text)]">
+              {moduleCount} module{moduleCount === 1 ? "" : "s"} across {repCount} rep{repCount === 1 ? "" : "s"}
+            </p>
+            <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">{selectedModuleSummary}</p>
+          </div>
+        </div>
 
-      {!aiAvailable ? (
-        <p className="mt-4 text-xs text-[var(--forge-muted)]" id="training-ai-unavailable">
-          AI curriculum generation is unavailable until OpenAI is configured.
-        </p>
+        {!aiAvailable ? (
+          <p className="px-3 text-xs leading-5 text-[var(--forge-muted)]" id="training-ai-unavailable">
+            AI curriculum generation is unavailable until OpenAI is configured.
+          </p>
+        ) : null}
+      </nav>
+
+      {feedback ? (
+        <div className="mt-5">
+          {feedback}
+        </div>
       ) : null}
-
-      {feedback}
     </section>
   );
 }

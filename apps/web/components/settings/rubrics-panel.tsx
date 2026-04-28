@@ -318,6 +318,8 @@ export function RubricsPanel({
     [history],
   );
   const draftIssues = useMemo(() => collectDraftIssues(draft), [draft]);
+  const controlNavButtonClass =
+    "forge-nav-link flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left font-[var(--font-display)] text-[0.7rem] font-bold uppercase tracking-[0.16em] disabled:cursor-not-allowed disabled:opacity-45";
 
   function resetServerDraft() {
     setServerDraft(null);
@@ -445,9 +447,9 @@ export function RubricsPanel({
   }
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[19rem_minmax(0,1fr)_20rem]">
-      <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start" data-rubric-builder-rail="">
-        <section className="rounded-[1.5rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-5 shadow-[0_18px_60px_rgba(2,8,23,0.24)]">
+    <div className="grid gap-5 xl:grid-cols-[17rem_17rem_minmax(0,1fr)]">
+      <aside className="space-y-5 xl:sticky xl:top-24 xl:order-1 xl:self-start" data-rubric-builder-rail="">
+        <section className="rounded-[1.35rem] border border-[var(--forge-border)] bg-[rgba(5,4,3,0.56)] p-4 shadow-[inset_0_1px_0_rgba(255,244,230,0.055)]">
           <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-gold)]">Source and versions</p>
           <h3 className="mt-2 text-lg font-semibold text-white">Scoring sources</h3>
           <p className="mt-2 text-sm leading-6 text-[var(--forge-muted)]">
@@ -468,7 +470,7 @@ export function RubricsPanel({
 
           <div className="mt-5 grid gap-2">
             <button
-              className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/70 px-4 py-3 text-left text-sm font-semibold text-white transition hover:border-[var(--forge-gold)]/35 hover:bg-[var(--forge-gold)]/10 disabled:cursor-not-allowed disabled:opacity-50"
+              className={controlNavButtonClass}
               disabled={!activeRubric}
               onClick={() => {
                 if (!activeRubric) {
@@ -480,22 +482,28 @@ export function RubricsPanel({
               }}
               type="button"
             >
-              New Draft from Active
+              <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
+                content_copy
+              </span>
+              <span className="truncate">New Draft from Active</span>
             </button>
             <button
-              className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/70 px-4 py-3 text-left text-sm font-semibold text-white transition hover:border-[var(--forge-gold)]/35 hover:bg-[var(--forge-gold)]/10"
+              className={controlNavButtonClass}
               onClick={() => {
                 setSourceIssues([]);
                 beginDraft(defaultTemplate, "Started from Default Template", "manual");
               }}
               type="button"
             >
-              Start from Default Template
+              <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
+                auto_fix
+              </span>
+              <span className="truncate">Start from Default Template</span>
             </button>
           </div>
         </section>
 
-        <section className="rounded-[1.5rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-5 shadow-[0_18px_60px_rgba(2,8,23,0.24)]">
+        <section className="rounded-[1.35rem] border border-[var(--forge-border)] bg-[rgba(5,4,3,0.56)] p-4 shadow-[inset_0_1px_0_rgba(255,244,230,0.055)]">
           <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-gold)]">Clone or import</p>
           <label className="mt-4 block space-y-2">
             <span className="text-xs font-black uppercase tracking-[0.18em] text-[var(--forge-muted)]">Clone Historical Version</span>
@@ -513,35 +521,36 @@ export function RubricsPanel({
             </select>
           </label>
           <button
-            className="mt-3 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/70 px-4 py-3 text-left text-sm font-semibold text-white transition hover:border-[var(--forge-gold)]/35 hover:bg-[var(--forge-gold)]/10"
+            className={`${controlNavButtonClass} mt-3`}
             onClick={() => void handleCloneHistory()}
             type="button"
           >
-            Clone
+            <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
+              account_tree
+            </span>
+            <span className="truncate">Clone</span>
           </button>
 
-          <div className="mt-5 flex gap-2">
+          <div className="mt-5 space-y-1">
             <button
-              className={`flex-1 rounded-full px-3 py-2 text-xs font-black uppercase tracking-[0.18em] ${
-                importMode === "csv_import"
-                  ? "bg-[var(--forge-gold)] text-[#170d07]"
-                  : "border border-[var(--forge-border-strong)]/20 text-[var(--forge-muted)]"
-              }`}
+              className={`${controlNavButtonClass} ${importMode === "csv_import" ? "forge-nav-link--active" : ""}`}
               onClick={() => setImportMode("csv_import")}
               type="button"
             >
-              Import CSV
+              <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
+                table
+              </span>
+              <span className="truncate">Import CSV</span>
             </button>
             <button
-              className={`flex-1 rounded-full px-3 py-2 text-xs font-black uppercase tracking-[0.18em] ${
-                importMode === "json_import"
-                  ? "bg-[var(--forge-gold)] text-[#170d07]"
-                  : "border border-[var(--forge-border-strong)]/20 text-[var(--forge-muted)]"
-              }`}
+              className={`${controlNavButtonClass} ${importMode === "json_import" ? "forge-nav-link--active" : ""}`}
               onClick={() => setImportMode("json_import")}
               type="button"
             >
-              Import JSON
+              <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
+                data_object
+              </span>
+              <span className="truncate">Import JSON</span>
             </button>
           </div>
           <input
@@ -551,15 +560,18 @@ export function RubricsPanel({
             type="file"
           />
           <button
-            className="mt-3 w-full rounded-xl border border-[var(--forge-gold)]/25 bg-[var(--forge-gold)]/10 px-4 py-3 text-left text-sm font-semibold text-[var(--forge-text)] transition hover:border-[var(--forge-gold)]/45 hover:bg-[var(--forge-gold)]/15"
+            className={`${controlNavButtonClass} mt-3`}
             onClick={() => void handleImportPreview()}
             type="button"
           >
-            Preview Import
+            <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
+              preview
+            </span>
+            <span className="truncate">Preview Import</span>
           </button>
         </section>
 
-        <section className="rounded-[1.5rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-5 shadow-[0_18px_60px_rgba(2,8,23,0.24)]">
+        <section className="rounded-[1.35rem] border border-[var(--forge-border)] bg-[rgba(5,4,3,0.56)] p-4 shadow-[inset_0_1px_0_rgba(255,244,230,0.055)]">
           <div className="flex items-center justify-between gap-3">
             <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-gold)]">Version History</p>
             <span className="text-xs font-semibold text-[var(--forge-muted)]">{history.length}</span>
@@ -595,7 +607,7 @@ export function RubricsPanel({
         </section>
       </aside>
 
-      <main className="min-w-0" data-rubric-category-editor="">
+      <main className="min-w-0 xl:order-3" data-rubric-category-editor="">
         <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -874,31 +886,14 @@ export function RubricsPanel({
         </section>
       </main>
 
-      <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start" data-rubric-readiness-panel="">
-        <section className="rounded-[1.5rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-5 shadow-[0_18px_60px_rgba(2,8,23,0.24)]">
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-gold)]">Readiness panel</p>
-          <div className="mt-4 grid gap-2">
-            {BUILDER_STEPS.map((item) => (
-              <div
-                aria-current={step === item.id ? "step" : undefined}
-                className={`rounded-xl px-3 py-2 text-xs font-black uppercase tracking-[0.18em] ${
-                  step === item.id
-                    ? "bg-[var(--forge-gold)] text-[#170d07]"
-                    : "border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/60 text-[var(--forge-muted)]"
-                }`}
-                key={item.id}
-              >
-                {item.label}
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-5 rounded-xl border border-[var(--forge-border-strong)]/12 bg-[var(--forge-surface-2)]/60 px-4 py-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">Draft status</p>
-            <p className="mt-2 text-sm font-semibold text-[var(--forge-text)]">
+      <aside className="space-y-5 xl:sticky xl:top-24 xl:order-2 xl:self-start" data-rubric-readiness-panel="">
+        <section className="rounded-[1.35rem] border border-[var(--forge-border)] bg-[rgba(5,4,3,0.56)] p-4 shadow-[inset_0_1px_0_rgba(255,244,230,0.055)]">
+          <div className="mb-5 rounded-[1.15rem] border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] p-4">
+            <p className="forge-page-eyebrow">Admin controls</p>
+            <h3 className="mt-2 text-base font-semibold text-[var(--forge-text)]">Readiness panel</h3>
+            <p className="mt-2 text-xs leading-5 text-[var(--forge-muted)]">
               {draft ? `${draft.categories.length} categories in draft` : "No draft started"}
             </p>
-            <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">{draftSourceLabel}</p>
           </div>
 
           {statusMessage ? (
@@ -913,93 +908,147 @@ export function RubricsPanel({
             </div>
           ) : null}
 
-          <div className="mt-5 space-y-3">
-            <div className="rounded-xl border border-[var(--forge-border-strong)]/12 bg-[var(--forge-surface-2)]/60 px-4 py-3">
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">Validation issues</p>
-              {draftIssues.length > 0 ? (
-                <ul className="mt-3 space-y-2 text-xs leading-5 text-[var(--forge-danger)]">
-                  {draftIssues.map((issue, index) => (
-                    <li key={`${issue.row ?? "global"}-${issue.field}-${index}`}>
-                      Row {issue.row ?? "global"} · {issue.field}: {issue.message}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-2 text-sm text-[var(--forge-muted)]">
-                  {draft ? "No validation issues." : "Start a draft to run validation."}
-                </p>
-              )}
+          <nav aria-label="Rubric admin controls" className="mt-5 space-y-5" data-settings-nav-theme="forge">
+            <div>
+              <p className="forge-nav-section-label mb-2 px-3">Workflow</p>
+              <div className="space-y-1">
+                {BUILDER_STEPS.map((item) => (
+                  <div
+                    aria-current={step === item.id ? "step" : undefined}
+                    className={`forge-nav-link flex items-center gap-3 rounded-2xl px-3 py-2.5 font-[var(--font-display)] text-[0.7rem] font-bold uppercase tracking-[0.16em] ${
+                      step === item.id ? "forge-nav-link--active" : ""
+                    }`}
+                    key={item.id}
+                  >
+                    <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
+                      {item.id === "source"
+                        ? "input"
+                        : item.id === "edit"
+                          ? "edit_note"
+                          : item.id === "review"
+                            ? "rule"
+                            : "publish"}
+                    </span>
+                    <span className="truncate">{item.label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <div className="rounded-xl border border-[var(--forge-border-strong)]/12 bg-[var(--forge-surface-2)]/60 px-4 py-3">
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">Import warnings</p>
-              {sourceIssues.length > 0 ? (
-                <ul className="mt-3 space-y-2 text-xs leading-5 text-[var(--forge-ember)]">
-                  {sourceIssues.map((issue, index) => (
-                    <li key={`${issue.row ?? "import"}-${issue.field}-${index}`}>
-                      Row {issue.row ?? "global"} · {issue.field}: {issue.message}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-2 text-sm text-[var(--forge-muted)]">No import warnings.</p>
-              )}
+            <div>
+              <p className="forge-nav-section-label mb-2 px-3">Readiness</p>
+              <div className="space-y-2">
+                <div className="rounded-2xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Draft status</p>
+                  <p className="mt-1 text-sm font-semibold text-[var(--forge-text)]">
+                    {draft ? `${draft.categories.length} categories in draft` : "No draft started"}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">{draftSourceLabel}</p>
+                </div>
+                <div className="rounded-2xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Validation issues</p>
+                  {draftIssues.length > 0 ? (
+                    <ul className="mt-2 space-y-2 text-xs leading-5 text-[var(--forge-danger)]">
+                      {draftIssues.map((issue, index) => (
+                        <li key={`${issue.row ?? "global"}-${issue.field}-${index}`}>
+                          Row {issue.row ?? "global"} · {issue.field}: {issue.message}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">
+                      {draft ? "No validation issues." : "Start a draft to run validation."}
+                    </p>
+                  )}
+                </div>
+                <div className="rounded-2xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Import warnings</p>
+                  {sourceIssues.length > 0 ? (
+                    <ul className="mt-2 space-y-2 text-xs leading-5 text-[var(--forge-ember)]">
+                      {sourceIssues.map((issue, index) => (
+                        <li key={`${issue.row ?? "import"}-${issue.field}-${index}`}>
+                          Row {issue.row ?? "global"} · {issue.field}: {issue.message}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">No import warnings.</p>
+                  )}
+                </div>
+                <div className="rounded-2xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Server draft</p>
+                  <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">
+                    {serverDraft
+                      ? `Draft version ${serverDraft.version} · ${serverDraft.categoryCount} categories`
+                      : "Prepare publish to create a server draft."}
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div className="rounded-xl border border-[var(--forge-border-strong)]/12 bg-[var(--forge-surface-2)]/60 px-4 py-3">
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">Server draft</p>
-              <p className="mt-2 text-sm text-[var(--forge-muted)]">
-                {serverDraft
-                  ? `Draft version ${serverDraft.version} · ${serverDraft.categoryCount} categories`
-                  : "Prepare publish to create a server draft."}
-              </p>
+            <div>
+              <p className="forge-nav-section-label mb-2 px-3">Publish controls</p>
+              <div className="space-y-1">
+                <button
+                  className={controlNavButtonClass}
+                  disabled={!draft}
+                  onClick={() => setStep("review")}
+                  type="button"
+                >
+                  <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
+                    rule
+                  </span>
+                  <span className="truncate">Review Draft</span>
+                </button>
+                <button
+                  className={`${controlNavButtonClass} ${draft ? "forge-nav-link--active" : ""}`}
+                  disabled={!draft || isPending}
+                  onClick={() => void handlePreparePublish()}
+                  type="button"
+                >
+                  <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
+                    task_alt
+                  </span>
+                  <span className="truncate">Prepare Publish</span>
+                </button>
+                {draft && step !== "edit" ? (
+                  <button
+                    className={controlNavButtonClass}
+                    onClick={() => setStep("edit")}
+                    type="button"
+                  >
+                    <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
+                      edit_note
+                    </span>
+                    <span className="truncate">Back to Edit</span>
+                  </button>
+                ) : null}
+                {draft && step === "publish" ? (
+                  <button
+                    className={controlNavButtonClass}
+                    onClick={() => setStep("review")}
+                    type="button"
+                  >
+                    <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
+                      rule
+                    </span>
+                    <span className="truncate">Back to Review</span>
+                  </button>
+                ) : null}
+                <button
+                  className={`${controlNavButtonClass} ${serverDraft ? "forge-nav-link--active" : ""}`}
+                  disabled={!serverDraft || isPending}
+                  onClick={() => void handlePublish()}
+                  type="button"
+                >
+                  <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
+                    publish
+                  </span>
+                  <span className="truncate">{isPending ? "Publishing..." : "Publish Draft"}</span>
+                </button>
+              </div>
             </div>
-          </div>
-
-          <div className="mt-5 grid gap-3">
-            <button
-              className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/70 px-4 py-3 text-left text-sm font-semibold text-white transition hover:border-[var(--forge-gold)]/35 hover:bg-[var(--forge-gold)]/10 disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={!draft}
-              onClick={() => setStep("review")}
-              type="button"
-            >
-              Review Draft
-            </button>
-            <button
-              className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-3 text-left text-sm font-semibold text-[#170d07] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={!draft || isPending}
-              onClick={() => void handlePreparePublish()}
-              type="button"
-            >
-              Prepare Publish
-            </button>
-            {draft && step !== "edit" ? (
-              <button
-                className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/70 px-4 py-3 text-left text-sm font-semibold text-white transition hover:border-[var(--forge-gold)]/35 hover:bg-[var(--forge-gold)]/10"
-                onClick={() => setStep("edit")}
-                type="button"
-              >
-                Back to Edit
-              </button>
-            ) : null}
-            {draft && step === "publish" ? (
-              <button
-                className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/70 px-4 py-3 text-left text-sm font-semibold text-white transition hover:border-[var(--forge-gold)]/35 hover:bg-[var(--forge-gold)]/10"
-                onClick={() => setStep("review")}
-                type="button"
-              >
-                Back to Review
-              </button>
-            ) : null}
-            <button
-              className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-3 text-left text-sm font-semibold text-[#170d07] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={!serverDraft || isPending}
-              onClick={() => void handlePublish()}
-              type="button"
-            >
-              {isPending ? "Publishing..." : "Publish Draft"}
-            </button>
-          </div>
+          </nav>
         </section>
       </aside>
     </div>

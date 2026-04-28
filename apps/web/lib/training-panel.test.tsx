@@ -350,10 +350,12 @@ describe("TrainingPanel", () => {
 
     expect(html).toContain("Select a module to open the planning deck");
     expect(html).toContain("Choose a module to edit or assign it.");
-    expect(html).toMatch(/<button[^>]*>Create module<\/button>/);
-    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Edit selected module<\/button>/);
-    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Assign selected module<\/button>/);
-    expect(html).toMatch(/<button[^>]*aria-describedby="training-ai-unavailable"[^>]*disabled=""[^>]*>Generate with AI<\/button>/);
+    expect(html).toContain('aria-label="Training admin controls"');
+    expect(html).toContain('data-settings-nav-theme="forge"');
+    expect(html).toMatch(/<button(?:(?!disabled="").)*<span class="truncate">Create module<\/span><\/button>/s);
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>.*<span class="truncate">Edit selected module<\/span><\/button>/s);
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>.*<span class="truncate">Assign selected module<\/span><\/button>/s);
+    expect(html).toMatch(/<button[^>]*aria-describedby="training-ai-unavailable"[^>]*disabled=""[^>]*>.*<span class="truncate">Generate with AI<\/span><\/button>/s);
   });
 
   it("shows unavailable AI copy when generation is disabled", () => {
@@ -392,8 +394,8 @@ describe("TrainingPanel", () => {
 
     expect(html).toContain("Selected module");
     expect(html).toContain("Focused on the selected module.");
-    expect(html).toMatch(/<button(?:(?!disabled="").)*>Edit selected module<\/button>/s);
-    expect(html).toMatch(/<button(?:(?!disabled="").)*>Assign selected module<\/button>/s);
+    expect(html).toMatch(/<button(?:(?!disabled="").)*<span class="truncate">Edit selected module<\/span><\/button>/s);
+    expect(html).toMatch(/<button(?:(?!disabled="").)*<span class="truncate">Assign selected module<\/span><\/button>/s);
   });
 
   it("does not render the manager modal when closed", () => {
@@ -481,10 +483,9 @@ describe("TrainingPanel", () => {
 
     expect(shellIndex).toBeGreaterThanOrEqual(0);
     expect(structureIndex).toBeGreaterThan(shellIndex);
-    expect(stageIndex).toBeGreaterThanOrEqual(0);
-    expect(stageIndex).toBeGreaterThan(structureIndex);
+    expect(builderControlsIndex).toBeGreaterThan(structureIndex);
+    expect(stageIndex).toBeGreaterThan(builderControlsIndex);
     expect(tocIndex).toBeGreaterThan(structureIndex);
-    expect(builderControlsIndex).toBeGreaterThan(stageIndex);
     expect(commandDeckIndex).toBeGreaterThan(builderControlsIndex);
   });
 
@@ -659,11 +660,12 @@ describe("TrainingPanel", () => {
     );
 
     expect(shellHtml).toContain('data-training-course-shell="manager"');
-    expect(shellHtml).toContain("xl:grid-cols-[18rem_minmax(0,1fr)_20rem]");
+    expect(shellHtml).toContain("xl:grid-cols-[16rem_16rem_minmax(0,1fr)]");
     expect(stageHtml).toContain("relative space-y-6");
     expect(stageHtml).toContain("rounded-[1.25rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface-2)]/45 p-6");
     expect(tocHtml).toContain("rounded-[1.5rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6");
-    expect(commandDeckHtml).toContain("rounded-[1.5rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-5");
+    expect(commandDeckHtml).toContain("rounded-[1.35rem] border border-[var(--forge-border)] bg-[rgba(5,4,3,0.56)] p-4");
+    expect(commandDeckHtml).toContain('data-settings-nav-theme="forge"');
     expect(`${stageHtml}${tocHtml}${commandDeckHtml}`).not.toContain("#74b1ff");
   });
 

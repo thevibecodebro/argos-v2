@@ -21,7 +21,7 @@ export function TrainingCourseShell({
     <div
       className={
         isManager
-          ? "grid gap-5 xl:grid-cols-[18rem_minmax(0,1fr)_20rem]"
+          ? "grid gap-5 xl:grid-cols-[16rem_16rem_minmax(0,1fr)]"
           : "grid gap-5 xl:grid-cols-[18rem_minmax(0,1fr)]"
       }
       data-training-course-shell={mode}
@@ -29,10 +29,15 @@ export function TrainingCourseShell({
       <aside className="min-w-0 xl:sticky xl:top-24 xl:self-start" data-training-course-structure="">
         {tableOfContents}
       </aside>
+      {isManager && commandDeck ? (
+        <aside className="min-w-0 xl:sticky xl:top-24 xl:self-start" data-training-builder-controls="">
+          {commandDeck}
+        </aside>
+      ) : null}
       <main className="min-w-0" data-training-course-stage="">
         {stage}
       </main>
-      {commandDeck ? (
+      {!isManager && commandDeck ? (
         <aside className="min-w-0 xl:sticky xl:top-24 xl:self-start" data-training-builder-controls="">
           {commandDeck}
         </aside>

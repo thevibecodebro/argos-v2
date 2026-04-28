@@ -128,6 +128,12 @@ describe("RubricsPanel", () => {
     expect(html).toContain('data-rubric-builder-rail=""');
     expect(html).toContain('data-rubric-category-editor=""');
     expect(html).toContain('data-rubric-readiness-panel=""');
+    expect(html).toContain("xl:grid-cols-[17rem_17rem_minmax(0,1fr)]");
+    expect(html).toContain('xl:order-1');
+    expect(html).toContain('xl:order-2');
+    expect(html).toContain('xl:order-3');
+    expect(html).toContain('aria-label="Rubric admin controls"');
+    expect(html).toContain('data-settings-nav-theme="forge"');
     expect(html).toContain("Source and versions");
     expect(html).toContain("Active Rubric");
     expect(html).toContain("Revenue Scorecard v4");
