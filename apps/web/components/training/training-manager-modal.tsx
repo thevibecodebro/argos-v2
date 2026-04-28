@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, type ReactNode } from "react";
+import { ForgeIcon } from "../forge";
 
 type TrainingManagerModalProps = {
   children: ReactNode;
@@ -137,7 +138,7 @@ export function TrainingManagerModal({
             onClick={onClose}
             type="button"
           >
-            <span className="material-symbols-outlined text-base">close</span>
+            <ForgeIcon name="close" size={16} />
           </button>
         </div>
 

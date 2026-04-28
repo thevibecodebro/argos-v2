@@ -2,6 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  ForgeButton,
+  ForgeChip,
+  ForgeEmptyState,
+  ForgeSurface,
+} from "@/components/forge";
 import type { NotificationItem } from "@/lib/notifications/service";
 
 type NotificationsPanelProps = {
@@ -76,32 +82,39 @@ export function NotificationsPanel({
 
   if (notifications.length === 0) {
     return (
-      <section className="rounded-xl border border-dashed border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/20 px-6 py-12 text-center">
-        <p className="text-lg font-medium text-[var(--forge-text)]">No notifications yet</p>
-        <p className="mt-2 text-sm text-[var(--forge-muted)]">
-          Uploading a call, adding annotations, and completing training modules will start populating this feed.
-        </p>
-      </section>
+      <ForgeEmptyState
+        description="Uploading a call, adding annotations, and completing training modules will start populating this feed."
+        icon="notifications"
+        title="No notifications yet"
+      />
     );
   }
 
   return (
-    <section className="space-y-5 rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+    <ForgeSurface as="section" className="space-y-5 p-6" variant="panel">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-[var(--forge-text)]">{unreadCount} unread</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-semibold text-[var(--forge-text)]">
+              {unreadCount === 0 ? "All caught up" : `${unreadCount} unread`}
+            </p>
+            <ForgeChip tone={unreadCount > 0 ? "gold" : "muted"}>
+              {notifications.length} total
+            </ForgeChip>
+          </div>
           <p className="mt-1 text-sm text-[var(--forge-muted)]">Scoring, coaching, and training activity across your account.</p>
         </div>
-        <button
-          className="rounded-xl border border-[var(--forge-gold)]/20 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-[var(--forge-gold)] transition hover:border-[var(--forge-gold)]/35 hover:bg-[var(--forge-gold)]/10 disabled:opacity-50"
+        <ForgeButton
           disabled={unreadCount === 0 || isMutating}
           onClick={() => {
             void markAllRead();
           }}
+          size="sm"
           type="button"
+          variant="secondary"
         >
-          Mark all read
-        </button>
+          {isMutating ? "Updating..." : "Mark all read"}
+        </ForgeButton>
       </div>
 
       <div className="space-y-6">
@@ -126,7 +139,10 @@ export function NotificationsPanel({
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-sm font-semibold text-[var(--forge-text)]">{notification.title}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-semibold text-[var(--forge-text)]">{notification.title}</p>
+                        {!notification.read ? <ForgeChip tone="gold">Unread</ForgeChip> : null}
+                      </div>
                       <p className="mt-2 text-sm leading-7 text-[var(--forge-muted)]">{notification.body}</p>
                     </div>
                     <span className="shrink-0 text-xs uppercase tracking-[0.22em] text-[var(--forge-muted)]">
@@ -139,6 +155,6 @@ export function NotificationsPanel({
           </div>
         ))}
       </div>
-    </section>
+    </ForgeSurface>
   );
 }

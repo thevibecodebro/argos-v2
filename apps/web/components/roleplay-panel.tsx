@@ -9,6 +9,13 @@ import {
   type RoleplayCategory,
   type RoleplaySession,
 } from "@/lib/roleplay/types";
+import {
+  ForgeIcon,
+  ForgeWorkspaceLayout,
+  ForgeWorkspaceRail,
+  ForgeWorkspaceRailAction,
+  ForgeWorkspaceRailGroup,
+} from "./forge";
 
 type RoleplayPanelProps = {
   initialPersonas: RoleplayPersona[];
@@ -469,70 +476,71 @@ export function RoleplayPanel({
 
   return (
     <>
-      {/* Persona Selection Grid */}
-      <section className="space-y-6">
-        <div className="flex items-end justify-between">
-          <div>
-            <h2 className="font-['Space_Grotesk'] text-3xl font-bold text-[var(--forge-text)]">Target Personas</h2>
-            <p className="mt-1 text-sm text-[var(--forge-muted)]">Select an AI agent to begin your simulation scenario.</p>
-          </div>
-          <button
-            className="flex items-center gap-2 font-medium text-[var(--forge-gold)] hover:underline"
-            disabled={!selectedPersonaId || isMutating}
-            onClick={() => void createSession()}
-            type="button"
-          >
-            {isMutating ? "Starting..." : "Start simulation"}
-            <span className="material-symbols-outlined text-sm">arrow_forward</span>
-          </button>
-        </div>
+      <ForgeWorkspaceLayout railCount={2} railPlacement="bookend" data-roleplay-workspace="simulation">
+        <ForgeWorkspaceRail
+          collapsible
+          description="Choose a persona and start a focused practice session."
+          eyebrow="Scenario rail"
+          title="Target personas"
+          data-roleplay-scenario-rail=""
+        >
+          <ForgeWorkspaceRailGroup label="Session">
+            <ForgeWorkspaceRailAction
+              disabled={!selectedPersonaId || isMutating}
+              icon="insights"
+              onClick={() => void createSession()}
+              type="button"
+            >
+              {isMutating ? "Starting..." : "Start simulation"}
+            </ForgeWorkspaceRailAction>
+          </ForgeWorkspaceRailGroup>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {personas.map((persona) => {
-            const isSelected = persona.id === selectedPersonaId;
-            return (
-              <button
-                className={`group rounded-xl p-5 text-left transition-all ${
-                  isSelected
-                    ? "border border-[var(--forge-gold)]/30 bg-[var(--forge-surface-3)]/50 ring-1 ring-[var(--forge-gold)]/20"
-                    : "border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-3)]/40  hover:bg-[var(--forge-surface-3)]/60"
-                }`}
-                key={persona.id}
-                onClick={() => setSelectedPersonaId(persona.id)}
-                style={{ backdropFilter: "blur(12px)" }}
-                type="button"
-              >
-                <div className="mb-4 flex items-start justify-between">
-                  <div className={`flex h-12 w-12 items-center justify-center rounded-lg text-sm font-bold ${
-                    isSelected ? "border-2 border-[var(--forge-gold)] bg-[var(--forge-gold)]/10 text-[var(--forge-gold)]" : "bg-[var(--forge-surface-3)] text-[var(--forge-muted)]"
-                  }`}>
-                    {persona.avatarInitials}
+          <ForgeWorkspaceRailGroup label="Personas">
+            {personas.map((persona) => {
+              const isSelected = persona.id === selectedPersonaId;
+              return (
+                <button
+                  aria-pressed={isSelected}
+                  className={`group w-full rounded-2xl border px-3 py-3 text-left transition-all ${
+                    isSelected
+                      ? "border-[var(--forge-gold)]/30 bg-[var(--forge-gold)]/10 ring-1 ring-[var(--forge-gold)]/20"
+                      : "border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-3)]/40 hover:bg-[var(--forge-surface-3)]/60"
+                  }`}
+                  key={persona.id}
+                  onClick={() => setSelectedPersonaId(persona.id)}
+                  type="button"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-lg text-sm font-bold ${
+                      isSelected ? "border-2 border-[var(--forge-gold)] bg-[var(--forge-gold)]/10 text-[var(--forge-gold)]" : "bg-[var(--forge-surface-3)] text-[var(--forge-muted)]"
+                    }`}>
+                      {persona.avatarInitials}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="truncate text-sm font-bold text-[var(--forge-text)]">{persona.name}</h3>
+                        <span className={`shrink-0 rounded-full px-2 py-1 font-['Space_Grotesk'] text-[9px] font-bold uppercase tracking-wider ${difficultyBadge(persona.difficulty)}`}>
+                          {persona.difficulty}
+                        </span>
+                      </div>
+                      <p className="mt-1 truncate text-xs text-[var(--forge-gold)]">{persona.role}, {persona.company}</p>
+                      <p className="mt-2 line-clamp-2 text-xs leading-5 text-[var(--forge-muted)]">{persona.description}</p>
+                    </div>
                   </div>
-                  <span className={`rounded-full px-2 py-1 font-['Space_Grotesk'] text-[10px] font-bold uppercase tracking-wider ${difficultyBadge(persona.difficulty)}`}>
-                    {persona.difficulty}
-                  </span>
-                </div>
-                <h3 className="text-lg font-bold text-[var(--forge-text)]">{persona.name}</h3>
-                <p className="mb-3 text-xs text-[var(--forge-gold)]">{persona.role}, {persona.company}</p>
-                <p className="line-clamp-3 text-sm text-[var(--forge-muted)]">{persona.description}</p>
-              </button>
-            );
-          })}
-        </div>
-      </section>
+                </button>
+              );
+            })}
+          </ForgeWorkspaceRailGroup>
+        </ForgeWorkspaceRail>
 
-      {/* Live Simulation + Scorecard */}
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        {/* Chat Panel */}
-        <div className="flex flex-col lg:col-span-2">
-          {/* Session bar */}
+        <main className="min-w-0" data-forge-workspace-main="true" data-roleplay-simulation-stage="">
           <div className="mb-4 flex items-center justify-between rounded-xl bg-[var(--forge-surface)] p-4">
             <div className="flex items-center gap-4">
               <div className="relative">
                 {activeSession?.status === "active" && (
                   <span className="absolute -right-1 -top-1 h-2 w-2 animate-pulse rounded-full bg-[#ff716c]" />
                 )}
-                <span className="material-symbols-outlined text-[var(--forge-gold)]">videocam</span>
+                <ForgeIcon className="text-[var(--forge-gold)]" name="psychology" size={20} />
               </div>
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
@@ -559,7 +567,7 @@ export function RoleplayPanel({
                 onClick={() => isVoiceActive ? stopVoicePractice() : void startVoicePractice()}
                 type="button"
               >
-                <span className="material-symbols-outlined text-sm">mic</span>
+                <ForgeIcon name="power" size={14} />
                 {isStartingVoice ? "Starting…" : isVoiceActive ? "Stop" : "Voice"}
               </button>
               <span className="px-3 py-1.5 text-xs font-bold text-[var(--forge-muted)]">Text</span>
@@ -597,9 +605,7 @@ export function RoleplayPanel({
                     <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded ${
                       msg.role === "user" ? "bg-[var(--forge-gold)]/20" : "bg-[var(--forge-surface-3)]"
                     }`}>
-                      <span className="material-symbols-outlined text-sm text-[var(--forge-gold)]">
-                        {msg.role === "user" ? "person" : "smart_toy"}
-                      </span>
+                      <ForgeIcon className="text-[var(--forge-gold)]" name={msg.role === "user" ? "person" : "psychology"} size={14} />
                     </div>
                     <div className={`rounded-2xl border p-4 ${
                       msg.role === "user"
@@ -631,10 +637,12 @@ export function RoleplayPanel({
               )
             ) : (
               <div className="flex flex-1 flex-col items-center justify-center text-center">
-                <span className="material-symbols-outlined mb-4 text-4xl text-[var(--forge-muted)]">record_voice_over</span>
-                <p className="font-['Space_Grotesk'] text-lg font-bold text-[var(--forge-text)]">Start a roleplay to practice the hard conversations</p>
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-3)] text-[var(--forge-muted)]">
+                  <ForgeIcon name="psychology" size={26} />
+                </div>
+                <p className="font-['Space_Grotesk'] text-lg font-bold text-[var(--forge-text)]">No active simulation</p>
                 <p className="mt-2 max-w-sm text-sm text-[var(--forge-muted)]">
-                  Choose a persona above, then click &ldquo;Start simulation&rdquo; to begin.
+                  Choose a persona in the scenario rail, then start a simulation.
                 </p>
               </div>
             )}
@@ -667,7 +675,7 @@ export function RoleplayPanel({
                 onClick={() => void sendMessage()}
                 type="button"
               >
-                <span className="material-symbols-outlined">send</span>
+                <ForgeIcon name="insights" size={18} />
               </button>
             </div>
             <button
@@ -676,25 +684,21 @@ export function RoleplayPanel({
               onClick={() => void completeSession()}
               type="button"
             >
-              <span className="material-symbols-outlined text-2xl">insights</span>
+              <ForgeIcon name="insights" size={24} />
               <span className="text-[10px] uppercase tracking-tighter">End &amp; Score</span>
             </button>
           </div>
 
           <audio autoPlay className="hidden" playsInline ref={remoteAudioRef} />
-        </div>
+        </main>
 
-        {/* Scorecard sidebar */}
-        <aside className="space-y-6">
-          <div
-            className="flex min-h-[400px] flex-col rounded-2xl border border-[var(--forge-border-strong)]/20 p-6"
-            style={{ background: "rgba(34,38,47,0.4)", backdropFilter: "blur(12px)" }}
-          >
-            <div className="mb-6 flex items-center gap-3">
-              <span className="material-symbols-outlined text-[var(--forge-gold)]">leaderboard</span>
-              <h3 className="font-['Space_Grotesk'] text-xl font-bold text-[var(--forge-text)]">Session Scorecard</h3>
-            </div>
-
+        <ForgeWorkspaceRail
+          description="Current scoring, readiness, and post-session guidance."
+          eyebrow="Simulation score"
+          title="Session Scorecard"
+          data-roleplay-score-rail=""
+        >
+          <div className="space-y-5">
             {activeSessionWithScorecard ? (
               <div className="space-y-4">
                 <div className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-4">
@@ -751,41 +755,43 @@ export function RoleplayPanel({
                 </div>
               </div>
             ) : (
-              <div className="flex flex-1 flex-col items-center justify-center p-4 text-center">
-                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-3)]">
-                  <span className="material-symbols-outlined text-3xl text-[var(--forge-muted)]">query_stats</span>
+              <div className="rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/45 p-4 text-center">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-3)] text-[var(--forge-muted)]">
+                  <ForgeIcon name="query_stats" size={24} />
                 </div>
-                <p className="font-bold text-[var(--forge-text)]">Waiting for session completion...</p>
-                <p className="mt-2 max-w-[200px] text-xs text-[var(--forge-muted)]">
-                  Complete the current roleplay to generate your performance analytics and improvement tips.
+                <p className="font-bold text-[var(--forge-text)]">
+                  {activeSession ? "Waiting for session completion..." : "Select a scenario to begin scoring."}
                 </p>
-                <div className="mt-8 w-full space-y-4">
+                <p className="mt-2 text-xs leading-5 text-[var(--forge-muted)]">
+                  {activeSession
+                    ? "Complete the current roleplay to generate your performance analytics and improvement tips."
+                    : "Start a simulation from the left rail. Scoring, readiness, and next actions appear here."}
+                </p>
+                <div className="mt-6 w-full space-y-3">
                   <div className="h-12 w-full animate-pulse rounded-lg bg-[var(--forge-surface)]" />
-                  <div className="h-24 w-full animate-pulse rounded-lg bg-[var(--forge-surface)]" />
                   <div className="h-24 w-full animate-pulse rounded-lg bg-[var(--forge-surface)]" />
                 </div>
               </div>
             )}
-          </div>
 
-          {/* Pro tip */}
-          <div className="rounded-2xl border border-[#c4dcfd]/20 bg-gradient-to-br from-[#314863]/20 to-[var(--forge-surface-2)] p-5">
-            <div className="mb-3 flex items-center gap-2">
-              <span className="material-symbols-outlined text-sm text-[#c4dcfd]" style={{ fontVariationSettings: "'FILL' 1" }}>lightbulb</span>
-              <span className="font-['Space_Grotesk'] text-[10px] font-bold uppercase tracking-widest text-[#c4dcfd]">Pro Tip</span>
+            <div className="rounded-2xl border border-[#c4dcfd]/20 bg-gradient-to-br from-[#314863]/20 to-[var(--forge-surface-2)] p-5">
+              <div className="mb-3 flex items-center gap-2">
+                <ForgeIcon className="text-[#c4dcfd]" name="lightbulb" size={14} />
+                <span className="font-['Space_Grotesk'] text-[10px] font-bold uppercase tracking-widest text-[#c4dcfd]">Pro Tip</span>
+              </div>
+              <p className="text-xs italic leading-relaxed text-[var(--forge-muted)]">
+                &ldquo;When handling time-sensitive objections, acknowledge the constraint immediately before proposing a phased solution. It builds trust faster.&rdquo;
+              </p>
             </div>
-            <p className="text-xs italic leading-relaxed text-[var(--forge-muted)]">
-              &ldquo;When handling time-sensitive objections, acknowledge the constraint immediately before proposing a phased solution. It builds trust faster.&rdquo;
-            </p>
           </div>
-        </aside>
-      </div>
+        </ForgeWorkspaceRail>
+      </ForgeWorkspaceLayout>
 
       {/* Recent History Table */}
       {completedSessions.length > 0 && (
         <section className="space-y-6 pb-12">
           <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-[var(--forge-muted)]">history</span>
+            <ForgeIcon className="text-[var(--forge-muted)]" name="archive" size={20} />
             <h2 className="font-['Space_Grotesk'] text-2xl font-bold text-[var(--forge-text)]">Recent History</h2>
           </div>
           <div

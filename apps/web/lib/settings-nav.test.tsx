@@ -47,4 +47,24 @@ describe("SettingsNav", () => {
     expect(html).not.toContain("#74b1ff");
     expect(html).not.toContain("border-r-2");
   });
+
+  it("renders settings rail icons through the shared ForgeIcon primitive", () => {
+    const html = renderToStaticMarkup(createElement(SettingsNav, { role: "admin" }));
+
+    expect(html).toContain('data-forge-icon-name="grading"');
+    expect(html).toContain('data-forge-icon-name="verified_user"');
+    expect(html).not.toContain(">grading<");
+    expect(html).not.toContain(">verified_user<");
+  });
+
+  it("can collapse the desktop settings rail to icon-only navigation", () => {
+    const html = renderToStaticMarkup(
+      createElement(SettingsNav, { initialCollapsed: true, role: "admin" }),
+    );
+
+    expect(html).toContain('data-settings-nav-collapsed="true"');
+    expect(html).toContain("Expand settings navigation");
+    expect(html).toContain('aria-label="Rubrics"');
+    expect(html).toContain('data-settings-nav-label="true"');
+  });
 });

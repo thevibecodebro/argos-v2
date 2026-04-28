@@ -128,10 +128,26 @@ describe("RubricsPanel", () => {
     expect(html).toContain('data-rubric-builder-rail=""');
     expect(html).toContain('data-rubric-category-editor=""');
     expect(html).toContain('data-rubric-readiness-panel=""');
-    expect(html).toContain("xl:grid-cols-[17rem_17rem_minmax(0,1fr)]");
-    expect(html).toContain('xl:order-1');
-    expect(html).toContain('xl:order-2');
-    expect(html).toContain('xl:order-3');
+    expect(html).toContain('data-forge-workspace-layout="two-rails"');
+    expect(html).toContain('data-forge-workspace-main="true"');
+    expect(html.indexOf('data-rubric-builder-rail=""')).toBeLessThan(
+      html.indexOf('data-rubric-category-editor=""'),
+    );
+    expect(html.indexOf('data-rubric-category-editor=""')).toBeLessThan(
+      html.indexOf('data-rubric-readiness-panel=""'),
+    );
+    expect(html).toContain("forge-workspace-layout");
+    expect(html).toContain("forge-workspace-rail");
+    expect(html).toContain('data-forge-workspace-rail-group="Source options"');
+    expect(html).toContain('data-forge-workspace-rail-group="Clone or import"');
+    expect(html).toContain('data-forge-workspace-rail-group="Active version"');
+    expect(html).toContain('data-forge-workspace-rail-group="Workflow"');
+    expect(html).toContain('data-forge-workspace-rail-group="Readiness"');
+    expect(html).toContain('data-forge-workspace-rail-group="Publish controls"');
+    expect(html).toContain('data-forge-workspace-rail-action="true"');
+    expect(html).not.toContain('xl:order-1');
+    expect(html).not.toContain('xl:order-2');
+    expect(html).not.toContain('xl:order-3');
     expect(html).toContain('aria-label="Rubric admin controls"');
     expect(html).toContain('data-settings-nav-theme="forge"');
     expect(html).toContain("Source and versions");
@@ -139,6 +155,7 @@ describe("RubricsPanel", () => {
     expect(html).toContain("Revenue Scorecard v4");
     expect(html).toContain("Category editor");
     expect(html).toContain("Published scoring categories");
+    expect(html).toContain('data-rubric-category-row=""');
     expect(html).toContain("Build Rapport");
     expect(html).toContain("Weight");
     expect(html).toContain("Readiness panel");
@@ -158,6 +175,9 @@ describe("RubricsPanel", () => {
     expect(html).toContain("Preview Import");
     expect(html).toContain("Publish Draft");
     expect(html).toContain("Version History");
+    expect(html).not.toContain(">content_copy<");
+    expect(html).not.toContain(">auto_fix<");
+    expect(html).not.toContain(">publish<");
   });
 
   it("requests historical rubric detail through the rubrics api", async () => {

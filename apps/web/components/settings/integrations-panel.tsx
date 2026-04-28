@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ForgeButton, ForgeChip, ForgeSurface } from "@/components/forge";
 
 export type IntegrationsPanelProps = {
   zoom: {
@@ -74,7 +75,7 @@ function ZoomCard({
   }
 
   return (
-    <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+    <ForgeSurface as="section" className="p-6" variant="panel">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
@@ -84,13 +85,9 @@ function ZoomCard({
         </div>
 
         {isConnected ? (
-          <span className="rounded-full border border-[rgba(139,215,168,0.24)] bg-[rgba(139,215,168,0.1)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-success)]">
-            Connected
-          </span>
+          <ForgeChip tone="success">Connected</ForgeChip>
         ) : (
-          <span className="rounded-full border border-[rgba(255,159,95,0.26)] bg-[rgba(255,159,95,0.1)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-ember)]">
-            Not connected
-          </span>
+          <ForgeChip tone="ember">Not connected</ForgeChip>
         )}
       </div>
 
@@ -125,46 +122,49 @@ function ZoomCard({
           confirmDisconnect ? (
             <>
               <p className="text-sm text-[var(--forge-muted)]">Are you sure?</p>
-              <button
-                className="rounded-xl border border-[rgba(255,113,108,0.3)] bg-[rgba(255,113,108,0.1)] px-3 py-1.5 text-sm font-medium text-[var(--forge-danger)] transition hover:bg-[rgba(255,113,108,0.18)] disabled:opacity-50"
+              <ForgeButton
                 disabled={isMutating}
                 onClick={() => {
                   void handleDisconnect();
                 }}
+                size="sm"
                 type="button"
+                variant="danger"
               >
                 {isMutating ? "Disconnecting..." : "Yes, disconnect"}
-              </button>
-              <button
-                className="rounded-xl border border-[var(--forge-border-strong)]/20 px-3 py-1.5 text-sm font-medium text-[var(--forge-muted)] transition hover:border-[rgba(255,244,230,0.24)] hover:text-[var(--forge-text)]"
+              </ForgeButton>
+              <ForgeButton
                 disabled={isMutating}
                 onClick={() => setConfirmDisconnect(false)}
+                size="sm"
                 type="button"
+                variant="secondary"
               >
                 Cancel
-              </button>
+              </ForgeButton>
             </>
           ) : (
-            <button
-              className="rounded-xl border border-[var(--forge-border-strong)]/20 px-3 py-1.5 text-sm font-medium text-[var(--forge-muted)] transition hover:border-[rgba(255,113,108,0.3)] hover:text-[var(--forge-danger)]"
+            <ForgeButton
               onClick={() => setConfirmDisconnect(true)}
+              size="sm"
               type="button"
+              variant="secondary"
             >
               Disconnect
-            </button>
+            </ForgeButton>
           )
         ) : (
-          <button
-            className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-2 text-sm font-semibold text-[#170d07] transition hover:brightness-110 disabled:opacity-50"
+          <ForgeButton
             disabled={!available}
             onClick={() => router.push(connectPath)}
             type="button"
+            variant="primary"
           >
             Connect Zoom
-          </button>
+          </ForgeButton>
         )}
       </div>
-    </section>
+    </ForgeSurface>
   );
 }
 
@@ -207,7 +207,7 @@ function GhlCard({
   }
 
   return (
-    <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+    <ForgeSurface as="section" className="p-6" variant="panel">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
@@ -217,13 +217,9 @@ function GhlCard({
         </div>
 
         {isConnected ? (
-          <span className="rounded-full border border-[rgba(139,215,168,0.24)] bg-[rgba(139,215,168,0.1)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-success)]">
-            Connected
-          </span>
+          <ForgeChip tone="success">Connected</ForgeChip>
         ) : (
-          <span className="rounded-full border border-[rgba(255,159,95,0.26)] bg-[rgba(255,159,95,0.1)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-ember)]">
-            Not connected
-          </span>
+          <ForgeChip tone="ember">Not connected</ForgeChip>
         )}
       </div>
 
@@ -258,46 +254,49 @@ function GhlCard({
           confirmDisconnect ? (
             <>
               <p className="text-sm text-[var(--forge-muted)]">Are you sure?</p>
-              <button
-                className="rounded-xl border border-[rgba(255,113,108,0.3)] bg-[rgba(255,113,108,0.1)] px-3 py-1.5 text-sm font-medium text-[var(--forge-danger)] transition hover:bg-[rgba(255,113,108,0.18)] disabled:opacity-50"
+              <ForgeButton
                 disabled={isMutating}
                 onClick={() => {
                   void handleDisconnect();
                 }}
+                size="sm"
                 type="button"
+                variant="danger"
               >
                 {isMutating ? "Disconnecting..." : "Yes, disconnect"}
-              </button>
-              <button
-                className="rounded-xl border border-[var(--forge-border-strong)]/20 px-3 py-1.5 text-sm font-medium text-[var(--forge-muted)] transition hover:border-[rgba(255,244,230,0.24)] hover:text-[var(--forge-text)]"
+              </ForgeButton>
+              <ForgeButton
                 disabled={isMutating}
                 onClick={() => setConfirmDisconnect(false)}
+                size="sm"
                 type="button"
+                variant="secondary"
               >
                 Cancel
-              </button>
+              </ForgeButton>
             </>
           ) : (
-            <button
-              className="rounded-xl border border-[var(--forge-border-strong)]/20 px-3 py-1.5 text-sm font-medium text-[var(--forge-muted)] transition hover:border-[rgba(255,113,108,0.3)] hover:text-[var(--forge-danger)]"
+            <ForgeButton
               onClick={() => setConfirmDisconnect(true)}
+              size="sm"
               type="button"
+              variant="secondary"
             >
               Disconnect
-            </button>
+            </ForgeButton>
           )
         ) : (
-          <button
-            className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-2 text-sm font-semibold text-[#170d07] transition hover:brightness-110 disabled:opacity-50"
+          <ForgeButton
             disabled={!available}
             onClick={() => router.push(connectPath)}
             type="button"
+            variant="primary"
           >
             Connect Go High Level
-          </button>
+          </ForgeButton>
         )}
       </div>
-    </section>
+    </ForgeSurface>
   );
 }
 

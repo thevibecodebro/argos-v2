@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ForgeActionBar, ForgeButton, ForgeChip } from "@/components/forge";
+import { ForgeActionBar, ForgeButton, ForgeChip, ForgeIcon } from "@/components/forge";
 
 const STATUS_OPTIONS = [
   { label: "All", value: "all" },
@@ -93,17 +93,21 @@ export function CallsFilters({ initialSearch }: Props) {
     router.replace(buildUrl(patch));
   }
 
+  function clearFilters() {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    isFirstRender.current = true;
+    setSearch("");
+    router.replace("/calls");
+  }
+
   return (
     <div className="space-y-4" data-calls-filter-bar="forge">
       <ForgeActionBar className="grid items-stretch gap-3 lg:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,0.72fr))_auto]">
         <div className="group flex items-center rounded-[1.05rem] border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-4 py-1.5 shadow-[inset_0_1px_0_rgba(255,244,230,0.045)] transition focus-within:border-[rgba(241,191,123,0.34)] focus-within:bg-[rgba(241,191,123,0.055)]">
-          <span
-            aria-hidden="true"
-            className="material-symbols-outlined forge-icon mr-3 text-[var(--forge-gold)]"
-            style={{ fontSize: "18px" }}
-          >
-            search
-          </span>
+          <ForgeIcon className="mr-3 text-[var(--forge-gold)]" name="search" size={18} />
           <label className="sr-only" htmlFor="search">
             Search by topic
           </label>
@@ -187,7 +191,7 @@ export function CallsFilters({ initialSearch }: Props) {
           className={hasActiveFilters ? "min-h-[62px]" : "min-h-[62px] opacity-45"}
           disabled={!hasActiveFilters}
           icon="filter_list"
-          onClick={() => router.replace("/calls")}
+          onClick={clearFilters}
           type="button"
           variant="secondary"
         >
@@ -196,6 +200,9 @@ export function CallsFilters({ initialSearch }: Props) {
       </ForgeActionBar>
 
       <div className="flex flex-wrap items-center gap-2">
+        <span className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-muted)]">
+          {hasActiveFilters ? "Active filters" : "Status"}
+        </span>
         {STATUS_OPTIONS.map((option) => (
           <button
             aria-current={currentStatus === option.value ? "page" : undefined}
@@ -214,7 +221,7 @@ export function CallsFilters({ initialSearch }: Props) {
         {hasActiveFilters ? (
           <button
             className="ml-auto rounded-full border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-4 py-2 font-[var(--font-display)] text-xs font-bold text-[var(--forge-muted)] transition hover:border-[rgba(241,191,123,0.28)] hover:text-[var(--forge-gold)]"
-            onClick={() => router.replace("/calls")}
+            onClick={clearFilters}
             type="button"
           >
             Clear filters

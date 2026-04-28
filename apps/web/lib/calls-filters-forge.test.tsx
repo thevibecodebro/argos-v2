@@ -32,10 +32,13 @@ describe("CallsFilters forge treatment", () => {
     expect(html).toContain('data-forge-action-bar="true"');
     expect(html).toContain('data-filter-status="processing"');
     expect(html).toContain('aria-current="page"');
+    expect(html).toContain("Active filters");
     expect(html).toContain('placeholder="Search by topics, deals, or objections"');
     expect(html).not.toContain("#74b1ff");
     expect(html).not.toContain("#6dddff");
     expect(html).not.toContain("backdrop-blur-md");
     expect(html).not.toContain("border-b-2");
+    expect(html).not.toContain(">search</span>");
+    expect(html).not.toContain(">filter_list</span>");
   });
 });

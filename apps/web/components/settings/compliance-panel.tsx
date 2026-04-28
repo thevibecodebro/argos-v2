@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ForgeButton, ForgeIcon, ForgeSurface } from "@/components/forge";
 
 function formatDate(value: string | null) {
   if (!value) return null;
@@ -58,7 +59,7 @@ export function CompliancePanel({
   return (
     <div className="space-y-5">
       {/* Consent status card */}
-      <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+      <ForgeSurface as="section" className="p-6" variant="panel">
         <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
           Recording Consent
         </p>
@@ -82,8 +83,8 @@ export function CompliancePanel({
         {hasConsented ? (
           <div className="mt-5 rounded-xl border border-[rgba(139,215,168,0.24)] bg-[rgba(139,215,168,0.1)] px-4 py-4">
             <div className="flex items-start gap-3">
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[rgba(139,215,168,0.36)] bg-[rgba(139,215,168,0.18)] text-[var(--forge-success)] text-xs">
-                ✓
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[rgba(139,215,168,0.36)] bg-[rgba(139,215,168,0.18)] text-[var(--forge-success)]">
+                <ForgeIcon name="check_circle" size={14} />
               </span>
               <div>
                 <p className="text-sm font-semibold text-[var(--forge-success)]">
@@ -104,8 +105,8 @@ export function CompliancePanel({
         ) : (
           <div className="mt-5 rounded-xl border border-[rgba(255,159,95,0.22)] bg-[rgba(255,159,95,0.06)] px-4 py-4">
             <div className="flex items-start gap-3">
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[rgba(255,159,95,0.36)] bg-[rgba(255,159,95,0.14)] text-[var(--forge-ember)] text-xs font-bold">
-                !
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[rgba(255,159,95,0.36)] bg-[rgba(255,159,95,0.14)] text-[var(--forge-ember)]">
+                <ForgeIcon name="warning" size={14} />
               </span>
               <div>
                 <p className="text-sm font-semibold text-[var(--forge-ember)]">
@@ -130,23 +131,24 @@ export function CompliancePanel({
         ) : null}
 
         <div className="mt-5">
-          <button
-            className="rounded-xl border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/8 px-4 py-2 text-sm font-medium text-[var(--forge-gold)] transition hover:bg-[var(--forge-gold)]/8 disabled:opacity-50"
+          <ForgeButton
             disabled={isUpdating}
             onClick={() => void acknowledgeConsent()}
+            size="sm"
             type="button"
+            variant="secondary"
           >
             {isUpdating
               ? "Updating..."
               : hasConsented
                 ? "Re-acknowledge consent policy"
                 : "Acknowledge consent policy"}
-          </button>
+          </ForgeButton>
         </div>
-      </section>
+      </ForgeSurface>
 
       {/* Recording status card */}
-      <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+      <ForgeSurface as="section" className="p-6" variant="panel">
         <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
           Auto-Ingest Status
         </p>
@@ -182,7 +184,7 @@ export function CompliancePanel({
           Auto-ingest requires both a connected integration and an acknowledged consent policy.
           Disabling auto-ingest does not delete existing recordings.
         </p>
-      </section>
+      </ForgeSurface>
     </div>
   );
 }

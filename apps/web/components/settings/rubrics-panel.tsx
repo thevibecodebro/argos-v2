@@ -2,6 +2,13 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import {
+  ForgeReadinessPanel,
+  ForgeWorkspaceLayout,
+  ForgeWorkspaceRail,
+  ForgeWorkspaceRailAction,
+  ForgeWorkspaceRailGroup,
+} from "../forge";
 import type {
   RubricImportIssue,
   RubricInput,
@@ -318,8 +325,6 @@ export function RubricsPanel({
     [history],
   );
   const draftIssues = useMemo(() => collectDraftIssues(draft), [draft]);
-  const controlNavButtonClass =
-    "forge-nav-link flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left font-[var(--font-display)] text-[0.7rem] font-bold uppercase tracking-[0.16em] disabled:cursor-not-allowed disabled:opacity-45";
 
   function resetServerDraft() {
     setServerDraft(null);
@@ -447,16 +452,16 @@ export function RubricsPanel({
   }
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[17rem_17rem_minmax(0,1fr)]">
-      <aside className="space-y-5 xl:sticky xl:top-24 xl:order-1 xl:self-start" data-rubric-builder-rail="">
-        <section className="rounded-[1.35rem] border border-[var(--forge-border)] bg-[rgba(5,4,3,0.56)] p-4 shadow-[inset_0_1px_0_rgba(255,244,230,0.055)]">
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-gold)]">Source and versions</p>
-          <h3 className="mt-2 text-lg font-semibold text-white">Scoring sources</h3>
-          <p className="mt-2 text-sm leading-6 text-[var(--forge-muted)]">
-            Choose the source for the next scoring draft without changing the live version.
-          </p>
-
-          <div className="mt-5 rounded-2xl border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/8 px-4 py-3">
+    <ForgeWorkspaceLayout railCount={2}>
+      <ForgeWorkspaceRail
+        collapsible
+        description="Choose the source for the next scoring draft without changing the live version."
+        eyebrow="Source and versions"
+        title="Scoring sources"
+        data-rubric-builder-rail=""
+      >
+        <ForgeWorkspaceRailGroup label="Active version">
+          <div className="rounded-2xl border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/8 px-4 py-3">
             <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-gold)]">Active Rubric</p>
             <p className="mt-2 text-sm font-semibold text-[var(--forge-text)]">
               {activeRubric ? activeRubric.name : "No active rubric yet"}
@@ -467,45 +472,38 @@ export function RubricsPanel({
                 : "Publish the first rubric version to start attaching it to new scoring jobs."}
             </p>
           </div>
+        </ForgeWorkspaceRailGroup>
 
-          <div className="mt-5 grid gap-2">
-            <button
-              className={controlNavButtonClass}
-              disabled={!activeRubric}
-              onClick={() => {
-                if (!activeRubric) {
-                  return;
-                }
+        <ForgeWorkspaceRailGroup label="Source options">
+          <ForgeWorkspaceRailAction
+            disabled={!activeRubric}
+            icon="content_copy"
+            onClick={() => {
+              if (!activeRubric) {
+                return;
+              }
 
-                setSourceIssues([]);
-                beginDraft(copyRubricToInput(activeRubric), "New Draft from Active", "manual");
-              }}
-              type="button"
-            >
-              <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
-                content_copy
-              </span>
-              <span className="truncate">New Draft from Active</span>
-            </button>
-            <button
-              className={controlNavButtonClass}
-              onClick={() => {
-                setSourceIssues([]);
-                beginDraft(defaultTemplate, "Started from Default Template", "manual");
-              }}
-              type="button"
-            >
-              <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
-                auto_fix
-              </span>
-              <span className="truncate">Start from Default Template</span>
-            </button>
-          </div>
-        </section>
+              setSourceIssues([]);
+              beginDraft(copyRubricToInput(activeRubric), "New Draft from Active", "manual");
+            }}
+            type="button"
+          >
+            New Draft from Active
+          </ForgeWorkspaceRailAction>
+          <ForgeWorkspaceRailAction
+            icon="auto_fix"
+            onClick={() => {
+              setSourceIssues([]);
+              beginDraft(defaultTemplate, "Started from Default Template", "manual");
+            }}
+            type="button"
+          >
+            Start from Default Template
+          </ForgeWorkspaceRailAction>
+        </ForgeWorkspaceRailGroup>
 
-        <section className="rounded-[1.35rem] border border-[var(--forge-border)] bg-[rgba(5,4,3,0.56)] p-4 shadow-[inset_0_1px_0_rgba(255,244,230,0.055)]">
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-gold)]">Clone or import</p>
-          <label className="mt-4 block space-y-2">
+        <ForgeWorkspaceRailGroup label="Clone or import">
+          <label className="block space-y-2 px-3">
             <span className="text-xs font-black uppercase tracking-[0.18em] text-[var(--forge-muted)]">Clone Historical Version</span>
             <select
               className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none"
@@ -520,38 +518,32 @@ export function RubricsPanel({
               ))}
             </select>
           </label>
-          <button
-            className={`${controlNavButtonClass} mt-3`}
+          <ForgeWorkspaceRailAction
+            className="mt-3"
+            icon="account_tree"
             onClick={() => void handleCloneHistory()}
             type="button"
           >
-            <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
-              account_tree
-            </span>
-            <span className="truncate">Clone</span>
-          </button>
+            Clone
+          </ForgeWorkspaceRailAction>
 
           <div className="mt-5 space-y-1">
-            <button
-              className={`${controlNavButtonClass} ${importMode === "csv_import" ? "forge-nav-link--active" : ""}`}
+            <ForgeWorkspaceRailAction
+              active={importMode === "csv_import"}
+              icon="table"
               onClick={() => setImportMode("csv_import")}
               type="button"
             >
-              <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
-                table
-              </span>
-              <span className="truncate">Import CSV</span>
-            </button>
-            <button
-              className={`${controlNavButtonClass} ${importMode === "json_import" ? "forge-nav-link--active" : ""}`}
+              Import CSV
+            </ForgeWorkspaceRailAction>
+            <ForgeWorkspaceRailAction
+              active={importMode === "json_import"}
+              icon="data_object"
               onClick={() => setImportMode("json_import")}
               type="button"
             >
-              <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
-                data_object
-              </span>
-              <span className="truncate">Import JSON</span>
-            </button>
+              Import JSON
+            </ForgeWorkspaceRailAction>
           </div>
           <input
             accept={importMode === "csv_import" ? ".csv,text/csv" : ".json,application/json"}
@@ -559,24 +551,18 @@ export function RubricsPanel({
             onChange={(event) => setImportFile(event.target.files?.[0] ?? null)}
             type="file"
           />
-          <button
-            className={`${controlNavButtonClass} mt-3`}
+          <ForgeWorkspaceRailAction
+            className="mt-3"
+            icon="preview"
             onClick={() => void handleImportPreview()}
             type="button"
           >
-            <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
-              preview
-            </span>
-            <span className="truncate">Preview Import</span>
-          </button>
-        </section>
+            Preview Import
+          </ForgeWorkspaceRailAction>
+        </ForgeWorkspaceRailGroup>
 
-        <section className="rounded-[1.35rem] border border-[var(--forge-border)] bg-[rgba(5,4,3,0.56)] p-4 shadow-[inset_0_1px_0_rgba(255,244,230,0.055)]">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-gold)]">Version History</p>
-            <span className="text-xs font-semibold text-[var(--forge-muted)]">{history.length}</span>
-          </div>
-          <div className="mt-4 space-y-2">
+        <ForgeWorkspaceRailGroup label={`Version History (${history.length})`}>
+          <div className="space-y-2">
             {history.length === 0 ? (
               <p className="text-sm text-[var(--forge-muted)]">No rubric versions yet.</p>
             ) : (
@@ -604,10 +590,10 @@ export function RubricsPanel({
               ))
             )}
           </div>
-        </section>
-      </aside>
+        </ForgeWorkspaceRailGroup>
+      </ForgeWorkspaceRail>
 
-      <main className="min-w-0 xl:order-3" data-rubric-category-editor="">
+      <main className="min-w-0 xl:[grid-column:3] xl:[grid-row:1]" data-forge-workspace-main="true" data-rubric-category-editor="">
         <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -666,157 +652,167 @@ export function RubricsPanel({
                   </div>
                 ) : (
                   draft.categories.map((category, index) => (
-                    <section
-                      className="rounded-2xl border border-[var(--forge-border-strong)]/14 bg-[var(--forge-surface-2)]/55 p-4"
+                    <details
+                      className="group rounded-2xl border border-[var(--forge-border-strong)]/14 bg-[var(--forge-surface-2)]/55"
+                      data-rubric-category-row=""
                       key={`${category.slug || "category"}-${index}`}
+                      open={index === 0}
                     >
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-gold)]">
-                          Category {index + 1}
-                        </p>
+                      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-4 py-3">
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-gold)]">
+                            Category {index + 1}
+                          </p>
+                          <p className="mt-1 truncate text-sm font-semibold text-white">
+                            {category.name || "Untitled category"} · {category.slug || "missing-slug"} · weight {category.weight}
+                          </p>
+                        </div>
                         <button
                           className="rounded-xl border border-[rgba(255,113,108,0.26)] px-3 py-2 text-sm font-medium text-[var(--forge-danger)] transition hover:bg-[rgba(255,113,108,0.1)]"
-                          onClick={() =>
+                          onClick={(event) => {
+                            event.preventDefault();
                             updateDraft((current) => ({
                               ...current,
                               categories: current.categories
                                 .filter((_, categoryIndex) => categoryIndex !== index)
                                 .map((entry, nextIndex) => ({ ...entry, sortOrder: nextIndex })),
-                            }))
-                          }
+                            }));
+                          }}
                           type="button"
                         >
                           Remove
                         </button>
-                      </div>
+                      </summary>
 
-                      <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_7rem]">
-                        <label className="space-y-2">
-                          <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Name</span>
-                          <input
-                            className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2.5 text-sm text-[var(--forge-text)] outline-none"
-                            onChange={(event) =>
-                              updateDraft((current) => ({
-                                ...current,
-                                categories: current.categories.map((entry, categoryIndex) =>
-                                  categoryIndex === index ? { ...entry, name: event.target.value } : entry,
-                                ),
-                              }))
-                            }
-                            value={category.name}
-                          />
-                        </label>
-                        <label className="space-y-2">
-                          <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Slug</span>
-                          <input
-                            className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2.5 text-sm text-[var(--forge-text)] outline-none"
-                            onChange={(event) =>
-                              updateDraft((current) => ({
-                                ...current,
-                                categories: current.categories.map((entry, categoryIndex) =>
-                                  categoryIndex === index ? { ...entry, slug: event.target.value } : entry,
-                                ),
-                              }))
-                            }
-                            value={category.slug}
-                          />
-                        </label>
-                        <label className="space-y-2">
-                          <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Weight</span>
-                          <input
-                            className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2.5 text-sm text-[var(--forge-text)] outline-none"
-                            min={1}
-                            onChange={(event) =>
-                              updateDraft((current) => ({
-                                ...current,
-                                categories: current.categories.map((entry, categoryIndex) =>
-                                  categoryIndex === index
-                                    ? { ...entry, weight: Number(event.target.value) || 0 }
-                                    : entry,
-                                ),
-                              }))
-                            }
-                            type="number"
-                            value={category.weight}
-                          />
-                        </label>
-                      </div>
-
-                      <label className="mt-3 block space-y-2">
-                        <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Description</span>
-                        <textarea
-                          className="min-h-20 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2.5 text-sm text-[var(--forge-text)] outline-none"
-                          onChange={(event) =>
-                            updateDraft((current) => ({
-                              ...current,
-                              categories: current.categories.map((entry, categoryIndex) =>
-                                categoryIndex === index ? { ...entry, description: event.target.value } : entry,
-                              ),
-                            }))
-                          }
-                          value={category.description}
-                        />
-                      </label>
-
-                      <div className="mt-3 grid gap-3 lg:grid-cols-3">
-                        {GUIDANCE_FIELDS.map(({ field, label }) => (
-                          <label className="space-y-2" key={field}>
-                            <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
-                              {label}
-                            </span>
-                            <textarea
-                              className="min-h-20 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2.5 text-sm text-[var(--forge-text)] outline-none"
+                      <div className="border-t border-[var(--forge-border-strong)]/10 px-4 pb-4 pt-3">
+                        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_7rem]">
+                          <label className="space-y-2">
+                            <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Name</span>
+                            <input
+                              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2.5 text-sm text-[var(--forge-text)] outline-none"
+                              onChange={(event) =>
+                                updateDraft((current) => ({
+                                  ...current,
+                                  categories: current.categories.map((entry, categoryIndex) =>
+                                    categoryIndex === index ? { ...entry, name: event.target.value } : entry,
+                                  ),
+                                }))
+                              }
+                              value={category.name}
+                            />
+                          </label>
+                          <label className="space-y-2">
+                            <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Slug</span>
+                            <input
+                              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2.5 text-sm text-[var(--forge-text)] outline-none"
+                              onChange={(event) =>
+                                updateDraft((current) => ({
+                                  ...current,
+                                  categories: current.categories.map((entry, categoryIndex) =>
+                                    categoryIndex === index ? { ...entry, slug: event.target.value } : entry,
+                                  ),
+                                }))
+                              }
+                              value={category.slug}
+                            />
+                          </label>
+                          <label className="space-y-2">
+                            <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Weight</span>
+                            <input
+                              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2.5 text-sm text-[var(--forge-text)] outline-none"
+                              min={1}
                               onChange={(event) =>
                                 updateDraft((current) => ({
                                   ...current,
                                   categories: current.categories.map((entry, categoryIndex) =>
                                     categoryIndex === index
-                                      ? {
-                                          ...entry,
-                                          scoringCriteria: {
-                                            ...entry.scoringCriteria,
-                                            [field]: event.target.value,
-                                          },
-                                        }
+                                      ? { ...entry, weight: Number(event.target.value) || 0 }
                                       : entry,
                                   ),
                                 }))
                               }
-                              value={category.scoringCriteria[field]}
+                              type="number"
+                              value={category.weight}
                             />
                           </label>
-                        ))}
-                      </div>
+                        </div>
 
-                      <label className="mt-3 block space-y-2">
-                        <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
-                          Look For
-                        </span>
-                        <input
-                          className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2.5 text-sm text-[var(--forge-text)] outline-none"
-                          onChange={(event) =>
-                            updateDraft((current) => ({
-                              ...current,
-                              categories: current.categories.map((entry, categoryIndex) =>
-                                categoryIndex === index
-                                  ? {
-                                      ...entry,
-                                      scoringCriteria: {
-                                        ...entry.scoringCriteria,
-                                        lookFor: event.target.value
-                                          .split("|")
-                                          .map((value) => value.trim())
-                                          .filter(Boolean),
-                                      },
-                                    }
-                                  : entry,
-                              ),
-                            }))
-                          }
-                          value={category.scoringCriteria.lookFor.join(" | ")}
-                        />
-                      </label>
-                    </section>
+                        <label className="mt-3 block space-y-2">
+                          <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Description</span>
+                          <textarea
+                            className="min-h-20 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2.5 text-sm text-[var(--forge-text)] outline-none"
+                            onChange={(event) =>
+                              updateDraft((current) => ({
+                                ...current,
+                                categories: current.categories.map((entry, categoryIndex) =>
+                                  categoryIndex === index ? { ...entry, description: event.target.value } : entry,
+                                ),
+                              }))
+                            }
+                            value={category.description}
+                          />
+                        </label>
+
+                        <div className="mt-3 grid gap-3 lg:grid-cols-3">
+                          {GUIDANCE_FIELDS.map(({ field, label }) => (
+                            <label className="space-y-2" key={field}>
+                              <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+                                {label}
+                              </span>
+                              <textarea
+                                className="min-h-20 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2.5 text-sm text-[var(--forge-text)] outline-none"
+                                onChange={(event) =>
+                                  updateDraft((current) => ({
+                                    ...current,
+                                    categories: current.categories.map((entry, categoryIndex) =>
+                                      categoryIndex === index
+                                        ? {
+                                            ...entry,
+                                            scoringCriteria: {
+                                              ...entry.scoringCriteria,
+                                              [field]: event.target.value,
+                                            },
+                                          }
+                                        : entry,
+                                    ),
+                                  }))
+                                }
+                                value={category.scoringCriteria[field]}
+                              />
+                            </label>
+                          ))}
+                        </div>
+
+                        <label className="mt-3 block space-y-2">
+                          <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+                            Look For
+                          </span>
+                          <input
+                            className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2.5 text-sm text-[var(--forge-text)] outline-none"
+                            onChange={(event) =>
+                              updateDraft((current) => ({
+                                ...current,
+                                categories: current.categories.map((entry, categoryIndex) =>
+                                  categoryIndex === index
+                                    ? {
+                                        ...entry,
+                                        scoringCriteria: {
+                                          ...entry.scoringCriteria,
+                                          lookFor: event.target.value
+                                            .split("|")
+                                            .map((value) => value.trim())
+                                            .filter(Boolean),
+                                        },
+                                      }
+                                    : entry,
+                                ),
+                              }))
+                            }
+                            value={category.scoringCriteria.lookFor.join(" | ")}
+                          />
+                        </label>
+                      </div>
+                    </details>
                   ))
                 )}
               </div>
@@ -860,6 +856,7 @@ export function RubricsPanel({
                   {activeRubric.categories.map((category, index) => (
                     <div
                       className="rounded-2xl border border-[var(--forge-border-strong)]/12 bg-[var(--forge-surface-2)]/55 p-4"
+                      data-rubric-category-row=""
                       key={category.id}
                     >
                       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_7rem]">
@@ -886,171 +883,156 @@ export function RubricsPanel({
         </section>
       </main>
 
-      <aside className="space-y-5 xl:sticky xl:top-24 xl:order-2 xl:self-start" data-rubric-readiness-panel="">
-        <section className="rounded-[1.35rem] border border-[var(--forge-border)] bg-[rgba(5,4,3,0.56)] p-4 shadow-[inset_0_1px_0_rgba(255,244,230,0.055)]">
-          <div className="mb-5 rounded-[1.15rem] border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] p-4">
-            <p className="forge-page-eyebrow">Admin controls</p>
-            <h3 className="mt-2 text-base font-semibold text-[var(--forge-text)]">Readiness panel</h3>
-            <p className="mt-2 text-xs leading-5 text-[var(--forge-muted)]">
-              {draft ? `${draft.categories.length} categories in draft` : "No draft started"}
-            </p>
+      <ForgeWorkspaceRail
+        className="xl:[grid-column:2] xl:[grid-row:1]"
+        description={draft ? `${draft.categories.length} categories in draft` : "No draft started"}
+        eyebrow="Admin controls"
+        title="Readiness panel"
+        data-rubric-readiness-panel=""
+      >
+        {statusMessage ? (
+          <div className="rounded-2xl border border-[rgba(139,215,168,0.24)] bg-[rgba(139,215,168,0.1)] px-4 py-3 text-sm text-[var(--forge-success)]">
+            {statusMessage}
           </div>
+        ) : null}
 
-          {statusMessage ? (
-            <div className="mt-4 rounded-2xl border border-[rgba(139,215,168,0.24)] bg-[rgba(139,215,168,0.1)] px-4 py-3 text-sm text-[var(--forge-success)]">
-              {statusMessage}
-            </div>
-          ) : null}
+        {errorMessage ? (
+          <div className="rounded-2xl border border-[rgba(255,113,108,0.26)] bg-[rgba(255,113,108,0.1)] px-4 py-3 text-sm text-[var(--forge-danger)]">
+            {errorMessage}
+          </div>
+        ) : null}
 
-          {errorMessage ? (
-            <div className="mt-4 rounded-2xl border border-[rgba(255,113,108,0.26)] bg-[rgba(255,113,108,0.1)] px-4 py-3 text-sm text-[var(--forge-danger)]">
-              {errorMessage}
-            </div>
-          ) : null}
+        <nav aria-label="Rubric admin controls" className="space-y-5" data-settings-nav-theme="forge">
+          <ForgeWorkspaceRailGroup label="Workflow">
+            {BUILDER_STEPS.map((item) => {
+              const disabled = item.id !== "source" && !draft;
 
-          <nav aria-label="Rubric admin controls" className="mt-5 space-y-5" data-settings-nav-theme="forge">
-            <div>
-              <p className="forge-nav-section-label mb-2 px-3">Workflow</p>
-              <div className="space-y-1">
-                {BUILDER_STEPS.map((item) => (
-                  <div
-                    aria-current={step === item.id ? "step" : undefined}
-                    className={`forge-nav-link flex items-center gap-3 rounded-2xl px-3 py-2.5 font-[var(--font-display)] text-[0.7rem] font-bold uppercase tracking-[0.16em] ${
-                      step === item.id ? "forge-nav-link--active" : ""
-                    }`}
-                    key={item.id}
-                  >
-                    <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
-                      {item.id === "source"
-                        ? "input"
-                        : item.id === "edit"
-                          ? "edit_note"
-                          : item.id === "review"
-                            ? "rule"
-                            : "publish"}
-                    </span>
-                    <span className="truncate">{item.label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <p className="forge-nav-section-label mb-2 px-3">Readiness</p>
-              <div className="space-y-2">
-                <div className="rounded-2xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Draft status</p>
-                  <p className="mt-1 text-sm font-semibold text-[var(--forge-text)]">
-                    {draft ? `${draft.categories.length} categories in draft` : "No draft started"}
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">{draftSourceLabel}</p>
-                </div>
-                <div className="rounded-2xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Validation issues</p>
-                  {draftIssues.length > 0 ? (
-                    <ul className="mt-2 space-y-2 text-xs leading-5 text-[var(--forge-danger)]">
-                      {draftIssues.map((issue, index) => (
-                        <li key={`${issue.row ?? "global"}-${issue.field}-${index}`}>
-                          Row {issue.row ?? "global"} · {issue.field}: {issue.message}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">
-                      {draft ? "No validation issues." : "Start a draft to run validation."}
-                    </p>
-                  )}
-                </div>
-                <div className="rounded-2xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Import warnings</p>
-                  {sourceIssues.length > 0 ? (
-                    <ul className="mt-2 space-y-2 text-xs leading-5 text-[var(--forge-ember)]">
-                      {sourceIssues.map((issue, index) => (
-                        <li key={`${issue.row ?? "import"}-${issue.field}-${index}`}>
-                          Row {issue.row ?? "global"} · {issue.field}: {issue.message}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">No import warnings.</p>
-                  )}
-                </div>
-                <div className="rounded-2xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Server draft</p>
-                  <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">
-                    {serverDraft
-                      ? `Draft version ${serverDraft.version} · ${serverDraft.categoryCount} categories`
-                      : "Prepare publish to create a server draft."}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <p className="forge-nav-section-label mb-2 px-3">Publish controls</p>
-              <div className="space-y-1">
-                <button
-                  className={controlNavButtonClass}
-                  disabled={!draft}
-                  onClick={() => setStep("review")}
+              return (
+                <ForgeWorkspaceRailAction
+                  active={step === item.id}
+                  aria-current={step === item.id ? "step" : undefined}
+                  disabled={disabled}
+                  icon={
+                    item.id === "source"
+                      ? "input"
+                      : item.id === "edit"
+                        ? "edit_note"
+                        : item.id === "review"
+                          ? "rule"
+                          : "publish"
+                  }
+                  key={item.id}
+                  onClick={() => setStep(item.id)}
                   type="button"
                 >
-                  <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
-                    rule
-                  </span>
-                  <span className="truncate">Review Draft</span>
-                </button>
-                <button
-                  className={`${controlNavButtonClass} ${draft ? "forge-nav-link--active" : ""}`}
-                  disabled={!draft || isPending}
-                  onClick={() => void handlePreparePublish()}
-                  type="button"
-                >
-                  <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
-                    task_alt
-                  </span>
-                  <span className="truncate">Prepare Publish</span>
-                </button>
-                {draft && step !== "edit" ? (
-                  <button
-                    className={controlNavButtonClass}
-                    onClick={() => setStep("edit")}
-                    type="button"
-                  >
-                    <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
-                      edit_note
-                    </span>
-                    <span className="truncate">Back to Edit</span>
-                  </button>
-                ) : null}
-                {draft && step === "publish" ? (
-                  <button
-                    className={controlNavButtonClass}
-                    onClick={() => setStep("review")}
-                    type="button"
-                  >
-                    <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
-                      rule
-                    </span>
-                    <span className="truncate">Back to Review</span>
-                  </button>
-                ) : null}
-                <button
-                  className={`${controlNavButtonClass} ${serverDraft ? "forge-nav-link--active" : ""}`}
-                  disabled={!serverDraft || isPending}
-                  onClick={() => void handlePublish()}
-                  type="button"
-                >
-                  <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
-                    publish
-                  </span>
-                  <span className="truncate">{isPending ? "Publishing..." : "Publish Draft"}</span>
-                </button>
-              </div>
+                  {item.label}
+                </ForgeWorkspaceRailAction>
+              );
+            })}
+          </ForgeWorkspaceRailGroup>
+
+          <ForgeWorkspaceRailGroup label="Readiness">
+            <ForgeReadinessPanel
+              description={draftSourceLabel}
+              items={[
+                { label: "Validation issues", value: draftIssues.length },
+                { label: "Import warnings", value: sourceIssues.length },
+                { label: "Server draft", value: serverDraft ? `v${serverDraft.version}` : "Not prepared" },
+              ]}
+              label="Draft status"
+              statusLabel={draftIssues.length > 0 ? "Needs fixes" : draft ? "Ready to review" : "Not started"}
+              statusTone={draftIssues.length > 0 ? "danger" : draft ? "success" : "muted"}
+              tone={draftIssues.length > 0 ? "danger" : draft ? "gold" : "muted"}
+              value={draft ? `${draft.categories.length} categories` : "No draft started"}
+            />
+            <div className="rounded-2xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Validation issues</p>
+              {draftIssues.length > 0 ? (
+                <ul className="mt-2 space-y-2 text-xs leading-5 text-[var(--forge-danger)]">
+                  {draftIssues.map((issue, index) => (
+                    <li key={`${issue.row ?? "global"}-${issue.field}-${index}`}>
+                      Row {issue.row ?? "global"} · {issue.field}: {issue.message}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">
+                  {draft ? "No validation issues." : "Start a draft to run validation."}
+                </p>
+              )}
             </div>
-          </nav>
-        </section>
-      </aside>
-    </div>
+            <div className="rounded-2xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Import warnings</p>
+              {sourceIssues.length > 0 ? (
+                <ul className="mt-2 space-y-2 text-xs leading-5 text-[var(--forge-ember)]">
+                  {sourceIssues.map((issue, index) => (
+                    <li key={`${issue.row ?? "import"}-${issue.field}-${index}`}>
+                      Row {issue.row ?? "global"} · {issue.field}: {issue.message}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">No import warnings.</p>
+              )}
+            </div>
+            <div className="rounded-2xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Server draft</p>
+              <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">
+                {serverDraft
+                  ? `Draft version ${serverDraft.version} · ${serverDraft.categoryCount} categories`
+                  : "Prepare publish to create a server draft."}
+              </p>
+            </div>
+          </ForgeWorkspaceRailGroup>
+
+          <ForgeWorkspaceRailGroup label="Publish controls">
+            <ForgeWorkspaceRailAction
+              disabled={!draft}
+              icon="rule"
+              onClick={() => setStep("review")}
+              type="button"
+            >
+              Review Draft
+            </ForgeWorkspaceRailAction>
+            <ForgeWorkspaceRailAction
+              active={Boolean(draft)}
+              disabled={!draft || isPending}
+              icon="task_alt"
+              onClick={() => void handlePreparePublish()}
+              type="button"
+            >
+              Prepare Publish
+            </ForgeWorkspaceRailAction>
+            {draft && step !== "edit" ? (
+              <ForgeWorkspaceRailAction
+                icon="edit_note"
+                onClick={() => setStep("edit")}
+                type="button"
+              >
+                Back to Edit
+              </ForgeWorkspaceRailAction>
+            ) : null}
+            {draft && step === "publish" ? (
+              <ForgeWorkspaceRailAction
+                icon="rule"
+                onClick={() => setStep("review")}
+                type="button"
+              >
+                Back to Review
+              </ForgeWorkspaceRailAction>
+            ) : null}
+            <ForgeWorkspaceRailAction
+              active={Boolean(serverDraft)}
+              disabled={!serverDraft || isPending}
+              icon="publish"
+              onClick={() => void handlePublish()}
+              type="button"
+            >
+              {isPending ? "Publishing..." : "Publish Draft"}
+            </ForgeWorkspaceRailAction>
+          </ForgeWorkspaceRailGroup>
+        </nav>
+      </ForgeWorkspaceRail>
+    </ForgeWorkspaceLayout>
   );
 }

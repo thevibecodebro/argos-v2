@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ForgeButton, ForgeChip, ForgeSurface } from "@/components/forge";
+import { ForgeButton, ForgeChip, ForgeIcon, ForgeSurface } from "@/components/forge";
 import { CallDetailPanel } from "@/components/page-panel-loaders";
 import {
   getCachedAuthenticatedSupabaseUser,
@@ -46,9 +46,7 @@ export default async function CallDetailPage({
               <Link className="text-[var(--forge-muted)] transition hover:text-[var(--forge-gold)]" href="/calls">
                 Call Library
               </Link>
-              <span className="material-symbols-outlined forge-icon text-[var(--forge-muted)]" style={{ fontSize: "16px" }}>
-                chevron_right
-              </span>
+              <ForgeIcon className="text-[var(--forge-muted)]" name="chevron_right" size={16} />
               <span className="truncate">{topic}</span>
             </nav>
 

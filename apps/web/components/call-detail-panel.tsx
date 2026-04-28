@@ -2,7 +2,15 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ForgeButton, ForgeChip, ForgeEmptyState, ForgeSurface } from "@/components/forge";
+import {
+  ForgeButton,
+  ForgeChip,
+  ForgeEmptyState,
+  ForgeIcon,
+  ForgeSegmentedTab,
+  ForgeSegmentedTabs,
+  ForgeSurface,
+} from "@/components/forge";
 import { HighlightNote } from "@/components/highlight-note";
 import type { CallAnnotation, CallDetail, CallMoment } from "@/lib/calls/service";
 
@@ -118,6 +126,9 @@ export function CallDetailPanel({
     defaultFocusSlug: string;
   } | null>(null);
   const [focusCategorySlug, setFocusCategorySlug] = useState("all");
+  const [activeWorkbenchTab, setActiveWorkbenchTab] = useState<
+    "transcript" | "moments" | "summary" | "notes"
+  >("transcript");
 
   const scoreCards = useMemo(() => call.categoryScores, [call.categoryScores]);
 
@@ -382,137 +393,6 @@ export function CallDetailPanel({
               })}
             </div>
           </ForgeSurface>
-
-          <ForgeSurface className="p-5 sm:p-6">
-            <div className="mb-6 flex items-center justify-between gap-4">
-              <h2 className="font-[var(--font-display)] text-xl font-semibold text-[var(--forge-text)]">
-                Key Moments
-              </h2>
-              <ForgeChip icon="filter_list" tone="gold">
-                Review
-              </ForgeChip>
-            </div>
-
-            <div className="space-y-4">
-              {moments.length ? (
-                moments.map((moment) => {
-                  const savedNote = moment.highlightNote?.trim() ?? "";
-                  const draftNote = getHighlightNoteDraft(moment);
-                  const trimmedDraftNote = draftNote.trim();
-                  const noteChanged = trimmedDraftNote !== savedNote;
-                  const canRemoveNote = Boolean(savedNote || trimmedDraftNote);
-                  const highlightActionLabel =
-                    trimmedDraftNote.length > 0 ? "Add note and highlight" : "Highlight moment";
-                  const isHighlightActionBusy = highlightActionMomentId === moment.id;
-                  const isNoteActionBusy = noteActionMomentId === moment.id;
-
-                  return (
-                    <ForgeSurface className="p-4" key={moment.id} variant="inset">
-                      <div className="mb-3 flex flex-wrap items-center gap-2">
-                        <ForgeChip icon="history" tone="gold">
-                          {formatTimestamp(moment.timestampSeconds)}
-                        </ForgeChip>
-                        <ForgeChip tone={severityTint(moment.severity)}>
-                          {moment.category ?? "Moment"}
-                        </ForgeChip>
-                        {moment.isHighlight ? <ForgeChip tone="ember">Highlighted</ForgeChip> : null}
-                      </div>
-                      <p className="text-sm font-medium leading-relaxed text-[var(--forge-text)]">
-                        {moment.observation ?? "No observation recorded."}
-                      </p>
-                      {moment.recommendation ? (
-                        <p className="mt-2 text-sm leading-relaxed text-[var(--forge-muted)]">
-                          {moment.recommendation}
-                        </p>
-                      ) : null}
-                      {moment.highlightNote ? <HighlightNote note={moment.highlightNote} /> : null}
-                      {canManage ? (
-                        <div className="mt-4 space-y-3">
-                          <label
-                            className="block font-[var(--font-display)] text-[0.65rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-muted)]"
-                            htmlFor={`highlight-note-${moment.id}`}
-                          >
-                            Edit note
-                          </label>
-                          <textarea
-                            className="min-h-[88px] w-full resize-y rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition placeholder:text-[rgba(255,244,230,0.38)] focus:border-[rgba(241,191,123,0.36)]"
-                            id={`highlight-note-${moment.id}`}
-                            onChange={(event) =>
-                              setHighlightNoteDrafts((current) => ({
-                                ...current,
-                                [moment.id]: event.target.value,
-                              }))
-                            }
-                            placeholder="Add context for why this moment matters."
-                            value={draftNote}
-                          />
-                          <div className="flex flex-wrap gap-2">
-                            {moment.isHighlight ? (
-                              <>
-                                <ForgeButton
-                                  disabled={isNoteActionBusy || !noteChanged}
-                                  onClick={() => {
-                                    void saveHighlightNote(moment);
-                                  }}
-                                  size="sm"
-                                  type="button"
-                                  variant="secondary"
-                                >
-                                  {isNoteActionBusy ? "Saving..." : "Save note"}
-                                </ForgeButton>
-                                {canRemoveNote ? (
-                                  <ForgeButton
-                                    disabled={isNoteActionBusy}
-                                    onClick={() => {
-                                      void removeHighlightNote(moment);
-                                    }}
-                                    size="sm"
-                                    type="button"
-                                    variant="secondary"
-                                  >
-                                    {isNoteActionBusy ? "Removing..." : "Remove note"}
-                                  </ForgeButton>
-                                ) : null}
-                                <ForgeButton
-                                  disabled={isHighlightActionBusy}
-                                  onClick={() => {
-                                    void removeHighlight(moment);
-                                  }}
-                                  size="sm"
-                                  type="button"
-                                  variant="danger"
-                                >
-                                  {isHighlightActionBusy ? "Removing..." : "Remove highlight"}
-                                </ForgeButton>
-                              </>
-                            ) : (
-                              <ForgeButton
-                                disabled={isHighlightActionBusy}
-                                onClick={() => {
-                                  void highlightMoment(moment);
-                                }}
-                                size="sm"
-                                type="button"
-                                variant="secondary"
-                              >
-                                {isHighlightActionBusy ? "Saving..." : highlightActionLabel}
-                              </ForgeButton>
-                            )}
-                          </div>
-                        </div>
-                      ) : null}
-                    </ForgeSurface>
-                  );
-                })
-              ) : (
-                <ForgeEmptyState
-                  description="No moments were generated for this call yet."
-                  icon="insights"
-                  title="No moments yet"
-                />
-              )}
-            </div>
-          </ForgeSurface>
         </div>
 
         <div className="col-span-12 space-y-5 lg:col-span-7">
@@ -555,12 +435,7 @@ export function CallDetailPanel({
                 className="flex h-20 w-20 items-center justify-center rounded-full border border-[rgba(241,191,123,0.28)] bg-[rgba(241,191,123,0.08)] text-[var(--forge-gold)] transition hover:scale-[1.03] hover:border-[rgba(241,191,123,0.42)]"
                 type="button"
               >
-                <span
-                  className="material-symbols-outlined forge-icon text-4xl"
-                  style={{ fontVariationSettings: "'FILL' 1" }}
-                >
-                  play_arrow
-                </span>
+                <ForgeIcon name="play_arrow" size={40} />
               </button>
             </div>
             <div className="absolute inset-x-0 bottom-0 p-4">
@@ -574,67 +449,216 @@ export function CallDetailPanel({
             </div>
           </ForgeSurface>
 
-          <ForgeSurface className="flex h-[600px] flex-col overflow-hidden p-0">
-            <div className="flex items-center justify-between gap-4 border-b border-[var(--forge-border)] bg-[rgba(255,244,230,0.025)] p-5 sm:p-6">
-              <h2 className="font-[var(--font-display)] text-xl font-semibold text-[var(--forge-text)]">
-                Transcript
-              </h2>
-              <div className="flex items-center gap-3">
+          <ForgeSurface className="overflow-hidden p-0">
+            <div className="flex flex-col gap-4 border-b border-[var(--forge-border)] bg-[rgba(255,244,230,0.025)] p-5 sm:p-6">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-gold)]">
+                    Workbench
+                  </p>
+                  <h2 className="mt-1 font-[var(--font-display)] text-xl font-semibold text-[var(--forge-text)]">
+                    Call Review
+                  </h2>
+                </div>
                 <ForgeChip tone="cyan">Speaker Diarization</ForgeChip>
-                <span className="material-symbols-outlined forge-icon text-[var(--forge-muted)]">search</span>
               </div>
-            </div>
-            <div className="flex-1 space-y-4 overflow-y-auto p-5 sm:p-6">
-              {(call.transcript ?? []).length ? (
-                (call.transcript ?? []).map((line, index) => {
-                  const isEmphasized = index === 2;
-                  const speakerInitials = initials(line.speaker);
-
-                  return (
-                    <div
-                      className={`flex gap-4 rounded-xl border p-4 transition ${
-                        isEmphasized
-                          ? "border-[rgba(241,191,123,0.26)] bg-[rgba(241,191,123,0.06)]"
-                          : "border-transparent bg-transparent"
-                      }`}
-                      key={`${line.timestampSeconds}-${line.speaker}-${index}`}
-                    >
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--forge-border)] bg-[rgba(255,244,230,0.04)] text-xs font-bold text-[var(--forge-cyan)]">
-                        {speakerInitials}
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-[var(--font-display)] text-xs font-bold uppercase tracking-[0.16em] text-[var(--forge-text)]">
-                            {line.speaker}
-                          </span>
-                          <span className="text-[0.7rem] text-[var(--forge-muted)]">
-                            {formatTimestamp(line.timestampSeconds)}
-                          </span>
-                        </div>
-                        <p className="text-sm leading-relaxed text-[var(--forge-muted)]">
-                          {line.text}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <ForgeEmptyState
-                  description="No transcript lines are available yet."
+              <ForgeSegmentedTabs label="Call workbench sections">
+                <ForgeSegmentedTab
+                  active={activeWorkbenchTab === "transcript"}
+                  icon="subject"
+                  onClick={() => setActiveWorkbenchTab("transcript")}
+                >
+                  Transcript
+                </ForgeSegmentedTab>
+                <ForgeSegmentedTab
+                  active={activeWorkbenchTab === "moments"}
+                  icon="insights"
+                  onClick={() => setActiveWorkbenchTab("moments")}
+                >
+                  Key Moments
+                </ForgeSegmentedTab>
+                <ForgeSegmentedTab
+                  active={activeWorkbenchTab === "summary"}
+                  icon="summarize"
+                  onClick={() => setActiveWorkbenchTab("summary")}
+                >
+                  Call Summary
+                </ForgeSegmentedTab>
+                <ForgeSegmentedTab
+                  active={activeWorkbenchTab === "notes"}
                   icon="edit_note"
-                  title="Transcript pending"
-                />
-              )}
+                  onClick={() => setActiveWorkbenchTab("notes")}
+                >
+                  Coaching Notes
+                </ForgeSegmentedTab>
+              </ForgeSegmentedTabs>
             </div>
-          </ForgeSurface>
 
-          <section className="grid gap-5 xl:grid-cols-[1fr_1fr]">
-            <ForgeSurface className="p-5 sm:p-6">
-              <h2 className="mb-6 flex items-center gap-3 font-[var(--font-display)] text-xl font-semibold text-[var(--forge-text)]">
-                <span className="material-symbols-outlined forge-icon text-[var(--forge-gold)]">insights</span>
-                Call Summary
-              </h2>
-              <div className="space-y-6">
+            <div className="max-h-[640px] overflow-y-auto p-5 sm:p-6">
+              <div className={activeWorkbenchTab === "transcript" ? "space-y-4" : "hidden space-y-4"}>
+                {(call.transcript ?? []).length ? (
+                  (call.transcript ?? []).map((line, index) => {
+                    const isEmphasized = index === 2;
+                    const speakerInitials = initials(line.speaker);
+
+                    return (
+                      <div
+                        className={`flex gap-4 rounded-xl border p-4 transition ${
+                          isEmphasized
+                            ? "border-[rgba(241,191,123,0.26)] bg-[rgba(241,191,123,0.06)]"
+                            : "border-transparent bg-transparent"
+                        }`}
+                        key={`${line.timestampSeconds}-${line.speaker}-${index}`}
+                      >
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--forge-border)] bg-[rgba(255,244,230,0.04)] text-xs font-bold text-[var(--forge-cyan)]">
+                          {speakerInitials}
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-[var(--font-display)] text-xs font-bold uppercase tracking-[0.16em] text-[var(--forge-text)]">
+                              {line.speaker}
+                            </span>
+                            <span className="text-[0.7rem] text-[var(--forge-muted)]">
+                              {formatTimestamp(line.timestampSeconds)}
+                            </span>
+                          </div>
+                          <p className="text-sm leading-relaxed text-[var(--forge-muted)]">
+                            {line.text}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <ForgeEmptyState
+                    description="No transcript lines are available yet."
+                    icon="edit_note"
+                    title="Transcript pending"
+                  />
+                )}
+              </div>
+
+              <div className={activeWorkbenchTab === "moments" ? "space-y-4" : "hidden space-y-4"}>
+                {moments.length ? (
+                  moments.map((moment) => {
+                    const savedNote = moment.highlightNote?.trim() ?? "";
+                    const draftNote = getHighlightNoteDraft(moment);
+                    const trimmedDraftNote = draftNote.trim();
+                    const noteChanged = trimmedDraftNote !== savedNote;
+                    const canRemoveNote = Boolean(savedNote || trimmedDraftNote);
+                    const highlightActionLabel =
+                      trimmedDraftNote.length > 0 ? "Add note and highlight" : "Highlight moment";
+                    const isHighlightActionBusy = highlightActionMomentId === moment.id;
+                    const isNoteActionBusy = noteActionMomentId === moment.id;
+
+                    return (
+                      <ForgeSurface className="p-4" key={moment.id} variant="inset">
+                        <div className="mb-3 flex flex-wrap items-center gap-2">
+                          <ForgeChip icon="history" tone="gold">
+                            {formatTimestamp(moment.timestampSeconds)}
+                          </ForgeChip>
+                          <ForgeChip tone={severityTint(moment.severity)}>
+                            {moment.category ?? "Moment"}
+                          </ForgeChip>
+                          {moment.isHighlight ? <ForgeChip tone="ember">Highlighted</ForgeChip> : null}
+                        </div>
+                        <p className="text-sm font-medium leading-relaxed text-[var(--forge-text)]">
+                          {moment.observation ?? "No observation recorded."}
+                        </p>
+                        {moment.recommendation ? (
+                          <p className="mt-2 text-sm leading-relaxed text-[var(--forge-muted)]">
+                            {moment.recommendation}
+                          </p>
+                        ) : null}
+                        {moment.highlightNote ? <HighlightNote note={moment.highlightNote} /> : null}
+                        {canManage ? (
+                          <div className="mt-4 space-y-3">
+                            <label
+                              className="block font-[var(--font-display)] text-[0.65rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-muted)]"
+                              htmlFor={`highlight-note-${moment.id}`}
+                            >
+                              Edit note
+                            </label>
+                            <textarea
+                              className="min-h-[88px] w-full resize-y rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition placeholder:text-[rgba(255,244,230,0.38)] focus:border-[rgba(241,191,123,0.36)]"
+                              id={`highlight-note-${moment.id}`}
+                              onChange={(event) =>
+                                setHighlightNoteDrafts((current) => ({
+                                  ...current,
+                                  [moment.id]: event.target.value,
+                                }))
+                              }
+                              placeholder="Add context for why this moment matters."
+                              value={draftNote}
+                            />
+                            <div className="flex flex-wrap gap-2">
+                              {moment.isHighlight ? (
+                                <>
+                                  <ForgeButton
+                                    disabled={isNoteActionBusy || !noteChanged}
+                                    onClick={() => {
+                                      void saveHighlightNote(moment);
+                                    }}
+                                    size="sm"
+                                    type="button"
+                                    variant="secondary"
+                                  >
+                                    {isNoteActionBusy ? "Saving..." : "Save note"}
+                                  </ForgeButton>
+                                  {canRemoveNote ? (
+                                    <ForgeButton
+                                      disabled={isNoteActionBusy}
+                                      onClick={() => {
+                                        void removeHighlightNote(moment);
+                                      }}
+                                      size="sm"
+                                      type="button"
+                                      variant="secondary"
+                                    >
+                                      {isNoteActionBusy ? "Removing..." : "Remove note"}
+                                    </ForgeButton>
+                                  ) : null}
+                                  <ForgeButton
+                                    disabled={isHighlightActionBusy}
+                                    onClick={() => {
+                                      void removeHighlight(moment);
+                                    }}
+                                    size="sm"
+                                    type="button"
+                                    variant="danger"
+                                  >
+                                    {isHighlightActionBusy ? "Removing..." : "Remove highlight"}
+                                  </ForgeButton>
+                                </>
+                              ) : (
+                                <ForgeButton
+                                  disabled={isHighlightActionBusy}
+                                  onClick={() => {
+                                    void highlightMoment(moment);
+                                  }}
+                                  size="sm"
+                                  type="button"
+                                  variant="secondary"
+                                >
+                                  {isHighlightActionBusy ? "Saving..." : highlightActionLabel}
+                                </ForgeButton>
+                              )}
+                            </div>
+                          </div>
+                        ) : null}
+                      </ForgeSurface>
+                    );
+                  })
+                ) : (
+                  <ForgeEmptyState
+                    description="No moments were generated for this call yet."
+                    icon="insights"
+                    title="No moments yet"
+                  />
+                )}
+              </div>
+
+              <div className={activeWorkbenchTab === "summary" ? "space-y-6" : "hidden space-y-6"}>
                 <SummaryList
                   empty="No strengths generated yet."
                   items={call.strengths ?? []}
@@ -651,78 +675,81 @@ export function CallDetailPanel({
                   title="Recommended Drills"
                 />
               </div>
-            </ForgeSurface>
 
-            <ForgeSurface className="p-5 sm:p-6">
-              <h2 className="mb-6 flex items-center gap-3 font-[var(--font-display)] text-xl font-semibold text-[var(--forge-text)]">
-                <span className="material-symbols-outlined forge-icon text-[var(--forge-gold)]">edit_note</span>
-                Coaching Notes
-              </h2>
-
-              <ForgeSurface className="p-4" variant="inset">
-                <textarea
-                  className="min-h-[120px] w-full resize-none border-none bg-transparent text-sm text-[var(--forge-text)] outline-none placeholder:text-[rgba(255,244,230,0.38)] focus:ring-0"
-                  onChange={(event) => setNote(event.target.value)}
-                  placeholder="Add a coaching observation..."
-                  value={note}
-                />
-                <div className="mt-3 flex items-center justify-between border-t border-[var(--forge-border)] pt-3">
-                  <div className="flex gap-2">
-                    <button className="rounded p-1.5 transition hover:bg-[rgba(255,244,230,0.05)]" type="button">
-                      <span className="material-symbols-outlined forge-icon text-sm text-[var(--forge-muted)]">attach_file</span>
-                    </button>
-                    <button className="rounded p-1.5 transition hover:bg-[rgba(255,244,230,0.05)]" type="button">
-                      <span className="material-symbols-outlined forge-icon text-sm text-[var(--forge-muted)]">alternate_email</span>
-                    </button>
-                  </div>
-                  <ForgeButton
-                    disabled={isSubmitting || !note.trim()}
-                    onClick={() => {
-                      void submitAnnotation();
-                    }}
-                    size="sm"
-                    type="button"
-                    variant="secondary"
-                  >
-                    {isSubmitting ? "Saving..." : "Post Note"}
-                  </ForgeButton>
-                </div>
-              </ForgeSurface>
-
-              <div className="mt-6 space-y-3">
-                {annotations.length ? (
-                  annotations.map((annotation) => (
-                    <ForgeSurface className="p-4" key={annotation.id} variant="inset">
-                      <div className="mb-2 flex items-center justify-between gap-3">
-                        <span className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.15em] text-[var(--forge-gold)]">
-                          {(annotation.authorFirstName || annotation.authorLastName
-                            ? `${annotation.authorFirstName ?? ""} ${annotation.authorLastName ?? ""}`.trim()
-                            : annotation.authorRole ?? "Coach")}{" "}
-                          / {formatDate(annotation.createdAt)}
-                        </span>
-                        <button
-                          className="text-[0.72rem] font-semibold text-[var(--forge-muted)] transition hover:text-[var(--forge-danger)]"
-                          onClick={() => {
-                            void removeAnnotation(annotation.id);
-                          }}
-                          type="button"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                      <p className="text-sm leading-relaxed text-[var(--forge-text)]">{annotation.note}</p>
-                    </ForgeSurface>
-                  ))
-                ) : (
-                  <ForgeEmptyState
-                    description="Add a coaching note below when this call needs follow-up."
-                    icon="edit_note"
-                    title="No annotations yet"
+              <div className={activeWorkbenchTab === "notes" ? "space-y-6" : "hidden space-y-6"}>
+                <ForgeSurface className="p-4" variant="inset">
+                  <textarea
+                    className="min-h-[120px] w-full resize-none border-none bg-transparent text-sm text-[var(--forge-text)] outline-none placeholder:text-[rgba(255,244,230,0.38)] focus:ring-0"
+                    onChange={(event) => setNote(event.target.value)}
+                    placeholder="Add a coaching observation..."
+                    value={note}
                   />
-                )}
+                  <div className="mt-3 flex items-center justify-between border-t border-[var(--forge-border)] pt-3">
+                    <div className="flex gap-2">
+                      <button
+                        aria-label="Attach file"
+                        className="rounded p-1.5 text-[var(--forge-muted)] transition hover:bg-[rgba(255,244,230,0.05)]"
+                        type="button"
+                      >
+                        <ForgeIcon name="attach_file" size={16} />
+                      </button>
+                      <button
+                        aria-label="Mention teammate"
+                        className="rounded p-1.5 text-[var(--forge-muted)] transition hover:bg-[rgba(255,244,230,0.05)]"
+                        type="button"
+                      >
+                        <ForgeIcon name="alternate_email" size={16} />
+                      </button>
+                    </div>
+                    <ForgeButton
+                      disabled={isSubmitting || !note.trim()}
+                      onClick={() => {
+                        void submitAnnotation();
+                      }}
+                      size="sm"
+                      type="button"
+                      variant="secondary"
+                    >
+                      {isSubmitting ? "Saving..." : "Post Note"}
+                    </ForgeButton>
+                  </div>
+                </ForgeSurface>
+
+                <div className="space-y-3">
+                  {annotations.length ? (
+                    annotations.map((annotation) => (
+                      <ForgeSurface className="p-4" key={annotation.id} variant="inset">
+                        <div className="mb-2 flex items-center justify-between gap-3">
+                          <span className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.15em] text-[var(--forge-gold)]">
+                            {(annotation.authorFirstName || annotation.authorLastName
+                              ? `${annotation.authorFirstName ?? ""} ${annotation.authorLastName ?? ""}`.trim()
+                              : annotation.authorRole ?? "Coach")}{" "}
+                            / {formatDate(annotation.createdAt)}
+                          </span>
+                          <button
+                            className="text-[0.72rem] font-semibold text-[var(--forge-muted)] transition hover:text-[var(--forge-danger)]"
+                            onClick={() => {
+                              void removeAnnotation(annotation.id);
+                            }}
+                            type="button"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                        <p className="text-sm leading-relaxed text-[var(--forge-text)]">{annotation.note}</p>
+                      </ForgeSurface>
+                    ))
+                  ) : (
+                    <ForgeEmptyState
+                      description="Add a coaching note below when this call needs follow-up."
+                      icon="edit_note"
+                      title="No annotations yet"
+                    />
+                  )}
+                </div>
               </div>
-            </ForgeSurface>
-          </section>
+            </div>
+          </ForgeSurface>
         </div>
       </div>
 
@@ -746,7 +773,7 @@ export function CallDetailPanel({
                 onClick={closeGenerateRoleplayModal}
                 type="button"
               >
-                <span className="material-symbols-outlined forge-icon text-base">close</span>
+                <ForgeIcon name="close" size={16} />
               </button>
             </div>
 

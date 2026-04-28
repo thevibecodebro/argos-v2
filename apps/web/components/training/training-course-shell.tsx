@@ -1,47 +1,63 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { ForgeWorkspaceLayout, ForgeWorkspaceRail } from "../forge";
 
 type TrainingCourseShellProps = {
-  commandDeck?: ReactNode;
+  adminRail?: ReactNode;
   mode: "learner" | "manager";
   stage: ReactNode;
-  tableOfContents: ReactNode;
+  structureRail: ReactNode;
 };
 
 export function TrainingCourseShell({
-  commandDeck,
+  adminRail,
   mode,
   stage,
-  tableOfContents,
+  structureRail,
 }: TrainingCourseShellProps) {
   const isManager = mode === "manager";
+  const rails = isManager
+    ? [
+        <ForgeWorkspaceRail
+          collapsible
+          description="Create, edit, assign, or draft training from the selected module."
+          eyebrow="Admin controls"
+          key="admin"
+          title="Builder controls"
+          data-training-admin-rail=""
+        >
+          {adminRail}
+        </ForgeWorkspaceRail>,
+        <ForgeWorkspaceRail
+          description="Select a module to review lessons, quiz material, and assignment readiness."
+          eyebrow="Course structure"
+          key="structure"
+          title="Curriculum map"
+          data-training-course-structure=""
+        >
+          {structureRail}
+        </ForgeWorkspaceRail>,
+      ]
+    : [
+        <ForgeWorkspaceRail
+          description="Move through assigned modules and complete the current lesson."
+          eyebrow="Course structure"
+          key="structure"
+          title="Curriculum map"
+          data-training-course-structure=""
+        >
+          {structureRail}
+        </ForgeWorkspaceRail>,
+      ];
 
   return (
-    <div
-      className={
-        isManager
-          ? "grid gap-5 xl:grid-cols-[16rem_16rem_minmax(0,1fr)]"
-          : "grid gap-5 xl:grid-cols-[18rem_minmax(0,1fr)]"
-      }
-      data-training-course-shell={mode}
-    >
-      <aside className="min-w-0 xl:sticky xl:top-24 xl:self-start" data-training-course-structure="">
-        {tableOfContents}
-      </aside>
-      {isManager && commandDeck ? (
-        <aside className="min-w-0 xl:sticky xl:top-24 xl:self-start" data-training-builder-controls="">
-          {commandDeck}
-        </aside>
-      ) : null}
-      <main className="min-w-0" data-training-course-stage="">
-        {stage}
-      </main>
-      {!isManager && commandDeck ? (
-        <aside className="min-w-0 xl:sticky xl:top-24 xl:self-start" data-training-builder-controls="">
-          {commandDeck}
-        </aside>
-      ) : null}
+    <div data-training-course-shell={mode}>
+      <ForgeWorkspaceLayout railCount={isManager ? 2 : 1} rails={rails}>
+        <div data-training-course-stage="">
+          {stage}
+        </div>
+      </ForgeWorkspaceLayout>
     </div>
   );
 }

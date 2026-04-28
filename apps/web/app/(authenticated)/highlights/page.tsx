@@ -1,10 +1,11 @@
-import Link from "next/link";
 import {
   ForgeButton,
   ForgeChip,
   ForgeEmptyState,
+  ForgeIcon,
   ForgeSurface,
 } from "@/components/forge";
+import { PageFrame } from "@/components/page-frame";
 import { getCachedAuthenticatedSupabaseUser } from "@/lib/auth/request-user";
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { listHighlights } from "@/lib/calls/service";
@@ -32,82 +33,122 @@ export default async function HighlightsPage() {
 
   return (
     <section className="px-12 pb-12 pt-8 flex-1 max-w-7xl mx-auto w-full">
-      <div className="mx-auto w-full max-w-6xl">
-        <section className="mb-8 flex justify-end">
-          <ForgeButton href="/calls" icon="arrow_back" size="sm" variant="secondary">
-            Back to call library
-          </ForgeButton>
+      <PageFrame
+        actions={[{ href: "/calls", label: "Back to call library" }]}
+        description="Review starred coaching moments, recommendations, and recurring patterns from call reviews."
+        eyebrow="Coaching evidence"
+        title="Coaching evidence"
+      >
+        <section className="grid gap-4 md:grid-cols-3" data-highlights-status-band="">
+          <ForgeSurface as="article" className="p-5" variant="panel">
+            <p className="font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-muted)]">
+              Captured moments
+            </p>
+            <p className="mt-3 text-3xl font-semibold text-[var(--forge-text)]">{highlights.length}</p>
+            <p className="mt-2 text-sm text-[var(--forge-muted)]">Saved from reviewed calls.</p>
+          </ForgeSurface>
+          <ForgeSurface as="article" className="p-5" variant="panel">
+            <p className="font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-muted)]">
+              Top pattern
+            </p>
+            <p className="mt-3 truncate text-2xl font-semibold text-[var(--forge-text)]">
+              {topCategory ?? "None yet"}
+            </p>
+            <p className="mt-2 text-sm text-[var(--forge-muted)]">Most frequent category in the library.</p>
+          </ForgeSurface>
+          <ForgeSurface as="article" className="p-5" variant="panel">
+            <p className="font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-muted)]">
+              Recommendation coverage
+            </p>
+            <p className="mt-3 text-3xl font-semibold text-[var(--forge-text)]">
+              {completeness !== null ? `${completeness}%` : "—"}
+            </p>
+            <p className="mt-2 text-sm text-[var(--forge-muted)]">
+              {withRecommendation} with next-step guidance.
+            </p>
+          </ForgeSurface>
         </section>
 
-        <div className="space-y-6">
-          {highlights.map((highlight, i) => {
-            const isPrimary = i % 2 === 0;
-            const chipTone = isPrimary ? "gold" : "cyan";
-            const hoverTitle = isPrimary
-              ? "group-hover:text-[var(--forge-gold)]"
-              : "group-hover:text-[var(--forge-cyan)]";
-            const hoverBtn = isPrimary
-              ? "hover:border-[var(--forge-gold)]/50"
-              : "hover:border-[var(--forge-cyan)]/50";
-            return (
-              <ForgeSurface
-                as="article"
-                className="group flex flex-col items-start gap-6 p-6 md:flex-row md:items-center"
-                data-highlight-tone={chipTone}
-                key={highlight.id}
-                variant="interactive"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="mb-3 flex items-center gap-3">
-                    <ForgeChip tone={chipTone}>
-                      {highlight.category ?? "Highlight"}
-                      {highlight.severity ? ` • ${highlight.severity}` : ""}
-                    </ForgeChip>
-                  </div>
-                  <h3
-                    className={`mb-2 font-['Space_Grotesk'] text-xl font-bold text-[var(--forge-text)] transition-colors ${hoverTitle}`}
-                  >
-                    {highlight.observation}
-                  </h3>
-                  {highlight.recommendation && (
-                    <p className="line-clamp-2 text-sm leading-relaxed text-[var(--forge-muted)]">
-                      {highlight.recommendation}
-                    </p>
-                  )}
-                  {highlight.highlightNote && (
-                    <p className="mt-2 text-sm italic text-[var(--forge-ember)]">
-                      {highlight.highlightNote}
-                    </p>
-                  )}
-                </div>
-                <div className="w-full shrink-0 md:w-auto">
-                  <Link
-                    className={`group/btn flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-3)] px-6 py-3 font-bold text-[var(--forge-text)] transition-all md:w-auto ${hoverBtn}`}
-                    href={`/calls/${highlight.callId}`}
-                  >
-                    <span className="font-['Space_Grotesk'] text-xs uppercase tracking-widest">
-                      Open call
-                    </span>
-                    <span className="material-symbols-outlined text-sm transition-transform group-hover/btn:translate-x-1">
-                      arrow_forward
-                    </span>
-                  </Link>
-                </div>
-              </ForgeSurface>
-            );
-          })}
+        <section className="space-y-4" data-highlights-library="">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
+                Highlight library
+              </p>
+              <p className="mt-2 text-sm text-[var(--forge-muted)]">
+                Open the source call to inspect transcript context and scorecard notes.
+              </p>
+            </div>
+            <span className="rounded-full border border-[var(--forge-border-strong)]/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
+              {highlights.length} {highlights.length === 1 ? "item" : "items"}
+            </span>
+          </div>
 
-          {/* End-of-list / empty state */}
-          <ForgeEmptyState
-            description={
-              highlights.length === 0
-                ? "Managers can star moments from a call detail page to build a reusable coaching library here."
-                : "Recent recordings are still processing. Check back in a few minutes."
-            }
-            icon="auto_awesome"
-            title={highlights.length === 0 ? "No highlights yet" : "More highlights arriving soon"}
-          />
-        </div>
+          <div className="space-y-3">
+            {highlights.map((highlight, i) => {
+              const isPrimary = i % 2 === 0;
+              const chipTone = isPrimary ? "gold" : "cyan";
+              const hoverTitle = isPrimary
+                ? "group-hover:text-[var(--forge-gold)]"
+                : "group-hover:text-[var(--forge-cyan)]";
+              const hoverBtn = isPrimary
+                ? "hover:border-[var(--forge-gold)]/50"
+                : "hover:border-[var(--forge-cyan)]/50";
+              return (
+                <ForgeSurface
+                  as="article"
+                  className="group flex flex-col items-start gap-6 p-6 md:flex-row md:items-center"
+                  data-highlight-tone={chipTone}
+                  key={highlight.id}
+                  variant="interactive"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="mb-3 flex items-center gap-3">
+                      <ForgeChip tone={chipTone}>
+                        {highlight.category ?? "Highlight"}
+                        {highlight.severity ? ` • ${highlight.severity}` : ""}
+                      </ForgeChip>
+                    </div>
+                    <h3
+                      className={`mb-2 font-['Space_Grotesk'] text-xl font-bold text-[var(--forge-text)] transition-colors ${hoverTitle}`}
+                    >
+                      {highlight.observation}
+                    </h3>
+                    {highlight.recommendation && (
+                      <p className="line-clamp-2 text-sm leading-relaxed text-[var(--forge-muted)]">
+                        {highlight.recommendation}
+                      </p>
+                    )}
+                    {highlight.highlightNote && (
+                      <p className="mt-2 text-sm italic text-[var(--forge-ember)]">
+                        {highlight.highlightNote}
+                      </p>
+                    )}
+                  </div>
+                  <div className="w-full shrink-0 md:w-auto">
+                    <ForgeButton
+                      className={`w-full md:w-auto ${hoverBtn}`}
+                      href={`/calls/${highlight.callId}`}
+                      size="sm"
+                      trailingIcon="arrow_forward"
+                      variant="secondary"
+                    >
+                      Open call
+                    </ForgeButton>
+                  </div>
+                </ForgeSurface>
+              );
+            })}
+
+            {highlights.length === 0 ? (
+              <ForgeEmptyState
+                description="Managers can star moments from a call detail page to build a reusable coaching library here."
+                icon="auto_awesome"
+                title="No highlights yet"
+              />
+            ) : null}
+          </div>
+        </section>
 
         {/* Bento cards */}
         <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -142,9 +183,7 @@ export default async function HighlightsPage() {
               )}
             </div>
             <div className="absolute -bottom-12 -right-12 opacity-5 transition-opacity group-hover:opacity-10">
-              <span className="material-symbols-outlined text-[160px]">
-                insights
-              </span>
+              <ForgeIcon name="insights" size={160} />
             </div>
           </ForgeSurface>
 
@@ -175,7 +214,7 @@ export default async function HighlightsPage() {
             </div>
           </ForgeSurface>
         </div>
-      </div>
+      </PageFrame>
     </section>
   );
 }

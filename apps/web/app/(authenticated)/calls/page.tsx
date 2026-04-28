@@ -7,9 +7,11 @@ import {
   ForgeButton,
   ForgeChip,
   ForgeEmptyState,
+  ForgeIcon,
+  ForgeManagementTable,
+  ForgeMobileTableCards,
   ForgeSkeleton,
   ForgeSurface,
-  ForgeTableShell,
 } from "@/components/forge";
 import { CallsFilters } from "./calls-filters";
 
@@ -84,7 +86,97 @@ export default async function CallsPage({
             <CallsFilters initialSearch={filters.search ?? ""} />
           </Suspense>
 
-          <ForgeTableShell>
+          <ForgeManagementTable
+            mobileCards={
+              <ForgeMobileTableCards>
+                {calls.length ? (
+                  calls.map((call) => {
+                    const badge = statusBadge(call.status);
+                    const icon = rowIcon(call.status);
+                    const duration = formatDuration(call.durationSeconds);
+                    const repName =
+                      call.repFirstName || call.repLastName
+                        ? `${call.repFirstName ?? ""} ${call.repLastName ?? ""}`.trim()
+                        : null;
+                    const topic = call.callTopic ?? "Untitled call";
+
+                    return (
+                      <Link
+                        className="block rounded-2xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] p-4 transition hover:border-[rgba(241,191,123,0.3)] hover:bg-[rgba(241,191,123,0.055)]"
+                        href={`/calls/${call.id}`}
+                        key={call.id}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div
+                            aria-hidden="true"
+                            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[0.9rem] border ${icon.className}`}
+                          >
+                            <ForgeIcon name={icon.icon} size={18} />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-[var(--forge-text)]">
+                                  {topic}
+                                </p>
+                                <p className="mt-1 text-xs text-[var(--forge-muted)]">
+                                  {formatTimestamp(call.createdAt)}
+                                </p>
+                              </div>
+                              <ForgeChip tone={badge.tone}>{badge.label}</ForgeChip>
+                            </div>
+                            <div className="mt-4 grid grid-cols-3 gap-3 text-xs">
+                              {canSeeRep ? (
+                                <div>
+                                  <p className="font-[var(--font-display)] font-bold uppercase tracking-[0.14em] text-[var(--forge-muted)]">
+                                    Rep
+                                  </p>
+                                  <p className="mt-1 truncate font-semibold text-[var(--forge-text)]">
+                                    {repName ?? "Unassigned"}
+                                  </p>
+                                </div>
+                              ) : null}
+                              <div>
+                                <p className="font-[var(--font-display)] font-bold uppercase tracking-[0.14em] text-[var(--forge-muted)]">
+                                  Score
+                                </p>
+                                <p className={`mt-1 font-bold ${scoreColor(call.overallScore)}`}>
+                                  {call.overallScore ?? "--"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="font-[var(--font-display)] font-bold uppercase tracking-[0.14em] text-[var(--forge-muted)]">
+                                  Duration
+                                </p>
+                                <p className="mt-1 font-semibold text-[var(--forge-text)]">
+                                  {duration ?? "--:--"}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })
+                ) : (
+                  <ForgeEmptyState
+                    action={
+                      hasActiveFilters
+                        ? { href: "/calls", label: "Clear filters" }
+                        : { href: "/upload", label: "Upload a call" }
+                    }
+                    description={
+                      hasActiveFilters
+                        ? "No calls match the current filters. Clear the filters or upload a new recording when the next review is ready."
+                        : "Upload a call recording to populate the library and start the scoring workflow."
+                    }
+                    icon={hasActiveFilters ? "filter_list" : "attach_file"}
+                    title={hasActiveFilters ? "No matching calls" : "No calls yet"}
+                  />
+                )}
+              </ForgeMobileTableCards>
+            }
+          >
             <div className="overflow-x-auto">
               <table className="w-full min-w-[860px] border-collapse">
                 <thead>
@@ -153,12 +245,7 @@ export default async function CallsPage({
                                 className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[0.9rem] border ${icon.className}`}
                                 aria-hidden="true"
                               >
-                                <span
-                                  className="material-symbols-outlined forge-icon"
-                                  style={{ fontSize: "18px" }}
-                                >
-                                  {icon.icon}
-                                </span>
+                                <ForgeIcon name={icon.icon} size={18} />
                               </div>
                               <div className="min-w-0">
                                 <p
@@ -214,12 +301,7 @@ export default async function CallsPage({
                           </td>
                           <td className="px-5 py-4 text-right">
                             <span className="inline-flex rounded-xl border border-transparent p-2 text-[var(--forge-muted)] transition group-hover:border-[var(--forge-border)] group-hover:bg-[rgba(241,191,123,0.08)] group-hover:text-[var(--forge-gold)]">
-                              <span
-                                className="material-symbols-outlined forge-icon"
-                                style={{ fontSize: "18px" }}
-                              >
-                                {badge.label === "Failed" ? "history" : "arrow_forward"}
-                              </span>
+                              <ForgeIcon name={badge.label === "Failed" ? "history" : "arrow_forward"} size={18} />
                             </span>
                           </td>
                         </tr>
@@ -248,7 +330,7 @@ export default async function CallsPage({
                 </tbody>
               </table>
             </div>
-          </ForgeTableShell>
+          </ForgeManagementTable>
 
           <div className="flex flex-wrap items-center justify-between gap-4">
             <p className="text-sm font-medium text-[var(--forge-muted)]">
@@ -271,9 +353,7 @@ export default async function CallsPage({
                   })}
                   tabIndex={page === 0 ? -1 : undefined}
                 >
-                  <span className="material-symbols-outlined forge-icon" style={{ fontSize: "18px" }}>
-                    arrow_back
-                  </span>
+                  <ForgeIcon name="arrow_back" size={18} />
                 </Link>
                 <span className="flex h-10 min-w-10 items-center justify-center rounded-xl border border-[rgba(241,191,123,0.28)] bg-[rgba(241,191,123,0.11)] px-3 text-sm font-bold text-[var(--forge-gold)]">
                   {page + 1}
@@ -294,9 +374,7 @@ export default async function CallsPage({
                   })}
                   tabIndex={page + 1 >= totalPages ? -1 : undefined}
                 >
-                  <span className="material-symbols-outlined forge-icon" style={{ fontSize: "18px" }}>
-                    arrow_forward
-                  </span>
+                  <ForgeIcon name="arrow_forward" size={18} />
                 </Link>
               </div>
             ) : null}

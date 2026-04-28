@@ -93,4 +93,19 @@ describe("AuthenticatedAppShell", () => {
     expect(html).not.toContain("#6dddff");
     expect(html).not.toContain("border-r-2");
   });
+
+  it("can render the desktop primary rail in an icon-only collapsed state", () => {
+    const html = renderToStaticMarkup(
+      createElement(AuthenticatedAppShell, {
+        user: managerUser,
+        initialPrimaryRailCollapsed: true,
+        children: createElement("div", null, "Page body"),
+      }),
+    );
+
+    expect(html).toContain('data-primary-rail-collapsed="true"');
+    expect(html).toContain("Expand navigation");
+    expect(html).toContain('aria-label="Dashboard"');
+    expect(html).toContain('data-primary-rail-label="true"');
+  });
 });

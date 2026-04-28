@@ -171,6 +171,13 @@ function expectCompactManagerDeckAtRest(html: string) {
   expect(html).toContain("Edit selected module");
   expect(html).toContain("Assign selected module");
   expect(html).toContain("Generate with AI");
+  expect(html).toContain("edit_note");
+  expect(html).toContain("group");
+  expect(html).toContain('data-forge-workspace-rail-action="true"');
+  expect(html).not.toContain("group_add");
+  expect(html).not.toContain("add_circle");
+  expect(html).not.toContain("edit_square");
+  expect(html).not.toContain("assignment_ind");
   expect(html).not.toContain("Draft lesson content");
   expect(html).not.toContain("Quiz builder");
   expect(html).not.toContain("Select reps, set an optional due date");
@@ -352,10 +359,10 @@ describe("TrainingPanel", () => {
     expect(html).toContain("Choose a module to edit or assign it.");
     expect(html).toContain('aria-label="Training admin controls"');
     expect(html).toContain('data-settings-nav-theme="forge"');
-    expect(html).toMatch(/<button(?:(?!disabled="").)*<span class="truncate">Create module<\/span><\/button>/s);
-    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>.*<span class="truncate">Edit selected module<\/span><\/button>/s);
-    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>.*<span class="truncate">Assign selected module<\/span><\/button>/s);
-    expect(html).toMatch(/<button[^>]*aria-describedby="training-ai-unavailable"[^>]*disabled=""[^>]*>.*<span class="truncate">Generate with AI<\/span><\/button>/s);
+    expect(html).toMatch(/<button(?=[^>]*aria-label="Create module")(?![^>]*disabled="")[^>]*>/);
+    expect(html).toMatch(/<button[^>]*aria-label="Edit selected module"[^>]*disabled=""/s);
+    expect(html).toMatch(/<button[^>]*aria-label="Assign selected module"[^>]*disabled=""/s);
+    expect(html).toMatch(/<button[^>]*aria-label="Generate with AI"[^>]*aria-describedby="training-ai-unavailable"[^>]*disabled=""/s);
   });
 
   it("shows unavailable AI copy when generation is disabled", () => {
@@ -394,8 +401,8 @@ describe("TrainingPanel", () => {
 
     expect(html).toContain("Selected module");
     expect(html).toContain("Focused on the selected module.");
-    expect(html).toMatch(/<button(?:(?!disabled="").)*<span class="truncate">Edit selected module<\/span><\/button>/s);
-    expect(html).toMatch(/<button(?:(?!disabled="").)*<span class="truncate">Assign selected module<\/span><\/button>/s);
+    expect(html).toMatch(/<button(?=[^>]*aria-label="Edit selected module")(?![^>]*disabled="")[^>]*>/);
+    expect(html).toMatch(/<button(?=[^>]*aria-label="Assign selected module")(?![^>]*disabled="")[^>]*>/);
   });
 
   it("does not render the manager modal when closed", () => {
@@ -451,6 +458,7 @@ describe("TrainingPanel", () => {
     );
 
     expect(html).toContain('data-training-course-shell="learner"');
+    expect(html).toContain('data-forge-workspace-layout="one-rail"');
     expect(html).toContain("Course player");
     expect(html).toContain("Course structure");
     expect(html).toContain("Curriculum map");
@@ -475,18 +483,20 @@ describe("TrainingPanel", () => {
     );
 
     const shellIndex = html.indexOf('data-training-course-shell="manager"');
+    const workspaceIndex = html.indexOf('data-forge-workspace-layout="two-rails"');
+    const adminRailIndex = html.indexOf('data-training-admin-rail=""');
     const structureIndex = html.indexOf('data-training-course-structure=""');
     const stageIndex = html.indexOf('data-training-course-stage=""');
-    const builderControlsIndex = html.indexOf('data-training-builder-controls=""');
     const tocIndex = html.indexOf('aria-label="Curriculum map"');
     const commandDeckIndex = html.indexOf("Create module");
 
     expect(shellIndex).toBeGreaterThanOrEqual(0);
-    expect(structureIndex).toBeGreaterThan(shellIndex);
-    expect(builderControlsIndex).toBeGreaterThan(structureIndex);
-    expect(stageIndex).toBeGreaterThan(builderControlsIndex);
+    expect(workspaceIndex).toBeGreaterThan(shellIndex);
+    expect(adminRailIndex).toBeGreaterThan(workspaceIndex);
+    expect(structureIndex).toBeGreaterThan(adminRailIndex);
+    expect(stageIndex).toBeGreaterThan(structureIndex);
     expect(tocIndex).toBeGreaterThan(structureIndex);
-    expect(commandDeckIndex).toBeGreaterThan(builderControlsIndex);
+    expect(commandDeckIndex).toBeGreaterThan(adminRailIndex);
   });
 
   it("renders curriculum rows as navigation instead of numbered mini-cards", () => {
@@ -609,6 +619,9 @@ describe("TrainingPanel", () => {
     expect(html).toContain("Course player");
     expect(html).toContain("Course structure");
     expect(html).toContain("Curriculum map");
+    expect(html).toContain('data-forge-workspace-layout="one-rail"');
+    expect(html).toContain('data-training-course-structure=""');
+    expect(html).toContain('data-training-course-stage=""');
     expect(html).not.toContain("Builder controls");
     expect(html).toContain(
       "Review assigned modules, complete lessons, and guide practice from one training surface.",
@@ -618,10 +631,10 @@ describe("TrainingPanel", () => {
   it("uses dashboard-like spacing rhythm across the training shell surfaces", () => {
     const shellHtml = renderToStaticMarkup(
       <TrainingCourseShell
-        commandDeck={<div>Command deck</div>}
         mode="manager"
+        adminRail={<div>Command deck</div>}
         stage={<div>Stage</div>}
-        tableOfContents={<div>Curriculum map</div>}
+        structureRail={<div>Curriculum map</div>}
       />,
     );
     const stageHtml = renderToStaticMarkup(
@@ -660,11 +673,15 @@ describe("TrainingPanel", () => {
     );
 
     expect(shellHtml).toContain('data-training-course-shell="manager"');
-    expect(shellHtml).toContain("xl:grid-cols-[16rem_16rem_minmax(0,1fr)]");
+    expect(shellHtml).toContain('data-forge-workspace-layout="two-rails"');
+    expect(shellHtml).toContain("forge-workspace-layout");
+    expect(shellHtml).toContain("forge-workspace-rail");
+    expect(shellHtml).toContain('data-training-admin-rail=""');
     expect(stageHtml).toContain("relative space-y-6");
     expect(stageHtml).toContain("rounded-[1.25rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface-2)]/45 p-6");
     expect(tocHtml).toContain("rounded-[1.5rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6");
-    expect(commandDeckHtml).toContain("rounded-[1.35rem] border border-[var(--forge-border)] bg-[rgba(5,4,3,0.56)] p-4");
+    expect(commandDeckHtml).toContain('data-training-admin-controls="true"');
+    expect(commandDeckHtml).not.toContain("rounded-[1.35rem] border border-[var(--forge-border)] bg-[rgba(5,4,3,0.56)] p-4");
     expect(commandDeckHtml).toContain('data-settings-nav-theme="forge"');
     expect(`${stageHtml}${tocHtml}${commandDeckHtml}`).not.toContain("#74b1ff");
   });

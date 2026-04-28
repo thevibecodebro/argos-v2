@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@argos-v2/ui";
+import { ForgeIcon } from "./forge";
 import type { AppUserRole } from "@/lib/users/roles";
 
 type ShellUser = {
@@ -15,6 +16,7 @@ type ShellUser = {
 
 type AuthenticatedAppShellProps = {
   children: React.ReactNode;
+  initialPrimaryRailCollapsed?: boolean;
   user: ShellUser;
 };
 
@@ -75,11 +77,13 @@ const navGroups: NavGroup[] = [
 
 export function AuthenticatedAppShell({
   children,
+  initialPrimaryRailCollapsed = false,
   user,
 }: AuthenticatedAppShellProps) {
   const currentPath = usePathname();
   const [accountOpen, setAccountOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [primaryRailCollapsed, setPrimaryRailCollapsed] = useState(initialPrimaryRailCollapsed);
   const accountRef = useRef<HTMLDivElement>(null);
 
   const initials = getInitials(user.fullName || user.email);
@@ -109,6 +113,21 @@ export function AuthenticatedAppShell({
     setMobileNavOpen(false);
   }, [currentPath]);
 
+  useEffect(() => {
+    const saved = window.localStorage.getItem("argos.primaryRailCollapsed");
+    if (saved === "true" || saved === "false") {
+      setPrimaryRailCollapsed(saved === "true");
+    }
+  }, []);
+
+  function togglePrimaryRail() {
+    setPrimaryRailCollapsed((current) => {
+      const next = !current;
+      window.localStorage.setItem("argos.primaryRailCollapsed", String(next));
+      return next;
+    });
+  }
+
   return (
     <div className="forge-shell min-h-dvh text-[var(--forge-text)]" data-shell-theme="forge">
       {mobileNavOpen ? (
@@ -122,14 +141,19 @@ export function AuthenticatedAppShell({
 
       <aside
         className={cn(
-          "forge-sidebar fixed inset-y-0 left-0 z-50 flex h-dvh w-64 flex-col px-4 py-5 transition-transform duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
+          "forge-sidebar fixed inset-y-0 left-0 z-50 flex h-dvh w-64 flex-col px-4 py-5 transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] lg:px-4",
+          primaryRailCollapsed && "lg:w-20 lg:px-3",
           mobileNavOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
+        data-primary-rail-collapsed={primaryRailCollapsed ? "true" : "false"}
         id="auth-navigation"
       >
-        <div className="mb-7 rounded-[1.35rem] border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] p-3 shadow-[inset_0_1px_0_rgba(255,244,230,0.055)]">
+        <div className={cn(
+          "mb-7 rounded-[1.35rem] border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] p-3 shadow-[inset_0_1px_0_rgba(255,244,230,0.055)]",
+          primaryRailCollapsed && "lg:p-2",
+        )}>
           <div className="flex items-center justify-between gap-3">
-            <div>
+            <div className={cn(primaryRailCollapsed && "lg:sr-only")}>
               <h1 className="font-[var(--font-display)] text-2xl font-bold tracking-[-0.04em] text-[var(--forge-text)]">
                 Argos
               </h1>
@@ -137,15 +161,26 @@ export function AuthenticatedAppShell({
                 Sales forge
               </p>
             </div>
-            <span
-              aria-hidden="true"
-              className="material-symbols-outlined forge-icon text-[var(--forge-gold)]"
-              style={{ fontSize: "21px" }}
+            {primaryRailCollapsed ? null : (
+              <ForgeIcon className="text-[var(--forge-gold)]" name="insights" size={21} />
+            )}
+            <button
+              aria-label={primaryRailCollapsed ? "Expand navigation" : "Collapse navigation"}
+              className="forge-icon-button hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl lg:flex"
+              onClick={togglePrimaryRail}
+              title={primaryRailCollapsed ? "Expand navigation" : "Collapse navigation"}
+              type="button"
             >
-              insights
-            </span>
+              <ForgeIcon name={primaryRailCollapsed ? "chevron_right" : "chevron_left"} size={20} />
+            </button>
           </div>
-          <div className="mt-4 rounded-2xl border border-[var(--forge-border)] bg-[rgba(5,4,3,0.38)] p-3">
+          <div
+            className={cn(
+              "mt-4 rounded-2xl border border-[var(--forge-border)] bg-[rgba(5,4,3,0.38)] p-3",
+              primaryRailCollapsed && "lg:hidden",
+            )}
+            data-primary-rail-detail="true"
+          >
             <p className="font-[var(--font-display)] text-[0.58rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-gold)]">
               Workspace scope
             </p>
@@ -158,14 +193,18 @@ export function AuthenticatedAppShell({
           </div>
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto pr-1" aria-label="Primary navigation">
+        <nav
+          className={cn("flex-1 space-y-1 overflow-y-auto pr-1", primaryRailCollapsed && "lg:pr-0")}
+          aria-label="Primary navigation"
+        >
           {visibleGroups.map((group) => {
             const groupActive = group.items.some((item) => isRouteActive(currentPath, item.href));
             return (
               <div className="mt-4" key={group.label}>
                 <p
-                  className="forge-nav-section-label mb-1 px-3"
+                  className={cn("forge-nav-section-label mb-1 px-3", primaryRailCollapsed && "lg:sr-only")}
                   data-active={groupActive ? "true" : "false"}
+                  data-primary-rail-section-label="true"
                 >
                   {group.label}
                 </p>
@@ -175,6 +214,7 @@ export function AuthenticatedAppShell({
                     return (
                       <NavLink
                         active={active}
+                        collapsed={primaryRailCollapsed}
                         href={item.href}
                         icon={item.icon}
                         key={item.href}
@@ -188,7 +228,13 @@ export function AuthenticatedAppShell({
           })}
         </nav>
 
-        <div className="mt-4 border-t border-[var(--forge-border)] pt-3 text-xs leading-5 text-[var(--forge-muted)]">
+        <div
+          className={cn(
+            "mt-4 border-t border-[var(--forge-border)] pt-3 text-xs leading-5 text-[var(--forge-muted)]",
+            primaryRailCollapsed && "lg:hidden",
+          )}
+          data-primary-rail-detail="true"
+        >
           <span className="font-[var(--font-display)] font-bold uppercase tracking-[0.16em] text-[var(--forge-gold)]">
             Active scope
           </span>
@@ -196,8 +242,11 @@ export function AuthenticatedAppShell({
         </div>
       </aside>
 
-      <div className="min-h-dvh lg:pl-64">
-        <header className="forge-topbar fixed left-0 right-0 top-0 z-30 flex min-h-16 items-center justify-between gap-3 px-4 py-3 backdrop-blur-xl lg:left-64 lg:px-7">
+      <div className={cn("min-h-dvh transition-[padding] duration-300 lg:pl-64", primaryRailCollapsed && "lg:pl-20")}>
+        <header className={cn(
+          "forge-topbar fixed left-0 right-0 top-0 z-30 flex min-h-16 items-center justify-between gap-3 px-4 py-3 backdrop-blur-xl transition-[left] duration-300 lg:left-64 lg:px-7",
+          primaryRailCollapsed && "lg:left-20",
+        )}>
           <div className="flex min-w-0 items-center gap-3">
             <button
               aria-controls="auth-navigation"
@@ -207,9 +256,7 @@ export function AuthenticatedAppShell({
               onClick={() => setMobileNavOpen(true)}
               type="button"
             >
-              <span className="material-symbols-outlined forge-icon" style={{ fontSize: "22px" }}>
-                filter_list
-              </span>
+              <ForgeIcon name="filter_list" size={22} />
             </button>
 
             <div className="min-w-0">
@@ -241,9 +288,7 @@ export function AuthenticatedAppShell({
               )}
               href="/upload"
             >
-              <span className="material-symbols-outlined forge-icon" style={{ fontSize: "16px" }}>
-                cloud_upload
-              </span>
+              <ForgeIcon name="cloud_upload" size={16} />
               Upload call
             </Link>
 
@@ -253,9 +298,7 @@ export function AuthenticatedAppShell({
               data-active={isRouteActive(currentPath, "/notifications") ? "true" : "false"}
               href="/notifications"
             >
-              <span className="material-symbols-outlined forge-icon" style={{ fontSize: "20px" }}>
-                notifications
-              </span>
+              <ForgeIcon name="notifications" size={20} />
             </Link>
 
             <div className="relative" ref={accountRef}>
@@ -296,9 +339,7 @@ export function AuthenticatedAppShell({
                   href="/settings"
                   onClick={() => setAccountOpen(false)}
                 >
-                  <span className="material-symbols-outlined forge-icon" style={{ fontSize: "17px" }}>
-                    settings
-                  </span>
+                  <ForgeIcon name="settings" size={17} />
                   Settings
                 </Link>
 
@@ -308,9 +349,7 @@ export function AuthenticatedAppShell({
                       className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-[var(--forge-muted)] transition hover:bg-[rgba(255,113,108,0.09)] hover:text-[var(--forge-text)]"
                       type="submit"
                     >
-                      <span className="material-symbols-outlined forge-icon" style={{ fontSize: "17px" }}>
-                        logout
-                      </span>
+                      <ForgeIcon name="logout" size={17} />
                       Sign out
                     </button>
                   </form>
@@ -331,25 +370,30 @@ function NavLink({
   label,
   icon,
   active,
+  collapsed,
 }: {
   href: string;
   label: string;
   icon: string;
   active: boolean;
+  collapsed: boolean;
 }) {
   return (
     <Link
+      aria-label={label}
       aria-current={active ? "page" : undefined}
       className={cn(
         "forge-nav-link flex items-center gap-3 rounded-2xl px-3 py-2.5 font-[var(--font-display)] text-[0.7rem] font-bold uppercase tracking-[0.16em]",
+        collapsed && "lg:h-11 lg:justify-center lg:px-0",
         active && "forge-nav-link--active",
       )}
       href={href}
+      title={collapsed ? label : undefined}
     >
-      <span className="material-symbols-outlined forge-icon shrink-0" style={{ fontSize: "18px" }}>
-        {icon}
+      <ForgeIcon name={icon} size={18} />
+      <span className={cn("truncate", collapsed && "lg:sr-only")} data-primary-rail-label="true">
+        {label}
       </span>
-      <span className="truncate">{label}</span>
     </Link>
   );
 }

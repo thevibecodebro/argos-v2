@@ -3,6 +3,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ForgeButton, ForgeChip, ForgeSurface } from "@/components/forge";
 import type { CurrentUserDetails } from "@/lib/users/service";
 
 function initials(firstName: string | null, lastName: string | null, fallback: string) {
@@ -68,7 +69,7 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
   return (
     <div className="space-y-5">
       {/* Profile card */}
-      <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+      <ForgeSurface as="section" className="p-6" variant="panel">
         <div className="flex items-start gap-4">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/8 text-lg font-semibold text-[var(--forge-gold)]">
             {initials(currentUser.firstName, currentUser.lastName, currentUser.email)}
@@ -99,16 +100,16 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
                 <p className="text-sm text-[var(--forge-muted)]">{currentUser.email}</p>
                 {error ? <p className="text-sm text-[var(--forge-danger)]">{error}</p> : null}
                 <div className="flex gap-3">
-                  <button
-                    className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-2 text-sm font-semibold text-[#170d07] transition hover:brightness-110 disabled:opacity-50"
+                  <ForgeButton
                     disabled={isSaving}
                     onClick={() => void saveProfile()}
+                    size="sm"
                     type="button"
+                    variant="primary"
                   >
                     {isSaving ? "Saving..." : "Save changes"}
-                  </button>
-                  <button
-                    className="rounded-xl border border-[var(--forge-border-strong)]/20 px-4 py-2 text-sm font-medium text-[var(--forge-muted)] transition hover:border-[rgba(255,244,230,0.24)] hover:text-white"
+                  </ForgeButton>
+                  <ForgeButton
                     disabled={isSaving}
                     onClick={() => {
                       setFirstName(currentUser.firstName ?? "");
@@ -116,10 +117,12 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
                       setError(null);
                       setIsEditing(false);
                     }}
+                    size="sm"
                     type="button"
+                    variant="secondary"
                   >
                     Cancel
-                  </button>
+                  </ForgeButton>
                 </div>
               </div>
             ) : (
@@ -127,28 +130,26 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
                 <p className="text-2xl font-semibold text-white">{displayName}</p>
                 <p className="mt-2 text-sm text-[var(--forge-muted)]">{currentUser.email}</p>
                 <div className="mt-3 flex flex-wrap items-center gap-3">
-                  <span
-                    className="rounded-full border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/8 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-gold)]"
-                    title="Your role is set by an org admin"
-                  >
+                  <ForgeChip tone="gold">
                     {currentUser.role ?? "member"}
-                  </span>
-                  <button
-                    className="rounded-xl border border-[var(--forge-border-strong)]/20 px-3 py-1.5 text-sm font-medium text-[var(--forge-muted)] transition hover:border-[rgba(255,244,230,0.24)] hover:text-white"
+                  </ForgeChip>
+                  <ForgeButton
                     onClick={() => setIsEditing(true)}
+                    size="sm"
                     type="button"
+                    variant="secondary"
                   >
                     Edit profile
-                  </button>
+                  </ForgeButton>
                 </div>
               </div>
             )}
           </div>
         </div>
-      </section>
+      </ForgeSurface>
 
       {/* Organization card */}
-      <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+      <ForgeSurface as="section" className="p-6" variant="panel">
         <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">Organization</p>
         <p className="mt-4 text-2xl font-semibold text-white">{currentUser.org?.name ?? "No organization"}</p>
         {currentUser.org ? (
@@ -159,13 +160,14 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
                 <p className="mt-1 font-mono text-sm font-medium text-[var(--forge-text)]">{currentUser.org.slug}</p>
                 <p className="mt-1 text-xs text-[var(--forge-muted)]">Used in API references and webhook configurations</p>
               </div>
-              <button
-                className="rounded-xl border border-[var(--forge-border-strong)]/20 px-3 py-2 text-sm font-medium text-[var(--forge-muted)] transition hover:border-[rgba(241,191,123,0.34)] hover:text-white"
+              <ForgeButton
                 onClick={() => void copySlug()}
+                size="sm"
                 type="button"
+                variant="secondary"
               >
                 {copied ? "Copied" : "Copy"}
-              </button>
+              </ForgeButton>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3">
@@ -183,7 +185,7 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
         ) : (
           <p className="mt-3 text-sm text-[var(--forge-muted)]">Join or create an organization to unlock the workspace.</p>
         )}
-      </section>
+      </ForgeSurface>
     </div>
   );
 }

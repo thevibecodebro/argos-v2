@@ -14,7 +14,6 @@ export function TrainingLoadingShell() {
         title="Loading training"
       >
         <TrainingCourseShell
-          commandDeck={null}
           mode="learner"
           stage={
             <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
@@ -32,7 +31,7 @@ export function TrainingLoadingShell() {
               </div>
             </section>
           }
-          tableOfContents={
+          structureRail={
             <section
               aria-label="Curriculum map"
               className="rounded-[1.5rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.24)]"

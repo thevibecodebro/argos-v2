@@ -6,12 +6,24 @@ import {
   ForgeButton,
   ForgeChip,
   ForgeEmptyState,
+  ForgeErrorState,
+  ForgeIcon,
+  ForgeManagementTable,
   ForgeMetric,
+  ForgeMobileTableCards,
+  ForgeReadinessPanel,
   ForgeSettingsGroup,
+  ForgeSegmentedTab,
+  ForgeSegmentedTabs,
   ForgeSidePanelShell,
   ForgeSkeleton,
+  ForgeStatusPanel,
   ForgeSurface,
   ForgeTableShell,
+  ForgeWorkspaceLayout,
+  ForgeWorkspaceRail,
+  ForgeWorkspaceRailAction,
+  ForgeWorkspaceRailGroup,
   ForgeWidget,
 } from "../components/forge";
 
@@ -51,10 +63,66 @@ describe("forge primitives", () => {
     expect(linkHtml).toContain('href="/upload"');
     expect(linkHtml).toContain('data-forge-button="primary"');
     expect(linkHtml).toContain("material-symbols-outlined");
-    expect(linkHtml).toContain("cloud_upload");
     expect(buttonHtml).toContain("<button");
     expect(buttonHtml).toContain('data-forge-button="secondary"');
-    expect(buttonHtml).toContain("filter_list");
+    expect(linkHtml).toContain('data-forge-icon-name="cloud_upload"');
+    expect(buttonHtml).toContain('data-forge-icon-name="filter_list"');
+    expect(linkHtml).not.toContain(">cloud_upload<");
+    expect(buttonHtml).not.toContain(">filter_list<");
+  });
+
+  it("renders icons from codepoints so unknown ligatures do not leak raw text", () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        "div",
+        null,
+        createElement(ForgeIcon, { name: "cloud_upload" }),
+        createElement(ForgeIcon, { name: "not_in_subset_yet" }),
+      ),
+    );
+
+    expect(html).toContain('data-forge-icon-name="cloud_upload"');
+    expect(html).toContain('data-forge-icon-name="not_in_subset_yet"');
+    expect(html).toContain("material-symbols-outlined");
+    expect(html).not.toContain(">cloud_upload<");
+    expect(html).not.toContain(">not_in_subset_yet<");
+    expect(html).not.toContain('data-forge-icon-codepoint="e887"');
+  });
+
+  it("uses a known-present icon codepoint as the unknown fallback", () => {
+    const html = renderToStaticMarkup(
+      createElement(ForgeIcon, { name: "future_unbundled_symbol" }),
+    );
+
+    expect(html).toContain('data-forge-icon-name="future_unbundled_symbol"');
+    expect(html).toContain('data-forge-icon-codepoint="e0f0"');
+    expect(html).not.toContain(">future_unbundled_symbol<");
+  });
+
+  it("maps forge icon names used by authenticated workspaces to distinct codepoints", () => {
+    const mappedIcons = [
+      "account_tree",
+      "analytics",
+      "chevron_right",
+      "fingerprint",
+      "history",
+      "play_arrow",
+      "subject",
+      "summarize",
+    ];
+    const html = renderToStaticMarkup(
+      createElement(
+        "div",
+        null,
+        ...mappedIcons.map((name) => createElement(ForgeIcon, { key: name, name })),
+      ),
+    );
+
+    for (const name of mappedIcons) {
+      expect(html).toContain(`data-forge-icon-name="${name}"`);
+      expect(html).not.toContain(`>${name}<`);
+    }
+    expect(html).not.toContain('data-forge-icon-codepoint="e0f0"');
   });
 
   it("standardizes chips and metric emphasis by forge tone", () => {
@@ -104,6 +172,129 @@ describe("forge primitives", () => {
     expect(html).toContain('href="/upload"');
   });
 
+  it("provides consistent status, error, segmented tab, readiness, and mobile table primitives", () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        "div",
+        null,
+        createElement(ForgeStatusPanel, {
+          action: { href: "/calls", label: "Open calls" },
+          description: "Processing will continue in the background.",
+          icon: "pending",
+          tone: "cyan",
+          title: "Processing call",
+        }),
+        createElement(ForgeErrorState, {
+          action: { href: "/upload", label: "Try again" },
+          description: "The upload could not be processed.",
+          title: "Upload failed",
+        }),
+        createElement(
+          ForgeSegmentedTabs,
+          { label: "Training views" },
+          createElement(ForgeSegmentedTab, { active: true, href: "/training" }, "Assigned"),
+          createElement(ForgeSegmentedTab, { href: "/training/manage" }, "Manage"),
+        ),
+        createElement(ForgeReadinessPanel, {
+          description: "Ready for the next coaching pass.",
+          items: [
+            { label: "Modules", value: "12" },
+            { label: "Ready", value: "8" },
+          ],
+          label: "Readiness",
+          tone: "success",
+          value: "82%",
+        }),
+        createElement(
+          ForgeManagementTable,
+          {
+            mobileCards: createElement(
+              ForgeMobileTableCards,
+              null,
+              createElement("article", null, "Mobile row"),
+            ),
+          },
+          createElement("table", null, createElement("tbody", null)),
+        ),
+      ),
+    );
+
+    expect(html).toContain('data-forge-status-panel="cyan"');
+    expect(html).toContain('data-forge-error-state="true"');
+    expect(html).toContain('data-forge-segmented-tabs="true"');
+    expect(html).toContain('data-forge-segmented-tab-active="true"');
+    expect(html).toContain('data-forge-readiness-panel="success"');
+    expect(html).toContain('data-forge-management-table="true"');
+    expect(html).toContain('data-forge-mobile-table-cards="true"');
+    expect(html).toContain("Processing call");
+    expect(html).toContain("Upload failed");
+    expect(html).toContain("82%");
+    expect(html).toContain("Mobile row");
+  });
+
+  it("keeps status defaults and fallbacks inside the local icon subset", () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        "div",
+        null,
+        createElement(ForgeStatusPanel, {
+          description: "Status details",
+          title: "Default status",
+        }),
+        createElement(ForgeErrorState, {
+          description: "Error details",
+          title: "Default error",
+        }),
+        createElement(ForgeIcon, { name: "unknown_future_symbol" }),
+      ),
+    );
+
+    expect(html).not.toContain(">info<");
+    expect(html).not.toContain(">error<");
+    expect(html).not.toContain(">help<");
+    expect(html).not.toContain(">unknown_future_symbol<");
+    expect(html).not.toContain('data-forge-icon-name="info"');
+    expect(html).not.toContain('data-forge-icon-name="error"');
+    expect(html).not.toContain('data-forge-icon-codepoint="e88e"');
+    expect(html).not.toContain('data-forge-icon-codepoint="e000"');
+    expect(html).not.toContain('data-forge-icon-codepoint="e887"');
+  });
+
+  it("keeps management table content visible on mobile when no card fallback is supplied", () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        ForgeManagementTable,
+        null,
+        createElement("table", null, createElement("tbody", null, createElement("tr", null, "Desktop row"))),
+      ),
+    );
+
+    expect(html).toContain("Desktop row");
+    expect(html).toContain('data-forge-management-table="true"');
+    expect(html).not.toContain('class="hidden md:block"');
+  });
+
+  it("does not hardcode readiness status copy", () => {
+    const genericHtml = renderToStaticMarkup(
+      createElement(ForgeReadinessPanel, {
+        label: "Completion",
+        value: "67%",
+      }),
+    );
+    const statusHtml = renderToStaticMarkup(
+      createElement(ForgeReadinessPanel, {
+        label: "Completion",
+        statusLabel: "Needs review",
+        statusTone: "ember",
+        value: "67%",
+      }),
+    );
+
+    expect(genericHtml).not.toContain("Ready");
+    expect(statusHtml).toContain("Needs review");
+    expect(statusHtml).toContain('data-forge-chip="ember"');
+  });
+
   it("provides workspace widgets, settings groups, and side-panel shells", () => {
     const html = renderToStaticMarkup(
       createElement(
@@ -143,5 +334,148 @@ describe("forge primitives", () => {
     expect(html).toContain("Operating pulse");
     expect(html).toContain("Workspace");
     expect(html).toContain("Edit user");
+  });
+
+  it("provides structural workspace rails that match the settings rail model", () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        ForgeWorkspaceLayout,
+        {
+          railCount: 2,
+          rails: [
+            createElement(
+              ForgeWorkspaceRail,
+              {
+                description: "Create, edit, and assign modules.",
+                eyebrow: "Admin controls",
+                key: "admin",
+                title: "Builder controls",
+              },
+              createElement(
+                ForgeWorkspaceRailGroup,
+                { label: "Actions" },
+                createElement(
+                  ForgeWorkspaceRailAction,
+                  { icon: "add", type: "button" },
+                  "Create module",
+                ),
+              ),
+            ),
+            createElement(
+              ForgeWorkspaceRail,
+              {
+                description: "Choose the active module.",
+                eyebrow: "Course structure",
+                key: "structure",
+                title: "Curriculum map",
+              },
+              createElement("p", null, "Discovery"),
+            ),
+          ],
+        },
+        createElement("main", null, "Workspace stage"),
+      ),
+    );
+
+    expect(html).toContain('data-forge-workspace-layout="two-rails"');
+    expect(html).toContain('data-forge-workspace-placement="left"');
+    expect(html).toContain("forge-workspace-layout");
+    expect(html).toContain("forge-workspace-rail");
+    expect(html).toContain("forge-symbol-icon");
+    expect(html).toContain('data-forge-workspace-rail="true"');
+    expect(html).toContain('data-forge-workspace-main="true"');
+    expect(html).toContain("Admin controls");
+    expect(html).toContain("Builder controls");
+    expect(html).toContain("Course structure");
+    expect(html).toContain("Curriculum map");
+    expect(html).toContain("Create module");
+    expect(html).not.toContain("#74b1ff");
+  });
+
+  it("infers two-rail workspace layout from a rails array", () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        ForgeWorkspaceLayout,
+        {
+          rails: [
+            createElement(ForgeWorkspaceRail, { key: "left", title: "Left rail" }),
+            createElement(ForgeWorkspaceRail, { key: "right", title: "Right rail" }),
+          ],
+        },
+        createElement("section", null, "Inferred workspace"),
+      ),
+    );
+
+    expect(html).toContain('data-forge-workspace-layout="two-rails"');
+    expect(html).toContain("Left rail");
+    expect(html).toContain("Right rail");
+    expect(html).toContain("Inferred workspace");
+  });
+
+  it("renders a safe one-rail workspace composition without manual rail count", () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        ForgeWorkspaceLayout,
+        {
+          rails: createElement(ForgeWorkspaceRail, { title: "Filters" }),
+        },
+        createElement("section", null, "Workspace stage"),
+      ),
+    );
+
+    expect(html).toContain('data-forge-workspace-layout="one-rail"');
+    expect(html).toContain('data-forge-workspace-main="true"');
+    expect(html).toContain("Filters");
+    expect(html).toContain("Workspace stage");
+  });
+
+  it("adds accessible active semantics and safe button defaults to workspace rail actions", () => {
+    const linkHtml = renderToStaticMarkup(
+      createElement(ForgeWorkspaceRailAction, { active: true, href: "/training" }, "Training"),
+    );
+    const buttonHtml = renderToStaticMarkup(
+      createElement(ForgeWorkspaceRailAction, { active: true }, "Current filter"),
+    );
+    const explicitButtonHtml = renderToStaticMarkup(
+      createElement(
+        ForgeWorkspaceRailAction,
+        { active: true, "aria-pressed": false, type: "submit" },
+        "Submit filter",
+      ),
+    );
+
+    expect(linkHtml).toContain('aria-current="page"');
+    expect(buttonHtml).toContain('aria-pressed="true"');
+    expect(buttonHtml).toContain('type="button"');
+    expect(explicitButtonHtml).toContain('aria-pressed="false"');
+    expect(explicitButtonHtml).toContain('type="submit"');
+  });
+
+  it("renders collapsible workspace rails with icon-only action labels preserved for assistive tech", () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        ForgeWorkspaceRail,
+        {
+          collapsible: true,
+          defaultCollapsed: true,
+          title: "Builder controls",
+        },
+        createElement(
+          ForgeWorkspaceRailGroup,
+          { label: "Actions" },
+          createElement(
+            ForgeWorkspaceRailAction,
+            { icon: "add", type: "button" },
+            "Create module",
+          ),
+        ),
+      ),
+    );
+
+    expect(html).toContain('data-forge-workspace-rail-collapsible="true"');
+    expect(html).toContain('data-forge-workspace-rail-collapsed-default="true"');
+    expect(html).toContain("Expand Builder controls");
+    expect(html).toContain('data-forge-workspace-rail-action-label="true"');
+    expect(html).toContain('aria-label="Create module"');
   });
 });

@@ -22,6 +22,12 @@ const teams = [
     description: "Sales pod",
     status: "active" as const,
   },
+  {
+    id: "team-b",
+    name: "Expansion",
+    description: "Outbound pod",
+    status: "active" as const,
+  },
 ];
 
 const managers = [
@@ -57,6 +63,16 @@ const memberships = [
     userId: "rep-1",
     membershipType: "rep" as const,
   },
+  {
+    teamId: "team-b",
+    userId: "mgr-2",
+    membershipType: "manager" as const,
+  },
+  {
+    teamId: "team-b",
+    userId: "rep-2",
+    membershipType: "rep" as const,
+  },
 ];
 
 describe("TeamsPanel", () => {
@@ -71,10 +87,19 @@ describe("TeamsPanel", () => {
     );
 
     expect(html).toContain("Create team");
+    expect(html).toContain('data-teams-workspace="management"');
+    expect(html).toContain('data-forge-workspace-layout="one-rail"');
+    expect(html).toContain('data-teams-control-rail=""');
+    expect(html).toContain('data-teams-editor=""');
+    expect(html).toContain('data-selected-team-editor="team-a"');
     expect(html).toContain("Team name");
     expect(html).toContain("Status");
     expect(html).toContain("Managers");
     expect(html).toContain("Reps");
+    expect(html).toContain("Closers · 1 managers · 1 reps");
+    expect(html).toContain("Expansion · 1 managers · 1 reps");
+    expect(html).toContain("Sales pod");
+    expect(html).not.toContain("Outbound pod");
     expect(html).toContain("/settings/permissions");
     expect(html).not.toContain("Primary Manager");
   });

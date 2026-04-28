@@ -1,7 +1,7 @@
 // apps/web/app/(authenticated)/settings/page.tsx
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ForgeSettingsGroup } from "@/components/forge";
+import { ForgeIcon, ForgeSettingsGroup } from "@/components/forge";
 import { PageFrame } from "@/components/page-frame";
 import { AccountPanel } from "@/components/page-panel-loaders";
 import {
@@ -99,12 +99,8 @@ export default async function SettingsAccountPage() {
                 key={section.href}
               >
                 <div className="flex items-start gap-3">
-                  <span
-                    aria-hidden="true"
-                    className="material-symbols-outlined forge-icon mt-0.5 rounded-xl border border-[rgba(241,191,123,0.24)] bg-[rgba(241,191,123,0.08)] p-2 text-[var(--forge-gold)]"
-                    style={{ fontSize: "18px" }}
-                  >
-                    {section.icon}
+                  <span className="mt-0.5 rounded-xl border border-[rgba(241,191,123,0.24)] bg-[rgba(241,191,123,0.08)] p-2 text-[var(--forge-gold)]">
+                    <ForgeIcon name={section.icon} size={18} />
                   </span>
                   <div>
                     <h3 className="font-[var(--font-display)] text-sm font-semibold text-[var(--forge-text)] transition group-hover:text-[var(--forge-gold)]">

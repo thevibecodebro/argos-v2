@@ -7,6 +7,7 @@ import {
 import {
   ForgeButton,
   ForgeEmptyState as ForgeEmptyStatePrimitive,
+  ForgeIcon,
   ForgeMetric,
   ForgeWidget,
 } from "@/components/forge";
@@ -456,9 +457,7 @@ function OrgSetupCard({
       <div className="mb-4 flex items-center justify-between">
         {setupStatus?.orgSlug && (
           <div className="flex items-center gap-2 px-2 py-1 bg-[var(--forge-surface-2)] rounded-md border border-[var(--forge-border-strong)]/20">
-            <span className="material-symbols-outlined text-[var(--forge-gold)]" style={{ fontSize: "14px" }}>
-              fingerprint
-            </span>
+            <ForgeIcon className="text-[var(--forge-gold)]" name="fingerprint" size={14} />
             <code className="text-[10px] text-[var(--forge-muted)] font-mono">{setupStatus.orgSlug}</code>
           </div>
         )}

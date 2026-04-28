@@ -1137,10 +1137,10 @@ export function TrainingPanel({
   return (
     <>
       <TrainingCourseShell
-        commandDeck={commandDeck}
+        adminRail={commandDeck}
         mode={canManage ? "manager" : "learner"}
         stage={stage}
-        tableOfContents={tableOfContents}
+        structureRail={tableOfContents}
       />
       {managerModal}
     </>

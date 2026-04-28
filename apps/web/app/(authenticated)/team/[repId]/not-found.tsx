@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ForgeIcon } from "@/components/forge";
 import { PageFrame } from "@/components/page-frame";
 
 export default function RepProfileNotFound() {
@@ -12,7 +13,7 @@ export default function RepProfileNotFound() {
     >
       <section className="rounded-[2rem] border border-white/10 bg-[var(--forge-surface)] p-6 text-center shadow-[0_24px_70px_rgba(3,8,20,0.34)]">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] text-[var(--forge-gold)]">
-          <span className="material-symbols-outlined">person_search</span>
+          <ForgeIcon name="person_search" size={24} />
         </div>
         <h3 className="mt-5 text-2xl font-semibold tracking-tight text-[var(--forge-text)]">
           Rep profile not found
