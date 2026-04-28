@@ -708,7 +708,7 @@ export function TrainingPanel({
         </div>
       ) : null}
       {managerMessage ? (
-        <div className="mt-4 rounded-xl border border-[#74b1ff]/20 bg-[#74b1ff]/8 px-4 py-3 text-sm text-[#ecedf6]">
+        <div className="mt-4 rounded-xl border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/8 px-4 py-3 text-sm text-[var(--forge-text)]">
           {managerMessage}
         </div>
       ) : null}
@@ -718,23 +718,23 @@ export function TrainingPanel({
   const hasModules = modules.length > 0;
 
   const managerEmptyPanel = (
-    <section className="rounded-[1.5rem] border border-dashed border-[#45484f]/20 bg-[#10131a]/78 p-5">
-      <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#74b1ff]">Planning surface</p>
+    <section className="rounded-[1.5rem] border border-dashed border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)]/78 p-5">
+      <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-gold)]">Planning surface</p>
       <h4 className="mt-2 text-lg font-semibold text-white">Create your first module</h4>
-      <p className="mt-2 max-w-2xl text-sm leading-7 text-[#a9abb3]">
+      <p className="mt-2 max-w-2xl text-sm leading-7 text-[var(--forge-muted)]">
         Start with a single lesson. Generate a draft sequence with AI when you want a faster starting point. Once
         modules exist, assignment and editing flows stay available from the compact planning surface below.
       </p>
       <div className="mt-4 flex flex-wrap gap-3">
         <button
-          className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/70 px-4 py-3 text-sm font-semibold text-white transition hover:border-[#74b1ff]/30 hover:bg-[#74b1ff]/10"
+          className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/70 px-4 py-3 text-sm font-semibold text-white transition hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/10"
           onClick={openCreateModal}
           type="button"
         >
           Create module
         </button>
         <button
-          className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
+          className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-3 text-sm font-semibold text-[#170d07] transition hover:brightness-110 disabled:opacity-50"
           disabled={!aiAvailable || isManagerBusy}
           onClick={openGenerateModal}
           type="button"
@@ -750,14 +750,14 @@ export function TrainingPanel({
       <section className="space-y-4">
         <div className="space-y-3">
           <input
-            className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+            className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white outline-none"
             onChange={(event) => setModuleForm((current) => ({ ...current, title: event.target.value }))}
             placeholder="Module title"
             value={moduleForm.title}
           />
           <div className="grid gap-3 md:grid-cols-2">
             <select
-              className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white outline-none"
               onChange={(event) => setModuleForm((current) => ({ ...current, skillCategory: event.target.value }))}
               value={moduleForm.skillCategory}
             >
@@ -771,14 +771,14 @@ export function TrainingPanel({
               ))}
             </select>
             <input
-              className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white outline-none"
               onChange={(event) => setModuleForm((current) => ({ ...current, videoUrl: event.target.value }))}
               placeholder="Video URL (optional)"
               value={moduleForm.videoUrl}
             />
           </div>
           <textarea
-            className="min-h-28 w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+            className="min-h-28 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white outline-none"
             onChange={(event) => setModuleForm((current) => ({ ...current, description: event.target.value }))}
             placeholder="Module description"
             value={moduleForm.description}
@@ -789,7 +789,7 @@ export function TrainingPanel({
           />
           <div className="flex justify-end">
             <button
-              className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
+              className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-3 text-sm font-semibold text-[#170d07] transition hover:brightness-110 disabled:opacity-50"
               disabled={isManagerBusy}
               onClick={() => {
                 void submitModuleForm();
@@ -807,13 +807,13 @@ export function TrainingPanel({
           <div className="space-y-3">
             <div className="grid gap-3 md:grid-cols-2">
               <input
-                className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white outline-none"
                 onChange={(event) => setGenerateForm((current) => ({ ...current, topic: event.target.value }))}
                 placeholder="Topic"
                 value={generateForm.topic}
               />
               <input
-                className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white outline-none"
                 onChange={(event) => setGenerateForm((current) => ({ ...current, targetRole: event.target.value }))}
                 placeholder="Target role"
                 value={generateForm.targetRole}
@@ -821,13 +821,13 @@ export function TrainingPanel({
             </div>
             <div className="grid gap-3 md:grid-cols-[1fr_160px]">
               <input
-                className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white outline-none"
                 onChange={(event) => setGenerateForm((current) => ({ ...current, skillFocus: event.target.value }))}
                 placeholder="Skill focus"
                 value={generateForm.skillFocus}
               />
               <input
-                className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white outline-none"
                 min={1}
                 onChange={(event) =>
                   setGenerateForm((current) => ({
@@ -842,7 +842,7 @@ export function TrainingPanel({
             </div>
             <div className="flex justify-end">
               <button
-                className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
+                className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-3 text-sm font-semibold text-[#170d07] transition hover:brightness-110 disabled:opacity-50"
                 disabled={isManagerBusy}
                 onClick={() => {
                   void submitGenerate();
@@ -857,18 +857,18 @@ export function TrainingPanel({
               <div className="space-y-3 pt-2">
                 {generatedDrafts.map((draft) => (
                   <div
-                    className="rounded-xl border border-[#45484f]/20 bg-[#10131a]/80 p-4"
+                    className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)]/80 p-4"
                     key={`${draft.title}-${draft.skillCategory}`}
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <p className="text-sm font-semibold text-white">{draft.title}</p>
-                        <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[#74b1ff]">
+                        <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[var(--forge-gold)]">
                           {draft.skillCategory}
                         </p>
                       </div>
                       <button
-                        className="rounded-lg border border-[#74b1ff]/30 px-3 py-2 text-xs font-semibold text-[#ecedf6]"
+                        className="rounded-lg border border-[var(--forge-gold)]/30 px-3 py-2 text-xs font-semibold text-[var(--forge-text)]"
                         disabled={isManagerBusy}
                         onClick={() => {
                           void saveGeneratedDraft(draft);
@@ -878,7 +878,7 @@ export function TrainingPanel({
                         Save draft
                       </button>
                     </div>
-                    <p className="mt-3 text-sm text-[#a9abb3]">{draft.description}</p>
+                    <p className="mt-3 text-sm text-[var(--forge-muted)]">{draft.description}</p>
                   </div>
                 ))}
               </div>
@@ -904,14 +904,14 @@ export function TrainingPanel({
           <div className="grid gap-3 md:grid-cols-2">
             <div>
               <h4 className="text-lg font-semibold text-white">{assigningModule.title}</h4>
-              <p className="mt-2 text-sm leading-7 text-[#a9abb3]">
+              <p className="mt-2 text-sm leading-7 text-[var(--forge-muted)]">
                 Select reps, set an optional due date, and remove unstarted assignments without leaving this focused
                 planner.
               </p>
             </div>
             <div className="flex justify-end">
               <input
-                className="rounded-xl border border-[#45484f]/20 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white outline-none"
                 onChange={(event) => setAssignDueDate(event.target.value)}
                 type="date"
                 value={assignDueDate}
@@ -925,7 +925,7 @@ export function TrainingPanel({
 
               return (
                 <label
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#45484f]/20 bg-[#10131a]/80 px-4 py-3"
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)]/80 px-4 py-3"
                   key={row.repId}
                 >
                   <div className="flex items-center gap-3">
@@ -944,11 +944,11 @@ export function TrainingPanel({
                       <p className="text-sm font-semibold text-white">
                         {[row.firstName, row.lastName].filter(Boolean).join(" ").trim() || row.email}
                       </p>
-                      <p className="text-xs text-[#a9abb3]">{row.email}</p>
+                      <p className="text-xs text-[var(--forge-muted)]">{row.email}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="text-right text-xs text-[#a9abb3]">
+                    <div className="text-right text-xs text-[var(--forge-muted)]">
                       <p>{progress ? progress.status : "not assigned"}</p>
                       <p>
                         {progress?.score === null || progress?.score === undefined
@@ -958,7 +958,7 @@ export function TrainingPanel({
                     </div>
                     {progress?.status === "assigned" ? (
                       <button
-                        className="rounded-lg border border-[#45484f]/30 px-3 py-2 text-xs font-semibold text-white"
+                        className="rounded-lg border border-[var(--forge-border-strong)]/30 px-3 py-2 text-xs font-semibold text-white"
                         disabled={isManagerBusy}
                         onClick={() => {
                           void unassignRep(row.repId);
@@ -975,7 +975,7 @@ export function TrainingPanel({
           </div>
           <div className="flex justify-end">
             <button
-              className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
+              className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-3 text-sm font-semibold text-[#170d07] transition hover:brightness-110 disabled:opacity-50"
               disabled={isManagerBusy}
               onClick={() => {
                 void submitAssignment();
@@ -1002,7 +1002,7 @@ export function TrainingPanel({
       <div className="space-y-5">
         {selectedModule.quizData.questions.map((question, questionIndex) => (
           <div key={question.question}>
-            <p className="text-sm font-medium text-[#ecedf6]">
+            <p className="text-sm font-medium text-[var(--forge-text)]">
               {questionIndex + 1}. {question.question}
             </p>
             <div className="mt-3 space-y-2">
@@ -1010,8 +1010,8 @@ export function TrainingPanel({
                 <button
                   className={`w-full rounded-xl border px-4 py-3 text-left text-sm transition ${
                     answers[questionIndex] === optionIndex
-                      ? "border-[#74b1ff]/20 bg-[#74b1ff]/8 text-[#74b1ff]"
-                      : "border-[#45484f]/10 bg-[#161a21]/50 text-[#ecedf6] hover:border-[#74b1ff]/30"
+                      ? "border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/8 text-[var(--forge-gold)]"
+                      : "border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface-2)]/50 text-[var(--forge-text)] hover:border-[var(--forge-gold)]/30"
                   }`}
                   key={`${question.question}-${option}`}
                   onClick={() =>
@@ -1030,7 +1030,7 @@ export function TrainingPanel({
         ))}
         {!canManage ? (
           <button
-            className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-5 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
+            className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-5 py-3 text-sm font-semibold text-[#170d07] transition hover:brightness-110 disabled:opacity-50"
             disabled={isSubmitting}
             onClick={() => {
               void submitProgress();
@@ -1042,12 +1042,12 @@ export function TrainingPanel({
         ) : null}
       </div>
     ) : (
-      <div className="rounded-xl border border-[#45484f]/10 bg-[#161a21]/50 px-4 py-4 text-sm text-[#a9abb3]">
+      <div className="rounded-xl border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface-2)]/50 px-4 py-4 text-sm text-[var(--forge-muted)]">
         This module does not include a quiz. Completing it will mark the assignment as passed.
       </div>
     )
   ) : (
-    <p className="text-sm text-[#a9abb3]">No modules are available.</p>
+    <p className="text-sm text-[var(--forge-muted)]">No modules are available.</p>
   );
 
   const stage = selectedModule ? (
@@ -1064,22 +1064,22 @@ export function TrainingPanel({
       statusMessage={statusMessage}
     />
   ) : canManage ? (
-    <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-      <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#74b1ff]">Current curriculum</p>
-      <div className="mt-4 rounded-[1.25rem] border border-dashed border-[#45484f]/15 bg-[#161a21]/40 p-5">
+    <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+      <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[var(--forge-gold)]">Course builder</p>
+      <div className="mt-4 rounded-[1.25rem] border border-dashed border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface-2)]/40 p-5">
         <h2 className="text-2xl font-semibold text-white">Create your first module</h2>
-        <p className="mt-3 max-w-2xl text-sm leading-7 text-[#a9abb3]">
+        <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--forge-muted)]">
           Start with a single lesson. Generate a draft sequence with AI when you want a faster starting point. Once
-          modules exist, assignment and editing flows stay available from the compact planning surface below.
+          modules exist, assignment and editing flows stay available from the builder controls.
         </p>
       </div>
     </section>
   ) : (
-    <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-      <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#74b1ff]">Current curriculum</p>
-      <div className="mt-4 rounded-[1.25rem] border border-dashed border-[#45484f]/15 bg-[#161a21]/40 p-5">
+    <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+      <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[var(--forge-gold)]">Course player</p>
+      <div className="mt-4 rounded-[1.25rem] border border-dashed border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface-2)]/40 p-5">
         <h2 className="text-2xl font-semibold text-white">Nothing is assigned yet</h2>
-        <p className="mt-3 max-w-2xl text-sm leading-7 text-[#a9abb3]">
+        <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--forge-muted)]">
           Your manager will place modules here when new training is ready. Check back soon to start practice.
         </p>
       </div>
@@ -1136,7 +1136,12 @@ export function TrainingPanel({
 
   return (
     <>
-      <TrainingCourseShell commandDeck={commandDeck} stage={stage} tableOfContents={tableOfContents} />
+      <TrainingCourseShell
+        adminRail={commandDeck}
+        mode={canManage ? "manager" : "learner"}
+        stage={stage}
+        structureRail={tableOfContents}
+      />
       {managerModal}
     </>
   );

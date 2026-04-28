@@ -48,8 +48,7 @@ export default async function SettingsRubricPage() {
 
   return (
     <PageFrame
-      description="Create new immutable rubric versions, import draft sources, and publish only when the next version is ready."
-      headerMode="hidden"
+      description="Configure the scoring rubric used across reviewed calls."
       eyebrow="Settings"
       title="Rubrics"
     >

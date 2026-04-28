@@ -44,6 +44,12 @@ describe("AuthenticatedAppShell", () => {
     expect(html).toContain('href="/notifications"');
     // Account menu
     expect(html).toContain('href="/settings"');
+    expect(html).toContain("Review");
+    expect(html).toContain("Coach");
+    expect(html).toContain("People");
+    expect(html).toContain("System");
+    expect(html).toContain("Workspace scope");
+    expect(html).toContain("Manager view");
   });
 
   it("hides the team navigation item for reps", () => {
@@ -70,5 +76,36 @@ describe("AuthenticatedAppShell", () => {
 
     expect(html).toContain('action="/auth/signout"');
     expect(html).toContain("Sign out");
+  });
+
+  it("uses the forge shell theme without blue active stripes", () => {
+    const html = renderToStaticMarkup(
+      createElement(AuthenticatedAppShell, {
+        user: managerUser,
+        children: createElement("div", null, "Page body"),
+      }),
+    );
+
+    expect(html).toContain('data-shell-theme="forge"');
+    expect(html).toContain("Open navigation");
+    expect(html).toContain("Sales forge");
+    expect(html).not.toContain("#74b1ff");
+    expect(html).not.toContain("#6dddff");
+    expect(html).not.toContain("border-r-2");
+  });
+
+  it("can render the desktop primary rail in an icon-only collapsed state", () => {
+    const html = renderToStaticMarkup(
+      createElement(AuthenticatedAppShell, {
+        user: managerUser,
+        initialPrimaryRailCollapsed: true,
+        children: createElement("div", null, "Page body"),
+      }),
+    );
+
+    expect(html).toContain('data-primary-rail-collapsed="true"');
+    expect(html).toContain("Expand navigation");
+    expect(html).toContain('aria-label="Dashboard"');
+    expect(html).toContain('data-primary-rail-label="true"');
   });
 });

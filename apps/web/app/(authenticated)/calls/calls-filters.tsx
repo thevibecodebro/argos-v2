@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { ForgeActionBar, ForgeButton, ForgeChip, ForgeIcon } from "@/components/forge";
 
 const STATUS_OPTIONS = [
   { label: "All", value: "all" },
@@ -92,22 +93,26 @@ export function CallsFilters({ initialSearch }: Props) {
     router.replace(buildUrl(patch));
   }
 
+  function clearFilters() {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    isFirstRender.current = true;
+    setSearch("");
+    router.replace("/calls");
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_repeat(3,minmax(0,0.75fr))_auto]">
-        <div className="group flex items-center rounded-[1.15rem] border border-white/10 bg-white/[0.04] px-4 py-1.5 shadow-[0_12px_40px_rgba(3,8,20,0.24)] backdrop-blur-md transition focus-within:border-[#74b1ff]/40 focus-within:bg-white/[0.06]">
-          <span
-            aria-hidden="true"
-            className="material-symbols-outlined mr-3 text-[#74b1ff]"
-            style={{ fontSize: "18px" }}
-          >
-            topic
-          </span>
+    <div className="space-y-4" data-calls-filter-bar="forge">
+      <ForgeActionBar className="grid items-stretch gap-3 lg:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,0.72fr))_auto]">
+        <div className="group flex items-center rounded-[1.05rem] border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-4 py-1.5 shadow-[inset_0_1px_0_rgba(255,244,230,0.045)] transition focus-within:border-[rgba(241,191,123,0.34)] focus-within:bg-[rgba(241,191,123,0.055)]">
+          <ForgeIcon className="mr-3 text-[var(--forge-gold)]" name="search" size={18} />
           <label className="sr-only" htmlFor="search">
             Search by topic
           </label>
           <input
-            className="w-full border-none bg-transparent px-0 py-3 text-sm font-medium text-slate-100 outline-none placeholder:text-slate-500 focus:ring-0"
+            className="w-full border-none bg-transparent px-0 py-3 text-sm font-medium text-[var(--forge-text)] outline-none placeholder:text-[rgba(255,244,230,0.42)] focus:ring-0"
             id="search"
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by topics, deals, or objections"
@@ -116,15 +121,15 @@ export function CallsFilters({ initialSearch }: Props) {
           />
         </div>
 
-        <div className="rounded-[1.15rem] border border-white/10 bg-white/[0.04] px-4 py-3 shadow-[0_12px_40px_rgba(3,8,20,0.24)] backdrop-blur-md">
-          <p className="mb-1 text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">
+        <div className="rounded-[1.05rem] border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,244,230,0.045)]">
+          <p className="mb-1 font-[var(--font-display)] text-[0.63rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
             Min Score
           </p>
           <label className="sr-only" htmlFor="minScore">
             Minimum score
           </label>
           <select
-            className="w-full border-none bg-transparent px-0 py-0 text-sm font-semibold text-slate-100 outline-none focus:ring-0"
+            className="w-full border-none bg-transparent px-0 py-0 text-sm font-semibold text-[var(--forge-text)] outline-none focus:ring-0"
             id="minScore"
             onChange={(e) => handleMinScoreChange(e.target.value)}
             value={currentMinScore}
@@ -138,15 +143,15 @@ export function CallsFilters({ initialSearch }: Props) {
           </select>
         </div>
 
-        <div className="rounded-[1.15rem] border border-white/10 bg-white/[0.04] px-4 py-3 shadow-[0_12px_40px_rgba(3,8,20,0.24)] backdrop-blur-md">
-          <p className="mb-1 text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">
+        <div className="rounded-[1.05rem] border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,244,230,0.045)]">
+          <p className="mb-1 font-[var(--font-display)] text-[0.63rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
             Max Score
           </p>
           <label className="sr-only" htmlFor="maxScore">
             Maximum score
           </label>
           <select
-            className="w-full border-none bg-transparent px-0 py-0 text-sm font-semibold text-slate-100 outline-none focus:ring-0"
+            className="w-full border-none bg-transparent px-0 py-0 text-sm font-semibold text-[var(--forge-text)] outline-none focus:ring-0"
             id="maxScore"
             onChange={(e) => handleMaxScoreChange(e.target.value)}
             value={currentMaxScore}
@@ -160,15 +165,15 @@ export function CallsFilters({ initialSearch }: Props) {
           </select>
         </div>
 
-        <div className="rounded-[1.15rem] border border-white/10 bg-white/[0.04] px-4 py-3 shadow-[0_12px_40px_rgba(3,8,20,0.24)] backdrop-blur-md">
-          <p className="mb-1 text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">
+        <div className="rounded-[1.05rem] border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,244,230,0.045)]">
+          <p className="mb-1 font-[var(--font-display)] text-[0.63rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
             Sort By
           </p>
           <label className="sr-only" htmlFor="sort">
             Sort order
           </label>
           <select
-            className="w-full border-none bg-transparent px-0 py-0 text-sm font-semibold text-slate-100 outline-none focus:ring-0"
+            className="w-full border-none bg-transparent px-0 py-0 text-sm font-semibold text-[var(--forge-text)] outline-none focus:ring-0"
             id="sort"
             onChange={(e) => router.replace(buildUrl({ sort: e.target.value }))}
             value={currentSort}
@@ -181,42 +186,42 @@ export function CallsFilters({ initialSearch }: Props) {
           </select>
         </div>
 
-        <button
-          aria-label={hasActiveFilters ? "Clear filters" : "Filters applied"}
-          className={`flex h-full min-h-[62px] items-center justify-center rounded-[1.15rem] border shadow-[0_12px_40px_rgba(3,8,20,0.24)] backdrop-blur-md transition ${
-            hasActiveFilters
-              ? "border-[#74b1ff]/30 bg-[#74b1ff]/10 text-[#74b1ff] hover:bg-[#74b1ff]/15"
-              : "border-white/10 bg-white/[0.04] text-slate-400"
-          }`}
-          onClick={() => hasActiveFilters && router.replace("/calls")}
+        <ForgeButton
+          aria-label={hasActiveFilters ? "Clear filters" : "No filters to clear"}
+          className={hasActiveFilters ? "min-h-[62px]" : "min-h-[62px] opacity-45"}
+          disabled={!hasActiveFilters}
+          icon="filter_list"
+          onClick={clearFilters}
           type="button"
+          variant="secondary"
         >
-          <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>
-            filter_list
-          </span>
-        </button>
-      </div>
+          Clear
+        </ForgeButton>
+      </ForgeActionBar>
 
-      <div className="flex flex-wrap items-center gap-6 border-b border-white/8 pb-1">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-muted)]">
+          {hasActiveFilters ? "Active filters" : "Status"}
+        </span>
         {STATUS_OPTIONS.map((option) => (
           <button
             aria-current={currentStatus === option.value ? "page" : undefined}
-            className={`border-b-2 pb-4 text-xs font-black uppercase tracking-[0.24em] transition ${
-              currentStatus === option.value
-                ? "border-[#74b1ff] text-[#74b1ff]"
-                : "border-transparent text-slate-500 hover:text-slate-200"
-            }`}
+            className="rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(241,191,123,0.42)]"
+            data-filter-active={currentStatus === option.value ? "true" : "false"}
+            data-filter-status={option.value}
             key={option.value}
             onClick={() => router.replace(buildUrl({ status: option.value }))}
             type="button"
           >
-            {option.label}
+            <ForgeChip tone={currentStatus === option.value ? statusTone(option.value) : "muted"}>
+              {option.label}
+            </ForgeChip>
           </button>
         ))}
         {hasActiveFilters ? (
           <button
-            className="ml-auto rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-slate-300 transition hover:border-white/20 hover:text-white"
-            onClick={() => router.replace("/calls")}
+            className="ml-auto rounded-full border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-4 py-2 font-[var(--font-display)] text-xs font-bold text-[var(--forge-muted)] transition hover:border-[rgba(241,191,123,0.28)] hover:text-[var(--forge-gold)]"
+            onClick={clearFilters}
             type="button"
           >
             Clear filters
@@ -225,4 +230,13 @@ export function CallsFilters({ initialSearch }: Props) {
       </div>
     </div>
   );
+}
+
+function statusTone(
+  value: (typeof STATUS_OPTIONS)[number]["value"],
+): "cyan" | "danger" | "gold" | "success" {
+  if (value === "complete") return "success";
+  if (value === "processing") return "cyan";
+  if (value === "failed") return "danger";
+  return "gold";
 }

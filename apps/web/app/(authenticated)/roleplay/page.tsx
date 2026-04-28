@@ -32,8 +32,8 @@ export default async function RoleplayPage({
     return (
       <div className="flex-1 p-8">
         <div className="mx-auto w-full max-w-7xl">
-          <section className="mb-8 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-6 text-sm leading-7 text-amber-100">
-            <p className="font-bold text-amber-300">Roleplay unavailable</p>
+          <section className="mb-8 rounded-2xl border border-[rgba(255,159,95,0.22)] bg-[rgba(255,159,95,0.06)] p-6 text-sm leading-7 text-[var(--forge-ember)]">
+            <p className="font-bold text-[var(--forge-ember)]">Roleplay unavailable</p>
             <p className="mt-1">{result.error}</p>
           </section>
         </div>

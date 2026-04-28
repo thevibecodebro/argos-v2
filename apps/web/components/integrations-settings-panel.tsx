@@ -46,26 +46,26 @@ function ProviderCard({
   }
 
   return (
-    <div className="rounded-[1.5rem] border border-slate-800/70 bg-[#0c1629] p-6">
-      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">{name}</p>
+    <div className="rounded-[1.5rem] border border-[var(--forge-border)] bg-[#0c1629] p-6">
+      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--forge-faint)]">{name}</p>
       <p className="mt-3 text-xl font-semibold text-white">
         {provider.connected ? "Connected" : provider.available ? "Ready to connect" : "Not configured"}
       </p>
-      <p className="mt-2 text-sm leading-7 text-slate-400">{description}</p>
+      <p className="mt-2 text-sm leading-7 text-[var(--forge-muted)]">{description}</p>
       {provider.connectedAt ? (
-        <p className="mt-3 text-sm text-slate-500">Connected {formatConnectedAt(provider.connectedAt)}</p>
+        <p className="mt-3 text-sm text-[var(--forge-faint)]">Connected {formatConnectedAt(provider.connectedAt)}</p>
       ) : null}
       {"zoomUserId" in provider && provider.zoomUserId ? (
-        <p className="mt-2 text-sm text-slate-500">User: {provider.zoomUserId}</p>
+        <p className="mt-2 text-sm text-[var(--forge-faint)]">User: {provider.zoomUserId}</p>
       ) : null}
       {"locationName" in provider && provider.locationName ? (
-        <p className="mt-2 text-sm text-slate-500">{provider.locationName}</p>
+        <p className="mt-2 text-sm text-[var(--forge-faint)]">{provider.locationName}</p>
       ) : null}
 
       <div className="mt-5 flex flex-wrap gap-3">
         {provider.connected ? (
           <button
-            className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-200 transition hover:bg-red-500/20 disabled:opacity-50"
+            className="rounded-xl border border-[rgba(255,113,108,0.3)] bg-[rgba(255,113,108,0.1)] px-4 py-2 text-sm font-medium text-[var(--forge-danger)] transition hover:bg-[rgba(255,113,108,0.18)] disabled:opacity-50"
             disabled={!canManage || isMutating}
             onClick={() => {
               void handleDisconnect();
@@ -76,7 +76,7 @@ function ProviderCard({
           </button>
         ) : (
           <button
-            className="rounded-xl border border-blue-500/30 bg-blue-600/15 px-4 py-2 text-sm font-medium text-blue-300 transition hover:bg-blue-600/25 disabled:opacity-50"
+            className="rounded-xl border border-[rgba(241,191,123,0.30)] bg-[rgba(241,191,123,0.12)] px-4 py-2 text-sm font-medium text-[var(--forge-gold)] transition hover:bg-[rgba(241,191,123,0.18)] disabled:opacity-50"
             disabled={!canManage}
             onClick={onManage}
             type="button"
@@ -87,10 +87,10 @@ function ProviderCard({
       </div>
 
       {!canManage ? (
-        <p className="mt-3 text-sm text-slate-500">Only admins can change integrations.</p>
+        <p className="mt-3 text-sm text-[var(--forge-faint)]">Only admins can change integrations.</p>
       ) : null}
       {!provider.available ? (
-        <p className="mt-3 text-sm text-amber-200">OAuth credentials are still missing for this provider.</p>
+        <p className="mt-3 text-sm text-[var(--forge-ember)]">OAuth credentials are still missing for this provider.</p>
       ) : null}
     </div>
   );
@@ -131,7 +131,7 @@ export function IntegrationsSettingsPanel({
     <div className="space-y-4">
       {notices.map((notice) => (
         <div
-          className="rounded-[1.25rem] border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-200"
+          className="rounded-[1.25rem] border border-[rgba(255,159,95,0.26)] bg-[rgba(255,159,95,0.1)] px-4 py-3 text-sm text-[var(--forge-ember)]"
           key={notice}
         >
           {notice}

@@ -24,6 +24,24 @@ describe("PageFrame", () => {
     expect(html).toContain("Training body");
   });
 
+  it("renders the shared forge page header treatment", () => {
+    const html = renderToStaticMarkup(
+      createElement(PageFrame, {
+        title: "Calls",
+        description: "Review scored calls, transcripts, coaching moments, and processing status.",
+        eyebrow: "Call intake",
+        actions: [{ href: "/upload", label: "Upload call" }],
+        children: createElement("div", null, "Calls body"),
+      }),
+    );
+
+    expect(html).toContain('data-page-header="forge"');
+    expect(html).toContain("forge-page-header");
+    expect(html).toContain("Upload call");
+    expect(html).not.toContain("#74b1ff");
+    expect(html).not.toContain("#10131a");
+  });
+
   it("keeps route actions while hiding the hero copy in hidden mode", () => {
     const html = renderToStaticMarkup(
       createElement(PageFrame, {
@@ -43,5 +61,70 @@ describe("PageFrame", () => {
     );
     expect(html).not.toContain("Performance");
     expect(html).not.toContain(">Leaderboard<");
+  });
+
+  it("supports one primary action, secondary actions, status chips, and a compact workflow slot", () => {
+    const html = renderToStaticMarkup(
+      createElement(PageFrame, {
+        title: "Training",
+        description: "Build, assign, and monitor readiness work.",
+        eyebrow: "Curriculum bench",
+        primaryAction: { href: "/training/new", label: "Create module", icon: "add" },
+        secondaryActions: [{ href: "/training/archive", label: "Archive" }],
+        statusChips: [
+          { label: "AI ready", tone: "success", icon: "check_circle" },
+          { label: "4 drafts", tone: "gold" },
+        ],
+        workflowSlot: createElement("span", null, "Manager workflow"),
+        children: createElement("div", null, "Training body"),
+      }),
+    );
+
+    expect(html).toContain('data-page-header="forge"');
+    expect(html).toContain('data-page-primary-action="true"');
+    expect(html).toContain('data-page-secondary-actions="true"');
+    expect(html).toContain('data-page-status-chips="true"');
+    expect(html).toContain('data-page-workflow-slot="true"');
+    expect(html).toContain('data-forge-button="primary"');
+    expect(html).toContain("Create module");
+    expect(html).toContain("Archive");
+    expect(html).toContain("AI ready");
+    expect(html).toContain("Manager workflow");
+  });
+
+  it("keeps simple actions compatibility as secondary header actions", () => {
+    const html = renderToStaticMarkup(
+      createElement(PageFrame, {
+        title: "Calls",
+        description: "Review scored calls.",
+        actions: [
+          { href: "/upload", label: "Upload call" },
+          { href: "/calls/export", label: "Export" },
+        ],
+        children: createElement("div", null, "Calls body"),
+      }),
+    );
+
+    expect(html).toContain('data-page-secondary-actions="true"');
+    expect(html).toContain('href="/upload"');
+    expect(html).toContain('href="/calls/export"');
+    expect(html).not.toContain('data-page-primary-action="true"');
+  });
+
+  it("renders duplicate status chip labels without dropping chips", () => {
+    const html = renderToStaticMarkup(
+      createElement(PageFrame, {
+        title: "Calls",
+        description: "Review scored calls.",
+        statusChips: [
+          { label: "Active", tone: "gold" },
+          { label: "Active", tone: "gold" },
+        ],
+        children: createElement("div", null, "Calls body"),
+      }),
+    );
+
+    expect(html.match(/Active/g)).toHaveLength(2);
+    expect(html).toContain('data-page-status-chips="true"');
   });
 });

@@ -143,6 +143,36 @@ describe("CallDetailPanel", () => {
     expect(html).toContain("Remove highlight");
   });
 
+  it("uses the forge review bench treatment instead of the old blue glass style", () => {
+    const html = renderToStaticMarkup(
+      createElement(CallDetailPanel, {
+        annotations: [],
+        call: baseCall,
+        canManage: true,
+      }),
+    );
+
+    expect(html).toContain('data-call-detail-panel="forge-review-bench"');
+    expect(html).toContain('data-forge-surface="panel"');
+    expect(html).toContain('data-forge-chip="cyan"');
+    expect(html).toContain("Revenue Scorecard");
+    expect(html).toContain("Workbench");
+    expect(html).toContain('data-forge-segmented-tabs="true"');
+    expect(html).toContain("Transcript");
+    expect(html).toContain("Key Moments");
+    expect(html).toContain("Call Summary");
+    expect(html).toContain("Coaching Notes");
+    expect(html).toContain("ACME Enterprise Scorecard");
+    expect(html).not.toContain("#74b1ff");
+    expect(html).not.toContain("#6dddff");
+    expect(html).not.toContain("backdrop-blur-md");
+    expect(html).not.toContain("border-l-2");
+    expect(html).not.toContain(">search</span>");
+    expect(html).not.toContain(">insights</span>");
+    expect(html).not.toContain(">edit_note</span>");
+    expect(html).not.toContain(">play_arrow</span>");
+  });
+
   it("renders highlight notes for read-only viewers without management controls", () => {
     const html = renderToStaticMarkup(
       createElement(CallDetailPanel, {

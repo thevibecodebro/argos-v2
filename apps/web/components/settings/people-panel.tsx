@@ -4,6 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { OrganizationMember } from "@/lib/users/service";
 import type { InviteRecord } from "@/lib/invites/repository";
+import {
+  ForgeButton,
+  ForgeManagementTable,
+  ForgeMobileTableCards,
+  ForgeWorkspaceLayout,
+  ForgeWorkspaceRail,
+  ForgeWorkspaceRailAction,
+} from "../forge";
 
 function initials(firstName: string | null, lastName: string | null, fallback: string) {
   const v = [firstName, lastName].filter(Boolean).map((s) => s?.[0]?.toUpperCase()).join("");
@@ -38,6 +46,8 @@ export function PeoplePanel({
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [memberError, setMemberError] = useState<string | null>(null);
+  const [memberSearch, setMemberSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<"all" | "rep" | "manager" | "executive" | "admin">("all");
 
   const [showInviteForm, setShowInviteForm] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -49,6 +59,17 @@ export function PeoplePanel({
   const [revokeErrors, setRevokeErrors] = useState<Record<string, string>>({});
 
   const showTeamPicker = inviteRole === "rep" || inviteRole === "manager";
+  const visibleMembers = members.filter((member) => {
+    const query = memberSearch.trim().toLowerCase();
+    const role = member.role ?? "rep";
+    const memberName = [member.firstName, member.lastName].filter(Boolean).join(" ").trim();
+    const matchesQuery =
+      !query ||
+      `${memberName} ${member.email} ${role}`.toLowerCase().includes(query);
+    const matchesRole = roleFilter === "all" || role === roleFilter;
+
+    return matchesQuery && matchesRole;
+  });
 
   async function applyRoleChange(memberId: string) {
     const newRole = stagedRoles[memberId];
@@ -133,149 +154,46 @@ export function PeoplePanel({
     setRevokingId(null);
   }
 
-  return (
-    <div className="space-y-5">
-      {/* Members section */}
-      <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Members</p>
-            <p className="mt-2 text-sm text-[#a9abb3]">Manage roles for everyone in your organization.</p>
-          </div>
-          <span className="rounded-full border border-[#45484f]/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#a9abb3]">
-            {members.length} {members.length === 1 ? "member" : "members"}
-          </span>
-        </div>
-
-        {memberError ? (
-          <div className="mt-4 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-            {memberError}
-          </div>
-        ) : null}
-
-        <div className="mt-5 space-y-3">
-          {members.length === 0 ? (
-            <p className="text-sm text-[#a9abb3]">No other members yet. Invite teammates to get started.</p>
-          ) : (
-            members.map((member) => {
-              const isSelf = member.id === currentUserId;
-              const memberName = [member.firstName, member.lastName].filter(Boolean).join(" ").trim() || member.email;
-              const stagedRole = stagedRoles[member.id];
-              const hasUnappliedChange = stagedRole !== undefined && stagedRole !== (member.role ?? "rep");
-              const isConfirmingRemove = confirmRemoveId === member.id;
-              const isRemoving = removingId === member.id;
-              const isSavingRole = savingRoleId === member.id;
-
-              return (
-                <div
-                  key={member.id}
-                  className="flex flex-col gap-3 rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-4 md:flex-row md:items-center md:justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#74b1ff]/20 bg-[#74b1ff]/8 text-sm font-semibold text-[#74b1ff]">
-                      {initials(member.firstName, member.lastName, member.email)}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-white">
-                        {memberName}
-                        {isSelf ? <span className="ml-2 text-xs font-medium text-[#a9abb3]">(you)</span> : null}
-                      </p>
-                      <p className="mt-1 text-sm text-[#a9abb3]">{member.email}</p>
-                      <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[#a9abb3]">
-                        {member.callCount} calls · joined {formatDate(member.joinedAt)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {!isSelf ? (
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {/* Two-step role change */}
-                      <select
-                        className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-3 py-2 text-sm text-[#ecedf6] outline-none transition focus:border-[#74b1ff]/60 disabled:opacity-50"
-                        disabled={isSavingRole}
-                        onChange={(e) => setStagedRoles((current) => ({ ...current, [member.id]: e.target.value }))}
-                        value={stagedRole ?? member.role ?? "rep"}
-                      >
-                        <option value="rep">Rep</option>
-                        <option value="manager">Manager</option>
-                        <option value="executive">Executive</option>
-                        <option value="admin">Admin</option>
-                      </select>
-                      {hasUnappliedChange ? (
-                        <button
-                          className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-3 py-2 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
-                          disabled={isSavingRole}
-                          onClick={() => void applyRoleChange(member.id)}
-                          type="button"
-                        >
-                          {isSavingRole ? "Saving..." : "Apply"}
-                        </button>
-                      ) : null}
-
-                      {/* Two-step remove */}
-                      {isConfirmingRemove ? (
-                        <>
-                          <span className="text-xs text-[#a9abb3]">Remove {memberName}?</span>
-                          <button
-                            className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-200 transition hover:bg-red-500/20 disabled:opacity-50"
-                            disabled={isRemoving}
-                            onClick={() => void removeMember(member.id)}
-                            type="button"
-                          >
-                            {isRemoving ? "Removing..." : "Confirm remove"}
-                          </button>
-                          <button
-                            className="rounded-xl border border-[#45484f]/20 px-3 py-2 text-sm font-medium text-[#a9abb3] transition hover:text-white"
-                            onClick={() => setConfirmRemoveId(null)}
-                            type="button"
-                          >
-                            Cancel
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          className="rounded-xl border border-[#45484f]/20 px-3 py-2 text-sm font-medium text-[#a9abb3] transition hover:border-red-500/30 hover:text-red-300"
-                          onClick={() => setConfirmRemoveId(member.id)}
-                          type="button"
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })
-          )}
-        </div>
-      </section>
-
-      {/* Invites section */}
-      <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Invites</p>
-            <p className="mt-2 text-sm text-[#a9abb3]">
-              Invite links expire in 7 days. Revoke a pending invite to invalidate it immediately.
-            </p>
+  const inviteControls = (
+    <ForgeWorkspaceRail
+      collapsible
+      description="Invite teammates and review pending access without leaving the member table."
+      eyebrow="People controls"
+      title="Invite controls"
+      data-people-control-rail=""
+    >
+      <div className="space-y-5">
+        <div className="space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
+                Invites
+              </p>
+              <p className="mt-2 text-sm text-[var(--forge-muted)]">
+                Links expire in 7 days. Revoke a pending invite to invalidate it immediately.
+              </p>
+            </div>
+            <span className="rounded-full border border-[var(--forge-border-strong)]/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
+              {pendingInvites.length}
+            </span>
           </div>
           {!showInviteForm ? (
-            <button
-              className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-2 text-sm font-semibold text-[#002345] transition hover:brightness-110"
+            <ForgeWorkspaceRailAction
+              icon="person"
               onClick={() => setShowInviteForm(true)}
               type="button"
             >
               Invite member
-            </button>
+            </ForgeWorkspaceRailAction>
           ) : null}
         </div>
 
         {showInviteForm ? (
-          <div className="mt-5 rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 p-5 space-y-4">
+          <div className="space-y-4 rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4">
             <label className="block">
-              <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">Email</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">Email</span>
               <input
-                className="mt-2 w-full rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[#74b1ff]/60"
+                className="mt-2 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3 text-sm text-white outline-none transition placeholder:text-[rgba(255,244,230,0.34)] focus:border-[var(--forge-gold)]/60"
                 onChange={(e) => setInviteEmail(e.target.value)}
                 placeholder="teammate@company.com"
                 type="email"
@@ -284,9 +202,9 @@ export function PeoplePanel({
             </label>
 
             <label className="block">
-              <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">Role</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">Role</span>
               <select
-                className="mt-2 w-full rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-3 text-sm text-white outline-none transition focus:border-[#74b1ff]/60"
+                className="mt-2 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
                 onChange={(e) => {
                   setInviteRole(e.target.value as typeof inviteRole);
                   setInviteTeamIds([]);
@@ -302,15 +220,15 @@ export function PeoplePanel({
 
             {showTeamPicker && initialTeams.length > 0 ? (
               <div>
-                <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">
+                <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">
                   Teams (optional)
                 </span>
                 <div className="mt-2 space-y-2">
                   {initialTeams.map((team) => (
-                    <label key={team.id} className="flex items-center gap-2 text-sm text-white cursor-pointer">
+                    <label key={team.id} className="flex cursor-pointer items-center gap-2 text-sm text-white">
                       <input
                         checked={inviteTeamIds.includes(team.id)}
-                        className="accent-[#74b1ff]"
+                        className="accent-[var(--forge-gold)]"
                         onChange={(e) =>
                           setInviteTeamIds((prev) =>
                             e.target.checked ? [...prev, team.id] : prev.filter((id) => id !== team.id),
@@ -325,19 +243,19 @@ export function PeoplePanel({
               </div>
             ) : null}
 
-            {inviteError ? <p className="text-sm text-red-300">{inviteError}</p> : null}
+            {inviteError ? <p className="text-sm text-[var(--forge-danger)]">{inviteError}</p> : null}
 
-            <div className="flex gap-3">
-              <button
-                className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-2.5 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
+            <div className="grid gap-2">
+              <ForgeButton
                 disabled={!inviteEmail.trim() || inviteSending}
+                icon="person"
                 onClick={() => void sendInvite()}
                 type="button"
+                variant="primary"
               >
                 {inviteSending ? "Sending..." : "Send invite"}
-              </button>
-              <button
-                className="rounded-xl border border-[#45484f]/20 px-4 py-2.5 text-sm font-medium text-[#a9abb3] transition hover:text-white"
+              </ForgeButton>
+              <ForgeButton
                 disabled={inviteSending}
                 onClick={() => {
                   setShowInviteForm(false);
@@ -346,34 +264,38 @@ export function PeoplePanel({
                   setInviteTeamIds([]);
                 }}
                 type="button"
+                variant="secondary"
               >
                 Cancel
-              </button>
+              </ForgeButton>
             </div>
           </div>
         ) : null}
 
-        <div className="mt-5">
+        <div className="space-y-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
+            Pending invites
+          </p>
           {pendingInvites.length === 0 ? (
-            <p className="text-sm text-[#a9abb3]">
-              No pending invites. Use the "Invite member" button above to add teammates.
+            <p className="text-sm text-[var(--forge-muted)]">
+              No pending invites. Use the invite control above to add teammates.
             </p>
           ) : (
             <ul className="space-y-2">
               {pendingInvites.map((invite) => (
                 <li
                   key={invite.id}
-                  className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-3"
+                  className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3"
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium text-white">{invite.email}</p>
-                      <p className="mt-1 text-xs text-[#a9abb3] uppercase tracking-[0.18em]">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-white">{invite.email}</p>
+                      <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[var(--forge-muted)]">
                         {invite.role} · expires {new Date(invite.expiresAt).toLocaleDateString()}
                       </p>
                     </div>
                     <button
-                      className="rounded-xl border border-[#45484f]/20 px-3 py-1.5 text-sm font-medium text-[#a9abb3] transition hover:border-red-500/30 hover:text-red-300 disabled:opacity-50"
+                      className="rounded-xl border border-[var(--forge-border-strong)]/20 px-3 py-1.5 text-sm font-medium text-[var(--forge-muted)] transition hover:border-[rgba(255,113,108,0.3)] hover:text-[var(--forge-danger)] disabled:opacity-50"
                       disabled={revokingId === invite.id}
                       onClick={() => void revokeInvite(invite)}
                       type="button"
@@ -382,14 +304,226 @@ export function PeoplePanel({
                     </button>
                   </div>
                   {revokeErrors[invite.id] ? (
-                    <p className="mt-2 text-xs text-red-300">{revokeErrors[invite.id]}</p>
+                    <p className="mt-2 text-xs text-[var(--forge-danger)]">{revokeErrors[invite.id]}</p>
                   ) : null}
                 </li>
               ))}
             </ul>
           )}
         </div>
+      </div>
+    </ForgeWorkspaceRail>
+  );
+
+  function renderMemberRoleControls(member: OrganizationMember) {
+    const isSelf = member.id === currentUserId;
+    const memberName = [member.firstName, member.lastName].filter(Boolean).join(" ").trim() || member.email;
+    const stagedRole = stagedRoles[member.id];
+    const hasUnappliedChange = stagedRole !== undefined && stagedRole !== (member.role ?? "rep");
+    const isConfirmingRemove = confirmRemoveId === member.id;
+    const isRemoving = removingId === member.id;
+    const isSavingRole = savingRoleId === member.id;
+
+    if (isSelf) {
+      return <span className="text-xs uppercase tracking-[0.16em] text-[var(--forge-muted)]">Protected</span>;
+    }
+
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <label>
+          <span className="sr-only">Role for {memberName}</span>
+          <select
+            className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60 disabled:opacity-50"
+            disabled={isSavingRole}
+            onChange={(e) => setStagedRoles((current) => ({ ...current, [member.id]: e.target.value }))}
+            value={stagedRole ?? member.role ?? "rep"}
+          >
+            <option value="rep">Rep</option>
+            <option value="manager">Manager</option>
+            <option value="executive">Executive</option>
+            <option value="admin">Admin</option>
+          </select>
+        </label>
+        {hasUnappliedChange ? (
+          <ForgeButton
+            disabled={isSavingRole}
+            onClick={() => void applyRoleChange(member.id)}
+            size="sm"
+            type="button"
+            variant="primary"
+          >
+            {isSavingRole ? "Saving..." : "Apply"}
+          </ForgeButton>
+        ) : null}
+
+        {isConfirmingRemove ? (
+          <>
+            <span className="text-xs text-[var(--forge-muted)]">Remove {memberName}?</span>
+            <ForgeButton
+              disabled={isRemoving}
+              onClick={() => void removeMember(member.id)}
+              size="sm"
+              type="button"
+              variant="danger"
+            >
+              {isRemoving ? "Removing..." : "Confirm remove"}
+            </ForgeButton>
+            <ForgeButton
+              onClick={() => setConfirmRemoveId(null)}
+              size="sm"
+              type="button"
+              variant="secondary"
+            >
+              Cancel
+            </ForgeButton>
+          </>
+        ) : (
+          <ForgeButton
+            onClick={() => setConfirmRemoveId(member.id)}
+            size="sm"
+            type="button"
+            variant="secondary"
+          >
+            Remove
+          </ForgeButton>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <ForgeWorkspaceLayout data-people-workspace="management" railCount={1} rails={inviteControls}>
+      <section
+        className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]"
+        data-people-member-table=""
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">Member management</p>
+            <h3 className="mt-2 text-xl font-semibold text-white">People table</h3>
+            <p className="mt-2 text-sm text-[var(--forge-muted)]">Search members, stage role changes, and remove inactive access.</p>
+          </div>
+          <span className="rounded-full border border-[var(--forge-border-strong)]/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
+            {members.length} {members.length === 1 ? "member" : "members"}
+          </span>
+        </div>
+
+        {memberError ? (
+          <div className="mt-4 rounded-xl border border-[rgba(255,113,108,0.26)] bg-[rgba(255,113,108,0.1)] px-4 py-3 text-sm text-[var(--forge-danger)]">
+            {memberError}
+          </div>
+        ) : null}
+
+        <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
+          <label className="space-y-2 text-sm text-[var(--forge-muted)]">
+            <span>Search members</span>
+            <input
+              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
+              onChange={(event) => setMemberSearch(event.target.value)}
+              placeholder="Name, email, or role"
+              value={memberSearch}
+            />
+          </label>
+          <label className="space-y-2 text-sm text-[var(--forge-muted)]">
+            <span>Role filter</span>
+            <select
+              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
+              onChange={(event) => setRoleFilter(event.target.value as typeof roleFilter)}
+              value={roleFilter}
+            >
+              <option value="all">All roles</option>
+              <option value="rep">Rep</option>
+              <option value="manager">Manager</option>
+              <option value="executive">Executive</option>
+              <option value="admin">Admin</option>
+            </select>
+          </label>
+        </div>
+
+        {members.length === 0 ? (
+          <p className="mt-5 text-sm text-[var(--forge-muted)]">Invite teammates from the rail to add the first member.</p>
+        ) : visibleMembers.length === 0 ? (
+          <p className="mt-5 text-sm text-[var(--forge-muted)]">No members match the current search or role filter.</p>
+        ) : (
+          <ForgeManagementTable
+            className="mt-5"
+            mobileCards={
+              <ForgeMobileTableCards>
+                {visibleMembers.map((member) => {
+                  const memberName = [member.firstName, member.lastName].filter(Boolean).join(" ").trim() || member.email;
+                  const isSelf = member.id === currentUserId;
+
+                  return (
+                    <div
+                      className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4"
+                      key={`${member.id}:mobile`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/8 text-sm font-semibold text-[var(--forge-gold)]">
+                          {initials(member.firstName, member.lastName, member.email)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-white">
+                            {memberName}
+                            {isSelf ? <span className="ml-2 text-xs font-medium text-[var(--forge-muted)]">(you)</span> : null}
+                          </p>
+                          <p className="mt-1 truncate text-sm text-[var(--forge-muted)]">{member.email}</p>
+                          <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+                            {member.role ?? "rep"} · {member.callCount} calls
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-4">{renderMemberRoleControls(member)}</div>
+                    </div>
+                  );
+                })}
+              </ForgeMobileTableCards>
+            }
+          >
+            <table className="w-full text-left text-sm">
+              <thead className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">
+                <tr>
+                  <th className="px-4 py-3">Member</th>
+                  <th className="px-4 py-3">Role</th>
+                  <th className="px-4 py-3">Activity</th>
+                  <th className="px-4 py-3 text-right">Controls</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--forge-border-strong)]/10">
+                {visibleMembers.map((member) => {
+                  const memberName = [member.firstName, member.lastName].filter(Boolean).join(" ").trim() || member.email;
+                  const isSelf = member.id === currentUserId;
+
+                  return (
+                    <tr key={member.id}>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/8 text-xs font-semibold text-[var(--forge-gold)]">
+                            {initials(member.firstName, member.lastName, member.email)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-white">
+                              {memberName}
+                              {isSelf ? <span className="ml-2 text-xs font-medium text-[var(--forge-muted)]">(you)</span> : null}
+                            </p>
+                            <p className="mt-1 truncate text-sm text-[var(--forge-muted)]">{member.email}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm capitalize text-[var(--forge-text)]">{member.role ?? "rep"}</td>
+                      <td className="px-4 py-3 text-xs uppercase tracking-[0.18em] text-[var(--forge-muted)]">
+                        {member.callCount} calls · joined {formatDate(member.joinedAt)}
+                      </td>
+                      <td className="px-4 py-3 text-right">{renderMemberRoleControls(member)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </ForgeManagementTable>
+        )}
       </section>
-    </div>
+
+    </ForgeWorkspaceLayout>
   );
 }

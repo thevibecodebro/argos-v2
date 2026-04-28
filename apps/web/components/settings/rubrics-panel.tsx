@@ -2,6 +2,13 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import {
+  ForgeReadinessPanel,
+  ForgeWorkspaceLayout,
+  ForgeWorkspaceRail,
+  ForgeWorkspaceRailAction,
+  ForgeWorkspaceRailGroup,
+} from "../forge";
 import type {
   RubricImportIssue,
   RubricInput,
@@ -26,6 +33,20 @@ type RubricsPanelProps = {
 };
 
 type WizardStep = "source" | "edit" | "review" | "publish";
+type GuidanceField = "excellent" | "proficient" | "developing";
+
+const BUILDER_STEPS: Array<{ id: WizardStep; label: string }> = [
+  { id: "source", label: "Choose Source" },
+  { id: "edit", label: "Edit Draft" },
+  { id: "review", label: "Review & Fix" },
+  { id: "publish", label: "Publish" },
+];
+
+const GUIDANCE_FIELDS: Array<{ field: GuidanceField; label: string }> = [
+  { field: "excellent", label: "Excellent" },
+  { field: "proficient", label: "Proficient" },
+  { field: "developing", label: "Developing" },
+];
 
 function copyRubricInput(rubric: RubricInput): RubricInput {
   return {
@@ -431,550 +452,587 @@ export function RubricsPanel({
   }
 
   return (
-    <div className="space-y-5">
-      <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Active Rubric</p>
-            <h3 className="mt-2 text-xl font-semibold text-white">
+    <ForgeWorkspaceLayout railCount={2}>
+      <ForgeWorkspaceRail
+        collapsible
+        description="Choose the source for the next scoring draft without changing the live version."
+        eyebrow="Source and versions"
+        title="Scoring sources"
+        data-rubric-builder-rail=""
+      >
+        <ForgeWorkspaceRailGroup label="Active version">
+          <div className="rounded-2xl border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/8 px-4 py-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-gold)]">Active Rubric</p>
+            <p className="mt-2 text-sm font-semibold text-[var(--forge-text)]">
               {activeRubric ? activeRubric.name : "No active rubric yet"}
-            </h3>
-            <p className="mt-2 max-w-2xl text-sm leading-7 text-[#a9abb3]">
+            </p>
+            <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">
               {activeRubric
-                ? activeRubric.description || "This version is currently attached to new scoring jobs."
+                ? `Version ${activeRubric.version} · ${activeRubric.categoryCount} categories`
                 : "Publish the first rubric version to start attaching it to new scoring jobs."}
             </p>
           </div>
-          {activeRubric ? (
-            <div className="rounded-2xl border border-[#74b1ff]/20 bg-[#74b1ff]/10 px-4 py-3 text-right text-sm text-[#cfe4ff]">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#74b1ff]">Live</p>
-              <p className="mt-2 font-semibold">Version {activeRubric.version}</p>
-              <p className="mt-1 text-xs text-[#9fc4ff]">{activeRubric.categoryCount} categories</p>
-            </div>
-          ) : null}
-        </div>
-      </section>
+        </ForgeWorkspaceRailGroup>
 
-      <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-        <div className="flex flex-wrap gap-2">
-          {[
-            ["source", "Choose Source"],
-            ["edit", "Edit Draft"],
-            ["review", "Review & Fix"],
-            ["publish", "Publish"],
-          ].map(([id, label]) => (
-            <div
-              className={`rounded-full px-4 py-2 text-xs font-black uppercase tracking-[0.22em] ${
-                step === id
-                  ? "bg-[#74b1ff] text-[#002345]"
-                  : "border border-[#45484f]/20 bg-[#161a21]/60 text-[#a9abb3]"
-              }`}
-              key={id}
+        <ForgeWorkspaceRailGroup label="Source options">
+          <ForgeWorkspaceRailAction
+            disabled={!activeRubric}
+            icon="content_copy"
+            onClick={() => {
+              if (!activeRubric) {
+                return;
+              }
+
+              setSourceIssues([]);
+              beginDraft(copyRubricToInput(activeRubric), "New Draft from Active", "manual");
+            }}
+            type="button"
+          >
+            New Draft from Active
+          </ForgeWorkspaceRailAction>
+          <ForgeWorkspaceRailAction
+            icon="auto_fix"
+            onClick={() => {
+              setSourceIssues([]);
+              beginDraft(defaultTemplate, "Started from Default Template", "manual");
+            }}
+            type="button"
+          >
+            Start from Default Template
+          </ForgeWorkspaceRailAction>
+        </ForgeWorkspaceRailGroup>
+
+        <ForgeWorkspaceRailGroup label="Clone or import">
+          <label className="block space-y-2 px-3">
+            <span className="text-xs font-black uppercase tracking-[0.18em] text-[var(--forge-muted)]">Clone Historical Version</span>
+            <select
+              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none"
+              onChange={(event) => setSelectedHistoryId(event.target.value)}
+              value={selectedHistoryId}
             >
-              {label}
-            </div>
-          ))}
-        </div>
+              <option value="">Select a historical version</option>
+              {historicalVersions.map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  v{entry.version} · {entry.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <ForgeWorkspaceRailAction
+            className="mt-3"
+            icon="account_tree"
+            onClick={() => void handleCloneHistory()}
+            type="button"
+          >
+            Clone
+          </ForgeWorkspaceRailAction>
 
+          <div className="mt-5 space-y-1">
+            <ForgeWorkspaceRailAction
+              active={importMode === "csv_import"}
+              icon="table"
+              onClick={() => setImportMode("csv_import")}
+              type="button"
+            >
+              Import CSV
+            </ForgeWorkspaceRailAction>
+            <ForgeWorkspaceRailAction
+              active={importMode === "json_import"}
+              icon="data_object"
+              onClick={() => setImportMode("json_import")}
+              type="button"
+            >
+              Import JSON
+            </ForgeWorkspaceRailAction>
+          </div>
+          <input
+            accept={importMode === "csv_import" ? ".csv,text/csv" : ".json,application/json"}
+            className="mt-3 block w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-text)]"
+            onChange={(event) => setImportFile(event.target.files?.[0] ?? null)}
+            type="file"
+          />
+          <ForgeWorkspaceRailAction
+            className="mt-3"
+            icon="preview"
+            onClick={() => void handleImportPreview()}
+            type="button"
+          >
+            Preview Import
+          </ForgeWorkspaceRailAction>
+        </ForgeWorkspaceRailGroup>
+
+        <ForgeWorkspaceRailGroup label={`Version History (${history.length})`}>
+          <div className="space-y-2">
+            {history.length === 0 ? (
+              <p className="text-sm text-[var(--forge-muted)]">No rubric versions yet.</p>
+            ) : (
+              history.map((entry) => (
+                <div
+                  className="rounded-xl border border-[var(--forge-border-strong)]/12 bg-[var(--forge-surface-2)]/60 px-3 py-3"
+                  key={entry.id}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="truncate text-sm font-semibold text-white">v{entry.version} · {entry.name}</p>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.16em] ${
+                        entry.isActive
+                          ? "bg-[rgba(139,215,168,0.15)] text-[var(--forge-success)]"
+                          : "border border-[var(--forge-border-strong)]/20 text-[var(--forge-muted)]"
+                      }`}
+                    >
+                      {entry.isActive ? "Active" : entry.status}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs text-[var(--forge-muted)]">
+                    {entry.categoryCount} categories · Updated {formatDate(entry.updatedAt)}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </ForgeWorkspaceRailGroup>
+      </ForgeWorkspaceRail>
+
+      <main className="min-w-0 xl:[grid-column:3] xl:[grid-row:1]" data-forge-workspace-main="true" data-rubric-category-editor="">
+        <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[var(--forge-gold)]">Category editor</p>
+              <h3 className="mt-2 text-2xl font-semibold text-white">
+                {draft ? draft.name || "Untitled rubric draft" : activeRubric?.name ?? "No scoring draft selected"}
+              </h3>
+              <p className="mt-2 max-w-3xl text-sm leading-7 text-[var(--forge-muted)]">
+                {draft
+                  ? "Edit scoring categories as compact rows, then use readiness controls to prepare and publish."
+                  : "Choose a source to start a scoring draft. The current active rubric is shown below for reference."}
+              </p>
+            </div>
+            <span className="rounded-full border border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface-2)]/70 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+              {draft ? `${draft.categories.length} draft categories` : `${activeRubric?.categoryCount ?? 0} active categories`}
+            </span>
+          </div>
+
+          {draft ? (
+            <div className="mt-6 space-y-5">
+              <div className="rounded-2xl border border-[var(--forge-border-strong)]/12 bg-[var(--forge-surface-2)]/55 p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-gold)]">Draft Source</p>
+                <p className="mt-2 text-sm text-[var(--forge-text)]">{draftSourceLabel}</p>
+                {sourceIssues.length > 0 ? (
+                  <p className="mt-2 text-sm text-[var(--forge-ember)]">
+                    Import preview dropped {sourceIssues.length} invalid field issue{sourceIssues.length === 1 ? "" : "s"}.
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+                <label className="space-y-2">
+                  <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Rubric name</span>
+                  <input
+                    className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-3 text-sm text-[var(--forge-text)] outline-none"
+                    onChange={(event) => updateDraft((current) => ({ ...current, name: event.target.value }))}
+                    value={draft.name}
+                  />
+                </label>
+                <label className="space-y-2">
+                  <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Description</span>
+                  <input
+                    className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-3 text-sm text-[var(--forge-text)] outline-none"
+                    onChange={(event) =>
+                      updateDraft((current) => ({ ...current, description: event.target.value || null }))
+                    }
+                    value={draft.description ?? ""}
+                  />
+                </label>
+              </div>
+
+              <div className="space-y-3">
+                {draft.categories.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/40 p-5 text-sm text-[var(--forge-muted)]">
+                    No categories in this draft yet.
+                  </div>
+                ) : (
+                  draft.categories.map((category, index) => (
+                    <details
+                      className="group rounded-2xl border border-[var(--forge-border-strong)]/14 bg-[var(--forge-surface-2)]/55"
+                      data-rubric-category-row=""
+                      key={`${category.slug || "category"}-${index}`}
+                      open={index === 0}
+                    >
+                      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-4 py-3">
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-gold)]">
+                            Category {index + 1}
+                          </p>
+                          <p className="mt-1 truncate text-sm font-semibold text-white">
+                            {category.name || "Untitled category"} · {category.slug || "missing-slug"} · weight {category.weight}
+                          </p>
+                        </div>
+                        <button
+                          className="rounded-xl border border-[rgba(255,113,108,0.26)] px-3 py-2 text-sm font-medium text-[var(--forge-danger)] transition hover:bg-[rgba(255,113,108,0.1)]"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            updateDraft((current) => ({
+                              ...current,
+                              categories: current.categories
+                                .filter((_, categoryIndex) => categoryIndex !== index)
+                                .map((entry, nextIndex) => ({ ...entry, sortOrder: nextIndex })),
+                            }));
+                          }}
+                          type="button"
+                        >
+                          Remove
+                        </button>
+                      </summary>
+
+                      <div className="border-t border-[var(--forge-border-strong)]/10 px-4 pb-4 pt-3">
+                        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_7rem]">
+                          <label className="space-y-2">
+                            <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Name</span>
+                            <input
+                              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2.5 text-sm text-[var(--forge-text)] outline-none"
+                              onChange={(event) =>
+                                updateDraft((current) => ({
+                                  ...current,
+                                  categories: current.categories.map((entry, categoryIndex) =>
+                                    categoryIndex === index ? { ...entry, name: event.target.value } : entry,
+                                  ),
+                                }))
+                              }
+                              value={category.name}
+                            />
+                          </label>
+                          <label className="space-y-2">
+                            <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Slug</span>
+                            <input
+                              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2.5 text-sm text-[var(--forge-text)] outline-none"
+                              onChange={(event) =>
+                                updateDraft((current) => ({
+                                  ...current,
+                                  categories: current.categories.map((entry, categoryIndex) =>
+                                    categoryIndex === index ? { ...entry, slug: event.target.value } : entry,
+                                  ),
+                                }))
+                              }
+                              value={category.slug}
+                            />
+                          </label>
+                          <label className="space-y-2">
+                            <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Weight</span>
+                            <input
+                              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2.5 text-sm text-[var(--forge-text)] outline-none"
+                              min={1}
+                              onChange={(event) =>
+                                updateDraft((current) => ({
+                                  ...current,
+                                  categories: current.categories.map((entry, categoryIndex) =>
+                                    categoryIndex === index
+                                      ? { ...entry, weight: Number(event.target.value) || 0 }
+                                      : entry,
+                                  ),
+                                }))
+                              }
+                              type="number"
+                              value={category.weight}
+                            />
+                          </label>
+                        </div>
+
+                        <label className="mt-3 block space-y-2">
+                          <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Description</span>
+                          <textarea
+                            className="min-h-20 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2.5 text-sm text-[var(--forge-text)] outline-none"
+                            onChange={(event) =>
+                              updateDraft((current) => ({
+                                ...current,
+                                categories: current.categories.map((entry, categoryIndex) =>
+                                  categoryIndex === index ? { ...entry, description: event.target.value } : entry,
+                                ),
+                              }))
+                            }
+                            value={category.description}
+                          />
+                        </label>
+
+                        <div className="mt-3 grid gap-3 lg:grid-cols-3">
+                          {GUIDANCE_FIELDS.map(({ field, label }) => (
+                            <label className="space-y-2" key={field}>
+                              <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+                                {label}
+                              </span>
+                              <textarea
+                                className="min-h-20 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2.5 text-sm text-[var(--forge-text)] outline-none"
+                                onChange={(event) =>
+                                  updateDraft((current) => ({
+                                    ...current,
+                                    categories: current.categories.map((entry, categoryIndex) =>
+                                      categoryIndex === index
+                                        ? {
+                                            ...entry,
+                                            scoringCriteria: {
+                                              ...entry.scoringCriteria,
+                                              [field]: event.target.value,
+                                            },
+                                          }
+                                        : entry,
+                                    ),
+                                  }))
+                                }
+                                value={category.scoringCriteria[field]}
+                              />
+                            </label>
+                          ))}
+                        </div>
+
+                        <label className="mt-3 block space-y-2">
+                          <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+                            Look For
+                          </span>
+                          <input
+                            className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2.5 text-sm text-[var(--forge-text)] outline-none"
+                            onChange={(event) =>
+                              updateDraft((current) => ({
+                                ...current,
+                                categories: current.categories.map((entry, categoryIndex) =>
+                                  categoryIndex === index
+                                    ? {
+                                        ...entry,
+                                        scoringCriteria: {
+                                          ...entry.scoringCriteria,
+                                          lookFor: event.target.value
+                                            .split("|")
+                                            .map((value) => value.trim())
+                                            .filter(Boolean),
+                                        },
+                                      }
+                                    : entry,
+                                ),
+                              }))
+                            }
+                            value={category.scoringCriteria.lookFor.join(" | ")}
+                          />
+                        </label>
+                      </div>
+                    </details>
+                  ))
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <button
+                  className="rounded-xl border border-[var(--forge-border-strong)]/20 px-4 py-3 text-sm font-semibold text-[var(--forge-muted)] transition hover:text-white"
+                  onClick={() =>
+                    updateDraft((current) => ({
+                      ...current,
+                      categories: [...current.categories, createEmptyCategory(current.categories.length)],
+                    }))
+                  }
+                  type="button"
+                >
+                  Add Category
+                </button>
+                <button
+                  className="rounded-xl border border-[var(--forge-border-strong)]/20 px-4 py-3 text-sm font-semibold text-[var(--forge-muted)] transition hover:text-white"
+                  onClick={() => setStep("source")}
+                  type="button"
+                >
+                  Back to Sources
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-6 space-y-3">
+              <div className="rounded-2xl border border-dashed border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/40 p-5">
+                <h4 className="text-lg font-semibold text-white">Choose a source to start a scoring draft.</h4>
+                <p className="mt-2 text-sm leading-7 text-[var(--forge-muted)]">
+                  Use the rail to start from the active rubric, the default template, a historical version, or an import preview.
+                </p>
+              </div>
+
+              {activeRubric?.categories.length ? (
+                <div className="space-y-3">
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-gold)]">
+                    Published scoring categories
+                  </p>
+                  {activeRubric.categories.map((category, index) => (
+                    <div
+                      className="rounded-2xl border border-[var(--forge-border-strong)]/12 bg-[var(--forge-surface-2)]/55 p-4"
+                      data-rubric-category-row=""
+                      key={category.id}
+                    >
+                      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_7rem]">
+                        <div>
+                          <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Name</p>
+                          <p className="mt-1 text-sm font-semibold text-white">{category.name || `Category ${index + 1}`}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Slug</p>
+                          <p className="mt-1 text-sm text-[var(--forge-text)]">{category.slug}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Weight</p>
+                          <p className="mt-1 text-sm text-[var(--forge-text)]">{category.weight}</p>
+                        </div>
+                      </div>
+                      <p className="mt-3 text-sm leading-6 text-[var(--forge-muted)]">{category.description}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          )}
+        </section>
+      </main>
+
+      <ForgeWorkspaceRail
+        className="xl:[grid-column:2] xl:[grid-row:1]"
+        description={draft ? `${draft.categories.length} categories in draft` : "No draft started"}
+        eyebrow="Admin controls"
+        title="Readiness panel"
+        data-rubric-readiness-panel=""
+      >
         {statusMessage ? (
-          <div className="mt-4 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+          <div className="rounded-2xl border border-[rgba(139,215,168,0.24)] bg-[rgba(139,215,168,0.1)] px-4 py-3 text-sm text-[var(--forge-success)]">
             {statusMessage}
           </div>
         ) : null}
 
         {errorMessage ? (
-          <div className="mt-4 rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          <div className="rounded-2xl border border-[rgba(255,113,108,0.26)] bg-[rgba(255,113,108,0.1)] px-4 py-3 text-sm text-[var(--forge-danger)]">
             {errorMessage}
           </div>
         ) : null}
 
-        {step === "source" ? (
-          <div className="mt-6 space-y-4">
-            <div className="grid gap-4 lg:grid-cols-2">
-              <button
-                className="rounded-2xl border border-[#45484f]/20 bg-[#161a21]/60 p-5 text-left transition hover:border-[#74b1ff]/35 hover:bg-[#74b1ff]/10 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={!activeRubric}
-                onClick={() => {
-                  if (!activeRubric) {
-                    return;
+        <nav aria-label="Rubric admin controls" className="space-y-5" data-settings-nav-theme="forge">
+          <ForgeWorkspaceRailGroup label="Workflow">
+            {BUILDER_STEPS.map((item) => {
+              const disabled = item.id !== "source" && !draft;
+
+              return (
+                <ForgeWorkspaceRailAction
+                  active={step === item.id}
+                  aria-current={step === item.id ? "step" : undefined}
+                  disabled={disabled}
+                  icon={
+                    item.id === "source"
+                      ? "input"
+                      : item.id === "edit"
+                        ? "edit_note"
+                        : item.id === "review"
+                          ? "rule"
+                          : "publish"
                   }
-
-                  setSourceIssues([]);
-                  beginDraft(copyRubricToInput(activeRubric), "New Draft from Active", "manual");
-                }}
-                type="button"
-              >
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#74b1ff]">Primary</p>
-                <h3 className="mt-2 text-lg font-semibold text-white">New Draft from Active</h3>
-                <p className="mt-2 text-sm leading-7 text-[#a9abb3]">
-                  Start from the currently published rubric without changing any historical scores.
-                </p>
-              </button>
-
-              <button
-                className="rounded-2xl border border-[#45484f]/20 bg-[#161a21]/60 p-5 text-left transition hover:border-[#74b1ff]/35 hover:bg-[#74b1ff]/10"
-                onClick={() => {
-                  setSourceIssues([]);
-                  beginDraft(defaultTemplate, "Started from Default Template", "manual");
-                }}
-                type="button"
-              >
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#74b1ff]">Secondary</p>
-                <h3 className="mt-2 text-lg font-semibold text-white">Start from Default Template</h3>
-                <p className="mt-2 text-sm leading-7 text-[#a9abb3]">
-                  Begin from the built-in Revenue Scorecard baseline and edit from there.
-                </p>
-              </button>
-            </div>
-
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
-              <div className="rounded-2xl border border-[#45484f]/20 bg-[#161a21]/60 p-5">
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#74b1ff]">Secondary</p>
-                <h3 className="mt-2 text-lg font-semibold text-white">Clone Historical Version</h3>
-                <p className="mt-2 text-sm leading-7 text-[#a9abb3]">
-                  Pull a prior version into the editor, make changes locally, and publish a new immutable version later.
-                </p>
-                <select
-                  className="mt-4 w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-2 text-sm text-[#ecedf6] outline-none"
-                  onChange={(event) => setSelectedHistoryId(event.target.value)}
-                  value={selectedHistoryId}
-                >
-                  <option value="">Select a historical version</option>
-                  {historicalVersions.map((entry) => (
-                    <option key={entry.id} value={entry.id}>
-                      v{entry.version} · {entry.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <button
-                className="self-end rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110"
-                onClick={() => void handleCloneHistory()}
-                type="button"
-              >
-                Clone
-              </button>
-            </div>
-
-            <div className="rounded-2xl border border-[#45484f]/20 bg-[#161a21]/60 p-5">
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  className={`rounded-full px-3 py-2 text-xs font-black uppercase tracking-[0.2em] ${
-                    importMode === "csv_import"
-                      ? "bg-[#74b1ff] text-[#002345]"
-                      : "border border-[#45484f]/20 text-[#a9abb3]"
-                  }`}
-                  onClick={() => setImportMode("csv_import")}
+                  key={item.id}
+                  onClick={() => setStep(item.id)}
                   type="button"
                 >
-                  Import CSV
-                </button>
-                <button
-                  className={`rounded-full px-3 py-2 text-xs font-black uppercase tracking-[0.2em] ${
-                    importMode === "json_import"
-                      ? "bg-[#74b1ff] text-[#002345]"
-                      : "border border-[#45484f]/20 text-[#a9abb3]"
-                  }`}
-                  onClick={() => setImportMode("json_import")}
-                  type="button"
-                >
-                  Import JSON
-                </button>
-              </div>
-              <p className="mt-4 text-sm leading-7 text-[#a9abb3]">
-                Upload a rubric file to preview the normalized draft locally. Invalid rows stay out of the draft and are reported for cleanup.
-              </p>
-              <input
-                accept={importMode === "csv_import" ? ".csv,text/csv" : ".json,application/json"}
-                className="mt-4 block w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-2 text-sm text-[#ecedf6]"
-                onChange={(event) => setImportFile(event.target.files?.[0] ?? null)}
-                type="file"
-              />
-              <button
-                className="mt-4 rounded-xl border border-[#74b1ff]/25 bg-[#74b1ff]/10 px-4 py-2 text-sm font-semibold text-[#cfe4ff] transition hover:border-[#74b1ff]/45 hover:bg-[#74b1ff]/15"
-                onClick={() => void handleImportPreview()}
-                type="button"
-              >
-                Preview Import
-              </button>
-            </div>
-          </div>
-        ) : null}
+                  {item.label}
+                </ForgeWorkspaceRailAction>
+              );
+            })}
+          </ForgeWorkspaceRailGroup>
 
-        {step === "edit" && draft ? (
-          <div className="mt-6 space-y-5">
-            <div className="rounded-2xl border border-[#45484f]/20 bg-[#161a21]/60 p-5">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#74b1ff]">Draft Source</p>
-              <p className="mt-2 text-sm text-[#ecedf6]">{draftSourceLabel}</p>
-              {sourceIssues.length > 0 ? (
-                <p className="mt-2 text-sm text-amber-200">
-                  Import preview dropped {sourceIssues.length} invalid field issue{sourceIssues.length === 1 ? "" : "s"}.
-                </p>
-              ) : null}
-            </div>
-
-            <div className="grid gap-4 lg:grid-cols-2">
-              <label className="space-y-2">
-                <span className="text-xs font-black uppercase tracking-[0.2em] text-[#a9abb3]">Rubric name</span>
-                <input
-                  className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-3 text-sm text-[#ecedf6] outline-none"
-                  onChange={(event) =>
-                    updateDraft((current) => ({ ...current, name: event.target.value }))
-                  }
-                  value={draft.name}
-                />
-              </label>
-              <label className="space-y-2">
-                <span className="text-xs font-black uppercase tracking-[0.2em] text-[#a9abb3]">Description</span>
-                <input
-                  className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-3 text-sm text-[#ecedf6] outline-none"
-                  onChange={(event) =>
-                    updateDraft((current) => ({ ...current, description: event.target.value || null }))
-                  }
-                  value={draft.description ?? ""}
-                />
-              </label>
-            </div>
-
-            <div className="space-y-4">
-              {draft.categories.map((category, index) => (
-                <section
-                  className="rounded-2xl border border-[#45484f]/20 bg-[#161a21]/60 p-5"
-                  key={`${category.slug || "category"}-${index}`}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#74b1ff]">
-                        Category {index + 1}
-                      </p>
-                      <p className="mt-2 text-sm text-[#a9abb3]">Edit category metadata and scoring guidance.</p>
-                    </div>
-                    <button
-                      className="rounded-xl border border-red-500/25 px-3 py-2 text-sm font-medium text-red-200 transition hover:bg-red-500/10"
-                      onClick={() =>
-                        updateDraft((current) => ({
-                          ...current,
-                          categories: current.categories
-                            .filter((_, categoryIndex) => categoryIndex !== index)
-                            .map((entry, nextIndex) => ({ ...entry, sortOrder: nextIndex })),
-                        }))
-                      }
-                      type="button"
-                    >
-                      Remove
-                    </button>
-                  </div>
-
-                  <div className="mt-4 grid gap-4 lg:grid-cols-3">
-                    <label className="space-y-2">
-                      <span className="text-xs font-black uppercase tracking-[0.2em] text-[#a9abb3]">Name</span>
-                      <input
-                        className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-3 text-sm text-[#ecedf6] outline-none"
-                        onChange={(event) =>
-                          updateDraft((current) => ({
-                            ...current,
-                            categories: current.categories.map((entry, categoryIndex) =>
-                              categoryIndex === index ? { ...entry, name: event.target.value } : entry,
-                            ),
-                          }))
-                        }
-                        value={category.name}
-                      />
-                    </label>
-                    <label className="space-y-2">
-                      <span className="text-xs font-black uppercase tracking-[0.2em] text-[#a9abb3]">Slug</span>
-                      <input
-                        className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-3 text-sm text-[#ecedf6] outline-none"
-                        onChange={(event) =>
-                          updateDraft((current) => ({
-                            ...current,
-                            categories: current.categories.map((entry, categoryIndex) =>
-                              categoryIndex === index ? { ...entry, slug: event.target.value } : entry,
-                            ),
-                          }))
-                        }
-                        value={category.slug}
-                      />
-                    </label>
-                    <label className="space-y-2">
-                      <span className="text-xs font-black uppercase tracking-[0.2em] text-[#a9abb3]">Weight</span>
-                      <input
-                        className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-3 text-sm text-[#ecedf6] outline-none"
-                        min={1}
-                        onChange={(event) =>
-                          updateDraft((current) => ({
-                            ...current,
-                            categories: current.categories.map((entry, categoryIndex) =>
-                              categoryIndex === index
-                                ? { ...entry, weight: Number(event.target.value) || 0 }
-                                : entry,
-                            ),
-                          }))
-                        }
-                        type="number"
-                        value={category.weight}
-                      />
-                    </label>
-                  </div>
-
-                  <label className="mt-4 block space-y-2">
-                    <span className="text-xs font-black uppercase tracking-[0.2em] text-[#a9abb3]">Description</span>
-                    <textarea
-                      className="min-h-24 w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-3 text-sm text-[#ecedf6] outline-none"
-                      onChange={(event) =>
-                        updateDraft((current) => ({
-                          ...current,
-                          categories: current.categories.map((entry, categoryIndex) =>
-                            categoryIndex === index ? { ...entry, description: event.target.value } : entry,
-                          ),
-                        }))
-                      }
-                      value={category.description}
-                    />
-                  </label>
-
-                  <div className="mt-4 grid gap-4 lg:grid-cols-3">
-                    {[
-                      ["Excellent", "excellent"],
-                      ["Proficient", "proficient"],
-                      ["Developing", "developing"],
-                    ].map(([label, field]) => (
-                      <label className="space-y-2" key={field}>
-                        <span className="text-xs font-black uppercase tracking-[0.2em] text-[#a9abb3]">{label}</span>
-                        <textarea
-                          className="min-h-24 w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-3 text-sm text-[#ecedf6] outline-none"
-                          onChange={(event) =>
-                            updateDraft((current) => ({
-                              ...current,
-                              categories: current.categories.map((entry, categoryIndex) =>
-                                categoryIndex === index
-                                  ? {
-                                      ...entry,
-                                      scoringCriteria: {
-                                        ...entry.scoringCriteria,
-                                        [field]: event.target.value,
-                                      },
-                                    }
-                                  : entry,
-                              ),
-                            }))
-                          }
-                          value={category.scoringCriteria[field as "excellent" | "proficient" | "developing"]}
-                        />
-                      </label>
-                    ))}
-                  </div>
-
-                  <label className="mt-4 block space-y-2">
-                    <span className="text-xs font-black uppercase tracking-[0.2em] text-[#a9abb3]">
-                      Look For
-                    </span>
-                    <input
-                      className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-3 text-sm text-[#ecedf6] outline-none"
-                      onChange={(event) =>
-                        updateDraft((current) => ({
-                          ...current,
-                          categories: current.categories.map((entry, categoryIndex) =>
-                            categoryIndex === index
-                              ? {
-                                  ...entry,
-                                  scoringCriteria: {
-                                    ...entry.scoringCriteria,
-                                    lookFor: event.target.value
-                                      .split("|")
-                                      .map((value) => value.trim())
-                                      .filter(Boolean),
-                                  },
-                                }
-                              : entry,
-                          ),
-                        }))
-                      }
-                      value={category.scoringCriteria.lookFor.join(" | ")}
-                    />
-                  </label>
-                </section>
-              ))}
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <button
-                className="rounded-xl border border-[#45484f]/20 px-4 py-3 text-sm font-semibold text-[#a9abb3] transition hover:text-white"
-                onClick={() =>
-                  updateDraft((current) => ({
-                    ...current,
-                    categories: [...current.categories, createEmptyCategory(current.categories.length)],
-                  }))
-                }
-                type="button"
-              >
-                Add Category
-              </button>
-              <button
-                className="rounded-xl border border-[#45484f]/20 px-4 py-3 text-sm font-semibold text-[#a9abb3] transition hover:text-white"
-                onClick={() => setStep("source")}
-                type="button"
-              >
-                Back to Sources
-              </button>
-              <button
-                className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110"
-                onClick={() => setStep("review")}
-                type="button"
-              >
-                Review Draft
-              </button>
-            </div>
-          </div>
-        ) : null}
-
-        {step === "review" && draft ? (
-          <div className="mt-6 space-y-4">
-            <div className="rounded-2xl border border-[#45484f]/20 bg-[#161a21]/60 p-5">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#74b1ff]">Review</p>
-              <h3 className="mt-2 text-lg font-semibold text-white">{draft.name || "Untitled draft"}</h3>
-              <p className="mt-2 text-sm leading-7 text-[#a9abb3]">
-                {draft.categories.length} categories ready for publish review. Only the final publish action changes the active version.
-              </p>
-            </div>
-
-            {draftIssues.length > 0 ? (
-              <div className="rounded-2xl border border-red-500/25 bg-red-500/10 p-5 text-sm text-red-100">
-                <p className="font-semibold text-red-50">Fix before publish</p>
-                <ul className="mt-3 space-y-2">
+          <ForgeWorkspaceRailGroup label="Readiness">
+            <ForgeReadinessPanel
+              description={draftSourceLabel}
+              items={[
+                { label: "Validation issues", value: draftIssues.length },
+                { label: "Import warnings", value: sourceIssues.length },
+                { label: "Server draft", value: serverDraft ? `v${serverDraft.version}` : "Not prepared" },
+              ]}
+              label="Draft status"
+              statusLabel={draftIssues.length > 0 ? "Needs fixes" : draft ? "Ready to review" : "Not started"}
+              statusTone={draftIssues.length > 0 ? "danger" : draft ? "success" : "muted"}
+              tone={draftIssues.length > 0 ? "danger" : draft ? "gold" : "muted"}
+              value={draft ? `${draft.categories.length} categories` : "No draft started"}
+            />
+            <div className="rounded-2xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Validation issues</p>
+              {draftIssues.length > 0 ? (
+                <ul className="mt-2 space-y-2 text-xs leading-5 text-[var(--forge-danger)]">
                   {draftIssues.map((issue, index) => (
                     <li key={`${issue.row ?? "global"}-${issue.field}-${index}`}>
                       Row {issue.row ?? "global"} · {issue.field}: {issue.message}
                     </li>
                   ))}
                 </ul>
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-5 text-sm text-emerald-100">
-                The local draft is valid and ready to become a server-side draft.
-              </div>
-            )}
-
-            {sourceIssues.length > 0 ? (
-              <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 p-5 text-sm text-amber-100">
-                <p className="font-semibold text-amber-50">Import warnings</p>
-                <ul className="mt-3 space-y-2">
+              ) : (
+                <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">
+                  {draft ? "No validation issues." : "Start a draft to run validation."}
+                </p>
+              )}
+            </div>
+            <div className="rounded-2xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Import warnings</p>
+              {sourceIssues.length > 0 ? (
+                <ul className="mt-2 space-y-2 text-xs leading-5 text-[var(--forge-ember)]">
                   {sourceIssues.map((issue, index) => (
                     <li key={`${issue.row ?? "import"}-${issue.field}-${index}`}>
                       Row {issue.row ?? "global"} · {issue.field}: {issue.message}
                     </li>
                   ))}
                 </ul>
-              </div>
-            ) : null}
+              ) : (
+                <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">No import warnings.</p>
+              )}
+            </div>
+            <div className="rounded-2xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Server draft</p>
+              <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">
+                {serverDraft
+                  ? `Draft version ${serverDraft.version} · ${serverDraft.categoryCount} categories`
+                  : "Prepare publish to create a server draft."}
+              </p>
+            </div>
+          </ForgeWorkspaceRailGroup>
 
-            <div className="flex flex-wrap gap-3">
-              <button
-                className="rounded-xl border border-[#45484f]/20 px-4 py-3 text-sm font-semibold text-[#a9abb3] transition hover:text-white"
+          <ForgeWorkspaceRailGroup label="Publish controls">
+            <ForgeWorkspaceRailAction
+              disabled={!draft}
+              icon="rule"
+              onClick={() => setStep("review")}
+              type="button"
+            >
+              Review Draft
+            </ForgeWorkspaceRailAction>
+            <ForgeWorkspaceRailAction
+              active={Boolean(draft)}
+              disabled={!draft || isPending}
+              icon="task_alt"
+              onClick={() => void handlePreparePublish()}
+              type="button"
+            >
+              Prepare Publish
+            </ForgeWorkspaceRailAction>
+            {draft && step !== "edit" ? (
+              <ForgeWorkspaceRailAction
+                icon="edit_note"
                 onClick={() => setStep("edit")}
                 type="button"
               >
                 Back to Edit
-              </button>
-              <button
-                className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110"
-                onClick={() => void handlePreparePublish()}
-                type="button"
-              >
-                Prepare Publish
-              </button>
-            </div>
-          </div>
-        ) : null}
-
-        {step === "publish" ? (
-          <div className="mt-6 space-y-4">
-            <div className="rounded-2xl border border-[#45484f]/20 bg-[#161a21]/60 p-5">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#74b1ff]">Publish</p>
-              <h3 className="mt-2 text-lg font-semibold text-white">
-                {serverDraft ? serverDraft.name : "Prepare a server draft first"}
-              </h3>
-              <p className="mt-2 text-sm leading-7 text-[#a9abb3]">
-                Creating a draft does not activate it. Only the publish button below makes the new version live.
-              </p>
-              {serverDraft ? (
-                <div className="mt-4 rounded-2xl border border-[#74b1ff]/20 bg-[#74b1ff]/10 px-4 py-3 text-sm text-[#cfe4ff]">
-                  Draft version {serverDraft.version} · {serverDraft.categoryCount} categories
-                </div>
-              ) : null}
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <button
-                className="rounded-xl border border-[#45484f]/20 px-4 py-3 text-sm font-semibold text-[#a9abb3] transition hover:text-white"
+              </ForgeWorkspaceRailAction>
+            ) : null}
+            {draft && step === "publish" ? (
+              <ForgeWorkspaceRailAction
+                icon="rule"
                 onClick={() => setStep("review")}
                 type="button"
               >
                 Back to Review
-              </button>
-              <button
-                className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={!serverDraft || isPending}
-                onClick={() => void handlePublish()}
-                type="button"
-              >
-                {isPending ? "Publishing..." : "Publish Draft"}
-              </button>
-            </div>
-          </div>
-        ) : null}
-      </section>
-
-      <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">Version History</p>
-            <p className="mt-2 text-sm leading-7 text-[#a9abb3]">
-              Every published version stays pinned for historical call scores. Clone any prior version to branch new work.
-            </p>
-          </div>
-          <span className="rounded-full border border-[#45484f]/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#a9abb3]">
-            {history.length} versions
-          </span>
-        </div>
-
-        <div className="mt-5 space-y-3">
-          {history.length === 0 ? (
-            <p className="text-sm text-[#a9abb3]">No rubric versions yet.</p>
-          ) : (
-            history.map((entry) => (
-              <div
-                className="flex flex-col gap-3 rounded-2xl border border-[#45484f]/20 bg-[#161a21]/60 px-4 py-4 lg:flex-row lg:items-center lg:justify-between"
-                key={entry.id}
-              >
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-semibold text-white">
-                      v{entry.version} · {entry.name}
-                    </p>
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${
-                        entry.isActive
-                          ? "bg-emerald-500/15 text-emerald-200"
-                          : "border border-[#45484f]/20 text-[#a9abb3]"
-                      }`}
-                    >
-                      {entry.isActive ? "Active" : entry.status}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-sm text-[#a9abb3]">
-                    {entry.description || "No description provided."}
-                  </p>
-                </div>
-                <div className="text-sm text-[#a9abb3]">
-                  <p>{entry.categoryCount} categories</p>
-                  <p className="mt-1">Updated {formatDate(entry.updatedAt)}</p>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </section>
-    </div>
+              </ForgeWorkspaceRailAction>
+            ) : null}
+            <ForgeWorkspaceRailAction
+              active={Boolean(serverDraft)}
+              disabled={!serverDraft || isPending}
+              icon="publish"
+              onClick={() => void handlePublish()}
+              type="button"
+            >
+              {isPending ? "Publishing..." : "Publish Draft"}
+            </ForgeWorkspaceRailAction>
+          </ForgeWorkspaceRailGroup>
+        </nav>
+      </ForgeWorkspaceRail>
+    </ForgeWorkspaceLayout>
   );
 }

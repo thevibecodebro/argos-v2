@@ -138,6 +138,8 @@ describe("TeamRepProfileView", () => {
     expect(html).toContain("Recent calls");
     expect(html).toContain("Badges &amp; milestones");
     expect(html).toContain("Certified");
+    expect(html).toContain('data-forge-icon-name="school"');
+    expect(html).toContain('data-forge-icon-name="theater_comedy"');
     expect(html).not.toContain("📚");
     expect(html).not.toContain("🎭");
   });

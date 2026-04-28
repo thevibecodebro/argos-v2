@@ -2,6 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  ForgeButton,
+  ForgeManagementTable,
+  ForgeMobileTableCards,
+  ForgeStatusPanel,
+  ForgeWorkspaceLayout,
+  ForgeWorkspaceRail,
+  ForgeWorkspaceRailAction,
+  ForgeWorkspaceRailGroup,
+} from "../forge";
 
 type Team = {
   id: string;
@@ -186,6 +196,8 @@ export function TeamsPanel({
   const [draftsByTeamId, setDraftsByTeamId] = useState<Record<string, TeamDraft>>(
     () => buildDrafts(teams),
   );
+  const [selectedTeamId, setSelectedTeamId] = useState(() => sortTeamsByName(teams)[0]?.id ?? "");
+  const [teamSearch, setTeamSearch] = useState("");
   const [newTeam, setNewTeam] = useState({ name: "", description: "" });
   const [managerSelectionByTeamId, setManagerSelectionByTeamId] = useState<Record<string, string>>(
     {},
@@ -197,6 +209,39 @@ export function TeamsPanel({
 
   const managerNames = memberNameById(managers);
   const repNames = memberNameById(reps);
+  const selectedTeam = localTeams.find((team) => team.id === selectedTeamId) ?? localTeams[0] ?? null;
+  const selectedDraft = selectedTeam
+    ? draftsByTeamId[selectedTeam.id] ?? {
+        name: selectedTeam.name,
+        description: selectedTeam.description ?? "",
+        status: selectedTeam.status,
+      }
+    : null;
+  const selectedTeamManagers = selectedTeam
+    ? localMemberships.filter(
+        (membership) =>
+          membership.teamId === selectedTeam.id && membership.membershipType === "manager",
+      )
+    : [];
+  const selectedTeamReps = selectedTeam
+    ? localMemberships.filter(
+        (membership) => membership.teamId === selectedTeam.id && membership.membershipType === "rep",
+      )
+    : [];
+  const availableManagers = selectedTeam
+    ? managers.filter(
+        (manager) =>
+          !selectedTeamManagers.some((membership) => membership.userId === manager.id),
+      )
+    : [];
+  const availableReps = selectedTeam
+    ? reps.filter((rep) => !selectedTeamReps.some((membership) => membership.userId === rep.id))
+    : [];
+  const filteredTeams = localTeams.filter((team) => {
+    const query = teamSearch.trim().toLowerCase();
+    if (!query) return true;
+    return `${team.name} ${team.description ?? ""} ${team.status}`.toLowerCase().includes(query);
+  });
 
   function resetMessage() {
     setError(null);
@@ -245,6 +290,7 @@ export function TeamsPanel({
       },
     }));
     setNewTeam({ name: "", description: "" });
+    setSelectedTeamId(result.data.id);
     setNotice("Team created.");
     router.refresh();
   }
@@ -376,338 +422,379 @@ export function TeamsPanel({
     router.refresh();
   }
 
+  function renderMembershipTable(
+    label: "Managers" | "Reps",
+    selectedMembers: TeamMembership[],
+    names: Map<string, string>,
+    membershipType: "manager" | "rep",
+  ) {
+    if (!selectedTeam) return null;
+
+    return (
+      <ForgeManagementTable
+        mobileCards={
+          <ForgeMobileTableCards>
+            {selectedMembers.length === 0 ? (
+              <p className="text-sm text-[var(--forge-muted)]">No {label.toLowerCase()} on this team yet.</p>
+            ) : (
+              selectedMembers.map((membership) => (
+                <div
+                  className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4"
+                  key={`${membership.teamId}:${membership.userId}:${membership.membershipType}:card`}
+                >
+                  <p className="text-sm font-semibold text-white">
+                    {names.get(membership.userId) ?? membership.userId}
+                  </p>
+                  <ForgeButton
+                    className="mt-3"
+                    disabled={pendingKey === `remove:${membershipType}:${selectedTeam.id}:${membership.userId}`}
+                    onClick={() => {
+                      void handleRemoveMembership(selectedTeam.id, membership.userId, membershipType);
+                    }}
+                    size="sm"
+                    type="button"
+                    variant="danger"
+                  >
+                    Remove
+                  </ForgeButton>
+                </div>
+              ))
+            )}
+          </ForgeMobileTableCards>
+        }
+      >
+        <table className="w-full text-left text-sm">
+          <thead className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">
+            <tr>
+              <th className="px-4 py-3">Name</th>
+              <th className="px-4 py-3 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[var(--forge-border-strong)]/10">
+            {selectedMembers.length === 0 ? (
+              <tr>
+                <td className="px-4 py-4 text-[var(--forge-muted)]" colSpan={2}>
+                  No {label.toLowerCase()} on this team yet.
+                </td>
+              </tr>
+            ) : (
+              selectedMembers.map((membership) => (
+                <tr key={`${membership.teamId}:${membership.userId}:${membership.membershipType}`}>
+                  <td className="px-4 py-3 text-[var(--forge-text)]">
+                    {names.get(membership.userId) ?? membership.userId}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--forge-muted)] transition hover:text-[var(--forge-danger)] disabled:opacity-50"
+                      disabled={pendingKey === `remove:${membershipType}:${selectedTeam.id}:${membership.userId}`}
+                      onClick={() => {
+                        void handleRemoveMembership(selectedTeam.id, membership.userId, membershipType);
+                      }}
+                      type="button"
+                    >
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </ForgeManagementTable>
+    );
+  }
+
+  const teamControls = (
+    <ForgeWorkspaceRail
+      collapsible
+      description="Create, search, and select one team before editing its roster."
+      eyebrow="Team controls"
+      title="Team directory"
+      data-teams-control-rail=""
+    >
+      <ForgeWorkspaceRailGroup label="Create team">
+        <div className="space-y-3 rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4">
+          <label className="space-y-2 text-sm text-[var(--forge-muted)]">
+            <span>Team name</span>
+            <input
+              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
+              onChange={(event) =>
+                setNewTeam((current) => ({ ...current, name: event.target.value }))
+              }
+              value={newTeam.name}
+            />
+          </label>
+          <label className="space-y-2 text-sm text-[var(--forge-muted)]">
+            <span>Description</span>
+            <input
+              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
+              onChange={(event) =>
+                setNewTeam((current) => ({ ...current, description: event.target.value }))
+              }
+              value={newTeam.description}
+            />
+          </label>
+          <ForgeButton
+            className="w-full"
+            disabled={pendingKey === "create-team"}
+            icon="add"
+            onClick={() => {
+              void handleCreateTeam();
+            }}
+            type="button"
+            variant="primary"
+          >
+            {pendingKey === "create-team" ? "Creating..." : "Create team"}
+          </ForgeButton>
+        </div>
+      </ForgeWorkspaceRailGroup>
+
+      <ForgeWorkspaceRailGroup label="Select team">
+        <label className="block px-3 pb-2 text-sm text-[var(--forge-muted)]">
+          <span className="sr-only">Search teams</span>
+          <input
+            className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
+            onChange={(event) => setTeamSearch(event.target.value)}
+            placeholder="Search teams"
+            value={teamSearch}
+          />
+        </label>
+        {filteredTeams.length === 0 ? (
+          <p className="px-3 text-sm text-[var(--forge-muted)]">No matching teams. Clear search or create one.</p>
+        ) : (
+          filteredTeams.map((team) => {
+            const teamManagers = localMemberships.filter(
+              (membership) =>
+                membership.teamId === team.id && membership.membershipType === "manager",
+            );
+            const teamReps = localMemberships.filter(
+              (membership) =>
+                membership.teamId === team.id && membership.membershipType === "rep",
+            );
+
+            return (
+              <ForgeWorkspaceRailAction
+                active={selectedTeam?.id === team.id}
+                icon="groups"
+                key={team.id}
+                onClick={() => setSelectedTeamId(team.id)}
+                type="button"
+              >
+                {team.name} · {teamManagers.length} managers · {teamReps.length} reps
+              </ForgeWorkspaceRailAction>
+            );
+          })
+        )}
+      </ForgeWorkspaceRailGroup>
+    </ForgeWorkspaceRail>
+  );
+
   return (
-    <div className="space-y-5">
-      <section className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-        <div className="flex items-center justify-between gap-3">
+    <ForgeWorkspaceLayout data-teams-workspace="management" railCount={1} rails={teamControls}>
+      <section
+        className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]"
+        data-selected-team-editor={selectedTeam?.id ?? "none"}
+        data-teams-editor=""
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#a9abb3]">
-              Teams
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
+              Selected team editor
             </p>
-            <p className="mt-2 text-sm text-[#a9abb3]">
-              Create teams, edit team metadata, and manage manager and rep membership.
+            <h3 className="mt-2 text-xl font-semibold text-white">
+              {selectedTeam ? selectedTeam.name : "Create or select a team"}
+            </h3>
+            <p className="mt-2 text-sm text-[var(--forge-muted)]">
+              Edit one team at a time, then manage its manager and rep membership below.
             </p>
           </div>
-          <span className="rounded-full border border-[#45484f]/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#a9abb3]">
+          <span className="rounded-full border border-[var(--forge-border-strong)]/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
             {localTeams.length} {localTeams.length === 1 ? "team" : "teams"}
           </span>
         </div>
 
         {error ? (
-          <div className="mt-4 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          <div className="mt-4 rounded-xl border border-[rgba(255,113,108,0.26)] bg-[rgba(255,113,108,0.1)] px-4 py-3 text-sm text-[var(--forge-danger)]">
             {error}
           </div>
         ) : null}
         {notice ? (
-          <div className="mt-4 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+          <div className="mt-4 rounded-xl border border-[rgba(139,215,168,0.24)] bg-[rgba(139,215,168,0.1)] px-4 py-3 text-sm text-[var(--forge-success)]">
             {notice}
           </div>
         ) : null}
 
-        <div className="mt-5 rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-white">Create team</p>
-              <p className="mt-1 text-sm text-[#a9abb3]">
-                Teams define the manager and rep roster. Rep-level primary manager assignments still
-                live in{" "}
-                <a className="underline hover:text-white" href="/settings/permissions">
-                  /settings/permissions
-                </a>
-                .
-              </p>
-            </div>
-          </div>
-          <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-            <label className="space-y-2 text-sm text-[#a9abb3]">
-              <span>Team name</span>
-              <input
-                className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-2 text-sm text-white outline-none transition focus:border-[#74b1ff]/60"
-                onChange={(event) =>
-                  setNewTeam((current) => ({ ...current, name: event.target.value }))
-                }
-                value={newTeam.name}
-              />
-            </label>
-            <label className="space-y-2 text-sm text-[#a9abb3]">
-              <span>Description</span>
-              <input
-                className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-2 text-sm text-white outline-none transition focus:border-[#74b1ff]/60"
-                onChange={(event) =>
-                  setNewTeam((current) => ({ ...current, description: event.target.value }))
-                }
-                value={newTeam.description}
-              />
-            </label>
-            <div className="flex items-end">
-              <button
-                className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-2 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
-                disabled={pendingKey === "create-team"}
-                onClick={() => {
-                  void handleCreateTeam();
-                }}
-                type="button"
-              >
-                {pendingKey === "create-team" ? "Creating..." : "Create team"}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-5 space-y-4">
-          {localTeams.length === 0 ? (
-            <div className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-5 py-6 text-center">
-              <p className="text-sm font-medium text-[#ecedf6]">No teams yet</p>
-              <p className="mt-2 text-sm text-[#a9abb3]">
-                Create your first team above to start organizing managers and reps.
-              </p>
-            </div>
-          ) : (
-            localTeams.map((team) => {
-              const draft = draftsByTeamId[team.id] ?? {
-                name: team.name,
-                description: team.description ?? "",
-                status: team.status,
-              };
-              const teamManagers = localMemberships.filter(
-                (membership) =>
-                  membership.teamId === team.id && membership.membershipType === "manager",
-              );
-              const teamReps = localMemberships.filter(
-                (membership) =>
-                  membership.teamId === team.id && membership.membershipType === "rep",
-              );
-              const availableManagers = managers.filter(
-                (manager) =>
-                  !teamManagers.some((membership) => membership.userId === manager.id),
-              );
-              const availableReps = reps.filter(
-                (rep) => !teamReps.some((membership) => membership.userId === rep.id),
-              );
-
-              return (
-                <section
-                  className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 p-4"
-                  key={team.id}
+        {!selectedTeam || !selectedDraft ? (
+          <ForgeStatusPanel
+            className="mt-6"
+            description="Create a team in the rail or select an existing team to edit metadata and membership."
+            icon="groups"
+            title="No team selected"
+          />
+        ) : (
+          <div className="mt-6 space-y-6">
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_180px_auto]">
+              <label className="space-y-2 text-sm text-[var(--forge-muted)]">
+                <span>Team name</span>
+                <input
+                  className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
+                  onChange={(event) =>
+                    updateDraft(selectedTeam.id, { name: event.target.value })
+                  }
+                  value={selectedDraft.name}
+                />
+              </label>
+              <label className="space-y-2 text-sm text-[var(--forge-muted)]">
+                <span>Description</span>
+                <input
+                  className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
+                  onChange={(event) =>
+                    updateDraft(selectedTeam.id, { description: event.target.value })
+                  }
+                  value={selectedDraft.description}
+                />
+              </label>
+              <label className="space-y-2 text-sm text-[var(--forge-muted)]">
+                <span>Status</span>
+                <select
+                  className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
+                  onChange={(event) =>
+                    updateDraft(selectedTeam.id, { status: event.target.value })
+                  }
+                  value={selectedDraft.status}
                 >
-                  <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_180px_auto]">
-                    <label className="space-y-2 text-sm text-[#a9abb3]">
-                      <span>Team name</span>
-                      <input
-                        className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-2 text-sm text-white outline-none transition focus:border-[#74b1ff]/60"
-                        onChange={(event) =>
-                          updateDraft(team.id, { name: event.target.value })
-                        }
-                        value={draft.name}
-                      />
-                    </label>
-                    <label className="space-y-2 text-sm text-[#a9abb3]">
-                      <span>Description</span>
-                      <input
-                        className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-2 text-sm text-white outline-none transition focus:border-[#74b1ff]/60"
-                        onChange={(event) =>
-                          updateDraft(team.id, { description: event.target.value })
-                        }
-                        value={draft.description}
-                      />
-                    </label>
-                    <label className="space-y-2 text-sm text-[#a9abb3]">
-                      <span>Status</span>
-                      <select
-                        className="w-full rounded-xl border border-[#45484f]/20 bg-[#10131a] px-3 py-2 text-sm text-white outline-none transition focus:border-[#74b1ff]/60"
-                        onChange={(event) =>
-                          updateDraft(team.id, { status: event.target.value })
-                        }
-                        value={draft.status}
-                      >
-                        <option value="active">active</option>
-                        <option value="archived">archived</option>
-                      </select>
-                    </label>
-                    <div className="flex items-end">
-                      <button
-                        className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-2 text-sm font-semibold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
-                        disabled={pendingKey === `save:${team.id}`}
-                        onClick={() => {
-                          void handleSaveTeam(team.id);
-                        }}
-                        type="button"
-                      >
-                        {pendingKey === `save:${team.id}` ? "Saving..." : "Save"}
-                      </button>
-                    </div>
+                  <option value="active">active</option>
+                  <option value="archived">archived</option>
+                </select>
+              </label>
+              <div className="flex items-end">
+                <ForgeButton
+                  disabled={pendingKey === `save:${selectedTeam.id}`}
+                  onClick={() => {
+                    void handleSaveTeam(selectedTeam.id);
+                  }}
+                  type="button"
+                  variant="primary"
+                >
+                  {pendingKey === `save:${selectedTeam.id}` ? "Saving..." : "Save team"}
+                </ForgeButton>
+              </div>
+            </div>
+
+            <p className="text-xs text-[var(--forge-muted)]">
+              Team membership is managed here. Rep-level primary manager assignments stay on{" "}
+              <a className="underline hover:text-white" href="/settings/permissions">
+                /settings/permissions
+              </a>
+              .
+            </p>
+
+            <div className="grid gap-4 xl:grid-cols-2">
+              <section className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)]/60 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">
+                      Managers
+                    </p>
+                    <p className="mt-1 text-sm text-[var(--forge-muted)]">
+                      Team-level coaching and management membership.
+                    </p>
                   </div>
+                  <span className="text-xs uppercase tracking-[0.18em] text-[var(--forge-muted)]">
+                    {selectedTeamManagers.length}
+                  </span>
+                </div>
+                <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                  <label className="min-w-0 flex-1">
+                    <span className="sr-only">Add manager</span>
+                    <select
+                      className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
+                      onChange={(event) =>
+                        setManagerSelectionByTeamId((current) => ({
+                          ...current,
+                          [selectedTeam.id]: event.target.value,
+                        }))
+                      }
+                      value={managerSelectionByTeamId[selectedTeam.id] ?? ""}
+                    >
+                      <option value="">Select manager</option>
+                      {availableManagers.map((manager) => (
+                        <option key={manager.id} value={manager.id}>
+                          {manager.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <ForgeButton
+                    disabled={pendingKey === `add:manager:${selectedTeam.id}`}
+                    onClick={() => {
+                      void handleAddMembership(selectedTeam.id, "manager");
+                    }}
+                    type="button"
+                    variant="secondary"
+                  >
+                    Add manager
+                  </ForgeButton>
+                </div>
+                <div className="mt-4">
+                  {renderMembershipTable("Managers", selectedTeamManagers, managerNames, "manager")}
+                </div>
+              </section>
 
-                  <p className="mt-4 text-xs text-[#a9abb3]">
-                    Team membership is managed here. Rep-level primary manager assignments stay on{" "}
-                    <a className="underline hover:text-white" href="/settings/permissions">
-                      /settings/permissions
-                    </a>
-                    .
-                  </p>
-
-                  <div className="mt-5 grid gap-4 xl:grid-cols-2">
-                    <div className="rounded-xl border border-[#45484f]/20 bg-[#10131a]/60 p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">
-                            Managers
-                          </p>
-                          <p className="mt-1 text-sm text-[#a9abb3]">
-                            Team-level coaching and management membership.
-                          </p>
-                        </div>
-                        <span className="text-xs uppercase tracking-[0.18em] text-[#a9abb3]">
-                          {teamManagers.length}
-                        </span>
-                      </div>
-
-                      <div className="mt-4 flex gap-2">
-                        <select
-                          className="min-w-0 flex-1 rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-3 py-2 text-sm text-white outline-none transition focus:border-[#74b1ff]/60"
-                          onChange={(event) =>
-                            setManagerSelectionByTeamId((current) => ({
-                              ...current,
-                              [team.id]: event.target.value,
-                            }))
-                          }
-                          value={managerSelectionByTeamId[team.id] ?? ""}
-                        >
-                          <option value="">Select manager</option>
-                          {availableManagers.map((manager) => (
-                            <option key={manager.id} value={manager.id}>
-                              {manager.name}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          className="rounded-xl border border-[#74b1ff]/20 px-3 py-2 text-sm font-semibold text-[#74b1ff] transition hover:bg-[#74b1ff]/10 disabled:opacity-50"
-                          disabled={pendingKey === `add:manager:${team.id}`}
-                          onClick={() => {
-                            void handleAddMembership(team.id, "manager");
-                          }}
-                          type="button"
-                        >
-                          Add
-                        </button>
-                      </div>
-
-                      <ul className="mt-4 space-y-2">
-                        {teamManagers.length === 0 ? (
-                          <li className="text-sm text-[#a9abb3]">No managers on this team yet.</li>
-                        ) : (
-                          teamManagers.map((membership) => (
-                            <li
-                              className="flex items-center justify-between gap-3 rounded-lg border border-[#45484f]/20 bg-[#161a21]/50 px-3 py-2 text-sm text-[#ecedf6]"
-                              key={`${membership.teamId}:${membership.userId}:${membership.membershipType}`}
-                            >
-                              <span>{managerNames.get(membership.userId) ?? membership.userId}</span>
-                              <button
-                                className="text-xs font-medium uppercase tracking-[0.14em] text-[#a9abb3] transition hover:text-red-300"
-                                disabled={
-                                  pendingKey ===
-                                  `remove:manager:${team.id}:${membership.userId}`
-                                }
-                                onClick={() => {
-                                  void handleRemoveMembership(
-                                    team.id,
-                                    membership.userId,
-                                    "manager",
-                                  );
-                                }}
-                                type="button"
-                              >
-                                Remove
-                              </button>
-                            </li>
-                          ))
-                        )}
-                      </ul>
-                    </div>
-
-                    <div className="rounded-xl border border-[#45484f]/20 bg-[#10131a]/60 p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#a9abb3]">
-                            Reps
-                          </p>
-                          <p className="mt-1 text-sm text-[#a9abb3]">
-                            Sales reps assigned to this team.
-                          </p>
-                        </div>
-                        <span className="text-xs uppercase tracking-[0.18em] text-[#a9abb3]">
-                          {teamReps.length}
-                        </span>
-                      </div>
-
-                      <div className="mt-4 flex gap-2">
-                        <select
-                          className="min-w-0 flex-1 rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-3 py-2 text-sm text-white outline-none transition focus:border-[#74b1ff]/60"
-                          onChange={(event) =>
-                            setRepSelectionByTeamId((current) => ({
-                              ...current,
-                              [team.id]: event.target.value,
-                            }))
-                          }
-                          value={repSelectionByTeamId[team.id] ?? ""}
-                        >
-                          <option value="">Select rep</option>
-                          {availableReps.map((rep) => (
-                            <option key={rep.id} value={rep.id}>
-                              {rep.name}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          className="rounded-xl border border-[#74b1ff]/20 px-3 py-2 text-sm font-semibold text-[#74b1ff] transition hover:bg-[#74b1ff]/10 disabled:opacity-50"
-                          disabled={pendingKey === `add:rep:${team.id}`}
-                          onClick={() => {
-                            void handleAddMembership(team.id, "rep");
-                          }}
-                          type="button"
-                        >
-                          Add
-                        </button>
-                      </div>
-
-                      <ul className="mt-4 space-y-2">
-                        {teamReps.length === 0 ? (
-                          <li className="text-sm text-[#a9abb3]">No reps on this team yet.</li>
-                        ) : (
-                          teamReps.map((membership) => (
-                            <li
-                              className="flex items-center justify-between gap-3 rounded-lg border border-[#45484f]/20 bg-[#161a21]/50 px-3 py-2 text-sm text-[#ecedf6]"
-                              key={`${membership.teamId}:${membership.userId}:${membership.membershipType}`}
-                            >
-                              <span>{repNames.get(membership.userId) ?? membership.userId}</span>
-                              <button
-                                className="text-xs font-medium uppercase tracking-[0.14em] text-[#a9abb3] transition hover:text-red-300"
-                                disabled={
-                                  pendingKey === `remove:rep:${team.id}:${membership.userId}`
-                                }
-                                onClick={() => {
-                                  void handleRemoveMembership(
-                                    team.id,
-                                    membership.userId,
-                                    "rep",
-                                  );
-                                }}
-                                type="button"
-                              >
-                                Remove
-                              </button>
-                            </li>
-                          ))
-                        )}
-                      </ul>
-                    </div>
+              <section className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)]/60 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">
+                      Reps
+                    </p>
+                    <p className="mt-1 text-sm text-[var(--forge-muted)]">
+                      Sales reps assigned to this team.
+                    </p>
                   </div>
-                </section>
-              );
-            })
-          )}
-        </div>
+                  <span className="text-xs uppercase tracking-[0.18em] text-[var(--forge-muted)]">
+                    {selectedTeamReps.length}
+                  </span>
+                </div>
+                <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                  <label className="min-w-0 flex-1">
+                    <span className="sr-only">Add rep</span>
+                    <select
+                      className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
+                      onChange={(event) =>
+                        setRepSelectionByTeamId((current) => ({
+                          ...current,
+                          [selectedTeam.id]: event.target.value,
+                        }))
+                      }
+                      value={repSelectionByTeamId[selectedTeam.id] ?? ""}
+                    >
+                      <option value="">Select rep</option>
+                      {availableReps.map((rep) => (
+                        <option key={rep.id} value={rep.id}>
+                          {rep.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <ForgeButton
+                    disabled={pendingKey === `add:rep:${selectedTeam.id}`}
+                    onClick={() => {
+                      void handleAddMembership(selectedTeam.id, "rep");
+                    }}
+                    type="button"
+                    variant="secondary"
+                  >
+                    Add rep
+                  </ForgeButton>
+                </div>
+                <div className="mt-4">
+                  {renderMembershipTable("Reps", selectedTeamReps, repNames, "rep")}
+                </div>
+              </section>
+            </div>
+          </div>
+        )}
       </section>
-    </div>
+    </ForgeWorkspaceLayout>
   );
 }

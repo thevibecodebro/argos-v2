@@ -9,6 +9,13 @@ import {
   type RoleplayCategory,
   type RoleplaySession,
 } from "@/lib/roleplay/types";
+import {
+  ForgeIcon,
+  ForgeWorkspaceLayout,
+  ForgeWorkspaceRail,
+  ForgeWorkspaceRailAction,
+  ForgeWorkspaceRailGroup,
+} from "./forge";
 
 type RoleplayPanelProps = {
   initialPersonas: RoleplayPersona[];
@@ -40,19 +47,19 @@ function labelCallStage(value: string | undefined) {
 
 function difficultyBadge(difficulty: string) {
   if (difficulty === "advanced") return "bg-[#ff716c]/10 text-[#ff716c]";
-  if (difficulty === "intermediate") return "bg-[#74b1ff]/10 text-[#74b1ff]";
-  return "bg-[#6dddff]/10 text-[#6dddff]";
+  if (difficulty === "intermediate") return "bg-[var(--forge-gold)]/10 text-[var(--forge-gold)]";
+  return "bg-[var(--forge-cyan)]/10 text-[var(--forge-cyan)]";
 }
 
 function scoreColor(score: number) {
-  if (score >= 80) return "text-[#6dddff]";
-  if (score >= 65) return "text-[#74b1ff]";
+  if (score >= 80) return "text-[var(--forge-cyan)]";
+  if (score >= 65) return "text-[var(--forge-gold)]";
   return "text-[#ff716c]";
 }
 
 function scoreBarColor(score: number) {
-  if (score >= 80) return "bg-[#6dddff]";
-  if (score >= 65) return "bg-[#74b1ff]";
+  if (score >= 80) return "bg-[var(--forge-cyan)]";
+  if (score >= 65) return "bg-[var(--forge-gold)]";
   return "bg-[#ff716c]";
 }
 
@@ -469,114 +476,115 @@ export function RoleplayPanel({
 
   return (
     <>
-      {/* Persona Selection Grid */}
-      <section className="space-y-6">
-        <div className="flex items-end justify-between">
-          <div>
-            <h2 className="font-['Space_Grotesk'] text-3xl font-bold text-[#ecedf6]">Target Personas</h2>
-            <p className="mt-1 text-sm text-[#a9abb3]">Select an AI agent to begin your simulation scenario.</p>
-          </div>
-          <button
-            className="flex items-center gap-2 font-medium text-[#74b1ff] hover:underline"
-            disabled={!selectedPersonaId || isMutating}
-            onClick={() => void createSession()}
-            type="button"
-          >
-            {isMutating ? "Starting..." : "Start simulation"}
-            <span className="material-symbols-outlined text-sm">arrow_forward</span>
-          </button>
-        </div>
+      <ForgeWorkspaceLayout railCount={2} railPlacement="bookend" data-roleplay-workspace="simulation">
+        <ForgeWorkspaceRail
+          collapsible
+          description="Choose a persona and start a focused practice session."
+          eyebrow="Scenario rail"
+          title="Target personas"
+          data-roleplay-scenario-rail=""
+        >
+          <ForgeWorkspaceRailGroup label="Session">
+            <ForgeWorkspaceRailAction
+              disabled={!selectedPersonaId || isMutating}
+              icon="insights"
+              onClick={() => void createSession()}
+              type="button"
+            >
+              {isMutating ? "Starting..." : "Start simulation"}
+            </ForgeWorkspaceRailAction>
+          </ForgeWorkspaceRailGroup>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {personas.map((persona) => {
-            const isSelected = persona.id === selectedPersonaId;
-            return (
-              <button
-                className={`group rounded-xl p-5 text-left transition-all ${
-                  isSelected
-                    ? "border border-[#74b1ff]/30 bg-[#1c2028]/50 ring-1 ring-[#74b1ff]/20"
-                    : "border border-[#45484f]/20 bg-[#22262f]/40 backdrop-blur-sm hover:bg-[#22262f]/60"
-                }`}
-                key={persona.id}
-                onClick={() => setSelectedPersonaId(persona.id)}
-                style={{ backdropFilter: "blur(12px)" }}
-                type="button"
-              >
-                <div className="mb-4 flex items-start justify-between">
-                  <div className={`flex h-12 w-12 items-center justify-center rounded-lg text-sm font-bold ${
-                    isSelected ? "border-2 border-[#74b1ff] bg-[#74b1ff]/10 text-[#74b1ff]" : "bg-[#22262f] text-[#a9abb3]"
-                  }`}>
-                    {persona.avatarInitials}
+          <ForgeWorkspaceRailGroup label="Personas">
+            {personas.map((persona) => {
+              const isSelected = persona.id === selectedPersonaId;
+              return (
+                <button
+                  aria-pressed={isSelected}
+                  className={`group w-full rounded-2xl border px-3 py-3 text-left transition-all ${
+                    isSelected
+                      ? "border-[var(--forge-gold)]/30 bg-[var(--forge-gold)]/10 ring-1 ring-[var(--forge-gold)]/20"
+                      : "border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-3)]/40 hover:bg-[var(--forge-surface-3)]/60"
+                  }`}
+                  key={persona.id}
+                  onClick={() => setSelectedPersonaId(persona.id)}
+                  type="button"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-lg text-sm font-bold ${
+                      isSelected ? "border-2 border-[var(--forge-gold)] bg-[var(--forge-gold)]/10 text-[var(--forge-gold)]" : "bg-[var(--forge-surface-3)] text-[var(--forge-muted)]"
+                    }`}>
+                      {persona.avatarInitials}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="truncate text-sm font-bold text-[var(--forge-text)]">{persona.name}</h3>
+                        <span className={`shrink-0 rounded-full px-2 py-1 font-['Space_Grotesk'] text-[9px] font-bold uppercase tracking-wider ${difficultyBadge(persona.difficulty)}`}>
+                          {persona.difficulty}
+                        </span>
+                      </div>
+                      <p className="mt-1 truncate text-xs text-[var(--forge-gold)]">{persona.role}, {persona.company}</p>
+                      <p className="mt-2 line-clamp-2 text-xs leading-5 text-[var(--forge-muted)]">{persona.description}</p>
+                    </div>
                   </div>
-                  <span className={`rounded-full px-2 py-1 font-['Space_Grotesk'] text-[10px] font-bold uppercase tracking-wider ${difficultyBadge(persona.difficulty)}`}>
-                    {persona.difficulty}
-                  </span>
-                </div>
-                <h3 className="text-lg font-bold text-[#ecedf6]">{persona.name}</h3>
-                <p className="mb-3 text-xs text-[#74b1ff]">{persona.role}, {persona.company}</p>
-                <p className="line-clamp-3 text-sm text-[#a9abb3]">{persona.description}</p>
-              </button>
-            );
-          })}
-        </div>
-      </section>
+                </button>
+              );
+            })}
+          </ForgeWorkspaceRailGroup>
+        </ForgeWorkspaceRail>
 
-      {/* Live Simulation + Scorecard */}
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        {/* Chat Panel */}
-        <div className="flex flex-col lg:col-span-2">
-          {/* Session bar */}
-          <div className="mb-4 flex items-center justify-between rounded-xl bg-[#10131a] p-4">
+        <main className="min-w-0" data-forge-workspace-main="true" data-roleplay-simulation-stage="">
+          <div className="mb-4 flex items-center justify-between rounded-xl bg-[var(--forge-surface)] p-4">
             <div className="flex items-center gap-4">
               <div className="relative">
                 {activeSession?.status === "active" && (
                   <span className="absolute -right-1 -top-1 h-2 w-2 animate-pulse rounded-full bg-[#ff716c]" />
                 )}
-                <span className="material-symbols-outlined text-[#74b1ff]">videocam</span>
+                <ForgeIcon className="text-[var(--forge-gold)]" name="psychology" size={20} />
               </div>
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-['Space_Grotesk'] text-sm uppercase tracking-widest text-[#ecedf6]">
+                  <span className="font-['Space_Grotesk'] text-sm uppercase tracking-widest text-[var(--forge-text)]">
                     {getSessionLabel(activeSession)}
                   </span>
                   {generatedActiveSession && (
-                    <span className="rounded-full border border-[#74b1ff]/25 bg-[#74b1ff]/10 px-2.5 py-1 font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.2em] text-[#74b1ff]">
+                    <span className="rounded-full border border-[var(--forge-gold)]/25 bg-[var(--forge-gold)]/10 px-2.5 py-1 font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.2em] text-[var(--forge-gold)]">
                       Generated from call
                     </span>
                   )}
                 </div>
                 {generatedActiveSession?.scenarioBrief && (
-                  <p className="text-xs text-[#a9abb3]">{generatedActiveSession.scenarioBrief}</p>
+                  <p className="text-xs text-[var(--forge-muted)]">{generatedActiveSession.scenarioBrief}</p>
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-2 rounded-full bg-[#22262f] p-1">
+            <div className="flex items-center gap-2 rounded-full bg-[var(--forge-surface-3)] p-1">
               <button
                 className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold transition-colors ${
-                  isVoiceActive ? "bg-[#ff716c]/20 text-[#ff716c]" : "bg-[#74b1ff] text-[#002345]"
+                  isVoiceActive ? "bg-[#ff716c]/20 text-[#ff716c]" : "bg-[var(--forge-gold)] text-[#170d07]"
                 }`}
                 disabled={isStartingVoice || !activeSession}
                 onClick={() => isVoiceActive ? stopVoicePractice() : void startVoicePractice()}
                 type="button"
               >
-                <span className="material-symbols-outlined text-sm">mic</span>
+                <ForgeIcon name="power" size={14} />
                 {isStartingVoice ? "Starting…" : isVoiceActive ? "Stop" : "Voice"}
               </button>
-              <span className="px-3 py-1.5 text-xs font-bold text-[#a9abb3]">Text</span>
+              <span className="px-3 py-1.5 text-xs font-bold text-[var(--forge-muted)]">Text</span>
             </div>
           </div>
 
           {generatedActiveSession?.scenarioSummary && (
-            <div className="mb-4 rounded-2xl border border-[#74b1ff]/18 bg-[#121720]/80 px-5 py-4">
+            <div className="mb-4 rounded-2xl border border-[var(--forge-gold)]/18 bg-[#121720]/80 px-5 py-4">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full border border-[#74b1ff]/20 bg-[#74b1ff]/10 px-2.5 py-1 font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.2em] text-[#74b1ff]">
+                <span className="rounded-full border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/10 px-2.5 py-1 font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.2em] text-[var(--forge-gold)]">
                   Generated from call
                 </span>
-                <span className="rounded-full border border-[#45484f]/30 bg-[#1c2028]/70 px-2.5 py-1 font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.2em] text-[#c7d7f6]">
+                <span className="rounded-full border border-[var(--forge-border-strong)]/30 bg-[var(--forge-surface-3)]/70 px-2.5 py-1 font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.2em] text-[#c7d7f6]">
                   Focus: {generatedActiveSession.focusMode === "all" ? "All" : formatRoleplayCategoryLabel(generatedActiveSession.focusCategorySlug)}
                 </span>
               </div>
-              <p className="mt-3 text-sm leading-relaxed text-[#ecedf6]">
+              <p className="mt-3 text-sm leading-relaxed text-[var(--forge-text)]">
                 {generatedActiveSession.scenarioSummary}
               </p>
             </div>
@@ -584,7 +592,7 @@ export function RoleplayPanel({
 
           {/* Transcript */}
           <div
-            className="mb-6 flex h-[480px] flex-col gap-6 overflow-y-auto rounded-2xl border border-[#45484f]/20 p-6"
+            className="mb-6 flex h-[480px] flex-col gap-6 overflow-y-auto rounded-2xl border border-[var(--forge-border-strong)]/20 p-6"
             style={{ background: "rgba(34,38,47,0.4)", backdropFilter: "blur(12px)", scrollbarWidth: "none" }}
           >
             {activeSession ? (
@@ -595,25 +603,23 @@ export function RoleplayPanel({
                     key={`${msg.role}-${i}`}
                   >
                     <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded ${
-                      msg.role === "user" ? "bg-[#74b1ff]/20" : "bg-[#22262f]"
+                      msg.role === "user" ? "bg-[var(--forge-gold)]/20" : "bg-[var(--forge-surface-3)]"
                     }`}>
-                      <span className="material-symbols-outlined text-sm text-[#74b1ff]">
-                        {msg.role === "user" ? "person" : "smart_toy"}
-                      </span>
+                      <ForgeIcon className="text-[var(--forge-gold)]" name={msg.role === "user" ? "person" : "psychology"} size={14} />
                     </div>
                     <div className={`rounded-2xl border p-4 ${
                       msg.role === "user"
-                        ? "rounded-tr-none border-[#74b1ff]/20 bg-[#74b1ff]/10"
-                        : "rounded-tl-none border-[#45484f]/10 bg-[#1c2028]/60"
+                        ? "rounded-tr-none border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/10"
+                        : "rounded-tl-none border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface-3)]/60"
                     }`}>
-                      <p className="text-sm leading-relaxed text-[#ecedf6]">{msg.content}</p>
+                      <p className="text-sm leading-relaxed text-[var(--forge-text)]">{msg.content}</p>
                       <div className="mt-2 flex items-center justify-between gap-3">
-                        <span className="font-['Space_Grotesk'] text-[10px] font-bold uppercase tracking-widest text-[#a9abb3]">
+                        <span className="font-['Space_Grotesk'] text-[10px] font-bold uppercase tracking-widest text-[var(--forge-muted)]">
                           {msg.role === "user" ? "You" : getSessionPersonaLabel(activeSession)}
                         </span>
                         {msg.role === "assistant" && (
                           <button
-                            className="font-['Space_Grotesk'] text-[10px] font-bold uppercase tracking-widest text-[#74b1ff]"
+                            className="font-['Space_Grotesk'] text-[10px] font-bold uppercase tracking-widest text-[var(--forge-gold)]"
                             onClick={() => void playTranscriptLine(msg.content)}
                             type="button"
                           >
@@ -626,15 +632,17 @@ export function RoleplayPanel({
                 ))
               ) : (
                 <div className="flex flex-1 items-center justify-center text-center">
-                  <p className="text-sm text-[#a9abb3]">Session started — the prospect is waiting for you.</p>
+                  <p className="text-sm text-[var(--forge-muted)]">Session started — the prospect is waiting for you.</p>
                 </div>
               )
             ) : (
               <div className="flex flex-1 flex-col items-center justify-center text-center">
-                <span className="material-symbols-outlined mb-4 text-4xl text-[#a9abb3]">record_voice_over</span>
-                <p className="font-['Space_Grotesk'] text-lg font-bold text-[#ecedf6]">Start a roleplay to practice the hard conversations</p>
-                <p className="mt-2 max-w-sm text-sm text-[#a9abb3]">
-                  Choose a persona above, then click &ldquo;Start simulation&rdquo; to begin.
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-3)] text-[var(--forge-muted)]">
+                  <ForgeIcon name="psychology" size={26} />
+                </div>
+                <p className="font-['Space_Grotesk'] text-lg font-bold text-[var(--forge-text)]">No active simulation</p>
+                <p className="mt-2 max-w-sm text-sm text-[var(--forge-muted)]">
+                  Choose a persona in the scenario rail, then start a simulation.
                 </p>
               </div>
             )}
@@ -642,19 +650,19 @@ export function RoleplayPanel({
           </div>
 
           {error && (
-            <div className="mb-4 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+            <div className="mb-4 rounded-xl border border-[rgba(255,159,95,0.26)] bg-[rgba(255,159,95,0.1)] px-4 py-3 text-sm text-[var(--forge-ember)]">
               {error}
             </div>
           )}
           {voiceStatus && (
-            <div className="mb-4 text-sm text-[#74b1ff]">{voiceStatus}</div>
+            <div className="mb-4 text-sm text-[var(--forge-gold)]">{voiceStatus}</div>
           )}
 
           {/* Input */}
           <div className="flex items-end gap-4">
             <div className="relative flex-1">
               <textarea
-                className="h-20 w-full resize-none rounded-xl border border-[#45484f]/20 bg-[#000000] p-4 pr-12 text-sm text-[#ecedf6] outline-none placeholder:text-[#a9abb3]/40 focus:border-[#74b1ff]/50 focus:ring-1 focus:ring-[#74b1ff]/20 disabled:opacity-40"
+                className="h-20 w-full resize-none rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-depth)] p-4 pr-12 text-sm text-[var(--forge-text)] outline-none placeholder:text-[rgba(255,244,230,0.4)] focus:border-[var(--forge-gold)]/50 focus:ring-1 focus:ring-[var(--forge-gold)]/20 disabled:opacity-40"
                 disabled={!activeSession || activeSession.status === "complete" || isMutating}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void sendMessage(); } }}
@@ -662,139 +670,137 @@ export function RoleplayPanel({
                 value={draft}
               />
               <button
-                className="absolute bottom-3 right-3 text-[#74b1ff] transition-transform hover:scale-110 active:scale-95 disabled:opacity-30"
+                className="absolute bottom-3 right-3 text-[var(--forge-gold)] transition-transform hover:scale-110 active:scale-95 disabled:opacity-30"
                 disabled={!activeSession || !draft.trim() || activeSession.status === "complete" || isMutating}
                 onClick={() => void sendMessage()}
                 type="button"
               >
-                <span className="material-symbols-outlined">send</span>
+                <ForgeIcon name="insights" size={18} />
               </button>
             </div>
             <button
-              className="flex h-20 flex-col items-center justify-center gap-1 rounded-xl bg-gradient-to-br from-[#74b1ff] to-[#54a3ff] px-6 font-extrabold text-[#002345] shadow-lg transition active:scale-95 disabled:opacity-40"
+              className="flex h-20 flex-col items-center justify-center gap-1 rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-6 font-extrabold text-[#170d07] shadow-lg transition active:scale-95 disabled:opacity-40"
               disabled={!activeSession || activeSession.status === "complete" || isMutating}
               onClick={() => void completeSession()}
               type="button"
             >
-              <span className="material-symbols-outlined text-2xl">insights</span>
+              <ForgeIcon name="insights" size={24} />
               <span className="text-[10px] uppercase tracking-tighter">End &amp; Score</span>
             </button>
           </div>
 
           <audio autoPlay className="hidden" playsInline ref={remoteAudioRef} />
-        </div>
+        </main>
 
-        {/* Scorecard sidebar */}
-        <aside className="space-y-6">
-          <div
-            className="flex min-h-[400px] flex-col rounded-2xl border border-[#45484f]/20 p-6"
-            style={{ background: "rgba(34,38,47,0.4)", backdropFilter: "blur(12px)" }}
-          >
-            <div className="mb-6 flex items-center gap-3">
-              <span className="material-symbols-outlined text-[#74b1ff]">leaderboard</span>
-              <h3 className="font-['Space_Grotesk'] text-xl font-bold text-[#ecedf6]">Session Scorecard</h3>
-            </div>
-
+        <ForgeWorkspaceRail
+          description="Current scoring, readiness, and post-session guidance."
+          eyebrow="Simulation score"
+          title="Session Scorecard"
+          data-roleplay-score-rail=""
+        >
+          <div className="space-y-5">
             {activeSessionWithScorecard ? (
               <div className="space-y-4">
-                <div className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-4">
-                  <p className="font-['Space_Grotesk'] text-3xl font-bold text-[#ecedf6]">
+                <div className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-4">
+                  <p className="font-['Space_Grotesk'] text-3xl font-bold text-[var(--forge-text)]">
                     {activeSessionWithScorecard.overallScore ?? "—"}
                   </p>
                   {activeScorecard?.rubricName ? (
-                    <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-[#74b1ff]">
+                    <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-[var(--forge-gold)]">
                       {activeScorecard.rubricName}
                       {activeScorecard.rubricVersion != null
                         ? ` · v${activeScorecard.rubricVersion}`
                         : ""}
                     </p>
                   ) : null}
-                  <p className="mt-2 text-sm leading-relaxed text-[#a9abb3]">{activeScorecard?.summary}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-[var(--forge-muted)]">{activeScorecard?.summary}</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-3">
-                    <p className="font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-widest text-[#a9abb3]">Confidence</p>
-                    <p className="mt-1 text-sm font-semibold capitalize text-[#ecedf6]">{activeScorecard?.confidence}</p>
+                  <div className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3">
+                    <p className="font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-widest text-[var(--forge-muted)]">Confidence</p>
+                    <p className="mt-1 text-sm font-semibold capitalize text-[var(--forge-text)]">{activeScorecard?.confidence}</p>
                   </div>
-                  <div className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-3">
-                    <p className="font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-widest text-[#a9abb3]">Stage</p>
-                    <p className="mt-1 text-sm font-semibold text-[#ecedf6]">{activeScorecard ? labelCallStage(activeScorecard.callStageReached) : "—"}</p>
+                  <div className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3">
+                    <p className="font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-widest text-[var(--forge-muted)]">Stage</p>
+                    <p className="mt-1 text-sm font-semibold text-[var(--forge-text)]">{activeScorecard ? labelCallStage(activeScorecard.callStageReached) : "—"}</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   {Object.entries(activeScorecard?.categoryScores ?? {}).map(([cat, val]) => (
-                    <div className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-3" key={cat}>
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#a9abb3]">
+                    <div className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3" key={cat}>
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--forge-muted)]">
                         {activeScorecard?.categoryLabels?.[cat]
                           ?? ROLEPLAY_CATEGORY_LABELS[cat as keyof typeof ROLEPLAY_CATEGORY_LABELS]
                           ?? cat}
                       </p>
-                      <p className="mt-1 text-lg font-bold text-[#ecedf6]">{val ?? "—"}</p>
+                      <p className="mt-1 text-lg font-bold text-[var(--forge-text)]">{val ?? "—"}</p>
                     </div>
                   ))}
                 </div>
 
-                <div className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-4">
-                  <p className="font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-widest text-emerald-300">Strengths</p>
-                  <ul className="mt-2 space-y-1 text-sm text-[#ecedf6]">
+                <div className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-4">
+                  <p className="font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-widest text-[var(--forge-success)]">Strengths</p>
+                  <ul className="mt-2 space-y-1 text-sm text-[var(--forge-text)]">
                     {(activeScorecard?.strengths ?? []).map((s) => <li key={s}>• {s}</li>)}
                   </ul>
                 </div>
 
-                <div className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-4">
-                  <p className="font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-widest text-amber-300">Improve</p>
-                  <ul className="mt-2 space-y-1 text-sm text-[#ecedf6]">
+                <div className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-4">
+                  <p className="font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-widest text-[var(--forge-ember)]">Improve</p>
+                  <ul className="mt-2 space-y-1 text-sm text-[var(--forge-text)]">
                     {(activeScorecard?.improvements ?? []).map((s) => <li key={s}>• {s}</li>)}
                   </ul>
                 </div>
               </div>
             ) : (
-              <div className="flex flex-1 flex-col items-center justify-center p-4 text-center">
-                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-[#45484f]/20 bg-[#22262f]">
-                  <span className="material-symbols-outlined text-3xl text-[#a9abb3]">query_stats</span>
+              <div className="rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/45 p-4 text-center">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-3)] text-[var(--forge-muted)]">
+                  <ForgeIcon name="query_stats" size={24} />
                 </div>
-                <p className="font-bold text-[#ecedf6]">Waiting for session completion...</p>
-                <p className="mt-2 max-w-[200px] text-xs text-[#a9abb3]">
-                  Complete the current roleplay to generate your performance analytics and improvement tips.
+                <p className="font-bold text-[var(--forge-text)]">
+                  {activeSession ? "Waiting for session completion..." : "Select a scenario to begin scoring."}
                 </p>
-                <div className="mt-8 w-full space-y-4">
-                  <div className="h-12 w-full animate-pulse rounded-lg bg-[#10131a]" />
-                  <div className="h-24 w-full animate-pulse rounded-lg bg-[#10131a]" />
-                  <div className="h-24 w-full animate-pulse rounded-lg bg-[#10131a]" />
+                <p className="mt-2 text-xs leading-5 text-[var(--forge-muted)]">
+                  {activeSession
+                    ? "Complete the current roleplay to generate your performance analytics and improvement tips."
+                    : "Start a simulation from the left rail. Scoring, readiness, and next actions appear here."}
+                </p>
+                <div className="mt-6 w-full space-y-3">
+                  <div className="h-12 w-full animate-pulse rounded-lg bg-[var(--forge-surface)]" />
+                  <div className="h-24 w-full animate-pulse rounded-lg bg-[var(--forge-surface)]" />
                 </div>
               </div>
             )}
-          </div>
 
-          {/* Pro tip */}
-          <div className="rounded-2xl border border-[#c4dcfd]/20 bg-gradient-to-br from-[#314863]/20 to-[#161a21] p-5">
-            <div className="mb-3 flex items-center gap-2">
-              <span className="material-symbols-outlined text-sm text-[#c4dcfd]" style={{ fontVariationSettings: "'FILL' 1" }}>lightbulb</span>
-              <span className="font-['Space_Grotesk'] text-[10px] font-bold uppercase tracking-widest text-[#c4dcfd]">Pro Tip</span>
+            <div className="rounded-2xl border border-[#c4dcfd]/20 bg-gradient-to-br from-[#314863]/20 to-[var(--forge-surface-2)] p-5">
+              <div className="mb-3 flex items-center gap-2">
+                <ForgeIcon className="text-[#c4dcfd]" name="lightbulb" size={14} />
+                <span className="font-['Space_Grotesk'] text-[10px] font-bold uppercase tracking-widest text-[#c4dcfd]">Pro Tip</span>
+              </div>
+              <p className="text-xs italic leading-relaxed text-[var(--forge-muted)]">
+                &ldquo;When handling time-sensitive objections, acknowledge the constraint immediately before proposing a phased solution. It builds trust faster.&rdquo;
+              </p>
             </div>
-            <p className="text-xs italic leading-relaxed text-[#a9abb3]">
-              &ldquo;When handling time-sensitive objections, acknowledge the constraint immediately before proposing a phased solution. It builds trust faster.&rdquo;
-            </p>
           </div>
-        </aside>
-      </div>
+        </ForgeWorkspaceRail>
+      </ForgeWorkspaceLayout>
 
       {/* Recent History Table */}
       {completedSessions.length > 0 && (
         <section className="space-y-6 pb-12">
           <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-[#a9abb3]">history</span>
-            <h2 className="font-['Space_Grotesk'] text-2xl font-bold text-[#ecedf6]">Recent History</h2>
+            <ForgeIcon className="text-[var(--forge-muted)]" name="archive" size={20} />
+            <h2 className="font-['Space_Grotesk'] text-2xl font-bold text-[var(--forge-text)]">Recent History</h2>
           </div>
           <div
-            className="overflow-hidden rounded-2xl border border-[#45484f]/20"
+            className="overflow-hidden rounded-2xl border border-[var(--forge-border-strong)]/20"
             style={{ background: "rgba(34,38,47,0.4)", backdropFilter: "blur(12px)" }}
           >
             <table className="w-full border-collapse text-left text-sm">
               <thead>
-                <tr className="bg-[#1c2028]/50 font-['Space_Grotesk'] text-[10px] uppercase tracking-[0.2em] text-[#a9abb3]/70">
+                <tr className="bg-[var(--forge-surface-3)]/50 font-['Space_Grotesk'] text-[10px] uppercase tracking-[0.2em] text-[rgba(255,244,230,0.7)]">
                   <th className="px-6 py-4">Scenario</th>
                   <th className="px-6 py-4">Persona</th>
                   <th className="px-6 py-4">Score</th>
@@ -803,38 +809,38 @@ export function RoleplayPanel({
                   <th className="px-6 py-4 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#45484f]/10">
+              <tbody className="divide-y divide-[var(--forge-border-strong)]/10">
                 {completedSessions.map((session) => {
                   const score = session.overallScore ?? 0;
                   return (
                     <tr
-                      className="cursor-pointer transition-colors hover:bg-[#22262f]/30"
+                      className="cursor-pointer transition-colors hover:bg-[var(--forge-surface-3)]/30"
                       key={session.id}
                       onClick={() => void loadSession(session.id)}
                     >
-                      <td className="px-6 py-4 font-bold text-[#ecedf6]">
+                      <td className="px-6 py-4 font-bold text-[var(--forge-text)]">
                         <div className="space-y-1">
                           <p>{session.personaDetails?.objectionType ?? (isGeneratedSession(session) ? "Generated roleplay" : "Practice Session")}</p>
                           {isGeneratedSession(session) && (
-                            <span className="inline-flex rounded-full border border-[#74b1ff]/20 bg-[#74b1ff]/10 px-2.5 py-1 font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.18em] text-[#74b1ff]">
+                            <span className="inline-flex rounded-full border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/10 px-2.5 py-1 font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.18em] text-[var(--forge-gold)]">
                               Generated from call
                             </span>
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-[#a9abb3]">{getSessionPersonaLabel(session)}</td>
+                      <td className="px-6 py-4 text-[var(--forge-muted)]">{getSessionPersonaLabel(session)}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <div className="h-1.5 w-16 overflow-hidden rounded-full bg-[#22262f]">
+                          <div className="h-1.5 w-16 overflow-hidden rounded-full bg-[var(--forge-surface-3)]">
                             <div className={`h-full ${scoreBarColor(score)}`} style={{ width: `${score}%` }} />
                           </div>
                           <span className={`font-bold ${scoreColor(score)}`}>{score}%</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-[#a9abb3]">{formatDuration(session)}</td>
-                      <td className="px-6 py-4 text-[#a9abb3]">{formatDate(session.createdAt)}</td>
+                      <td className="px-6 py-4 text-[var(--forge-muted)]">{formatDuration(session)}</td>
+                      <td className="px-6 py-4 text-[var(--forge-muted)]">{formatDate(session.createdAt)}</td>
                       <td className="px-6 py-4 text-right">
-                        <button className="font-medium text-[#74b1ff] underline hover:text-[#74b1ff]/80" type="button">
+                        <button className="font-medium text-[var(--forge-gold)] underline hover:text-[var(--forge-gold)]/80" type="button">
                           Review
                         </button>
                       </td>

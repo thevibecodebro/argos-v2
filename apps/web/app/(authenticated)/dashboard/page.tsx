@@ -4,6 +4,13 @@ import {
   getCachedAuthenticatedSupabaseUser,
   getCachedCurrentUserProfile,
 } from "@/lib/auth/request-user";
+import {
+  ForgeButton,
+  ForgeEmptyState as ForgeEmptyStatePrimitive,
+  ForgeIcon,
+  ForgeMetric,
+  ForgeWidget,
+} from "@/components/forge";
 import { createDashboardRepository } from "@/lib/dashboard/create-repository";
 import {
   getDashboardLeaderboard,
@@ -105,21 +112,21 @@ function RepDashboardView({
             <div className="space-y-3">
               {recentCalls.map((call) => (
                 <Link
-                  className="flex items-center justify-between gap-4 rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-4 transition hover:border-[#74b1ff]/30 hover:bg-[#74b1ff]/5"
+                  className="flex items-center justify-between gap-4 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-4 transition hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/5"
                   href={`/calls/${call.id}`}
                   key={call.id}
                 >
                   <div>
-                    <p className="text-sm font-medium text-[#ecedf6]">
+                    <p className="text-sm font-medium text-[var(--forge-text)]">
                       {call.callTopic ?? "Untitled call"}
                     </p>
-                    <p className="mt-1 text-xs text-[#a9abb3]">{formatTimestamp(call.createdAt)}</p>
+                    <p className="mt-1 text-xs text-[var(--forge-muted)]">{formatTimestamp(call.createdAt)}</p>
                   </div>
                   <div className="text-right">
                     <p className={`text-sm font-semibold ${scoreColor(call.overallScore)}`}>
                       {call.overallScore ?? "—"}
                     </p>
-                    <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[#a9abb3]">
+                    <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[var(--forge-muted)]">
                       {call.status}
                     </p>
                   </div>
@@ -136,7 +143,7 @@ function RepDashboardView({
 
         <SurfacePanel title="Focus Areas" link={{ href: "/training", label: "Open training" }}>
           {focusAreasLabel ? (
-            <p className="mb-4 text-xs font-medium uppercase tracking-[0.18em] text-[#74b1ff]">
+            <p className="mb-4 text-xs font-medium uppercase tracking-[0.18em] text-[var(--forge-gold)]">
               {focusAreasLabel}
             </p>
           ) : null}
@@ -167,19 +174,19 @@ function RepDashboardView({
               <article
                 className={`rounded-xl border px-4 py-4 ${
                   badge.earned
-                    ? "border-amber-500/25 bg-amber-500/5"
-                    : "border-[#45484f]/20 bg-[#161a21]/50 opacity-70"
+                    ? "border-[rgba(255,159,95,0.26)] bg-[rgba(255,159,95,0.06)]"
+                    : "border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 opacity-70"
                 }`}
                 key={badge.id}
               >
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">{badge.emoji}</span>
                   <div>
-                    <p className="text-sm font-semibold text-[#ecedf6]">{badge.name}</p>
-                    <p className="mt-1 text-xs text-[#a9abb3]">{badge.description}</p>
+                    <p className="text-sm font-semibold text-[var(--forge-text)]">{badge.name}</p>
+                    <p className="mt-1 text-xs text-[var(--forge-muted)]">{badge.description}</p>
                   </div>
                 </div>
-                <p className="mt-4 text-xs font-medium text-[#a9abb3]">
+                <p className="mt-4 text-xs font-medium text-[var(--forge-muted)]">
                   {badge.earned && badge.earnedAt
                     ? `Earned ${formatTimestamp(badge.earnedAt)}`
                     : "Not earned yet"}
@@ -213,42 +220,9 @@ function ManagerDashboardView({
 
   return (
     <div className="space-y-8">
-      {/* Row 1: CTA card + Org Setup */}
+      {/* Row 1: Operating pulse + Org Setup */}
       <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-12 lg:col-span-8 bg-[#10131a] rounded-xl p-6 border border-[#45484f]/10 flex flex-col justify-between relative overflow-hidden">
-          <div className="relative z-10">
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h3 className="text-xl font-bold mb-2 text-[#ecedf6]">Live team snapshot</h3>
-                <p className="text-[#a9abb3] text-sm max-w-md">
-                  Current team activity, leaderboard movement, and setup status for this cycle.
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-4 mt-auto">
-              <Link
-                href="/team"
-                className="px-6 py-3 bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] text-[#002345] font-bold rounded-lg shadow-lg hover:brightness-110 active:scale-95 transition-all text-sm"
-              >
-                Open team
-              </Link>
-              <Link
-                href="/leaderboard"
-                className="px-6 py-3 bg-[#22262f] border border-[#45484f]/20 text-[#ecedf6] font-bold rounded-lg hover:bg-[#282c36] active:scale-95 transition-all text-sm"
-              >
-                View leaderboard
-              </Link>
-              <Link
-                href="/upload"
-                className="px-6 py-3 bg-transparent text-[#74b1ff] hover:text-[#54a3ff] font-bold rounded-lg transition-all text-sm flex items-center gap-2"
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>add</span>
-                Upload call
-              </Link>
-            </div>
-          </div>
-          <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-[#74b1ff]/5 rounded-full blur-[80px]" />
-        </div>
+        <OperatingPulseCard />
 
         <OrgSetupCard setupStatus={setupStatus} />
       </div>
@@ -294,42 +268,9 @@ function ExecutiveDashboardView({
 
   return (
     <div className="space-y-8">
-      {/* Row 1: CTA card + Org Setup */}
+      {/* Row 1: Operating pulse + Org Setup */}
       <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-12 lg:col-span-8 bg-[#10131a] rounded-xl p-6 border border-[#45484f]/10 flex flex-col justify-between relative overflow-hidden">
-          <div className="relative z-10">
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h3 className="text-xl font-bold mb-2 text-[#ecedf6]">Live team snapshot</h3>
-                <p className="text-[#a9abb3] text-sm max-w-md">
-                  Current team activity, leaderboard movement, and setup status for this cycle.
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-4 mt-auto">
-              <Link
-                href="/team"
-                className="px-6 py-3 bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] text-[#002345] font-bold rounded-lg shadow-lg hover:brightness-110 active:scale-95 transition-all text-sm"
-              >
-                Open team
-              </Link>
-              <Link
-                href="/leaderboard"
-                className="px-6 py-3 bg-[#22262f] border border-[#45484f]/20 text-[#ecedf6] font-bold rounded-lg hover:bg-[#282c36] active:scale-95 transition-all text-sm"
-              >
-                View leaderboard
-              </Link>
-              <Link
-                href="/upload"
-                className="px-6 py-3 bg-transparent text-[#74b1ff] hover:text-[#54a3ff] font-bold rounded-lg transition-all text-sm flex items-center gap-2"
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>add</span>
-                Upload call
-              </Link>
-            </div>
-          </div>
-          <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-[#74b1ff]/5 rounded-full blur-[80px]" />
-        </div>
+        <OperatingPulseCard />
 
         <OrgSetupCard setupStatus={setupStatus} />
       </div>
@@ -355,7 +296,7 @@ function ExecutiveDashboardView({
       <div className="grid gap-6 xl:grid-cols-[1.05fr,0.95fr]">
         <SurfacePanel title="Org Skill Averages" link={{ href: "/training", label: "Open training" }}>
           {skillAveragesLabel ? (
-            <p className="mb-4 text-xs font-medium uppercase tracking-[0.18em] text-[#74b1ff]">
+            <p className="mb-4 text-xs font-medium uppercase tracking-[0.18em] text-[var(--forge-gold)]">
               {skillAveragesLabel}
             </p>
           ) : null}
@@ -388,11 +329,11 @@ function ExecutiveDashboardView({
                   <div className="flex flex-1 flex-col items-center gap-2" key={week.week}>
                     <div className="flex h-36 w-full items-end">
                       <div
-                        className="w-full rounded-t-md bg-[#74b1ff]/60 transition hover:bg-[#74b1ff]/80"
+                        className="w-full rounded-t-md bg-[var(--forge-gold)]/60 transition hover:bg-[var(--forge-gold)]/80"
                         style={{ height: `${pct}%` }}
                       />
                     </div>
-                    <span className="text-[10px] text-[#a9abb3]">
+                    <span className="text-[10px] text-[var(--forge-muted)]">
                       {new Date(week.week).toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
@@ -417,7 +358,7 @@ function ExecutiveDashboardView({
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] text-sm">
               <thead>
-                <tr className="border-b border-[#45484f]/20 text-[#a9abb3]">
+                <tr className="border-b border-[var(--forge-border-strong)]/20 text-[var(--forge-muted)]">
                   <th className="pb-3 text-left font-medium">Rep</th>
                   <th className="pb-3 text-center font-medium">Overall</th>
                   {hasDynamicSkillMatrix ? (
@@ -439,9 +380,9 @@ function ExecutiveDashboardView({
               </thead>
               <tbody>
                 {repSkillBreakdown.map((rep) => (
-                  <tr className="border-b border-[#45484f]/10 last:border-b-0" key={rep.repId}>
+                  <tr className="border-b border-[var(--forge-border-strong)]/10 last:border-b-0" key={rep.repId}>
                     <td className="py-3 pr-4">
-                      <Link className="font-medium text-[#ecedf6] hover:text-[#74b1ff]" href={`/team/${rep.repId}`}>
+                      <Link className="font-medium text-[var(--forge-text)] hover:text-[var(--forge-gold)]" href={`/team/${rep.repId}`}>
                         {[rep.firstName, rep.lastName].filter(Boolean).join(" ") || "Unknown rep"}
                       </Link>
                     </td>
@@ -479,66 +420,76 @@ function ExecutiveDashboardView({
 
 /* ── Shared sub-components ──────────────────────────────────────── */
 
+function OperatingPulseCard() {
+  return (
+    <ForgeWidget
+      className="col-span-12 lg:col-span-8"
+      eyebrow="Dashboard OS"
+      title="Operating pulse"
+    >
+      <div className="grid gap-5 lg:grid-cols-[1fr,auto] lg:items-end">
+        <p className="max-w-2xl text-sm leading-7 text-[var(--forge-muted)]">
+          Current team activity, leaderboard movement, call intake, and setup health for this cycle.
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <ForgeButton href="/team" icon="group" variant="primary">
+            Open team
+          </ForgeButton>
+          <ForgeButton href="/leaderboard" icon="leaderboard" variant="secondary">
+            View ranks
+          </ForgeButton>
+          <ForgeButton href="/upload" icon="cloud_upload" variant="ghost">
+            Upload call
+          </ForgeButton>
+        </div>
+      </div>
+    </ForgeWidget>
+  );
+}
+
 function OrgSetupCard({
   setupStatus,
 }: {
   setupStatus: Awaited<ReturnType<typeof getSetupStatus>>;
 }) {
   return (
-    <div className="col-span-12 lg:col-span-4 bg-[#10131a] rounded-xl p-6 flex flex-col border border-[#45484f]/10">
-      <div className="mb-6 flex items-center justify-between">
-        <span className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-[#a9abb3]">
-          Org Setup
-        </span>
+    <ForgeWidget className="col-span-12 lg:col-span-4" eyebrow="Workspace" title="Setup health">
+      <div className="mb-4 flex items-center justify-between">
         {setupStatus?.orgSlug && (
-          <div className="flex items-center gap-2 px-2 py-1 bg-[#161a21] rounded-md border border-[#45484f]/20">
-            <span className="material-symbols-outlined text-[#74b1ff]" style={{ fontSize: "14px" }}>
-              fingerprint
-            </span>
-            <code className="text-[10px] text-[#a9abb3] font-mono">{setupStatus.orgSlug}</code>
+          <div className="flex items-center gap-2 px-2 py-1 bg-[var(--forge-surface-2)] rounded-md border border-[var(--forge-border-strong)]/20">
+            <ForgeIcon className="text-[var(--forge-gold)]" name="fingerprint" size={14} />
+            <code className="text-[10px] text-[var(--forge-muted)] font-mono">{setupStatus.orgSlug}</code>
           </div>
         )}
       </div>
       <div className="grid grid-cols-1 gap-3">
-        <div className="flex justify-between items-center py-2 border-b border-[#45484f]/10">
-          <span className="text-[#a9abb3] text-sm">Reps</span>
-          <span className="text-[#74b1ff] font-bold">{setupStatus?.repsCount ?? 0}</span>
+        <div className="flex justify-between items-center py-2 border-b border-[var(--forge-border-strong)]/10">
+          <span className="text-[var(--forge-muted)] text-sm">Reps</span>
+          <span className="text-[var(--forge-gold)] font-bold">{setupStatus?.repsCount ?? 0}</span>
         </div>
-        <div className="flex justify-between items-center py-2 border-b border-[#45484f]/10">
-          <span className="text-[#a9abb3] text-sm">Calls</span>
-          <span className="text-[#74b1ff] font-bold">{setupStatus?.callsCount ?? 0}</span>
+        <div className="flex justify-between items-center py-2 border-b border-[var(--forge-border-strong)]/10">
+          <span className="text-[var(--forge-muted)] text-sm">Calls</span>
+          <span className="text-[var(--forge-gold)] font-bold">{setupStatus?.callsCount ?? 0}</span>
         </div>
         <div className="flex justify-between items-center py-2">
-          <span className="text-[#a9abb3] text-sm">Roleplay</span>
-          <span className="text-[#74b1ff] font-bold">{setupStatus?.roleplayCount ?? 0}</span>
+          <span className="text-[var(--forge-muted)] text-sm">Roleplay</span>
+          <span className="text-[var(--forge-gold)] font-bold">{setupStatus?.roleplayCount ?? 0}</span>
         </div>
       </div>
-    </div>
+    </ForgeWidget>
   );
 }
 
 function RepPerformanceSection({ reps }: { reps: ManagerDashboard["reps"] }) {
   if (!reps.length) {
     return (
-      <div className="bg-[#10131a] border-2 border-[#74b1ff]/20 rounded-3xl p-16 flex flex-col items-center justify-center text-center relative overflow-hidden shadow-[0_0_50px_-12px_rgba(116,177,255,0.15)]">
-        <div className="relative z-10">
-          <div className="w-20 h-20 rounded-full bg-[#74b1ff]/10 flex items-center justify-center mb-8 mx-auto ring-4 ring-[#74b1ff]/5">
-            <span className="material-symbols-outlined text-[#74b1ff]" style={{ fontSize: "40px" }}>
-              monitoring
-            </span>
-          </div>
-          <h3 className="text-3xl font-bold mb-4 text-[#ecedf6]">Rep Performance</h3>
-          <p className="text-[#a9abb3] max-w-xl text-lg leading-relaxed">
-            No rep performance yet. Once reps and scored calls exist in this org, the coaching roster appears here.
-          </p>
-          <div className="mt-10 flex gap-4 justify-center">
-            <div className="px-4 py-2 rounded-full border border-[#45484f]/20 text-[0.65rem] font-bold uppercase tracking-widest text-[#a9abb3]/60 bg-[#161a21]/30">
-              Central Hub for Growth
-            </div>
-          </div>
-        </div>
-        <div className="absolute inset-0 bg-gradient-to-b from-[#74b1ff]/5 to-transparent" />
-      </div>
+      <ForgeWidget eyebrow="People" title="Rep Performance">
+        <ForgeEmptyStatePrimitive
+          description="Once reps and scored calls exist in this org, the coaching roster appears here."
+          icon="monitoring"
+          title="No rep performance yet"
+        />
+      </ForgeWidget>
     );
   }
 
@@ -547,30 +498,30 @@ function RepPerformanceSection({ reps }: { reps: ManagerDashboard["reps"] }) {
       <div className="grid gap-3 md:grid-cols-2">
         {reps.map((rep) => (
           <Link
-            className="rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-4 transition hover:border-[#74b1ff]/30 hover:bg-[#74b1ff]/5"
+            className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-4 transition hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/5"
             href={`/team/${rep.id}`}
             key={rep.id}
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-[#ecedf6]">
+                <p className="text-sm font-semibold text-[var(--forge-text)]">
                   {[rep.firstName, rep.lastName].filter(Boolean).join(" ") || "Unknown rep"}
                 </p>
-                <p className="mt-1 text-xs text-[#a9abb3]">{rep.callCount} scored calls</p>
+                <p className="mt-1 text-xs text-[var(--forge-muted)]">{rep.callCount} scored calls</p>
               </div>
               <span className={`text-lg font-bold ${scoreColor(rep.compositeScore)}`}>
                 {rep.compositeScore ?? "—"}
               </span>
             </div>
             <div className="mt-4 flex items-center justify-between text-xs">
-              <span className="uppercase tracking-[0.2em] text-[#a9abb3]">Week over week</span>
+              <span className="uppercase tracking-[0.2em] text-[var(--forge-muted)]">Week over week</span>
               <span
                 className={
                   rep.weekOverWeekDelta === null
-                    ? "text-[#a9abb3]"
+                    ? "text-[var(--forge-muted)]"
                     : rep.weekOverWeekDelta < 0
-                      ? "text-red-400"
-                      : "text-emerald-400"
+                      ? "text-[var(--forge-danger)]"
+                      : "text-[var(--forge-success)]"
                 }
               >
                 {rep.weekOverWeekDelta === null ? "—" : formatDelta(rep.weekOverWeekDelta)}
@@ -595,27 +546,20 @@ function LeaderboardColumns({ leaderboard }: { leaderboard: DashboardLeaderboard
       {groups.map((group) => {
         const entries = leaderboard?.[group.key] ?? [];
         return (
-          <div
+          <ForgeWidget
             key={group.key}
-            className="bg-[#10131a] rounded-xl p-6 border border-[#45484f]/10"
+            eyebrow="Ranks"
+            title={group.title}
           >
-            <div className="flex items-center gap-3 mb-6">
-              <span className="material-symbols-outlined text-[#6dddff]" style={{ fontSize: "20px" }}>
-                {group.icon}
-              </span>
-              <h4 className="font-bold uppercase text-xs tracking-widest text-[#ecedf6]">
-                {group.title}
-              </h4>
-            </div>
             {entries.length ? (
               <div className="space-y-3">
                 {entries.map((entry) => (
                   <Link
-                    className="flex items-center justify-between gap-3 hover:text-[#74b1ff]"
+                    className="flex items-center justify-between gap-3 hover:text-[var(--forge-gold)]"
                     href={`/team/${entry.userId}`}
                     key={entry.userId}
                   >
-                    <p className="text-sm font-medium text-[#ecedf6]">
+                    <p className="text-sm font-medium text-[var(--forge-text)]">
                       {entry.rank}. {[entry.firstName, entry.lastName].filter(Boolean).join(" ") || "Unknown rep"}
                     </p>
                     <span className={`text-sm font-semibold ${scoreColor(entry.value)}`}>
@@ -625,13 +569,12 @@ function LeaderboardColumns({ leaderboard }: { leaderboard: DashboardLeaderboard
                 ))}
               </div>
             ) : (
-              <div className="py-12 flex flex-col items-center justify-center border border-dashed border-[#45484f]/20 rounded-lg bg-[#161a21]/20">
-                <span className="text-[0.65rem] uppercase tracking-[0.2em] text-[#a9abb3]/40 font-bold">
-                  No data yet
-                </span>
-              </div>
+              <EmptyState
+                description="Rankings populate once reps have scored calls in this workspace."
+                title="No data yet"
+              />
             )}
-          </div>
+          </ForgeWidget>
         );
       })}
     </div>
@@ -648,15 +591,12 @@ function MetricCard({
   unit?: string;
 }) {
   return (
-    <div className="bg-[#10131a] p-6 rounded-xl border border-[#45484f]/10">
-      <p className="text-xs font-bold uppercase tracking-widest text-[#a9abb3] mb-2">{label}</p>
-      <div className="flex items-baseline gap-2">
-        <span className="text-4xl font-bold text-[#74b1ff]" style={{ textShadow: "0 0 12px rgba(116, 177, 255, 0.4)" }}>
-          {value}
-        </span>
-        {unit && <span className="text-[#a9abb3] text-sm">{unit}</span>}
-      </div>
-    </div>
+    <ForgeMetric
+      description={unit ? unit : undefined}
+      label={label}
+      tone="cyan"
+      value={value}
+    />
   );
 }
 
@@ -670,34 +610,23 @@ function SurfacePanel({
   title: string;
 }) {
   return (
-    <section className="bg-[#10131a] rounded-xl p-6 border border-[#45484f]/10">
-      <div className="flex items-center justify-between gap-4 mb-5">
-        <h3 className="text-lg font-bold text-[#ecedf6]">{title}</h3>
-        {link ? (
-          <Link className="text-sm font-medium text-[#74b1ff] hover:text-[#54a3ff] transition" href={link.href}>
-            {link.label}
-          </Link>
-        ) : null}
-      </div>
+    <ForgeWidget action={link} title={title}>
       {children}
-    </section>
+    </ForgeWidget>
   );
 }
 
 function EmptyState({ description, title }: { description: string; title: string }) {
   return (
-    <div className="rounded-xl border border-dashed border-[#45484f]/20 bg-[#161a21]/20 px-5 py-8 text-center">
-      <p className="text-lg font-medium text-[#ecedf6]">{title}</p>
-      <p className="mx-auto mt-2 max-w-xl text-sm leading-7 text-[#a9abb3]">{description}</p>
-    </div>
+    <ForgeEmptyStatePrimitive description={description} title={title} />
   );
 }
 
 function BarRow({ label, tone, value }: { label: string; tone: string; value: number | null }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="w-36 shrink-0 text-sm text-[#a9abb3]">{label}</span>
-      <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#22262f]">
+      <span className="w-36 shrink-0 text-sm text-[var(--forge-muted)]">{label}</span>
+      <div className="h-2 flex-1 overflow-hidden rounded-full bg-[var(--forge-surface-3)]">
         <div
           className={`h-full rounded-full ${barColor(tone)}`}
           style={{ width: `${Math.max(0, Math.min(value ?? 0, 100))}%` }}
@@ -720,16 +649,16 @@ function formatDelta(value: number) {
 }
 
 function scoreColor(value: number | null | undefined) {
-  if (typeof value !== "number") return "text-[#a9abb3]";
-  if (value >= 85) return "text-emerald-400";
-  if (value >= 70) return "text-[#74b1ff]";
-  if (value >= 60) return "text-amber-400";
-  return "text-red-400";
+  if (typeof value !== "number") return "text-[var(--forge-muted)]";
+  if (value >= 85) return "text-[var(--forge-success)]";
+  if (value >= 70) return "text-[var(--forge-gold)]";
+  if (value >= 60) return "text-[var(--forge-ember)]";
+  return "text-[var(--forge-danger)]";
 }
 
 function barColor(tone: string) {
-  if (tone.includes("emerald")) return "bg-emerald-400";
-  if (tone.includes("amber")) return "bg-amber-400";
-  if (tone.includes("red")) return "bg-red-400";
-  return "bg-[#74b1ff]";
+  if (tone.includes("success")) return "bg-[var(--forge-success)]";
+  if (tone.includes("ember")) return "bg-[var(--forge-ember)]";
+  if (tone.includes("danger")) return "bg-[var(--forge-danger)]";
+  return "bg-[var(--forge-gold)]";
 }

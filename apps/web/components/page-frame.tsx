@@ -1,10 +1,17 @@
 import React from "react";
-import Link from "next/link";
 import { cn } from "@argos-v2/ui";
+import { ForgeButton, ForgeChip, type ForgeTone } from "./forge";
 
 type PageAction = {
   href: string;
+  icon?: string;
   label: string;
+};
+
+type PageStatusChip = {
+  icon?: string;
+  label: string;
+  tone?: ForgeTone;
 };
 
 type PageFrameProps = {
@@ -13,6 +20,10 @@ type PageFrameProps = {
   eyebrow?: string;
   title: string;
   actions?: PageAction[];
+  primaryAction?: PageAction;
+  secondaryActions?: PageAction[];
+  statusChips?: PageStatusChip[];
+  workflowSlot?: React.ReactNode;
   tone?: "default" | "warning";
   headerMode?: "default" | "hidden";
 };
@@ -22,21 +33,72 @@ export function PageFrame({
   children,
   description,
   eyebrow,
+  primaryAction,
+  secondaryActions,
+  statusChips,
   title,
   tone = "default",
   headerMode = "default",
+  workflowSlot,
 }: PageFrameProps) {
-  const actionLinks = actions?.length ? (
-    <div className="flex flex-wrap gap-3">
-      {actions.map((action) => (
-        <Link
-          className="rounded-xl border border-[#74b1ff]/20 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-[#74b1ff] transition hover:border-[#74b1ff]/35 hover:bg-[#74b1ff]/10"
+  const resolvedSecondaryActions = secondaryActions ?? actions ?? [];
+  const hasHeaderTools = Boolean(
+    primaryAction ||
+      resolvedSecondaryActions.length ||
+      statusChips?.length ||
+      workflowSlot,
+  );
+
+  const actionLinks = resolvedSecondaryActions.length ? (
+    <div className="flex flex-wrap gap-3" data-page-secondary-actions="true">
+      {resolvedSecondaryActions.map((action) => (
+        <ForgeButton
           href={action.href}
           key={action.href}
+          icon={action.icon}
+          variant="secondary"
         >
           {action.label}
-        </Link>
+        </ForgeButton>
       ))}
+    </div>
+  ) : null;
+
+  const primaryActionLink = primaryAction ? (
+    <ForgeButton
+      data-page-primary-action="true"
+      href={primaryAction.href}
+      icon={primaryAction.icon}
+      variant="primary"
+    >
+      {primaryAction.label}
+    </ForgeButton>
+  ) : null;
+
+  const statusChipList = statusChips?.length ? (
+    <div className="flex flex-wrap gap-2" data-page-status-chips="true">
+      {statusChips.map((chip, index) => (
+        <ForgeChip icon={chip.icon} key={`${chip.label}-${chip.tone ?? "muted"}-${index}`} tone={chip.tone ?? "muted"}>
+          {chip.label}
+        </ForgeChip>
+      ))}
+    </div>
+  ) : null;
+
+  const workflowNode = workflowSlot ? (
+    <div className="page-frame-workflow-slot" data-page-workflow-slot="true">
+      {workflowSlot}
+    </div>
+  ) : null;
+
+  const headerTools = hasHeaderTools ? (
+    <div className="flex flex-col items-start gap-3 sm:items-end" data-page-header-tools="true">
+      {statusChipList}
+      <div className="flex flex-wrap gap-3 sm:justify-end">
+        {actionLinks}
+        {primaryActionLink}
+      </div>
+      {workflowNode}
     </div>
   ) : null;
 
@@ -44,28 +106,32 @@ export function PageFrame({
     <div className="space-y-5">
       {headerMode === "default" ? (
         <section
+          data-page-header="forge"
           className={cn(
-            "rounded-[1.75rem] border p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)] sm:p-7",
-            tone === "warning"
-              ? "border-amber-500/20 bg-amber-500/5"
-              : "border-[#45484f]/10 bg-[#10131a]",
+            "forge-page-header p-6 sm:p-7",
+            tone === "warning" && "forge-page-header--warning",
           )}
         >
           {eyebrow ? (
-            <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#74b1ff]">
+            <p className="forge-page-eyebrow">
               {eyebrow}
             </p>
           ) : null}
           <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-2">
-              <h2 className="text-2xl font-semibold text-white">{title}</h2>
-              <p className="max-w-2xl text-sm leading-7 text-[#a9abb3]">{description}</p>
+              <h2 className="forge-page-title text-2xl font-semibold">{title}</h2>
+              <p className="forge-page-description max-w-2xl text-sm leading-7">{description}</p>
             </div>
-            {actionLinks}
+            {headerTools}
           </div>
         </section>
-      ) : actionLinks ? (
-        <div className="flex justify-end">{actionLinks}</div>
+      ) : hasHeaderTools ? (
+        <div className="flex flex-wrap justify-end gap-3">
+          {statusChipList}
+          {actionLinks}
+          {primaryActionLink}
+          {workflowNode}
+        </div>
       ) : null}
 
       {children}

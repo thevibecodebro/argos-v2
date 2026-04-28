@@ -1,4 +1,11 @@
-import Link from "next/link";
+import {
+  ForgeButton,
+  ForgeChip,
+  ForgeEmptyState,
+  ForgeIcon,
+  ForgeSurface,
+} from "@/components/forge";
+import { PageFrame } from "@/components/page-frame";
 import { getCachedAuthenticatedSupabaseUser } from "@/lib/auth/request-user";
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { listHighlights } from "@/lib/calls/service";
@@ -25,122 +32,130 @@ export default async function HighlightsPage() {
       : null;
 
   return (
-    <div className="flex-1 p-8">
-      <div className="mx-auto w-full max-w-5xl">
-        <section className="mb-8 flex justify-end">
-          <Link
-            className="flex items-center gap-2 rounded-lg border border-[#45484f]/30 bg-[#22262f] px-5 py-2.5 text-[#a9abb3] transition-all hover:border-[#74b1ff]/50 hover:text-[#74b1ff] active:scale-95"
-            href="/calls"
-          >
-            <span className="material-symbols-outlined text-sm">arrow_back</span>
-            <span className="font-['Space_Grotesk'] text-[10px] font-bold uppercase tracking-widest">
-              Back to call library
-            </span>
-          </Link>
+    <section className="px-12 pb-12 pt-8 flex-1 max-w-7xl mx-auto w-full">
+      <PageFrame
+        actions={[{ href: "/calls", label: "Back to call library" }]}
+        description="Review starred coaching moments, recommendations, and recurring patterns from call reviews."
+        eyebrow="Coaching evidence"
+        title="Coaching evidence"
+      >
+        <section className="grid gap-4 md:grid-cols-3" data-highlights-status-band="">
+          <ForgeSurface as="article" className="p-5" variant="panel">
+            <p className="font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-muted)]">
+              Captured moments
+            </p>
+            <p className="mt-3 text-3xl font-semibold text-[var(--forge-text)]">{highlights.length}</p>
+            <p className="mt-2 text-sm text-[var(--forge-muted)]">Saved from reviewed calls.</p>
+          </ForgeSurface>
+          <ForgeSurface as="article" className="p-5" variant="panel">
+            <p className="font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-muted)]">
+              Top pattern
+            </p>
+            <p className="mt-3 truncate text-2xl font-semibold text-[var(--forge-text)]">
+              {topCategory ?? "None yet"}
+            </p>
+            <p className="mt-2 text-sm text-[var(--forge-muted)]">Most frequent category in the library.</p>
+          </ForgeSurface>
+          <ForgeSurface as="article" className="p-5" variant="panel">
+            <p className="font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-muted)]">
+              Recommendation coverage
+            </p>
+            <p className="mt-3 text-3xl font-semibold text-[var(--forge-text)]">
+              {completeness !== null ? `${completeness}%` : "—"}
+            </p>
+            <p className="mt-2 text-sm text-[var(--forge-muted)]">
+              {withRecommendation} with next-step guidance.
+            </p>
+          </ForgeSurface>
         </section>
 
-        <div className="space-y-6">
-          {highlights.map((highlight, i) => {
-            const isPrimary = i % 2 === 0;
-            const borderColor = isPrimary ? "#74b1ff" : "#6dddff";
-            const badgeCls = isPrimary
-              ? "bg-[#74b1ff]/10 text-[#74b1ff]"
-              : "bg-[#6dddff]/10 text-[#6dddff]";
-            const hoverTitle = isPrimary
-              ? "group-hover:text-[#74b1ff]"
-              : "group-hover:text-[#6dddff]";
-            const hoverBtn = isPrimary
-              ? "hover:border-[#74b1ff]/50"
-              : "hover:border-[#6dddff]/50";
-            return (
-              <article
-                className="group flex flex-col items-start gap-6 rounded-xl border-l-4 p-6 transition-all hover:bg-[#1c2028] md:flex-row md:items-center"
-                key={highlight.id}
-                style={{
-                  borderLeftColor: borderColor,
-                  background: "rgba(34,38,47,0.4)",
-                  backdropFilter: "blur(12px)",
-                }}
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="mb-3 flex items-center gap-3">
-                    <span
-                      className={`rounded px-2 py-0.5 font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-widest ${badgeCls}`}
-                    >
-                      {highlight.category ?? "Highlight"}
-                      {highlight.severity ? ` • ${highlight.severity}` : ""}
-                    </span>
-                  </div>
-                  <h3
-                    className={`mb-2 font-['Space_Grotesk'] text-xl font-bold text-[#ecedf6] transition-colors ${hoverTitle}`}
-                  >
-                    {highlight.observation}
-                  </h3>
-                  {highlight.recommendation && (
-                    <p className="line-clamp-2 text-sm leading-relaxed text-[#a9abb3]">
-                      {highlight.recommendation}
-                    </p>
-                  )}
-                  {highlight.highlightNote && (
-                    <p className="mt-2 text-sm italic text-amber-200">
-                      {highlight.highlightNote}
-                    </p>
-                  )}
-                </div>
-                <div className="w-full shrink-0 md:w-auto">
-                  <Link
-                    className={`group/btn flex w-full items-center justify-center gap-2 rounded-lg border border-[#45484f]/20 bg-[#22262f] px-6 py-3 font-bold text-[#ecedf6] transition-all md:w-auto ${hoverBtn}`}
-                    href={`/calls/${highlight.callId}`}
-                  >
-                    <span className="font-['Space_Grotesk'] text-xs uppercase tracking-widest">
-                      Open call
-                    </span>
-                    <span className="material-symbols-outlined text-sm transition-transform group-hover/btn:translate-x-1">
-                      arrow_forward
-                    </span>
-                  </Link>
-                </div>
-              </article>
-            );
-          })}
-
-          {/* End-of-list / empty state */}
-          <div className="flex flex-col items-center rounded-2xl border-2 border-dashed border-[#45484f]/10 p-12 text-center">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#22262f]">
-              <span className="material-symbols-outlined text-2xl text-[#74b1ff]">
-                auto_awesome
-              </span>
+        <section className="space-y-4" data-highlights-library="">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
+                Highlight library
+              </p>
+              <p className="mt-2 text-sm text-[var(--forge-muted)]">
+                Open the source call to inspect transcript context and scorecard notes.
+              </p>
             </div>
-            {highlights.length === 0 ? (
-              <>
-                <h4 className="mb-1 font-['Space_Grotesk'] text-lg font-bold">
-                  No highlights yet
-                </h4>
-                <p className="max-w-xs text-sm text-[#a9abb3]">
-                  Managers can star moments from a call detail page to build a
-                  reusable coaching library here.
-                </p>
-              </>
-            ) : (
-              <>
-                <h4 className="mb-1 font-['Space_Grotesk'] text-lg font-bold">
-                  More highlights arriving soon
-                </h4>
-                <p className="max-w-xs text-sm text-[#a9abb3]">
-                  Our intelligence engine is currently processing recent
-                  recordings. Check back in a few minutes.
-                </p>
-              </>
-            )}
+            <span className="rounded-full border border-[var(--forge-border-strong)]/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
+              {highlights.length} {highlights.length === 1 ? "item" : "items"}
+            </span>
           </div>
-        </div>
+
+          <div className="space-y-3">
+            {highlights.map((highlight, i) => {
+              const isPrimary = i % 2 === 0;
+              const chipTone = isPrimary ? "gold" : "cyan";
+              const hoverTitle = isPrimary
+                ? "group-hover:text-[var(--forge-gold)]"
+                : "group-hover:text-[var(--forge-cyan)]";
+              const hoverBtn = isPrimary
+                ? "hover:border-[var(--forge-gold)]/50"
+                : "hover:border-[var(--forge-cyan)]/50";
+              return (
+                <ForgeSurface
+                  as="article"
+                  className="group flex flex-col items-start gap-6 p-6 md:flex-row md:items-center"
+                  data-highlight-tone={chipTone}
+                  key={highlight.id}
+                  variant="interactive"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="mb-3 flex items-center gap-3">
+                      <ForgeChip tone={chipTone}>
+                        {highlight.category ?? "Highlight"}
+                        {highlight.severity ? ` • ${highlight.severity}` : ""}
+                      </ForgeChip>
+                    </div>
+                    <h3
+                      className={`mb-2 font-['Space_Grotesk'] text-xl font-bold text-[var(--forge-text)] transition-colors ${hoverTitle}`}
+                    >
+                      {highlight.observation}
+                    </h3>
+                    {highlight.recommendation && (
+                      <p className="line-clamp-2 text-sm leading-relaxed text-[var(--forge-muted)]">
+                        {highlight.recommendation}
+                      </p>
+                    )}
+                    {highlight.highlightNote && (
+                      <p className="mt-2 text-sm italic text-[var(--forge-ember)]">
+                        {highlight.highlightNote}
+                      </p>
+                    )}
+                  </div>
+                  <div className="w-full shrink-0 md:w-auto">
+                    <ForgeButton
+                      className={`w-full md:w-auto ${hoverBtn}`}
+                      href={`/calls/${highlight.callId}`}
+                      size="sm"
+                      trailingIcon="arrow_forward"
+                      variant="secondary"
+                    >
+                      Open call
+                    </ForgeButton>
+                  </div>
+                </ForgeSurface>
+              );
+            })}
+
+            {highlights.length === 0 ? (
+              <ForgeEmptyState
+                description="Managers can star moments from a call detail page to build a reusable coaching library here."
+                icon="auto_awesome"
+                title="No highlights yet"
+              />
+            ) : null}
+          </div>
+        </section>
 
         {/* Bento cards */}
         <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2">
           {/* Coaching Insights */}
-          <div className="group relative overflow-hidden rounded-2xl border border-[#45484f]/10 bg-[#10131a] p-6">
+          <ForgeSurface as="section" className="group relative overflow-hidden p-6" variant="panel">
             <div className="relative z-10">
-              <h4 className="mb-4 font-['Space_Grotesk'] text-xs font-black uppercase tracking-widest text-[#6dddff]">
+              <h4 className="mb-4 font-['Space_Grotesk'] text-xs font-black uppercase tracking-widest text-[var(--forge-cyan)]">
                 Weekly Coaching Insights
               </h4>
               {topCategory ? (
@@ -148,10 +163,10 @@ export default async function HighlightsPage() {
                   <p className="mb-4 font-['Space_Grotesk'] text-2xl font-bold">
                     Focus on &ldquo;{topCategory}&rdquo;
                   </p>
-                  <p className="text-sm text-[#a9abb3]">
+                  <p className="text-sm text-[var(--forge-muted)]">
                     This is the most frequent pattern across your{" "}
                     {highlights.length} highlight
-                    {highlights.length === 1 ? "" : "s"} — lean into coaching
+                    {highlights.length === 1 ? "" : "s"}; lean into coaching
                     around it in your next sessions.
                   </p>
                 </>
@@ -160,7 +175,7 @@ export default async function HighlightsPage() {
                   <p className="mb-4 font-['Space_Grotesk'] text-2xl font-bold">
                     No data yet
                   </p>
-                  <p className="text-sm text-[#a9abb3]">
+                  <p className="text-sm text-[var(--forge-muted)]">
                     Coaching insights will appear once highlights are captured
                     from your calls.
                   </p>
@@ -168,16 +183,14 @@ export default async function HighlightsPage() {
               )}
             </div>
             <div className="absolute -bottom-12 -right-12 opacity-5 transition-opacity group-hover:opacity-10">
-              <span className="material-symbols-outlined text-[160px]">
-                insights
-              </span>
+              <ForgeIcon name="insights" size={160} />
             </div>
-          </div>
+          </ForgeSurface>
 
           {/* Intelligence Health */}
-          <div className="flex flex-col justify-between rounded-2xl border border-[#45484f]/10 bg-gradient-to-br from-[#10131a] to-[#161a21] p-6">
+          <ForgeSurface as="section" className="flex flex-col justify-between p-6" variant="panel">
             <div>
-              <h4 className="mb-4 font-['Space_Grotesk'] text-xs font-black uppercase tracking-widest text-[#74b1ff]">
+              <h4 className="mb-4 font-['Space_Grotesk'] text-xs font-black uppercase tracking-widest text-[var(--forge-gold)]">
                 Intelligence Health
               </h4>
               <div className="mb-2 flex items-end gap-2">
@@ -185,7 +198,7 @@ export default async function HighlightsPage() {
                   {completeness !== null ? `${completeness}%` : "—"}
                 </span>
               </div>
-              <p className="text-sm text-[#a9abb3]">
+              <p className="text-sm text-[var(--forge-muted)]">
                 {completeness !== null
                   ? `${withRecommendation} of ${highlights.length} highlights include actionable recommendations.`
                   : "No highlights to analyze yet. Start starring moments from call detail pages."}
@@ -193,15 +206,15 @@ export default async function HighlightsPage() {
             </div>
             <div className="mt-6 h-1.5 w-full overflow-hidden rounded-full bg-black">
               <div
-                className="h-full rounded-full bg-[#74b1ff] shadow-[0_0_8px_rgba(116,177,255,0.5)] transition-all"
+                className="h-full rounded-full bg-[var(--forge-gold)] shadow-[0_0_8px_rgba(241, 191, 123,0.5)] transition-all"
                 style={{
                   width: completeness !== null ? `${completeness}%` : "0%",
                 }}
               />
             </div>
-          </div>
+          </ForgeSurface>
         </div>
-      </div>
-    </div>
+      </PageFrame>
+    </section>
   );
 }

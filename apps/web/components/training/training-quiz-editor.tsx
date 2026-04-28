@@ -145,15 +145,15 @@ export function TrainingQuizEditor({ onChange, value }: TrainingQuizEditorProps)
     <section className="rounded-[1.15rem] border border-white/10 bg-black/20 p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#74b1ff]">
+          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-gold)]">
             Quiz builder
           </p>
-          <p className="mt-1 text-sm text-[#a9abb3]">
+          <p className="mt-1 text-sm text-[var(--forge-muted)]">
             Add questions, options, and correct answers inline without dropping into raw JSON.
           </p>
         </div>
         <button
-          className="rounded-xl border border-[#45484f]/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white transition hover:border-[#74b1ff]/30 hover:bg-[#74b1ff]/10"
+          className="rounded-xl border border-[var(--forge-border-strong)]/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white transition hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/10"
           onClick={handleAddQuestion}
           type="button"
         >
@@ -164,13 +164,13 @@ export function TrainingQuizEditor({ onChange, value }: TrainingQuizEditorProps)
       <div className="mt-4 space-y-4">
         {visibleQuestions.map((question, questionIndex) => (
           <article
-            className="rounded-xl border border-[#45484f]/10 bg-[#10131a]/80 p-4"
+            className="rounded-xl border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)]/80 p-4"
             key={`question-${questionIndex}`}
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm font-semibold text-white">Question {questionIndex + 1}</p>
               <button
-                className="text-xs font-semibold uppercase tracking-[0.18em] text-[#a9abb3] hover:text-white"
+                className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-muted)] hover:text-white"
                 onClick={() => handleRemoveQuestion(questionIndex)}
                 type="button"
               >
@@ -179,11 +179,11 @@ export function TrainingQuizEditor({ onChange, value }: TrainingQuizEditorProps)
             </div>
 
             <label className="mt-4 block space-y-2">
-              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#a9abb3]">
+              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
                 Prompt
               </span>
               <textarea
-                className="min-h-24 w-full rounded-xl border border-[#45484f]/15 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                className="min-h-24 w-full rounded-xl border border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white outline-none"
                 onChange={(event) =>
                   handleUpdateQuestion(questionIndex, (draft) => ({ ...draft, prompt: event.target.value }))
                 }
@@ -194,9 +194,9 @@ export function TrainingQuizEditor({ onChange, value }: TrainingQuizEditorProps)
             <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_190px]">
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#a9abb3]">Options</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-muted)]">Options</p>
                   <button
-                    className="rounded-lg border border-[#45484f]/20 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#ecedf6] transition hover:border-[#74b1ff]/30 hover:bg-[#74b1ff]/10"
+                    className="rounded-lg border border-[var(--forge-border-strong)]/20 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--forge-text)] transition hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/10"
                     onClick={() => handleAddOption(questionIndex)}
                     type="button"
                   >
@@ -209,7 +209,7 @@ export function TrainingQuizEditor({ onChange, value }: TrainingQuizEditorProps)
                     <div className="flex items-center gap-2" key={`${questionIndex}-${optionIndex}`}>
                       <input
                         aria-label={`Option ${optionIndex + 1}`}
-                        className="min-w-0 flex-1 rounded-xl border border-[#45484f]/15 bg-[#10131a] px-4 py-3 text-sm text-white outline-none"
+                        className="min-w-0 flex-1 rounded-xl border border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white outline-none"
                         onChange={(event) =>
                           handleUpdateQuestion(questionIndex, (draft) => ({
                             ...draft,
@@ -225,8 +225,8 @@ export function TrainingQuizEditor({ onChange, value }: TrainingQuizEditorProps)
                           className={cn(
                             "rounded-lg border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition",
                             canRemoveTrainingQuizQuestionOption(question, optionIndex)
-                              ? "border-[#45484f]/20 text-[#a9abb3] hover:border-[#74b1ff]/30 hover:text-white"
-                              : "cursor-not-allowed border-[#45484f]/10 text-[#45484f]",
+                              ? "border-[var(--forge-border-strong)]/20 text-[var(--forge-muted)] hover:border-[var(--forge-gold)]/30 hover:text-white"
+                              : "cursor-not-allowed border-[var(--forge-border-strong)]/10 text-[var(--forge-border-strong)]",
                           )}
                           disabled={!canRemoveTrainingQuizQuestionOption(question, optionIndex)}
                           onClick={() => handleRemoveOption(questionIndex, optionIndex)}
@@ -241,12 +241,12 @@ export function TrainingQuizEditor({ onChange, value }: TrainingQuizEditorProps)
               </div>
 
               <label className="block space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#a9abb3]">
+                <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
                   Correct answer
                 </span>
                 <select
                   className={cn(
-                    "w-full rounded-xl border border-[#45484f]/15 bg-[#10131a] px-4 py-3 text-sm text-white outline-none",
+                    "w-full rounded-xl border border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white outline-none",
                   )}
                   onChange={(event) =>
                     handleUpdateQuestion(questionIndex, (draft) => ({

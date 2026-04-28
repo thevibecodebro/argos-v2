@@ -22,9 +22,8 @@ export default async function TeamPage() {
   return (
     <section className="px-12 pb-12 pt-8 flex-1 max-w-7xl mx-auto w-full">
       <PageFrame
-        headerMode="hidden"
         actions={[{ href: "/leaderboard", label: "Open leaderboard" }]}
-        description="Review team performance with week-over-week trend, call volume, and coaching flags."
+        description="Review team performance, coaching focus, and rep-level score movement."
         eyebrow="Team"
         title="Team"
       >

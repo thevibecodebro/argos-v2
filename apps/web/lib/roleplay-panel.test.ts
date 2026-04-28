@@ -91,12 +91,54 @@ describe("RoleplayPanel", () => {
     );
 
     expect(html).toContain("Session Scorecard");
+    expect(html).toContain('data-roleplay-workspace="simulation"');
+    expect(html).toContain('data-forge-workspace-layout="two-rails"');
+    expect(html).toContain('data-roleplay-scenario-rail=""');
+    expect(html).toContain('data-roleplay-score-rail=""');
+    expect(html).toContain('data-roleplay-simulation-stage=""');
     expect(html).toContain("Confidence");
     expect(html).toContain("Stage");
     expect(html).toContain("Improve");
     expect(html).toContain("Frame Control");
     expect(html).toContain("Recent History");
     expect(html).toContain("Listen");
+    expect(html).toContain('data-forge-icon-name="insights"');
+    expect(html).not.toContain(">videocam<");
+    expect(html).not.toContain(">leaderboard<");
+    expect(html).not.toContain(">history<");
+  });
+
+  it("renders a clear no-session workspace with next action guidance", () => {
+    const html = renderToStaticMarkup(
+      createElement(RoleplayPanel, {
+        initialPersonas: [
+          {
+            id: "skeptical-cfo",
+            name: "Dana Mercer",
+            role: "CFO",
+            company: "Apex Manufacturing",
+            industry: "Manufacturing",
+            difficulty: "advanced",
+            objectionType: "ROI & Budget",
+            description: "Numbers-first evaluator.",
+            avatarInitials: "DM",
+          },
+        ],
+        initialSessions: [],
+      }),
+    );
+
+    expect(html).toContain('data-roleplay-scenario-rail=""');
+    expect(html).toContain('data-roleplay-simulation-stage=""');
+    expect(html).toContain('data-roleplay-score-rail=""');
+    expect(html).toContain("Start simulation");
+    expect(html).toContain("No active simulation");
+    expect(html).toContain("Choose a persona in the scenario rail, then start a simulation.");
+    expect(html).toContain("Select a scenario to begin scoring.");
+    expect(html).toContain('data-forge-icon-name="psychology"');
+    expect(html).not.toContain(">record_voice_over<");
+    expect(html).not.toContain(">send<");
+    expect(html).not.toContain(">insights<");
   });
 
   it("opens the requested generated session and renders generated-call context inline", () => {
@@ -188,5 +230,7 @@ describe("RoleplayPanel", () => {
     expect(html).toContain("Derived from a real call. Stay concise, skeptical, and push on discovery.");
     expect(html).toContain("An anonymized buyer wants stronger proof and tighter next-step control.");
     expect(html).toContain("Anonymized buyer");
+    expect(html).not.toContain(">videocam<");
+    expect(html).not.toContain(">smart_toy<");
   });
 });

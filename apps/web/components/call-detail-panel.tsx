@@ -2,6 +2,15 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  ForgeButton,
+  ForgeChip,
+  ForgeEmptyState,
+  ForgeIcon,
+  ForgeSegmentedTab,
+  ForgeSegmentedTabs,
+  ForgeSurface,
+} from "@/components/forge";
 import { HighlightNote } from "@/components/highlight-note";
 import type { CallAnnotation, CallDetail, CallMoment } from "@/lib/calls/service";
 
@@ -13,7 +22,7 @@ type CallDetailPanelProps = {
 
 function formatTimestamp(seconds: number | null | undefined) {
   if (seconds == null) {
-    return "—";
+    return "-";
   }
 
   const minutes = Math.floor(seconds / 60);
@@ -29,17 +38,55 @@ function formatDate(value: string) {
 }
 
 function scoreTint(value: number | null | undefined) {
-  if (typeof value !== "number") return "bg-slate-700 text-slate-400";
-  if (value >= 85) return "bg-cyan-400 text-cyan-300";
-  if (value >= 70) return "bg-[#74b1ff] text-[#74b1ff]";
-  if (value >= 60) return "bg-amber-400 text-amber-300";
-  return "bg-red-400 text-red-400";
+  if (typeof value !== "number") {
+    return {
+      bar: "bg-[rgba(255,244,230,0.18)]",
+      text: "text-[var(--forge-muted)]",
+      tone: "muted" as const,
+    };
+  }
+  if (value >= 85) {
+    return {
+      bar: "bg-[var(--forge-cyan)] shadow-[0_0_14px_rgba(136,218,247,0.22)]",
+      text: "text-[var(--forge-cyan)]",
+      tone: "cyan" as const,
+    };
+  }
+  if (value >= 70) {
+    return {
+      bar: "bg-[rgba(136,218,247,0.72)]",
+      text: "text-[rgba(136,218,247,0.84)]",
+      tone: "cyan" as const,
+    };
+  }
+  if (value >= 60) {
+    return {
+      bar: "bg-[var(--forge-gold)]",
+      text: "text-[var(--forge-gold)]",
+      tone: "gold" as const,
+    };
+  }
+  return {
+    bar: "bg-[var(--forge-danger)]",
+    text: "text-[var(--forge-danger)]",
+    tone: "danger" as const,
+  };
 }
 
-function severityTint(severity: string | null | undefined) {
-  if (severity === "strength") return "bg-cyan-500/10 text-cyan-300 border-cyan-500/20";
-  if (severity === "critical") return "bg-red-500/10 text-red-300 border-red-500/20";
-  return "bg-[#74b1ff]/10 text-[#74b1ff] border-[#74b1ff]/20";
+function severityTint(severity: string | null | undefined): "cyan" | "danger" | "ember" {
+  if (severity === "strength") return "cyan";
+  if (severity === "critical") return "danger";
+  return "ember";
+}
+
+function statusTone(status: string | null | undefined): "danger" | "ember" | "muted" | "success" {
+  const normalized = status?.toLowerCase();
+  if (normalized === "complete") return "success";
+  if (normalized === "failed") return "danger";
+  if (normalized === "processing" || normalized === "transcribing" || normalized === "evaluating") {
+    return "ember";
+  }
+  return "muted";
 }
 
 function progressWidth(value: number | null | undefined) {
@@ -79,6 +126,9 @@ export function CallDetailPanel({
     defaultFocusSlug: string;
   } | null>(null);
   const [focusCategorySlug, setFocusCategorySlug] = useState("all");
+  const [activeWorkbenchTab, setActiveWorkbenchTab] = useState<
+    "transcript" | "moments" | "summary" | "notes"
+  >("transcript");
 
   const scoreCards = useMemo(() => call.categoryScores, [call.categoryScores]);
 
@@ -271,480 +321,483 @@ export function CallDetailPanel({
 
   return (
     <>
-      <div className="grid grid-cols-12 gap-8">
-        <div className="col-span-12 space-y-8 lg:col-span-5">
-        <section className="overflow-hidden rounded-[1.5rem] border border-white/8 bg-[#10131a] p-6 shadow-[0_24px_80px_rgba(2,8,23,0.32)]">
-          <div className="mb-8 flex items-start justify-between gap-6">
-            <div>
-              <h2 className="text-xl font-semibold text-white">Revenue Scorecard</h2>
-              <p className="mt-1 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                AI-Powered Evaluation
-              </p>
-              <p className="mt-3 text-sm text-slate-400">
-                Confidence: {call.confidence ?? "unknown"} · Stage: {call.callStageReached ?? "not set"}
-              </p>
-              <p className="mt-2 text-xs uppercase tracking-[0.18em] text-slate-500">
-                Scorecard: {call.rubric?.name ?? "Revenue Scorecard"}
-                {call.rubric?.version != null ? ` · v${call.rubric.version}` : ""}
-              </p>
-            </div>
-            <div className="relative flex items-center justify-center">
-              <svg className="h-24 w-24 -rotate-90 transform">
-                <circle
-                  cx="48"
-                  cy="48"
-                  fill="transparent"
-                  r="40"
-                  stroke="#22262f"
-                  strokeWidth="8"
-                />
-                <circle
-                  cx="48"
-                  cy="48"
-                  fill="transparent"
-                  r="40"
-                  stroke="#74b1ff"
-                  strokeDasharray={circumference}
-                  strokeDashoffset={ringOffset}
-                  strokeLinecap="round"
-                  strokeWidth="8"
-                />
-              </svg>
-              <span className="absolute text-2xl font-black text-[#74b1ff]">
-                {call.overallScore ?? "—"}
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            {scoreCards.map((category) => {
-              const tint = scoreTint(category.score);
-              return (
-                <div className="flex items-center justify-between gap-4" key={category.slug}>
-                  <span className="text-sm font-medium text-slate-300 transition-colors hover:text-[#74b1ff]">
-                    {category.name}
-                  </span>
-                  <div className="flex items-center gap-3">
-                    <div className="h-1.5 w-32 overflow-hidden rounded-full bg-black">
-                      <div
-                        className={`h-full rounded-full ${tint.split(" ")[0]}`}
-                        style={{ width: `${progressWidth(category.score)}%` }}
-                      />
-                    </div>
-                    <span className={`w-7 text-right text-xs font-bold ${tint.split(" ")[1]}`}>
-                      {category.score ?? "—"}
-                    </span>
-                  </div>
+      <div className="grid grid-cols-12 gap-5 xl:gap-6" data-call-detail-panel="forge-review-bench">
+        <div className="col-span-12 space-y-5 lg:col-span-5">
+          <ForgeSurface className="p-5 sm:p-6">
+            <div className="mb-7 flex items-start justify-between gap-5">
+              <div className="min-w-0">
+                <h2 className="font-[var(--font-display)] text-xl font-semibold text-[var(--forge-text)]">
+                  Revenue Scorecard
+                </h2>
+                <p className="mt-1 font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
+                  AI-Powered Evaluation
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <ForgeChip tone="cyan">Confidence: {call.confidence ?? "unknown"}</ForgeChip>
+                  <ForgeChip tone="gold">Stage: {call.callStageReached ?? "not set"}</ForgeChip>
                 </div>
-              );
-            })}
-          </div>
-        </section>
+                <p className="mt-3 text-xs uppercase tracking-[0.14em] text-[var(--forge-muted)]">
+                  Scorecard: {call.rubric?.name ?? "Revenue Scorecard"}
+                  {call.rubric?.version != null ? ` / v${call.rubric.version}` : ""}
+                </p>
+              </div>
+              <div className="relative flex items-center justify-center">
+                <svg className="h-24 w-24 -rotate-90 transform" aria-hidden="true">
+                  <circle
+                    cx="48"
+                    cy="48"
+                    fill="transparent"
+                    r="40"
+                    stroke="rgba(255,244,230,0.1)"
+                    strokeWidth="8"
+                  />
+                  <circle
+                    cx="48"
+                    cy="48"
+                    fill="transparent"
+                    r="40"
+                    stroke="var(--forge-cyan)"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={ringOffset}
+                    strokeLinecap="round"
+                    strokeWidth="8"
+                  />
+                </svg>
+                <span className="absolute font-[var(--font-display)] text-2xl font-bold text-[var(--forge-cyan)]">
+                  {call.overallScore ?? "-"}
+                </span>
+              </div>
+            </div>
 
-        <section className="rounded-[1.5rem] border border-white/8 bg-[#10131a] p-6 shadow-[0_24px_80px_rgba(2,8,23,0.32)]">
-          <div className="mb-6 flex items-center justify-between gap-4">
-            <h2 className="text-xl font-semibold text-white">Key Moments</h2>
-            <span className="material-symbols-outlined text-[#74b1ff]">filter_list</span>
-          </div>
-
-          <div className="space-y-6">
-            {moments.length ? (
-              moments.map((moment) => {
-                const savedNote = moment.highlightNote?.trim() ?? "";
-                const draftNote = getHighlightNoteDraft(moment);
-                const trimmedDraftNote = draftNote.trim();
-                const noteChanged = trimmedDraftNote !== savedNote;
-                const canRemoveNote = Boolean(savedNote || trimmedDraftNote);
-                const highlightActionLabel =
-                  trimmedDraftNote.length > 0 ? "Add note and highlight" : "Highlight moment";
-                const isHighlightActionBusy = highlightActionMomentId === moment.id;
-                const isNoteActionBusy = noteActionMomentId === moment.id;
-
+            <div className="space-y-4">
+              {scoreCards.map((category) => {
+                const tint = scoreTint(category.score);
                 return (
-                  <div className="relative border-l border-white/10 pl-8" key={moment.id}>
-                    <div className="absolute -left-1.5 top-0 h-3 w-3 rounded-full bg-[#74b1ff] shadow-[0_0_16px_rgba(116,177,255,0.3)]" />
-                    <div className="mb-2 flex flex-wrap items-center gap-3">
-                      <span className="text-xs font-black tracking-[0.22em] text-[#74b1ff]">
-                        {formatTimestamp(moment.timestampSeconds)}
-                      </span>
-                      <span
-                        className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] border ${severityTint(moment.severity)}`}
-                      >
-                        {moment.category ?? "Moment"}
-                      </span>
-                      {moment.isHighlight ? (
-                        <span className="rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] border border-amber-500/20 bg-amber-500/10 text-amber-300">
-                          Highlighted
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="text-sm font-medium leading-relaxed text-white">
-                      {moment.observation ?? "No observation recorded."}
-                    </p>
-                    {moment.recommendation ? (
-                      <p className="mt-2 text-sm leading-relaxed text-slate-400">
-                        {moment.recommendation}
-                      </p>
-                    ) : null}
-                    {moment.highlightNote ? <HighlightNote note={moment.highlightNote} /> : null}
-                    {canManage ? (
-                      <div className="mt-4 space-y-3">
-                        <label
-                          className="block text-[10px] font-black uppercase tracking-[0.18em] text-slate-500"
-                          htmlFor={`highlight-note-${moment.id}`}
-                        >
-                          Edit note
-                        </label>
-                        <textarea
-                          className="min-h-[88px] w-full resize-y rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-slate-200 outline-none transition placeholder:text-slate-600 focus:border-[#74b1ff]/50"
-                          id={`highlight-note-${moment.id}`}
-                          onChange={(event) =>
-                            setHighlightNoteDrafts((current) => ({
-                              ...current,
-                              [moment.id]: event.target.value,
-                            }))
-                          }
-                          placeholder="Add context for why this moment matters."
-                          value={draftNote}
+                  <div className="flex items-center justify-between gap-4" key={category.slug}>
+                    <span className="min-w-0 truncate text-sm font-medium text-[var(--forge-text)]">
+                      {category.name}
+                    </span>
+                    <div className="flex items-center gap-3">
+                      <div className="h-1.5 w-28 overflow-hidden rounded-full bg-[rgba(255,244,230,0.08)] sm:w-32">
+                        <div
+                          className={`h-full rounded-full ${tint.bar}`}
+                          style={{ width: `${progressWidth(category.score)}%` }}
                         />
-                        <div className="flex flex-wrap gap-2">
-                          {moment.isHighlight ? (
-                            <>
-                              <button
-                                className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-200 transition hover:border-[#74b1ff]/30 hover:text-[#74b1ff] disabled:opacity-50"
-                                disabled={isNoteActionBusy || !noteChanged}
-                                onClick={() => {
-                                  void saveHighlightNote(moment);
-                                }}
-                                type="button"
-                              >
-                                {isNoteActionBusy ? "Saving..." : "Save note"}
-                              </button>
-                              {canRemoveNote ? (
-                                <button
-                                  className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-300 transition hover:border-red-400/40 hover:text-red-200 disabled:opacity-50"
-                                  disabled={isNoteActionBusy}
-                                  onClick={() => {
-                                    void removeHighlightNote(moment);
-                                  }}
-                                  type="button"
-                                >
-                                  {isNoteActionBusy ? "Removing..." : "Remove note"}
-                                </button>
-                              ) : null}
-                              <button
-                                className="rounded-lg bg-amber-500/15 px-3 py-2 text-xs font-bold uppercase tracking-[0.16em] text-amber-200 transition hover:bg-amber-500/20 disabled:opacity-50"
-                                disabled={isHighlightActionBusy}
-                                onClick={() => {
-                                  void removeHighlight(moment);
-                                }}
-                                type="button"
-                              >
-                                {isHighlightActionBusy ? "Removing..." : "Remove highlight"}
-                              </button>
-                            </>
-                          ) : (
-                            <button
-                              className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-300 transition hover:border-amber-500/30 hover:text-amber-200 disabled:opacity-50"
-                              disabled={isHighlightActionBusy}
-                              onClick={() => {
-                                void highlightMoment(moment);
-                              }}
-                              type="button"
-                            >
-                              {isHighlightActionBusy ? "Saving..." : highlightActionLabel}
-                            </button>
-                          )}
+                      </div>
+                      <span className={`w-7 text-right text-xs font-bold ${tint.text}`}>
+                        {category.score ?? "-"}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </ForgeSurface>
+        </div>
+
+        <div className="col-span-12 space-y-5 lg:col-span-7">
+          <ForgeSurface
+            className="relative aspect-video overflow-hidden p-0"
+            style={{ background: "linear-gradient(180deg, rgba(16,9,7,0.88), rgba(5,4,3,0.98))" }}
+          >
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,159,95,0.12),transparent_34%),linear-gradient(180deg,rgba(255,244,230,0.05),rgba(5,4,3,0.82))]" />
+            <div className="absolute inset-x-0 top-0 p-5 sm:p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <ForgeChip tone={statusTone(call.status)}>{call.status}</ForgeChip>
+                  <h2 className="mt-3 truncate font-[var(--font-display)] text-2xl font-semibold text-[var(--forge-text)]">
+                    {call.callTopic ?? "Untitled call"}
+                  </h2>
+                  <p className="mt-2 text-sm text-[var(--forge-muted)]">{formatDate(call.createdAt)}</p>
+                </div>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  {call.status === "complete" ? (
+                    <ForgeButton
+                      icon="record_voice_over"
+                      onClick={() => {
+                        void openGenerateRoleplayModal();
+                      }}
+                      size="sm"
+                      type="button"
+                      variant="primary"
+                    >
+                      Generate Roleplay
+                    </ForgeButton>
+                  ) : null}
+                  <ForgeChip tone="muted">
+                    {call.durationSeconds != null ? formatTimestamp(call.durationSeconds) : "No duration"}
+                  </ForgeChip>
+                </div>
+              </div>
+            </div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <button
+                className="flex h-20 w-20 items-center justify-center rounded-full border border-[rgba(241,191,123,0.28)] bg-[rgba(241,191,123,0.08)] text-[var(--forge-gold)] transition hover:scale-[1.03] hover:border-[rgba(241,191,123,0.42)]"
+                type="button"
+              >
+                <ForgeIcon name="play_arrow" size={40} />
+              </button>
+            </div>
+            <div className="absolute inset-x-0 bottom-0 p-4">
+              <div className="mb-2 h-1 w-full rounded-full bg-[rgba(255,244,230,0.08)]">
+                <div className="h-full w-1/3 rounded-full bg-[var(--forge-gold)] shadow-[0_0_16px_rgba(241,191,123,0.22)]" />
+              </div>
+              <div className="flex justify-between font-[var(--font-display)] text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[var(--forge-gold)]">
+                <span>Preview</span>
+                <span>{call.transcriptUrl ? "Transcript linked" : "No media linked"}</span>
+              </div>
+            </div>
+          </ForgeSurface>
+
+          <ForgeSurface className="overflow-hidden p-0">
+            <div className="flex flex-col gap-4 border-b border-[var(--forge-border)] bg-[rgba(255,244,230,0.025)] p-5 sm:p-6">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-gold)]">
+                    Workbench
+                  </p>
+                  <h2 className="mt-1 font-[var(--font-display)] text-xl font-semibold text-[var(--forge-text)]">
+                    Call Review
+                  </h2>
+                </div>
+                <ForgeChip tone="cyan">Speaker Diarization</ForgeChip>
+              </div>
+              <ForgeSegmentedTabs label="Call workbench sections">
+                <ForgeSegmentedTab
+                  active={activeWorkbenchTab === "transcript"}
+                  icon="subject"
+                  onClick={() => setActiveWorkbenchTab("transcript")}
+                >
+                  Transcript
+                </ForgeSegmentedTab>
+                <ForgeSegmentedTab
+                  active={activeWorkbenchTab === "moments"}
+                  icon="insights"
+                  onClick={() => setActiveWorkbenchTab("moments")}
+                >
+                  Key Moments
+                </ForgeSegmentedTab>
+                <ForgeSegmentedTab
+                  active={activeWorkbenchTab === "summary"}
+                  icon="summarize"
+                  onClick={() => setActiveWorkbenchTab("summary")}
+                >
+                  Call Summary
+                </ForgeSegmentedTab>
+                <ForgeSegmentedTab
+                  active={activeWorkbenchTab === "notes"}
+                  icon="edit_note"
+                  onClick={() => setActiveWorkbenchTab("notes")}
+                >
+                  Coaching Notes
+                </ForgeSegmentedTab>
+              </ForgeSegmentedTabs>
+            </div>
+
+            <div className="max-h-[640px] overflow-y-auto p-5 sm:p-6">
+              <div className={activeWorkbenchTab === "transcript" ? "space-y-4" : "hidden space-y-4"}>
+                {(call.transcript ?? []).length ? (
+                  (call.transcript ?? []).map((line, index) => {
+                    const isEmphasized = index === 2;
+                    const speakerInitials = initials(line.speaker);
+
+                    return (
+                      <div
+                        className={`flex gap-4 rounded-xl border p-4 transition ${
+                          isEmphasized
+                            ? "border-[rgba(241,191,123,0.26)] bg-[rgba(241,191,123,0.06)]"
+                            : "border-transparent bg-transparent"
+                        }`}
+                        key={`${line.timestampSeconds}-${line.speaker}-${index}`}
+                      >
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--forge-border)] bg-[rgba(255,244,230,0.04)] text-xs font-bold text-[var(--forge-cyan)]">
+                          {speakerInitials}
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-[var(--font-display)] text-xs font-bold uppercase tracking-[0.16em] text-[var(--forge-text)]">
+                              {line.speaker}
+                            </span>
+                            <span className="text-[0.7rem] text-[var(--forge-muted)]">
+                              {formatTimestamp(line.timestampSeconds)}
+                            </span>
+                          </div>
+                          <p className="text-sm leading-relaxed text-[var(--forge-muted)]">
+                            {line.text}
+                          </p>
                         </div>
                       </div>
-                    ) : null}
-                  </div>
-                );
-              })
-            ) : (
-              <div className="rounded-[1.15rem] border border-dashed border-white/10 bg-black/20 px-4 py-6 text-sm text-slate-500">
-                No moments were generated for this call yet.
+                    );
+                  })
+                ) : (
+                  <ForgeEmptyState
+                    description="No transcript lines are available yet."
+                    icon="edit_note"
+                    title="Transcript pending"
+                  />
+                )}
               </div>
-            )}
-          </div>
-        </section>
-      </div>
 
-        <div className="col-span-12 space-y-8 lg:col-span-7">
-          <section className="relative aspect-video overflow-hidden rounded-[1.5rem] border border-white/8 bg-black shadow-[0_24px_80px_rgba(2,8,23,0.32)]">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(116,177,255,0.16),transparent_35%),linear-gradient(180deg,rgba(15,19,26,0.15),rgba(0,0,0,0.8))]" />
-          <div className="absolute inset-x-0 top-0 p-6">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#74b1ff]">
-                  {call.status}
-                </p>
-                <h2 className="mt-2 text-2xl font-semibold text-white">
-                  {call.callTopic ?? "Untitled call"}
-                </h2>
-                <p className="mt-2 text-sm text-slate-400">{formatDate(call.createdAt)}</p>
-              </div>
-              <div className="flex flex-wrap items-center justify-end gap-3">
-                {call.status === "complete" ? (
-                  <button
-                    className="rounded-full border border-[#74b1ff]/20 bg-[#74b1ff]/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-[#74b1ff] transition hover:border-[#74b1ff]/40 hover:bg-[#74b1ff]/15"
-                    onClick={() => {
-                      void openGenerateRoleplayModal();
-                    }}
-                    type="button"
-                  >
-                    Generate Roleplay
-                  </button>
-                ) : null}
-                <div className="rounded-full border border-white/10 bg-black/30 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-slate-300">
-                  {call.durationSeconds ? formatTimestamp(call.durationSeconds) : "No duration"}
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <button
-              className="flex h-20 w-20 items-center justify-center rounded-full border border-[#74b1ff]/30 bg-[#74b1ff]/10 backdrop-blur-md transition hover:scale-105"
-              type="button"
-            >
-              <span
-                className="material-symbols-outlined text-4xl text-[#74b1ff]"
-                style={{ fontVariationSettings: "'FILL' 1" }}
-              >
-                play_arrow
-              </span>
-            </button>
-          </div>
-          <div className="absolute inset-x-0 bottom-0 p-4">
-            <div className="mb-2 h-1 w-full rounded-full bg-[#22262f]">
-              <div className="h-full w-1/3 rounded-full bg-[#74b1ff] shadow-[0_0_16px_rgba(116,177,255,0.3)]" />
-            </div>
-            <div className="flex justify-between text-[10px] font-bold tracking-[0.18em] text-[#74b1ff]">
-              <span>Preview</span>
-              <span>{call.transcriptUrl ? "Transcript linked" : "No media linked"}</span>
-            </div>
-          </div>
-          </section>
+              <div className={activeWorkbenchTab === "moments" ? "space-y-4" : "hidden space-y-4"}>
+                {moments.length ? (
+                  moments.map((moment) => {
+                    const savedNote = moment.highlightNote?.trim() ?? "";
+                    const draftNote = getHighlightNoteDraft(moment);
+                    const trimmedDraftNote = draftNote.trim();
+                    const noteChanged = trimmedDraftNote !== savedNote;
+                    const canRemoveNote = Boolean(savedNote || trimmedDraftNote);
+                    const highlightActionLabel =
+                      trimmedDraftNote.length > 0 ? "Add note and highlight" : "Highlight moment";
+                    const isHighlightActionBusy = highlightActionMomentId === moment.id;
+                    const isNoteActionBusy = noteActionMomentId === moment.id;
 
-          <section className="flex h-[600px] flex-col overflow-hidden rounded-[1.5rem] border border-white/8 bg-[#10131a] shadow-[0_24px_80px_rgba(2,8,23,0.32)]">
-          <div className="flex items-center justify-between gap-4 border-b border-white/8 bg-[#161a21] p-6">
-            <h2 className="text-xl font-semibold text-white">Transcript</h2>
-            <div className="flex items-center gap-3">
-              <span className="rounded-full bg-white/[0.04] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[#74b1ff]">
-                Speaker Diarization
-              </span>
-              <span className="material-symbols-outlined text-slate-400">search</span>
-            </div>
-          </div>
-          <div className="flex-1 space-y-6 overflow-y-auto p-6">
-            {(call.transcript ?? []).length ? (
-              (call.transcript ?? []).map((line, index) => {
-                const isEmphasized = index === 2;
-                const speakerInitials = initials(line.speaker);
-
-                return (
-                  <div
-                    className={`flex gap-4 ${isEmphasized ? "rounded-xl border-l-2 border-[#74b1ff] bg-[#74b1ff]/5 p-4" : ""}`}
-                    key={`${line.timestampSeconds}-${line.speaker}-${index}`}
-                  >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#22262f] text-xs font-bold text-[#74b1ff]">
-                      {speakerInitials}
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`text-xs font-black uppercase tracking-[0.18em] ${
-                            isEmphasized ? "text-[#74b1ff]" : "text-white"
-                          }`}
-                        >
-                          {line.speaker}
-                        </span>
-                        <span
-                          className={`text-[10px] ${isEmphasized ? "text-[#74b1ff]/70" : "text-slate-500"}`}
-                        >
-                          {formatTimestamp(line.timestampSeconds)}
-                        </span>
-                      </div>
-                      <p
-                        className={`text-sm leading-relaxed ${
-                          isEmphasized ? "italic text-white" : "text-slate-300"
-                        }`}
-                      >
-                        {line.text}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="rounded-[1.15rem] border border-dashed border-white/10 bg-black/20 px-4 py-6 text-sm text-slate-500">
-                No transcript lines are available yet.
+                    return (
+                      <ForgeSurface className="p-4" key={moment.id} variant="inset">
+                        <div className="mb-3 flex flex-wrap items-center gap-2">
+                          <ForgeChip icon="history" tone="gold">
+                            {formatTimestamp(moment.timestampSeconds)}
+                          </ForgeChip>
+                          <ForgeChip tone={severityTint(moment.severity)}>
+                            {moment.category ?? "Moment"}
+                          </ForgeChip>
+                          {moment.isHighlight ? <ForgeChip tone="ember">Highlighted</ForgeChip> : null}
+                        </div>
+                        <p className="text-sm font-medium leading-relaxed text-[var(--forge-text)]">
+                          {moment.observation ?? "No observation recorded."}
+                        </p>
+                        {moment.recommendation ? (
+                          <p className="mt-2 text-sm leading-relaxed text-[var(--forge-muted)]">
+                            {moment.recommendation}
+                          </p>
+                        ) : null}
+                        {moment.highlightNote ? <HighlightNote note={moment.highlightNote} /> : null}
+                        {canManage ? (
+                          <div className="mt-4 space-y-3">
+                            <label
+                              className="block font-[var(--font-display)] text-[0.65rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-muted)]"
+                              htmlFor={`highlight-note-${moment.id}`}
+                            >
+                              Edit note
+                            </label>
+                            <textarea
+                              className="min-h-[88px] w-full resize-y rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition placeholder:text-[rgba(255,244,230,0.38)] focus:border-[rgba(241,191,123,0.36)]"
+                              id={`highlight-note-${moment.id}`}
+                              onChange={(event) =>
+                                setHighlightNoteDrafts((current) => ({
+                                  ...current,
+                                  [moment.id]: event.target.value,
+                                }))
+                              }
+                              placeholder="Add context for why this moment matters."
+                              value={draftNote}
+                            />
+                            <div className="flex flex-wrap gap-2">
+                              {moment.isHighlight ? (
+                                <>
+                                  <ForgeButton
+                                    disabled={isNoteActionBusy || !noteChanged}
+                                    onClick={() => {
+                                      void saveHighlightNote(moment);
+                                    }}
+                                    size="sm"
+                                    type="button"
+                                    variant="secondary"
+                                  >
+                                    {isNoteActionBusy ? "Saving..." : "Save note"}
+                                  </ForgeButton>
+                                  {canRemoveNote ? (
+                                    <ForgeButton
+                                      disabled={isNoteActionBusy}
+                                      onClick={() => {
+                                        void removeHighlightNote(moment);
+                                      }}
+                                      size="sm"
+                                      type="button"
+                                      variant="secondary"
+                                    >
+                                      {isNoteActionBusy ? "Removing..." : "Remove note"}
+                                    </ForgeButton>
+                                  ) : null}
+                                  <ForgeButton
+                                    disabled={isHighlightActionBusy}
+                                    onClick={() => {
+                                      void removeHighlight(moment);
+                                    }}
+                                    size="sm"
+                                    type="button"
+                                    variant="danger"
+                                  >
+                                    {isHighlightActionBusy ? "Removing..." : "Remove highlight"}
+                                  </ForgeButton>
+                                </>
+                              ) : (
+                                <ForgeButton
+                                  disabled={isHighlightActionBusy}
+                                  onClick={() => {
+                                    void highlightMoment(moment);
+                                  }}
+                                  size="sm"
+                                  type="button"
+                                  variant="secondary"
+                                >
+                                  {isHighlightActionBusy ? "Saving..." : highlightActionLabel}
+                                </ForgeButton>
+                              )}
+                            </div>
+                          </div>
+                        ) : null}
+                      </ForgeSurface>
+                    );
+                  })
+                ) : (
+                  <ForgeEmptyState
+                    description="No moments were generated for this call yet."
+                    icon="insights"
+                    title="No moments yet"
+                  />
+                )}
               </div>
-            )}
-          </div>
-          </section>
 
-          <section className="grid gap-8 xl:grid-cols-[1fr_1fr]">
-          <div className="rounded-[1.5rem] border border-white/8 bg-[#10131a] p-6 shadow-[0_24px_80px_rgba(2,8,23,0.32)]">
-            <h2 className="mb-6 flex items-center gap-3 text-xl font-semibold text-white">
-              <span className="material-symbols-outlined text-[#74b1ff]">insights</span>
-              Call Summary
-            </h2>
-            <div className="space-y-6">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
-                  Strengths
-                </p>
-                <ul className="mt-3 space-y-2 text-sm text-slate-300">
-                  {(call.strengths ?? []).length ? (
-                    (call.strengths ?? []).map((strength) => <li key={strength}>• {strength}</li>)
-                  ) : (
-                    <li>• No strengths generated yet.</li>
-                  )}
-                </ul>
+              <div className={activeWorkbenchTab === "summary" ? "space-y-6" : "hidden space-y-6"}>
+                <SummaryList
+                  empty="No strengths generated yet."
+                  items={call.strengths ?? []}
+                  title="Strengths"
+                />
+                <SummaryList
+                  empty="No improvement areas generated yet."
+                  items={call.improvements ?? []}
+                  title="Improvement Areas"
+                />
+                <SummaryList
+                  empty="No drills recommended yet."
+                  items={call.recommendedDrills ?? []}
+                  title="Recommended Drills"
+                />
               </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
-                  Improvement Areas
-                </p>
-                <ul className="mt-3 space-y-2 text-sm text-slate-300">
-                  {(call.improvements ?? []).length ? (
-                    (call.improvements ?? []).map((item) => <li key={item}>• {item}</li>)
-                  ) : (
-                    <li>• No improvement areas generated yet.</li>
-                  )}
-                </ul>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
-                  Recommended Drills
-                </p>
-                <ul className="mt-3 space-y-2 text-sm text-slate-300">
-                  {(call.recommendedDrills ?? []).length ? (
-                    (call.recommendedDrills ?? []).map((drill) => <li key={drill}>• {drill}</li>)
-                  ) : (
-                    <li>• No drills recommended yet.</li>
-                  )}
-                </ul>
-              </div>
-            </div>
-          </div>
 
-          <div className="rounded-[1.5rem] border border-white/8 bg-[#10131a] p-6 shadow-[0_24px_80px_rgba(2,8,23,0.32)]">
-            <h2 className="mb-6 flex items-center gap-3 text-xl font-semibold text-white">
-              <span className="material-symbols-outlined text-[#74b1ff]">edit_note</span>
-              Coaching Notes
-            </h2>
-
-            <div className="rounded-xl border border-white/10 bg-black/30 p-4">
-              <textarea
-                className="min-h-[120px] w-full resize-none border-none bg-transparent text-sm text-white outline-none placeholder:text-slate-600 focus:ring-0"
-                onChange={(event) => setNote(event.target.value)}
-                placeholder="Add a coaching observation..."
-                value={note}
-              />
-              <div className="mt-3 flex items-center justify-between border-t border-white/8 pt-3">
-                <div className="flex gap-2">
-                  <button className="rounded p-1.5 transition hover:bg-white/[0.05]" type="button">
-                    <span className="material-symbols-outlined text-sm text-slate-400">attach_file</span>
-                  </button>
-                  <button className="rounded p-1.5 transition hover:bg-white/[0.05]" type="button">
-                    <span className="material-symbols-outlined text-sm text-slate-400">alternate_email</span>
-                  </button>
-                </div>
-                <button
-                  className="rounded-lg bg-[#22262f] px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#74b1ff] transition hover:bg-[#74b1ff] hover:text-[#002f59] disabled:opacity-50"
-                  disabled={isSubmitting || !note.trim()}
-                  onClick={() => {
-                    void submitAnnotation();
-                  }}
-                  type="button"
-                >
-                  {isSubmitting ? "Saving..." : "Post Note"}
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-6 space-y-3">
-              {annotations.length ? (
-                annotations.map((annotation) => (
-                  <div
-                    className="rounded-xl border border-white/10 bg-white/[0.04] p-4"
-                    key={annotation.id}
-                  >
-                    <div className="mb-2 flex items-center justify-between gap-3">
-                      <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#74b1ff]">
-                        {(annotation.authorFirstName || annotation.authorLastName
-                          ? `${annotation.authorFirstName ?? ""} ${annotation.authorLastName ?? ""}`.trim()
-                          : annotation.authorRole ?? "Coach")}{" "}
-                        • {formatDate(annotation.createdAt)}
-                      </span>
+              <div className={activeWorkbenchTab === "notes" ? "space-y-6" : "hidden space-y-6"}>
+                <ForgeSurface className="p-4" variant="inset">
+                  <textarea
+                    className="min-h-[120px] w-full resize-none border-none bg-transparent text-sm text-[var(--forge-text)] outline-none placeholder:text-[rgba(255,244,230,0.38)] focus:ring-0"
+                    onChange={(event) => setNote(event.target.value)}
+                    placeholder="Add a coaching observation..."
+                    value={note}
+                  />
+                  <div className="mt-3 flex items-center justify-between border-t border-[var(--forge-border)] pt-3">
+                    <div className="flex gap-2">
                       <button
-                        className="text-[11px] font-semibold text-slate-500 transition hover:text-red-300"
-                        onClick={() => {
-                          void removeAnnotation(annotation.id);
-                        }}
+                        aria-label="Attach file"
+                        className="rounded p-1.5 text-[var(--forge-muted)] transition hover:bg-[rgba(255,244,230,0.05)]"
                         type="button"
                       >
-                        Delete
+                        <ForgeIcon name="attach_file" size={16} />
+                      </button>
+                      <button
+                        aria-label="Mention teammate"
+                        className="rounded p-1.5 text-[var(--forge-muted)] transition hover:bg-[rgba(255,244,230,0.05)]"
+                        type="button"
+                      >
+                        <ForgeIcon name="alternate_email" size={16} />
                       </button>
                     </div>
-                    <p className="text-sm leading-relaxed text-slate-200">{annotation.note}</p>
+                    <ForgeButton
+                      disabled={isSubmitting || !note.trim()}
+                      onClick={() => {
+                        void submitAnnotation();
+                      }}
+                      size="sm"
+                      type="button"
+                      variant="secondary"
+                    >
+                      {isSubmitting ? "Saving..." : "Post Note"}
+                    </ForgeButton>
                   </div>
-                ))
-              ) : (
-                <div className="rounded-[1.15rem] border border-dashed border-white/10 bg-black/20 px-4 py-6 text-sm text-slate-500">
-                  No annotations yet. Add a coaching note below.
+                </ForgeSurface>
+
+                <div className="space-y-3">
+                  {annotations.length ? (
+                    annotations.map((annotation) => (
+                      <ForgeSurface className="p-4" key={annotation.id} variant="inset">
+                        <div className="mb-2 flex items-center justify-between gap-3">
+                          <span className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.15em] text-[var(--forge-gold)]">
+                            {(annotation.authorFirstName || annotation.authorLastName
+                              ? `${annotation.authorFirstName ?? ""} ${annotation.authorLastName ?? ""}`.trim()
+                              : annotation.authorRole ?? "Coach")}{" "}
+                            / {formatDate(annotation.createdAt)}
+                          </span>
+                          <button
+                            className="text-[0.72rem] font-semibold text-[var(--forge-muted)] transition hover:text-[var(--forge-danger)]"
+                            onClick={() => {
+                              void removeAnnotation(annotation.id);
+                            }}
+                            type="button"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                        <p className="text-sm leading-relaxed text-[var(--forge-text)]">{annotation.note}</p>
+                      </ForgeSurface>
+                    ))
+                  ) : (
+                    <ForgeEmptyState
+                      description="Add a coaching note below when this call needs follow-up."
+                      icon="edit_note"
+                      title="No annotations yet"
+                    />
+                  )}
                 </div>
-              )}
+              </div>
             </div>
-          </div>
-          </section>
+          </ForgeSurface>
         </div>
       </div>
+
       {isGenerateModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-8 backdrop-blur-sm">
-          <div className="w-full max-w-xl rounded-[1.5rem] border border-white/10 bg-[#10131a] p-6 shadow-[0_24px_80px_rgba(2,8,23,0.4)]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(5,4,3,0.72)] px-4 py-8">
+          <ForgeSurface className="w-full max-w-xl p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#74b1ff]">
+                <p className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-gold)]">
                   Generated From Call
                 </p>
-                <h2 className="mt-2 text-2xl font-semibold text-white">Generate Roleplay</h2>
-                <p className="mt-2 text-sm text-slate-400">
+                <h2 className="mt-2 font-[var(--font-display)] text-2xl font-semibold text-[var(--forge-text)]">
+                  Generate Roleplay
+                </h2>
+                <p className="mt-2 text-sm text-[var(--forge-muted)]">
                   Launch a saved roleplay from this completed call.
                 </p>
               </div>
               <button
-                className="rounded-full border border-white/10 bg-white/[0.03] p-2 text-slate-400 transition hover:text-white"
+                className="rounded-full border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] p-2 text-[var(--forge-muted)] transition hover:text-[var(--forge-text)]"
                 onClick={closeGenerateRoleplayModal}
                 type="button"
               >
-                <span className="material-symbols-outlined text-base">close</span>
+                <ForgeIcon name="close" size={16} />
               </button>
             </div>
 
             <div className="mt-6 space-y-4">
               {isLoadingGeneratePreview ? (
-                <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-5 text-sm text-slate-400">
+                <ForgeSurface className="px-4 py-5 text-sm text-[var(--forge-muted)]" variant="inset">
                   Preparing anonymized scenario preview...
-                </div>
+                </ForgeSurface>
               ) : generatePreview ? (
                 <>
-                  <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-5">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                  <ForgeSurface className="px-4 py-5" variant="inset">
+                    <p className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-muted)]">
                       Scenario
                     </p>
-                    <p className="mt-3 text-sm leading-relaxed text-slate-200">
+                    <p className="mt-3 text-sm leading-relaxed text-[var(--forge-text)]">
                       {generatePreview.scenarioSummary}
                     </p>
-                  </div>
+                  </ForgeSurface>
                   <label className="block">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                    <span className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-muted)]">
                       Focus
                     </span>
                     <select
-                      className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-slate-200 outline-none transition focus:border-[#74b1ff]/40"
+                      className="mt-2 w-full rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[rgba(241,191,123,0.36)]"
                       onChange={(event) => setFocusCategorySlug(event.target.value)}
                       value={focusCategorySlug}
                     >
@@ -759,34 +812,67 @@ export function CallDetailPanel({
               ) : null}
 
               {generateError ? (
-                <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                <div className="rounded-xl border border-[rgba(255,113,108,0.26)] bg-[rgba(255,113,108,0.09)] px-4 py-3 text-sm text-[var(--forge-danger)]">
                   {generateError}
                 </div>
               ) : null}
             </div>
 
             <div className="mt-6 flex items-center justify-end gap-3">
-              <button
-                className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-white/[0.06]"
-                onClick={closeGenerateRoleplayModal}
-                type="button"
-              >
+              <ForgeButton onClick={closeGenerateRoleplayModal} type="button" variant="secondary">
                 Cancel
-              </button>
-              <button
-                className="rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-5 py-2 text-sm font-extrabold text-[#002345] transition hover:opacity-90 disabled:opacity-50"
+              </ForgeButton>
+              <ForgeButton
                 disabled={isLoadingGeneratePreview || isGeneratingRoleplay || !generatePreview}
                 onClick={() => {
                   void generateRoleplay();
                 }}
                 type="button"
+                variant="primary"
               >
                 {isGeneratingRoleplay ? "Starting..." : "Generate & Start"}
-              </button>
+              </ForgeButton>
             </div>
-          </div>
+          </ForgeSurface>
         </div>
       ) : null}
     </>
+  );
+}
+
+function SummaryList({
+  empty,
+  items,
+  title,
+}: {
+  empty: string;
+  items: string[];
+  title: string;
+}) {
+  return (
+    <div>
+      <p className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-muted)]">
+        {title}
+      </p>
+      <ul className="mt-3 space-y-2 text-sm text-[var(--forge-muted)]">
+        {items.length ? (
+          items.map((item) => (
+            <li className="flex gap-2" key={item}>
+              <span aria-hidden="true" className="text-[var(--forge-gold)]">
+                -
+              </span>
+              <span>{item}</span>
+            </li>
+          ))
+        ) : (
+          <li className="flex gap-2">
+            <span aria-hidden="true" className="text-[var(--forge-gold)]">
+              -
+            </span>
+            <span>{empty}</span>
+          </li>
+        )}
+      </ul>
+    </div>
   );
 }

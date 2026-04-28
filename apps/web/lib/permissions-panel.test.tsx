@@ -29,12 +29,28 @@ const teams = [
     description: "Sales pod",
     status: "active",
   },
+  {
+    id: "team-b",
+    name: "Expansion",
+    description: "Outbound pod",
+    status: "active",
+  },
 ];
 
 const memberships = [
   {
     teamId: "team-a",
     userId: "mgr-1",
+    membershipType: "manager" as const,
+  },
+  {
+    teamId: "team-a",
+    userId: "rep-1",
+    membershipType: "rep" as const,
+  },
+  {
+    teamId: "team-b",
+    userId: "mgr-2",
     membershipType: "manager" as const,
   },
 ];
@@ -90,10 +106,40 @@ describe("PermissionsPanel", () => {
     );
 
     expect(html).toContain("Team Preset Assignments");
+    expect(html).toContain('data-permissions-workspace="matrix"');
+    expect(html).toContain('data-forge-workspace-layout="one-rail"');
+    expect(html).toContain('data-permissions-control-rail=""');
+    expect(html).toContain('data-permissions-assignment-matrix=""');
+    expect(html).toContain('data-forge-workspace-rail-group="Team context"');
+    expect(html).toContain('data-forge-workspace-rail-action="true"');
     expect(html).toContain("Closers");
+    expect(html).toContain("Expansion · 1 managers · 0 reps");
     expect(html).toContain("Morgan Lane");
+    expect(html).not.toContain("Jordan Lee</p>");
+    expect(html).toContain("Riley Stone");
     expect(html).toContain("Coach");
     expect(html).toContain("Primary Manager");
+    expect(html.match(/data-permissions-assignment-matrix=""/g)).toHaveLength(1);
+    expect(html.indexOf("Expansion · 1 managers · 0 reps")).toBeLessThan(
+      html.indexOf('data-permissions-assignment-matrix=""'),
+    );
+  });
+
+  it("does not show every rep when the selected team has zero reps", () => {
+    const html = renderToStaticMarkup(
+      createElement(PermissionsPanel, {
+        grants,
+        managers,
+        memberships: memberships.filter((membership) => membership.membershipType !== "rep"),
+        presets,
+        reps,
+        teams,
+      }),
+    );
+
+    expect(html).toContain("Closers · 1 managers · 0 reps");
+    expect(html).toContain("No reps on this team yet. Add rep membership from /settings/teams.");
+    expect(html).not.toContain("Riley Stone");
   });
 
   it("assigns a rep primary manager through the organization API", async () => {
