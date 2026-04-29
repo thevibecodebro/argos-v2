@@ -36,7 +36,7 @@ export interface InvitesRepository {
 
   findPendingInvitesByOrg(orgId: string): Promise<InviteRecord[]>;
 
-  markInviteAccepted(id: string): Promise<void>;
+  markInviteAccepted(id: string): Promise<boolean>;
 
   deleteInviteByToken(token: string, orgId: string): Promise<void>;
 
