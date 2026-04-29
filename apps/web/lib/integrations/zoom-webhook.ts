@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { storeZoomCallSource, type SourceAsset } from "@/lib/calls/ingestion-service";
+import { checkRateLimitForPolicy, type RateLimitResult } from "@/lib/rate-limit/service";
 import { createRubricsRepository } from "@/lib/rubrics/create-repository";
 import { getActiveRubric, type RubricsRepository } from "@/lib/rubrics/service";
 import { refreshZoomToken } from "./oauth";
@@ -63,6 +64,7 @@ type ZoomWebhookRequest = {
 type ZoomWebhookResponse = {
   status: number;
   body: Record<string, unknown>;
+  headers?: Record<string, string>;
 };
 
 type ZoomWebhookPayload = {
@@ -116,6 +118,20 @@ const COMPLETED_OR_ACTIVE_JOB_STATUSES: ReadonlySet<CallProcessingJobStatus> = n
   "complete",
 ]);
 
+function rateLimitResultToWebhookResponse(result: RateLimitResult): ZoomWebhookResponse {
+  return {
+    status: 429,
+    body: {
+      code: "rate_limit_exceeded",
+      error: "Too many requests. Try again later.",
+      retryAfterSeconds: result.retryAfterSeconds,
+    },
+    headers: {
+      "Retry-After": String(result.retryAfterSeconds),
+    },
+  };
+}
+
 export async function processZoomWebhookRequest(
   repository: ZoomWebhookRepository,
   input: ZoomWebhookRequest,
@@ -151,6 +167,17 @@ export async function processZoomWebhookRequest(
       status: 401,
       body: { error: "Invalid webhook signature" },
     };
+  }
+
+  if (accountId && integration) {
+    const rateLimit = await checkRateLimitForPolicy("zoomWebhookAccount", {
+      type: "org",
+      id: `${integration.orgId}:${accountId}`,
+    });
+
+    if (!rateLimit.allowed) {
+      return rateLimitResultToWebhookResponse(rateLimit);
+    }
   }
 
   if (parsed.event === "endpoint.url_validation") {

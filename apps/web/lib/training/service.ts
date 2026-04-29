@@ -6,6 +6,7 @@ import {
   type AccessContext,
 } from "@/lib/access/service";
 import type { DashboardUserRecord } from "@/lib/dashboard/service";
+import { checkRateLimitForPolicy, type RateLimitResult } from "@/lib/rate-limit/service";
 
 export type TrainingModuleRecord = {
   id: string;
@@ -122,7 +123,13 @@ export type TrainingAiStatus = {
 
 type ServiceResult<T> =
   | { ok: true; data: T }
-  | { ok: false; status: 403 | 404 | 409 | 422 | 501; error: string };
+  | {
+      ok: false;
+      status: 403 | 404 | 409 | 422 | 429 | 501;
+      error: string;
+      code?: string;
+      retryAfterSeconds?: number;
+    };
 
 export type TrainingModuleGenerationInput = {
   topic: string;
@@ -478,6 +485,18 @@ async function getAccessContext(authUserId: string): Promise<ServiceResult<Acces
   };
 }
 
+function rateLimitResultToServiceResult(
+  result: RateLimitResult,
+): Extract<ServiceResult<never>, { ok: false }> {
+  return {
+    ok: false,
+    status: 429,
+    code: "rate_limit_exceeded",
+    error: "Too many requests. Try again later.",
+    retryAfterSeconds: result.retryAfterSeconds,
+  };
+}
+
 function getAllRepIds(access: AccessContext) {
   const repIds = new Set<string>();
 
@@ -812,6 +831,15 @@ export async function generateTrainingModuleDraft(
           ? "Add course context before generating quiz content"
           : "Add course context before generating lesson content",
     };
+  }
+
+  const rateLimit = await checkRateLimitForPolicy("trainingAi", {
+    type: "org",
+    id: orgId,
+  });
+
+  if (!rateLimit.allowed) {
+    return rateLimitResultToServiceResult(rateLimit);
   }
 
   const aiStatus = getTrainingAiStatus();
@@ -1284,6 +1312,25 @@ export async function generateTrainingModules(
       status: 403,
       error: "Managers only",
     };
+  }
+
+  const orgId = accessResult.data.actor.orgId;
+
+  if (!orgId) {
+    return {
+      ok: false,
+      status: 403,
+      error: "User must belong to an organization",
+    };
+  }
+
+  const rateLimit = await checkRateLimitForPolicy("trainingAi", {
+    type: "org",
+    id: orgId,
+  });
+
+  if (!rateLimit.allowed) {
+    return rateLimitResultToServiceResult(rateLimit);
   }
 
   const aiStatus = getTrainingAiStatus();

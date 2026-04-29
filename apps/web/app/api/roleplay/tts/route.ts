@@ -1,5 +1,9 @@
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { unauthorizedJson } from "@/lib/http";
+import {
+  checkRateLimitForPolicy,
+  rateLimitExceededResponse,
+} from "@/lib/rate-limit/service";
 import { createSpeechAudio, getOpenAiVoiceConfigurationError } from "@/lib/roleplay/openai-voice";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +13,15 @@ export async function POST(request: Request) {
 
   if (!authUser) {
     return unauthorizedJson();
+  }
+
+  const rateLimit = await checkRateLimitForPolicy("roleplayTts", {
+    type: "user",
+    id: authUser.id,
+  });
+
+  if (!rateLimit.allowed) {
+    return rateLimitExceededResponse(rateLimit);
   }
 
   const configurationError = getOpenAiVoiceConfigurationError();

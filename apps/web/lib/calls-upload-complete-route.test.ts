@@ -4,6 +4,7 @@ const getAuthenticatedSupabaseUser = vi.fn();
 const createCallsRepository = vi.fn();
 const completeUploadedCall = vi.fn();
 const createSupabaseAdminClient = vi.fn();
+const checkRateLimitForPolicy = vi.fn();
 
 vi.mock("@/lib/auth/get-authenticated-user", () => ({
   getAuthenticatedSupabaseUser,
@@ -25,6 +26,22 @@ vi.mock("@/lib/calls/service", async () => {
   };
 });
 
+vi.mock("@/lib/rate-limit/service", () => ({
+  checkRateLimitForPolicy,
+  rateLimitExceededResponse: (result: { retryAfterSeconds: number }) =>
+    Response.json(
+      {
+        code: "rate_limit_exceeded",
+        error: "Too many requests. Try again later.",
+        retryAfterSeconds: result.retryAfterSeconds,
+      },
+      {
+        status: 429,
+        headers: { "Retry-After": String(result.retryAfterSeconds) },
+      },
+    ),
+}));
+
 describe("calls upload complete route", () => {
   beforeEach(() => {
     vi.resetModules();
@@ -33,8 +50,18 @@ describe("calls upload complete route", () => {
     createCallsRepository.mockReset();
     completeUploadedCall.mockReset();
     createSupabaseAdminClient.mockReset();
+    checkRateLimitForPolicy.mockReset();
     getAuthenticatedSupabaseUser.mockResolvedValue({ id: "auth-user-1" });
     createCallsRepository.mockReturnValue({});
+    checkRateLimitForPolicy.mockResolvedValue({
+      allowed: true,
+      limit: 20,
+      remaining: 19,
+      requestCount: 1,
+      retryAfterSeconds: 3600,
+      resetAt: new Date("2026-04-28T11:00:00.000Z"),
+      bucketKey: "uploads:user:hash",
+    });
     createSupabaseAdminClient.mockReturnValue({
       storage: {
         from: vi.fn().mockReturnValue({
@@ -75,6 +102,10 @@ describe("calls upload complete route", () => {
     );
 
     expect(response.status).toBe(200);
+    expect(checkRateLimitForPolicy).toHaveBeenCalledWith("uploadComplete", {
+      type: "user",
+      id: "auth-user-1",
+    });
     expect(completeUploadedCall).toHaveBeenCalledWith(
       {},
       "auth-user-1",

@@ -1,5 +1,9 @@
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { unauthorizedJson } from "@/lib/http";
+import {
+  checkRateLimitForPolicy,
+  rateLimitExceededResponse,
+} from "@/lib/rate-limit/service";
 import { createRoleplayRepository } from "@/lib/roleplay/create-repository";
 import { getRoleplaySession } from "@/lib/roleplay/service";
 import {
@@ -63,6 +67,15 @@ export async function POST(
 
   if (!authUser) {
     return unauthorizedJson();
+  }
+
+  const rateLimit = await checkRateLimitForPolicy("roleplayRealtime", {
+    type: "user",
+    id: authUser.id,
+  });
+
+  if (!rateLimit.allowed) {
+    return rateLimitExceededResponse(rateLimit);
   }
 
   const configurationError = getOpenAiVoiceConfigurationError();

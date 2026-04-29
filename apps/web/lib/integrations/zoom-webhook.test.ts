@@ -1,5 +1,12 @@
 import crypto from "node:crypto";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const checkRateLimitForPolicy = vi.hoisted(() => vi.fn());
+
+vi.mock("@/lib/rate-limit/service", () => ({
+  checkRateLimitForPolicy,
+}));
+
 import {
   processZoomWebhookRequest,
   type ZoomWebhookRepository,
@@ -40,6 +47,19 @@ function sign(secret: string, rawBody: string, timestamp = Math.floor(Date.now()
   const signature = `v0=${crypto.createHmac("sha256", secret).update(message).digest("hex")}`;
   return { signature, timestamp };
 }
+
+beforeEach(() => {
+  checkRateLimitForPolicy.mockReset();
+  checkRateLimitForPolicy.mockResolvedValue({
+    allowed: true,
+    bucketKey: "zoomWebhookAccount:org:hash",
+    limit: 300,
+    remaining: 299,
+    requestCount: 1,
+    resetAt: new Date("2026-04-28T10:16:00.000Z"),
+    retryAfterSeconds: 60,
+  });
+});
 
 describe("processZoomWebhookRequest", () => {
   it("returns the Zoom endpoint validation challenge", async () => {
@@ -130,6 +150,69 @@ describe("processZoomWebhookRequest", () => {
       status: 200,
       body: { received: true },
     });
+  });
+
+  it("returns 429 after signature verification when the Zoom account/org limit is exceeded", async () => {
+    checkRateLimitForPolicy.mockResolvedValueOnce({
+      allowed: false,
+      bucketKey: "zoomWebhookAccount:org:hash",
+      limit: 300,
+      remaining: 0,
+      requestCount: 301,
+      resetAt: new Date("2026-04-28T10:16:00.000Z"),
+      retryAfterSeconds: 12,
+    });
+    const repository = createRepository({
+      findCallByZoomRecordingId: vi.fn(),
+      findZoomIntegrationByAccountId: vi.fn().mockResolvedValue({
+        orgId: "org-1",
+        webhookToken: null,
+        accessToken: "zoom-access",
+        refreshToken: "zoom-refresh",
+        tokenExpiresAt: new Date("2026-04-18T00:00:00.000Z"),
+      }),
+    });
+    const rawBody = JSON.stringify({
+      event: "recording.completed",
+      payload: {
+        account_id: "zoom-account-1",
+        object: {
+          id: "meeting-1",
+          recording_files: [
+            {
+              id: "recording-1",
+              download_url: "https://example.com/audio.m4a",
+              file_extension: "m4a",
+              recording_type: "audio_only",
+            },
+          ],
+        },
+      },
+    });
+    const { signature, timestamp } = sign("app-level-secret", rawBody);
+
+    const result = await processZoomWebhookRequest(repository, {
+      headers: { signature, timestamp },
+      rawBody,
+      env: {
+        ZOOM_WEBHOOK_SECRET_TOKEN: "app-level-secret",
+      },
+    });
+
+    expect(result).toEqual({
+      status: 429,
+      body: {
+        code: "rate_limit_exceeded",
+        error: "Too many requests. Try again later.",
+        retryAfterSeconds: 12,
+      },
+      headers: { "Retry-After": "12" },
+    });
+    expect(checkRateLimitForPolicy).toHaveBeenCalledWith("zoomWebhookAccount", {
+      type: "org",
+      id: "org-1:zoom-account-1",
+    });
+    expect(repository.findCallByZoomRecordingId).not.toHaveBeenCalled();
   });
 
   it("stores the preferred Zoom asset and enqueues processing without scoring inline", async () => {

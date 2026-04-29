@@ -4,6 +4,7 @@ const getAuthenticatedSupabaseUser = vi.fn();
 const createRoleplayRepository = vi.fn();
 const getRoleplaySession = vi.fn();
 const appendRoleplayTranscriptMessage = vi.fn();
+const checkRateLimitForPolicy = vi.fn();
 
 vi.mock("@/lib/auth/get-authenticated-user", () => ({
   getAuthenticatedSupabaseUser,
@@ -16,6 +17,22 @@ vi.mock("@/lib/roleplay/create-repository", () => ({
 vi.mock("@/lib/roleplay/service", () => ({
   getRoleplaySession,
   appendRoleplayTranscriptMessage,
+}));
+
+vi.mock("@/lib/rate-limit/service", () => ({
+  checkRateLimitForPolicy,
+  rateLimitExceededResponse: (result: { retryAfterSeconds: number }) =>
+    Response.json(
+      {
+        code: "rate_limit_exceeded",
+        error: "Too many requests. Try again later.",
+        retryAfterSeconds: result.retryAfterSeconds,
+      },
+      {
+        status: 429,
+        headers: { "Retry-After": String(result.retryAfterSeconds) },
+      },
+    ),
 }));
 
 describe("roleplay voice routes", () => {
@@ -34,6 +51,7 @@ describe("roleplay voice routes", () => {
     createRoleplayRepository.mockReset();
     getRoleplaySession.mockReset();
     appendRoleplayTranscriptMessage.mockReset();
+    checkRateLimitForPolicy.mockReset();
     createRoleplayRepository.mockReturnValue({});
     getRoleplaySession.mockResolvedValue({
       ok: true,
@@ -58,6 +76,15 @@ describe("roleplay voice routes", () => {
       },
     });
     getAuthenticatedSupabaseUser.mockResolvedValue({ id: "auth-user-1" });
+    checkRateLimitForPolicy.mockResolvedValue({
+      allowed: true,
+      limit: 60,
+      remaining: 59,
+      requestCount: 1,
+      retryAfterSeconds: 3600,
+      resetAt: new Date("2026-04-28T11:00:00.000Z"),
+      bucketKey: "roleplayTts:user:hash",
+    });
     delete process.env.OPENAI_API_KEY;
     delete process.env.OPENAI_REALTIME_MODEL;
     delete process.env.OPENAI_REALTIME_VOICE;
@@ -131,6 +158,38 @@ describe("roleplay voice routes", () => {
     expect(response.status).toBe(503);
     await expect(response.json()).resolves.toMatchObject({
       error: expect.stringContaining("OPENAI_API_KEY"),
+    });
+  });
+
+  it("returns 429 when the user TTS limit is exceeded", async () => {
+    checkRateLimitForPolicy.mockResolvedValueOnce({
+      allowed: false,
+      limit: 60,
+      remaining: 0,
+      requestCount: 61,
+      retryAfterSeconds: 125,
+      resetAt: new Date("2026-04-28T11:00:00.000Z"),
+      bucketKey: "roleplayTts:user:hash",
+    });
+
+    const route = await import("../app/api/roleplay/tts/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/roleplay/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: "Listen back to the coaching note." }),
+      }),
+    );
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("125");
+    await expect(response.json()).resolves.toMatchObject({
+      code: "rate_limit_exceeded",
+      retryAfterSeconds: 125,
+    });
+    expect(checkRateLimitForPolicy).toHaveBeenCalledWith("roleplayTts", {
+      type: "user",
+      id: "auth-user-1",
     });
   });
 

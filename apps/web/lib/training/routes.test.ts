@@ -521,6 +521,43 @@ describe("training routes", () => {
     expect(generateTrainingModules).not.toHaveBeenCalled();
   });
 
+  it("returns 429 when the org training AI generation limit is exceeded", async () => {
+    generateTrainingModules.mockResolvedValueOnce({
+      ok: false,
+      status: 429,
+      code: "rate_limit_exceeded",
+      error: "Too many requests. Try again later.",
+      retryAfterSeconds: 444,
+    });
+
+    const route = await import("../../app/api/training/modules/generate/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/training/modules/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic: "Discovery",
+          targetRole: "manager",
+          moduleCount: 2,
+          skillFocus: "objection handling",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("444");
+    await expect(response.json()).resolves.toMatchObject({
+      code: "rate_limit_exceeded",
+      retryAfterSeconds: 444,
+    });
+    expect(generateTrainingModules).toHaveBeenCalledWith("auth-user-1", {
+      topic: "Discovery",
+      targetRole: "manager",
+      moduleCount: 2,
+      skillFocus: "objection handling",
+    });
+  });
+
   it("delegates generate requests to the service layer", async () => {
     generateTrainingModules.mockResolvedValue({
       ok: true,

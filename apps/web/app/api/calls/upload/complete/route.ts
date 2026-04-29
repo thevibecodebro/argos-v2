@@ -10,6 +10,10 @@ import {
   uploadCallErrorJson,
 } from "@/lib/calls/upload-errors";
 import { unauthorizedJson } from "@/lib/http";
+import {
+  checkRateLimitForPolicy,
+  rateLimitExceededResponse,
+} from "@/lib/rate-limit/service";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +33,15 @@ export async function POST(request: Request) {
 
     if (!authUser) {
       return unauthorizedJson();
+    }
+
+    const rateLimit = await checkRateLimitForPolicy("uploadComplete", {
+      type: "user",
+      id: authUser.id,
+    });
+
+    if (!rateLimit.allowed) {
+      return rateLimitExceededResponse(rateLimit);
     }
 
     const body = (await request.json().catch(() => null)) as CompleteUploadBody | null;

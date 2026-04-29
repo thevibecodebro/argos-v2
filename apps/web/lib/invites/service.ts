@@ -9,6 +9,8 @@ type InviteServiceResult<T> =
   | { ok: true; data: T }
   | { ok: false; status: 400 | 403 | 404 | 409 | 410; error: string };
 
+type InviteSenderRecord = Awaited<ReturnType<UsersRepository["findCurrentUserByAuthId"]>>;
+
 export class InviteAcceptanceConflictError extends Error {
   readonly result: Extract<InviteServiceResult<never>, { ok: false }>;
 
@@ -32,8 +34,12 @@ export async function sendInvite(
   usersRepo: UsersRepository,
   authUserId: string,
   input: { email?: unknown; role?: unknown; teamIds?: unknown },
+  options: { caller?: InviteSenderRecord } = {},
 ): Promise<InviteServiceResult<InviteRecord>> {
-  const caller = await usersRepo.findCurrentUserByAuthId(authUserId);
+  const caller =
+    options.caller === undefined
+      ? await usersRepo.findCurrentUserByAuthId(authUserId)
+      : options.caller;
 
   if (!caller) {
     return { ok: false, status: 404, error: "User not found" };
