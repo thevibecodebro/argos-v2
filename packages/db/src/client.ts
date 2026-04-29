@@ -19,11 +19,34 @@ function getDatabaseUrl(env: NodeJS.ProcessEnv = process.env): string {
   return databaseUrl;
 }
 
+function resolvePgSsl(connectionString: string) {
+  try {
+    const url = new URL(connectionString);
+    const sslMode = url.searchParams.get("sslmode");
+
+    if (sslMode === "disable") {
+      return false;
+    }
+
+    if (sslMode) {
+      return { rejectUnauthorized: false };
+    }
+
+    if (url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "::1") {
+      return false;
+    }
+  } catch {
+    // Fall through to the hosted-database default.
+  }
+
+  return { rejectUnauthorized: false };
+}
+
 export function createDb(connectionString = getDatabaseUrl()): ArgosDb {
   const pool = new Pool({
     connectionString,
     max: 5,
-    ssl: { rejectUnauthorized: false },
+    ssl: resolvePgSsl(connectionString),
   });
 
   return drizzle({
@@ -34,10 +57,12 @@ export function createDb(connectionString = getDatabaseUrl()): ArgosDb {
 
 export function getDb(): ArgosDb {
   if (!globalForDatabase.argosDb) {
+    const databaseUrl = getDatabaseUrl();
+
     globalForDatabase.argosPool = new Pool({
-      connectionString: getDatabaseUrl(),
+      connectionString: databaseUrl,
       max: 5,
-      ssl: { rejectUnauthorized: false },
+      ssl: resolvePgSsl(databaseUrl),
     });
 
     globalForDatabase.argosDb = drizzle({
