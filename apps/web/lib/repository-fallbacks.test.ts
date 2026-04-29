@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { createComplianceRepository } from "@/lib/compliance/create-repository";
 import { createIntegrationsRepository } from "@/lib/integrations/create-repository";
@@ -13,6 +13,8 @@ import { SupabaseNotificationsRepository } from "@/lib/notifications/supabase-re
 import { SupabaseRoleplayRepository } from "@/lib/roleplay/supabase-repository";
 import { SupabaseTrainingRepository } from "@/lib/training/supabase-repository";
 import { SupabaseUsersRepository } from "@/lib/users/supabase-repository";
+
+vi.mock("server-only", () => ({}));
 
 const ORIGINAL_ENV = {
   DATABASE_URL: process.env.DATABASE_URL,
