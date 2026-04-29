@@ -143,6 +143,58 @@ describe("roleplay voice routes", () => {
     await expect(response.text()).resolves.toBe("v=0\r\na=answer-sdp");
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0]?.[0]).toBe("https://api.openai.com/v1/realtime/calls");
+    expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("rejects oversized realtime SDP offers before contacting OpenAI", async () => {
+    process.env.OPENAI_API_KEY = "test-openai-key";
+
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const route = await import("../app/api/roleplay/sessions/[id]/realtime/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/roleplay/sessions/session-1/realtime", {
+        method: "POST",
+        headers: { "Content-Type": "application/sdp" },
+        body: `v=0\r\n${"a".repeat(80_000)}`,
+      }),
+      { params: Promise.resolve({ id: "session-1" }) },
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: expect.stringContaining("SDP offer is too large"),
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(getRoleplaySession).not.toHaveBeenCalled();
+  });
+
+  it("rejects oversized realtime SDP content-length before reading the body", async () => {
+    process.env.OPENAI_API_KEY = "test-openai-key";
+
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const route = await import("../app/api/roleplay/sessions/[id]/realtime/route");
+    const request = new Request("http://localhost:3100/api/roleplay/sessions/session-1/realtime", {
+      method: "POST",
+      headers: {
+        "Content-Length": "80000",
+        "Content-Type": "application/sdp",
+      },
+      body: "v=0",
+    });
+    const textSpy = vi.spyOn(request, "text");
+    const response = await route.POST(request, { params: Promise.resolve({ id: "session-1" }) });
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: expect.stringContaining("SDP offer is too large"),
+    });
+    expect(textSpy).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(getRoleplaySession).not.toHaveBeenCalled();
   });
 
   it("returns 503 for TTS when OpenAI speech config is missing", async () => {
@@ -219,6 +271,72 @@ describe("roleplay voice routes", () => {
     expect(Buffer.from(await response.arrayBuffer())).toEqual(Buffer.from(audioBytes));
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0]?.[0]).toBe("https://api.openai.com/v1/audio/speech");
+    expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("rejects oversized TTS text and instructions before contacting OpenAI", async () => {
+    process.env.OPENAI_API_KEY = "test-openai-key";
+
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const route = await import("../app/api/roleplay/tts/route");
+    const textResponse = await route.POST(
+      new Request("http://localhost:3100/api/roleplay/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: "A".repeat(5_000) }),
+      }),
+    );
+
+    expect(textResponse.status).toBe(400);
+    await expect(textResponse.json()).resolves.toMatchObject({
+      error: expect.stringContaining("text must be"),
+    });
+
+    const instructionsResponse = await route.POST(
+      new Request("http://localhost:3100/api/roleplay/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: "Short coaching line.",
+          instructions: "A".repeat(3_000),
+        }),
+      }),
+    );
+
+    expect(instructionsResponse.status).toBe(400);
+    await expect(instructionsResponse.json()).resolves.toMatchObject({
+      error: expect.stringContaining("instructions must be"),
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects oversized TTS JSON content-length before auth or provider calls", async () => {
+    process.env.OPENAI_API_KEY = "test-openai-key";
+
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const route = await import("../app/api/roleplay/tts/route");
+    const request = new Request("http://localhost:3100/api/roleplay/tts", {
+      method: "POST",
+      headers: {
+        "Content-Length": "20000",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ text: "Short coaching line." }),
+    });
+    const jsonSpy = vi.spyOn(request, "json");
+    const response = await route.POST(request);
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: expect.stringContaining("request body is too large"),
+    });
+    expect(jsonSpy).not.toHaveBeenCalled();
+    expect(getAuthenticatedSupabaseUser).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("persists a realtime transcript turn through the roleplay service", async () => {

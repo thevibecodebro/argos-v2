@@ -400,6 +400,7 @@ describe("processZoomWebhookRequest", () => {
       });
       expect(fetchMock).toHaveBeenCalledWith("https://example.com/audio.m4a", {
         headers: { Authorization: "Bearer zoom-access" },
+        signal: expect.any(AbortSignal),
       });
       expect(storeSourceAsset).toHaveBeenCalledWith({
         bytes: Buffer.from("zoom-audio"),
@@ -586,6 +587,7 @@ describe("processZoomWebhookRequest", () => {
 
       expect(fetchMock).toHaveBeenCalledWith("https://example.com/video.mp4", {
         headers: { Authorization: "Bearer zoom-access" },
+        signal: expect.any(AbortSignal),
       });
     } finally {
       vi.unstubAllGlobals();

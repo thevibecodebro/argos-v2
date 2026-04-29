@@ -4,6 +4,7 @@ import type { CallRecordingStorage } from "@/lib/calls/service";
 import { checkRateLimitForPolicy, type RateLimitResult } from "@/lib/rate-limit/service";
 import { createRubricsRepository } from "@/lib/rubrics/create-repository";
 import { getActiveRubric, type RubricsRepository } from "@/lib/rubrics/service";
+import { fetchWithTimeout } from "@/lib/security/fetch-timeout";
 import { refreshZoomToken } from "./oauth";
 
 type ZoomWebhookEnv = Partial<Record<
@@ -119,6 +120,7 @@ const COMPLETED_OR_ACTIVE_JOB_STATUSES: ReadonlySet<CallProcessingJobStatus> = n
   "retrying",
   "complete",
 ]);
+const ZOOM_RECORDING_DOWNLOAD_TIMEOUT_MS = 120_000;
 
 function rateLimitResultToWebhookResponse(result: RateLimitResult): ZoomWebhookResponse {
   return {
@@ -335,9 +337,17 @@ async function downloadRecording(input: {
     throw new Error("Zoom recording is missing a download URL");
   }
 
-  const response = await fetch(input.downloadUrl, {
-    headers: { Authorization: `Bearer ${input.accessToken}` },
-  });
+  const { response, body: arrayBuffer } = await fetchWithTimeout<ArrayBuffer | null>(
+    input.downloadUrl,
+    {
+      headers: { Authorization: `Bearer ${input.accessToken}` },
+    },
+    ZOOM_RECORDING_DOWNLOAD_TIMEOUT_MS,
+    (response) =>
+      response.ok && response.body
+        ? response.arrayBuffer()
+        : Promise.resolve(null),
+  );
 
   if (!response.ok || !response.body) {
     throw new Error(`Zoom recording download failed with status ${response.status}`);
@@ -345,10 +355,9 @@ async function downloadRecording(input: {
 
   const contentType = response.headers.get("content-type") ?? "audio/mp4";
   const ext = input.fileExtension?.toLowerCase() || (contentType.includes("mp4") ? "mp4" : "m4a");
-  const arrayBuffer = await response.arrayBuffer();
 
   return {
-    audioBytes: Buffer.from(arrayBuffer),
+    audioBytes: Buffer.from(arrayBuffer as ArrayBuffer),
     contentType,
     fileName: `${input.recordingId}.${ext}`,
   };

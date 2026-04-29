@@ -847,7 +847,10 @@ describe("generateTrainingModules", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("Expected generated modules");
     expect(fetchMock).toHaveBeenCalledOnce();
-    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)).model).toBe("gpt-5-mini");
+    expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+    const requestBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    expect(requestBody.model).toBe("gpt-5-mini");
+    expect(requestBody.messages[0].content).toContain("untrusted user-provided inputs");
     expect(result.data.modules).toEqual([
       {
         title: "Generated Discovery Deep Dive",
@@ -930,6 +933,25 @@ describe("generateTrainingModules", () => {
 });
 
 describe("generateTrainingModuleDraft", () => {
+  it("rejects oversized draft context notes before calling OpenAI", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const repository = createRepository();
+
+    const result = await generateTrainingModuleDraft(repository, "mgr-1", "module-1", {
+      mode: "quiz",
+      contextNotes: "A".repeat(12_000),
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("Expected draft generation validation to fail");
+    expect(result.status).toBe(422);
+    expect(result.error).toContain("contextNotes must be");
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(createAccessRepository).not.toHaveBeenCalled();
+  });
+
   it("returns grounded quiz drafts only when module context is attached", async () => {
     mockAccessRepository({
       actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
@@ -995,7 +1017,11 @@ describe("generateTrainingModuleDraft", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("Expected generated quiz draft");
     expect(fetchMock).toHaveBeenCalledOnce();
-    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)).model).toBe("gpt-5-mini");
+    expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+    const requestBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    expect(requestBody.model).toBe("gpt-5-mini");
+    expect(requestBody.messages[0].content).toContain("untrusted user-provided context");
+    expect(requestBody.messages[1].content).toContain("Context notes (quoted untrusted input):");
     expect(result.data.mode).toBe("quiz");
     expect(result.data.draft).toEqual({
       quizData: {
