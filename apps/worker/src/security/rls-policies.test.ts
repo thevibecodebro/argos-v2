@@ -12,6 +12,10 @@ type PolicyRow = {
   roles: string[];
 };
 
+type RawPolicyRow = Omit<PolicyRow, "roles"> & {
+  roles: string[] | string;
+};
+
 type RlsRow = {
   relname: string;
   relrowsecurity: boolean;
@@ -62,6 +66,25 @@ const directClientGrantees = ["anon", "authenticated", "PUBLIC"] as const;
 
 function normalizeWhitespace(value: string) {
   return value.replace(/\s+/g, " ").trim();
+}
+
+function normalizePgArray(value: string[] | string) {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  return value
+    .replace(/^\{|\}$/g, "")
+    .split(",")
+    .map((role) => role.replace(/^"|"$/g, "").trim())
+    .filter(Boolean);
+}
+
+function normalizePolicyRows(rows: RawPolicyRow[]): PolicyRow[] {
+  return rows.map((row) => ({
+    ...row,
+    roles: normalizePgArray(row.roles),
+  }));
 }
 
 async function readMigrationSql() {
@@ -133,7 +156,7 @@ describeWithDatabase("RLS policy coverage in pg_policies", () => {
         )
       order by tablename, policyname;
     `);
-    const policies = policyResult.rows as PolicyRow[];
+    const policies = normalizePolicyRows(policyResult.rows as RawPolicyRow[]);
 
     for (const expectedPolicy of expectedPolicies) {
       expect(policies).toContainEqual(expectedPolicy);
