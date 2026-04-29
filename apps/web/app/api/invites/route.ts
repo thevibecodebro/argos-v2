@@ -4,6 +4,10 @@ import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user"
 import { createInvitesRepository } from "@/lib/invites/create-repository";
 import { createUsersRepository } from "@/lib/users/create-repository";
 import { sendInvite, listPendingInvites } from "@/lib/invites/service";
+import {
+  checkRateLimitForPolicy,
+  rateLimitExceededResponse,
+} from "@/lib/rate-limit/service";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +16,36 @@ export async function POST(request: Request) {
 
   if (!authUser) {
     return unauthorizedJson();
+  }
+
+  const usersRepository = createUsersRepository();
+  const caller = await usersRepository.findCurrentUserByAuthId(authUser.id);
+
+  if (!caller) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  if (!caller.orgId) {
+    return NextResponse.json(
+      { error: "You are not part of an organization" },
+      { status: 400 },
+    );
+  }
+
+  if (caller.role !== "admin") {
+    return NextResponse.json(
+      { error: "Only admins can send invites" },
+      { status: 403 },
+    );
+  }
+
+  const rateLimit = await checkRateLimitForPolicy("invites", {
+    type: "org",
+    id: caller.orgId,
+  });
+
+  if (!rateLimit.allowed) {
+    return rateLimitExceededResponse(rateLimit);
   }
 
   const payload = (await request.json()) as {
@@ -23,9 +57,10 @@ export async function POST(request: Request) {
   try {
     const result = await sendInvite(
       createInvitesRepository(),
-      createUsersRepository(),
+      usersRepository,
       authUser.id,
       payload,
+      { caller },
     );
     return fromServiceResult(result);
   } catch (error) {

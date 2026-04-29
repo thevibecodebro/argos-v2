@@ -3,7 +3,10 @@ import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user"
 import { getDb } from "@argos-v2/db";
 import { DrizzleInvitesRepository } from "@/lib/invites/supabase-repository";
 import { DrizzleOnboardingRepository } from "@/lib/onboarding/repository";
-import { commitInviteAcceptance } from "@/lib/invites/service";
+import {
+  InviteAcceptanceConflictError,
+  commitInviteAcceptance,
+} from "@/lib/invites/service";
 import { createInvitesRepository } from "@/lib/invites/create-repository";
 import { createOnboardingRepository } from "@/lib/onboarding/create-repository";
 
@@ -46,7 +49,7 @@ export async function POST(
   }
 
   if (invite.acceptedAt) {
-    return fromServiceResult({ ok: false, status: 400, error: "Invite has already been accepted" });
+    return fromServiceResult({ ok: false, status: 409, error: "Invite has already been accepted" });
   }
 
   if (caller.email !== invite.email) {
@@ -55,12 +58,20 @@ export async function POST(
 
   // Mutating steps (inside transaction)
   const db = getDb();
-  const result = await db.transaction(async (tx) => {
-    const txRepo = new DrizzleInvitesRepository(tx);
-    const txOnboardingRepo = new DrizzleOnboardingRepository(tx);
-    const callerRecord = { id: caller.id, email: caller.email, orgId: caller.org?.id ?? null };
-    return commitInviteAcceptance(txRepo, txOnboardingRepo, callerRecord, invite);
-  });
+  const result = await db
+    .transaction(async (tx) => {
+      const txRepo = new DrizzleInvitesRepository(tx);
+      const txOnboardingRepo = new DrizzleOnboardingRepository(tx);
+      const callerRecord = { id: caller.id, email: caller.email, orgId: caller.org?.id ?? null };
+      return commitInviteAcceptance(txRepo, txOnboardingRepo, callerRecord, invite);
+    })
+    .catch((error: unknown) => {
+      if (error instanceof InviteAcceptanceConflictError) {
+        return error.result;
+      }
+
+      throw error;
+    });
 
   return fromServiceResult(result);
 }

@@ -1,4 +1,8 @@
 import type { RoleplaySession } from "@/lib/roleplay/service";
+import { fetchWithTimeout } from "@/lib/security/fetch-timeout";
+
+const OPENAI_REALTIME_TIMEOUT_MS = 30_000;
+const OPENAI_SPEECH_TIMEOUT_MS = 30_000;
 
 type OpenAiVoiceEnvSource = Partial<Record<string, string | undefined>>;
 
@@ -90,22 +94,27 @@ export async function createRealtimeCall(input: {
     }),
   );
 
-  const response = await fetch("https://api.openai.com/v1/realtime/calls", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${config.apiKey}`,
+  const { response, body } = await fetchWithTimeout<string>(
+    "https://api.openai.com/v1/realtime/calls",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      body: formData,
     },
-    body: formData,
-  });
+    OPENAI_REALTIME_TIMEOUT_MS,
+    (response) => response.text(),
+  );
 
   if (!response.ok) {
-    const errorBody = await response.text().catch(() => "");
-    throw new Error(`OpenAI realtime request failed: ${response.status}${errorBody ? ` ${errorBody}` : ""}`);
+    throw new Error(`OpenAI realtime request failed: ${response.status}${body ? ` ${body}` : ""}`);
   }
 
   return {
-    response,
+    answerSdp: body,
     config,
+    contentType: response.headers.get("Content-Type") ?? "application/sdp",
   };
 }
 
@@ -116,24 +125,35 @@ export async function createSpeechAudio(input: {
   voice?: string;
 }) {
   const config = getOpenAiVoiceEnv(input.env);
-  const response = await fetch("https://api.openai.com/v1/audio/speech", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${config.apiKey}`,
-      "Content-Type": "application/json",
+  const { response, body } = await fetchWithTimeout<ArrayBuffer | string>(
+    "https://api.openai.com/v1/audio/speech",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${config.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: config.ttsModel,
+        voice: input.voice ?? config.ttsVoice,
+        input: input.text,
+        instructions: input.instructions,
+      }),
     },
-    body: JSON.stringify({
-      model: config.ttsModel,
-      voice: input.voice ?? config.ttsVoice,
-      input: input.text,
-      instructions: input.instructions,
-    }),
-  });
+    OPENAI_SPEECH_TIMEOUT_MS,
+    (response) =>
+      response.ok
+        ? response.arrayBuffer()
+        : response.text().catch(() => ""),
+  );
 
   if (!response.ok) {
-    const errorBody = await response.text().catch(() => "");
+    const errorBody = typeof body === "string" ? body : "";
     throw new Error(`OpenAI speech request failed: ${response.status}${errorBody ? ` ${errorBody}` : ""}`);
   }
 
-  return response;
+  return {
+    arrayBuffer: body as ArrayBuffer,
+    contentType: response.headers.get("Content-Type") ?? "audio/mpeg",
+  };
 }

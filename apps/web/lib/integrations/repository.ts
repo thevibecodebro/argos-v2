@@ -9,6 +9,11 @@ import {
 } from "@argos-v2/db";
 import { parseAppUserRole } from "@/lib/users/roles";
 import type { IntegrationsRepository } from "./service";
+import {
+  decryptIntegrationToken,
+  encryptIntegrationToken,
+  encryptNullableIntegrationToken,
+} from "./token-encryption";
 
 export class DrizzleIntegrationsRepository implements IntegrationsRepository {
   constructor(private readonly db: ArgosDb = getDb()) {}
@@ -39,20 +44,25 @@ export class DrizzleIntegrationsRepository implements IntegrationsRepository {
     refreshToken: string;
     tokenExpiresAt: Date;
   }) {
+    const encryptedAccessToken = encryptIntegrationToken(input.accessToken);
+    const encryptedRefreshToken = encryptIntegrationToken(input.refreshToken);
+
     await this.db
       .insert(ghlIntegrationsTable)
       .values({
         ...input,
+        accessToken: encryptedAccessToken,
         connectedAt: new Date(),
+        refreshToken: encryptedRefreshToken,
         updatedAt: new Date(),
       })
       .onConflictDoUpdate({
         target: ghlIntegrationsTable.orgId,
         set: {
-          accessToken: input.accessToken,
+          accessToken: encryptedAccessToken,
           locationId: input.locationId,
           locationName: input.locationName,
-          refreshToken: input.refreshToken,
+          refreshToken: encryptedRefreshToken,
           tokenExpiresAt: input.tokenExpiresAt,
           updatedAt: new Date(),
         },
@@ -69,21 +79,28 @@ export class DrizzleIntegrationsRepository implements IntegrationsRepository {
     zoomAccountId: string | null;
     zoomUserId: string | null;
   }) {
+    const encryptedAccessToken = encryptIntegrationToken(input.accessToken);
+    const encryptedRefreshToken = encryptIntegrationToken(input.refreshToken);
+    const encryptedWebhookToken = encryptNullableIntegrationToken(input.webhookToken);
+
     await this.db
       .insert(zoomIntegrationsTable)
       .values({
         ...input,
+        accessToken: encryptedAccessToken,
         connectedAt: new Date(),
+        refreshToken: encryptedRefreshToken,
         updatedAt: new Date(),
+        webhookToken: encryptedWebhookToken,
       })
       .onConflictDoUpdate({
         target: zoomIntegrationsTable.orgId,
         set: {
-          accessToken: input.accessToken,
-          refreshToken: input.refreshToken,
+          accessToken: encryptedAccessToken,
+          refreshToken: encryptedRefreshToken,
           tokenExpiresAt: input.tokenExpiresAt,
           webhookId: input.webhookId ?? null,
-          webhookToken: input.webhookToken ?? null,
+          webhookToken: encryptedWebhookToken,
           zoomAccountId: input.zoomAccountId,
           zoomUserId: input.zoomUserId,
           updatedAt: new Date(),
@@ -133,15 +150,23 @@ export class DrizzleIntegrationsRepository implements IntegrationsRepository {
       .where(eq(zoomIntegrationsTable.orgId, orgId))
       .limit(1);
 
-    return integration ?? null;
+    if (!integration) {
+      return null;
+    }
+
+    return {
+      ...integration,
+      accessToken: decryptIntegrationToken(integration.accessToken),
+      refreshToken: decryptIntegrationToken(integration.refreshToken),
+    };
   }
 
   async updateZoomTokens(orgId: string, tokens: { accessToken: string; refreshToken: string; tokenExpiresAt: Date }) {
     await this.db
       .update(zoomIntegrationsTable)
       .set({
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
+        accessToken: encryptIntegrationToken(tokens.accessToken),
+        refreshToken: encryptIntegrationToken(tokens.refreshToken),
         tokenExpiresAt: tokens.tokenExpiresAt,
         updatedAt: new Date(),
       })

@@ -9,6 +9,10 @@ import {
   uploadCallErrorJson,
 } from "@/lib/calls/upload-errors";
 import { unauthorizedJson } from "@/lib/http";
+import {
+  checkRateLimitForPolicy,
+  rateLimitExceededResponse,
+} from "@/lib/rate-limit/service";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +28,15 @@ export async function POST(request: Request) {
 
     if (!authUser) {
       return unauthorizedJson();
+    }
+
+    const rateLimit = await checkRateLimitForPolicy("uploadPrepare", {
+      type: "user",
+      id: authUser.id,
+    });
+
+    if (!rateLimit.allowed) {
+      return rateLimitExceededResponse(rateLimit);
     }
 
     const body = (await request.json().catch(() => null)) as PrepareUploadBody | null;

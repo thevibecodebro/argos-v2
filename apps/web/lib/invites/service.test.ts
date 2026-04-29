@@ -56,7 +56,7 @@ function makeInvitesRepo(overrides: Partial<InvitesRepository> = {}): InvitesRep
     findInviteByToken: vi.fn().mockResolvedValue(null),
     findPendingInviteByOrgAndEmail: vi.fn().mockResolvedValue(null),
     findPendingInvitesByOrg: vi.fn().mockResolvedValue([]),
-    markInviteAccepted: vi.fn().mockResolvedValue(undefined),
+    markInviteAccepted: vi.fn().mockResolvedValue(true),
     deleteInviteByToken: vi.fn().mockResolvedValue(undefined),
     findTeamsByIds: vi.fn().mockResolvedValue([]),
     listActiveTeamsByOrg: vi.fn().mockResolvedValue([]),
@@ -79,7 +79,11 @@ function makeUsersRepo(overrides: Partial<UsersRepository> = {}): UsersRepositor
 
 function makeOnboardingRepo(overrides: Partial<OnboardingRepository> = {}): OnboardingRepository {
   return {
-    assignUserToOrganization: vi.fn().mockResolvedValue(undefined),
+    assignUserToOrganization: vi.fn().mockResolvedValue(true),
+    createBootstrapOrganizationForUserIfNone: vi.fn().mockResolvedValue({
+      status: "organization-exists",
+    }),
+    createOrganizationForUser: vi.fn(),
     createOrganization: vi.fn().mockResolvedValue(null),
     findCurrentUserByAuthId: vi.fn().mockResolvedValue(null),
     findOrganizationBySlug: vi.fn().mockResolvedValue(null),
@@ -234,6 +238,61 @@ describe("commitInviteAcceptance", () => {
       membershipType: "rep",
     });
     expect(repo.markInviteAccepted).toHaveBeenCalledWith(invite.id);
+  });
+
+  it("claims the invite before assigning organization membership", async () => {
+    const { caller, invite } = makeAcceptArgs({ role: "rep", teamIds: ["team-1"] });
+    const repo = makeInvitesRepo();
+    const onboardingRepo = makeOnboardingRepo();
+
+    await commitInviteAcceptance(repo, onboardingRepo, caller, invite);
+
+    const markOrder = vi.mocked(repo.markInviteAccepted).mock.invocationCallOrder[0];
+    const assignOrder = vi.mocked(onboardingRepo.assignUserToOrganization).mock.invocationCallOrder[0];
+    expect(markOrder).toBeLessThan(assignOrder);
+  });
+
+  it("returns conflict without assigning membership when another request already claimed the invite", async () => {
+    const { caller, invite } = makeAcceptArgs({ role: "rep", teamIds: ["team-1"] });
+    const repo = makeInvitesRepo({
+      markInviteAccepted: vi.fn().mockResolvedValue(false),
+    });
+    const onboardingRepo = makeOnboardingRepo();
+
+    const result = await commitInviteAcceptance(repo, onboardingRepo, caller, invite);
+
+    expect(result).toEqual({
+      ok: false,
+      status: 409,
+      error: "Invite has already been accepted",
+    });
+    expect(onboardingRepo.assignUserToOrganization).not.toHaveBeenCalled();
+    expect(repo.createTeamMemberships).not.toHaveBeenCalled();
+  });
+
+  it("throws a rollback conflict when the invite was claimed but the user org claim fails", async () => {
+    const { caller, invite } = makeAcceptArgs({ role: "rep", teamIds: ["team-1"] });
+    const repo = makeInvitesRepo();
+    const onboardingRepo = makeOnboardingRepo({
+      assignUserToOrganization: vi.fn().mockResolvedValue(false),
+    });
+
+    await expect(
+      commitInviteAcceptance(repo, onboardingRepo, caller, invite),
+    ).rejects.toMatchObject({
+      result: {
+        ok: false,
+        status: 409,
+        error: "User already belongs to an organization",
+      },
+    });
+    expect(repo.markInviteAccepted).toHaveBeenCalledWith(invite.id);
+    expect(onboardingRepo.assignUserToOrganization).toHaveBeenCalledWith({
+      orgId: invite.orgId,
+      userId: caller.id,
+      role: "rep",
+    });
+    expect(repo.createTeamMemberships).not.toHaveBeenCalled();
   });
 
   it("happy path for manager: assigns org with manager team memberships", async () => {

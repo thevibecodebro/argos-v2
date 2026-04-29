@@ -9,9 +9,14 @@ import {
   integrationOAuthCookieNames,
   resolveGhlRedirectUri,
 } from "@/lib/integrations/oauth";
+import { isGhlIntegrationConfigured } from "@/lib/integrations/service";
 import { unauthorizedJson } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
+
+function settingsRedirect(request: Request, error: string) {
+  return NextResponse.redirect(new URL(`/settings?ghl_error=${error}`, getRequestOrigin(request)));
+}
 
 export async function GET(request: Request) {
   const authUser = await getAuthenticatedSupabaseUser();
@@ -24,15 +29,20 @@ export async function GET(request: Request) {
   const viewer = await repository.findCurrentUserByAuthId(authUser.id);
 
   if (!viewer?.org) {
-    return NextResponse.redirect(new URL("/settings?ghl_error=not_provisioned", request.url));
+    return settingsRedirect(request, "not_provisioned");
   }
 
   if (viewer.role !== "admin") {
-    return NextResponse.redirect(new URL("/settings?ghl_error=forbidden", request.url));
+    return settingsRedirect(request, "forbidden");
   }
 
-  if (!process.env.GHL_CLIENT_ID || !process.env.GHL_CLIENT_SECRET) {
-    return NextResponse.redirect(new URL("/settings?ghl_error=not_configured", request.url));
+  if (!isGhlIntegrationConfigured()) {
+    return settingsRedirect(request, "not_configured");
+  }
+
+  const clientId = process.env.GHL_CLIENT_ID;
+  if (!clientId) {
+    return settingsRedirect(request, "not_configured");
   }
 
   const origin = getRequestOrigin(request);
@@ -46,7 +56,7 @@ export async function GET(request: Request) {
 
   const response = NextResponse.redirect(
     buildGhlOAuthUrl({
-      clientId: process.env.GHL_CLIENT_ID,
+      clientId,
       redirectUri,
       state,
     }),

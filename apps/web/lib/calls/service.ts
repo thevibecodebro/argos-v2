@@ -9,6 +9,7 @@ import type { AccessRepository } from "@/lib/access/repository.types";
 import type { DashboardUserRecord } from "@/lib/dashboard/service";
 import { createRubricsRepository } from "@/lib/rubrics/create-repository";
 import { getActiveRubric, type RubricsRepository } from "@/lib/rubrics/service";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { AppUserRole } from "@/lib/users/roles";
 import { storeManualCallSource, type SourceAsset } from "./ingestion-service";
 import type { CallEvaluation, TranscriptLine } from "./types";
@@ -135,6 +136,21 @@ type CallHighlightRecord = Omit<CallHighlight, "createdAt" | "callCreatedAt"> & 
 };
 type ScoreTrendRecord = Omit<ScoreTrendPoint, "date"> & { createdAt: Date };
 
+export type CallRecordingStorage = {
+  storageBucket: string;
+  storagePath: string;
+  contentType: string | null;
+  fileSizeBytes: number | null;
+};
+
+export type CallRecordingReference = {
+  storageBucket: string | null;
+  storagePath: string | null;
+  contentType: string | null;
+  fileSizeBytes: number | null;
+  recordingUrl: string | null;
+};
+
 export type CallsFilters = {
   days?: number;
   limit?: number;
@@ -174,13 +190,17 @@ type CompleteUploadedCallInput = {
   callTopic?: string | null;
   fileName: string;
   fileSizeBytes: number;
-  sourceAsset: SourceAsset & {
-    contentType: string | null;
-  };
+  sourceAsset: SourceAsset;
 };
 
 type CompleteUploadedCallDependencies = {
   rubricsRepository?: RubricsRepository;
+};
+
+type CallRecordingSignedUrlDependencies = {
+  accessRepository?: AccessRepository;
+  expiresInSeconds?: number;
+  storage?: Pick<ReturnType<typeof createSupabaseAdminClient>["storage"], "from">;
 };
 
 type UploadCallResult = {
@@ -218,6 +238,7 @@ export type CallsRepository = {
   deleteAnnotation(annotationId: string, callId: string): Promise<boolean>;
   findAnnotations(callId: string): Promise<CallAnnotationRecord[]>;
   findCallById(callId: string): Promise<CallDetailRecord | null>;
+  findCallRecordingReference(callId: string): Promise<CallRecordingReference | null>;
   findCallsByOrgId(
     orgId: string,
     filters: CallsFilters,
@@ -251,6 +272,7 @@ export type CallsRepository = {
   }): Promise<void>;
   setCallEvaluation(callId: string, evaluation: CallEvaluation): Promise<void>;
   updateCallRecording(callId: string, recordingUrl: string | null): Promise<void>;
+  updateCallRecordingStorage(callId: string, recording: CallRecordingStorage): Promise<void>;
   updateCallStatus(
     callId: string,
     status: "uploaded" | "transcribing" | "evaluating" | "complete" | "failed",
@@ -658,6 +680,137 @@ export async function getCallDetail(
   };
 }
 
+export async function createCallRecordingSignedUrl(
+  repository: CallsRepository,
+  authUserId: string,
+  callId: string,
+  dependencies: CallRecordingSignedUrlDependencies = {},
+): Promise<ServiceResult<{ url: string; expiresInSeconds: number | null }>> {
+  const accessRepository = dependencies.accessRepository ?? createAccessRepository();
+  const detail = await getCallDetail(repository, authUserId, callId, accessRepository);
+
+  if (!detail.ok) {
+    return detail;
+  }
+
+  const recording = await repository.findCallRecordingReference(callId);
+  const legacyRecording = parseLegacyRecordingUrl(recording?.recordingUrl ?? null);
+  const storageRecording =
+    recording?.storageBucket && recording.storagePath
+      ? {
+          storageBucket: recording.storageBucket,
+          storagePath: recording.storagePath,
+        }
+      : legacyRecording?.type === "storage"
+        ? {
+            storageBucket: legacyRecording.storageBucket,
+            storagePath: legacyRecording.storagePath,
+          }
+        : null;
+
+  if (!storageRecording && legacyRecording?.type === "external") {
+    return {
+      ok: true,
+      data: {
+        url: legacyRecording.url,
+        expiresInSeconds: null,
+      },
+    };
+  }
+
+  if (!storageRecording) {
+    return {
+      ok: false,
+      status: 404,
+      code: "not_found",
+      error: "Recording is not available",
+    };
+  }
+
+  const expiresInSeconds = dependencies.expiresInSeconds ?? 300;
+  const storage = dependencies.storage ?? createSupabaseAdminClient().storage;
+  const { data, error } = await storage
+    .from(storageRecording.storageBucket)
+    .createSignedUrl(storageRecording.storagePath, expiresInSeconds);
+
+  if (error || !data?.signedUrl) {
+    throw new Error(`Failed to create recording URL: ${error?.message ?? "missing signed URL"}`);
+  }
+
+  return {
+    ok: true,
+    data: {
+      url: data.signedUrl,
+      expiresInSeconds,
+    },
+  };
+}
+
+function parseLegacyRecordingUrl(recordingUrl: string | null):
+  | { type: "storage"; storageBucket: "call-recordings"; storagePath: string }
+  | { type: "external"; url: string }
+  | null {
+  if (!recordingUrl) {
+    return null;
+  }
+
+  let parsed: URL;
+
+  try {
+    parsed = new URL(recordingUrl);
+  } catch {
+    return null;
+  }
+
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    return null;
+  }
+
+  const marker = "/storage/v1/object/public/call-recordings/";
+
+  if (!parsed.pathname.startsWith(marker) || !isConfiguredSupabaseStorageOrigin(parsed)) {
+    return { type: "external", url: recordingUrl };
+  }
+
+  const rawStoragePath = parsed.pathname.slice(marker.length);
+
+  try {
+    const storagePath = decodeURIComponent(rawStoragePath).replace(/^\/+/, "");
+
+    if (storagePath) {
+      return {
+        type: "storage",
+        storageBucket: "call-recordings",
+        storagePath,
+      };
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function isConfiguredSupabaseStorageOrigin(url: URL) {
+  const configuredOrigin = getConfiguredSupabaseOrigin();
+
+  return configuredOrigin !== null && url.origin === configuredOrigin;
+}
+
+function getConfiguredSupabaseOrigin() {
+  const rawSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+  if (!rawSupabaseUrl) {
+    return null;
+  }
+
+  try {
+    return new URL(rawSupabaseUrl).origin;
+  } catch {
+    return null;
+  }
+}
+
 export async function getCallStatus(
   repository: CallsRepository,
   authUserId: string,
@@ -1051,7 +1204,12 @@ export async function uploadCall(
       fileName: input.fileName,
     });
 
-    await repository.updateCallRecording(created.id, sourceAsset.publicUrl);
+    await repository.updateCallRecordingStorage(created.id, {
+      storageBucket: sourceAsset.storageBucket,
+      storagePath: sourceAsset.storagePath,
+      contentType: sourceAsset.contentType,
+      fileSizeBytes: sourceAsset.fileSizeBytes,
+    });
     await repository.createOrResetCallProcessingJob({
       callId: created.id,
       rubricId,
@@ -1117,7 +1275,12 @@ export async function completeUploadedCall(
   });
 
   try {
-    await repository.updateCallRecording(created.id, input.sourceAsset.publicUrl);
+    await repository.updateCallRecordingStorage(created.id, {
+      storageBucket: input.sourceAsset.storageBucket,
+      storagePath: input.sourceAsset.storagePath,
+      contentType: input.sourceAsset.contentType,
+      fileSizeBytes: input.sourceAsset.fileSizeBytes,
+    });
     await repository.createOrResetCallProcessingJob({
       callId: created.id,
       rubricId,

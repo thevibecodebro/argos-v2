@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   createAnnotation,
+  createCallRecordingSignedUrl,
   deleteAnnotation,
   getCallDetail,
   listCalls,
@@ -17,6 +18,7 @@ function createRepository(
     deleteAnnotation: vi.fn(),
     findAnnotations: vi.fn(),
     findCallById: vi.fn(),
+    findCallRecordingReference: vi.fn(),
     findCallsByOrgId: vi.fn(),
     findCallsByRepId: vi.fn(),
     findCallsByRepIds: vi.fn(),
@@ -27,6 +29,7 @@ function createRepository(
     insertAnnotation: vi.fn(),
     setCallEvaluation: vi.fn(),
     updateCallTopic: vi.fn(),
+    updateCallRecordingStorage: vi.fn(),
     updateMomentHighlight: vi.fn(),
     ...overrides,
   } as unknown as CallsRepository;
@@ -567,6 +570,663 @@ describe("getCallDetail", () => {
       ok: false,
       status: 403,
       code: "forbidden",
+    });
+  });
+});
+
+describe("createCallRecordingSignedUrl", () => {
+  it("reuses call detail access checks before signing the private storage path", async () => {
+    const accessRepository = createAccessRepository({
+      findActorByAuthUserId: vi.fn().mockResolvedValue({
+        id: "mgr-1",
+        role: "manager",
+        orgId: "org-1",
+      }),
+      findMembershipsByOrgId: vi.fn().mockResolvedValue([
+        { orgId: "org-1", teamId: "team-a", userId: "mgr-1", membershipType: "manager" },
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ]),
+      findGrantsByUserId: vi.fn().mockResolvedValue([
+        { orgId: "org-1", teamId: "team-a", userId: "mgr-1", permissionKey: "view_team_calls" },
+      ]),
+    });
+    const createSignedUrl = vi.fn().mockResolvedValue({
+      data: { signedUrl: "https://storage.example/signed-token" },
+      error: null,
+    });
+    const from = vi.fn().mockReturnValue({ createSignedUrl });
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "mgr-1",
+        email: "manager@argos.ai",
+        role: "manager",
+        firstName: "Morgan",
+        lastName: "Lane",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      findCallById: vi.fn().mockResolvedValue({
+        id: "call-1",
+        repId: "rep-1",
+        orgId: "org-1",
+        status: "complete",
+        recordingUrl: null,
+        transcriptUrl: null,
+        durationSeconds: 1200,
+        callTopic: "ACME",
+        overallScore: 84,
+        frameControlScore: 80,
+        rapportScore: 82,
+        discoveryScore: 79,
+        painExpansionScore: 76,
+        solutionScore: 85,
+        objectionScore: 78,
+        closingScore: 88,
+        confidence: "high",
+        callStageReached: "close",
+        strengths: [],
+        improvements: [],
+        recommendedDrills: [],
+        transcript: [],
+        createdAt: new Date("2026-04-01T00:00:00.000Z"),
+        repFirstName: "Riley",
+        repLastName: "Stone",
+        moments: [],
+      }),
+      findCallRecordingReference: vi.fn().mockResolvedValue({
+        storageBucket: "call-recordings",
+        storagePath: "recordings/call-1/source/demo.mp3",
+        contentType: "audio/mpeg",
+        fileSizeBytes: 1024,
+        recordingUrl: null,
+      }),
+    });
+
+    const result = await createCallRecordingSignedUrl(
+      repository,
+      "mgr-1",
+      "call-1",
+      {
+        accessRepository: accessRepository as never,
+        storage: { from } as never,
+      },
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      data: {
+        url: "https://storage.example/signed-token",
+        expiresInSeconds: 300,
+      },
+    });
+    expect(repository.findCallById).toHaveBeenCalledWith("call-1");
+    expect(repository.findCallRecordingReference).toHaveBeenCalledWith("call-1");
+    expect(from).toHaveBeenCalledWith("call-recordings");
+    expect(createSignedUrl).toHaveBeenCalledWith("recordings/call-1/source/demo.mp3", 300);
+  });
+
+  it("signs recognizable legacy call-recordings public URLs with decoded object paths", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://project.supabase.co");
+    const accessRepository = createAccessRepository({
+      findActorByAuthUserId: vi.fn().mockResolvedValue({
+        id: "rep-1",
+        role: "rep",
+        orgId: "org-1",
+      }),
+      findMembershipsByOrgId: vi.fn().mockResolvedValue([
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ]),
+      findGrantsByUserId: vi.fn().mockResolvedValue([]),
+    });
+    const createSignedUrl = vi.fn().mockResolvedValue({
+      data: { signedUrl: "https://storage.example/signed-legacy-token" },
+      error: null,
+    });
+    const from = vi.fn().mockReturnValue({ createSignedUrl });
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "rep-1",
+        email: "rep@argos.ai",
+        role: "rep",
+        firstName: "Riley",
+        lastName: "Stone",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      findCallById: vi.fn().mockResolvedValue({
+        id: "call-1",
+        repId: "rep-1",
+        orgId: "org-1",
+        status: "complete",
+        recordingUrl: "https://project.supabase.co/storage/v1/object/public/call-recordings/recordings/call-1/source/demo%20call.mp3?download=1",
+        transcriptUrl: null,
+        durationSeconds: 1200,
+        callTopic: "ACME",
+        overallScore: 84,
+        frameControlScore: 80,
+        rapportScore: 82,
+        discoveryScore: 79,
+        painExpansionScore: 76,
+        solutionScore: 85,
+        objectionScore: 78,
+        closingScore: 88,
+        confidence: "high",
+        callStageReached: "close",
+        strengths: [],
+        improvements: [],
+        recommendedDrills: [],
+        transcript: [],
+        createdAt: new Date("2026-04-01T00:00:00.000Z"),
+        repFirstName: "Riley",
+        repLastName: "Stone",
+        moments: [],
+      }),
+      findCallRecordingReference: vi.fn().mockResolvedValue({
+        storageBucket: null,
+        storagePath: null,
+        contentType: null,
+        fileSizeBytes: null,
+        recordingUrl: "https://project.supabase.co/storage/v1/object/public/call-recordings/recordings/call-1/source/demo%20call.mp3?download=1",
+      }),
+    });
+
+    try {
+      const result = await createCallRecordingSignedUrl(
+        repository,
+        "rep-1",
+        "call-1",
+        {
+          accessRepository: accessRepository as never,
+          storage: { from } as never,
+        },
+      );
+
+      expect(result).toEqual({
+        ok: true,
+        data: {
+          url: "https://storage.example/signed-legacy-token",
+          expiresInSeconds: 300,
+        },
+      });
+      expect(from).toHaveBeenCalledWith("call-recordings");
+      expect(createSignedUrl).toHaveBeenCalledWith("recordings/call-1/source/demo call.mp3", 300);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("does not sign non-Supabase URLs that contain the call-recordings public marker", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://project.supabase.co");
+    const accessRepository = createAccessRepository({
+      findActorByAuthUserId: vi.fn().mockResolvedValue({
+        id: "rep-1",
+        role: "rep",
+        orgId: "org-1",
+      }),
+      findMembershipsByOrgId: vi.fn().mockResolvedValue([
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ]),
+      findGrantsByUserId: vi.fn().mockResolvedValue([]),
+    });
+    const createSignedUrl = vi.fn();
+    const legacyUrl = "https://cdn.example.com/storage/v1/object/public/call-recordings/recordings/call-1/source/demo.mp3";
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "rep-1",
+        email: "rep@argos.ai",
+        role: "rep",
+        firstName: "Riley",
+        lastName: "Stone",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      findCallById: vi.fn().mockResolvedValue({
+        id: "call-1",
+        repId: "rep-1",
+        orgId: "org-1",
+        status: "complete",
+        recordingUrl: legacyUrl,
+        transcriptUrl: null,
+        durationSeconds: 1200,
+        callTopic: "ACME",
+        overallScore: 84,
+        frameControlScore: 80,
+        rapportScore: 82,
+        discoveryScore: 79,
+        painExpansionScore: 76,
+        solutionScore: 85,
+        objectionScore: 78,
+        closingScore: 88,
+        confidence: "high",
+        callStageReached: "close",
+        strengths: [],
+        improvements: [],
+        recommendedDrills: [],
+        transcript: [],
+        createdAt: new Date("2026-04-01T00:00:00.000Z"),
+        repFirstName: "Riley",
+        repLastName: "Stone",
+        moments: [],
+      }),
+      findCallRecordingReference: vi.fn().mockResolvedValue({
+        storageBucket: null,
+        storagePath: null,
+        contentType: null,
+        fileSizeBytes: null,
+        recordingUrl: legacyUrl,
+      }),
+    });
+
+    try {
+      const result = await createCallRecordingSignedUrl(
+        repository,
+        "rep-1",
+        "call-1",
+        {
+          accessRepository: accessRepository as never,
+          storage: { from: vi.fn().mockReturnValue({ createSignedUrl }) } as never,
+        },
+      );
+
+      expect(result).toEqual({
+        ok: true,
+        data: {
+          url: legacyUrl,
+          expiresInSeconds: null,
+        },
+      });
+      expect(createSignedUrl).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("treats Supabase-cloud legacy URLs as external when Supabase URL is not configured", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", undefined);
+    const accessRepository = createAccessRepository({
+      findActorByAuthUserId: vi.fn().mockResolvedValue({
+        id: "rep-1",
+        role: "rep",
+        orgId: "org-1",
+      }),
+      findMembershipsByOrgId: vi.fn().mockResolvedValue([
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ]),
+      findGrantsByUserId: vi.fn().mockResolvedValue([]),
+    });
+    const createSignedUrl = vi.fn();
+    const legacyUrl = "https://project.supabase.co/storage/v1/object/public/call-recordings/recordings/call-1/source/demo.mp3";
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "rep-1",
+        email: "rep@argos.ai",
+        role: "rep",
+        firstName: "Riley",
+        lastName: "Stone",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      findCallById: vi.fn().mockResolvedValue({
+        id: "call-1",
+        repId: "rep-1",
+        orgId: "org-1",
+        status: "complete",
+        recordingUrl: legacyUrl,
+        transcriptUrl: null,
+        durationSeconds: 1200,
+        callTopic: "ACME",
+        overallScore: 84,
+        frameControlScore: 80,
+        rapportScore: 82,
+        discoveryScore: 79,
+        painExpansionScore: 76,
+        solutionScore: 85,
+        objectionScore: 78,
+        closingScore: 88,
+        confidence: "high",
+        callStageReached: "close",
+        strengths: [],
+        improvements: [],
+        recommendedDrills: [],
+        transcript: [],
+        createdAt: new Date("2026-04-01T00:00:00.000Z"),
+        repFirstName: "Riley",
+        repLastName: "Stone",
+        moments: [],
+      }),
+      findCallRecordingReference: vi.fn().mockResolvedValue({
+        storageBucket: null,
+        storagePath: null,
+        contentType: null,
+        fileSizeBytes: null,
+        recordingUrl: legacyUrl,
+      }),
+    });
+
+    try {
+      const result = await createCallRecordingSignedUrl(
+        repository,
+        "rep-1",
+        "call-1",
+        {
+          accessRepository: accessRepository as never,
+          storage: { from: vi.fn().mockReturnValue({ createSignedUrl }) } as never,
+        },
+      );
+
+      expect(result).toEqual({
+        ok: true,
+        data: {
+          url: legacyUrl,
+          expiresInSeconds: null,
+        },
+      });
+      expect(createSignedUrl).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("treats different Supabase project legacy URLs as external", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://configured.supabase.co");
+    const accessRepository = createAccessRepository({
+      findActorByAuthUserId: vi.fn().mockResolvedValue({
+        id: "rep-1",
+        role: "rep",
+        orgId: "org-1",
+      }),
+      findMembershipsByOrgId: vi.fn().mockResolvedValue([
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ]),
+      findGrantsByUserId: vi.fn().mockResolvedValue([]),
+    });
+    const createSignedUrl = vi.fn();
+    const legacyUrl = "https://other-project.supabase.co/storage/v1/object/public/call-recordings/recordings/call-1/source/demo.mp3";
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "rep-1",
+        email: "rep@argos.ai",
+        role: "rep",
+        firstName: "Riley",
+        lastName: "Stone",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      findCallById: vi.fn().mockResolvedValue({
+        id: "call-1",
+        repId: "rep-1",
+        orgId: "org-1",
+        status: "complete",
+        recordingUrl: legacyUrl,
+        transcriptUrl: null,
+        durationSeconds: 1200,
+        callTopic: "ACME",
+        overallScore: 84,
+        frameControlScore: 80,
+        rapportScore: 82,
+        discoveryScore: 79,
+        painExpansionScore: 76,
+        solutionScore: 85,
+        objectionScore: 78,
+        closingScore: 88,
+        confidence: "high",
+        callStageReached: "close",
+        strengths: [],
+        improvements: [],
+        recommendedDrills: [],
+        transcript: [],
+        createdAt: new Date("2026-04-01T00:00:00.000Z"),
+        repFirstName: "Riley",
+        repLastName: "Stone",
+        moments: [],
+      }),
+      findCallRecordingReference: vi.fn().mockResolvedValue({
+        storageBucket: null,
+        storagePath: null,
+        contentType: null,
+        fileSizeBytes: null,
+        recordingUrl: legacyUrl,
+      }),
+    });
+
+    try {
+      const result = await createCallRecordingSignedUrl(
+        repository,
+        "rep-1",
+        "call-1",
+        {
+          accessRepository: accessRepository as never,
+          storage: { from: vi.fn().mockReturnValue({ createSignedUrl }) } as never,
+        },
+      );
+
+      expect(result).toEqual({
+        ok: true,
+        data: {
+          url: legacyUrl,
+          expiresInSeconds: null,
+        },
+      });
+      expect(createSignedUrl).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("returns external legacy recording URLs without signing them as private bucket paths", async () => {
+    const accessRepository = createAccessRepository({
+      findActorByAuthUserId: vi.fn().mockResolvedValue({
+        id: "rep-1",
+        role: "rep",
+        orgId: "org-1",
+      }),
+      findMembershipsByOrgId: vi.fn().mockResolvedValue([
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ]),
+      findGrantsByUserId: vi.fn().mockResolvedValue([]),
+    });
+    const createSignedUrl = vi.fn();
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "rep-1",
+        email: "rep@argos.ai",
+        role: "rep",
+        firstName: "Riley",
+        lastName: "Stone",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      findCallById: vi.fn().mockResolvedValue({
+        id: "call-1",
+        repId: "rep-1",
+        orgId: "org-1",
+        status: "complete",
+        recordingUrl: "https://cdn.example.com/legacy/demo.mp3",
+        transcriptUrl: null,
+        durationSeconds: 1200,
+        callTopic: "ACME",
+        overallScore: 84,
+        frameControlScore: 80,
+        rapportScore: 82,
+        discoveryScore: 79,
+        painExpansionScore: 76,
+        solutionScore: 85,
+        objectionScore: 78,
+        closingScore: 88,
+        confidence: "high",
+        callStageReached: "close",
+        strengths: [],
+        improvements: [],
+        recommendedDrills: [],
+        transcript: [],
+        createdAt: new Date("2026-04-01T00:00:00.000Z"),
+        repFirstName: "Riley",
+        repLastName: "Stone",
+        moments: [],
+      }),
+      findCallRecordingReference: vi.fn().mockResolvedValue({
+        storageBucket: null,
+        storagePath: null,
+        contentType: null,
+        fileSizeBytes: null,
+        recordingUrl: "https://cdn.example.com/legacy/demo.mp3",
+      }),
+    });
+
+    const result = await createCallRecordingSignedUrl(
+      repository,
+      "rep-1",
+      "call-1",
+      {
+        accessRepository: accessRepository as never,
+        storage: { from: vi.fn().mockReturnValue({ createSignedUrl }) } as never,
+      },
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      data: {
+        url: "https://cdn.example.com/legacy/demo.mp3",
+        expiresInSeconds: null,
+      },
+    });
+    expect(createSignedUrl).not.toHaveBeenCalled();
+  });
+
+  it("does not sign a URL when the caller fails existing call access checks", async () => {
+    const accessRepository = createAccessRepository({
+      findActorByAuthUserId: vi.fn().mockResolvedValue({
+        id: "mgr-1",
+        role: "manager",
+        orgId: "org-1",
+      }),
+      findMembershipsByOrgId: vi.fn().mockResolvedValue([
+        { orgId: "org-1", teamId: "team-a", userId: "mgr-1", membershipType: "manager" },
+        { orgId: "org-1", teamId: "team-b", userId: "rep-2", membershipType: "rep" },
+      ]),
+      findGrantsByUserId: vi.fn().mockResolvedValue([]),
+    });
+    const createSignedUrl = vi.fn();
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "mgr-1",
+        email: "manager@argos.ai",
+        role: "manager",
+        firstName: "Morgan",
+        lastName: "Lane",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      findCallById: vi.fn().mockResolvedValue({
+        id: "call-1",
+        repId: "rep-2",
+        orgId: "org-1",
+        status: "complete",
+        recordingUrl: null,
+        transcriptUrl: null,
+        durationSeconds: 1200,
+        callTopic: "ACME",
+        overallScore: 84,
+        frameControlScore: 80,
+        rapportScore: 82,
+        discoveryScore: 79,
+        painExpansionScore: 76,
+        solutionScore: 85,
+        objectionScore: 78,
+        closingScore: 88,
+        confidence: "high",
+        callStageReached: "close",
+        strengths: [],
+        improvements: [],
+        recommendedDrills: [],
+        transcript: [],
+        createdAt: new Date("2026-04-01T00:00:00.000Z"),
+        repFirstName: "Taylor",
+        repLastName: "Stone",
+        moments: [],
+      }),
+      findCallRecordingReference: vi.fn(),
+    });
+
+    const result = await createCallRecordingSignedUrl(
+      repository,
+      "mgr-1",
+      "call-1",
+      {
+        accessRepository: accessRepository as never,
+        storage: { from: vi.fn().mockReturnValue({ createSignedUrl }) } as never,
+      },
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      status: 403,
+      code: "forbidden",
+    });
+    expect(repository.findCallRecordingReference).not.toHaveBeenCalled();
+    expect(createSignedUrl).not.toHaveBeenCalled();
+  });
+
+  it("returns not found when the authorized call has no private storage path", async () => {
+    const accessRepository = createAccessRepository({
+      findActorByAuthUserId: vi.fn().mockResolvedValue({
+        id: "rep-1",
+        role: "rep",
+        orgId: "org-1",
+      }),
+      findMembershipsByOrgId: vi.fn().mockResolvedValue([
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ]),
+      findGrantsByUserId: vi.fn().mockResolvedValue([]),
+    });
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "rep-1",
+        email: "rep@argos.ai",
+        role: "rep",
+        firstName: "Riley",
+        lastName: "Stone",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      findCallById: vi.fn().mockResolvedValue({
+        id: "call-1",
+        repId: "rep-1",
+        orgId: "org-1",
+        status: "complete",
+        recordingUrl: null,
+        transcriptUrl: null,
+        durationSeconds: 1200,
+        callTopic: "ACME",
+        overallScore: 84,
+        frameControlScore: 80,
+        rapportScore: 82,
+        discoveryScore: 79,
+        painExpansionScore: 76,
+        solutionScore: 85,
+        objectionScore: 78,
+        closingScore: 88,
+        confidence: "high",
+        callStageReached: "close",
+        strengths: [],
+        improvements: [],
+        recommendedDrills: [],
+        transcript: [],
+        createdAt: new Date("2026-04-01T00:00:00.000Z"),
+        repFirstName: "Riley",
+        repLastName: "Stone",
+        moments: [],
+      }),
+      findCallRecordingReference: vi.fn().mockResolvedValue(null),
+    });
+
+    const result = await createCallRecordingSignedUrl(
+      repository,
+      "rep-1",
+      "call-1",
+      {
+        accessRepository: accessRepository as never,
+        storage: { from: vi.fn() } as never,
+      },
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      status: 404,
+      code: "not_found",
+      error: "Recording is not available",
     });
   });
 });

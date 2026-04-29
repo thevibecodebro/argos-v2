@@ -92,11 +92,14 @@ export class DrizzleInvitesRepository implements InvitesRepository {
     return rows.map(mapInvite);
   }
 
-  async markInviteAccepted(id: string): Promise<void> {
-    await this.db
+  async markInviteAccepted(id: string): Promise<boolean> {
+    const rows = await this.db
       .update(invitesTable)
       .set({ acceptedAt: new Date() })
-      .where(eq(invitesTable.id, id));
+      .where(and(eq(invitesTable.id, id), isNull(invitesTable.acceptedAt)))
+      .returning({ id: invitesTable.id });
+
+    return rows.length === 1;
   }
 
   async deleteInviteByToken(token: string, orgId: string): Promise<void> {

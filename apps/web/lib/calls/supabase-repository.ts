@@ -8,6 +8,10 @@ type SupabaseCallRow = {
   rep_id: string;
   rubric_id: string | null;
   recording_url: string | null;
+  recording_storage_bucket: string | null;
+  recording_storage_path: string | null;
+  recording_content_type: string | null;
+  recording_file_size_bytes: number | null;
   transcript_url: string | null;
   duration_seconds: number | null;
   status: string;
@@ -538,6 +542,54 @@ export class SupabaseCallsRepository implements CallsRepository {
     const { error } = await supabase
       .from("calls")
       .update({ recording_url: recordingUrl })
+      .eq("id", callId);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  async findCallRecordingReference(callId: string) {
+    const supabase: any = this.supabase;
+    const { data, error } = await supabase
+      .from("calls")
+      .select("recording_storage_bucket, recording_storage_path, recording_content_type, recording_file_size_bytes, recording_url")
+      .eq("id", callId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (!data) {
+      return null;
+    }
+
+    return {
+      storageBucket: data.recording_storage_bucket,
+      storagePath: data.recording_storage_path,
+      contentType: data.recording_content_type,
+      fileSizeBytes: data.recording_file_size_bytes,
+      recordingUrl: data.recording_url,
+    };
+  }
+
+  async updateCallRecordingStorage(callId: string, recording: {
+    storageBucket: string;
+    storagePath: string;
+    contentType: string | null;
+    fileSizeBytes: number | null;
+  }) {
+    const supabase: any = this.supabase;
+    const { error } = await supabase
+      .from("calls")
+      .update({
+        recording_url: null,
+        recording_storage_bucket: recording.storageBucket,
+        recording_storage_path: recording.storagePath,
+        recording_content_type: recording.contentType,
+        recording_file_size_bytes: recording.fileSizeBytes,
+      })
       .eq("id", callId);
 
     if (error) {

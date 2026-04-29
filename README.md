@@ -23,12 +23,18 @@ Next.js 15 + Supabase replatform for Argos.
 
 - `npm run dev:web`
 - `npm run dev:worker`
+- `npm run build:web`
 - `npm run db:generate`
 - `npm run db:studio`
 - `npm run test:web`
 - `npm run test:worker`
+- `npm run typecheck:db`
 - `npm run typecheck:web`
 - `npm run typecheck:worker`
+- `npm run verify:db`
+- `npm run verify:web`
+- `npm run verify:worker`
+- `npm run verify`
 
 ## Worker Call Processing
 
@@ -75,7 +81,26 @@ Set these Vercel environment variables for `apps/web`:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_URL`
+- `DATABASE_URL`
 - `NEXT_PUBLIC_SITE_URL`
+- `ARGOS_ALLOWED_ORIGINS`
+- `ARGOS_INVITE_ONLY`
+- `ARGOS_BOOTSTRAP_ADMIN_EMAILS`
+- `ARGOS_TOKEN_ENCRYPTION_KEY`
+- `ARGOS_RATE_LIMIT_HASH_SECRET`
+- `ARGOS_GHL_ENABLED`
+- `ZOOM_CLIENT_ID`
+- `ZOOM_CLIENT_SECRET`
+- `ZOOM_REDIRECT_URI`
+- `ARGOS_WEBHOOK_URL`
+- `ZOOM_WEBHOOK_SECRET_TOKEN`
+- `GHL_CLIENT_ID`
+- `GHL_CLIENT_SECRET`
+- `GHL_REDIRECT_URI`
+- `OPENAI_API_KEY`
+- `OPENAI_CALL_SCORING_MODEL`
+- `OPENAI_TRAINING_MODEL`
 
 Recommended environment scoping:
 

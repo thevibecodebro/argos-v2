@@ -1,5 +1,12 @@
 import crypto from "node:crypto";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const checkRateLimitForPolicy = vi.hoisted(() => vi.fn());
+
+vi.mock("@/lib/rate-limit/service", () => ({
+  checkRateLimitForPolicy,
+}));
+
 import {
   processZoomWebhookRequest,
   type ZoomWebhookRepository,
@@ -16,6 +23,7 @@ function createRepository(
     findPreferredCallOwner: vi.fn(),
     findZoomIntegrationByAccountId: vi.fn(),
     updateCallRecording: vi.fn(),
+    updateCallRecordingStorage: vi.fn(),
     updateCallStatus: vi.fn(),
     updateZoomTokens: vi.fn(),
     ...overrides,
@@ -40,6 +48,19 @@ function sign(secret: string, rawBody: string, timestamp = Math.floor(Date.now()
   const signature = `v0=${crypto.createHmac("sha256", secret).update(message).digest("hex")}`;
   return { signature, timestamp };
 }
+
+beforeEach(() => {
+  checkRateLimitForPolicy.mockReset();
+  checkRateLimitForPolicy.mockResolvedValue({
+    allowed: true,
+    bucketKey: "zoomWebhookAccount:org:hash",
+    limit: 300,
+    remaining: 299,
+    requestCount: 1,
+    resetAt: new Date("2026-04-28T10:16:00.000Z"),
+    retryAfterSeconds: 60,
+  });
+});
 
 describe("processZoomWebhookRequest", () => {
   it("returns the Zoom endpoint validation challenge", async () => {
@@ -84,6 +105,41 @@ describe("processZoomWebhookRequest", () => {
       status: 401,
       body: { error: "Invalid webhook signature" },
     });
+  });
+
+  it("does not look up integrations for attacker-controlled account IDs before signature verification", async () => {
+    const repository = createRepository({
+      findZoomIntegrationByAccountId: vi.fn().mockResolvedValue({
+        orgId: "org-1",
+        webhookToken: null,
+        accessToken: "zoom-access",
+        refreshToken: "zoom-refresh",
+        tokenExpiresAt: new Date("2026-04-18T00:00:00.000Z"),
+      }),
+    });
+    const rawBody = JSON.stringify({
+      event: "recording.completed",
+      payload: {
+        account_id: "attacker-controlled-account",
+        object: {
+          recording_files: [{ id: "recording-1" }],
+        },
+      },
+    });
+
+    const result = await processZoomWebhookRequest(repository, {
+      headers: { signature: "v0=invalid", timestamp: Math.floor(Date.now() / 1000).toString() },
+      rawBody,
+      env: {
+        ZOOM_WEBHOOK_SECRET_TOKEN: "webhook-secret",
+      },
+    });
+
+    expect(result).toEqual({
+      status: 401,
+      body: { error: "Invalid webhook signature" },
+    });
+    expect(repository.findZoomIntegrationByAccountId).not.toHaveBeenCalled();
   });
 
   it("prefers the app-level webhook secret over a stale integration token", async () => {
@@ -132,6 +188,110 @@ describe("processZoomWebhookRequest", () => {
     });
   });
 
+  it("rejects signatures made with a legacy per-row webhook token when the global secret is missing", async () => {
+    const repository = createRepository({
+      findZoomIntegrationByAccountId: vi.fn().mockResolvedValue({
+        orgId: "org-1",
+        webhookToken: "legacy-row-secret",
+        accessToken: "zoom-access",
+        refreshToken: "zoom-refresh",
+        tokenExpiresAt: new Date("2026-04-18T00:00:00.000Z"),
+      }),
+    });
+    const rawBody = JSON.stringify({
+      event: "recording.completed",
+      payload: {
+        account_id: "zoom-account-1",
+        object: {
+          id: "meeting-1",
+          recording_files: [
+            {
+              id: "recording-1",
+              download_url: "https://example.com/audio.m4a",
+              file_extension: "m4a",
+              recording_type: "audio_only",
+            },
+          ],
+        },
+      },
+    });
+    const { signature, timestamp } = sign("legacy-row-secret", rawBody);
+
+    const result = await processZoomWebhookRequest(repository, {
+      headers: { signature, timestamp },
+      rawBody,
+      env: {},
+    });
+
+    expect(result).toEqual({
+      status: 401,
+      body: { error: "Invalid webhook signature" },
+    });
+  });
+
+  it("returns 429 after signature verification when the Zoom account/org limit is exceeded", async () => {
+    checkRateLimitForPolicy.mockResolvedValueOnce({
+      allowed: false,
+      bucketKey: "zoomWebhookAccount:org:hash",
+      limit: 300,
+      remaining: 0,
+      requestCount: 301,
+      resetAt: new Date("2026-04-28T10:16:00.000Z"),
+      retryAfterSeconds: 12,
+    });
+    const repository = createRepository({
+      findCallByZoomRecordingId: vi.fn(),
+      findZoomIntegrationByAccountId: vi.fn().mockResolvedValue({
+        orgId: "org-1",
+        webhookToken: null,
+        accessToken: "zoom-access",
+        refreshToken: "zoom-refresh",
+        tokenExpiresAt: new Date("2026-04-18T00:00:00.000Z"),
+      }),
+    });
+    const rawBody = JSON.stringify({
+      event: "recording.completed",
+      payload: {
+        account_id: "zoom-account-1",
+        object: {
+          id: "meeting-1",
+          recording_files: [
+            {
+              id: "recording-1",
+              download_url: "https://example.com/audio.m4a",
+              file_extension: "m4a",
+              recording_type: "audio_only",
+            },
+          ],
+        },
+      },
+    });
+    const { signature, timestamp } = sign("app-level-secret", rawBody);
+
+    const result = await processZoomWebhookRequest(repository, {
+      headers: { signature, timestamp },
+      rawBody,
+      env: {
+        ZOOM_WEBHOOK_SECRET_TOKEN: "app-level-secret",
+      },
+    });
+
+    expect(result).toEqual({
+      status: 429,
+      body: {
+        code: "rate_limit_exceeded",
+        error: "Too many requests. Try again later.",
+        retryAfterSeconds: 12,
+      },
+      headers: { "Retry-After": "12" },
+    });
+    expect(checkRateLimitForPolicy).toHaveBeenCalledWith("zoomWebhookAccount", {
+      type: "org",
+      id: "org-1:zoom-account-1",
+    });
+    expect(repository.findCallByZoomRecordingId).not.toHaveBeenCalled();
+  });
+
   it("stores the preferred Zoom asset and enqueues processing without scoring inline", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(Buffer.from("zoom-audio"), {
@@ -144,8 +304,10 @@ describe("processZoomWebhookRequest", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const storeSourceAsset = vi.fn().mockResolvedValue({
+      storageBucket: "call-recordings",
       storagePath: "recordings/call-1/source/recording-1.m4a",
-      publicUrl: "https://storage.example/recordings/call-1/source/recording-1.m4a",
+      contentType: "audio/mp4",
+      fileSizeBytes: 10,
     });
     const rubricsRepository = createRubricsRepository({
       findActiveRubricByOrgId: vi.fn().mockResolvedValue({
@@ -173,6 +335,7 @@ describe("processZoomWebhookRequest", () => {
         tokenExpiresAt: new Date("2026-04-18T00:00:00.000Z"),
       }),
       updateCallRecording: vi.fn().mockResolvedValue(undefined),
+      updateCallRecordingStorage: vi.fn().mockResolvedValue(undefined),
     });
     const rawBody = JSON.stringify({
       event: "recording.completed",
@@ -237,6 +400,7 @@ describe("processZoomWebhookRequest", () => {
       });
       expect(fetchMock).toHaveBeenCalledWith("https://example.com/audio.m4a", {
         headers: { Authorization: "Bearer zoom-access" },
+        signal: expect.any(AbortSignal),
       });
       expect(storeSourceAsset).toHaveBeenCalledWith({
         bytes: Buffer.from("zoom-audio"),
@@ -244,10 +408,13 @@ describe("processZoomWebhookRequest", () => {
         contentType: "audio/mp4",
         fileName: "recording-1.m4a",
       });
-      expect(repository.updateCallRecording).toHaveBeenCalledWith(
-        "call-1",
-        "https://storage.example/recordings/call-1/source/recording-1.m4a",
-      );
+      expect(repository.updateCallRecording).not.toHaveBeenCalled();
+      expect(repository.updateCallRecordingStorage).toHaveBeenCalledWith("call-1", {
+        storageBucket: "call-recordings",
+        storagePath: "recordings/call-1/source/recording-1.m4a",
+        contentType: "audio/mp4",
+        fileSizeBytes: 10,
+      });
       expect(repository.createOrResetCallProcessingJob).toHaveBeenCalledWith({
         callId: "call-1",
         rubricId: "rubric-1",
@@ -273,8 +440,10 @@ describe("processZoomWebhookRequest", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
     const storeSourceAsset = vi.fn().mockResolvedValue({
+      storageBucket: "call-recordings",
       storagePath: "recordings/call-1/source/recording-1.m4a",
-      publicUrl: "https://storage.example/recordings/call-1/source/recording-1.m4a",
+      contentType: "audio/mp4",
+      fileSizeBytes: 10,
     });
     const rubricsRepository = createRubricsRepository();
 
@@ -291,6 +460,7 @@ describe("processZoomWebhookRequest", () => {
         tokenExpiresAt: new Date("2026-04-18T00:00:00.000Z"),
       }),
       updateCallRecording: vi.fn().mockResolvedValue(undefined),
+      updateCallRecordingStorage: vi.fn().mockResolvedValue(undefined),
     });
     const rawBody = JSON.stringify({
       event: "recording.completed",
@@ -350,8 +520,10 @@ describe("processZoomWebhookRequest", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
     const storeSourceAsset = vi.fn().mockResolvedValue({
+      storageBucket: "call-recordings",
       storagePath: "recordings/call-1/source/recording-1.mp4",
-      publicUrl: "https://storage.example/recordings/call-1/source/recording-1.mp4",
+      contentType: "video/mp4",
+      fileSizeBytes: 10,
     });
     const rubricsRepository = createRubricsRepository();
 
@@ -368,6 +540,7 @@ describe("processZoomWebhookRequest", () => {
         tokenExpiresAt: new Date("2026-04-18T00:00:00.000Z"),
       }),
       updateCallRecording: vi.fn().mockResolvedValue(undefined),
+      updateCallRecordingStorage: vi.fn().mockResolvedValue(undefined),
     });
     const rawBody = JSON.stringify({
       event: "recording.completed",
@@ -414,6 +587,7 @@ describe("processZoomWebhookRequest", () => {
 
       expect(fetchMock).toHaveBeenCalledWith("https://example.com/video.mp4", {
         headers: { Authorization: "Bearer zoom-access" },
+        signal: expect.any(AbortSignal),
       });
     } finally {
       vi.unstubAllGlobals();
@@ -475,8 +649,10 @@ describe("processZoomWebhookRequest", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const storeSourceAsset = vi.fn().mockResolvedValue({
+      storageBucket: "call-recordings",
       storagePath: "recordings/call-1/source/recording-1.m4a",
-      publicUrl: "https://storage.example/recordings/call-1/source/recording-1.m4a",
+      contentType: "audio/mp4",
+      fileSizeBytes: 10,
     });
     const rubricsRepository = createRubricsRepository();
     const repository = createRepository({
@@ -495,6 +671,7 @@ describe("processZoomWebhookRequest", () => {
         tokenExpiresAt: new Date("2026-04-18T00:00:00.000Z"),
       }),
       updateCallRecording: vi.fn().mockResolvedValue(undefined),
+      updateCallRecordingStorage: vi.fn().mockResolvedValue(undefined),
     });
     const rawBody = JSON.stringify({
       event: "recording.completed",
@@ -545,10 +722,13 @@ describe("processZoomWebhookRequest", () => {
         contentType: "audio/mp4",
         fileName: "recording-1.m4a",
       });
-      expect(repository.updateCallRecording).toHaveBeenCalledWith(
-        "call-1",
-        "https://storage.example/recordings/call-1/source/recording-1.m4a",
-      );
+      expect(repository.updateCallRecording).not.toHaveBeenCalled();
+      expect(repository.updateCallRecordingStorage).toHaveBeenCalledWith("call-1", {
+        storageBucket: "call-recordings",
+        storagePath: "recordings/call-1/source/recording-1.m4a",
+        contentType: "audio/mp4",
+        fileSizeBytes: 10,
+      });
       expect(repository.createOrResetCallProcessingJob).toHaveBeenCalledWith({
         callId: "call-1",
         rubricId: null,

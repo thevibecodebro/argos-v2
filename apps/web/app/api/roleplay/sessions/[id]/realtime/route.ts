@@ -1,5 +1,9 @@
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { unauthorizedJson } from "@/lib/http";
+import {
+  checkRateLimitForPolicy,
+  rateLimitExceededResponse,
+} from "@/lib/rate-limit/service";
 import { createRoleplayRepository } from "@/lib/roleplay/create-repository";
 import { getRoleplaySession } from "@/lib/roleplay/service";
 import {
@@ -7,8 +11,11 @@ import {
   createRealtimeCall,
   getOpenAiVoiceConfigurationError,
 } from "@/lib/roleplay/openai-voice";
+import { readRequestTextWithLimit } from "@/lib/security/request-body";
 
 export const dynamic = "force-dynamic";
+
+const MAX_REALTIME_SDP_BODY_BYTES = 64 * 1024;
 
 function unavailable() {
   return Response.json(
@@ -65,13 +72,31 @@ export async function POST(
     return unauthorizedJson();
   }
 
+  const rateLimit = await checkRateLimitForPolicy("roleplayRealtime", {
+    type: "user",
+    id: authUser.id,
+  });
+
+  if (!rateLimit.allowed) {
+    return rateLimitExceededResponse(rateLimit);
+  }
+
   const configurationError = getOpenAiVoiceConfigurationError();
 
   if (configurationError) {
     return unavailable();
   }
 
-  const offerSdp = await request.text();
+  const offerSdpResult = await readRequestTextWithLimit(request, MAX_REALTIME_SDP_BODY_BYTES);
+
+  if (!offerSdpResult.ok) {
+    return Response.json(
+      { error: `SDP offer is too large. Maximum size is ${MAX_REALTIME_SDP_BODY_BYTES} bytes.` },
+      { status: 400 },
+    );
+  }
+
+  const offerSdp = offerSdpResult.text;
 
   if (!offerSdp.trim()) {
     return Response.json({ error: "An SDP offer is required." }, { status: 400 });
@@ -89,13 +114,12 @@ export async function POST(
       instructions: buildRoleplayRealtimeInstructions(sessionResult.data),
       offerSdp,
     });
-    const answerSdp = await realtime.response.text();
 
-    return new Response(answerSdp, {
+    return new Response(realtime.answerSdp, {
       status: 200,
       headers: {
         "Cache-Control": "private, no-store",
-        "Content-Type": realtime.response.headers.get("Content-Type") ?? "application/sdp",
+        "Content-Type": realtime.contentType,
       },
     });
   } catch (error) {

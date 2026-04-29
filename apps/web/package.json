@@ -6,6 +6,7 @@
     "build": "next build",
     "start": "next start",
     "test": "vitest run",
+    "rotate:integration-tokens": "node scripts/rotate-integration-tokens.mjs",
     "typecheck": "tsc --noEmit --incremental false"
   },
   "dependencies": {

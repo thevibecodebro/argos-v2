@@ -1,4 +1,6 @@
 import crypto from "node:crypto";
+import { fetchWithTimeout } from "@/lib/security/fetch-timeout";
+import { getSafeRequestOrigin } from "../security/trusted-origins";
 
 type EnvSource = Partial<Record<string, string | undefined>>;
 
@@ -14,6 +16,9 @@ export const integrationOAuthCookieNames: Record<IntegrationOAuthProvider, strin
   zoom: "argos_zoom_oauth_nonce",
   ghl: "argos_ghl_oauth_nonce",
 };
+
+const ZOOM_OAUTH_FETCH_TIMEOUT_MS = 30_000;
+const ZOOM_API_FETCH_TIMEOUT_MS = 30_000;
 
 export function buildZoomOAuthUrl(input: {
   clientId: string;
@@ -92,15 +97,7 @@ export function resolveGhlRedirectUri(origin: string, env: EnvSource = process.e
 }
 
 export function getRequestOrigin(request: Request) {
-  const url = new URL(request.url);
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  const forwardedProto = request.headers.get("x-forwarded-proto");
-
-  if (forwardedHost && forwardedProto) {
-    return `${forwardedProto}://${forwardedHost}`;
-  }
-
-  return url.origin;
+  return getSafeRequestOrigin(request);
 }
 
 export async function exchangeZoomCode(
@@ -121,33 +118,59 @@ export async function exchangeZoomCode(
   tokenUrl.searchParams.set("code", code);
   tokenUrl.searchParams.set("redirect_uri", redirectUri);
 
-  const tokenResponse = await fetch(tokenUrl, {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${basic}`,
-      "Content-Type": "application/x-www-form-urlencoded",
+  const { response: tokenResponse, body: tokenBody } = await fetchWithTimeout<
+    | {
+        access_token: string;
+        refresh_token: string;
+        expires_in: number;
+      }
+    | null
+  >(
+    tokenUrl,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${basic}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
     },
-  });
+    ZOOM_OAUTH_FETCH_TIMEOUT_MS,
+    (response) =>
+      response.ok
+        ? (response.json() as Promise<{
+            access_token: string;
+            refresh_token: string;
+            expires_in: number;
+          }>)
+        : Promise.resolve(null),
+  );
 
   if (!tokenResponse.ok) {
     throw new Error(`Zoom token exchange failed: ${tokenResponse.status}`);
   }
 
-  const tokenPayload = (await tokenResponse.json()) as {
+  const tokenPayload = tokenBody as {
     access_token: string;
     refresh_token: string;
     expires_in: number;
   };
 
-  const meResponse = await fetch("https://api.zoom.us/v2/users/me", {
-    headers: {
-      Authorization: `Bearer ${tokenPayload.access_token}`,
+  const { response: meResponse, body: mePayload } = await fetchWithTimeout<{
+    id?: string;
+    account_id?: string;
+  }>(
+    "https://api.zoom.us/v2/users/me",
+    {
+      headers: {
+        Authorization: `Bearer ${tokenPayload.access_token}`,
+      },
     },
-  });
-
-  const mePayload = meResponse.ok
-    ? ((await meResponse.json()) as { id?: string; account_id?: string })
-    : {};
+    ZOOM_API_FETCH_TIMEOUT_MS,
+    (response) =>
+      response.ok
+        ? (response.json() as Promise<{ id?: string; account_id?: string }>)
+        : Promise.resolve({}),
+  );
 
   return {
     accessToken: tokenPayload.access_token,
@@ -244,19 +267,38 @@ export async function refreshZoomToken(
   tokenUrl.searchParams.set("grant_type", "refresh_token");
   tokenUrl.searchParams.set("refresh_token", refreshToken);
 
-  const tokenResponse = await fetch(tokenUrl, {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${basic}`,
-      "Content-Type": "application/x-www-form-urlencoded",
+  const { response: tokenResponse, body: tokenBody } = await fetchWithTimeout<
+    | {
+        access_token: string;
+        refresh_token: string;
+        expires_in: number;
+      }
+    | null
+  >(
+    tokenUrl,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${basic}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
     },
-  });
+    ZOOM_OAUTH_FETCH_TIMEOUT_MS,
+    (response) =>
+      response.ok
+        ? (response.json() as Promise<{
+            access_token: string;
+            refresh_token: string;
+            expires_in: number;
+          }>)
+        : Promise.resolve(null),
+  );
 
   if (!tokenResponse.ok) {
     throw new Error(`Zoom token refresh failed: ${tokenResponse.status}`);
   }
 
-  const tokenPayload = (await tokenResponse.json()) as {
+  const tokenPayload = tokenBody as {
     access_token: string;
     refresh_token: string;
     expires_in: number;
@@ -273,12 +315,17 @@ export async function deleteZoomWebhook(input: {
   accessToken: string;
   webhookId: string;
 }) {
-  await fetch(`https://api.zoom.us/v2/webhooks/${input.webhookId}`, {
-    method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${input.accessToken}`,
+  await fetchWithTimeout(
+    `https://api.zoom.us/v2/webhooks/${input.webhookId}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${input.accessToken}`,
+      },
     },
-  });
+    ZOOM_API_FETCH_TIMEOUT_MS,
+    (response) => response.text().catch(() => ""),
+  );
 }
 
 export async function registerZoomWebhook(input: {
@@ -287,24 +334,32 @@ export async function registerZoomWebhook(input: {
   webhookUrl: string;
   zoomAccountId?: string | null;
 }) {
-  const response = await fetch("https://api.zoom.us/v2/webhooks", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${input.accessToken}`,
-      "Content-Type": "application/json",
+  const { response, body } = await fetchWithTimeout<string | { webhook_id?: string }>(
+    "https://api.zoom.us/v2/webhooks",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${input.accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        events: ["recording.completed"],
+        secret_token: input.webhookToken,
+        url: input.webhookUrl,
+      }),
     },
-    body: JSON.stringify({
-      events: ["recording.completed"],
-      secret_token: input.webhookToken,
-      url: input.webhookUrl,
-    }),
-  });
+    ZOOM_API_FETCH_TIMEOUT_MS,
+    (response) =>
+      response.ok
+        ? (response.json().catch(() => ({})) as Promise<{ webhook_id?: string }>)
+        : response.text().catch(() => ""),
+  );
 
   if (!response.ok) {
-    const errorBody = await response.text().catch(() => "");
+    const errorBody = typeof body === "string" ? body : "";
     throw new Error(`Zoom webhook registration failed: ${response.status}${errorBody ? ` ${errorBody}` : ""}`);
   }
 
-  const payload = (await response.json().catch(() => ({}))) as { webhook_id?: string };
+  const payload = body as { webhook_id?: string };
   return payload.webhook_id ?? "";
 }

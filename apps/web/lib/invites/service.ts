@@ -9,6 +9,22 @@ type InviteServiceResult<T> =
   | { ok: true; data: T }
   | { ok: false; status: 400 | 403 | 404 | 409 | 410; error: string };
 
+type InviteSenderRecord = Awaited<ReturnType<UsersRepository["findCurrentUserByAuthId"]>>;
+
+export class InviteAcceptanceConflictError extends Error {
+  readonly result: Extract<InviteServiceResult<never>, { ok: false }>;
+
+  constructor(error: string) {
+    super(error);
+    this.name = "InviteAcceptanceConflictError";
+    this.result = {
+      ok: false,
+      status: 409,
+      error,
+    };
+  }
+}
+
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
@@ -18,8 +34,12 @@ export async function sendInvite(
   usersRepo: UsersRepository,
   authUserId: string,
   input: { email?: unknown; role?: unknown; teamIds?: unknown },
+  options: { caller?: InviteSenderRecord } = {},
 ): Promise<InviteServiceResult<InviteRecord>> {
-  const caller = await usersRepo.findCurrentUserByAuthId(authUserId);
+  const caller =
+    options.caller === undefined
+      ? await usersRepo.findCurrentUserByAuthId(authUserId)
+      : options.caller;
 
   if (!caller) {
     return { ok: false, status: 404, error: "User not found" };
@@ -98,11 +118,21 @@ export async function commitInviteAcceptance(
   caller: InviteCallerRecord,
   invite: InviteRecord,
 ): Promise<InviteServiceResult<{ orgId: string }>> {
-  await onboardingRepo.assignUserToOrganization({
+  const claimed = await repo.markInviteAccepted(invite.id);
+
+  if (!claimed) {
+    return { ok: false, status: 409, error: "Invite has already been accepted" };
+  }
+
+  const claimedUser = await onboardingRepo.assignUserToOrganization({
     orgId: invite.orgId,
     userId: caller.id,
     role: invite.role,
   });
+
+  if (!claimedUser) {
+    throw new InviteAcceptanceConflictError("User already belongs to an organization");
+  }
 
   if (invite.teamIds && invite.teamIds.length > 0 && (invite.role === "rep" || invite.role === "manager")) {
     await repo.createTeamMemberships({
@@ -112,8 +142,6 @@ export async function commitInviteAcceptance(
       membershipType: invite.role,
     });
   }
-
-  await repo.markInviteAccepted(invite.id);
 
   return { ok: true, data: { orgId: invite.orgId } };
 }

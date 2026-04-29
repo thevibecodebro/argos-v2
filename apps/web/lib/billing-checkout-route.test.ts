@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { StripeCheckoutConfigurationError } from "./billing/stripe-checkout";
 
 const { createStripeCheckoutSession, getAuthenticatedSupabaseUser } = vi.hoisted(() => ({
@@ -25,8 +25,13 @@ describe("billing checkout route", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
     getAuthenticatedSupabaseUser.mockReset();
     createStripeCheckoutSession.mockReset();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it("redirects unauthenticated users to login with the checkout URL as next", async () => {
@@ -37,6 +42,27 @@ describe("billing checkout route", () => {
 
     expect(response.headers.get("location")).toBe(
       "https://argos.ai/login?next=%2Fbilling%2Fcheckout%3Fplan%3Dsolo",
+    );
+    expect(createStripeCheckoutSession).not.toHaveBeenCalled();
+  });
+
+  it("uses the hardened site origin for unauthenticated checkout redirects in production", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://app.argos.ai");
+    getAuthenticatedSupabaseUser.mockResolvedValue(null);
+
+    const route = await import("../app/billing/checkout/route");
+    const response = await route.GET(
+      new Request("https://evil.example/billing/checkout?plan=solo", {
+        headers: {
+          "x-forwarded-host": "evil.example",
+          "x-forwarded-proto": "https",
+        },
+      }),
+    );
+
+    expect(response.headers.get("location")).toBe(
+      "https://app.argos.ai/login?next=%2Fbilling%2Fcheckout%3Fplan%3Dsolo",
     );
     expect(createStripeCheckoutSession).not.toHaveBeenCalled();
   });

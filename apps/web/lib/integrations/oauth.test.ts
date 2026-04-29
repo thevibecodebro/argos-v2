@@ -1,12 +1,20 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   buildGhlOAuthUrl,
   buildZoomOAuthUrl,
   decodeIntegrationOAuthState,
+  deleteZoomWebhook,
   encodeIntegrationOAuthState,
+  exchangeZoomCode,
+  refreshZoomToken,
+  registerZoomWebhook,
   resolveGhlRedirectUri,
   resolveZoomRedirectUri,
 } from "./oauth";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("integration oauth helpers", () => {
   it("uses explicit redirect URI overrides when present", () => {
@@ -82,5 +90,91 @@ describe("integration oauth helpers", () => {
         Buffer.from(JSON.stringify({ orgId: "org-1", userId: "user-1" })).toString("base64url"),
       ),
     ).toBeNull();
+  });
+
+  it("uses timeout signals for Zoom token exchange and user lookup fetches", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            access_token: "zoom-access",
+            refresh_token: "zoom-refresh",
+            expires_in: 3600,
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            id: "zoom-user-1",
+            account_id: "zoom-account-1",
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await exchangeZoomCode("code-1", "https://app.argos.ai/api/integrations/zoom/callback", {
+      ZOOM_CLIENT_ID: "zoom-client",
+      ZOOM_CLIENT_SECRET: "zoom-secret",
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("https://api.zoom.us/v2/users/me");
+    expect(fetchMock.mock.calls[1]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("uses timeout signals for Zoom token refresh fetches", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          access_token: "zoom-access-2",
+          refresh_token: "zoom-refresh-2",
+          expires_in: 3600,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await refreshZoomToken("zoom-refresh", {
+      ZOOM_CLIENT_ID: "zoom-client",
+      ZOOM_CLIENT_SECRET: "zoom-secret",
+    });
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("uses timeout signals for Zoom webhook deletion and registration fetches", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ webhook_id: "webhook-2" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await deleteZoomWebhook({
+      accessToken: "zoom-access",
+      webhookId: "webhook-1",
+    });
+    await registerZoomWebhook({
+      accessToken: "zoom-access",
+      webhookToken: "zoom-webhook-secret",
+      webhookUrl: "https://app.argos.ai/api/webhooks/zoom",
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("https://api.zoom.us/v2/webhooks/webhook-1");
+    expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("https://api.zoom.us/v2/webhooks");
+    expect(fetchMock.mock.calls[1]?.[1]?.signal).toBeInstanceOf(AbortSignal);
   });
 });

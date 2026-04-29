@@ -514,6 +514,50 @@ export class DrizzleCallsRepository implements CallsRepository {
       .where(eq(callsTable.id, callId));
   }
 
+  async findCallRecordingReference(callId: string) {
+    const [recording] = await this.db
+      .select({
+        storageBucket: callsTable.recordingStorageBucket,
+        storagePath: callsTable.recordingStoragePath,
+        contentType: callsTable.recordingContentType,
+        fileSizeBytes: callsTable.recordingFileSizeBytes,
+        recordingUrl: callsTable.recordingUrl,
+      })
+      .from(callsTable)
+      .where(eq(callsTable.id, callId))
+      .limit(1);
+
+    if (!recording) {
+      return null;
+    }
+
+    return {
+      storageBucket: recording.storageBucket,
+      storagePath: recording.storagePath,
+      contentType: recording.contentType,
+      fileSizeBytes: recording.fileSizeBytes,
+      recordingUrl: recording.recordingUrl,
+    };
+  }
+
+  async updateCallRecordingStorage(callId: string, recording: {
+    storageBucket: string;
+    storagePath: string;
+    contentType: string | null;
+    fileSizeBytes: number | null;
+  }) {
+    await this.db
+      .update(callsTable)
+      .set({
+        recordingUrl: null,
+        recordingStorageBucket: recording.storageBucket,
+        recordingStoragePath: recording.storagePath,
+        recordingContentType: recording.contentType,
+        recordingFileSizeBytes: recording.fileSizeBytes,
+      })
+      .where(eq(callsTable.id, callId));
+  }
+
   async updateCallStatus(
     callId: string,
     status: "uploaded" | "transcribing" | "evaluating" | "complete" | "failed",

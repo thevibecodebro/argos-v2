@@ -1,5 +1,6 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createAccessRepository } from "@/lib/access/create-repository";
+import { checkRateLimitForPolicy } from "@/lib/rate-limit/service";
 import {
   assignTrainingModule,
   createTrainingModule,
@@ -16,6 +17,10 @@ import {
 
 vi.mock("@/lib/access/create-repository", () => ({
   createAccessRepository: vi.fn(),
+}));
+
+vi.mock("@/lib/rate-limit/service", () => ({
+  checkRateLimitForPolicy: vi.fn(),
 }));
 
 function createRepository(
@@ -44,6 +49,18 @@ afterEach(() => {
   vi.clearAllMocks();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
+});
+
+beforeEach(() => {
+  vi.mocked(checkRateLimitForPolicy).mockResolvedValue({
+    allowed: true,
+    bucketKey: "trainingAi:org:hash",
+    limit: 20,
+    remaining: 19,
+    requestCount: 1,
+    resetAt: new Date("2026-04-29T00:00:00.000Z"),
+    retryAfterSeconds: 86400,
+  });
 });
 
 function mockAccessRepository(input: {
@@ -830,7 +847,10 @@ describe("generateTrainingModules", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("Expected generated modules");
     expect(fetchMock).toHaveBeenCalledOnce();
-    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)).model).toBe("gpt-5-mini");
+    expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+    const requestBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    expect(requestBody.model).toBe("gpt-5-mini");
+    expect(requestBody.messages[0].content).toContain("untrusted user-provided inputs");
     expect(result.data.modules).toEqual([
       {
         title: "Generated Discovery Deep Dive",
@@ -848,9 +868,90 @@ describe("generateTrainingModules", () => {
       },
     ]);
   });
+
+  it("returns 429 for authorized admins when org training AI quota is exceeded before fetch", async () => {
+    mockAccessRepository({
+      actor: { id: "admin-1", orgId: "org-1", role: "admin" },
+      memberships: [],
+      grants: [],
+    });
+    vi.mocked(checkRateLimitForPolicy).mockResolvedValueOnce({
+      allowed: false,
+      bucketKey: "trainingAi:org:hash",
+      limit: 20,
+      remaining: 0,
+      requestCount: 21,
+      resetAt: new Date("2026-04-29T00:00:00.000Z"),
+      retryAfterSeconds: 444,
+    });
+    vi.stubEnv("OPENAI_API_KEY", "test-openai-key");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await generateTrainingModules("admin-1", {
+      topic: "Discovery",
+      targetRole: "Account Executive",
+      moduleCount: 1,
+      skillFocus: "Root-cause questioning",
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("Expected training generation to be limited");
+    expect(result.status).toBe(429);
+    expect(result.error).toBe("Too many requests. Try again later.");
+    expect(result.retryAfterSeconds).toBe(444);
+    expect(vi.mocked(checkRateLimitForPolicy)).toHaveBeenCalledWith("trainingAi", {
+      type: "org",
+      id: "org-1",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 403 for reps before checking the training AI limiter", async () => {
+    mockAccessRepository({
+      actor: { id: "rep-1", orgId: "org-1", role: "rep" },
+      memberships: [{ orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" }],
+      grants: [],
+    });
+    vi.stubEnv("OPENAI_API_KEY", "test-openai-key");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await generateTrainingModules("rep-1", {
+      topic: "Discovery",
+      targetRole: "Account Executive",
+      moduleCount: 1,
+      skillFocus: "Root-cause questioning",
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("Expected rep training generation to be forbidden");
+    expect(result.status).toBe(403);
+    expect(vi.mocked(checkRateLimitForPolicy)).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("generateTrainingModuleDraft", () => {
+  it("rejects oversized draft context notes before calling OpenAI", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const repository = createRepository();
+
+    const result = await generateTrainingModuleDraft(repository, "mgr-1", "module-1", {
+      mode: "quiz",
+      contextNotes: "A".repeat(12_000),
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("Expected draft generation validation to fail");
+    expect(result.status).toBe(422);
+    expect(result.error).toContain("contextNotes must be");
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(createAccessRepository).not.toHaveBeenCalled();
+  });
+
   it("returns grounded quiz drafts only when module context is attached", async () => {
     mockAccessRepository({
       actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
@@ -916,7 +1017,11 @@ describe("generateTrainingModuleDraft", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("Expected generated quiz draft");
     expect(fetchMock).toHaveBeenCalledOnce();
-    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)).model).toBe("gpt-5-mini");
+    expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+    const requestBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    expect(requestBody.model).toBe("gpt-5-mini");
+    expect(requestBody.messages[0].content).toContain("untrusted user-provided context");
+    expect(requestBody.messages[1].content).toContain("Context notes (quoted untrusted input):");
     expect(result.data.mode).toBe("quiz");
     expect(result.data.draft).toEqual({
       quizData: {
@@ -929,6 +1034,62 @@ describe("generateTrainingModuleDraft", () => {
         ],
       },
     });
+  });
+
+  it("returns 429 for authorized managers before fetching module draft content when org quota is exceeded", async () => {
+    mockAccessRepository({
+      actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
+      memberships: [{ orgId: "org-1", teamId: "team-a", userId: "mgr-1", membershipType: "manager" }],
+      grants: [
+        {
+          orgId: "org-1",
+          teamId: "team-a",
+          userId: "mgr-1",
+          permissionKey: "manage_team_training",
+        },
+      ],
+    });
+    vi.mocked(checkRateLimitForPolicy).mockResolvedValueOnce({
+      allowed: false,
+      bucketKey: "trainingAi:org:hash",
+      limit: 20,
+      remaining: 0,
+      requestCount: 21,
+      resetAt: new Date("2026-04-29T00:00:00.000Z"),
+      retryAfterSeconds: 333,
+    });
+    vi.stubEnv("OPENAI_API_KEY", "test-openai-key");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const repository = createRepository({
+      findModuleById: vi.fn().mockResolvedValue({
+        id: "module-1",
+        orgId: "org-1",
+        title: "Discovery That Finds the Real Pain",
+        skillCategory: "Discovery",
+        videoUrl: null,
+        description: "Learn how to uncover operational pain.",
+        quizData: null,
+        orderIndex: 1,
+        createdAt: new Date("2026-04-08T00:00:00.000Z"),
+      }),
+    });
+
+    const result = await generateTrainingModuleDraft(repository, "mgr-1", "module-1", {
+      mode: "quiz",
+      contextNotes: "Focus on uncovering hidden pain.",
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("Expected module draft generation to be limited");
+    expect(result.status).toBe(429);
+    expect(result.retryAfterSeconds).toBe(333);
+    expect(vi.mocked(checkRateLimitForPolicy)).toHaveBeenCalledWith("trainingAi", {
+      type: "org",
+      id: "org-1",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("requires attached context before generating content drafts", async () => {

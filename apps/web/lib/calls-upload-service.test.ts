@@ -23,6 +23,7 @@ function createRepository(
     insertAnnotation: vi.fn(),
     setCallEvaluation: vi.fn(),
     updateCallRecording: vi.fn(),
+    updateCallRecordingStorage: vi.fn(),
     updateCallStatus: vi.fn(),
     updateCallTopic: vi.fn(),
     updateMomentHighlight: vi.fn(),
@@ -61,10 +62,13 @@ describe("uploadCall", () => {
       }),
       createOrResetCallProcessingJob: vi.fn().mockResolvedValue(undefined),
       updateCallRecording: vi.fn().mockResolvedValue(undefined),
+      updateCallRecordingStorage: vi.fn().mockResolvedValue(undefined),
     });
     const storeSourceAsset = vi.fn().mockResolvedValue({
+      storageBucket: "call-recordings",
       storagePath: "recordings/call-1/source/demo.mp3",
-      publicUrl: "https://storage.example/call-1/demo.mp3",
+      contentType: "audio/mpeg",
+      fileSizeBytes: 10,
     });
     const rubricsRepository = createRubricsRepository({
       findActiveRubricByOrgId: vi.fn().mockResolvedValue({
@@ -100,10 +104,13 @@ describe("uploadCall", () => {
 
     expect(result.ok && result.data.status).toBe("uploaded");
     expect(storeSourceAsset).toHaveBeenCalledTimes(1);
-    expect(repository.updateCallRecording).toHaveBeenCalledWith(
-      "call-1",
-      "https://storage.example/call-1/demo.mp3",
-    );
+    expect(repository.updateCallRecording).not.toHaveBeenCalled();
+    expect(repository.updateCallRecordingStorage).toHaveBeenCalledWith("call-1", {
+      storageBucket: "call-recordings",
+      storagePath: "recordings/call-1/source/demo.mp3",
+      contentType: "audio/mpeg",
+      fileSizeBytes: 10,
+    });
     expect(repository.createCall).toHaveBeenCalledWith(
       expect.objectContaining({
         rubricId: "rubric-1",
@@ -252,9 +259,10 @@ describe("completeUploadedCall", () => {
         fileSizeBytes: 12_000_000,
         callTopic: "Discovery",
         sourceAsset: {
+          storageBucket: "call-recordings",
           storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
-          publicUrl: "https://storage.example/manual/demo.mp3",
           contentType: "audio/mpeg",
+          fileSizeBytes: 12_000_000,
         },
       },
       {
@@ -268,10 +276,13 @@ describe("completeUploadedCall", () => {
         rubricId: "rubric-1",
       }),
     );
-    expect(repository.updateCallRecording).toHaveBeenCalledWith(
-      "call-1",
-      "https://storage.example/manual/demo.mp3",
-    );
+    expect(repository.updateCallRecording).not.toHaveBeenCalled();
+    expect(repository.updateCallRecordingStorage).toHaveBeenCalledWith("call-1", {
+      storageBucket: "call-recordings",
+      storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
+      contentType: "audio/mpeg",
+      fileSizeBytes: 12_000_000,
+    });
     expect(repository.createOrResetCallProcessingJob).toHaveBeenCalledWith(
       expect.objectContaining({
         callId: "call-1",
@@ -297,7 +308,7 @@ describe("completeUploadedCall", () => {
         status: "uploaded",
         createdAt: new Date("2026-04-17T00:00:00.000Z"),
       }),
-      updateCallRecording: vi.fn().mockRejectedValue(new Error("write unavailable")),
+      updateCallRecordingStorage: vi.fn().mockRejectedValue(new Error("write unavailable")),
       updateCallStatus: vi.fn().mockResolvedValue(undefined),
     });
     const rubricsRepository = createRubricsRepository();
@@ -311,9 +322,10 @@ describe("completeUploadedCall", () => {
           fileSizeBytes: 12_000_000,
           callTopic: "Discovery",
           sourceAsset: {
+            storageBucket: "call-recordings",
             storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
-            publicUrl: "https://storage.example/manual/demo.mp3",
             contentType: "audio/mpeg",
+            fileSizeBytes: 12_000_000,
           },
         },
         {

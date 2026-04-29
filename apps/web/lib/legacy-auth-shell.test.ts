@@ -7,10 +7,10 @@ describe("legacy auth shell", () => {
   it("renders the landing page ahead of the login flow", async () => {
     const html = renderToStaticMarkup(await HomePage());
 
-    expect(html).toContain("Build a sales team that");
-    expect(html).toContain("after every call.");
+    expect(html).toContain("Turn every sales call into the next practice plan.");
+    expect(html).toContain("Sales call review, coaching, and roleplay");
     expect(html).toContain('href="/login"');
-    expect(html).toContain("Intelligent Readiness");
+    expect(html).toContain("Coaching Forge");
   });
 
   it("renders the login flow inside the restored shell", async () => {

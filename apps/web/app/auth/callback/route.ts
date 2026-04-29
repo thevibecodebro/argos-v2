@@ -4,15 +4,21 @@ import { ensureUserProvisioned } from "@/lib/provisioning/service";
 import { isRetryableSupabaseAuthError } from "@/lib/supabase/auth-errors";
 import { logAuthTransportFailure } from "@/lib/supabase/auth-observability";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSafeRequestOrigin } from "@/lib/security/trusted-origins";
+
+function getSafeNextPath(value: string | null) {
+  if (!value?.startsWith("/") || value.startsWith("//")) {
+    return "/dashboard";
+  }
+
+  return value;
+}
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
+  const origin = getSafeRequestOrigin(request);
   const code = searchParams.get("code");
-  let next = searchParams.get("next") ?? "/dashboard";
-
-  if (!next.startsWith("/")) {
-    next = "/dashboard";
-  }
+  const next = getSafeNextPath(searchParams.get("next"));
 
   if (code) {
     const supabase = await createSupabaseServerClient();
@@ -63,15 +69,7 @@ export async function GET(request: Request) {
         await ensureUserProvisioned(new SupabaseProvisioningRepository(), user);
       }
 
-      const forwardedHost = request.headers.get("x-forwarded-host");
-      const forwardedProto = request.headers.get("x-forwarded-proto") ?? "https";
-      const isLocalEnv = process.env.NODE_ENV === "development";
-
-      if (isLocalEnv || !forwardedHost) {
-        return NextResponse.redirect(`${origin}${next}`);
-      }
-
-      return NextResponse.redirect(`${forwardedProto}://${forwardedHost}${next}`);
+      return NextResponse.redirect(`${origin}${next}`);
     }
   }
 

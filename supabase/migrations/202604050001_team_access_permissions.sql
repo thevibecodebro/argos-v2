@@ -13,6 +13,7 @@ begin
   alter table public.users
     add constraint users_id_org_id_unique unique (id, org_id);
 exception
+  when duplicate_table then null;
   when duplicate_object then null;
 end
 $$;
@@ -22,6 +23,7 @@ begin
   alter table public.teams
     add constraint teams_id_org_id_unique unique (id, org_id);
 exception
+  when duplicate_table then null;
   when duplicate_object then null;
 end
 $$;
