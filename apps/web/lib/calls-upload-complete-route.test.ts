@@ -65,10 +65,12 @@ describe("calls upload complete route", () => {
     createSupabaseAdminClient.mockReturnValue({
       storage: {
         from: vi.fn().mockReturnValue({
-          getPublicUrl: vi.fn().mockReturnValue({
+          info: vi.fn().mockResolvedValue({
             data: {
-              publicUrl: "https://storage.example/manual/demo.mp3",
+              size: 1024,
+              contentType: "audio/mpeg",
             },
+            error: null,
           }),
         }),
       },
@@ -112,7 +114,10 @@ describe("calls upload complete route", () => {
       expect.objectContaining({
         fileName: "demo.mp3",
         sourceAsset: expect.objectContaining({
+          storageBucket: "call-recordings",
           storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
+          contentType: "audio/mpeg",
+          fileSizeBytes: 1024,
         }),
       }),
     );
@@ -140,6 +145,210 @@ describe("calls upload complete route", () => {
     await expect(response.json()).resolves.toMatchObject({
       code: "invalid_upload",
       retryable: true,
+    });
+    expect(completeUploadedCall).not.toHaveBeenCalled();
+  });
+
+  it("rejects completion when the uploaded storage object is missing", async () => {
+    createSupabaseAdminClient.mockReturnValueOnce({
+      storage: {
+        from: vi.fn().mockReturnValue({
+          info: vi.fn().mockResolvedValue({
+            data: null,
+            error: { message: "Object not found" },
+          }),
+        }),
+      },
+    });
+
+    const route = await import("../app/api/calls/upload/complete/route");
+    const response = await route.POST(
+      new Request("http://localhost:3000/api/calls/upload/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: "demo.mp3",
+          fileSizeBytes: 1024,
+          contentType: "audio/mpeg",
+          callTopic: "Discovery",
+          consentConfirmed: true,
+          storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "invalid_upload",
+      error: "The uploaded recording could not be verified.",
+      retryable: true,
+      details: { reason: "Object not found" },
+    });
+    expect(completeUploadedCall).not.toHaveBeenCalled();
+  });
+
+  it("rejects completion when verified storage metadata does not match the upload payload", async () => {
+    createSupabaseAdminClient.mockReturnValueOnce({
+      storage: {
+        from: vi.fn().mockReturnValue({
+          info: vi.fn().mockResolvedValue({
+            data: {
+              size: 512,
+              contentType: "audio/wav",
+            },
+            error: null,
+          }),
+        }),
+      },
+    });
+
+    const route = await import("../app/api/calls/upload/complete/route");
+    const response = await route.POST(
+      new Request("http://localhost:3000/api/calls/upload/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: "demo.mp3",
+          fileSizeBytes: 1024,
+          contentType: "audio/mpeg",
+          callTopic: "Discovery",
+          consentConfirmed: true,
+          storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "invalid_upload",
+      error: "The uploaded recording could not be verified.",
+      retryable: true,
+      details: {
+        expectedSizeBytes: 1024,
+        actualSizeBytes: 512,
+        expectedContentType: "audio/mpeg",
+        actualContentType: "audio/wav",
+      },
+    });
+    expect(completeUploadedCall).not.toHaveBeenCalled();
+  });
+
+  it("rejects completion when storage object metadata is missing size", async () => {
+    createSupabaseAdminClient.mockReturnValueOnce({
+      storage: {
+        from: vi.fn().mockReturnValue({
+          info: vi.fn().mockResolvedValue({
+            data: {
+              contentType: "audio/mpeg",
+            },
+            error: null,
+          }),
+        }),
+      },
+    });
+
+    const route = await import("../app/api/calls/upload/complete/route");
+    const response = await route.POST(
+      new Request("http://localhost:3000/api/calls/upload/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: "demo.mp3",
+          fileSizeBytes: 1024,
+          contentType: "audio/mpeg",
+          callTopic: "Discovery",
+          consentConfirmed: true,
+          storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "invalid_upload",
+      error: "The uploaded recording could not be verified.",
+      retryable: true,
+      details: { reason: "Storage object size metadata is missing" },
+    });
+    expect(completeUploadedCall).not.toHaveBeenCalled();
+  });
+
+  it("rejects completion when requested content type is missing from storage metadata", async () => {
+    createSupabaseAdminClient.mockReturnValueOnce({
+      storage: {
+        from: vi.fn().mockReturnValue({
+          info: vi.fn().mockResolvedValue({
+            data: {
+              size: 1024,
+            },
+            error: null,
+          }),
+        }),
+      },
+    });
+
+    const route = await import("../app/api/calls/upload/complete/route");
+    const response = await route.POST(
+      new Request("http://localhost:3000/api/calls/upload/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: "demo.mp3",
+          fileSizeBytes: 1024,
+          contentType: "audio/mpeg",
+          callTopic: "Discovery",
+          consentConfirmed: true,
+          storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "invalid_upload",
+      error: "The uploaded recording could not be verified.",
+      retryable: true,
+      details: { reason: "Storage object content type metadata is missing" },
+    });
+    expect(completeUploadedCall).not.toHaveBeenCalled();
+  });
+
+  it("rejects completion when request content type is omitted and storage content type metadata is missing", async () => {
+    createSupabaseAdminClient.mockReturnValueOnce({
+      storage: {
+        from: vi.fn().mockReturnValue({
+          info: vi.fn().mockResolvedValue({
+            data: {
+              size: 1024,
+              contentType: null,
+            },
+            error: null,
+          }),
+        }),
+      },
+    });
+
+    const route = await import("../app/api/calls/upload/complete/route");
+    const response = await route.POST(
+      new Request("http://localhost:3000/api/calls/upload/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: "demo.mp3",
+          fileSizeBytes: 1024,
+          callTopic: "Discovery",
+          consentConfirmed: true,
+          storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "invalid_upload",
+      error: "The uploaded recording could not be verified.",
+      retryable: true,
+      details: { reason: "Storage object content type metadata is missing" },
     });
     expect(completeUploadedCall).not.toHaveBeenCalled();
   });

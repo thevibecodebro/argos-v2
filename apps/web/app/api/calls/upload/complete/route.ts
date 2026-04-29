@@ -89,15 +89,25 @@ export async function POST(request: Request) {
     }
 
     const bucket = createSupabaseAdminClient().storage.from("call-recordings");
-    const { data } = bucket.getPublicUrl(body.storagePath);
+    const storageVerification = await verifyUploadedRecordingObject(bucket, {
+      storagePath: body.storagePath,
+      expectedContentType: body.contentType ?? null,
+      expectedSizeBytes: body.fileSizeBytes,
+    });
+
+    if (storageVerification) {
+      return storageVerification;
+    }
+
     const result = await completeUploadedCall(createCallsRepository(), authUser.id, {
       callTopic: typeof body.callTopic === "string" ? body.callTopic : null,
       fileName: body.fileName,
       fileSizeBytes: body.fileSizeBytes,
       sourceAsset: {
+        storageBucket: "call-recordings",
         storagePath: body.storagePath,
-        publicUrl: data.publicUrl,
         contentType: body.contentType ?? null,
+        fileSizeBytes: body.fileSizeBytes,
       },
     });
 
@@ -149,4 +159,93 @@ function isScopedManualUploadPath(
 ) {
   const prefix = `recordings/manual-uploads/${authUserId}/`;
   return storagePath.startsWith(prefix) && storagePath.endsWith(`/${fileName}`);
+}
+
+async function verifyUploadedRecordingObject(
+  bucket: {
+    info: (path: string) => Promise<{
+      data: { size?: number | null; contentType?: string | null } | null;
+      error: { message?: string } | null;
+    }>;
+  },
+  input: {
+    storagePath: string;
+    expectedContentType: string | null;
+    expectedSizeBytes: number;
+  },
+) {
+  const { data, error } = await bucket.info(input.storagePath);
+
+  if (error || !data) {
+    return uploadCallErrorJson(
+      UPLOAD_CALL_ERROR_CODES.invalidUpload,
+      "The uploaded recording could not be verified.",
+      400,
+      {
+        details: {
+          reason: error?.message ?? "Storage object not found",
+        },
+      },
+    );
+  }
+
+  const details: Record<string, string | number> = {};
+
+  if (typeof data.size !== "number") {
+    return uploadCallErrorJson(
+      UPLOAD_CALL_ERROR_CODES.invalidUpload,
+      "The uploaded recording could not be verified.",
+      400,
+      {
+        details: {
+          reason: "Storage object size metadata is missing",
+        },
+      },
+    );
+  }
+
+  if (data.size !== input.expectedSizeBytes) {
+    details.expectedSizeBytes = input.expectedSizeBytes;
+    details.actualSizeBytes = data.size;
+  }
+
+  const actualContentType = normalizeContentType(data.contentType ?? null);
+  const expectedContentType = normalizeContentType(input.expectedContentType);
+
+  if (!actualContentType) {
+    return uploadCallErrorJson(
+      UPLOAD_CALL_ERROR_CODES.invalidUpload,
+      "The uploaded recording could not be verified.",
+      400,
+      {
+        details: {
+          reason: "Storage object content type metadata is missing",
+        },
+      },
+    );
+  }
+
+  if (
+    actualContentType &&
+    expectedContentType &&
+    actualContentType !== expectedContentType
+  ) {
+    details.expectedContentType = expectedContentType;
+    details.actualContentType = actualContentType;
+  }
+
+  if (Object.keys(details).length > 0) {
+    return uploadCallErrorJson(
+      UPLOAD_CALL_ERROR_CODES.invalidUpload,
+      "The uploaded recording could not be verified.",
+      400,
+      { details },
+    );
+  }
+
+  return null;
+}
+
+function normalizeContentType(contentType: string | null) {
+  return contentType?.split(";")[0]?.trim().toLowerCase() || null;
 }

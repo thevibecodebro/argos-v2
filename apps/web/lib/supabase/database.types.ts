@@ -240,6 +240,10 @@ export type Database = {
           pain_expansion_score: number | null
           rapport_score: number | null
           recommended_drills: Json | null
+          recording_content_type: string | null
+          recording_file_size_bytes: number | null
+          recording_storage_bucket: string | null
+          recording_storage_path: string | null
           recording_url: string | null
           rep_id: string
           rubric_id: string | null
@@ -270,6 +274,10 @@ export type Database = {
           pain_expansion_score?: number | null
           rapport_score?: number | null
           recommended_drills?: Json | null
+          recording_content_type?: string | null
+          recording_file_size_bytes?: number | null
+          recording_storage_bucket?: string | null
+          recording_storage_path?: string | null
           recording_url?: string | null
           rep_id: string
           rubric_id?: string | null
@@ -300,6 +308,10 @@ export type Database = {
           pain_expansion_score?: number | null
           rapport_score?: number | null
           recommended_drills?: Json | null
+          recording_content_type?: string | null
+          recording_file_size_bytes?: number | null
+          recording_storage_bucket?: string | null
+          recording_storage_path?: string | null
           recording_url?: string | null
           rep_id?: string
           rubric_id?: string | null

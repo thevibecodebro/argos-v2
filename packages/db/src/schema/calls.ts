@@ -12,6 +12,10 @@ export const callsTable = pgTable("calls", {
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
   recordingUrl: text("recording_url"),
+  recordingStorageBucket: text("recording_storage_bucket"),
+  recordingStoragePath: text("recording_storage_path"),
+  recordingContentType: text("recording_content_type"),
+  recordingFileSizeBytes: integer("recording_file_size_bytes"),
   transcriptUrl: text("transcript_url"),
   durationSeconds: integer("duration_seconds"),
   status: text("status", {

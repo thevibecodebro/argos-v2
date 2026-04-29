@@ -115,6 +115,13 @@ export class DrizzleZoomWebhookRepository implements ZoomWebhookRepository {
     await this.callsRepository.updateCallRecording(callId, recordingUrl);
   }
 
+  async updateCallRecordingStorage(
+    callId: string,
+    recording: Parameters<DrizzleCallsRepository["updateCallRecordingStorage"]>[1],
+  ) {
+    await this.callsRepository.updateCallRecordingStorage(callId, recording);
+  }
+
   async updateCallStatus(
     callId: string,
     status: "uploaded" | "transcribing" | "evaluating" | "complete" | "failed",

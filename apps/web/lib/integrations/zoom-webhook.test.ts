@@ -23,6 +23,7 @@ function createRepository(
     findPreferredCallOwner: vi.fn(),
     findZoomIntegrationByAccountId: vi.fn(),
     updateCallRecording: vi.fn(),
+    updateCallRecordingStorage: vi.fn(),
     updateCallStatus: vi.fn(),
     updateZoomTokens: vi.fn(),
     ...overrides,
@@ -303,8 +304,10 @@ describe("processZoomWebhookRequest", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const storeSourceAsset = vi.fn().mockResolvedValue({
+      storageBucket: "call-recordings",
       storagePath: "recordings/call-1/source/recording-1.m4a",
-      publicUrl: "https://storage.example/recordings/call-1/source/recording-1.m4a",
+      contentType: "audio/mp4",
+      fileSizeBytes: 10,
     });
     const rubricsRepository = createRubricsRepository({
       findActiveRubricByOrgId: vi.fn().mockResolvedValue({
@@ -332,6 +335,7 @@ describe("processZoomWebhookRequest", () => {
         tokenExpiresAt: new Date("2026-04-18T00:00:00.000Z"),
       }),
       updateCallRecording: vi.fn().mockResolvedValue(undefined),
+      updateCallRecordingStorage: vi.fn().mockResolvedValue(undefined),
     });
     const rawBody = JSON.stringify({
       event: "recording.completed",
@@ -403,10 +407,13 @@ describe("processZoomWebhookRequest", () => {
         contentType: "audio/mp4",
         fileName: "recording-1.m4a",
       });
-      expect(repository.updateCallRecording).toHaveBeenCalledWith(
-        "call-1",
-        "https://storage.example/recordings/call-1/source/recording-1.m4a",
-      );
+      expect(repository.updateCallRecording).not.toHaveBeenCalled();
+      expect(repository.updateCallRecordingStorage).toHaveBeenCalledWith("call-1", {
+        storageBucket: "call-recordings",
+        storagePath: "recordings/call-1/source/recording-1.m4a",
+        contentType: "audio/mp4",
+        fileSizeBytes: 10,
+      });
       expect(repository.createOrResetCallProcessingJob).toHaveBeenCalledWith({
         callId: "call-1",
         rubricId: "rubric-1",
@@ -432,8 +439,10 @@ describe("processZoomWebhookRequest", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
     const storeSourceAsset = vi.fn().mockResolvedValue({
+      storageBucket: "call-recordings",
       storagePath: "recordings/call-1/source/recording-1.m4a",
-      publicUrl: "https://storage.example/recordings/call-1/source/recording-1.m4a",
+      contentType: "audio/mp4",
+      fileSizeBytes: 10,
     });
     const rubricsRepository = createRubricsRepository();
 
@@ -450,6 +459,7 @@ describe("processZoomWebhookRequest", () => {
         tokenExpiresAt: new Date("2026-04-18T00:00:00.000Z"),
       }),
       updateCallRecording: vi.fn().mockResolvedValue(undefined),
+      updateCallRecordingStorage: vi.fn().mockResolvedValue(undefined),
     });
     const rawBody = JSON.stringify({
       event: "recording.completed",
@@ -509,8 +519,10 @@ describe("processZoomWebhookRequest", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
     const storeSourceAsset = vi.fn().mockResolvedValue({
+      storageBucket: "call-recordings",
       storagePath: "recordings/call-1/source/recording-1.mp4",
-      publicUrl: "https://storage.example/recordings/call-1/source/recording-1.mp4",
+      contentType: "video/mp4",
+      fileSizeBytes: 10,
     });
     const rubricsRepository = createRubricsRepository();
 
@@ -527,6 +539,7 @@ describe("processZoomWebhookRequest", () => {
         tokenExpiresAt: new Date("2026-04-18T00:00:00.000Z"),
       }),
       updateCallRecording: vi.fn().mockResolvedValue(undefined),
+      updateCallRecordingStorage: vi.fn().mockResolvedValue(undefined),
     });
     const rawBody = JSON.stringify({
       event: "recording.completed",
@@ -634,8 +647,10 @@ describe("processZoomWebhookRequest", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const storeSourceAsset = vi.fn().mockResolvedValue({
+      storageBucket: "call-recordings",
       storagePath: "recordings/call-1/source/recording-1.m4a",
-      publicUrl: "https://storage.example/recordings/call-1/source/recording-1.m4a",
+      contentType: "audio/mp4",
+      fileSizeBytes: 10,
     });
     const rubricsRepository = createRubricsRepository();
     const repository = createRepository({
@@ -654,6 +669,7 @@ describe("processZoomWebhookRequest", () => {
         tokenExpiresAt: new Date("2026-04-18T00:00:00.000Z"),
       }),
       updateCallRecording: vi.fn().mockResolvedValue(undefined),
+      updateCallRecordingStorage: vi.fn().mockResolvedValue(undefined),
     });
     const rawBody = JSON.stringify({
       event: "recording.completed",
@@ -704,10 +720,13 @@ describe("processZoomWebhookRequest", () => {
         contentType: "audio/mp4",
         fileName: "recording-1.m4a",
       });
-      expect(repository.updateCallRecording).toHaveBeenCalledWith(
-        "call-1",
-        "https://storage.example/recordings/call-1/source/recording-1.m4a",
-      );
+      expect(repository.updateCallRecording).not.toHaveBeenCalled();
+      expect(repository.updateCallRecordingStorage).toHaveBeenCalledWith("call-1", {
+        storageBucket: "call-recordings",
+        storagePath: "recordings/call-1/source/recording-1.m4a",
+        contentType: "audio/mp4",
+        fileSizeBytes: 10,
+      });
       expect(repository.createOrResetCallProcessingJob).toHaveBeenCalledWith({
         callId: "call-1",
         rubricId: null,

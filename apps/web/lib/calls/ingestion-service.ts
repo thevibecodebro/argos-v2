@@ -2,11 +2,13 @@ import { randomUUID } from "node:crypto";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export type SourceAsset = {
+  storageBucket: "call-recordings";
   storagePath: string;
-  publicUrl: string;
+  contentType: string | null;
+  fileSizeBytes: number;
 };
 
-export type ManualCallUploadTarget = SourceAsset & {
+export type ManualCallUploadTarget = Pick<SourceAsset, "storageBucket" | "storagePath"> & {
   token: string;
 };
 
@@ -42,11 +44,11 @@ export async function storeCallSourceAsset(
     throw new Error(`Failed to store source recording: ${error.message}`);
   }
 
-  const { data } = supabase.storage.from("call-recordings").getPublicUrl(storagePath);
-
   return {
+    storageBucket: "call-recordings",
     storagePath,
-    publicUrl: data.publicUrl,
+    contentType: input.contentType,
+    fileSizeBytes: input.bytes.length,
   };
 }
 
@@ -71,11 +73,9 @@ export async function createManualCallUploadTarget(
     );
   }
 
-  const { data: publicData } = bucket.getPublicUrl(storagePath);
-
   return {
+    storageBucket: "call-recordings",
     storagePath,
-    publicUrl: publicData.publicUrl,
     token: data.token,
   };
 }

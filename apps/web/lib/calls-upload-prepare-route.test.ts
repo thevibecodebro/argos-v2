@@ -50,7 +50,6 @@ describe("calls upload prepare route", () => {
   it("returns a signed upload target for valid file metadata", async () => {
     createManualCallUploadTarget.mockResolvedValue({
       storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
-      publicUrl: "https://storage.example/manual/demo.mp3",
       token: "signed-token",
     });
 

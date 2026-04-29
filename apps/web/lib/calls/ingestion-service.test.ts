@@ -5,15 +5,12 @@ import {
 } from "./ingestion-service";
 
 describe("storeManualCallSource", () => {
-  it("uploads the source recording and returns the stored asset info", async () => {
+  it("uploads the source recording and returns private storage metadata", async () => {
     const upload = vi.fn().mockResolvedValue({ error: null });
-    const getPublicUrl = vi.fn().mockReturnValue({
-      data: { publicUrl: "https://storage.example/recordings/call-1/source/demo.mp3" },
-    });
-    const from = vi.fn().mockReturnValue({
+    const bucket = {
       upload,
-      getPublicUrl,
-    });
+    };
+    const from = vi.fn().mockReturnValue(bucket);
 
     const result = await storeManualCallSource(
       {
@@ -41,8 +38,10 @@ describe("storeManualCallSource", () => {
       },
     );
     expect(result).toEqual({
+      storageBucket: "call-recordings",
       storagePath: "recordings/call-1/source/demo.mp3",
-      publicUrl: "https://storage.example/recordings/call-1/source/demo.mp3",
+      contentType: "audio/mpeg",
+      fileSizeBytes: 5,
     });
   });
 
@@ -51,7 +50,6 @@ describe("storeManualCallSource", () => {
       upload: vi.fn().mockResolvedValue({
         error: { message: "bucket unavailable" },
       }),
-      getPublicUrl: vi.fn(),
     });
 
     await expect(
@@ -80,13 +78,10 @@ describe("createManualCallUploadTarget", () => {
       data: { token: "signed-token" },
       error: null,
     });
-    const getPublicUrl = vi.fn().mockReturnValue({
-      data: { publicUrl: "https://storage.example/recordings/manual-uploads/auth-user-1/upload-1/demo.mp3" },
-    });
-    const from = vi.fn().mockReturnValue({
+    const bucket = {
       createSignedUploadUrl,
-      getPublicUrl,
-    });
+    };
+    const from = vi.fn().mockReturnValue(bucket);
 
     const result = await createManualCallUploadTarget(
       {
@@ -109,9 +104,8 @@ describe("createManualCallUploadTarget", () => {
       { upsert: true },
     );
     expect(result).toEqual({
+      storageBucket: "call-recordings",
       storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
-      publicUrl:
-        "https://storage.example/recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
       token: "signed-token",
     });
   });
@@ -122,7 +116,6 @@ describe("createManualCallUploadTarget", () => {
         data: null,
         error: { message: "signing unavailable" },
       }),
-      getPublicUrl: vi.fn(),
     });
 
     await expect(

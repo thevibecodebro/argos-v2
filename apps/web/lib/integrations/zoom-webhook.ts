@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { storeZoomCallSource, type SourceAsset } from "@/lib/calls/ingestion-service";
+import type { CallRecordingStorage } from "@/lib/calls/service";
 import { checkRateLimitForPolicy, type RateLimitResult } from "@/lib/rate-limit/service";
 import { createRubricsRepository } from "@/lib/rubrics/create-repository";
 import { getActiveRubric, type RubricsRepository } from "@/lib/rubrics/service";
@@ -47,6 +48,7 @@ export interface ZoomWebhookRepository {
     tokenExpiresAt: Date;
   } | null>;
   updateCallRecording(callId: string, recordingUrl: string | null): Promise<void>;
+  updateCallRecordingStorage(callId: string, recording: CallRecordingStorage): Promise<void>;
   updateCallStatus(callId: string, status: CallStatus): Promise<void>;
   updateZoomTokens(orgId: string, tokens: { accessToken: string; refreshToken: string; tokenExpiresAt: Date }): Promise<void>;
 }
@@ -294,7 +296,12 @@ export async function processZoomWebhookRequest(
       fileName: recordingAsset.fileName,
     });
 
-    await repository.updateCallRecording(callId, sourceAsset.publicUrl);
+    await repository.updateCallRecordingStorage(callId, {
+      storageBucket: sourceAsset.storageBucket,
+      storagePath: sourceAsset.storagePath,
+      contentType: sourceAsset.contentType,
+      fileSizeBytes: sourceAsset.fileSizeBytes,
+    });
     await repository.createOrResetCallProcessingJob({
       callId,
       rubricId,
