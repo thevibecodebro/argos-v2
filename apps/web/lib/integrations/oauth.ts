@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { getSafeRequestOrigin } from "../security/trusted-origins";
 
 type EnvSource = Partial<Record<string, string | undefined>>;
 
@@ -92,15 +93,7 @@ export function resolveGhlRedirectUri(origin: string, env: EnvSource = process.e
 }
 
 export function getRequestOrigin(request: Request) {
-  const url = new URL(request.url);
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  const forwardedProto = request.headers.get("x-forwarded-proto");
-
-  if (forwardedHost && forwardedProto) {
-    return `${forwardedProto}://${forwardedHost}`;
-  }
-
-  return url.origin;
+  return getSafeRequestOrigin(request);
 }
 
 export async function exchangeZoomCode(
