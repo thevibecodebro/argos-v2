@@ -10,6 +10,8 @@ type IntegrationProvider = "zoom" | "ghl";
 
 type IntegrationAvailability = {
   ghlClientId: string | null | undefined;
+  ghlClientSecret: string | null | undefined;
+  ghlEnabled: string | null | undefined;
   zoomClientId: string | null | undefined;
 };
 
@@ -54,12 +56,22 @@ function canManage(role: AppUserRole | null) {
 
 function getAvailability(input: IntegrationAvailability = {
   ghlClientId: process.env.GHL_CLIENT_ID,
+  ghlClientSecret: process.env.GHL_CLIENT_SECRET,
+  ghlEnabled: process.env.ARGOS_GHL_ENABLED,
   zoomClientId: process.env.ZOOM_CLIENT_ID,
 }) {
   return {
-    ghl: Boolean(input.ghlClientId),
+    ghl: isGhlIntegrationConfigured(input),
     zoom: Boolean(input.zoomClientId),
   };
+}
+
+export function isGhlIntegrationConfigured(input: Partial<IntegrationAvailability> = {
+  ghlClientId: process.env.GHL_CLIENT_ID,
+  ghlClientSecret: process.env.GHL_CLIENT_SECRET,
+  ghlEnabled: process.env.ARGOS_GHL_ENABLED,
+}) {
+  return input.ghlEnabled === "true" && Boolean(input.ghlClientId) && Boolean(input.ghlClientSecret);
 }
 
 export async function getIntegrationStatuses(
@@ -104,9 +116,15 @@ export async function getIntegrationStatuses(
     };
   }
 
+  const unavailableGhl = {
+    connected: false,
+    connectedAt: null,
+    locationId: null,
+    locationName: null,
+  };
   const [zoom, ghl] = await Promise.all([
     repository.findZoomStatus(viewer.org.id),
-    repository.findGhlStatus(viewer.org.id),
+    availability.ghl ? repository.findGhlStatus(viewer.org.id) : Promise.resolve(unavailableGhl),
   ]);
 
   return {

@@ -147,11 +147,7 @@ export async function processZoomWebhookRequest(
     };
   }
 
-  const accountId = parsed.payload?.account_id ?? null;
-  const integration = accountId
-    ? await repository.findZoomIntegrationByAccountId(accountId)
-    : null;
-  const secret = env.ZOOM_WEBHOOK_SECRET_TOKEN ?? integration?.webhookToken;
+  const secret = env.ZOOM_WEBHOOK_SECRET_TOKEN;
 
   if (
     !secret ||
@@ -167,17 +163,6 @@ export async function processZoomWebhookRequest(
       status: 401,
       body: { error: "Invalid webhook signature" },
     };
-  }
-
-  if (accountId && integration) {
-    const rateLimit = await checkRateLimitForPolicy("zoomWebhookAccount", {
-      type: "org",
-      id: `${integration.orgId}:${accountId}`,
-    });
-
-    if (!rateLimit.allowed) {
-      return rateLimitResultToWebhookResponse(rateLimit);
-    }
   }
 
   if (parsed.event === "endpoint.url_validation") {
@@ -197,6 +182,22 @@ export async function processZoomWebhookRequest(
         encryptedToken: crypto.createHmac("sha256", secret).update(plainToken).digest("hex"),
       },
     };
+  }
+
+  const accountId = parsed.payload?.account_id ?? null;
+  const integration = accountId
+    ? await repository.findZoomIntegrationByAccountId(accountId)
+    : null;
+
+  if (accountId && integration) {
+    const rateLimit = await checkRateLimitForPolicy("zoomWebhookAccount", {
+      type: "org",
+      id: `${integration.orgId}:${accountId}`,
+    });
+
+    if (!rateLimit.allowed) {
+      return rateLimitResultToWebhookResponse(rateLimit);
+    }
   }
 
   if (parsed.event !== "recording.completed") {

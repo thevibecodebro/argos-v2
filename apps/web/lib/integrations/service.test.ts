@@ -45,6 +45,8 @@ describe("getIntegrationStatuses", () => {
     });
 
     const result = await getIntegrationStatuses(repository, "manager-1", {
+      ghlClientSecret: "ghl-secret",
+      ghlEnabled: "false",
       ghlClientId: null,
       zoomClientId: "zoom-client-id",
     });
@@ -65,6 +67,96 @@ describe("getIntegrationStatuses", () => {
       connected: false,
       disconnectPath: "/api/integrations/ghl/disconnect",
     });
+  });
+
+  it("requires explicit GHL enablement and both GHL OAuth credentials before exposing it as available", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "admin-1",
+        email: "admin@argos.ai",
+        role: "admin",
+        firstName: "Morgan",
+        lastName: "Lane",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      findZoomStatus: vi.fn().mockResolvedValue({
+        connected: false,
+        connectedAt: null,
+        zoomUserId: null,
+      }),
+      findGhlStatus: vi.fn().mockResolvedValue({
+        connected: false,
+        connectedAt: null,
+        locationId: null,
+        locationName: null,
+      }),
+    });
+
+    const disabled = await getIntegrationStatuses(repository, "admin-1", {
+      ghlClientId: "ghl-client-id",
+      ghlClientSecret: "ghl-secret",
+      ghlEnabled: "false",
+      zoomClientId: "zoom-client-id",
+    });
+    const missingSecret = await getIntegrationStatuses(repository, "admin-1", {
+      ghlClientId: "ghl-client-id",
+      ghlClientSecret: "",
+      ghlEnabled: "true",
+      zoomClientId: "zoom-client-id",
+    });
+    const enabled = await getIntegrationStatuses(repository, "admin-1", {
+      ghlClientId: "ghl-client-id",
+      ghlClientSecret: "ghl-secret",
+      ghlEnabled: "true",
+      zoomClientId: "zoom-client-id",
+    });
+
+    expect(disabled.ok && disabled.data.ghl.available).toBe(false);
+    expect(missingSecret.ok && missingSecret.data.ghl.available).toBe(false);
+    expect(enabled.ok && enabled.data.ghl.available).toBe(true);
+  });
+
+  it("does not report legacy GHL rows as connected when GHL is not enabled", async () => {
+    const findGhlStatus = vi.fn().mockResolvedValue({
+      connected: true,
+      connectedAt: new Date("2026-04-03T00:00:00.000Z"),
+      locationId: "location-1",
+      locationName: "Legacy Location",
+    });
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "admin-1",
+        email: "admin@argos.ai",
+        role: "admin",
+        firstName: "Morgan",
+        lastName: "Lane",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      findGhlStatus,
+      findZoomStatus: vi.fn().mockResolvedValue({
+        connected: false,
+        connectedAt: null,
+        zoomUserId: null,
+      }),
+    });
+
+    const result = await getIntegrationStatuses(repository, "admin-1", {
+      ghlClientId: "ghl-client-id",
+      ghlClientSecret: "ghl-secret",
+      ghlEnabled: "false",
+      zoomClientId: "zoom-client-id",
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected integration statuses");
+    expect(result.data.ghl).toMatchObject({
+      available: false,
+      connected: false,
+      connectedAt: null,
+      locationId: null,
+      locationName: null,
+    });
+    expect(findGhlStatus).not.toHaveBeenCalled();
   });
 });
 

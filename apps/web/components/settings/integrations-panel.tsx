@@ -245,7 +245,7 @@ function GhlCard({
 
       {!available && !isConnected ? (
         <p className="mt-3 text-sm text-[rgba(255,159,95,0.82)]">
-          OAuth credentials for Go High Level are not yet configured in this environment.
+          Go High Level is disabled until ARGOS_GHL_ENABLED is true and OAuth credentials are configured.
         </p>
       ) : null}
 

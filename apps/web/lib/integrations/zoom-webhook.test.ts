@@ -106,6 +106,41 @@ describe("processZoomWebhookRequest", () => {
     });
   });
 
+  it("does not look up integrations for attacker-controlled account IDs before signature verification", async () => {
+    const repository = createRepository({
+      findZoomIntegrationByAccountId: vi.fn().mockResolvedValue({
+        orgId: "org-1",
+        webhookToken: null,
+        accessToken: "zoom-access",
+        refreshToken: "zoom-refresh",
+        tokenExpiresAt: new Date("2026-04-18T00:00:00.000Z"),
+      }),
+    });
+    const rawBody = JSON.stringify({
+      event: "recording.completed",
+      payload: {
+        account_id: "attacker-controlled-account",
+        object: {
+          recording_files: [{ id: "recording-1" }],
+        },
+      },
+    });
+
+    const result = await processZoomWebhookRequest(repository, {
+      headers: { signature: "v0=invalid", timestamp: Math.floor(Date.now() / 1000).toString() },
+      rawBody,
+      env: {
+        ZOOM_WEBHOOK_SECRET_TOKEN: "webhook-secret",
+      },
+    });
+
+    expect(result).toEqual({
+      status: 401,
+      body: { error: "Invalid webhook signature" },
+    });
+    expect(repository.findZoomIntegrationByAccountId).not.toHaveBeenCalled();
+  });
+
   it("prefers the app-level webhook secret over a stale integration token", async () => {
     const repository = createRepository({
       findCallByZoomRecordingId: vi.fn().mockResolvedValue(null),
@@ -149,6 +184,47 @@ describe("processZoomWebhookRequest", () => {
     expect(result).toEqual({
       status: 200,
       body: { received: true },
+    });
+  });
+
+  it("rejects signatures made with a legacy per-row webhook token when the global secret is missing", async () => {
+    const repository = createRepository({
+      findZoomIntegrationByAccountId: vi.fn().mockResolvedValue({
+        orgId: "org-1",
+        webhookToken: "legacy-row-secret",
+        accessToken: "zoom-access",
+        refreshToken: "zoom-refresh",
+        tokenExpiresAt: new Date("2026-04-18T00:00:00.000Z"),
+      }),
+    });
+    const rawBody = JSON.stringify({
+      event: "recording.completed",
+      payload: {
+        account_id: "zoom-account-1",
+        object: {
+          id: "meeting-1",
+          recording_files: [
+            {
+              id: "recording-1",
+              download_url: "https://example.com/audio.m4a",
+              file_extension: "m4a",
+              recording_type: "audio_only",
+            },
+          ],
+        },
+      },
+    });
+    const { signature, timestamp } = sign("legacy-row-secret", rawBody);
+
+    const result = await processZoomWebhookRequest(repository, {
+      headers: { signature, timestamp },
+      rawBody,
+      env: {},
+    });
+
+    expect(result).toEqual({
+      status: 401,
+      body: { error: "Invalid webhook signature" },
     });
   });
 

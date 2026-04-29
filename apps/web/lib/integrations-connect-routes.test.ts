@@ -144,4 +144,28 @@ describe("integration connect routes", () => {
       "https://app.argos.ai/settings?ghl_error=not_configured",
     );
   });
+
+  it("keeps GHL OAuth unavailable unless explicitly enabled in production config", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://app.argos.ai");
+    vi.stubEnv("ARGOS_GHL_ENABLED", "false");
+    vi.stubEnv("GHL_CLIENT_ID", "ghl-client-id");
+    vi.stubEnv("GHL_CLIENT_SECRET", "ghl-secret");
+
+    createIntegrationsRepository.mockReturnValue({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "admin-1",
+        role: "admin",
+        org: { id: "org-1", slug: "argos" },
+      }),
+    });
+    getAuthenticatedSupabaseUser.mockResolvedValue({ id: "auth-user-1" });
+
+    const route = await import("../app/api/integrations/ghl/connect/route");
+    const response = await route.GET(new Request("https://app.argos.ai/api/integrations/ghl/connect"));
+
+    expect(response.headers.get("location")).toBe(
+      "https://app.argos.ai/settings?ghl_error=not_configured",
+    );
+  });
 });

@@ -1,5 +1,10 @@
 import { findUserWithOrgByAuthId, getSupabaseAdminClient, toDate } from "@/lib/supabase/admin-repository-helpers";
 import type { IntegrationsRepository } from "./service";
+import {
+  decryptIntegrationToken,
+  encryptIntegrationToken,
+  encryptNullableIntegrationToken,
+} from "./token-encryption";
 
 export class SupabaseIntegrationsRepository implements IntegrationsRepository {
   constructor(private readonly supabase = getSupabaseAdminClient()) {}
@@ -46,8 +51,8 @@ export class SupabaseIntegrationsRepository implements IntegrationsRepository {
     const { error } = await supabase.from("ghl_integrations").upsert(
       {
         org_id: input.orgId,
-        access_token: input.accessToken,
-        refresh_token: input.refreshToken,
+        access_token: encryptIntegrationToken(input.accessToken),
+        refresh_token: encryptIntegrationToken(input.refreshToken),
         location_id: input.locationId,
         location_name: input.locationName,
         token_expires_at: input.tokenExpiresAt.toISOString(),
@@ -76,11 +81,11 @@ export class SupabaseIntegrationsRepository implements IntegrationsRepository {
     const { error } = await supabase.from("zoom_integrations").upsert(
       {
         org_id: input.orgId,
-        access_token: input.accessToken,
-        refresh_token: input.refreshToken,
+        access_token: encryptIntegrationToken(input.accessToken),
+        refresh_token: encryptIntegrationToken(input.refreshToken),
         token_expires_at: input.tokenExpiresAt.toISOString(),
         webhook_id: input.webhookId ?? null,
-        webhook_token: input.webhookToken ?? null,
+        webhook_token: encryptNullableIntegrationToken(input.webhookToken),
         zoom_account_id: input.zoomAccountId,
         zoom_user_id: input.zoomUserId,
         connected_at: new Date().toISOString(),
@@ -111,8 +116,8 @@ export class SupabaseIntegrationsRepository implements IntegrationsRepository {
     }
 
     return {
-      accessToken: data.access_token as string,
-      refreshToken: data.refresh_token as string,
+      accessToken: decryptIntegrationToken(data.access_token as string),
+      refreshToken: decryptIntegrationToken(data.refresh_token as string),
       tokenExpiresAt: new Date(data.token_expires_at as string),
       webhookId: (data.webhook_id as string | null) ?? null,
     };
@@ -123,8 +128,8 @@ export class SupabaseIntegrationsRepository implements IntegrationsRepository {
     const { error } = await supabase
       .from("zoom_integrations")
       .update({
-        access_token: tokens.accessToken,
-        refresh_token: tokens.refreshToken,
+        access_token: encryptIntegrationToken(tokens.accessToken),
+        refresh_token: encryptIntegrationToken(tokens.refreshToken),
         token_expires_at: tokens.tokenExpiresAt.toISOString(),
         updated_at: new Date().toISOString(),
       })

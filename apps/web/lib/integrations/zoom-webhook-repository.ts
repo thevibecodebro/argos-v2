@@ -10,6 +10,11 @@ import {
 
 import { DrizzleCallsRepository } from "@/lib/calls/repository";
 import type { ZoomWebhookRepository } from "./zoom-webhook";
+import {
+  decryptIntegrationToken,
+  decryptNullableIntegrationToken,
+  encryptIntegrationToken,
+} from "./token-encryption";
 
 export class DrizzleZoomWebhookRepository implements ZoomWebhookRepository {
   private readonly callsRepository: DrizzleCallsRepository;
@@ -94,7 +99,16 @@ export class DrizzleZoomWebhookRepository implements ZoomWebhookRepository {
       .where(eq(zoomIntegrationsTable.zoomAccountId, accountId))
       .limit(1);
 
-    return integration ?? null;
+    if (!integration) {
+      return null;
+    }
+
+    return {
+      ...integration,
+      accessToken: decryptIntegrationToken(integration.accessToken),
+      refreshToken: decryptIntegrationToken(integration.refreshToken),
+      webhookToken: decryptNullableIntegrationToken(integration.webhookToken),
+    };
   }
 
   async updateCallRecording(callId: string, recordingUrl: string | null) {
@@ -112,8 +126,8 @@ export class DrizzleZoomWebhookRepository implements ZoomWebhookRepository {
     await this.db
       .update(zoomIntegrationsTable)
       .set({
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
+        accessToken: encryptIntegrationToken(tokens.accessToken),
+        refreshToken: encryptIntegrationToken(tokens.refreshToken),
         tokenExpiresAt: tokens.tokenExpiresAt,
         updatedAt: new Date(),
       })

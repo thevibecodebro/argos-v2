@@ -9,6 +9,7 @@ import {
   integrationOAuthCookieNames,
   resolveGhlRedirectUri,
 } from "@/lib/integrations/oauth";
+import { isGhlIntegrationConfigured } from "@/lib/integrations/service";
 import { unauthorizedJson } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +36,12 @@ export async function GET(request: Request) {
     return settingsRedirect(request, "forbidden");
   }
 
-  if (!process.env.GHL_CLIENT_ID || !process.env.GHL_CLIENT_SECRET) {
+  if (!isGhlIntegrationConfigured()) {
+    return settingsRedirect(request, "not_configured");
+  }
+
+  const clientId = process.env.GHL_CLIENT_ID;
+  if (!clientId) {
     return settingsRedirect(request, "not_configured");
   }
 
@@ -50,7 +56,7 @@ export async function GET(request: Request) {
 
   const response = NextResponse.redirect(
     buildGhlOAuthUrl({
-      clientId: process.env.GHL_CLIENT_ID,
+      clientId,
       redirectUri,
       state,
     }),

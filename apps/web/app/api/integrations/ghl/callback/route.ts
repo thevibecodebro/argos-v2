@@ -10,6 +10,7 @@ import {
   resolveGhlRedirectUri,
   timingSafeNonceMatch,
 } from "@/lib/integrations/oauth";
+import { isGhlIntegrationConfigured } from "@/lib/integrations/service";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +44,10 @@ export async function GET(request: Request) {
 
   if (!code || !state) {
     return settingsRedirect(request, "ghl_error", "missing_params");
+  }
+
+  if (!isGhlIntegrationConfigured()) {
+    return settingsRedirect(request, "ghl_error", "not_configured");
   }
 
   const authUser = await getAuthenticatedSupabaseUser();
