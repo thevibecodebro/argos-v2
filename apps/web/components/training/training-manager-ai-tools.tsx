@@ -35,6 +35,10 @@ export type TrainingManagerAiToolsProps = {
   selectedModule: TrainingModuleSummary | null;
 };
 
+const TRAINING_AI_FIELD_FOCUS_CLASS =
+  "outline-none transition focus-visible:border-[var(--forge-gold)] focus-visible:ring-2 focus-visible:ring-[var(--forge-gold)]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--forge-surface)]";
+const TRAINING_AI_TEXTAREA_CLASS = `min-h-28 w-full rounded-xl border border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white ${TRAINING_AI_FIELD_FOCUS_CLASS}`;
+
 function isQuizData(value: unknown): value is TrainingModuleRecord["quizData"] {
   if (!value || typeof value !== "object") {
     return false;
@@ -191,7 +195,8 @@ export function TrainingManagerAiTools({
         <label className="block space-y-2">
           <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-muted)]">Context notes</span>
           <textarea
-            className="min-h-28 w-full rounded-xl border border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white outline-none"
+            className={TRAINING_AI_TEXTAREA_CLASS}
+            data-training-focus-hardened="true"
             onChange={(event) => onContextNotesChange(event.target.value)}
             placeholder="Add an angle, objection, or scenario to ground the draft."
             value={contextNotes}

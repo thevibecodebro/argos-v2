@@ -1,4 +1,5 @@
 import { createElement } from "react";
+import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -115,6 +116,17 @@ const defaultTemplate = {
   ],
 };
 
+const rubricsPanelSource = readFileSync(new URL("../components/settings/rubrics-panel.tsx", import.meta.url), "utf8");
+
+function expectOutlineNoneClassesToUseForgeFocus(source: string) {
+  const classes = source.match(/"[^"]*outline-none[^"]*"/g) ?? [];
+
+  expect(classes.length).toBeGreaterThan(0);
+  expect(classes.every((className) => className.includes("focus-visible:border-[var(--forge-gold)]"))).toBe(true);
+  expect(classes.every((className) => className.includes("focus-visible:ring-2"))).toBe(true);
+  expect(classes.every((className) => className.includes("focus-visible:ring-[var(--forge-gold)]/35"))).toBe(true);
+}
+
 describe("RubricsPanel", () => {
   it("renders the scoring builder rail, compact category editor, and publish readiness panel", () => {
     const html = renderToStaticMarkup(
@@ -144,6 +156,7 @@ describe("RubricsPanel", () => {
     expect(html).toContain('data-forge-workspace-rail-group="Workflow"');
     expect(html).toContain('data-forge-workspace-rail-group="Readiness"');
     expect(html).toContain('data-forge-workspace-rail-group="Publish controls"');
+    expect(html).toContain('data-rubric-publish-controls="streamlined"');
     expect(html).toContain('data-forge-workspace-rail-action="true"');
     expect(html).not.toContain('xl:order-1');
     expect(html).not.toContain('xl:order-2');
@@ -174,6 +187,7 @@ describe("RubricsPanel", () => {
     expect(html).toContain("Import JSON");
     expect(html).toContain("Preview Import");
     expect(html).toContain("Publish Draft");
+    expect(html).not.toContain("Review Draft");
     expect(html).toContain("Version History");
     expect(html).not.toContain(">content_copy<");
     expect(html).not.toContain(">auto_fix<");
@@ -275,5 +289,23 @@ describe("RubricsPanel", () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
     });
+  });
+
+  it("uses visible Forge focus styling on rubric admin inputs", () => {
+    expect(rubricsPanelSource).toContain('data-rubric-focus-hardened="true"');
+    expectOutlineNoneClassesToUseForgeFocus(rubricsPanelSource);
+  });
+
+  it("keeps the destructive category remove action outside the summary toggle", () => {
+    const summaryStart = rubricsPanelSource.indexOf("<summary");
+    const summaryEnd = rubricsPanelSource.indexOf("</summary>", summaryStart);
+    const summaryMarkup = rubricsPanelSource.slice(summaryStart, summaryEnd);
+    const removeActionIndex = rubricsPanelSource.indexOf('data-rubric-category-remove-action="body"');
+
+    expect(summaryStart).toBeGreaterThanOrEqual(0);
+    expect(summaryEnd).toBeGreaterThan(summaryStart);
+    expect(summaryMarkup).not.toContain("Remove");
+    expect(removeActionIndex).toBeGreaterThan(summaryEnd);
+    expect(rubricsPanelSource).toContain("Remove category");
   });
 });
