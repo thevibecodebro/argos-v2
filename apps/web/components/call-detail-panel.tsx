@@ -7,9 +7,11 @@ import {
   ForgeButton,
   ForgeChip,
   ForgeEmptyState,
+  ForgeErrorState,
   ForgeIcon,
   ForgeSegmentedTab,
   ForgeSegmentedTabs,
+  ForgeStatusPanel,
   ForgeSurface,
 } from "@/components/forge";
 import { HighlightNote } from "@/components/highlight-note";
@@ -148,6 +150,17 @@ export function CallDetailPanel({
   const ringOffset = circumference - (Math.max(0, Math.min(100, overallScore)) / 100) * circumference;
   const hasRecording = Boolean(call.recordingUrl);
   const hasTranscript = Boolean(call.transcriptUrl || (call.transcript ?? []).length);
+  const busyAnnouncement = isSubmitting
+    ? "Saving coaching note."
+    : isLoadingGeneratePreview
+      ? "Preparing roleplay scenario."
+      : isGeneratingRoleplay
+        ? "Generating roleplay session."
+        : noteActionMomentId
+          ? "Updating highlight note."
+          : highlightActionMomentId
+            ? "Updating highlighted moment."
+            : "";
 
   async function submitAnnotation() {
     if (!note.trim()) {
@@ -334,6 +347,9 @@ export function CallDetailPanel({
 
   return (
     <>
+      <div aria-live="polite" className="sr-only" role="status">
+        {busyAnnouncement}
+      </div>
       <div className="grid grid-cols-12 gap-5 xl:gap-6" data-call-detail-panel="forge-review-bench">
         <div className="col-span-12 space-y-5 lg:col-span-5">
           <ForgeSurface className="p-5 sm:p-6">
@@ -724,29 +740,24 @@ export function CallDetailPanel({
 
               <div className={activeWorkbenchTab === "notes" ? "space-y-6" : "hidden space-y-6"}>
                 <ForgeSurface className="p-4" variant="inset">
+                  <label
+                    className="block font-[var(--font-display)] text-[0.65rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-muted)]"
+                    htmlFor="call-coaching-note"
+                  >
+                    Coaching note
+                  </label>
                   <textarea
-                    className="min-h-[120px] w-full resize-none border-none bg-transparent text-sm text-[var(--forge-text)] outline-none placeholder:text-[rgba(255,244,230,0.38)] focus:ring-0"
+                    aria-describedby="call-coaching-note-help"
+                    className="mt-2 min-h-[120px] w-full resize-none border-none bg-transparent text-sm text-[var(--forge-text)] outline-none placeholder:text-[rgba(255,244,230,0.38)] focus:ring-0"
+                    id="call-coaching-note"
                     onChange={(event) => setNote(event.target.value)}
                     placeholder="Add a coaching observation..."
                     value={note}
                   />
-                  <div className="mt-3 flex items-center justify-between border-t border-[var(--forge-border)] pt-3">
-                    <div className="flex gap-2">
-                      <button
-                        aria-label="Attach file"
-                        className="rounded p-1.5 text-[var(--forge-muted)] transition hover:bg-[rgba(255,244,230,0.05)]"
-                        type="button"
-                      >
-                        <ForgeIcon name="attach_file" size={16} />
-                      </button>
-                      <button
-                        aria-label="Mention teammate"
-                        className="rounded p-1.5 text-[var(--forge-muted)] transition hover:bg-[rgba(255,244,230,0.05)]"
-                        type="button"
-                      >
-                        <ForgeIcon name="alternate_email" size={16} />
-                      </button>
-                    </div>
+                  <div className="mt-3 flex flex-col gap-3 border-t border-[var(--forge-border)] pt-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-xs leading-5 text-[var(--forge-muted)]" id="call-coaching-note-help">
+                      Add a plain-text coaching note for this call.
+                    </p>
                     <ForgeButton
                       disabled={isSubmitting || !note.trim()}
                       onClick={() => {
@@ -833,9 +844,14 @@ export function CallDetailPanel({
       >
         <div className="space-y-4">
           {isLoadingGeneratePreview ? (
-            <ForgeSurface className="px-4 py-5 text-sm text-[var(--forge-muted)]" variant="inset">
-              Preparing anonymized scenario preview...
-            </ForgeSurface>
+            <ForgeStatusPanel
+              announce="polite"
+              className="px-4 py-5"
+              description="Preparing anonymized scenario preview..."
+              icon="pending"
+              title="Preparing scenario"
+              tone="cyan"
+            />
           ) : generatePreview ? (
             <>
               <ForgeSurface className="px-4 py-5" variant="inset">
@@ -866,9 +882,7 @@ export function CallDetailPanel({
           ) : null}
 
           {generateError ? (
-            <div className="rounded-xl border border-[rgba(255,113,108,0.26)] bg-[rgba(255,113,108,0.09)] px-4 py-3 text-sm text-[var(--forge-danger)]">
-              {generateError}
-            </div>
+            <ForgeErrorState description={generateError} title="Roleplay generation failed" />
           ) : null}
         </div>
       </ForgeDialog>

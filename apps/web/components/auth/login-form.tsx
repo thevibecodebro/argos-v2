@@ -116,6 +116,9 @@ export function LoginForm({ nextPath }: LoginFormProps) {
       </div>
 
       <div className="space-y-6">
+        <div className="sr-only" role="status" aria-live="polite">
+          {status === "submitting" ? "Sending sign-in link." : status === "sent" ? "Sign-in link sent." : ""}
+        </div>
         <button
           className="forge-button forge-button-secondary forge-focus-ring w-full py-3.5"
           disabled={!authEnabled}
@@ -197,19 +200,29 @@ export function LoginForm({ nextPath }: LoginFormProps) {
       </p>
 
       {!authEnabled ? (
-        <p className="rounded-xl border border-[rgba(255,159,95,0.26)] bg-[rgba(255,159,95,0.1)] px-4 py-3 text-sm text-[var(--forge-ember)]">
+        <p
+          className="rounded-xl border border-[rgba(255,159,95,0.26)] bg-[rgba(255,159,95,0.1)] px-4 py-3 text-sm text-[var(--forge-ember)]"
+          role="alert"
+        >
           {buildConfigurationMessage()}
         </p>
       ) : null}
 
       {status === "sent" ? (
-        <p className="rounded-xl border border-[rgba(139,215,168,0.24)] bg-[rgba(139,215,168,0.1)] px-4 py-3 text-sm text-[var(--forge-success)]">
+        <p
+          aria-live="polite"
+          className="rounded-xl border border-[rgba(139,215,168,0.24)] bg-[rgba(139,215,168,0.1)] px-4 py-3 text-sm text-[var(--forge-success)]"
+          role="status"
+        >
           Check your inbox. The magic link will complete sign-in and return you to your requested page.
         </p>
       ) : null}
 
       {errorMessage ? (
-        <p className="rounded-xl border border-[rgba(255,113,108,0.24)] bg-[rgba(255,113,108,0.1)] px-4 py-3 text-sm text-[var(--forge-danger)]">
+        <p
+          className="rounded-xl border border-[rgba(255,113,108,0.24)] bg-[rgba(255,113,108,0.1)] px-4 py-3 text-sm text-[var(--forge-danger)]"
+          role="alert"
+        >
           {errorMessage}
         </p>
       ) : null}

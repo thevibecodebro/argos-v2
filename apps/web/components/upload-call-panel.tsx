@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ForgeButton, ForgeChip, ForgeIcon, ForgeStatusPanel, ForgeSurface } from "@/components/forge";
+import { ForgeButton, ForgeChip, ForgeErrorState, ForgeIcon, ForgeStatusPanel, ForgeSurface } from "@/components/forge";
 import { uploadCallFromBrowser } from "@/lib/calls/browser-upload";
 import {
   CALL_UPLOAD_ACCEPTED_EXTENSIONS,
@@ -160,6 +160,7 @@ export function UploadCallPanel() {
 
         <input
           accept={ACCEPTED_TYPES.join(",")}
+          aria-label="Call recording file"
           className="sr-only"
           onChange={(event) => {
             const nextFile = event.target.files?.[0];
@@ -265,6 +266,7 @@ export function UploadCallPanel() {
 
         {isUploading ? (
           <ForgeStatusPanel
+            announce="polite"
             description={progressLabel}
             icon={progress < 100 ? "upload" : "query_stats"}
             title={progress < 100 ? "Uploading recording" : "Analyzing call"}
@@ -290,7 +292,7 @@ export function UploadCallPanel() {
         )}
 
         {error ? (
-          <ForgeStatusPanel description={error} icon="warning" title="Upload failed" tone="danger" />
+          <ForgeErrorState description={error} title="Upload failed" />
         ) : null}
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

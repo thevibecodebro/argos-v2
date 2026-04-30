@@ -10,7 +10,9 @@ import {
   type RoleplaySession,
 } from "@/lib/roleplay/types";
 import {
+  ForgeErrorState,
   ForgeIcon,
+  ForgeStatusPanel,
   ForgeWorkspaceLayout,
   ForgeWorkspaceRail,
   ForgeWorkspaceRailAction,
@@ -684,36 +686,54 @@ export function RoleplayPanel({
             <div ref={transcriptEndRef} />
           </div>
 
-          {error && (
-            <div className="mb-4 rounded-xl border border-[rgba(255,159,95,0.26)] bg-[rgba(255,159,95,0.1)] px-4 py-3 text-sm text-[var(--forge-ember)]">
-              {error}
-            </div>
-          )}
-          {voiceStatus && (
-            <div className="mb-4 text-sm text-[var(--forge-gold)]">{voiceStatus}</div>
-          )}
+          {error ? (
+            <ForgeErrorState
+              className="mb-4"
+              description={error}
+              title="Roleplay update failed"
+            />
+          ) : null}
+          {voiceStatus ? (
+            <ForgeStatusPanel
+              announce="polite"
+              className="mb-4"
+              description={voiceStatus}
+              icon="mic"
+              title="Voice practice status"
+              tone="gold"
+            />
+          ) : null}
 
           {/* Input */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
-            <div className="relative flex-1">
-              <textarea
-                className="h-20 w-full resize-none rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-depth)] p-4 pr-12 text-sm text-[var(--forge-text)] outline-none placeholder:text-[rgba(255,244,230,0.4)] focus:border-[var(--forge-gold)]/50 focus:ring-1 focus:ring-[var(--forge-gold)]/20 disabled:opacity-40"
-                disabled={!activeSession || activeSession.status === "complete" || isMutating}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void sendMessage(); } }}
-                placeholder="Type your response or click the mic to speak..."
-                value={draft}
-              />
-              <button
-                aria-label="Send response"
-                className="absolute bottom-3 right-3 rounded-lg p-1 text-[var(--forge-gold)] transition-transform hover:scale-110 active:scale-95 disabled:cursor-not-allowed disabled:text-[var(--forge-muted)] disabled:opacity-35 disabled:hover:scale-100"
-                disabled={!activeSession || !draft.trim() || activeSession.status === "complete" || isMutating}
-                onClick={() => void sendMessage()}
-                title="Send response"
-                type="button"
+            <div className="flex flex-1 flex-col gap-2">
+              <label
+                className="font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.18em] text-[var(--forge-muted)]"
+                htmlFor="roleplay-response"
               >
-                <ForgeIcon name="send" size={18} />
-              </button>
+                Roleplay response
+              </label>
+              <div className="relative">
+                <textarea
+                  className="h-20 w-full resize-none rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-depth)] p-4 pr-12 text-sm text-[var(--forge-text)] outline-none placeholder:text-[rgba(255,244,230,0.4)] focus:border-[var(--forge-gold)]/50 focus:ring-1 focus:ring-[var(--forge-gold)]/20 disabled:opacity-40"
+                  disabled={!activeSession || activeSession.status === "complete" || isMutating}
+                  id="roleplay-response"
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void sendMessage(); } }}
+                  placeholder="Type your response or click the mic to speak..."
+                  value={draft}
+                />
+                <button
+                  aria-label="Send response"
+                  className="absolute bottom-3 right-3 rounded-lg p-1 text-[var(--forge-gold)] transition-transform hover:scale-110 active:scale-95 disabled:cursor-not-allowed disabled:text-[var(--forge-muted)] disabled:opacity-35 disabled:hover:scale-100"
+                  disabled={!activeSession || !draft.trim() || activeSession.status === "complete" || isMutating}
+                  onClick={() => void sendMessage()}
+                  title="Send response"
+                  type="button"
+                >
+                  <ForgeIcon name="send" size={18} />
+                </button>
+              </div>
             </div>
             <button
               aria-label="End and score current session"

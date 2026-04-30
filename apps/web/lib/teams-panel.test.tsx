@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
@@ -14,6 +15,8 @@ vi.mock("next/navigation", () => ({
     refresh: vi.fn(),
   }),
 }));
+
+const teamsPanelSource = readFileSync(new URL("../components/settings/teams-panel.tsx", import.meta.url), "utf8");
 
 const teams = [
   {
@@ -102,6 +105,15 @@ describe("TeamsPanel", () => {
     expect(html).not.toContain("Outbound pod");
     expect(html).toContain("/settings/permissions");
     expect(html).not.toContain("Primary Manager");
+    expect(html).toContain('role="status"');
+    expect(html).toContain('aria-live="polite"');
+  });
+
+  it("announces pending team mutations through a shared live region", () => {
+    expect(teamsPanelSource).toContain("Creating team.");
+    expect(teamsPanelSource).toContain("Saving team.");
+    expect(teamsPanelSource).toContain("Adding team member.");
+    expect(teamsPanelSource).toContain("Removing team member.");
   });
 
   it("creates teams through the teams API", async () => {

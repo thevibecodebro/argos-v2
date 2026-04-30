@@ -20,6 +20,7 @@ import {
   type TrainingModuleAIDraftResponse,
 } from "./training/training-manager-ai-tools";
 import { TrainingManagerStatusBand } from "./training/training-manager-status-band";
+import { ForgeErrorState, ForgeStatusPanel } from "./forge";
 import { getTrainingManagerStageMetrics } from "./training/training-manager-stage-metrics";
 import {
   getTrainingStagePrimaryAction,
@@ -706,17 +707,38 @@ export function TrainingPanel({
     selectedModuleId,
   });
 
+  const managerBusyAnnouncement = isManagerBusy
+    ? activeManagerModal === "generate"
+      ? "Generating training drafts."
+      : activeManagerModal === "assign"
+        ? "Updating training assignments."
+        : activeManagerModal === "create" || activeManagerModal === "edit"
+          ? "Saving training module."
+          : "Updating training."
+    : "";
+
+  const learnerProgressAnnouncement = isSubmitting ? "Submitting training progress." : "";
+
   const managerFeedback = (
     <>
+      <div aria-live="polite" className="sr-only" role="status">
+        {managerBusyAnnouncement}
+      </div>
+      <div aria-live="polite" className="sr-only" role="status">
+        {learnerProgressAnnouncement}
+      </div>
       {managerError ? (
-        <div className="mt-4 rounded-xl border border-[#f38ba8]/30 bg-[#f38ba8]/10 px-4 py-3 text-sm text-[#ffd7e3]">
-          {managerError}
-        </div>
+        <ForgeErrorState className="mt-4" description={managerError} title="Training update failed" />
       ) : null}
       {managerMessage ? (
-        <div className="mt-4 rounded-xl border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/8 px-4 py-3 text-sm text-[var(--forge-text)]">
-          {managerMessage}
-        </div>
+        <ForgeStatusPanel
+          announce="polite"
+          className="mt-4"
+          description={managerMessage}
+          icon="check_circle"
+          title="Training updated"
+          tone="success"
+        />
       ) : null}
     </>
   );
@@ -756,6 +778,7 @@ export function TrainingPanel({
       <section className="space-y-4">
         <div className="space-y-3">
           <input
+            aria-label="Module title"
             className={TRAINING_ADMIN_FIELD_CLASS}
             data-training-focus-hardened="true"
             onChange={(event) => setModuleForm((current) => ({ ...current, title: event.target.value }))}
@@ -764,6 +787,7 @@ export function TrainingPanel({
           />
           <div className="grid gap-3 md:grid-cols-2">
             <select
+              aria-label="Skill category"
               className={TRAINING_ADMIN_FIELD_CLASS}
               data-training-focus-hardened="true"
               onChange={(event) => setModuleForm((current) => ({ ...current, skillCategory: event.target.value }))}
@@ -779,6 +803,7 @@ export function TrainingPanel({
               ))}
             </select>
             <input
+              aria-label="Video URL"
               className={TRAINING_ADMIN_FIELD_CLASS}
               data-training-focus-hardened="true"
               onChange={(event) => setModuleForm((current) => ({ ...current, videoUrl: event.target.value }))}
@@ -787,6 +812,7 @@ export function TrainingPanel({
             />
           </div>
           <textarea
+            aria-label="Module description"
             className={TRAINING_ADMIN_TEXTAREA_CLASS}
             data-training-focus-hardened="true"
             onChange={(event) => setModuleForm((current) => ({ ...current, description: event.target.value }))}
@@ -817,6 +843,7 @@ export function TrainingPanel({
           <div className="space-y-3">
             <div className="grid gap-3 md:grid-cols-2">
               <input
+                aria-label="Training topic"
                 className={TRAINING_ADMIN_FIELD_CLASS}
                 data-training-focus-hardened="true"
                 onChange={(event) => setGenerateForm((current) => ({ ...current, topic: event.target.value }))}
@@ -824,6 +851,7 @@ export function TrainingPanel({
                 value={generateForm.topic}
               />
               <input
+                aria-label="Target role"
                 className={TRAINING_ADMIN_FIELD_CLASS}
                 data-training-focus-hardened="true"
                 onChange={(event) => setGenerateForm((current) => ({ ...current, targetRole: event.target.value }))}
@@ -833,6 +861,7 @@ export function TrainingPanel({
             </div>
             <div className="grid gap-3 md:grid-cols-[1fr_160px]">
               <input
+                aria-label="Skill focus"
                 className={TRAINING_ADMIN_FIELD_CLASS}
                 data-training-focus-hardened="true"
                 onChange={(event) => setGenerateForm((current) => ({ ...current, skillFocus: event.target.value }))}
@@ -840,6 +869,7 @@ export function TrainingPanel({
                 value={generateForm.skillFocus}
               />
               <input
+                aria-label="Module count"
                 className={TRAINING_ADMIN_FIELD_CLASS}
                 data-training-focus-hardened="true"
                 min={1}
@@ -925,6 +955,7 @@ export function TrainingPanel({
             </div>
             <div className="flex justify-end">
               <input
+                aria-label="Assignment due date"
                 className={TRAINING_ASSIGN_DATE_FIELD_CLASS}
                 data-training-focus-hardened="true"
                 onChange={(event) => setAssignDueDate(event.target.value)}

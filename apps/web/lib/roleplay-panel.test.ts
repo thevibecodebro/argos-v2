@@ -1,7 +1,10 @@
+import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { RoleplayPanel, isRoleplayVoiceControlDisabled } from "../components/roleplay-panel";
+
+const roleplayPanelSource = readFileSync(new URL("../components/roleplay-panel.tsx", import.meta.url), "utf8");
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -11,6 +14,12 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("RoleplayPanel", () => {
+  it("announces roleplay async error and voice statuses", () => {
+    expect(roleplayPanelSource).toContain("Roleplay update failed");
+    expect(roleplayPanelSource).toContain("Voice practice status");
+    expect(roleplayPanelSource).toContain('announce="polite"');
+  });
+
   it("keeps active voice stoppable after a session completes", () => {
     expect(
       isRoleplayVoiceControlDisabled({
@@ -143,6 +152,9 @@ describe("RoleplayPanel", () => {
     expect(html).toContain("Start voice");
     expect(html).toMatch(/aria-label="Start voice practice"[^>]*disabled=""/);
     expect(html).toContain("Text entry always available");
+    expect(html).toContain('for="roleplay-response"');
+    expect(html).toContain('id="roleplay-response"');
+    expect(html).toContain("Roleplay response");
     expect(html).toContain('aria-label="Send response"');
     expect(html).toContain('title="Send response"');
     expect(html).toContain('data-forge-icon-name="send"');
@@ -189,6 +201,7 @@ describe("RoleplayPanel", () => {
     expect(html).toContain("Practice mode");
     expect(html).toContain("Start voice");
     expect(html).toContain("Text entry always available");
+    expect(html).toContain('id="roleplay-response"');
     expect(html).toContain('aria-label="Send response"');
     expect(html).toContain('data-forge-icon-name="send"');
     expect(html).toContain('data-forge-icon-name="psychology"');

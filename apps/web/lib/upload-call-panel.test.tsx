@@ -45,6 +45,7 @@ describe("UploadCallPanel forge step flow", () => {
     expect(html).toContain('aria-label="Choose a call recording to upload"');
     expect(html).toContain("focus-visible:ring-4");
     expect(html).toMatch(/<input(?=[^>]*type="file")(?=[^>]*tabindex="-1")/);
+    expect(html).toContain('aria-label="Call recording file"');
     expect(html.indexOf('type="file"')).toBeLessThan(
       html.indexOf('data-upload-dropzone="keyboard-accessible"'),
     );

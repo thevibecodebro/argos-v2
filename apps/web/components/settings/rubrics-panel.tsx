@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   ForgeReadinessPanel,
+  ForgeStatusPanel,
   ForgeWorkspaceLayout,
   ForgeWorkspaceRail,
   ForgeWorkspaceRailAction,
@@ -326,6 +327,7 @@ export function RubricsPanel({
   const [serverDraft, setServerDraft] = useState<RubricWithCategories | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [rubricRequestStatus, setRubricRequestStatus] = useState<"idle" | "prepare" | "publish">("idle");
   const [isPending, startTransition] = useTransition();
 
   const historicalVersions = useMemo(
@@ -416,10 +418,11 @@ export function RubricsPanel({
     }
 
     setErrorMessage(null);
+    setRubricRequestStatus("prepare");
     const result = await createRubricDraftRequest(fetch, {
       sourceType: draftSourceType,
       rubric: draft,
-    });
+    }).finally(() => setRubricRequestStatus("idle"));
 
     if (!result.ok) {
       setErrorMessage(result.error);
@@ -439,7 +442,9 @@ export function RubricsPanel({
     }
 
     setErrorMessage(null);
-    const result = await publishRubricRequest(fetch, serverDraft.id);
+    setRubricRequestStatus("publish");
+    const result = await publishRubricRequest(fetch, serverDraft.id)
+      .finally(() => setRubricRequestStatus("idle"));
 
     if (!result.ok) {
       setErrorMessage(result.error);
@@ -458,6 +463,16 @@ export function RubricsPanel({
       router.refresh();
     });
   }
+
+  const isRubricBusy = rubricRequestStatus !== "idle" || isPending;
+  const rubricPendingStatusMessage =
+    rubricRequestStatus === "prepare"
+      ? "Preparing rubric draft."
+      : rubricRequestStatus === "publish"
+        ? "Publishing rubric draft."
+        : isPending
+          ? "Refreshing rubric workspace."
+          : "";
 
   return (
     <ForgeWorkspaceLayout railCount={2}>
@@ -556,6 +571,7 @@ export function RubricsPanel({
           </div>
           <input
             accept={importMode === "csv_import" ? ".csv,text/csv" : ".json,application/json"}
+            aria-label={`Import ${importMode === "csv_import" ? "CSV" : "JSON"} rubric file`}
             className={RUBRIC_RAIL_FILE_FIELD_CLASS}
             data-rubric-focus-hardened="true"
             onChange={(event) => setImportFile(event.target.files?.[0] ?? null)}
@@ -911,16 +927,28 @@ export function RubricsPanel({
         title="Readiness panel"
         data-rubric-readiness-panel=""
       >
+        <div aria-live="polite" className="sr-only" role="status">
+          {rubricPendingStatusMessage}
+        </div>
+
         {statusMessage ? (
-          <div className="rounded-2xl border border-[rgba(139,215,168,0.24)] bg-[rgba(139,215,168,0.1)] px-4 py-3 text-sm text-[var(--forge-success)]">
-            {statusMessage}
-          </div>
+          <ForgeStatusPanel
+            announce="polite"
+            description={statusMessage}
+            icon="check_circle"
+            title="Rubric updated"
+            tone="success"
+          />
         ) : null}
 
         {errorMessage ? (
-          <div className="rounded-2xl border border-[rgba(255,113,108,0.26)] bg-[rgba(255,113,108,0.1)] px-4 py-3 text-sm text-[var(--forge-danger)]">
-            {errorMessage}
-          </div>
+          <ForgeStatusPanel
+            announce="assertive"
+            description={errorMessage}
+            icon="warning"
+            title="Rubric update failed"
+            tone="danger"
+          />
         ) : null}
 
         <nav aria-label="Rubric admin controls" className="space-y-5" data-settings-nav-theme="forge">
@@ -1010,7 +1038,7 @@ export function RubricsPanel({
             <div className="space-y-1" data-rubric-publish-controls="streamlined">
               <ForgeWorkspaceRailAction
                 active={Boolean(draft) && !serverDraft}
-                disabled={!draft || isPending}
+                disabled={!draft || isRubricBusy}
                 icon="task_alt"
                 onClick={() => void handlePreparePublish()}
                 type="button"
@@ -1037,12 +1065,12 @@ export function RubricsPanel({
               ) : null}
               <ForgeWorkspaceRailAction
                 active={Boolean(serverDraft)}
-                disabled={!serverDraft || isPending}
+                disabled={!serverDraft || isRubricBusy}
                 icon="publish"
                 onClick={() => void handlePublish()}
                 type="button"
               >
-                {isPending ? "Publishing..." : "Publish Draft"}
+                {rubricRequestStatus === "publish" ? "Publishing..." : "Publish Draft"}
               </ForgeWorkspaceRailAction>
             </div>
           </ForgeWorkspaceRailGroup>

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -9,6 +10,8 @@ vi.mock("next/navigation", () => ({
     refresh: vi.fn(),
   }),
 }));
+
+const callDetailPanelSource = readFileSync(new URL("../components/call-detail-panel.tsx", import.meta.url), "utf8");
 
 afterEach(() => {
   vi.doUnmock("react");
@@ -124,6 +127,16 @@ describe("CallDetailPanel", () => {
     const html = await renderCallDetailPanel();
 
     expect(html).toContain("Generate Roleplay");
+    expect(html).toContain('role="status"');
+    expect(html).toContain('aria-live="polite"');
+  });
+
+  it("announces call detail busy states through a shared live region", () => {
+    expect(callDetailPanelSource).toContain("Saving coaching note.");
+    expect(callDetailPanelSource).toContain("Preparing roleplay scenario.");
+    expect(callDetailPanelSource).toContain("Generating roleplay session.");
+    expect(callDetailPanelSource).toContain("Updating highlight note.");
+    expect(callDetailPanelSource).toContain("Updating highlighted moment.");
   });
 
   it("does not render Generate Roleplay for incomplete calls", async () => {
@@ -149,6 +162,12 @@ describe("CallDetailPanel", () => {
     expect(html).toContain("Save note");
     expect(html).toContain("Remove note");
     expect(html).toContain("Remove highlight");
+    expect(html).toContain("Coaching note");
+    expect(html).toContain('id="call-coaching-note"');
+    expect(html).toContain('aria-describedby="call-coaching-note-help"');
+    expect(html).toContain("Add a plain-text coaching note for this call.");
+    expect(html).not.toContain('aria-label="Attach file"');
+    expect(html).not.toContain('aria-label="Mention teammate"');
   });
 
   it("uses the forge review bench treatment instead of the old blue glass style", async () => {

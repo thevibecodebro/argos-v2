@@ -20,6 +20,12 @@ import {
   resolveTrainingStageView,
 } from "../components/training/training-stage-state";
 
+const trainingPanelSource = readFileSync(new URL("../components/training-panel.tsx", import.meta.url), "utf8");
+const trainingModuleStageSource = readFileSync(
+  new URL("../components/training/training-module-stage.tsx", import.meta.url),
+  "utf8",
+);
+
 const baseModules = [
   {
     id: "module-1",
@@ -468,6 +474,24 @@ describe("TrainingPanel", () => {
     expect(html).toContain('aria-label="Close manager modal"');
   });
 
+  it("labels manager create and generate form controls", () => {
+    expect(trainingPanelSource).toContain('aria-label="Module title"');
+    expect(trainingPanelSource).toContain('aria-label="Skill category"');
+    expect(trainingPanelSource).toContain('aria-label="Video URL"');
+    expect(trainingPanelSource).toContain('aria-label="Module description"');
+    expect(trainingPanelSource).toContain('aria-label="Training topic"');
+    expect(trainingPanelSource).toContain('aria-label="Target role"');
+    expect(trainingPanelSource).toContain('aria-label="Skill focus"');
+    expect(trainingPanelSource).toContain('aria-label="Module count"');
+    expect(trainingPanelSource).toContain('aria-label="Assignment due date"');
+    expect(trainingPanelSource).toContain("Saving training module.");
+    expect(trainingPanelSource).toContain("Generating training drafts.");
+    expect(trainingPanelSource).toContain("Updating training assignments.");
+    expect(trainingPanelSource).toContain("Submitting training progress.");
+    expect(trainingModuleStageSource).toContain('aria-live="polite"');
+    expect(trainingModuleStageSource).toContain('role="status"');
+  });
+
   it("renders the rep shell as a course player instead of workspace tabs", () => {
     const html = renderToStaticMarkup(
       <TrainingPanel
@@ -672,7 +696,7 @@ describe("TrainingPanel", () => {
         selectedModule={baseModules[0]}
         stageBand={<div>Stage metrics</div>}
         stageView="lesson"
-        statusMessage={null}
+        statusMessage="Training progress saved."
       />,
     );
     const tocHtml = renderToStaticMarkup(
