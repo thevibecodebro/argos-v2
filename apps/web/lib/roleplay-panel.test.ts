@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { RoleplayPanel } from "../components/roleplay-panel";
+import { RoleplayPanel, isRoleplayVoiceControlDisabled } from "../components/roleplay-panel";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -11,6 +11,40 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("RoleplayPanel", () => {
+  it("keeps active voice stoppable after a session completes", () => {
+    expect(
+      isRoleplayVoiceControlDisabled({
+        activeSessionStatus: "complete",
+        isStartingVoice: false,
+        isVoiceActive: false,
+      }),
+    ).toBe(true);
+
+    expect(
+      isRoleplayVoiceControlDisabled({
+        activeSessionStatus: "complete",
+        isStartingVoice: false,
+        isVoiceActive: true,
+      }),
+    ).toBe(false);
+
+    expect(
+      isRoleplayVoiceControlDisabled({
+        activeSessionStatus: "complete",
+        isStartingVoice: true,
+        isVoiceActive: true,
+      }),
+    ).toBe(false);
+
+    expect(
+      isRoleplayVoiceControlDisabled({
+        activeSessionStatus: "active",
+        isStartingVoice: false,
+        isVoiceActive: false,
+      }),
+    ).toBe(false);
+  });
+
   it("renders the archived-style scorecard depth and session history", () => {
     const html = renderToStaticMarkup(
       createElement(RoleplayPanel, {
@@ -101,6 +135,21 @@ describe("RoleplayPanel", () => {
     expect(html).toContain("Improve");
     expect(html).toContain("Frame Control");
     expect(html).toContain("Recent History");
+    expect(html).toContain('data-roleplay-transcript="responsive"');
+    expect(html).toContain("max-h-[min(64vh,620px)]");
+    expect(html).not.toContain("h-[480px]");
+    expect(html).toContain('data-roleplay-mode-control="true"');
+    expect(html).toContain("Practice mode");
+    expect(html).toContain("Start voice");
+    expect(html).toMatch(/aria-label="Start voice practice"[^>]*disabled=""/);
+    expect(html).toContain("Text entry always available");
+    expect(html).toContain('aria-label="Send response"');
+    expect(html).toContain('title="Send response"');
+    expect(html).toContain('data-forge-icon-name="send"');
+    expect(html).toContain('aria-label="End and score current session"');
+    expect(html).toContain('data-roleplay-history-mobile="true"');
+    expect(html).toContain('data-roleplay-history-table="true"');
+    expect(html).toContain("Review session");
     expect(html).toContain("Listen");
     expect(html).toContain('data-forge-icon-name="insights"');
     expect(html).not.toContain(">videocam<");
@@ -135,9 +184,15 @@ describe("RoleplayPanel", () => {
     expect(html).toContain("No active simulation");
     expect(html).toContain("Choose a persona in the scenario rail, then start a simulation.");
     expect(html).toContain("Select a scenario to begin scoring.");
+    expect(html).toContain('data-roleplay-transcript="responsive"');
+    expect(html).toContain('data-roleplay-mode-control="true"');
+    expect(html).toContain("Practice mode");
+    expect(html).toContain("Start voice");
+    expect(html).toContain("Text entry always available");
+    expect(html).toContain('aria-label="Send response"');
+    expect(html).toContain('data-forge-icon-name="send"');
     expect(html).toContain('data-forge-icon-name="psychology"');
     expect(html).not.toContain(">record_voice_over<");
-    expect(html).not.toContain(">send<");
     expect(html).not.toContain(">insights<");
   });
 
@@ -230,6 +285,8 @@ describe("RoleplayPanel", () => {
     expect(html).toContain("Derived from a real call. Stay concise, skeptical, and push on discovery.");
     expect(html).toContain("An anonymized buyer wants stronger proof and tighter next-step control.");
     expect(html).toContain("Anonymized buyer");
+    expect(html).toContain('aria-label="Start voice practice"');
+    expect(html).not.toMatch(/aria-label="Start voice practice"[^>]*disabled=""/);
     expect(html).not.toContain(">videocam<");
     expect(html).not.toContain(">smart_toy<");
   });
