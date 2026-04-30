@@ -152,7 +152,7 @@ export function AuthenticatedAppShell({
       {mobileNavOpen ? (
         <button
           aria-label="Close navigation"
-          className="fixed inset-0 z-40 bg-black/55 lg:hidden"
+          className="fixed inset-0 z-40 bg-[rgba(5,4,3,0.68)] lg:hidden"
           onClick={() => setMobileNavOpen(false)}
           type="button"
         />

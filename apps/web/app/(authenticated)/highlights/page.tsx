@@ -204,7 +204,7 @@ export default async function HighlightsPage() {
                   : "No highlights to analyze yet. Start starring moments from call detail pages."}
               </p>
             </div>
-            <div className="mt-6 h-1.5 w-full overflow-hidden rounded-full bg-black">
+            <div className="mt-6 h-1.5 w-full overflow-hidden rounded-full bg-[var(--forge-depth)]">
               <div
                 className="h-full rounded-full bg-[var(--forge-gold)] shadow-[0_0_8px_rgba(241, 191, 123,0.5)] transition-all"
                 style={{

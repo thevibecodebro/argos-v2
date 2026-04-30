@@ -813,7 +813,7 @@ export function TrainingPanel({
       </section>
     ) : activeManagerModal === "generate" ? (
       <section className="space-y-4">
-        <div className="rounded-[1.15rem] border border-white/10 bg-black/20 p-4">
+        <div className="rounded-[1.15rem] border border-white/10 bg-[rgba(5,4,3,0.32)] p-4">
           <div className="space-y-3">
             <div className="grid gap-3 md:grid-cols-2">
               <input
@@ -914,7 +914,7 @@ export function TrainingPanel({
       </section>
     ) : activeManagerModal === "assign" && assigningModule ? (
       <section className="space-y-4">
-        <div className="rounded-[1.15rem] border border-white/10 bg-black/20 p-4">
+        <div className="rounded-[1.15rem] border border-white/10 bg-[rgba(5,4,3,0.32)] p-4">
           <div className="grid gap-3 md:grid-cols-2">
             <div>
               <h4 className="text-lg font-semibold text-white">{assigningModule.title}</h4>
