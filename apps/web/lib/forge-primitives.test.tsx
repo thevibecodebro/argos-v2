@@ -87,6 +87,7 @@ describe("forge primitives", () => {
     expect(html).not.toContain(">cloud_upload<");
     expect(html).not.toContain(">not_in_subset_yet<");
     expect(html).not.toContain('data-forge-icon-codepoint="e887"');
+    expect(html).not.toContain('role="status"');
   });
 
   it("uses a known-present icon codepoint as the unknown fallback", () => {
@@ -142,6 +143,11 @@ describe("forge primitives", () => {
 
     expect(html).toContain('data-forge-chip="cyan"');
     expect(html).toContain('data-forge-metric="cyan"');
+    expect(html).toContain("<dl");
+    expect(html).toContain("<dt");
+    expect(html).toContain("<dd");
+    expect(html).toContain('<dt class="forge-metric-label">Team score</dt>');
+    expect(html).toContain('<dt class="sr-only">Team score change</dt>');
     expect(html).toContain("font-variant-numeric:tabular-nums");
     expect(html).toContain("Processing");
     expect(html).toContain("+4.2");
@@ -160,7 +166,7 @@ describe("forge primitives", () => {
           icon: "attach_file",
           title: "No calls yet",
         }),
-        createElement(ForgeSkeleton, { lines: 3 }),
+        createElement(ForgeSkeleton, { label: "Loading calls", lines: 3 }),
       ),
     );
 
@@ -168,6 +174,9 @@ describe("forge primitives", () => {
     expect(html).toContain('data-forge-table="true"');
     expect(html).toContain('data-forge-empty-state="true"');
     expect(html).toContain('aria-busy="true"');
+    expect(html).toContain('role="status"');
+    expect(html).toContain('aria-label="Loading calls"');
+    expect(html).toContain("Loading calls");
     expect(html).toContain("No calls yet");
     expect(html).toContain('href="/upload"');
   });
@@ -183,6 +192,7 @@ describe("forge primitives", () => {
           icon: "pending",
           tone: "cyan",
           title: "Processing call",
+          announce: "polite",
         }),
         createElement(ForgeErrorState, {
           action: { href: "/upload", label: "Try again" },
@@ -220,7 +230,11 @@ describe("forge primitives", () => {
     );
 
     expect(html).toContain('data-forge-status-panel="cyan"');
+    expect(html).toContain('role="status"');
+    expect(html).toContain('aria-live="polite"');
     expect(html).toContain('data-forge-error-state="true"');
+    expect(html).toContain('role="alert"');
+    expect(html).toContain('aria-live="assertive"');
     expect(html).toContain('data-forge-segmented-tabs="true"');
     expect(html).toContain('data-forge-segmented-tab-active="true"');
     expect(html).toContain('data-forge-readiness-panel="success"');

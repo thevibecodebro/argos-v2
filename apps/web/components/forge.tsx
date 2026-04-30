@@ -65,6 +65,7 @@ type ForgeEmptyStateProps = {
 
 type ForgeSkeletonProps = {
   className?: string;
+  label?: string;
   lines?: number;
 };
 
@@ -90,8 +91,11 @@ type ForgeSidePanelShellProps = {
   title: string;
 };
 
+type ForgeStatusAnnouncement = "off" | "polite" | "assertive";
+
 type ForgeStatusPanelProps = Omit<React.HTMLAttributes<HTMLElement>, "title"> & {
   action?: ForgeAction;
+  announce?: ForgeStatusAnnouncement;
   children?: React.ReactNode;
   className?: string;
   description?: string;
@@ -282,15 +286,25 @@ export function ForgeMetric({
 }: ForgeMetricProps) {
   return (
     <ForgeSurface className={cn("p-4", className)} data-forge-metric={tone} variant="inset">
-      <div className="flex items-start justify-between gap-3">
+      <dl className="flex items-start justify-between gap-3">
         <div>
-          <p className={cn("forge-metric-value", `forge-metric-value--${tone}`)} style={{ fontVariantNumeric: "tabular-nums" }}>
+          <dt className="forge-metric-label">{label}</dt>
+          <dd
+            className={cn("forge-metric-value", `forge-metric-value--${tone}`)}
+            style={{ fontVariantNumeric: "tabular-nums" }}
+          >
             {value}
-          </p>
-          <p className="forge-metric-label">{label}</p>
+          </dd>
         </div>
-        {delta ? <ForgeChip tone={tone}>{delta}</ForgeChip> : null}
-      </div>
+        {delta ? (
+          <div>
+            <dt className="sr-only">{label} change</dt>
+            <dd>
+              <ForgeChip tone={tone}>{delta}</ForgeChip>
+            </dd>
+          </div>
+        ) : null}
+      </dl>
       {description ? <p className="mt-3 text-sm leading-6 text-[var(--forge-muted)]">{description}</p> : null}
     </ForgeSurface>
   );
@@ -331,19 +345,31 @@ export function ForgeEmptyState({
 
 export function ForgeStatusPanel({
   action,
+  announce = "off",
   children,
   className,
   description,
   icon = "lightbulb",
+  role,
   title,
   tone = "muted",
+  "aria-live": ariaLive,
   ...props
 }: ForgeStatusPanelProps) {
+  const announcementProps =
+    announce === "off"
+      ? { "aria-live": ariaLive, role }
+      : {
+          "aria-live": ariaLive ?? announce,
+          role: role ?? (announce === "assertive" ? "alert" : "status"),
+        };
+
   return (
     <ForgeSurface
       className={cn("forge-status-panel px-5 py-6", className)}
       data-forge-status-panel={tone}
       variant="subtle"
+      {...announcementProps}
       {...props}
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -379,6 +405,7 @@ export function ForgeErrorState({
 }: ForgeErrorStateProps) {
   return (
     <ForgeStatusPanel
+      announce="assertive"
       data-forge-error-state="true"
       icon={icon}
       tone="danger"
@@ -418,9 +445,20 @@ export function ForgeTableShell({
   );
 }
 
-export function ForgeSkeleton({ className, lines = 4 }: ForgeSkeletonProps) {
+export function ForgeSkeleton({
+  className,
+  label = "Loading content",
+  lines = 4,
+}: ForgeSkeletonProps) {
   return (
-    <ForgeSurface aria-busy="true" className={cn("p-6", className)} variant="panel">
+    <ForgeSurface
+      aria-busy="true"
+      aria-label={label}
+      className={cn("p-6", className)}
+      role="status"
+      variant="panel"
+    >
+      <span className="sr-only">{label}</span>
       <div className="space-y-4">
         <div className="forge-skeleton-line h-7 w-48" />
         <div className="grid gap-3">
