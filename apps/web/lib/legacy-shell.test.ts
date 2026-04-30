@@ -123,6 +123,7 @@ describe("legacy UI shell", () => {
         totalPassed: 3,
         completionRate: 75,
       },
+      skillColumns: ["Discovery", "Closing"],
       repSkillBreakdown: [
         {
           repId: "rep-1",
@@ -140,6 +141,10 @@ describe("legacy UI shell", () => {
             objection: 79,
             closing: 85,
           },
+          skillBreakdown: [
+            { category: "Discovery", avgScore: 76 },
+            { category: "Closing", avgScore: 85 },
+          ],
         },
       ],
     });
@@ -161,5 +166,11 @@ describe("legacy UI shell", () => {
     expect(html).toContain("Open call library");
     expect(html).toContain("Upload call");
     expect(html).toContain("Rep Skill Matrix");
+    expect(html).toContain('data-rep-skill-matrix-table="true"');
+    expect(html).toContain('data-rep-skill-matrix-mobile="true"');
+    expect(html).toContain('href="/team/rep-1"');
+    expect(html).toContain("Overall");
+    expect(html).toContain("Discovery");
+    expect(html).toContain("Closing");
   });
 });
