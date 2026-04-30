@@ -4,6 +4,13 @@ import HomePage from "../app/page";
 import InvitePage from "../app/invite/[token]/page";
 import LoginPage from "../app/login/page";
 
+function getAriaHiddenSvgClasses(html: string) {
+  return Array.from(
+    html.matchAll(/<svg\b(?=[^>]*aria-hidden="true")[^>]*class="([^"]*)"/g),
+    (match) => match[1],
+  );
+}
+
 const { createSupabaseServerClientMock, findInviteByTokenMock } = vi.hoisted(() => ({
   createSupabaseServerClientMock: vi.fn(),
   findInviteByTokenMock: vi.fn(),
@@ -51,6 +58,22 @@ describe("legacy auth shell", () => {
     expect(html).not.toContain("Terms of Access");
     expect(html).not.toContain("#74b1ff");
     expect(html).not.toContain("#6dddff");
+  });
+
+  it("keeps decorative auth shell icons non-interactive", async () => {
+    const html = renderToStaticMarkup(
+      await LoginPage({
+        searchParams: Promise.resolve({ next: "/dashboard" }),
+      }),
+    );
+    const decorativeIconClasses = getAriaHiddenSvgClasses(html);
+
+    expect(decorativeIconClasses.length).toBeGreaterThan(0);
+    for (const className of decorativeIconClasses) {
+      expect(className).not.toContain("cursor-pointer");
+      expect(className).not.toContain("forge-focus-ring");
+      expect(className).not.toContain("hover:");
+    }
   });
 
   it("preserves invite sign-in redirect inside the Forge auth shell", async () => {

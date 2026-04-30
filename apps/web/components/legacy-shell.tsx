@@ -87,7 +87,7 @@ function LanguageIcon() {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      className="forge-focus-ring h-6 w-6 cursor-pointer rounded-full text-[var(--forge-muted)] transition-colors duration-300 hover:text-[var(--forge-gold)]"
+      className="h-6 w-6 text-[var(--forge-muted)]"
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
@@ -106,7 +106,7 @@ function HelpIcon() {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      className="forge-focus-ring h-6 w-6 cursor-pointer rounded-full text-[var(--forge-muted)] transition-colors duration-300 hover:text-[var(--forge-gold)]"
+      className="h-6 w-6 text-[var(--forge-muted)]"
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"

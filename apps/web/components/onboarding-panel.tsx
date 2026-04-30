@@ -5,6 +5,23 @@ import { useRouter } from "next/navigation";
 
 type Step = "choose" | "create" | "join" | "invite";
 
+export const ONBOARDING_ENDPOINTS = {
+  createOrganization: "/api/organizations",
+  dashboard: "/dashboard",
+  invites: "/api/invites",
+  joinOrganization: "/api/organizations/join",
+  teams: "/api/teams",
+} as const;
+
+export const ONBOARDING_INVITE_ROLES = [
+  { label: "Rep", teamAssignable: true, value: "rep" },
+  { label: "Manager", teamAssignable: true, value: "manager" },
+  { label: "Executive", teamAssignable: false, value: "executive" },
+  { label: "Admin", teamAssignable: false, value: "admin" },
+] as const;
+
+type InviteRole = (typeof ONBOARDING_INVITE_ROLES)[number]["value"];
+
 function autoSlug(value: string) {
   return value
     .toLowerCase()
@@ -23,6 +40,12 @@ const onboardingPrimaryButtonClass =
 const onboardingSecondaryButtonClass =
   "forge-button forge-button-secondary forge-focus-ring flex-1 px-4 py-3 text-sm";
 
+function roleCanBeAssignedToTeams(role: InviteRole) {
+  return ONBOARDING_INVITE_ROLES.some(
+    (inviteRole) => inviteRole.value === role && inviteRole.teamAssignable,
+  );
+}
+
 export function OnboardingPanel() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("choose");
@@ -32,7 +55,7 @@ export function OnboardingPanel() {
   const [error, setError] = useState<string | null>(null);
   const [isMutating, setIsMutating] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<"rep" | "manager" | "executive" | "admin">("rep");
+  const [inviteRole, setInviteRole] = useState<InviteRole>("rep");
   const [inviteTeamIds, setInviteTeamIds] = useState<string[]>([]);
   const [teams, setTeams] = useState<{ id: string; name: string }[]>([]);
   const [teamsLoaded, setTeamsLoaded] = useState(false);
@@ -63,14 +86,14 @@ export function OnboardingPanel() {
     if (onSuccess) {
       onSuccess();
     } else {
-      router.push("/dashboard");
+      router.push(ONBOARDING_ENDPOINTS.dashboard);
       router.refresh();
     }
   }
 
   async function loadTeams() {
     if (teamsLoaded) return;
-    const response = await fetch("/api/teams");
+    const response = await fetch(ONBOARDING_ENDPOINTS.teams);
     if (response.ok) {
       const data = (await response.json()) as { id: string; name: string }[];
       setTeams(data);
@@ -167,7 +190,7 @@ export function OnboardingPanel() {
               className={onboardingPrimaryButtonClass}
               disabled={!name.trim() || !slug.trim() || isMutating}
               onClick={() => {
-                void submit("/api/organizations", { name, slug }, () => {
+                void submit(ONBOARDING_ENDPOINTS.createOrganization, { name, slug }, () => {
                   setStep("invite");
                 });
               }}
@@ -214,7 +237,7 @@ export function OnboardingPanel() {
               className={onboardingPrimaryButtonClass}
               disabled={!joinSlug.trim() || isMutating}
               onClick={() => {
-                void submit("/api/organizations/join", { slug: joinSlug });
+                void submit(ONBOARDING_ENDPOINTS.joinOrganization, { slug: joinSlug });
               }}
               type="button"
             >
@@ -246,23 +269,22 @@ export function OnboardingPanel() {
               <select
                 className={onboardingInputClass}
                 onChange={(e) => {
-                  const role = e.target.value as typeof inviteRole;
+                  const role = e.target.value as InviteRole;
                   setInviteRole(role);
                   setInviteTeamIds([]);
-                  if (role === "rep" || role === "manager") {
+                  if (roleCanBeAssignedToTeams(role)) {
                     void loadTeams();
                   }
                 }}
                 value={inviteRole}
               >
-                <option value="rep">Rep</option>
-                <option value="manager">Manager</option>
-                <option value="executive">Executive</option>
-                <option value="admin">Admin</option>
+                {ONBOARDING_INVITE_ROLES.map((role) => (
+                  <option key={role.value} value={role.value}>{role.label}</option>
+                ))}
               </select>
             </label>
 
-            {(inviteRole === "rep" || inviteRole === "manager") ? (
+            {roleCanBeAssignedToTeams(inviteRole) ? (
               <div className="block text-left">
                 <span className={onboardingLabelClass}>Teams (optional)</span>
                 {teams.length === 0 ? (
@@ -305,7 +327,7 @@ export function OnboardingPanel() {
                 setError(null);
                 setInviteSuccess(null);
                 setIsMutating(true);
-                const response = await fetch("/api/invites", {
+                const response = await fetch(ONBOARDING_ENDPOINTS.invites, {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
@@ -331,7 +353,7 @@ export function OnboardingPanel() {
             <button
               className={onboardingSecondaryButtonClass}
               onClick={() => {
-                router.push("/dashboard");
+                router.push(ONBOARDING_ENDPOINTS.dashboard);
                 router.refresh();
               }}
               type="button"

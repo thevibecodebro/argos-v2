@@ -1,12 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import OnboardingPage from "../app/onboarding/page";
-
-const onboardingPanelSource = readFileSync(
-  new URL("../components/onboarding-panel.tsx", import.meta.url),
-  "utf8",
-);
+import * as onboardingPanelModule from "../components/onboarding-panel";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -37,17 +32,24 @@ describe("OnboardingPage", () => {
     expect(html).not.toContain("#6dddff");
   });
 
-  it("preserves onboarding endpoints, invite roles, team picker, and dashboard routing", () => {
-    expect(onboardingPanelSource).toContain('submit("/api/organizations"');
-    expect(onboardingPanelSource).toContain('submit("/api/organizations/join"');
-    expect(onboardingPanelSource).toContain('fetch("/api/teams")');
-    expect(onboardingPanelSource).toContain('fetch("/api/invites"');
-    expect(onboardingPanelSource).toContain('router.push("/dashboard")');
-    expect(onboardingPanelSource).toContain('value="rep"');
-    expect(onboardingPanelSource).toContain('value="manager"');
-    expect(onboardingPanelSource).toContain('value="executive"');
-    expect(onboardingPanelSource).toContain('value="admin"');
-    expect(onboardingPanelSource).toContain("inviteTeamIds");
-    expect(onboardingPanelSource).toContain("forge-form-control");
+  it("exports onboarding workflow constants used by the client flow", () => {
+    const { ONBOARDING_ENDPOINTS, ONBOARDING_INVITE_ROLES } = onboardingPanelModule as {
+      ONBOARDING_ENDPOINTS?: unknown;
+      ONBOARDING_INVITE_ROLES?: unknown;
+    };
+
+    expect(ONBOARDING_ENDPOINTS).toEqual({
+      createOrganization: "/api/organizations",
+      dashboard: "/dashboard",
+      invites: "/api/invites",
+      joinOrganization: "/api/organizations/join",
+      teams: "/api/teams",
+    });
+    expect(ONBOARDING_INVITE_ROLES).toEqual([
+      { label: "Rep", teamAssignable: true, value: "rep" },
+      { label: "Manager", teamAssignable: true, value: "manager" },
+      { label: "Executive", teamAssignable: false, value: "executive" },
+      { label: "Admin", teamAssignable: false, value: "admin" },
+    ]);
   });
 });
