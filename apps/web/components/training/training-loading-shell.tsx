@@ -1,3 +1,4 @@
+import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
 import { PageFrame } from "@/components/page-frame";
 import { TrainingCourseShell } from "@/components/training/training-course-shell";
 
@@ -7,7 +8,7 @@ function LoadingBlock({ className }: { className: string }) {
 
 export function TrainingLoadingShell() {
   return (
-    <section className="px-12 pb-12 pt-8 flex-1 max-w-7xl mx-auto w-full">
+    <AuthenticatedPageContainer>
       <PageFrame
         description="Review assigned modules, complete lessons, and guide practice from one training surface."
         eyebrow="Training"
@@ -47,6 +48,6 @@ export function TrainingLoadingShell() {
           }
         />
       </PageFrame>
-    </section>
+    </AuthenticatedPageContainer>
   );
 }

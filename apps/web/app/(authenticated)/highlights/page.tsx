@@ -5,6 +5,7 @@ import {
   ForgeIcon,
   ForgeSurface,
 } from "@/components/forge";
+import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
 import { PageFrame } from "@/components/page-frame";
 import { getCachedAuthenticatedSupabaseUser } from "@/lib/auth/request-user";
 import { createCallsRepository } from "@/lib/calls/create-repository";
@@ -32,7 +33,7 @@ export default async function HighlightsPage() {
       : null;
 
   return (
-    <section className="px-12 pb-12 pt-8 flex-1 max-w-7xl mx-auto w-full">
+    <AuthenticatedPageContainer>
       <PageFrame
         actions={[{ href: "/calls", label: "Back to call library" }]}
         description="Review starred coaching moments, recommendations, and recurring patterns from call reviews."
@@ -215,6 +216,6 @@ export default async function HighlightsPage() {
           </ForgeSurface>
         </div>
       </PageFrame>
-    </section>
+    </AuthenticatedPageContainer>
   );
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ForgeEmptyState, ForgeWidget } from "@/components/forge";
+import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
 import { PageFrame } from "@/components/page-frame";
 import { getCachedAuthenticatedSupabaseUser } from "@/lib/auth/request-user";
 import { createDashboardRepository } from "@/lib/dashboard/create-repository";
@@ -18,7 +19,7 @@ export default async function LeaderboardPage() {
   ] as const;
 
   return (
-    <section className="px-12 pb-12 pt-8 flex-1 max-w-7xl mx-auto w-full">
+    <AuthenticatedPageContainer>
       <PageFrame
         actions={[{ href: "/team", label: "Open team view" }]}
         description="Compare rank, score quality, call volume, and improvement across your team."
@@ -68,7 +69,7 @@ export default async function LeaderboardPage() {
           })}
         </section>
       </PageFrame>
-    </section>
+    </AuthenticatedPageContainer>
   );
 }
 

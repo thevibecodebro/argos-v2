@@ -2,6 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { PageFrame } from "../components/page-frame";
+import { AuthenticatedPageContainer } from "../components/authenticated-page-container";
 
 describe("PageFrame", () => {
   it("renders header copy by default", () => {
@@ -90,6 +91,29 @@ describe("PageFrame", () => {
     expect(html).toContain("Archive");
     expect(html).toContain("AI ready");
     expect(html).toContain("Manager workflow");
+  });
+
+  it("standardizes authenticated page container gutters and widths", () => {
+    const standardHtml = renderToStaticMarkup(
+      createElement(
+        AuthenticatedPageContainer,
+        null,
+        createElement(PageFrame, {
+          title: "Dashboard",
+          description: "Review performance.",
+          children: createElement("div", null, "Dashboard body"),
+        }),
+      ),
+    );
+    const wideHtml = renderToStaticMarkup(
+      createElement(AuthenticatedPageContainer, { size: "wide" }, "Call detail"),
+    );
+
+    expect(standardHtml).toContain('data-authenticated-page-container="standard"');
+    expect(standardHtml).toContain("px-4 py-6 sm:px-6 lg:px-8");
+    expect(standardHtml).toContain("max-w-7xl");
+    expect(wideHtml).toContain('data-authenticated-page-container="wide"');
+    expect(wideHtml).toContain("max-w-[1600px]");
   });
 
   it("keeps simple actions compatibility as secondary header actions", () => {

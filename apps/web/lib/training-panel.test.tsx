@@ -636,7 +636,9 @@ describe("TrainingPanel", () => {
   it("renders the loading shell with the course-player structure", () => {
     const html = renderToStaticMarkup(<TrainingLoading />);
 
-    expect(html).toContain('class="px-12 pb-12 pt-8 flex-1 max-w-7xl mx-auto w-full"');
+    expect(html).toContain('data-authenticated-page-container="standard"');
+    expect(html).toContain("px-4 py-6 sm:px-6 lg:px-8");
+    expect(html).toContain("max-w-7xl");
     expect(html).toContain('data-training-course-shell="learner"');
     expect(html).toContain("Loading training");
     expect(html).toContain("Course player");

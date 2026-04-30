@@ -4,6 +4,7 @@ import {
   getCachedAuthenticatedSupabaseUser,
   getCachedCurrentUserProfile,
 } from "@/lib/auth/request-user";
+import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
 import {
   ForgeButton,
   ForgeEmptyState as ForgeEmptyStatePrimitive,
@@ -34,7 +35,7 @@ export default async function DashboardPage() {
 
   if (!authUser || !profile) {
     return (
-      <div className="px-12 py-8 max-w-7xl mx-auto">
+      <AuthenticatedPageContainer>
         <PageFrame
           tone="warning"
           description="This account is authenticated but is not provisioned inside the Argos app database yet."
@@ -46,7 +47,7 @@ export default async function DashboardPage() {
             title="User record missing"
           />
         </PageFrame>
-      </div>
+      </AuthenticatedPageContainer>
     );
   }
 
@@ -64,7 +65,7 @@ export default async function DashboardPage() {
     ]);
 
   return (
-    <section className="px-12 pb-12 pt-8 flex-1 max-w-7xl mx-auto w-full">
+    <AuthenticatedPageContainer>
       <PageFrame
         description="Review performance, coaching focus, training progress, and workspace activity."
         eyebrow="Operating pulse"
@@ -87,7 +88,7 @@ export default async function DashboardPage() {
           <RepDashboardView badges={badges?.badges ?? []} dashboard={repDashboard} />
         )}
       </PageFrame>
-    </section>
+    </AuthenticatedPageContainer>
   );
 }
 

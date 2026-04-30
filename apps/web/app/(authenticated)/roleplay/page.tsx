@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { RoleplayPanel } from "@/components/page-panel-loaders";
+import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
 import { getCachedAuthenticatedSupabaseUser } from "@/lib/auth/request-user";
 import { createRoleplayRepository } from "@/lib/roleplay/create-repository";
 import { listRoleplaySessions } from "@/lib/roleplay/service";
@@ -30,26 +31,22 @@ export default async function RoleplayPage({
 
   if (!result.ok) {
     return (
-      <div className="flex-1 p-8">
-        <div className="mx-auto w-full max-w-7xl">
-          <section className="mb-8 rounded-2xl border border-[rgba(255,159,95,0.22)] bg-[rgba(255,159,95,0.06)] p-6 text-sm leading-7 text-[var(--forge-ember)]">
-            <p className="font-bold text-[var(--forge-ember)]">Roleplay unavailable</p>
-            <p className="mt-1">{result.error}</p>
-          </section>
-        </div>
-      </div>
+      <AuthenticatedPageContainer>
+        <section className="mb-8 rounded-2xl border border-[rgba(255,159,95,0.22)] bg-[rgba(255,159,95,0.06)] p-6 text-sm leading-7 text-[var(--forge-ember)]">
+          <p className="font-bold text-[var(--forge-ember)]">Roleplay unavailable</p>
+          <p className="mt-1">{result.error}</p>
+        </section>
+      </AuthenticatedPageContainer>
     );
   }
 
   return (
-    <div className="flex-1 p-8">
-      <div className="mx-auto w-full max-w-7xl space-y-12">
-        <RoleplayPanel
-          initialPersonas={result.data.personas}
-          initialSessions={result.data.sessions}
-          initialSessionId={firstSearchParamValue(resolvedSearchParams.sessionId)}
-        />
-      </div>
-    </div>
+    <AuthenticatedPageContainer className="space-y-12">
+      <RoleplayPanel
+        initialPersonas={result.data.personas}
+        initialSessions={result.data.sessions}
+        initialSessionId={firstSearchParamValue(resolvedSearchParams.sessionId)}
+      />
+    </AuthenticatedPageContainer>
   );
 }

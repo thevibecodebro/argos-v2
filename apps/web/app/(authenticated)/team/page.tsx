@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
 import { PageFrame } from "@/components/page-frame";
 import { TeamRosterView } from "@/components/team/team-views";
 import {
@@ -20,7 +21,7 @@ export default async function TeamPage() {
   const dashboard = authUser ? await getManagerDashboard(repository, authUser.id) : null;
 
   return (
-    <section className="px-12 pb-12 pt-8 flex-1 max-w-7xl mx-auto w-full">
+    <AuthenticatedPageContainer>
       <PageFrame
         actions={[{ href: "/leaderboard", label: "Open leaderboard" }]}
         description="Review team performance, coaching focus, and rep-level score movement."
@@ -29,6 +30,6 @@ export default async function TeamPage() {
       >
         <TeamRosterView dashboard={dashboard} />
       </PageFrame>
-    </section>
+    </AuthenticatedPageContainer>
   );
 }

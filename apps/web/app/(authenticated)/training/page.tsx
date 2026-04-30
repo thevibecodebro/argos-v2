@@ -1,4 +1,5 @@
 import { CALL_SCORING_CATEGORIES } from "@argos-v2/call-processing";
+import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
 import { PageFrame } from "@/components/page-frame";
 import { TrainingPanel } from "@/components/page-panel-loaders";
 import {
@@ -36,7 +37,7 @@ export default async function TrainingPage() {
       }));
 
   return (
-    <section className="px-12 pb-12 pt-8 flex-1 max-w-7xl mx-auto w-full">
+    <AuthenticatedPageContainer>
       <PageFrame
         actions={[{ href: "/highlights", label: "Open highlights" }]}
         description="Review assigned modules, complete lessons, and guide practice from one training surface."
@@ -52,6 +53,6 @@ export default async function TrainingPage() {
           rubricCategories={rubricCategories}
         />
       </PageFrame>
-    </section>
+    </AuthenticatedPageContainer>
   );
 }
