@@ -85,6 +85,7 @@ export function AuthenticatedAppShell({
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [primaryRailCollapsed, setPrimaryRailCollapsed] = useState(initialPrimaryRailCollapsed);
   const accountRef = useRef<HTMLDivElement>(null);
+  const accountTriggerRef = useRef<HTMLButtonElement>(null);
 
   const initials = getInitials(user.fullName || user.email);
   const currentArea = getCurrentArea(currentPath);
@@ -107,6 +108,24 @@ export function AuthenticatedAppShell({
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [accountOpen]);
+
+  useEffect(() => {
+    function handleAccountMenuKeydown(event: KeyboardEvent) {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      event.preventDefault();
+      setAccountOpen(false);
+      window.requestAnimationFrame(() => accountTriggerRef.current?.focus());
+    }
+
+    if (accountOpen) {
+      document.addEventListener("keydown", handleAccountMenuKeydown);
+    }
+
+    return () => document.removeEventListener("keydown", handleAccountMenuKeydown);
   }, [accountOpen]);
 
   useEffect(() => {
@@ -303,11 +322,13 @@ export function AuthenticatedAppShell({
 
             <div className="relative" ref={accountRef}>
               <button
+                aria-controls="account-menu"
                 aria-expanded={accountOpen}
-                aria-haspopup="true"
+                aria-haspopup="menu"
                 aria-label="Account menu"
                 className="forge-icon-button flex h-10 w-10 items-center justify-center rounded-full font-[var(--font-display)] text-sm font-bold text-[var(--forge-gold)]"
                 onClick={() => setAccountOpen((v) => !v)}
+                ref={accountTriggerRef}
                 type="button"
               >
                 {initials}
@@ -321,6 +342,8 @@ export function AuthenticatedAppShell({
                     ? "pointer-events-auto translate-y-0 opacity-100"
                     : "pointer-events-none -translate-y-1 opacity-0",
                 )}
+                id="account-menu"
+                role="menu"
               >
                 <div className="border-b border-[var(--forge-border)] px-4 py-3">
                   <p className="truncate text-sm font-semibold text-[var(--forge-text)]">
@@ -338,6 +361,8 @@ export function AuthenticatedAppShell({
                   className="flex items-center gap-3 px-4 py-3 text-sm text-[var(--forge-muted)] transition hover:bg-[rgba(241,191,123,0.07)] hover:text-[var(--forge-text)]"
                   href="/settings"
                   onClick={() => setAccountOpen(false)}
+                  role="menuitem"
+                  tabIndex={accountOpen ? 0 : -1}
                 >
                   <ForgeIcon name="settings" size={17} />
                   Settings
@@ -347,6 +372,8 @@ export function AuthenticatedAppShell({
                   <form action="/auth/signout" method="post">
                     <button
                       className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-[var(--forge-muted)] transition hover:bg-[rgba(255,113,108,0.09)] hover:text-[var(--forge-text)]"
+                      role="menuitem"
+                      tabIndex={accountOpen ? 0 : -1}
                       type="submit"
                     >
                       <ForgeIcon name="logout" size={17} />

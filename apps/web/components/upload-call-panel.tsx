@@ -37,6 +37,16 @@ export function getUploadedCallHref(callId: string) {
   return `/calls/${callId}`;
 }
 
+export function canSelectUploadFile({
+  hasFile,
+  isUploading,
+}: {
+  hasFile: boolean;
+  isUploading: boolean;
+}) {
+  return !hasFile && !isUploading;
+}
+
 export function UploadCallPanel() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -95,6 +105,13 @@ export function UploadCallPanel() {
     ? "Choose a recording before analysis can start."
     : "Ready to upload and analyze this call.";
   const progressLabel = getUploadProgressLabel(progress);
+  const canSelectFile = canSelectUploadFile({ hasFile: Boolean(file), isUploading });
+
+  function openFilePicker() {
+    if (canSelectFile) {
+      fileInputRef.current?.click();
+    }
+  }
 
   return (
     <ForgeSurface className="p-5 sm:p-6" data-upload-step-flow="forge">
@@ -141,42 +158,64 @@ export function UploadCallPanel() {
           ))}
         </div>
 
+        <input
+          accept={ACCEPTED_TYPES.join(",")}
+          className="sr-only"
+          onChange={(event) => {
+            const nextFile = event.target.files?.[0];
+            if (canSelectFile && nextFile) {
+              handleFile(nextFile);
+            }
+          }}
+          ref={fileInputRef}
+          tabIndex={-1}
+          type="file"
+        />
+
         <div
-          className={`rounded-xl border-2 border-dashed p-8 text-center transition ${
+          aria-label={canSelectFile ? "Choose a call recording to upload" : undefined}
+          className={`rounded-xl border-2 border-dashed p-8 text-center transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--forge-gold)]/20 ${
             isDragging
               ? "border-[var(--forge-gold)]/60 bg-[var(--forge-gold)]/8"
               : file
                 ? "border-[rgba(139,215,168,0.36)] bg-[rgba(139,215,168,0.06)]"
                 : "border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 hover:border-[var(--forge-border-strong)]/40"
           }`}
-          onClick={() => !file && !isUploading && fileInputRef.current?.click()}
+          data-upload-dropzone={canSelectFile ? "keyboard-accessible" : undefined}
+          onClick={canSelectFile ? openFilePicker : undefined}
           onDragLeave={() => setIsDragging(false)}
           onDragOver={(event) => {
             event.preventDefault();
+            if (!canSelectFile) {
+              setIsDragging(false);
+              return;
+            }
             setIsDragging(true);
           }}
           onDrop={(event) => {
             event.preventDefault();
             setIsDragging(false);
+            if (!canSelectFile) {
+              return;
+            }
             const nextFile = event.dataTransfer.files?.[0];
             if (nextFile) {
               handleFile(nextFile);
             }
           }}
+          onKeyDown={
+            canSelectFile
+              ? (event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openFilePicker();
+                  }
+                }
+              : undefined
+          }
+          role={canSelectFile ? "button" : undefined}
+          tabIndex={canSelectFile ? 0 : undefined}
         >
-          <input
-            accept={ACCEPTED_TYPES.join(",")}
-            className="sr-only"
-            onChange={(event) => {
-              const nextFile = event.target.files?.[0];
-              if (nextFile) {
-                handleFile(nextFile);
-              }
-            }}
-            ref={fileInputRef}
-            type="file"
-          />
-
           {file ? (
             <div className="space-y-3">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-[rgba(139,215,168,0.3)] bg-[rgba(139,215,168,0.08)] text-[var(--forge-success)]">

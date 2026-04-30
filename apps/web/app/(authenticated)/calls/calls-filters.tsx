@@ -218,15 +218,6 @@ export function CallsFilters({ initialSearch }: Props) {
             </ForgeChip>
           </button>
         ))}
-        {hasActiveFilters ? (
-          <button
-            className="ml-auto rounded-full border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-4 py-2 font-[var(--font-display)] text-xs font-bold text-[var(--forge-muted)] transition hover:border-[rgba(241,191,123,0.28)] hover:text-[var(--forge-gold)]"
-            onClick={clearFilters}
-            type="button"
-          >
-            Clear filters
-          </button>
-        ) : null}
       </div>
     </div>
   );

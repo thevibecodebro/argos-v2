@@ -78,6 +78,22 @@ describe("AuthenticatedAppShell", () => {
     expect(html).toContain("Sign out");
   });
 
+  it("adds account menu semantics for keyboard users", () => {
+    const html = renderToStaticMarkup(
+      createElement(AuthenticatedAppShell, {
+        user: managerUser,
+        children: createElement("div", null, "Page body"),
+      }),
+    );
+
+    expect(html).toContain('aria-controls="account-menu"');
+    expect(html).toContain('aria-haspopup="menu"');
+    expect(html).toContain('id="account-menu"');
+    expect(html).toContain('role="menu"');
+    expect(html).toContain('role="menuitem"');
+    expect(html).toContain('tabindex="-1"');
+  });
+
   it("uses the forge shell theme without blue active stripes", () => {
     const html = renderToStaticMarkup(
       createElement(AuthenticatedAppShell, {
