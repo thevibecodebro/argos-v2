@@ -30,14 +30,14 @@ export function InviteAcceptButton({ token }: { token: string }) {
   return (
     <div>
       <button
-        className="rounded-[1.1rem] bg-[#2c63f6] px-6 py-3 text-base font-semibold text-white transition hover:bg-[#4476ff] disabled:opacity-50"
+        className="forge-button forge-button-primary forge-focus-ring px-6 py-3 text-sm disabled:opacity-50"
         disabled={loading}
         onClick={handleAccept}
         type="button"
       >
         {loading ? "Accepting..." : "Accept Invite"}
       </button>
-      {error ? <p className="mt-3 text-sm text-[#ff7f7f]">{error}</p> : null}
+      {error ? <p className="mt-3 text-sm text-[var(--forge-danger)]">{error}</p> : null}
     </div>
   );
 }

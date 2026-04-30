@@ -66,7 +66,7 @@ describe("legacy UI shell", () => {
     expect(html).toContain("Coaching Forge");
   });
 
-  it("renders the login page with the restored dark auth shell", async () => {
+  it("renders the login page with the Forge auth shell", async () => {
     const html = renderToStaticMarkup(
       await LoginPage({
         searchParams: Promise.resolve({ next: "/dashboard" }),
@@ -76,6 +76,18 @@ describe("legacy UI shell", () => {
     expect(html).toContain("Welcome back");
     expect(html).toContain("Continue with Google");
     expect(html).toContain("Work Email");
+    expect(html).toContain('data-auth-shell="forge"');
+    expect(html).toContain("Call review");
+    expect(html).toContain("Scorecards");
+    expect(html).toContain("Roleplay");
+    expect(html).toContain('href="/privacy-policy"');
+    expect(html).toContain('href="/terms-of-service"');
+    expect(html).toContain('href="/security-policy"');
+    expect(html).not.toContain("global logistics operations");
+    expect(html).not.toContain("Security Protocol");
+    expect(html).not.toContain("Terms of Access");
+    expect(html).not.toContain("#74b1ff");
+    expect(html).not.toContain("#6dddff");
   });
 
   it("renders the executive dashboard shell with legacy navigation labels", async () => {
