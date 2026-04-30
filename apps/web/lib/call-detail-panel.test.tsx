@@ -1,7 +1,7 @@
-import { createElement } from "react";
+import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
-import { CallDetailPanel } from "../components/call-detail-panel";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { CallDetail } from "./calls/service";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -10,7 +10,31 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
-const baseCall = {
+afterEach(() => {
+  vi.doUnmock("react");
+  vi.doUnmock("@/components/forge-dialog");
+  vi.resetModules();
+});
+
+async function renderCallDetailPanel({
+  call = baseCall,
+  canManage = true,
+}: {
+  call?: typeof baseCall;
+  canManage?: boolean;
+} = {}) {
+  const { CallDetailPanel } = await import("../components/call-detail-panel");
+
+  return renderToStaticMarkup(
+    createElement(CallDetailPanel, {
+      annotations: [],
+      call,
+      canManage,
+    }),
+  );
+}
+
+const baseCall: CallDetail = {
   id: "call-1",
   status: "complete",
   overallScore: 88,
@@ -96,41 +120,25 @@ const baseCall = {
 };
 
 describe("CallDetailPanel", () => {
-  it("renders Generate Roleplay for completed calls", () => {
-    const html = renderToStaticMarkup(
-      createElement(CallDetailPanel, {
-        annotations: [],
-        call: baseCall,
-        canManage: true,
-      }),
-    );
+  it("renders Generate Roleplay for completed calls", async () => {
+    const html = await renderCallDetailPanel();
 
     expect(html).toContain("Generate Roleplay");
   });
 
-  it("does not render Generate Roleplay for incomplete calls", () => {
-    const html = renderToStaticMarkup(
-      createElement(CallDetailPanel, {
-        annotations: [],
-        call: {
-          ...baseCall,
-          status: "processing",
-        },
-        canManage: true,
-      }),
-    );
+  it("does not render Generate Roleplay for incomplete calls", async () => {
+    const html = await renderCallDetailPanel({
+      call: {
+        ...baseCall,
+        status: "processing",
+      },
+    });
 
     expect(html).not.toContain("Generate Roleplay");
   });
 
-  it("renders explicit note management controls for highlighted moments", () => {
-    const html = renderToStaticMarkup(
-      createElement(CallDetailPanel, {
-        annotations: [],
-        call: baseCall,
-        canManage: true,
-      }),
-    );
+  it("renders explicit note management controls for highlighted moments", async () => {
+    const html = await renderCallDetailPanel();
 
     expect(html).toContain("Manager note");
     expect(html).toContain("ACME Enterprise Scorecard");
@@ -143,14 +151,8 @@ describe("CallDetailPanel", () => {
     expect(html).toContain("Remove highlight");
   });
 
-  it("uses the forge review bench treatment instead of the old blue glass style", () => {
-    const html = renderToStaticMarkup(
-      createElement(CallDetailPanel, {
-        annotations: [],
-        call: baseCall,
-        canManage: true,
-      }),
-    );
+  it("uses the forge review bench treatment instead of the old blue glass style", async () => {
+    const html = await renderCallDetailPanel();
 
     expect(html).toContain('data-call-detail-panel="forge-review-bench"');
     expect(html).toContain('data-forge-surface="panel"');
@@ -173,19 +175,93 @@ describe("CallDetailPanel", () => {
     expect(html).not.toContain(">play_arrow</span>");
   });
 
-  it("renders highlight notes for read-only viewers without management controls", () => {
-    const html = renderToStaticMarkup(
-      createElement(CallDetailPanel, {
-        annotations: [],
-        call: baseCall,
-        canManage: false,
-      }),
+  it("renders honest media status when no recording is linked", async () => {
+    const html = await renderCallDetailPanel();
+
+    expect(html).toContain("No recording linked");
+    expect(html).toContain("Playback is not available in this review panel.");
+    expect(html).toContain("Status");
+    expect(html).toContain("Analysis complete");
+    expect(html).toContain("Transcript pending");
+    expect(html).toContain("relative z-10 p-5 sm:p-6 lg:absolute lg:inset-x-0 lg:top-0");
+    expect(html).toContain(
+      "relative z-10 px-5 pb-5 sm:px-6 lg:absolute lg:inset-x-0 lg:bottom-5 lg:top-28 lg:flex lg:items-end",
     );
+    expect(html).not.toContain("absolute inset-x-0 bottom-5 top-28 flex items-end px-5 sm:px-6");
+    expect(html).not.toContain(">play_arrow</span>");
+    expect(html).not.toContain(">Preview</span>");
+  });
+
+  it("does not show fake playback controls when a recording is linked but no player is wired", async () => {
+    const html = await renderCallDetailPanel({
+      call: {
+        ...baseCall,
+        recordingUrl: "https://cdn.example.com/calls/call-1.mp3",
+        transcriptUrl: "https://cdn.example.com/calls/call-1.txt",
+      },
+    });
+
+    expect(html).toContain("Recording linked");
+    expect(html).toContain("Playback is not available in this review panel.");
+    expect(html).toContain("Transcript linked");
+    expect(html).not.toContain(">play_arrow</span>");
+  });
+
+  it("renders highlight notes for read-only viewers without management controls", async () => {
+    const html = await renderCallDetailPanel({ canManage: false });
 
     expect(html).toContain("Manager note");
     expect(html).toContain("Use this in the next team coaching review.");
     expect(html).not.toContain("Save note");
     expect(html).not.toContain("Remove note");
     expect(html).not.toContain("Remove highlight");
+  });
+
+  it("passes labelled content and actions to the Generate Roleplay ForgeDialog boundary", async () => {
+    vi.resetModules();
+    vi.doMock("@/components/forge-dialog", () => ({
+      ForgeDialog: ({
+        children,
+        description,
+        footer,
+        open,
+        title,
+      }: {
+        children?: ReactNode;
+        description?: string;
+        footer?: ReactNode;
+        onOpenChange: (open: boolean) => void;
+        open: boolean;
+        title: string;
+      }) =>
+        createElement(
+          "section",
+          { "data-mocked-forge-dialog": "true", "data-open": String(open) },
+          createElement("h2", null, title),
+          description ? createElement("p", null, description) : null,
+          createElement("div", { "data-mocked-forge-dialog-body": "true" }, children),
+          createElement("div", { "data-mocked-forge-dialog-footer": "true" }, footer),
+        ),
+    }));
+
+    const { CallDetailPanel } = await import("../components/call-detail-panel");
+    const html = renderToStaticMarkup(
+      createElement(CallDetailPanel, {
+        annotations: [],
+        call: baseCall,
+        canManage: true,
+      }),
+    );
+
+    expect(html).toContain('data-mocked-forge-dialog="true"');
+    expect(html).toContain('data-open="false"');
+    expect(html).toContain('data-mocked-forge-dialog-body="true"');
+    expect(html).toContain('data-mocked-forge-dialog-footer="true"');
+    expect(html).toContain('class="space-y-4"');
+    expect(html).toContain("Generate Roleplay");
+    expect(html).toContain("Launch a saved roleplay from this completed call.");
+    expect(html).toContain("Cancel");
+    expect(html).toContain("Generate &amp; Start");
+    expect(html).not.toContain('class="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(5,4,3,0.72)] px-4 py-8"');
   });
 });

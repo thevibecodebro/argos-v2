@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ForgeDialog } from "@/components/forge-dialog";
 import {
   ForgeButton,
   ForgeChip,
@@ -94,6 +95,16 @@ function progressWidth(value: number | null | undefined) {
   return Math.max(8, Math.min(100, value));
 }
 
+function analysisStateLabel(status: string | null | undefined) {
+  const normalized = status?.toLowerCase();
+  if (normalized === "complete") return "Analysis complete";
+  if (normalized === "failed") return "Analysis failed";
+  if (normalized === "processing" || normalized === "transcribing" || normalized === "evaluating") {
+    return "Analysis processing";
+  }
+  return "Analysis pending";
+}
+
 function initials(speaker: string) {
   return speaker
     .split(" ")
@@ -135,6 +146,8 @@ export function CallDetailPanel({
   const circumference = 2 * Math.PI * 40;
   const overallScore = typeof call.overallScore === "number" ? call.overallScore : 0;
   const ringOffset = circumference - (Math.max(0, Math.min(100, overallScore)) / 100) * circumference;
+  const hasRecording = Boolean(call.recordingUrl);
+  const hasTranscript = Boolean(call.transcriptUrl || (call.transcript ?? []).length);
 
   async function submitAnnotation() {
     if (!note.trim()) {
@@ -397,11 +410,11 @@ export function CallDetailPanel({
 
         <div className="col-span-12 space-y-5 lg:col-span-7">
           <ForgeSurface
-            className="relative aspect-video overflow-hidden p-0"
+            className="relative overflow-hidden p-0 lg:aspect-video"
             style={{ background: "linear-gradient(180deg, rgba(16,9,7,0.88), rgba(5,4,3,0.98))" }}
           >
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,159,95,0.12),transparent_34%),linear-gradient(180deg,rgba(255,244,230,0.05),rgba(5,4,3,0.82))]" />
-            <div className="absolute inset-x-0 top-0 p-5 sm:p-6">
+            <div className="relative z-10 p-5 sm:p-6 lg:absolute lg:inset-x-0 lg:top-0">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <ForgeChip tone={statusTone(call.status)}>{call.status}</ForgeChip>
@@ -430,21 +443,54 @@ export function CallDetailPanel({
                 </div>
               </div>
             </div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <button
-                className="flex h-20 w-20 items-center justify-center rounded-full border border-[rgba(241,191,123,0.28)] bg-[rgba(241,191,123,0.08)] text-[var(--forge-gold)] transition hover:scale-[1.03] hover:border-[rgba(241,191,123,0.42)]"
-                type="button"
-              >
-                <ForgeIcon name="play_arrow" size={40} />
-              </button>
-            </div>
-            <div className="absolute inset-x-0 bottom-0 p-4">
-              <div className="mb-2 h-1 w-full rounded-full bg-[rgba(255,244,230,0.08)]">
-                <div className="h-full w-1/3 rounded-full bg-[var(--forge-gold)] shadow-[0_0_16px_rgba(241,191,123,0.22)]" />
-              </div>
-              <div className="flex justify-between font-[var(--font-display)] text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[var(--forge-gold)]">
-                <span>Preview</span>
-                <span>{call.transcriptUrl ? "Transcript linked" : "No media linked"}</span>
+            <div className="relative z-10 px-5 pb-5 sm:px-6 lg:absolute lg:inset-x-0 lg:bottom-5 lg:top-28 lg:flex lg:items-end">
+              <div className="w-full rounded-2xl border border-[var(--forge-border)] bg-[rgba(5,4,3,0.58)] p-4 shadow-[0_18px_60px_rgba(0,0,0,0.24)] backdrop-blur-sm sm:p-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 font-[var(--font-display)] text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-gold)]">
+                      <ForgeIcon name={hasRecording ? "graphic_eq" : "cloud_off"} size={16} />
+                      <span>{hasRecording ? "Recording linked" : "No recording linked"}</span>
+                    </div>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--forge-muted)]">
+                      Playback is not available in this review panel.
+                      {hasRecording
+                        ? " Use the transcript, moments, and scorecard below for review."
+                        : " Attach or process a recording before audio playback can be offered here."}
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs sm:min-w-64">
+                    <div className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-2">
+                      <p className="font-[var(--font-display)] font-bold uppercase tracking-[0.14em] text-[var(--forge-muted)]">
+                        Duration
+                      </p>
+                      <p className="mt-1 font-semibold text-[var(--forge-text)]">
+                        {call.durationSeconds != null ? formatTimestamp(call.durationSeconds) : "No duration"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-2">
+                      <p className="font-[var(--font-display)] font-bold uppercase tracking-[0.14em] text-[var(--forge-muted)]">
+                        Transcript
+                      </p>
+                      <p className="mt-1 font-semibold text-[var(--forge-text)]">
+                        {hasTranscript ? "Transcript linked" : "Transcript pending"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-2">
+                      <p className="font-[var(--font-display)] font-bold uppercase tracking-[0.14em] text-[var(--forge-muted)]">
+                        Status
+                      </p>
+                      <p className="mt-1 font-semibold text-[var(--forge-text)]">{call.status ?? "Unknown"}</p>
+                    </div>
+                    <div className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-2">
+                      <p className="font-[var(--font-display)] font-bold uppercase tracking-[0.14em] text-[var(--forge-muted)]">
+                        Analysis
+                      </p>
+                      <p className="mt-1 font-semibold text-[var(--forge-text)]">
+                        {analysisStateLabel(call.status)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </ForgeSurface>
@@ -753,89 +799,79 @@ export function CallDetailPanel({
         </div>
       </div>
 
-      {isGenerateModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(5,4,3,0.72)] px-4 py-8">
-          <ForgeSurface className="w-full max-w-xl p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-gold)]">
-                  Generated From Call
+      <ForgeDialog
+        description="Launch a saved roleplay from this completed call."
+        footer={
+          <>
+            <ForgeButton
+              disabled={isGeneratingRoleplay}
+              onClick={closeGenerateRoleplayModal}
+              type="button"
+              variant="secondary"
+            >
+              Cancel
+            </ForgeButton>
+            <ForgeButton
+              disabled={isLoadingGeneratePreview || isGeneratingRoleplay || !generatePreview}
+              onClick={() => {
+                void generateRoleplay();
+              }}
+              type="button"
+              variant="primary"
+            >
+              {isGeneratingRoleplay ? "Starting..." : "Generate & Start"}
+            </ForgeButton>
+          </>
+        }
+        onOpenChange={(open) => {
+          if (!open) {
+            closeGenerateRoleplayModal();
+          }
+        }}
+        open={isGenerateModalOpen}
+        title="Generate Roleplay"
+      >
+        <div className="space-y-4">
+          {isLoadingGeneratePreview ? (
+            <ForgeSurface className="px-4 py-5 text-sm text-[var(--forge-muted)]" variant="inset">
+              Preparing anonymized scenario preview...
+            </ForgeSurface>
+          ) : generatePreview ? (
+            <>
+              <ForgeSurface className="px-4 py-5" variant="inset">
+                <p className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-muted)]">
+                  Scenario
                 </p>
-                <h2 className="mt-2 font-[var(--font-display)] text-2xl font-semibold text-[var(--forge-text)]">
-                  Generate Roleplay
-                </h2>
-                <p className="mt-2 text-sm text-[var(--forge-muted)]">
-                  Launch a saved roleplay from this completed call.
+                <p className="mt-3 text-sm leading-relaxed text-[var(--forge-text)]">
+                  {generatePreview.scenarioSummary}
                 </p>
-              </div>
-              <button
-                className="rounded-full border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] p-2 text-[var(--forge-muted)] transition hover:text-[var(--forge-text)]"
-                onClick={closeGenerateRoleplayModal}
-                type="button"
-              >
-                <ForgeIcon name="close" size={16} />
-              </button>
-            </div>
+              </ForgeSurface>
+              <label className="block">
+                <span className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-muted)]">
+                  Focus
+                </span>
+                <select
+                  className="mt-2 w-full rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[rgba(241,191,123,0.36)]"
+                  onChange={(event) => setFocusCategorySlug(event.target.value)}
+                  value={focusCategorySlug}
+                >
+                  {generatePreview.focusOptions.map((option) => (
+                    <option key={option.slug} value={option.slug}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </>
+          ) : null}
 
-            <div className="mt-6 space-y-4">
-              {isLoadingGeneratePreview ? (
-                <ForgeSurface className="px-4 py-5 text-sm text-[var(--forge-muted)]" variant="inset">
-                  Preparing anonymized scenario preview...
-                </ForgeSurface>
-              ) : generatePreview ? (
-                <>
-                  <ForgeSurface className="px-4 py-5" variant="inset">
-                    <p className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-muted)]">
-                      Scenario
-                    </p>
-                    <p className="mt-3 text-sm leading-relaxed text-[var(--forge-text)]">
-                      {generatePreview.scenarioSummary}
-                    </p>
-                  </ForgeSurface>
-                  <label className="block">
-                    <span className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-muted)]">
-                      Focus
-                    </span>
-                    <select
-                      className="mt-2 w-full rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[rgba(241,191,123,0.36)]"
-                      onChange={(event) => setFocusCategorySlug(event.target.value)}
-                      value={focusCategorySlug}
-                    >
-                      {generatePreview.focusOptions.map((option) => (
-                        <option key={option.slug} value={option.slug}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </>
-              ) : null}
-
-              {generateError ? (
-                <div className="rounded-xl border border-[rgba(255,113,108,0.26)] bg-[rgba(255,113,108,0.09)] px-4 py-3 text-sm text-[var(--forge-danger)]">
-                  {generateError}
-                </div>
-              ) : null}
+          {generateError ? (
+            <div className="rounded-xl border border-[rgba(255,113,108,0.26)] bg-[rgba(255,113,108,0.09)] px-4 py-3 text-sm text-[var(--forge-danger)]">
+              {generateError}
             </div>
-
-            <div className="mt-6 flex items-center justify-end gap-3">
-              <ForgeButton onClick={closeGenerateRoleplayModal} type="button" variant="secondary">
-                Cancel
-              </ForgeButton>
-              <ForgeButton
-                disabled={isLoadingGeneratePreview || isGeneratingRoleplay || !generatePreview}
-                onClick={() => {
-                  void generateRoleplay();
-                }}
-                type="button"
-                variant="primary"
-              >
-                {isGeneratingRoleplay ? "Starting..." : "Generate & Start"}
-              </ForgeButton>
-            </div>
-          </ForgeSurface>
+          ) : null}
         </div>
-      ) : null}
+      </ForgeDialog>
     </>
   );
 }
