@@ -5,6 +5,7 @@ import {
   ACCEPTED_TYPES,
   MAX_UPLOAD_BYTES,
   UploadCallPanel,
+  canSelectUploadFile,
   formatBytes,
   getUploadProgressLabel,
   getUploadedCallHref,
@@ -35,6 +36,20 @@ describe("UploadCallPanel forge step flow", () => {
     expect(html).not.toContain(">info</span>");
   });
 
+  it("makes the select-file dropzone keyboard reachable and visibly focusable", () => {
+    const html = renderToStaticMarkup(createElement(UploadCallPanel));
+
+    expect(html).toContain('data-upload-dropzone="keyboard-accessible"');
+    expect(html).toContain('role="button"');
+    expect(html).toContain('tabindex="0"');
+    expect(html).toContain('aria-label="Choose a call recording to upload"');
+    expect(html).toContain("focus-visible:ring-4");
+    expect(html).toMatch(/<input(?=[^>]*type="file")(?=[^>]*tabindex="-1")/);
+    expect(html.indexOf('type="file"')).toBeLessThan(
+      html.indexOf('data-upload-dropzone="keyboard-accessible"'),
+    );
+  });
+
   it("keeps upload validation, progress copy, and post-upload destination explicit", () => {
     expect(validateUploadFile({ name: "call.mp3", size: 42_000, type: "audio/mpeg" })).toBeNull();
     expect(validateUploadFile({ name: "call.m4a", size: 42_000, type: "" })).toBeNull();
@@ -49,5 +64,12 @@ describe("UploadCallPanel forge step flow", () => {
     expect(getUploadProgressLabel(80)).toContain("Keep this page open");
     expect(getUploadProgressLabel(100)).toContain("preparing the scorecard");
     expect(getUploadedCallHref("call-123")).toBe("/calls/call-123");
+  });
+
+  it("disables drag/drop file selection while a file exists or upload is running", () => {
+    expect(canSelectUploadFile({ hasFile: false, isUploading: false })).toBe(true);
+    expect(canSelectUploadFile({ hasFile: true, isUploading: false })).toBe(false);
+    expect(canSelectUploadFile({ hasFile: false, isUploading: true })).toBe(false);
+    expect(canSelectUploadFile({ hasFile: true, isUploading: true })).toBe(false);
   });
 });

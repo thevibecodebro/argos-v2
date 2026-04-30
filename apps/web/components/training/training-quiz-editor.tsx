@@ -14,6 +14,12 @@ export type TrainingQuizEditorProps = {
   value: TrainingQuizQuestionDraft[];
 };
 
+const TRAINING_QUIZ_FIELD_FOCUS_CLASS =
+  "outline-none transition focus-visible:border-[var(--forge-gold)] focus-visible:ring-2 focus-visible:ring-[var(--forge-gold)]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--forge-surface)]";
+const TRAINING_QUIZ_INPUT_CLASS = `min-w-0 flex-1 rounded-xl border border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white ${TRAINING_QUIZ_FIELD_FOCUS_CLASS}`;
+const TRAINING_QUIZ_TEXTAREA_CLASS = `min-h-24 w-full rounded-xl border border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white ${TRAINING_QUIZ_FIELD_FOCUS_CLASS}`;
+const TRAINING_QUIZ_SELECT_CLASS = `w-full rounded-xl border border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white ${TRAINING_QUIZ_FIELD_FOCUS_CLASS}`;
+
 export function createEmptyTrainingQuizQuestionDraft(): TrainingQuizQuestionDraft {
   return {
     prompt: "",
@@ -142,7 +148,7 @@ export function TrainingQuizEditor({ onChange, value }: TrainingQuizEditorProps)
   }
 
   return (
-    <section className="rounded-[1.15rem] border border-white/10 bg-black/20 p-4">
+    <section className="rounded-[1.15rem] border border-white/10 bg-[rgba(5,4,3,0.32)] p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-gold)]">
@@ -183,7 +189,8 @@ export function TrainingQuizEditor({ onChange, value }: TrainingQuizEditorProps)
                 Prompt
               </span>
               <textarea
-                className="min-h-24 w-full rounded-xl border border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white outline-none"
+                className={TRAINING_QUIZ_TEXTAREA_CLASS}
+                data-training-focus-hardened="true"
                 onChange={(event) =>
                   handleUpdateQuestion(questionIndex, (draft) => ({ ...draft, prompt: event.target.value }))
                 }
@@ -209,7 +216,8 @@ export function TrainingQuizEditor({ onChange, value }: TrainingQuizEditorProps)
                     <div className="flex items-center gap-2" key={`${questionIndex}-${optionIndex}`}>
                       <input
                         aria-label={`Option ${optionIndex + 1}`}
-                        className="min-w-0 flex-1 rounded-xl border border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white outline-none"
+                        className={TRAINING_QUIZ_INPUT_CLASS}
+                        data-training-focus-hardened="true"
                         onChange={(event) =>
                           handleUpdateQuestion(questionIndex, (draft) => ({
                             ...draft,
@@ -245,9 +253,8 @@ export function TrainingQuizEditor({ onChange, value }: TrainingQuizEditorProps)
                   Correct answer
                 </span>
                 <select
-                  className={cn(
-                    "w-full rounded-xl border border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white outline-none",
-                  )}
+                  className={cn(TRAINING_QUIZ_SELECT_CLASS)}
+                  data-training-focus-hardened="true"
                   onChange={(event) =>
                     handleUpdateQuestion(questionIndex, (draft) => ({
                       ...draft,

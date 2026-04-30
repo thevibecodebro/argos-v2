@@ -65,22 +65,28 @@ export default async function DashboardPage() {
 
   return (
     <section className="px-12 pb-12 pt-8 flex-1 max-w-7xl mx-auto w-full">
-      {isExecutive ? (
-        <ExecutiveDashboardView
-          executiveDashboard={executiveDashboard}
-          leaderboard={leaderboard}
-          managerDashboard={managerDashboard}
-          setupStatus={setupStatus}
-        />
-      ) : isManager ? (
-        <ManagerDashboardView
-          leaderboard={leaderboard}
-          managerDashboard={managerDashboard}
-          setupStatus={setupStatus}
-        />
-      ) : (
-        <RepDashboardView badges={badges?.badges ?? []} dashboard={repDashboard} />
-      )}
+      <PageFrame
+        description="Review performance, coaching focus, training progress, and workspace activity."
+        eyebrow="Operating pulse"
+        title="Dashboard"
+      >
+        {isExecutive ? (
+          <ExecutiveDashboardView
+            executiveDashboard={executiveDashboard}
+            leaderboard={leaderboard}
+            managerDashboard={managerDashboard}
+            setupStatus={setupStatus}
+          />
+        ) : isManager ? (
+          <ManagerDashboardView
+            leaderboard={leaderboard}
+            managerDashboard={managerDashboard}
+            setupStatus={setupStatus}
+          />
+        ) : (
+          <RepDashboardView badges={badges?.badges ?? []} dashboard={repDashboard} />
+        )}
+      </PageFrame>
     </section>
   );
 }
@@ -265,6 +271,9 @@ function ExecutiveDashboardView({
   const hasDynamicSkillMatrix =
     dynamicSkillColumns.length > 0 &&
     repSkillBreakdown.some((rep) => (rep.skillBreakdown?.length ?? 0) > 0);
+  const skillMatrixColumns = hasDynamicSkillMatrix
+    ? dynamicSkillColumns
+    : ["Frame", "Rapport", "Discovery", "Pain", "Solution", "Objection", "Closing"];
 
   return (
     <div className="space-y-8">
@@ -355,27 +364,57 @@ function ExecutiveDashboardView({
       {/* Row 6: Rep Skill Matrix */}
       {repSkillBreakdown.length > 0 && (
         <SurfacePanel title="Rep Skill Matrix" link={{ href: "/team", label: "View team" }}>
-          <div className="overflow-x-auto">
+          <div className="grid gap-3 md:hidden" data-rep-skill-matrix-mobile="true">
+            {repSkillBreakdown.map((rep) => (
+              <Link
+                className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-4 transition hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/5"
+                href={`/team/${rep.repId}`}
+                key={rep.repId}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--forge-text)]">
+                      {formatRepName(rep)}
+                    </p>
+                    <p className="mt-1 text-xs text-[var(--forge-muted)]">
+                      {rep.callCount} scored calls
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-lg font-bold ${scoreColor(rep.compositeScore)}`}>
+                      {rep.compositeScore ?? "—"}
+                    </p>
+                    <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--forge-muted)]">
+                      Overall
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  {getRepSkillScores(rep, hasDynamicSkillMatrix, skillMatrixColumns).map((skill) => (
+                    <div
+                      className="rounded-lg border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface-3)]/35 px-3 py-2"
+                      key={`${rep.repId}-mobile-${skill.label}`}
+                    >
+                      <p className="truncate text-[11px] font-medium text-[var(--forge-muted)]">{skill.label}</p>
+                      <p className={`mt-1 text-sm font-semibold ${scoreColor(skill.score)}`}>
+                        {skill.score ?? "—"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          <div className="hidden overflow-x-auto md:block" data-rep-skill-matrix-table="true">
             <table className="w-full min-w-[760px] text-sm">
               <thead>
                 <tr className="border-b border-[var(--forge-border-strong)]/20 text-[var(--forge-muted)]">
                   <th className="pb-3 text-left font-medium">Rep</th>
                   <th className="pb-3 text-center font-medium">Overall</th>
-                  {hasDynamicSkillMatrix ? (
-                    dynamicSkillColumns.map((column) => (
-                      <th className="pb-3 text-center font-medium" key={column}>{column}</th>
-                    ))
-                  ) : (
-                    <>
-                      <th className="pb-3 text-center font-medium">Frame</th>
-                      <th className="pb-3 text-center font-medium">Rapport</th>
-                      <th className="pb-3 text-center font-medium">Discovery</th>
-                      <th className="pb-3 text-center font-medium">Pain</th>
-                      <th className="pb-3 text-center font-medium">Solution</th>
-                      <th className="pb-3 text-center font-medium">Objection</th>
-                      <th className="pb-3 text-center font-medium">Closing</th>
-                    </>
-                  )}
+                  {skillMatrixColumns.map((column) => (
+                    <th className="pb-3 text-center font-medium" key={column}>{column}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -383,30 +422,15 @@ function ExecutiveDashboardView({
                   <tr className="border-b border-[var(--forge-border-strong)]/10 last:border-b-0" key={rep.repId}>
                     <td className="py-3 pr-4">
                       <Link className="font-medium text-[var(--forge-text)] hover:text-[var(--forge-gold)]" href={`/team/${rep.repId}`}>
-                        {[rep.firstName, rep.lastName].filter(Boolean).join(" ") || "Unknown rep"}
+                        {formatRepName(rep)}
                       </Link>
                     </td>
                     <td className={`py-3 text-center font-semibold ${scoreColor(rep.compositeScore)}`}>{rep.compositeScore ?? "—"}</td>
-                    {hasDynamicSkillMatrix ? (
-                      dynamicSkillColumns.map((column) => {
-                        const score = rep.skillBreakdown?.find((entry) => entry.category === column)?.avgScore ?? null;
-                        return (
-                          <td className={`py-3 text-center ${scoreColor(score)}`} key={`${rep.repId}-${column}`}>
-                            {score ?? "—"}
-                          </td>
-                        );
-                      })
-                    ) : (
-                      <>
-                        <td className={`py-3 text-center ${scoreColor(rep.skills.frameControl)}`}>{rep.skills.frameControl ?? "—"}</td>
-                        <td className={`py-3 text-center ${scoreColor(rep.skills.rapport)}`}>{rep.skills.rapport ?? "—"}</td>
-                        <td className={`py-3 text-center ${scoreColor(rep.skills.discovery)}`}>{rep.skills.discovery ?? "—"}</td>
-                        <td className={`py-3 text-center ${scoreColor(rep.skills.painExpansion)}`}>{rep.skills.painExpansion ?? "—"}</td>
-                        <td className={`py-3 text-center ${scoreColor(rep.skills.solution)}`}>{rep.skills.solution ?? "—"}</td>
-                        <td className={`py-3 text-center ${scoreColor(rep.skills.objection)}`}>{rep.skills.objection ?? "—"}</td>
-                        <td className={`py-3 text-center ${scoreColor(rep.skills.closing)}`}>{rep.skills.closing ?? "—"}</td>
-                      </>
-                    )}
+                    {getRepSkillScores(rep, hasDynamicSkillMatrix, skillMatrixColumns).map((skill) => (
+                      <td className={`py-3 text-center ${scoreColor(skill.score)}`} key={`${rep.repId}-${skill.label}`}>
+                        {skill.score ?? "—"}
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>
@@ -419,6 +443,35 @@ function ExecutiveDashboardView({
 }
 
 /* ── Shared sub-components ──────────────────────────────────────── */
+
+type RepSkillMatrixRep = NonNullable<ExecutiveDashboard["repSkillBreakdown"]>[number];
+
+function formatRepName(rep: RepSkillMatrixRep) {
+  return [rep.firstName, rep.lastName].filter(Boolean).join(" ") || "Unknown rep";
+}
+
+function getRepSkillScores(
+  rep: RepSkillMatrixRep,
+  hasDynamicSkillMatrix: boolean,
+  columns: string[],
+) {
+  if (hasDynamicSkillMatrix) {
+    return columns.map((column) => ({
+      label: column,
+      score: rep.skillBreakdown?.find((entry) => entry.category === column)?.avgScore ?? null,
+    }));
+  }
+
+  return [
+    { label: "Frame", score: rep.skills.frameControl },
+    { label: "Rapport", score: rep.skills.rapport },
+    { label: "Discovery", score: rep.skills.discovery },
+    { label: "Pain", score: rep.skills.painExpansion },
+    { label: "Solution", score: rep.skills.solution },
+    { label: "Objection", score: rep.skills.objection },
+    { label: "Closing", score: rep.skills.closing },
+  ];
+}
 
 function OperatingPulseCard() {
   return (

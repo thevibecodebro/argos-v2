@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import TrainingLoading from "../app/(authenticated)/training/loading";
@@ -166,6 +167,21 @@ const managerMetricsProgress = [
   },
 ];
 
+const trainingAdminSources = [
+  readFileSync(new URL("../components/training-panel.tsx", import.meta.url), "utf8"),
+  readFileSync(new URL("../components/training/training-quiz-editor.tsx", import.meta.url), "utf8"),
+  readFileSync(new URL("../components/training/training-manager-ai-tools.tsx", import.meta.url), "utf8"),
+];
+
+function expectOutlineNoneClassesToUseForgeFocus(source: string) {
+  const classes = source.match(/"[^"]*outline-none[^"]*"/g) ?? [];
+
+  expect(classes.length).toBeGreaterThan(0);
+  expect(classes.every((className) => className.includes("focus-visible:border-[var(--forge-gold)]"))).toBe(true);
+  expect(classes.every((className) => className.includes("focus-visible:ring-2"))).toBe(true);
+  expect(classes.every((className) => className.includes("focus-visible:ring-[var(--forge-gold)]/35"))).toBe(true);
+}
+
 function expectCompactManagerDeckAtRest(html: string) {
   expect(html).toContain("Create module");
   expect(html).toContain("Edit selected module");
@@ -184,6 +200,13 @@ function expectCompactManagerDeckAtRest(html: string) {
 }
 
 describe("TrainingPanel", () => {
+  it("uses visible Forge focus styling on training admin inputs", () => {
+    for (const source of trainingAdminSources) {
+      expect(source).toContain("data-training-focus-hardened");
+      expectOutlineNoneClassesToUseForgeFocus(source);
+    }
+  });
+
   it("merges created modules into the team progress shell", () => {
     const nextProgress = mergeTeamProgressModule(initialTeamProgress, {
       ...baseModules[0],

@@ -580,12 +580,16 @@ describe("primary route hero removal", () => {
     expect(repHtml).toContain('href="/calls"');
     expect(repHtml).toContain('href="/training"');
     expect(repHtml).toContain('href="/calls/call-1"');
+    expect(repHtml).toContain('data-page-header="forge"');
+    expect(repHtml).toContain(">Dashboard<");
     expect(repHtml).not.toContain(">My Dashboard<");
 
     expect(managerHtml).toContain('href="/team"');
     expect(managerHtml).toContain('href="/leaderboard"');
     expect(managerHtml).toContain('href="/upload"');
     expect(managerHtml).toContain("Team Avg Score");
+    expect(managerHtml).toContain('data-page-header="forge"');
+    expect(managerHtml).toContain(">Dashboard<");
     expect(managerHtml).not.toContain(">Team Dashboard<");
 
     expect(executiveHtml).toContain('href="/team"');
@@ -593,6 +597,8 @@ describe("primary route hero removal", () => {
     expect(executiveHtml).toContain('href="/upload"');
     expect(executiveHtml).toContain('href="/training"');
     expect(executiveHtml).toContain("Training Completion");
+    expect(executiveHtml).toContain('data-page-header="forge"');
+    expect(executiveHtml).toContain(">Dashboard<");
     expect(executiveHtml).not.toContain(">Executive Dashboard<");
     expect(executiveHtml).not.toContain(">Team Dashboard<");
   });

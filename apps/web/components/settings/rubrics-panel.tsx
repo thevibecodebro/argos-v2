@@ -48,6 +48,14 @@ const GUIDANCE_FIELDS: Array<{ field: GuidanceField; label: string }> = [
   { field: "developing", label: "Developing" },
 ];
 
+const RUBRIC_FIELD_FOCUS_CLASS =
+  "outline-none transition focus-visible:border-[var(--forge-gold)] focus-visible:ring-2 focus-visible:ring-[var(--forge-gold)]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--forge-surface)]";
+const RUBRIC_RAIL_FIELD_CLASS = `w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-text)] ${RUBRIC_FIELD_FOCUS_CLASS}`;
+const RUBRIC_RAIL_FILE_FIELD_CLASS = `mt-3 block w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-text)] ${RUBRIC_FIELD_FOCUS_CLASS}`;
+const RUBRIC_DRAFT_FIELD_CLASS = `w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-3 text-sm text-[var(--forge-text)] ${RUBRIC_FIELD_FOCUS_CLASS}`;
+const RUBRIC_CATEGORY_FIELD_CLASS = `w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2.5 text-sm text-[var(--forge-text)] ${RUBRIC_FIELD_FOCUS_CLASS}`;
+const RUBRIC_CATEGORY_TEXTAREA_CLASS = `min-h-20 ${RUBRIC_CATEGORY_FIELD_CLASS}`;
+
 function copyRubricInput(rubric: RubricInput): RubricInput {
   return {
     name: rubric.name,
@@ -506,7 +514,8 @@ export function RubricsPanel({
           <label className="block space-y-2 px-3">
             <span className="text-xs font-black uppercase tracking-[0.18em] text-[var(--forge-muted)]">Clone Historical Version</span>
             <select
-              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none"
+              className={RUBRIC_RAIL_FIELD_CLASS}
+              data-rubric-focus-hardened="true"
               onChange={(event) => setSelectedHistoryId(event.target.value)}
               value={selectedHistoryId}
             >
@@ -547,7 +556,8 @@ export function RubricsPanel({
           </div>
           <input
             accept={importMode === "csv_import" ? ".csv,text/csv" : ".json,application/json"}
-            className="mt-3 block w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-text)]"
+            className={RUBRIC_RAIL_FILE_FIELD_CLASS}
+            data-rubric-focus-hardened="true"
             onChange={(event) => setImportFile(event.target.files?.[0] ?? null)}
             type="file"
           />
@@ -628,7 +638,8 @@ export function RubricsPanel({
                 <label className="space-y-2">
                   <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Rubric name</span>
                   <input
-                    className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-3 text-sm text-[var(--forge-text)] outline-none"
+                    className={RUBRIC_DRAFT_FIELD_CLASS}
+                    data-rubric-focus-hardened="true"
                     onChange={(event) => updateDraft((current) => ({ ...current, name: event.target.value }))}
                     value={draft.name}
                   />
@@ -636,7 +647,8 @@ export function RubricsPanel({
                 <label className="space-y-2">
                   <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Description</span>
                   <input
-                    className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-3 text-sm text-[var(--forge-text)] outline-none"
+                    className={RUBRIC_DRAFT_FIELD_CLASS}
+                    data-rubric-focus-hardened="true"
                     onChange={(event) =>
                       updateDraft((current) => ({ ...current, description: event.target.value || null }))
                     }
@@ -667,21 +679,6 @@ export function RubricsPanel({
                             {category.name || "Untitled category"} · {category.slug || "missing-slug"} · weight {category.weight}
                           </p>
                         </div>
-                        <button
-                          className="rounded-xl border border-[rgba(255,113,108,0.26)] px-3 py-2 text-sm font-medium text-[var(--forge-danger)] transition hover:bg-[rgba(255,113,108,0.1)]"
-                          onClick={(event) => {
-                            event.preventDefault();
-                            updateDraft((current) => ({
-                              ...current,
-                              categories: current.categories
-                                .filter((_, categoryIndex) => categoryIndex !== index)
-                                .map((entry, nextIndex) => ({ ...entry, sortOrder: nextIndex })),
-                            }));
-                          }}
-                          type="button"
-                        >
-                          Remove
-                        </button>
                       </summary>
 
                       <div className="border-t border-[var(--forge-border-strong)]/10 px-4 pb-4 pt-3">
@@ -689,7 +686,8 @@ export function RubricsPanel({
                           <label className="space-y-2">
                             <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Name</span>
                             <input
-                              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2.5 text-sm text-[var(--forge-text)] outline-none"
+                              className={RUBRIC_CATEGORY_FIELD_CLASS}
+                              data-rubric-focus-hardened="true"
                               onChange={(event) =>
                                 updateDraft((current) => ({
                                   ...current,
@@ -704,7 +702,8 @@ export function RubricsPanel({
                           <label className="space-y-2">
                             <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Slug</span>
                             <input
-                              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2.5 text-sm text-[var(--forge-text)] outline-none"
+                              className={RUBRIC_CATEGORY_FIELD_CLASS}
+                              data-rubric-focus-hardened="true"
                               onChange={(event) =>
                                 updateDraft((current) => ({
                                   ...current,
@@ -719,7 +718,8 @@ export function RubricsPanel({
                           <label className="space-y-2">
                             <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Weight</span>
                             <input
-                              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2.5 text-sm text-[var(--forge-text)] outline-none"
+                              className={RUBRIC_CATEGORY_FIELD_CLASS}
+                              data-rubric-focus-hardened="true"
                               min={1}
                               onChange={(event) =>
                                 updateDraft((current) => ({
@@ -740,7 +740,8 @@ export function RubricsPanel({
                         <label className="mt-3 block space-y-2">
                           <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Description</span>
                           <textarea
-                            className="min-h-20 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2.5 text-sm text-[var(--forge-text)] outline-none"
+                            className={RUBRIC_CATEGORY_TEXTAREA_CLASS}
+                            data-rubric-focus-hardened="true"
                             onChange={(event) =>
                               updateDraft((current) => ({
                                 ...current,
@@ -760,7 +761,8 @@ export function RubricsPanel({
                                 {label}
                               </span>
                               <textarea
-                                className="min-h-20 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2.5 text-sm text-[var(--forge-text)] outline-none"
+                                className={RUBRIC_CATEGORY_TEXTAREA_CLASS}
+                                data-rubric-focus-hardened="true"
                                 onChange={(event) =>
                                   updateDraft((current) => ({
                                     ...current,
@@ -788,7 +790,8 @@ export function RubricsPanel({
                             Look For
                           </span>
                           <input
-                            className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2.5 text-sm text-[var(--forge-text)] outline-none"
+                            className={RUBRIC_CATEGORY_FIELD_CLASS}
+                            data-rubric-focus-hardened="true"
                             onChange={(event) =>
                               updateDraft((current) => ({
                                 ...current,
@@ -811,6 +814,24 @@ export function RubricsPanel({
                             value={category.scoringCriteria.lookFor.join(" | ")}
                           />
                         </label>
+
+                        <div className="mt-4 flex justify-end border-t border-[var(--forge-border-strong)]/10 pt-4">
+                          <button
+                            className="rounded-xl border border-[rgba(255,113,108,0.26)] px-3 py-2 text-sm font-medium text-[var(--forge-danger)] transition hover:bg-[rgba(255,113,108,0.1)] focus-visible:ring-2 focus-visible:ring-[var(--forge-danger)]/35"
+                            data-rubric-category-remove-action="body"
+                            onClick={() => {
+                              updateDraft((current) => ({
+                                ...current,
+                                categories: current.categories
+                                  .filter((_, categoryIndex) => categoryIndex !== index)
+                                  .map((entry, nextIndex) => ({ ...entry, sortOrder: nextIndex })),
+                              }));
+                            }}
+                            type="button"
+                          >
+                            Remove category
+                          </button>
+                        </div>
                       </div>
                     </details>
                   ))
@@ -986,50 +1007,44 @@ export function RubricsPanel({
           </ForgeWorkspaceRailGroup>
 
           <ForgeWorkspaceRailGroup label="Publish controls">
-            <ForgeWorkspaceRailAction
-              disabled={!draft}
-              icon="rule"
-              onClick={() => setStep("review")}
-              type="button"
-            >
-              Review Draft
-            </ForgeWorkspaceRailAction>
-            <ForgeWorkspaceRailAction
-              active={Boolean(draft)}
-              disabled={!draft || isPending}
-              icon="task_alt"
-              onClick={() => void handlePreparePublish()}
-              type="button"
-            >
-              Prepare Publish
-            </ForgeWorkspaceRailAction>
-            {draft && step !== "edit" ? (
+            <div className="space-y-1" data-rubric-publish-controls="streamlined">
               <ForgeWorkspaceRailAction
-                icon="edit_note"
-                onClick={() => setStep("edit")}
+                active={Boolean(draft) && !serverDraft}
+                disabled={!draft || isPending}
+                icon="task_alt"
+                onClick={() => void handlePreparePublish()}
                 type="button"
               >
-                Back to Edit
+                Prepare Publish
               </ForgeWorkspaceRailAction>
-            ) : null}
-            {draft && step === "publish" ? (
+              {draft && step !== "edit" ? (
+                <ForgeWorkspaceRailAction
+                  icon="edit_note"
+                  onClick={() => setStep("edit")}
+                  type="button"
+                >
+                  Back to Edit
+                </ForgeWorkspaceRailAction>
+              ) : null}
+              {draft && step === "publish" ? (
+                <ForgeWorkspaceRailAction
+                  icon="rule"
+                  onClick={() => setStep("review")}
+                  type="button"
+                >
+                  Back to Review
+                </ForgeWorkspaceRailAction>
+              ) : null}
               <ForgeWorkspaceRailAction
-                icon="rule"
-                onClick={() => setStep("review")}
+                active={Boolean(serverDraft)}
+                disabled={!serverDraft || isPending}
+                icon="publish"
+                onClick={() => void handlePublish()}
                 type="button"
               >
-                Back to Review
+                {isPending ? "Publishing..." : "Publish Draft"}
               </ForgeWorkspaceRailAction>
-            ) : null}
-            <ForgeWorkspaceRailAction
-              active={Boolean(serverDraft)}
-              disabled={!serverDraft || isPending}
-              icon="publish"
-              onClick={() => void handlePublish()}
-              type="button"
-            >
-              {isPending ? "Publishing..." : "Publish Draft"}
-            </ForgeWorkspaceRailAction>
+            </div>
           </ForgeWorkspaceRailGroup>
         </nav>
       </ForgeWorkspaceRail>

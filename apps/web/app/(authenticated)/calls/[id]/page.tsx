@@ -64,11 +64,10 @@ export default async function CallDetailPage({
                 <ForgeChip icon="history" tone="muted">
                   {call.status}
                 </ForgeChip>
-                <ForgeChip tone="gold">#{id}</ForgeChip>
-                <ForgeChip tone="muted">
-                  {profile?.fullName ?? profile?.email ?? "Unknown"} / {profile?.role ?? "member"}
-                </ForgeChip>
               </div>
+              <p className="mt-3 text-xs leading-5 text-[var(--forge-muted)]">
+                Access scoped to {profile?.role ?? "member"} permissions.
+              </p>
             </div>
           </div>
 
@@ -77,7 +76,7 @@ export default async function CallDetailPage({
               Call Library
             </ForgeButton>
             <ForgeButton href="/highlights" icon="insights" variant="primary">
-              Share Insight
+              Open Highlights
             </ForgeButton>
           </div>
         </div>

@@ -5,11 +5,45 @@ import { useRouter } from "next/navigation";
 
 type Step = "choose" | "create" | "join" | "invite";
 
+export const ONBOARDING_ENDPOINTS = {
+  createOrganization: "/api/organizations",
+  dashboard: "/dashboard",
+  invites: "/api/invites",
+  joinOrganization: "/api/organizations/join",
+  teams: "/api/teams",
+} as const;
+
+export const ONBOARDING_INVITE_ROLES = [
+  { label: "Rep", teamAssignable: true, value: "rep" },
+  { label: "Manager", teamAssignable: true, value: "manager" },
+  { label: "Executive", teamAssignable: false, value: "executive" },
+  { label: "Admin", teamAssignable: false, value: "admin" },
+] as const;
+
+type InviteRole = (typeof ONBOARDING_INVITE_ROLES)[number]["value"];
+
 function autoSlug(value: string) {
   return value
     .toLowerCase()
     .replace(/\s+/g, "-")
     .replace(/[^a-z0-9-]/g, "");
+}
+
+const onboardingCardButtonClass =
+  "forge-surface forge-surface--interactive forge-focus-ring rounded-[1.75rem] px-6 py-7 text-left transition";
+const onboardingPanelClass = "forge-surface rounded-[1.75rem] px-6 py-7";
+const onboardingEyebrowClass = "forge-page-eyebrow";
+const onboardingLabelClass = "text-sm font-medium text-[var(--forge-muted)]";
+const onboardingInputClass = "forge-form-control mt-2 px-4 py-3 text-base outline-none";
+const onboardingPrimaryButtonClass =
+  "forge-button forge-button-primary forge-focus-ring flex-1 px-4 py-3 text-sm disabled:opacity-50";
+const onboardingSecondaryButtonClass =
+  "forge-button forge-button-secondary forge-focus-ring flex-1 px-4 py-3 text-sm";
+
+function roleCanBeAssignedToTeams(role: InviteRole) {
+  return ONBOARDING_INVITE_ROLES.some(
+    (inviteRole) => inviteRole.value === role && inviteRole.teamAssignable,
+  );
 }
 
 export function OnboardingPanel() {
@@ -21,7 +55,7 @@ export function OnboardingPanel() {
   const [error, setError] = useState<string | null>(null);
   const [isMutating, setIsMutating] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<"rep" | "manager" | "executive" | "admin">("rep");
+  const [inviteRole, setInviteRole] = useState<InviteRole>("rep");
   const [inviteTeamIds, setInviteTeamIds] = useState<string[]>([]);
   const [teams, setTeams] = useState<{ id: string; name: string }[]>([]);
   const [teamsLoaded, setTeamsLoaded] = useState(false);
@@ -52,14 +86,14 @@ export function OnboardingPanel() {
     if (onSuccess) {
       onSuccess();
     } else {
-      router.push("/dashboard");
+      router.push(ONBOARDING_ENDPOINTS.dashboard);
       router.refresh();
     }
   }
 
   async function loadTeams() {
     if (teamsLoaded) return;
-    const response = await fetch("/api/teams");
+    const response = await fetch(ONBOARDING_ENDPOINTS.teams);
     if (response.ok) {
       const data = (await response.json()) as { id: string; name: string }[];
       setTeams(data);
@@ -72,34 +106,34 @@ export function OnboardingPanel() {
       {step === "choose" ? (
         <div className="grid gap-4 md:grid-cols-2">
           <button
-            className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] px-6 py-7 text-left shadow-[0_18px_60px_rgba(2,8,23,0.28)] transition hover:border-[#74b1ff]/30"
+            className={onboardingCardButtonClass}
             onClick={() => {
               setError(null);
               setStep("create");
             }}
             type="button"
           >
-            <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#74b1ff]">
+            <p className={onboardingEyebrowClass}>
               Create
             </p>
-            <h2 className="mt-4 text-3xl font-semibold text-[#ecedf6]">Create Organization</h2>
-            <p className="mt-3 text-lg leading-8 text-[#a9abb3]">
+            <h2 className="mt-4 text-3xl font-semibold text-[var(--forge-text)]">Create Organization</h2>
+            <p className="mt-3 text-lg leading-8 text-[var(--forge-muted)]">
               Set up a new team and become the admin for your Argos workspace.
             </p>
           </button>
           <button
-            className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] px-6 py-7 text-left shadow-[0_18px_60px_rgba(2,8,23,0.28)] transition hover:border-[#74b1ff]/30"
+            className={onboardingCardButtonClass}
             onClick={() => {
               setError(null);
               setStep("join");
             }}
             type="button"
           >
-            <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#74b1ff]">
+            <p className={onboardingEyebrowClass}>
               Join
             </p>
-            <h2 className="mt-4 text-3xl font-semibold text-[#ecedf6]">Join Organization</h2>
-            <p className="mt-3 text-lg leading-8 text-[#a9abb3]">
+            <h2 className="mt-4 text-3xl font-semibold text-[var(--forge-text)]">Join Organization</h2>
+            <p className="mt-3 text-lg leading-8 text-[var(--forge-muted)]">
               Enter your org slug to join the existing team as a rep.
             </p>
           </button>
@@ -107,15 +141,15 @@ export function OnboardingPanel() {
       ) : null}
 
       {step === "create" ? (
-        <div className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] px-6 py-7 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-          <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#74b1ff]">
+        <div className={onboardingPanelClass}>
+          <p className={onboardingEyebrowClass}>
             Create Organization
           </p>
           <div className="mt-6 space-y-4">
             <label className="block text-left">
-              <span className="text-sm font-medium text-[#a9abb3]">Organization Name</span>
+              <span className={onboardingLabelClass}>Organization Name</span>
               <input
-                className="mt-2 w-full rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-3 text-lg text-white outline-none transition placeholder:text-[#a9abb3] focus:border-[#74b1ff]/60"
+                className={onboardingInputClass}
                 onChange={(event) => {
                   const nextName = event.target.value;
                   setName(nextName);
@@ -128,9 +162,9 @@ export function OnboardingPanel() {
             </label>
 
             <label className="block text-left">
-              <span className="text-sm font-medium text-[#a9abb3]">Organization Slug</span>
+              <span className={onboardingLabelClass}>Organization Slug</span>
               <input
-                className="mt-2 w-full rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-3 text-lg text-white outline-none transition placeholder:text-[#a9abb3] focus:border-[#74b1ff]/60"
+                className={onboardingInputClass}
                 onChange={(event) => setSlug(autoSlug(event.target.value))}
                 placeholder="acme-corp"
                 type="text"
@@ -139,11 +173,11 @@ export function OnboardingPanel() {
             </label>
           </div>
 
-          {error ? <p className="mt-4 text-sm text-red-300">{error}</p> : null}
+          {error ? <p className="mt-4 text-sm text-[var(--forge-danger)]">{error}</p> : null}
 
           <div className="mt-6 flex gap-3">
             <button
-              className="flex-1 rounded-xl border border-[#45484f]/20 px-4 py-3 text-base font-medium text-[#a9abb3] transition hover:border-[#74b1ff]/30 hover:text-white"
+              className={onboardingSecondaryButtonClass}
               onClick={() => {
                 setError(null);
                 setStep("choose");
@@ -153,10 +187,10 @@ export function OnboardingPanel() {
               Back
             </button>
             <button
-              className="flex-1 rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-base font-bold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
+              className={onboardingPrimaryButtonClass}
               disabled={!name.trim() || !slug.trim() || isMutating}
               onClick={() => {
-                void submit("/api/organizations", { name, slug }, () => {
+                void submit(ONBOARDING_ENDPOINTS.createOrganization, { name, slug }, () => {
                   setStep("invite");
                 });
               }}
@@ -169,15 +203,15 @@ export function OnboardingPanel() {
       ) : null}
 
       {step === "join" ? (
-        <div className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] px-6 py-7 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-          <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#74b1ff]">
+        <div className={onboardingPanelClass}>
+          <p className={onboardingEyebrowClass}>
             Join Organization
           </p>
           <div className="mt-6 space-y-4">
             <label className="block text-left">
-              <span className="text-sm font-medium text-[#a9abb3]">Organization Slug</span>
+              <span className={onboardingLabelClass}>Organization Slug</span>
               <input
-                className="mt-2 w-full rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-3 text-lg text-white outline-none transition placeholder:text-[#a9abb3] focus:border-[#74b1ff]/60"
+                className={onboardingInputClass}
                 onChange={(event) => setJoinSlug(event.target.value.toLowerCase())}
                 placeholder="acme-corp"
                 type="text"
@@ -186,11 +220,11 @@ export function OnboardingPanel() {
             </label>
           </div>
 
-          {error ? <p className="mt-4 text-sm text-red-300">{error}</p> : null}
+          {error ? <p className="mt-4 text-sm text-[var(--forge-danger)]">{error}</p> : null}
 
           <div className="mt-6 flex gap-3">
             <button
-              className="flex-1 rounded-xl border border-[#45484f]/20 px-4 py-3 text-base font-medium text-[#a9abb3] transition hover:border-[#74b1ff]/30 hover:text-white"
+              className={onboardingSecondaryButtonClass}
               onClick={() => {
                 setError(null);
                 setStep("choose");
@@ -200,10 +234,10 @@ export function OnboardingPanel() {
               Back
             </button>
             <button
-              className="flex-1 rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-base font-bold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
+              className={onboardingPrimaryButtonClass}
               disabled={!joinSlug.trim() || isMutating}
               onClick={() => {
-                void submit("/api/organizations/join", { slug: joinSlug });
+                void submit(ONBOARDING_ENDPOINTS.joinOrganization, { slug: joinSlug });
               }}
               type="button"
             >
@@ -214,15 +248,15 @@ export function OnboardingPanel() {
       ) : null}
 
       {step === "invite" ? (
-        <div className="rounded-[1.75rem] border border-[#45484f]/10 bg-[#10131a] px-6 py-7 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-          <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#74b1ff]">
+        <div className={onboardingPanelClass}>
+          <p className={onboardingEyebrowClass}>
             Invite Your Team
           </p>
           <div className="mt-6 space-y-4">
             <label className="block text-left">
-              <span className="text-sm font-medium text-[#a9abb3]">Email</span>
+              <span className={onboardingLabelClass}>Email</span>
               <input
-                className="mt-2 w-full rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-3 text-lg text-white outline-none transition placeholder:text-[#a9abb3] focus:border-[#74b1ff]/60"
+                className={onboardingInputClass}
                 onChange={(e) => setInviteEmail(e.target.value)}
                 placeholder="teammate@company.com"
                 type="email"
@@ -231,40 +265,39 @@ export function OnboardingPanel() {
             </label>
 
             <label className="block text-left">
-              <span className="text-sm font-medium text-[#a9abb3]">Role</span>
+              <span className={onboardingLabelClass}>Role</span>
               <select
-                className="mt-2 w-full rounded-xl border border-[#45484f]/20 bg-[#161a21]/50 px-4 py-3 text-lg text-white outline-none transition focus:border-[#74b1ff]/60"
+                className={onboardingInputClass}
                 onChange={(e) => {
-                  const role = e.target.value as typeof inviteRole;
+                  const role = e.target.value as InviteRole;
                   setInviteRole(role);
                   setInviteTeamIds([]);
-                  if (role === "rep" || role === "manager") {
+                  if (roleCanBeAssignedToTeams(role)) {
                     void loadTeams();
                   }
                 }}
                 value={inviteRole}
               >
-                <option value="rep">Rep</option>
-                <option value="manager">Manager</option>
-                <option value="executive">Executive</option>
-                <option value="admin">Admin</option>
+                {ONBOARDING_INVITE_ROLES.map((role) => (
+                  <option key={role.value} value={role.value}>{role.label}</option>
+                ))}
               </select>
             </label>
 
-            {(inviteRole === "rep" || inviteRole === "manager") ? (
+            {roleCanBeAssignedToTeams(inviteRole) ? (
               <div className="block text-left">
-                <span className="text-sm font-medium text-[#a9abb3]">Teams (optional)</span>
+                <span className={onboardingLabelClass}>Teams (optional)</span>
                 {teams.length === 0 ? (
-                  <p className="mt-2 text-sm text-[#a9abb3]">
+                  <p className="mt-2 text-sm text-[var(--forge-muted)]">
                     You can assign teams later from settings.
                   </p>
                 ) : (
                   <div className="mt-2 space-y-2">
                     {teams.map((team) => (
-                      <label key={team.id} className="flex items-center gap-2 text-white">
+                      <label key={team.id} className="flex items-center gap-2 text-[var(--forge-text)]">
                         <input
                           checked={inviteTeamIds.includes(team.id)}
-                          className="accent-[#74b1ff]"
+                          className="forge-focus-ring h-4 w-4 accent-[var(--forge-gold)]"
                           onChange={(e) => {
                             setInviteTeamIds(prev =>
                               e.target.checked
@@ -283,18 +316,18 @@ export function OnboardingPanel() {
             ) : null}
           </div>
 
-          {error ? <p className="mt-4 text-sm text-red-300">{error}</p> : null}
-          {inviteSuccess ? <p className="mt-4 text-sm text-green-400">{inviteSuccess}</p> : null}
+          {error ? <p className="mt-4 text-sm text-[var(--forge-danger)]">{error}</p> : null}
+          {inviteSuccess ? <p className="mt-4 text-sm text-[var(--forge-success)]">{inviteSuccess}</p> : null}
 
           <div className="mt-6 flex gap-3">
             <button
-              className="flex-1 rounded-xl bg-gradient-to-r from-[#74b1ff] to-[#54a3ff] px-4 py-3 text-base font-bold text-[#002345] transition hover:brightness-110 disabled:opacity-50"
+              className={onboardingPrimaryButtonClass}
               disabled={!inviteEmail.trim() || isMutating}
               onClick={async () => {
                 setError(null);
                 setInviteSuccess(null);
                 setIsMutating(true);
-                const response = await fetch("/api/invites", {
+                const response = await fetch(ONBOARDING_ENDPOINTS.invites, {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
@@ -318,9 +351,9 @@ export function OnboardingPanel() {
               {isMutating ? "Sending..." : "Send Invite"}
             </button>
             <button
-              className="flex-1 rounded-xl border border-[#45484f]/20 px-4 py-3 text-base font-medium text-[#a9abb3] transition hover:border-[#74b1ff]/30 hover:text-white"
+              className={onboardingSecondaryButtonClass}
               onClick={() => {
-                router.push("/dashboard");
+                router.push(ONBOARDING_ENDPOINTS.dashboard);
                 router.refresh();
               }}
               type="button"

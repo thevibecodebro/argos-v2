@@ -154,6 +154,22 @@ function getInitialActiveSession(
   return initialSessions[0] ?? null;
 }
 
+export function isRoleplayVoiceControlDisabled({
+  activeSessionStatus,
+  isStartingVoice,
+  isVoiceActive,
+}: {
+  activeSessionStatus: RoleplaySession["status"] | undefined;
+  isStartingVoice: boolean;
+  isVoiceActive: boolean;
+}) {
+  if (isVoiceActive) {
+    return false;
+  }
+
+  return isStartingVoice || !activeSessionStatus || activeSessionStatus === "complete";
+}
+
 export function RoleplayPanel({
   initialPersonas,
   initialSessions,
@@ -313,6 +329,7 @@ export function RoleplayPanel({
 
   async function startVoicePractice() {
     if (!activeSession) return;
+    if (activeSession.status === "complete") return;
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia || typeof RTCPeerConnection === "undefined") {
       setError("This browser does not support live voice practice.");
       return;
@@ -470,6 +487,11 @@ export function RoleplayPanel({
   const activeScorecard = activeSession?.scorecard ?? null;
   const activeSessionWithScorecard = activeSession && activeScorecard ? activeSession : null;
   const completedSessions = sessions.filter((s) => s.status === "complete");
+  const isVoiceControlDisabled = isRoleplayVoiceControlDisabled({
+    activeSessionStatus: activeSession?.status,
+    isStartingVoice,
+    isVoiceActive,
+  });
   const generatedActiveSession = activeSession?.origin === "generated_from_call"
     ? activeSession
     : null;
@@ -534,8 +556,8 @@ export function RoleplayPanel({
         </ForgeWorkspaceRail>
 
         <main className="min-w-0" data-forge-workspace-main="true" data-roleplay-simulation-stage="">
-          <div className="mb-4 flex items-center justify-between rounded-xl bg-[var(--forge-surface)] p-4">
-            <div className="flex items-center gap-4">
+          <div className="mb-4 flex flex-col gap-3 rounded-xl bg-[var(--forge-surface)] p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+            <div className="flex items-start gap-3 sm:items-center sm:gap-4">
               <div className="relative">
                 {activeSession?.status === "active" && (
                   <span className="absolute -right-1 -top-1 h-2 w-2 animate-pulse rounded-full bg-[#ff716c]" />
@@ -558,19 +580,31 @@ export function RoleplayPanel({
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-2 rounded-full bg-[var(--forge-surface-3)] p-1">
-              <button
-                className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold transition-colors ${
-                  isVoiceActive ? "bg-[#ff716c]/20 text-[#ff716c]" : "bg-[var(--forge-gold)] text-[#170d07]"
-                }`}
-                disabled={isStartingVoice || !activeSession}
-                onClick={() => isVoiceActive ? stopVoicePractice() : void startVoicePractice()}
-                type="button"
-              >
-                <ForgeIcon name="power" size={14} />
-                {isStartingVoice ? "Starting…" : isVoiceActive ? "Stop" : "Voice"}
-              </button>
-              <span className="px-3 py-1.5 text-xs font-bold text-[var(--forge-muted)]">Text</span>
+            <div
+              className="flex w-full flex-col gap-2 rounded-2xl bg-[var(--forge-surface-3)] p-2 sm:w-auto sm:min-w-[18rem]"
+              data-roleplay-mode-control="true"
+            >
+              <span className="px-1 font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.18em] text-[var(--forge-muted)]">
+                Practice mode
+              </span>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <button
+                  aria-label={isVoiceActive ? "Stop voice practice" : "Start voice practice"}
+                  className={`flex min-h-10 items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
+                    isVoiceActive ? "bg-[#ff716c]/20 text-[#ff716c]" : "bg-[var(--forge-gold)] text-[#170d07]"
+                  }`}
+                  disabled={isVoiceControlDisabled}
+                  onClick={() => isVoiceActive ? stopVoicePractice() : void startVoicePractice()}
+                  title={isVoiceActive ? "Stop voice practice" : "Start voice practice"}
+                  type="button"
+                >
+                  <ForgeIcon name="power" size={14} />
+                  {isStartingVoice ? "Starting…" : isVoiceActive ? "Stop voice" : "Start voice"}
+                </button>
+                <span className="rounded-xl border border-[var(--forge-border-strong)]/15 px-3 py-2 text-xs font-bold text-[var(--forge-muted)]">
+                  Text entry always available
+                </span>
+              </div>
             </div>
           </div>
 
@@ -592,14 +626,15 @@ export function RoleplayPanel({
 
           {/* Transcript */}
           <div
-            className="mb-6 flex h-[480px] flex-col gap-6 overflow-y-auto rounded-2xl border border-[var(--forge-border-strong)]/20 p-6"
+            className="mb-5 flex min-h-[320px] max-h-[min(64vh,620px)] flex-col gap-4 overflow-y-auto rounded-2xl border border-[var(--forge-border-strong)]/20 p-4 sm:mb-6 sm:min-h-[380px] sm:gap-5 sm:p-5 lg:min-h-[460px] lg:gap-6 lg:p-6"
+            data-roleplay-transcript="responsive"
             style={{ background: "rgba(34,38,47,0.4)", backdropFilter: "blur(12px)", scrollbarWidth: "none" }}
           >
             {activeSession ? (
               displayedTranscript.length > 0 ? (
                 displayedTranscript.map((msg, i) => (
                   <div
-                    className={`flex max-w-[85%] items-start gap-4 ${msg.role === "user" ? "self-end flex-row-reverse" : ""}`}
+                    className={`flex max-w-full items-start gap-3 sm:max-w-[85%] sm:gap-4 ${msg.role === "user" ? "self-end flex-row-reverse" : ""}`}
                     key={`${msg.role}-${i}`}
                   >
                     <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded ${
@@ -659,7 +694,7 @@ export function RoleplayPanel({
           )}
 
           {/* Input */}
-          <div className="flex items-end gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
             <div className="relative flex-1">
               <textarea
                 className="h-20 w-full resize-none rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-depth)] p-4 pr-12 text-sm text-[var(--forge-text)] outline-none placeholder:text-[rgba(255,244,230,0.4)] focus:border-[var(--forge-gold)]/50 focus:ring-1 focus:ring-[var(--forge-gold)]/20 disabled:opacity-40"
@@ -670,22 +705,26 @@ export function RoleplayPanel({
                 value={draft}
               />
               <button
-                className="absolute bottom-3 right-3 text-[var(--forge-gold)] transition-transform hover:scale-110 active:scale-95 disabled:opacity-30"
+                aria-label="Send response"
+                className="absolute bottom-3 right-3 rounded-lg p-1 text-[var(--forge-gold)] transition-transform hover:scale-110 active:scale-95 disabled:cursor-not-allowed disabled:text-[var(--forge-muted)] disabled:opacity-35 disabled:hover:scale-100"
                 disabled={!activeSession || !draft.trim() || activeSession.status === "complete" || isMutating}
                 onClick={() => void sendMessage()}
+                title="Send response"
                 type="button"
               >
-                <ForgeIcon name="insights" size={18} />
+                <ForgeIcon name="send" size={18} />
               </button>
             </div>
             <button
-              className="flex h-20 flex-col items-center justify-center gap-1 rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-6 font-extrabold text-[#170d07] shadow-lg transition active:scale-95 disabled:opacity-40"
+              aria-label="End and score current session"
+              className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-5 font-extrabold text-[#170d07] shadow-lg transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 sm:h-20 sm:w-auto sm:min-w-[7.5rem] sm:flex-col sm:gap-1 sm:px-6"
               disabled={!activeSession || activeSession.status === "complete" || isMutating}
               onClick={() => void completeSession()}
+              title="End and score current session"
               type="button"
             >
               <ForgeIcon name="insights" size={24} />
-              <span className="text-[10px] uppercase tracking-tighter">End &amp; Score</span>
+              <span className="whitespace-nowrap text-[10px] uppercase tracking-normal">End &amp; Score</span>
             </button>
           </div>
 
@@ -794,8 +833,41 @@ export function RoleplayPanel({
             <ForgeIcon className="text-[var(--forge-muted)]" name="archive" size={20} />
             <h2 className="font-['Space_Grotesk'] text-2xl font-bold text-[var(--forge-text)]">Recent History</h2>
           </div>
+          <div className="grid gap-3 md:hidden" data-roleplay-history-mobile="true">
+            {completedSessions.map((session) => {
+              const score = session.overallScore ?? 0;
+              return (
+                <button
+                  className="w-full rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[rgba(34,38,47,0.55)] p-4 text-left transition-colors hover:bg-[var(--forge-surface-3)]/35"
+                  key={session.id}
+                  onClick={() => void loadSession(session.id)}
+                  type="button"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 space-y-1">
+                      <p className="font-bold text-[var(--forge-text)]">
+                        {session.personaDetails?.objectionType ?? (isGeneratedSession(session) ? "Generated roleplay" : "Practice Session")}
+                      </p>
+                      <p className="text-xs text-[var(--forge-muted)]">{getSessionPersonaLabel(session)}</p>
+                    </div>
+                    <span className={`shrink-0 font-bold ${scoreColor(score)}`}>{score}%</span>
+                  </div>
+                  {isGeneratedSession(session) && (
+                    <span className="mt-3 inline-flex rounded-full border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/10 px-2.5 py-1 font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.18em] text-[var(--forge-gold)]">
+                      Generated from call
+                    </span>
+                  )}
+                  <div className="mt-4 flex items-center justify-between gap-3 text-xs text-[var(--forge-muted)]">
+                    <span>{formatDate(session.createdAt)}</span>
+                    <span className="font-bold text-[var(--forge-gold)] underline">Review session</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
           <div
-            className="overflow-hidden rounded-2xl border border-[var(--forge-border-strong)]/20"
+            className="hidden overflow-hidden rounded-2xl border border-[var(--forge-border-strong)]/20 md:block"
+            data-roleplay-history-table="true"
             style={{ background: "rgba(34,38,47,0.4)", backdropFilter: "blur(12px)" }}
           >
             <table className="w-full border-collapse text-left text-sm">
@@ -814,9 +886,8 @@ export function RoleplayPanel({
                   const score = session.overallScore ?? 0;
                   return (
                     <tr
-                      className="cursor-pointer transition-colors hover:bg-[var(--forge-surface-3)]/30"
                       key={session.id}
-                      onClick={() => void loadSession(session.id)}
+                      className="transition-colors hover:bg-[var(--forge-surface-3)]/30"
                     >
                       <td className="px-6 py-4 font-bold text-[var(--forge-text)]">
                         <div className="space-y-1">
@@ -840,7 +911,11 @@ export function RoleplayPanel({
                       <td className="px-6 py-4 text-[var(--forge-muted)]">{formatDuration(session)}</td>
                       <td className="px-6 py-4 text-[var(--forge-muted)]">{formatDate(session.createdAt)}</td>
                       <td className="px-6 py-4 text-right">
-                        <button className="font-medium text-[var(--forge-gold)] underline hover:text-[var(--forge-gold)]/80" type="button">
+                        <button
+                          className="font-medium text-[var(--forge-gold)] underline hover:text-[var(--forge-gold)]/80"
+                          onClick={() => void loadSession(session.id)}
+                          type="button"
+                        >
                           Review
                         </button>
                       </td>

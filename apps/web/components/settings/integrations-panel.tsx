@@ -35,6 +35,67 @@ function formatConnectedAt(value: string | null | undefined) {
   }).format(new Date(value));
 }
 
+type IntegrationService = "zoom" | "ghl";
+type DisconnectFetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+type DisconnectResult =
+  | { ok: true }
+  | { error: string; ok: false };
+
+const disconnectFallbacks: Record<IntegrationService, string> = {
+  zoom: "Unable to disconnect Zoom. Try again.",
+  ghl: "Unable to disconnect Go High Level. Try again.",
+};
+
+export function getDisconnectConfirmationCopy(service: IntegrationService) {
+  return service === "zoom"
+    ? "Disconnect Zoom from this workspace?"
+    : "Disconnect Go High Level from this workspace?";
+}
+
+export async function getDisconnectErrorMessage(service: IntegrationService, response: Response) {
+  const fallback = disconnectFallbacks[service];
+
+  try {
+    const payload = await response.json() as { error?: unknown; message?: unknown; detail?: unknown };
+    const message = [payload.message, payload.error, payload.detail].find((value) => (
+      typeof value === "string" && value.trim().length > 0
+    ));
+
+    return typeof message === "string" && isReadableDisconnectMessage(message) ? message : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function isReadableDisconnectMessage(value: string) {
+  const message = value.trim();
+  return message.length > 0 && !/^[a-z0-9]+(_[a-z0-9]+)+$/i.test(message);
+}
+
+export async function disconnectIntegrationFromBrowser(
+  service: IntegrationService,
+  disconnectPath: string,
+  fetcher: DisconnectFetcher = fetch,
+): Promise<DisconnectResult> {
+  try {
+    const response = await fetcher(disconnectPath, { method: "POST" });
+
+    if (response.ok) {
+      return { ok: true };
+    }
+
+    return {
+      ok: false,
+      error: await getDisconnectErrorMessage(service, response),
+    };
+  } catch {
+    return {
+      ok: false,
+      error: disconnectFallbacks[service],
+    };
+  }
+}
+
 type ZoomCardProps = {
   available: boolean;
   connectPath: string;
@@ -58,20 +119,30 @@ function ZoomCard({
   const [isDisconnected, setIsDisconnected] = useState(false);
   const [isConnected, setIsConnected] = useState(connected);
   const [connectedAtState, setConnectedAtState] = useState(connectedAt);
+  const [disconnectError, setDisconnectError] = useState<string | null>(null);
   const [zoomUserIdState, setZoomUserIdState] = useState(zoomUserId);
 
   async function handleDisconnect() {
+    setDisconnectError(null);
     setIsMutating(true);
-    const response = await fetch(disconnectPath, { method: "POST" });
-    if (response.ok) {
-      setIsConnected(false);
-      setConnectedAtState(null);
-      setZoomUserIdState(null);
-      setIsDisconnected(true);
-      setConfirmDisconnect(false);
-      router.refresh();
+
+    try {
+      const result = await disconnectIntegrationFromBrowser("zoom", disconnectPath);
+      if (result.ok) {
+        setIsConnected(false);
+        setConnectedAtState(null);
+        setZoomUserIdState(null);
+        setIsDisconnected(true);
+        setConfirmDisconnect(false);
+        router.refresh();
+      } else {
+        setDisconnectError(result.error);
+      }
+    } catch {
+      setDisconnectError(disconnectFallbacks.zoom);
+    } finally {
+      setIsMutating(false);
     }
-    setIsMutating(false);
   }
 
   return (
@@ -117,11 +188,17 @@ function ZoomCard({
         </p>
       ) : null}
 
+      {disconnectError ? (
+        <p className="mt-3 text-sm font-medium text-[var(--forge-danger)]" role="alert">
+          {disconnectError}
+        </p>
+      ) : null}
+
       <div className="mt-5 flex flex-wrap items-center gap-3">
         {isConnected ? (
           confirmDisconnect ? (
             <>
-              <p className="text-sm text-[var(--forge-muted)]">Are you sure?</p>
+              <p className="text-sm text-[var(--forge-muted)]">{getDisconnectConfirmationCopy("zoom")}</p>
               <ForgeButton
                 disabled={isMutating}
                 onClick={() => {
@@ -135,7 +212,10 @@ function ZoomCard({
               </ForgeButton>
               <ForgeButton
                 disabled={isMutating}
-                onClick={() => setConfirmDisconnect(false)}
+                onClick={() => {
+                  setDisconnectError(null);
+                  setConfirmDisconnect(false);
+                }}
                 size="sm"
                 type="button"
                 variant="secondary"
@@ -145,7 +225,10 @@ function ZoomCard({
             </>
           ) : (
             <ForgeButton
-              onClick={() => setConfirmDisconnect(true)}
+              onClick={() => {
+                setDisconnectError(null);
+                setConfirmDisconnect(true);
+              }}
               size="sm"
               type="button"
               variant="secondary"
@@ -191,19 +274,29 @@ function GhlCard({
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
   const [isConnected, setIsConnected] = useState(connected);
   const [connectedAtState, setConnectedAtState] = useState(connectedAt);
+  const [disconnectError, setDisconnectError] = useState<string | null>(null);
   const [locationNameState, setLocationNameState] = useState(locationName);
 
   async function handleDisconnect() {
+    setDisconnectError(null);
     setIsMutating(true);
-    const response = await fetch(disconnectPath, { method: "POST" });
-    if (response.ok) {
-      setIsConnected(false);
-      setConnectedAtState(null);
-      setLocationNameState(null);
-      setConfirmDisconnect(false);
-      router.refresh();
+
+    try {
+      const result = await disconnectIntegrationFromBrowser("ghl", disconnectPath);
+      if (result.ok) {
+        setIsConnected(false);
+        setConnectedAtState(null);
+        setLocationNameState(null);
+        setConfirmDisconnect(false);
+        router.refresh();
+      } else {
+        setDisconnectError(result.error);
+      }
+    } catch {
+      setDisconnectError(disconnectFallbacks.ghl);
+    } finally {
+      setIsMutating(false);
     }
-    setIsMutating(false);
   }
 
   return (
@@ -249,11 +342,17 @@ function GhlCard({
         </p>
       ) : null}
 
+      {disconnectError ? (
+        <p className="mt-3 text-sm font-medium text-[var(--forge-danger)]" role="alert">
+          {disconnectError}
+        </p>
+      ) : null}
+
       <div className="mt-5 flex flex-wrap items-center gap-3">
         {isConnected ? (
           confirmDisconnect ? (
             <>
-              <p className="text-sm text-[var(--forge-muted)]">Are you sure?</p>
+              <p className="text-sm text-[var(--forge-muted)]">{getDisconnectConfirmationCopy("ghl")}</p>
               <ForgeButton
                 disabled={isMutating}
                 onClick={() => {
@@ -267,7 +366,10 @@ function GhlCard({
               </ForgeButton>
               <ForgeButton
                 disabled={isMutating}
-                onClick={() => setConfirmDisconnect(false)}
+                onClick={() => {
+                  setDisconnectError(null);
+                  setConfirmDisconnect(false);
+                }}
                 size="sm"
                 type="button"
                 variant="secondary"
@@ -277,7 +379,10 @@ function GhlCard({
             </>
           ) : (
             <ForgeButton
-              onClick={() => setConfirmDisconnect(true)}
+              onClick={() => {
+                setDisconnectError(null);
+                setConfirmDisconnect(true);
+              }}
               size="sm"
               type="button"
               variant="secondary"

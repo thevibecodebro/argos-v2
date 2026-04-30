@@ -3,6 +3,10 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createInvitesRepository } from "@/lib/invites/create-repository";
 import { InviteAcceptButton } from "./invite-accept-button";
 
+const inviteHeadingClass = "font-[var(--font-display)] text-3xl font-semibold text-[var(--forge-text)]";
+const inviteBodyClass = "mt-4 text-[var(--forge-muted)]";
+const inviteLinkClass = "forge-button forge-button-primary forge-focus-ring mt-6 inline-flex px-6 py-3 text-sm";
+
 export default async function InvitePage({
   params,
 }: {
@@ -22,8 +26,8 @@ export default async function InvitePage({
     return (
       <LegacyAuthShell note="This invite is no longer valid.">
         <div className="text-center">
-          <h1 className="text-3xl font-semibold text-white">Invite Not Found</h1>
-          <p className="mt-4 text-[#8696ba]">This invite link is invalid or has already been used.</p>
+          <h1 className={inviteHeadingClass}>Invite Not Found</h1>
+          <p className={inviteBodyClass}>This invite link is invalid or has already been used.</p>
         </div>
       </LegacyAuthShell>
     );
@@ -33,8 +37,8 @@ export default async function InvitePage({
     return (
       <LegacyAuthShell note="This invite has expired.">
         <div className="text-center">
-          <h1 className="text-3xl font-semibold text-white">Invite Expired</h1>
-          <p className="mt-4 text-[#8696ba]">Ask your admin to send a new invite.</p>
+          <h1 className={inviteHeadingClass}>Invite Expired</h1>
+          <p className={inviteBodyClass}>Ask your admin to send a new invite.</p>
         </div>
       </LegacyAuthShell>
     );
@@ -44,8 +48,8 @@ export default async function InvitePage({
     return (
       <LegacyAuthShell note="This invite has already been accepted.">
         <div className="text-center">
-          <h1 className="text-3xl font-semibold text-white">Already Accepted</h1>
-          <p className="mt-4 text-[#8696ba]">This invite has already been used.</p>
+          <h1 className={inviteHeadingClass}>Already Accepted</h1>
+          <p className={inviteBodyClass}>This invite has already been used.</p>
         </div>
       </LegacyAuthShell>
     );
@@ -57,10 +61,10 @@ export default async function InvitePage({
     return (
       <LegacyAuthShell note={`You've been invited to join as a ${invite.role}.`}>
         <div className="text-center">
-          <h1 className="text-3xl font-semibold text-white">You&apos;re Invited</h1>
-          <p className="mt-4 text-[#8696ba]">Sign in to accept your invite.</p>
+          <h1 className={inviteHeadingClass}>You&apos;re Invited</h1>
+          <p className={inviteBodyClass}>Sign in to accept your invite.</p>
           <a
-            className="mt-6 inline-block rounded-[1.1rem] bg-[#2c63f6] px-6 py-3 text-base font-semibold text-white hover:bg-[#4476ff]"
+            className={inviteLinkClass}
             href={`/login?next=${next}`}
           >
             Sign In to Accept
@@ -75,8 +79,8 @@ export default async function InvitePage({
     return (
       <LegacyAuthShell note="Wrong account.">
         <div className="text-center">
-          <h1 className="text-3xl font-semibold text-white">Wrong Account</h1>
-          <p className="mt-4 text-[#8696ba]">
+          <h1 className={inviteHeadingClass}>Wrong Account</h1>
+          <p className={inviteBodyClass}>
             This invite was sent to a different email address.
           </p>
         </div>
@@ -88,9 +92,9 @@ export default async function InvitePage({
   return (
     <LegacyAuthShell note={`You've been invited to join as a ${invite.role}.`}>
       <div className="text-center">
-        <h1 className="text-3xl font-semibold text-white">You&apos;re Invited</h1>
-        <p className="mt-4 text-[#8696ba]">
-          Accept your invite to join as a <strong className="text-white">{invite.role}</strong>.
+        <h1 className={inviteHeadingClass}>You&apos;re Invited</h1>
+        <p className={inviteBodyClass}>
+          Accept your invite to join as a <strong className="text-[var(--forge-text)]">{invite.role}</strong>.
         </p>
         <div className="mt-6">
           <InviteAcceptButton token={token} />

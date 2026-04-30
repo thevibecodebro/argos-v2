@@ -81,8 +81,12 @@ describe("CallDetailPage forge treatment", () => {
     expect(html).toContain('data-forge-surface="panel"');
     expect(html).toContain('href="/calls"');
     expect(html).toContain('href="/highlights"');
+    expect(html).toContain("Open Highlights");
+    expect(html).not.toContain("Share Insight");
     expect(html).toContain("Call detail panel marker");
     expect(html).toContain("Pricing review");
+    expect(html).not.toContain('data-forge-chip="gold">#call-1');
+    expect(html).not.toContain("Avery Coach / manager");
     expect(html).not.toContain("#74b1ff");
     expect(html).not.toContain("#6dddff");
     expect(html).not.toContain("backdrop-blur-md");

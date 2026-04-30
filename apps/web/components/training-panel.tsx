@@ -61,6 +61,12 @@ type ModuleAiDraftFormState = {
   contextNotes: string;
 };
 
+const TRAINING_ADMIN_FIELD_FOCUS_CLASS =
+  "outline-none transition focus-visible:border-[var(--forge-gold)] focus-visible:ring-2 focus-visible:ring-[var(--forge-gold)]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--forge-surface)]";
+const TRAINING_ADMIN_FIELD_CLASS = `w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white ${TRAINING_ADMIN_FIELD_FOCUS_CLASS}`;
+const TRAINING_ADMIN_TEXTAREA_CLASS = `min-h-28 ${TRAINING_ADMIN_FIELD_CLASS}`;
+const TRAINING_ASSIGN_DATE_FIELD_CLASS = `rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white ${TRAINING_ADMIN_FIELD_FOCUS_CLASS}`;
+
 type TrainingPanelProps = {
   canManage: boolean;
   aiAvailable: boolean;
@@ -750,14 +756,16 @@ export function TrainingPanel({
       <section className="space-y-4">
         <div className="space-y-3">
           <input
-            className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white outline-none"
+            className={TRAINING_ADMIN_FIELD_CLASS}
+            data-training-focus-hardened="true"
             onChange={(event) => setModuleForm((current) => ({ ...current, title: event.target.value }))}
             placeholder="Module title"
             value={moduleForm.title}
           />
           <div className="grid gap-3 md:grid-cols-2">
             <select
-              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white outline-none"
+              className={TRAINING_ADMIN_FIELD_CLASS}
+              data-training-focus-hardened="true"
               onChange={(event) => setModuleForm((current) => ({ ...current, skillCategory: event.target.value }))}
               value={moduleForm.skillCategory}
             >
@@ -771,14 +779,16 @@ export function TrainingPanel({
               ))}
             </select>
             <input
-              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white outline-none"
+              className={TRAINING_ADMIN_FIELD_CLASS}
+              data-training-focus-hardened="true"
               onChange={(event) => setModuleForm((current) => ({ ...current, videoUrl: event.target.value }))}
               placeholder="Video URL (optional)"
               value={moduleForm.videoUrl}
             />
           </div>
           <textarea
-            className="min-h-28 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white outline-none"
+            className={TRAINING_ADMIN_TEXTAREA_CLASS}
+            data-training-focus-hardened="true"
             onChange={(event) => setModuleForm((current) => ({ ...current, description: event.target.value }))}
             placeholder="Module description"
             value={moduleForm.description}
@@ -803,17 +813,19 @@ export function TrainingPanel({
       </section>
     ) : activeManagerModal === "generate" ? (
       <section className="space-y-4">
-        <div className="rounded-[1.15rem] border border-white/10 bg-black/20 p-4">
+        <div className="rounded-[1.15rem] border border-white/10 bg-[rgba(5,4,3,0.32)] p-4">
           <div className="space-y-3">
             <div className="grid gap-3 md:grid-cols-2">
               <input
-                className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white outline-none"
+                className={TRAINING_ADMIN_FIELD_CLASS}
+                data-training-focus-hardened="true"
                 onChange={(event) => setGenerateForm((current) => ({ ...current, topic: event.target.value }))}
                 placeholder="Topic"
                 value={generateForm.topic}
               />
               <input
-                className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white outline-none"
+                className={TRAINING_ADMIN_FIELD_CLASS}
+                data-training-focus-hardened="true"
                 onChange={(event) => setGenerateForm((current) => ({ ...current, targetRole: event.target.value }))}
                 placeholder="Target role"
                 value={generateForm.targetRole}
@@ -821,13 +833,15 @@ export function TrainingPanel({
             </div>
             <div className="grid gap-3 md:grid-cols-[1fr_160px]">
               <input
-                className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white outline-none"
+                className={TRAINING_ADMIN_FIELD_CLASS}
+                data-training-focus-hardened="true"
                 onChange={(event) => setGenerateForm((current) => ({ ...current, skillFocus: event.target.value }))}
                 placeholder="Skill focus"
                 value={generateForm.skillFocus}
               />
               <input
-                className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white outline-none"
+                className={TRAINING_ADMIN_FIELD_CLASS}
+                data-training-focus-hardened="true"
                 min={1}
                 onChange={(event) =>
                   setGenerateForm((current) => ({
@@ -900,7 +914,7 @@ export function TrainingPanel({
       </section>
     ) : activeManagerModal === "assign" && assigningModule ? (
       <section className="space-y-4">
-        <div className="rounded-[1.15rem] border border-white/10 bg-black/20 p-4">
+        <div className="rounded-[1.15rem] border border-white/10 bg-[rgba(5,4,3,0.32)] p-4">
           <div className="grid gap-3 md:grid-cols-2">
             <div>
               <h4 className="text-lg font-semibold text-white">{assigningModule.title}</h4>
@@ -911,7 +925,8 @@ export function TrainingPanel({
             </div>
             <div className="flex justify-end">
               <input
-                className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white outline-none"
+                className={TRAINING_ASSIGN_DATE_FIELD_CLASS}
+                data-training-focus-hardened="true"
                 onChange={(event) => setAssignDueDate(event.target.value)}
                 type="date"
                 value={assignDueDate}

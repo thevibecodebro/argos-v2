@@ -33,6 +33,8 @@ describe("CallsFilters forge treatment", () => {
     expect(html).toContain('data-filter-status="processing"');
     expect(html).toContain('aria-current="page"');
     expect(html).toContain("Active filters");
+    expect(html).toContain(">Clear</span>");
+    expect(html).not.toContain(">Clear filters</button>");
     expect(html).toContain('placeholder="Search by topics, deals, or objections"');
     expect(html).not.toContain("#74b1ff");
     expect(html).not.toContain("#6dddff");

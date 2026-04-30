@@ -106,7 +106,7 @@ export function TrainingManagerModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-8 "
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(5,4,3,0.78)] px-4 py-8 "
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onClose();

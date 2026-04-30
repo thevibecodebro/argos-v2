@@ -16,38 +16,42 @@ type LegalPageProps = {
 
 export function LegalPage({ eyebrow, intro, lastUpdated, sections, title }: LegalPageProps) {
   return (
-    <main className="min-h-screen bg-[#0b0e14] text-[#ecedf6]">
+    <main
+      className="forge-shell min-h-screen text-[var(--forge-text)]"
+      data-legal-shell="forge"
+      data-shell-theme="forge"
+    >
       <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-6 py-8 sm:px-8 lg:px-10">
         <header className="flex items-center justify-between gap-4 py-4">
           <Link
-            className="text-2xl font-bold tracking-tight text-[#ecedf6]"
+            className="forge-focus-ring rounded-lg font-[var(--font-display)] text-2xl font-bold tracking-tight text-[var(--forge-text)]"
             href="/"
             style={{ fontFamily: "var(--font-display, 'Space Grotesk', sans-serif)" }}
           >
             Argos
           </Link>
-          <Link className="text-sm text-[#a9abb3] transition-colors duration-150 hover:text-[#ecedf6]" href="/">
+          <Link className="forge-focus-ring rounded-lg text-sm text-[var(--forge-muted)] transition-colors duration-150 hover:text-[var(--forge-text)]" href="/">
             Back to homepage
           </Link>
         </header>
 
-        <article className="mt-10 rounded-[2rem] border border-white/10 bg-[rgba(15,18,26,0.9)] px-6 py-8 shadow-[0_32px_90px_rgba(3,8,20,0.42)] sm:px-8 sm:py-10">
+        <article className="forge-surface mt-10 rounded-[2rem] px-6 py-8 sm:px-8 sm:py-10">
           <div className="max-w-3xl space-y-5">
-            <p className="text-[11px] font-black uppercase tracking-[0.32em] text-[#74b1ff]">
+            <p className="forge-page-eyebrow">
               {eyebrow}
             </p>
             <div className="space-y-3">
-              <p className="text-sm uppercase tracking-[0.18em] text-[#8f94a3]">
+              <p className="text-sm uppercase tracking-[0.18em] text-[var(--forge-muted)]">
                 Last updated {lastUpdated}
               </p>
               <h1
-                className="text-[clamp(2.6rem,6vw,4.2rem)] font-bold tracking-[-0.05em] text-[#ecedf6]"
+                className="font-[var(--font-display)] text-[clamp(2.6rem,6vw,4.2rem)] font-bold text-[var(--forge-text)]"
                 style={{ fontFamily: "var(--font-display, 'Space Grotesk', sans-serif)", lineHeight: 0.96 }}
               >
                 {title}
               </h1>
             </div>
-            <p className="max-w-[62ch] text-base leading-8 text-[#b7bac6] sm:text-lg">
+            <p className="max-w-[62ch] text-base leading-8 text-[var(--forge-muted)] sm:text-lg">
               {intro}
             </p>
           </div>
@@ -55,11 +59,11 @@ export function LegalPage({ eyebrow, intro, lastUpdated, sections, title }: Lega
           <div className="mt-10 grid gap-5">
             {sections.map((section) => (
               <section
-                className="rounded-[1.5rem] border border-white/10 bg-[rgba(255,255,255,0.03)] px-5 py-5 sm:px-6"
+                className="forge-surface forge-surface--inset rounded-[1.5rem] px-5 py-5 sm:px-6"
                 key={section.title}
               >
-                <h2 className="text-xl font-semibold text-[#ecedf6]">{section.title}</h2>
-                <div className="mt-3 space-y-3 text-sm leading-7 text-[#b7bac6]">
+                <h2 className="text-xl font-semibold text-[var(--forge-text)]">{section.title}</h2>
+                <div className="mt-3 space-y-3 text-sm leading-7 text-[var(--forge-muted)]">
                   {section.body.map((paragraph) => (
                     <p key={paragraph}>{paragraph}</p>
                   ))}
@@ -69,7 +73,7 @@ export function LegalPage({ eyebrow, intro, lastUpdated, sections, title }: Lega
           </div>
         </article>
 
-        <footer className="mt-auto flex flex-col gap-5 py-8 text-[#8f94a3]">
+        <footer className="mt-auto flex flex-col gap-5 py-8 text-[var(--forge-muted)]">
           <LegalFooterLinks />
           <p className="text-xs uppercase tracking-[0.2em]">© 2026 Argos Intelligence. All rights reserved.</p>
         </footer>
