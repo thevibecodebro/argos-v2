@@ -107,6 +107,61 @@ function analysisStateLabel(status: string | null | undefined) {
   return "Analysis pending";
 }
 
+export function getCallMediaState({
+  hasRecording,
+  hasTranscript,
+  status,
+}: {
+  hasRecording: boolean;
+  hasTranscript: boolean;
+  status: string | null | undefined;
+}) {
+  const normalized = status?.toLowerCase();
+
+  if (normalized === "failed") {
+    return {
+      description: "Analysis failed before this call could be prepared for review.",
+      icon: "warning",
+      title: "Processing failed",
+      tone: "danger" as const,
+    };
+  }
+
+  if (normalized === "processing" || normalized === "transcribing" || normalized === "evaluating") {
+    return {
+      description: "Argos is still preparing the transcript, scorecard, and coaching moments.",
+      icon: "pending",
+      title: "Processing call",
+      tone: "gold" as const,
+    };
+  }
+
+  if (!hasRecording) {
+    return {
+      description: "Attach or process a recording before audio playback can be offered here.",
+      icon: "cloud_off",
+      title: "Recording unavailable",
+      tone: "muted" as const,
+    };
+  }
+
+  if (!hasTranscript) {
+    return {
+      description: "Recording exists, but transcript data is not available in this review panel yet.",
+      icon: "subject",
+      title: "Transcript unavailable",
+      tone: "ember" as const,
+    };
+  }
+
+  return {
+    description: "Recording and transcript data are linked. Playback is unavailable in this review panel.",
+    icon: "graphic_eq",
+    title: "Review data ready",
+    tone: "success" as const,
+  };
+}
+
 function initials(speaker: string) {
   return speaker
     .split(" ")
@@ -150,6 +205,16 @@ export function CallDetailPanel({
   const ringOffset = circumference - (Math.max(0, Math.min(100, overallScore)) / 100) * circumference;
   const hasRecording = Boolean(call.recordingUrl);
   const hasTranscript = Boolean(call.transcriptUrl || (call.transcript ?? []).length);
+  const mediaState = getCallMediaState({
+    hasRecording,
+    hasTranscript,
+    status: call.status,
+  });
+  const mediaAnnounce = call.status === "failed"
+    ? "assertive"
+    : call.status === "processing" || call.status === "transcribing" || call.status === "evaluating"
+      ? "polite"
+      : "off";
   const busyAnnouncement = isSubmitting
     ? "Saving coaching note."
     : isLoadingGeneratePreview
@@ -463,15 +528,16 @@ export function CallDetailPanel({
               <div className="w-full rounded-2xl border border-[var(--forge-border)] bg-[rgba(5,4,3,0.58)] p-4 shadow-[0_18px_60px_rgba(0,0,0,0.24)] backdrop-blur-sm sm:p-5">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2 font-[var(--font-display)] text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-gold)]">
-                      <ForgeIcon name={hasRecording ? "graphic_eq" : "cloud_off"} size={16} />
-                      <span>{hasRecording ? "Recording linked" : "No recording linked"}</span>
-                    </div>
-                    <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--forge-muted)]">
+                    <ForgeStatusPanel
+                      announce={mediaAnnounce}
+                      className="px-4 py-5"
+                      description={mediaState.description}
+                      icon={mediaState.icon}
+                      title={mediaState.title}
+                      tone={mediaState.tone}
+                    />
+                    <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--forge-muted)]">
                       Playback is not available in this review panel.
-                      {hasRecording
-                        ? " Use the transcript, moments, and scorecard below for review."
-                        : " Attach or process a recording before audio playback can be offered here."}
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs sm:min-w-64">

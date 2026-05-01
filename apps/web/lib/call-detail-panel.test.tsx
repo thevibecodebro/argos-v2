@@ -123,6 +123,31 @@ const baseCall: CallDetail = {
 };
 
 describe("CallDetailPanel", () => {
+  it("classifies explicit media and analysis states", async () => {
+    const { getCallMediaState } = await import("../components/call-detail-panel");
+
+    expect(getCallMediaState({ hasRecording: false, hasTranscript: false, status: "complete" })).toMatchObject({
+      title: "Recording unavailable",
+      tone: "muted",
+    });
+    expect(getCallMediaState({ hasRecording: true, hasTranscript: false, status: "complete" })).toMatchObject({
+      title: "Transcript unavailable",
+      tone: "ember",
+    });
+    expect(getCallMediaState({ hasRecording: true, hasTranscript: true, status: "complete" })).toMatchObject({
+      title: "Review data ready",
+      tone: "success",
+    });
+    expect(getCallMediaState({ hasRecording: true, hasTranscript: true, status: "processing" })).toMatchObject({
+      title: "Processing call",
+      tone: "gold",
+    });
+    expect(getCallMediaState({ hasRecording: true, hasTranscript: false, status: "failed" })).toMatchObject({
+      title: "Processing failed",
+      tone: "danger",
+    });
+  });
+
   it("renders Generate Roleplay for completed calls", async () => {
     const html = await renderCallDetailPanel();
 
@@ -197,7 +222,7 @@ describe("CallDetailPanel", () => {
   it("renders honest media status when no recording is linked", async () => {
     const html = await renderCallDetailPanel();
 
-    expect(html).toContain("No recording linked");
+    expect(html).toContain("Recording unavailable");
     expect(html).toContain("Playback is not available in this review panel.");
     expect(html).toContain("Status");
     expect(html).toContain("Analysis complete");
@@ -220,7 +245,7 @@ describe("CallDetailPanel", () => {
       },
     });
 
-    expect(html).toContain("Recording linked");
+    expect(html).toContain("Review data ready");
     expect(html).toContain("Playback is not available in this review panel.");
     expect(html).toContain("Transcript linked");
     expect(html).not.toContain(">play_arrow</span>");

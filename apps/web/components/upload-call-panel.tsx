@@ -37,6 +37,52 @@ export function getUploadedCallHref(callId: string) {
   return `/calls/${callId}`;
 }
 
+export function getUploadStatusCopy({
+  error,
+  hasFile,
+  isUploading,
+  progress,
+}: {
+  error: string | null;
+  hasFile: boolean;
+  isUploading: boolean;
+  progress: number;
+}) {
+  if (error) {
+    return {
+      description: error,
+      icon: "warning",
+      title: "Upload failed",
+      tone: "danger" as const,
+    };
+  }
+
+  if (isUploading) {
+    return {
+      description: getUploadProgressLabel(progress),
+      icon: progress < 100 ? "upload" : "query_stats",
+      title: progress < 100 ? "Uploading recording" : "Analyzing call",
+      tone: "gold" as const,
+    };
+  }
+
+  if (hasFile) {
+    return {
+      description: "Ready to upload and analyze this call.",
+      icon: "check_circle",
+      title: "Ready for analysis",
+      tone: "success" as const,
+    };
+  }
+
+  return {
+    description: "Choose a recording before analysis can start.",
+    icon: "info",
+    title: "Recording required",
+    tone: "muted" as const,
+  };
+}
+
 export function canSelectUploadFile({
   hasFile,
   isUploading,
@@ -105,6 +151,12 @@ export function UploadCallPanel() {
     ? "Choose a recording before analysis can start."
     : "Ready to upload and analyze this call.";
   const progressLabel = getUploadProgressLabel(progress);
+  const uploadStatusCopy = getUploadStatusCopy({
+    error,
+    hasFile: Boolean(file),
+    isUploading,
+    progress,
+  });
   const canSelectFile = canSelectUploadFile({ hasFile: Boolean(file), isUploading });
 
   function openFilePicker() {
@@ -264,36 +316,29 @@ export function UploadCallPanel() {
           />
         </label>
 
-        {isUploading ? (
-          <ForgeStatusPanel
-            announce="polite"
-            description={progressLabel}
-            icon={progress < 100 ? "upload" : "query_stats"}
-            title={progress < 100 ? "Uploading recording" : "Analyzing call"}
-            tone="gold"
-          >
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.22em] text-[var(--forge-muted)]">
-                <span>{progress < 100 ? "Upload progress" : "Analysis starting"}</span>
-                <span>{progress}%</span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-[var(--forge-surface-3)]">
-                <div className="h-full rounded-full bg-[var(--forge-gold)] transition-all" style={{ width: `${progress}%` }} />
-              </div>
-            </div>
-          </ForgeStatusPanel>
+        {error ? (
+          <ForgeErrorState description={uploadStatusCopy.description} title={uploadStatusCopy.title} />
         ) : (
           <ForgeStatusPanel
-            description={disabledReason}
-            icon={file ? "check_circle" : "info"}
-            title={file ? "Ready for analysis" : "Recording required"}
-            tone={file ? "success" : "muted"}
-          />
+            announce={isUploading ? "polite" : "off"}
+            description={uploadStatusCopy.description}
+            icon={uploadStatusCopy.icon}
+            title={uploadStatusCopy.title}
+            tone={uploadStatusCopy.tone}
+          >
+            {isUploading ? (
+              <div className="space-y-2" data-upload-state={progress < 100 ? "uploading" : "analyzing"}>
+                <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.22em] text-[var(--forge-muted)]">
+                  <span>{progress < 100 ? "Upload progress" : "Analysis starting"}</span>
+                  <span>{progress}%</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-[var(--forge-surface-3)]">
+                  <div className="h-full rounded-full bg-[var(--forge-gold)] transition-all" style={{ width: `${progress}%` }} />
+                </div>
+              </div>
+            ) : null}
+          </ForgeStatusPanel>
         )}
-
-        {error ? (
-          <ForgeErrorState description={error} title="Upload failed" />
-        ) : null}
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap gap-2">

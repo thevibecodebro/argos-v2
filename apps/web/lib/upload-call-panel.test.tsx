@@ -8,6 +8,7 @@ import {
   canSelectUploadFile,
   formatBytes,
   getUploadProgressLabel,
+  getUploadStatusCopy,
   getUploadedCallHref,
 } from "../components/upload-call-panel";
 import { validateUploadFile } from "../lib/calls/upload-contract";
@@ -64,6 +65,26 @@ describe("UploadCallPanel forge step flow", () => {
     expect(formatBytes(12 * 1024 * 1024)).toBe("12.0 MB");
     expect(getUploadProgressLabel(80)).toContain("Keep this page open");
     expect(getUploadProgressLabel(100)).toContain("preparing the scorecard");
+    expect(getUploadStatusCopy({ error: null, hasFile: false, isUploading: false, progress: 0 })).toMatchObject({
+      title: "Recording required",
+      tone: "muted",
+    });
+    expect(getUploadStatusCopy({ error: null, hasFile: true, isUploading: false, progress: 0 })).toMatchObject({
+      title: "Ready for analysis",
+      tone: "success",
+    });
+    expect(getUploadStatusCopy({ error: null, hasFile: true, isUploading: true, progress: 60 })).toMatchObject({
+      title: "Uploading recording",
+      tone: "gold",
+    });
+    expect(getUploadStatusCopy({ error: null, hasFile: true, isUploading: true, progress: 100 })).toMatchObject({
+      title: "Analyzing call",
+      tone: "gold",
+    });
+    expect(getUploadStatusCopy({ error: "Network failed", hasFile: true, isUploading: false, progress: 0 })).toMatchObject({
+      title: "Upload failed",
+      tone: "danger",
+    });
     expect(getUploadedCallHref("call-123")).toBe("/calls/call-123");
   });
 
