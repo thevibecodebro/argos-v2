@@ -17,6 +17,8 @@ import {
   ForgeSegmentedTabs,
   ForgeSidePanelShell,
   ForgeSkeleton,
+  ForgeScoreMeter,
+  ForgeStatCard,
   ForgeStatusPanel,
   ForgeSurface,
   ForgeTableShell,
@@ -151,6 +153,36 @@ describe("forge primitives", () => {
     expect(html).toContain("font-variant-numeric:tabular-nums");
     expect(html).toContain("Processing");
     expect(html).toContain("+4.2");
+  });
+
+  it("provides shared stat cards and score meters", () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        "div",
+        null,
+        createElement(ForgeStatCard, {
+          description: "Average across completed calls.",
+          icon: "monitoring",
+          label: "Average score",
+          tone: "success",
+          value: "91",
+        }),
+        createElement(ForgeScoreMeter, {
+          label: "Average score meter",
+          showValue: true,
+          tone: "success",
+          value: 91,
+        }),
+      ),
+    );
+
+    expect(html).toContain('data-forge-stat-card="success"');
+    expect(html).toContain('data-forge-score-meter="success"');
+    expect(html).toContain('role="progressbar"');
+    expect(html).toContain('aria-label="Average score meter"');
+    expect(html).toContain('aria-valuenow="91"');
+    expect(html).toContain('aria-valuetext="91 out of 100"');
+    expect(html).toContain("Average across completed calls.");
   });
 
   it("provides empty, action bar, table, and skeleton patterns", () => {

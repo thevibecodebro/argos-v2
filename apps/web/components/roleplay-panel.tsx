@@ -10,8 +10,11 @@ import {
   type RoleplaySession,
 } from "@/lib/roleplay/types";
 import {
+  ForgeChip,
   ForgeErrorState,
   ForgeIcon,
+  ForgeScoreMeter,
+  ForgeStatCard,
   ForgeSegmentedTab,
   ForgeSegmentedTabs,
   ForgeStatusPanel,
@@ -50,22 +53,18 @@ function labelCallStage(value: string | undefined) {
 }
 
 function difficultyBadge(difficulty: string) {
-  if (difficulty === "advanced") return "bg-[#ff716c]/10 text-[#ff716c]";
+  if (difficulty === "advanced") return "bg-[var(--forge-danger)]/10 text-[var(--forge-danger)]";
   if (difficulty === "intermediate") return "bg-[var(--forge-gold)]/10 text-[var(--forge-gold)]";
   return "bg-[var(--forge-cyan)]/10 text-[var(--forge-cyan)]";
 }
 
-function scoreColor(score: number) {
-  if (score >= 80) return "text-[var(--forge-cyan)]";
-  if (score >= 65) return "text-[var(--forge-gold)]";
-  return "text-[#ff716c]";
+function roleplayScoreTone(score: number | null | undefined) {
+  if (typeof score !== "number") return "muted";
+  if (score >= 80) return "cyan";
+  if (score >= 65) return "gold";
+  return "danger";
 }
 
-function scoreBarColor(score: number) {
-  if (score >= 80) return "bg-[var(--forge-cyan)]";
-  if (score >= 65) return "bg-[var(--forge-gold)]";
-  return "bg-[#ff716c]";
-}
 
 function parseRealtimeEvent(rawEvent: string): RoleplayMessage | null {
   try {
@@ -590,7 +589,7 @@ export function RoleplayPanel({
             <div className="flex items-start gap-3 sm:items-center sm:gap-4">
               <div className="relative">
                 {activeSession?.status === "active" && (
-                  <span className="absolute -right-1 -top-1 h-2 w-2 animate-pulse rounded-full bg-[#ff716c]" />
+                  <span className="absolute -right-1 -top-1 h-2 w-2 animate-pulse rounded-full bg-[var(--forge-danger)]" />
                 )}
                 <ForgeIcon className="text-[var(--forge-gold)]" name="psychology" size={20} />
               </div>
@@ -621,7 +620,7 @@ export function RoleplayPanel({
                 <button
                   aria-label={isVoiceActive ? "Stop voice practice" : "Start voice practice"}
                   className={`flex min-h-10 items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
-                    isVoiceActive ? "bg-[#ff716c]/20 text-[#ff716c]" : "bg-[var(--forge-gold)] text-[#170d07]"
+                    isVoiceActive ? "bg-[var(--forge-danger)]/20 text-[var(--forge-danger)]" : "bg-[var(--forge-gold)] text-[var(--forge-bg)]"
                   }`}
                   disabled={isVoiceControlDisabled}
                   onClick={() => isVoiceActive ? stopVoicePractice() : void startVoicePractice()}
@@ -770,7 +769,7 @@ export function RoleplayPanel({
             </div>
             <button
               aria-label="End and score current session"
-              className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-5 font-extrabold text-[#170d07] shadow-lg transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 sm:h-20 sm:w-auto sm:min-w-[7.5rem] sm:flex-col sm:gap-1 sm:px-6"
+              className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-5 font-extrabold text-[var(--forge-bg)] shadow-lg transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 sm:h-20 sm:w-auto sm:min-w-[7.5rem] sm:flex-col sm:gap-1 sm:px-6"
               disabled={!activeSession || activeSession.status === "complete" || isMutating}
               onClick={() => void completeSession()}
               title="End and score current session"
@@ -795,42 +794,50 @@ export function RoleplayPanel({
           <div className="space-y-5">
             {activeSessionWithScorecard ? (
               <div className="space-y-4">
-                <div className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-4">
-                  <p className="font-['Space_Grotesk'] text-3xl font-bold text-[var(--forge-text)]">
-                    {activeSessionWithScorecard.overallScore ?? "—"}
-                  </p>
-                  {activeScorecard?.rubricName ? (
-                    <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-[var(--forge-gold)]">
-                      {activeScorecard.rubricName}
-                      {activeScorecard.rubricVersion != null
-                        ? ` · v${activeScorecard.rubricVersion}`
-                        : ""}
-                    </p>
-                  ) : null}
-                  <p className="mt-2 text-sm leading-relaxed text-[var(--forge-muted)]">{activeScorecard?.summary}</p>
-                </div>
+                <ForgeStatCard
+                  className="px-4 py-4"
+                  description={activeScorecard?.summary}
+                  label="Overall score"
+                  tone={roleplayScoreTone(activeSessionWithScorecard.overallScore)}
+                  value={activeSessionWithScorecard.overallScore ?? "—"}
+                />
+                {activeScorecard?.rubricName ? (
+                  <ForgeChip tone="gold">
+                    {activeScorecard.rubricName}
+                    {activeScorecard.rubricVersion != null
+                      ? ` · v${activeScorecard.rubricVersion}`
+                      : ""}
+                  </ForgeChip>
+                ) : null}
 
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3">
-                    <p className="font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-widest text-[var(--forge-muted)]">Confidence</p>
-                    <p className="mt-1 text-sm font-semibold capitalize text-[var(--forge-text)]">{activeScorecard?.confidence}</p>
-                  </div>
-                  <div className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3">
-                    <p className="font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-widest text-[var(--forge-muted)]">Stage</p>
-                    <p className="mt-1 text-sm font-semibold text-[var(--forge-text)]">{activeScorecard ? labelCallStage(activeScorecard.callStageReached) : "—"}</p>
-                  </div>
+                  <ForgeStatCard
+                    className="px-4 py-3"
+                    valueSize="compact"
+                    label="Confidence"
+                    tone="muted"
+                    value={activeScorecard?.confidence ?? "—"}
+                  />
+                  <ForgeStatCard
+                    className="px-4 py-3"
+                    valueSize="compact"
+                    label="Stage"
+                    tone="gold"
+                    value={activeScorecard ? labelCallStage(activeScorecard.callStageReached) : "—"}
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   {Object.entries(activeScorecard?.categoryScores ?? {}).map(([cat, val]) => (
-                    <div className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3" key={cat}>
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--forge-muted)]">
-                        {activeScorecard?.categoryLabels?.[cat]
-                          ?? ROLEPLAY_CATEGORY_LABELS[cat as keyof typeof ROLEPLAY_CATEGORY_LABELS]
-                          ?? cat}
-                      </p>
-                      <p className="mt-1 text-lg font-bold text-[var(--forge-text)]">{val ?? "—"}</p>
-                    </div>
+                    <ForgeStatCard
+                      className="px-4 py-3"
+                      key={cat}
+                      label={activeScorecard?.categoryLabels?.[cat]
+                        ?? ROLEPLAY_CATEGORY_LABELS[cat as keyof typeof ROLEPLAY_CATEGORY_LABELS]
+                        ?? cat}
+                      tone={roleplayScoreTone(val)}
+                      value={val ?? "—"}
+                    />
                   ))}
                 </div>
 
@@ -849,34 +856,22 @@ export function RoleplayPanel({
                 </div>
               </div>
             ) : (
-              <div className="rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/45 p-4 text-center">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-3)] text-[var(--forge-muted)]">
-                  <ForgeIcon name="query_stats" size={24} />
-                </div>
-                <p className="font-bold text-[var(--forge-text)]">
-                  {activeSession ? "Waiting for session completion..." : "Select a scenario to begin scoring."}
-                </p>
-                <p className="mt-2 text-xs leading-5 text-[var(--forge-muted)]">
-                  {activeSession
-                    ? "Complete the current roleplay to generate your performance analytics and improvement tips."
-                    : "Start a simulation from the left rail. Scoring, readiness, and next actions appear here."}
-                </p>
-                <div className="mt-6 w-full space-y-3">
-                  <div className="h-12 w-full animate-pulse rounded-lg bg-[var(--forge-surface)]" />
-                  <div className="h-24 w-full animate-pulse rounded-lg bg-[var(--forge-surface)]" />
-                </div>
-              </div>
+              <ForgeStatusPanel
+                description={activeSession
+                  ? "Complete the current roleplay to generate your performance analytics and improvement tips."
+                  : "Start a simulation from the left rail. Scoring, readiness, and next actions appear here."}
+                icon="query_stats"
+                title={activeSession ? "Waiting for session completion..." : "Select a scenario to begin scoring."}
+                tone="muted"
+              />
             )}
 
-            <div className="rounded-2xl border border-[#c4dcfd]/20 bg-gradient-to-br from-[#314863]/20 to-[var(--forge-surface-2)] p-5">
-              <div className="mb-3 flex items-center gap-2">
-                <ForgeIcon className="text-[#c4dcfd]" name="lightbulb" size={14} />
-                <span className="font-['Space_Grotesk'] text-[10px] font-bold uppercase tracking-widest text-[#c4dcfd]">Pro Tip</span>
-              </div>
-              <p className="text-xs italic leading-relaxed text-[var(--forge-muted)]">
-                &ldquo;When handling time-sensitive objections, acknowledge the constraint immediately before proposing a phased solution. It builds trust faster.&rdquo;
-              </p>
-            </div>
+            <ForgeStatusPanel
+              description="When handling time-sensitive objections, acknowledge the constraint immediately before proposing a phased solution. It builds trust faster."
+              icon="lightbulb"
+              title="Practice tip"
+              tone="cyan"
+            />
           </div>
         </ForgeWorkspaceRail>
       </ForgeWorkspaceLayout>
@@ -905,7 +900,14 @@ export function RoleplayPanel({
                       </p>
                       <p className="text-xs text-[var(--forge-muted)]">{getSessionPersonaLabel(session)}</p>
                     </div>
-                    <span className={`shrink-0 font-bold ${scoreColor(score)}`}>{score}%</span>
+                    <ForgeScoreMeter
+                      className="w-28 shrink-0"
+                      label="Session score"
+                      showValue
+                      tone={roleplayScoreTone(score)}
+                      value={score}
+                      valueSuffix="%"
+                    />
                   </div>
                   {isGeneratedSession(session) && (
                     <span className="mt-3 inline-flex rounded-full border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/10 px-2.5 py-1 font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.18em] text-[var(--forge-gold)]">
@@ -956,12 +958,14 @@ export function RoleplayPanel({
                       </td>
                       <td className="px-6 py-4 text-[var(--forge-muted)]">{getSessionPersonaLabel(session)}</td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <div className="h-1.5 w-16 overflow-hidden rounded-full bg-[var(--forge-surface-3)]">
-                            <div className={`h-full ${scoreBarColor(score)}`} style={{ width: `${score}%` }} />
-                          </div>
-                          <span className={`font-bold ${scoreColor(score)}`}>{score}%</span>
-                        </div>
+                        <ForgeScoreMeter
+                          className="w-28"
+                          label="Session score"
+                          showValue
+                          tone={roleplayScoreTone(score)}
+                          value={score}
+                          valueSuffix="%"
+                        />
                       </td>
                       <td className="px-6 py-4 text-[var(--forge-muted)]">{formatDuration(session)}</td>
                       <td className="px-6 py-4 text-[var(--forge-muted)]">{formatDate(session.createdAt)}</td>

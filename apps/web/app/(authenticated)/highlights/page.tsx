@@ -3,6 +3,8 @@ import {
   ForgeChip,
   ForgeEmptyState,
   ForgeIcon,
+  ForgeScoreMeter,
+  ForgeStatCard,
   ForgeSurface,
 } from "@/components/forge";
 import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
@@ -41,33 +43,30 @@ export default async function HighlightsPage() {
         title="Coaching evidence"
       >
         <section className="grid gap-4 md:grid-cols-3" data-highlights-status-band="">
-          <ForgeSurface as="article" className="p-5" variant="panel">
-            <p className="font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-muted)]">
-              Captured moments
-            </p>
-            <p className="mt-3 text-3xl font-semibold text-[var(--forge-text)]">{highlights.length}</p>
-            <p className="mt-2 text-sm text-[var(--forge-muted)]">Saved from reviewed calls.</p>
-          </ForgeSurface>
-          <ForgeSurface as="article" className="p-5" variant="panel">
-            <p className="font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-muted)]">
-              Top pattern
-            </p>
-            <p className="mt-3 truncate text-2xl font-semibold text-[var(--forge-text)]">
-              {topCategory ?? "None yet"}
-            </p>
-            <p className="mt-2 text-sm text-[var(--forge-muted)]">Most frequent category in the library.</p>
-          </ForgeSurface>
-          <ForgeSurface as="article" className="p-5" variant="panel">
-            <p className="font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-muted)]">
-              Recommendation coverage
-            </p>
-            <p className="mt-3 text-3xl font-semibold text-[var(--forge-text)]">
-              {completeness !== null ? `${completeness}%` : "—"}
-            </p>
-            <p className="mt-2 text-sm text-[var(--forge-muted)]">
-              {withRecommendation} with next-step guidance.
-            </p>
-          </ForgeSurface>
+          <ForgeStatCard
+            description="Saved from reviewed calls."
+            icon="auto_awesome"
+            label="Captured moments"
+            tone="gold"
+            value={highlights.length}
+            variant="panel"
+          />
+          <ForgeStatCard
+            description="Most frequent category in the library."
+            icon="insights"
+            label="Top pattern"
+            tone="cyan"
+            value={topCategory ?? "None yet"}
+            variant="panel"
+          />
+          <ForgeStatCard
+            description={`${withRecommendation} with next-step guidance.`}
+            icon="task_alt"
+            label="Recommendation coverage"
+            tone={completeness !== null && completeness >= 80 ? "success" : "gold"}
+            value={completeness !== null ? `${completeness}%` : "—"}
+            variant="panel"
+          />
         </section>
 
         <section className="space-y-4" data-highlights-library="">
@@ -205,14 +204,12 @@ export default async function HighlightsPage() {
                   : "No highlights to analyze yet. Start starring moments from call detail pages."}
               </p>
             </div>
-            <div className="mt-6 h-1.5 w-full overflow-hidden rounded-full bg-[var(--forge-depth)]">
-              <div
-                className="h-full rounded-full bg-[var(--forge-gold)] shadow-[0_0_8px_rgba(241, 191, 123,0.5)] transition-all"
-                style={{
-                  width: completeness !== null ? `${completeness}%` : "0%",
-                }}
-              />
-            </div>
+            <ForgeScoreMeter
+              className="mt-6"
+              label="Recommendation coverage"
+              tone={completeness !== null && completeness >= 80 ? "success" : "gold"}
+              value={completeness}
+            />
           </ForgeSurface>
         </div>
       </PageFrame>

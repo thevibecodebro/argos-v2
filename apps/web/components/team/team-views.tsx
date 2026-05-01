@@ -1,6 +1,13 @@
 import Link from "next/link";
 import { cn } from "@argos-v2/ui";
-import { ForgeIcon } from "@/components/forge";
+import {
+  ForgeChip,
+  ForgeEmptyState,
+  ForgeIcon,
+  ForgeScoreMeter,
+  ForgeStatCard,
+  type ForgeTone,
+} from "@/components/forge";
 import type {
   ManagerDashboard,
   RepBadges,
@@ -363,12 +370,11 @@ export function TeamRepProfileView({
                       {Math.round(category.avgScore)}
                     </span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-[var(--forge-surface-3)]">
-                    <div
-                      className={cn("h-full rounded-full", scoreBarTone(category.avgScore))}
-                      style={{ width: `${Math.max(6, Math.min(category.avgScore, 100))}%` }}
-                    />
-                  </div>
+                  <ForgeScoreMeter
+                    label={`${category.category} average score`}
+                    tone={toForgeTone(scoreTone(category.avgScore))}
+                    value={category.avgScore}
+                  />
                 </div>
               ))}
             </div>
@@ -519,20 +525,15 @@ function HighlightStat({
   value: number | string;
 }) {
   return (
-    <article className={cn(insetPanelClass, "p-4 sm:p-5")}>
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-2">
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">{label}</p>
-          <p className={cn("text-3xl font-semibold tracking-tight font-[var(--font-display)]", toneTextClass(tone))}>
-            {value}
-          </p>
-        </div>
-        <div className={cn("rounded-2xl border p-2.5", toneIconClass(tone))}>
-          <ForgeIcon name={icon} size={20} />
-        </div>
-      </div>
-      <p className="mt-4 text-sm leading-6 text-[var(--forge-muted)]">{description}</p>
-    </article>
+    <ForgeStatCard
+      className="p-4 sm:p-5"
+      description={description}
+      icon={icon}
+      label={label}
+      tone={toForgeTone(tone)}
+      value={value}
+      variant="inset"
+    />
   );
 }
 
@@ -550,20 +551,15 @@ function MetricPanel({
   value: number | string;
 }) {
   return (
-    <article className={cn(shellPanelClass, "p-5")}>
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-2">
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">{label}</p>
-          <p className={cn("text-3xl font-semibold tracking-tight font-[var(--font-display)]", toneTextClass(tone))}>
-            {value}
-          </p>
-        </div>
-        <div className={cn("rounded-2xl border p-2.5", toneIconClass(tone))}>
-          <ForgeIcon name={icon} size={20} />
-        </div>
-      </div>
-      <p className="mt-4 text-sm leading-6 text-[var(--forge-muted)]">{description}</p>
-    </article>
+    <ForgeStatCard
+      className="p-5"
+      description={description}
+      icon={icon}
+      label={label}
+      tone={toForgeTone(tone)}
+      value={value}
+      variant="panel"
+    />
   );
 }
 
@@ -575,10 +571,14 @@ function CompactMetric({
   value: number | string;
 }) {
   return (
-    <div className={cn(insetPanelClass, "p-3")}>
-      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">{label}</p>
-      <p className="mt-2 text-lg font-semibold text-[var(--forge-text)]">{value}</p>
-    </div>
+    <ForgeStatCard
+      className="p-3"
+      label={label}
+      tone="muted"
+      value={value}
+      valueSize="compact"
+      variant="inset"
+    />
   );
 }
 
@@ -592,12 +592,13 @@ function ScoreMetric({ score }: { score: number | null }) {
 }
 
 function ScoreMeter({ score }: { score: number | null }) {
-  const width = typeof score === "number" ? `${Math.max(8, Math.min(score, 100))}%` : "22%";
-
   return (
-    <div className="h-1.5 overflow-hidden rounded-full bg-[var(--forge-surface-3)]">
-      <div className={cn("h-full rounded-full", scoreBarTone(score))} style={{ width }} />
-    </div>
+    <ForgeScoreMeter
+      className="w-24"
+      label="Rep average score"
+      tone={toForgeTone(scoreTone(score))}
+      value={score}
+    />
   );
 }
 
@@ -682,13 +683,12 @@ function EmptyState({
   title: string;
 }) {
   return (
-    <div className="px-6 py-12 text-center">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface-2)]/45 text-[var(--forge-gold)]">
-        <ForgeIcon name={icon} size={22} />
-      </div>
-      <p className="mt-4 text-lg font-semibold text-[var(--forge-text)]">{title}</p>
-      <p className="mx-auto mt-2 max-w-lg text-sm leading-7 text-[var(--forge-muted)]">{body}</p>
-    </div>
+    <ForgeEmptyState
+      className="px-6 py-12"
+      description={body}
+      icon={icon}
+      title={title}
+    />
   );
 }
 
@@ -702,12 +702,12 @@ function EmptyInsetState({
   icon: string;
 }) {
   return (
-    <div className={cn(insetPanelClass, "flex flex-col items-center justify-center gap-3 px-5 py-8 text-center", className)}>
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface-2)]/45 text-[var(--forge-gold)]">
-        <ForgeIcon name={icon} size={20} />
-      </div>
-      <p className="max-w-sm text-sm leading-7 text-[var(--forge-muted)]">{body}</p>
-    </div>
+    <ForgeEmptyState
+      className={cn("px-5 py-8", className)}
+      description={body}
+      icon={icon}
+      title="No data yet"
+    />
   );
 }
 
@@ -751,9 +751,9 @@ function StatusChip({
   tone: Tone;
 }) {
   return (
-    <span className={cn("rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]", toneChipClass(tone))}>
+    <ForgeChip className="px-2.5 py-1 text-[10px] tracking-[0.18em]" tone={toForgeTone(tone)}>
       {label}
-    </span>
+    </ForgeChip>
   );
 }
 
@@ -814,7 +814,11 @@ function deltaTrackLeft(value: number | null | undefined) {
   return 50 + clamped * 2;
 }
 
-type Tone = "cyan" | "ember" | "gold" | "muted" | "red" | "success";
+type Tone = ForgeTone | "red";
+
+function toForgeTone(tone: Tone): ForgeTone {
+  return tone === "red" ? "danger" : tone;
+}
 
 function scoreTone(value: number | null | undefined): Tone {
   if (typeof value !== "number") return "muted";
@@ -843,24 +847,6 @@ function toneTextClass(tone: Tone) {
   if (tone === "muted") return "text-[var(--forge-text)]";
   if (tone === "cyan") return "text-[var(--forge-cyan)]";
   return "text-[var(--forge-gold)]";
-}
-
-function toneIconClass(tone: Tone) {
-  if (tone === "success") return "border-[rgba(139,215,168,0.24)] bg-[rgba(139,215,168,0.1)] text-[var(--forge-success)]";
-  if (tone === "ember") return "border-[rgba(255,159,95,0.26)] bg-[rgba(255,159,95,0.1)] text-[var(--forge-ember)]";
-  if (tone === "red") return "border-[rgba(255,113,108,0.24)] bg-[rgba(255,113,108,0.1)] text-[var(--forge-danger)]";
-  if (tone === "muted") return "border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface-2)]/45 text-[var(--forge-muted)]";
-  if (tone === "cyan") return "border-[var(--forge-cyan)]/20 bg-[var(--forge-cyan)]/10 text-[var(--forge-cyan)]";
-  return "border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/10 text-[var(--forge-gold)]";
-}
-
-function toneChipClass(tone: Tone) {
-  if (tone === "success") return "border-[rgba(139,215,168,0.24)] bg-[rgba(139,215,168,0.1)] text-[var(--forge-success)]";
-  if (tone === "ember") return "border-[rgba(255,159,95,0.26)] bg-[rgba(255,159,95,0.1)] text-[var(--forge-ember)]";
-  if (tone === "red") return "border-[rgba(255,113,108,0.24)] bg-[rgba(255,113,108,0.1)] text-[var(--forge-danger)]";
-  if (tone === "muted") return "border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface-2)]/45 text-[var(--forge-muted)]";
-  if (tone === "cyan") return "border-[var(--forge-cyan)]/20 bg-[var(--forge-cyan)]/10 text-[var(--forge-cyan)]";
-  return "border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/10 text-[var(--forge-gold)]";
 }
 
 function scoreTextTone(value: number | null | undefined) {

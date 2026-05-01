@@ -10,7 +10,9 @@ import {
   ForgeErrorState,
   ForgeIcon,
   ForgeSegmentedTab,
+  ForgeScoreMeter,
   ForgeSegmentedTabs,
+  ForgeStatCard,
   ForgeStatusPanel,
   ForgeSurface,
 } from "@/components/forge";
@@ -43,28 +45,24 @@ function formatDate(value: string) {
 function scoreTint(value: number | null | undefined) {
   if (typeof value !== "number") {
     return {
-      bar: "bg-[rgba(255,244,230,0.18)]",
       text: "text-[var(--forge-muted)]",
       tone: "muted" as const,
     };
   }
   if (value >= 85) {
     return {
-      bar: "bg-[var(--forge-cyan)] shadow-[0_0_14px_rgba(136,218,247,0.22)]",
       text: "text-[var(--forge-cyan)]",
       tone: "cyan" as const,
     };
   }
   if (value >= 70) {
     return {
-      bar: "bg-[rgba(136,218,247,0.72)]",
       text: "text-[rgba(136,218,247,0.84)]",
       tone: "cyan" as const,
     };
   }
   if (value >= 60) {
     return {
-      bar: "bg-[var(--forge-gold)]",
       text: "text-[var(--forge-gold)]",
       tone: "gold" as const,
     };
@@ -92,10 +90,6 @@ function statusTone(status: string | null | undefined): "danger" | "ember" | "mu
   return "muted";
 }
 
-function progressWidth(value: number | null | undefined) {
-  if (typeof value !== "number") return 18;
-  return Math.max(8, Math.min(100, value));
-}
 
 function analysisStateLabel(status: string | null | undefined) {
   const normalized = status?.toLowerCase();
@@ -471,17 +465,13 @@ export function CallDetailPanel({
                     <span className="min-w-0 truncate text-sm font-medium text-[var(--forge-text)]">
                       {category.name}
                     </span>
-                    <div className="flex items-center gap-3">
-                      <div className="h-1.5 w-28 overflow-hidden rounded-full bg-[rgba(255,244,230,0.08)] sm:w-32">
-                        <div
-                          className={`h-full rounded-full ${tint.bar}`}
-                          style={{ width: `${progressWidth(category.score)}%` }}
-                        />
-                      </div>
-                      <span className={`w-7 text-right text-xs font-bold ${tint.text}`}>
-                        {category.score ?? "-"}
-                      </span>
-                    </div>
+                    <ForgeScoreMeter
+                      className="w-40 sm:w-48"
+                      label={`${category.name} score`}
+                      showValue
+                      tone={tint.tone}
+                      value={category.score}
+                    />
                   </div>
                 );
               })}
@@ -541,36 +531,34 @@ export function CallDetailPanel({
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs sm:min-w-64">
-                    <div className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-2">
-                      <p className="font-[var(--font-display)] font-bold uppercase tracking-[0.14em] text-[var(--forge-muted)]">
-                        Duration
-                      </p>
-                      <p className="mt-1 font-semibold text-[var(--forge-text)]">
-                        {call.durationSeconds != null ? formatTimestamp(call.durationSeconds) : "No duration"}
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-2">
-                      <p className="font-[var(--font-display)] font-bold uppercase tracking-[0.14em] text-[var(--forge-muted)]">
-                        Transcript
-                      </p>
-                      <p className="mt-1 font-semibold text-[var(--forge-text)]">
-                        {hasTranscript ? "Transcript linked" : "Transcript pending"}
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-2">
-                      <p className="font-[var(--font-display)] font-bold uppercase tracking-[0.14em] text-[var(--forge-muted)]">
-                        Status
-                      </p>
-                      <p className="mt-1 font-semibold text-[var(--forge-text)]">{call.status ?? "Unknown"}</p>
-                    </div>
-                    <div className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-2">
-                      <p className="font-[var(--font-display)] font-bold uppercase tracking-[0.14em] text-[var(--forge-muted)]">
-                        Analysis
-                      </p>
-                      <p className="mt-1 font-semibold text-[var(--forge-text)]">
-                        {analysisStateLabel(call.status)}
-                      </p>
-                    </div>
+                    <ForgeStatCard
+                      className="px-3 py-2"
+                      valueSize="compact"
+                      label="Duration"
+                      tone="muted"
+                      value={call.durationSeconds != null ? formatTimestamp(call.durationSeconds) : "No duration"}
+                    />
+                    <ForgeStatCard
+                      className="px-3 py-2"
+                      valueSize="compact"
+                      label="Transcript"
+                      tone={hasTranscript ? "success" : "muted"}
+                      value={hasTranscript ? "Transcript linked" : "Transcript pending"}
+                    />
+                    <ForgeStatCard
+                      className="px-3 py-2"
+                      valueSize="compact"
+                      label="Status"
+                      tone={statusTone(call.status)}
+                      value={call.status ?? "Unknown"}
+                    />
+                    <ForgeStatCard
+                      className="px-3 py-2"
+                      valueSize="compact"
+                      label="Analysis"
+                      tone={statusTone(call.status)}
+                      value={analysisStateLabel(call.status)}
+                    />
                   </div>
                 </div>
               </div>
