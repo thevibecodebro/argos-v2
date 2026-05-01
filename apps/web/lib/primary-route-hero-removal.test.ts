@@ -467,7 +467,9 @@ describe("primary route hero removal", () => {
   it("wraps the training route in the standard authenticated content canvas", async () => {
     const trainingHtml = await renderRoute(TrainingPage());
 
-    expect(trainingHtml).toContain('class="px-12 pb-12 pt-8 flex-1 max-w-7xl mx-auto w-full"');
+    expect(trainingHtml).toContain('data-authenticated-page-container="standard"');
+    expect(trainingHtml).toContain("px-4 py-6 sm:px-6 lg:px-8");
+    expect(trainingHtml).toContain("max-w-7xl");
     expect(trainingHtml).toContain("Training panel marker");
   });
 
@@ -477,9 +479,13 @@ describe("primary route hero removal", () => {
       renderRoute(LeaderboardPage()),
     ]);
 
-    expect(teamHtml).toContain('class="px-12 pb-12 pt-8 flex-1 max-w-7xl mx-auto w-full"');
+    expect(teamHtml).toContain('data-authenticated-page-container="standard"');
+    expect(teamHtml).toContain("px-4 py-6 sm:px-6 lg:px-8");
+    expect(teamHtml).toContain("max-w-7xl");
     expect(teamHtml).toContain("Team roster marker");
-    expect(leaderboardHtml).toContain('class="px-12 pb-12 pt-8 flex-1 max-w-7xl mx-auto w-full"');
+    expect(leaderboardHtml).toContain('data-authenticated-page-container="standard"');
+    expect(leaderboardHtml).toContain("px-4 py-6 sm:px-6 lg:px-8");
+    expect(leaderboardHtml).toContain("max-w-7xl");
     expect(leaderboardHtml).toContain("Open team view");
   });
 

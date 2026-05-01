@@ -17,6 +17,8 @@ import {
   ForgeSegmentedTabs,
   ForgeSidePanelShell,
   ForgeSkeleton,
+  ForgeScoreMeter,
+  ForgeStatCard,
   ForgeStatusPanel,
   ForgeSurface,
   ForgeTableShell,
@@ -87,6 +89,7 @@ describe("forge primitives", () => {
     expect(html).not.toContain(">cloud_upload<");
     expect(html).not.toContain(">not_in_subset_yet<");
     expect(html).not.toContain('data-forge-icon-codepoint="e887"');
+    expect(html).not.toContain('role="status"');
   });
 
   it("uses a known-present icon codepoint as the unknown fallback", () => {
@@ -142,9 +145,44 @@ describe("forge primitives", () => {
 
     expect(html).toContain('data-forge-chip="cyan"');
     expect(html).toContain('data-forge-metric="cyan"');
+    expect(html).toContain("<dl");
+    expect(html).toContain("<dt");
+    expect(html).toContain("<dd");
+    expect(html).toContain('<dt class="forge-metric-label">Team score</dt>');
+    expect(html).toContain('<dt class="sr-only">Team score change</dt>');
     expect(html).toContain("font-variant-numeric:tabular-nums");
     expect(html).toContain("Processing");
     expect(html).toContain("+4.2");
+  });
+
+  it("provides shared stat cards and score meters", () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        "div",
+        null,
+        createElement(ForgeStatCard, {
+          description: "Average across completed calls.",
+          icon: "monitoring",
+          label: "Average score",
+          tone: "success",
+          value: "91",
+        }),
+        createElement(ForgeScoreMeter, {
+          label: "Average score meter",
+          showValue: true,
+          tone: "success",
+          value: 91,
+        }),
+      ),
+    );
+
+    expect(html).toContain('data-forge-stat-card="success"');
+    expect(html).toContain('data-forge-score-meter="success"');
+    expect(html).toContain('role="progressbar"');
+    expect(html).toContain('aria-label="Average score meter"');
+    expect(html).toContain('aria-valuenow="91"');
+    expect(html).toContain('aria-valuetext="91 out of 100"');
+    expect(html).toContain("Average across completed calls.");
   });
 
   it("provides empty, action bar, table, and skeleton patterns", () => {
@@ -160,7 +198,7 @@ describe("forge primitives", () => {
           icon: "attach_file",
           title: "No calls yet",
         }),
-        createElement(ForgeSkeleton, { lines: 3 }),
+        createElement(ForgeSkeleton, { label: "Loading calls", lines: 3 }),
       ),
     );
 
@@ -168,6 +206,9 @@ describe("forge primitives", () => {
     expect(html).toContain('data-forge-table="true"');
     expect(html).toContain('data-forge-empty-state="true"');
     expect(html).toContain('aria-busy="true"');
+    expect(html).toContain('role="status"');
+    expect(html).toContain('aria-label="Loading calls"');
+    expect(html).toContain("Loading calls");
     expect(html).toContain("No calls yet");
     expect(html).toContain('href="/upload"');
   });
@@ -183,6 +224,7 @@ describe("forge primitives", () => {
           icon: "pending",
           tone: "cyan",
           title: "Processing call",
+          announce: "polite",
         }),
         createElement(ForgeErrorState, {
           action: { href: "/upload", label: "Try again" },
@@ -220,7 +262,11 @@ describe("forge primitives", () => {
     );
 
     expect(html).toContain('data-forge-status-panel="cyan"');
+    expect(html).toContain('role="status"');
+    expect(html).toContain('aria-live="polite"');
     expect(html).toContain('data-forge-error-state="true"');
+    expect(html).toContain('role="alert"');
+    expect(html).toContain('aria-live="assertive"');
     expect(html).toContain('data-forge-segmented-tabs="true"');
     expect(html).toContain('data-forge-segmented-tab-active="true"');
     expect(html).toContain('data-forge-readiness-panel="success"');

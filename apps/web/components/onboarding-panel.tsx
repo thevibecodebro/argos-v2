@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ForgeErrorState, ForgeStatusPanel } from "@/components/forge";
 
 type Step = "choose" | "create" | "join" | "invite";
 
@@ -84,6 +85,7 @@ export function OnboardingPanel() {
     }
 
     if (onSuccess) {
+      setIsMutating(false);
       onSuccess();
     } else {
       router.push(ONBOARDING_ENDPOINTS.dashboard);
@@ -101,8 +103,21 @@ export function OnboardingPanel() {
     setTeamsLoaded(true);
   }
 
+  const onboardingStatusMessage = isMutating
+    ? step === "create"
+      ? "Creating organization."
+      : step === "join"
+        ? "Joining organization."
+        : step === "invite"
+          ? "Sending invite."
+          : "Updating onboarding."
+    : "";
+
   return (
     <div className="w-full">
+      <div aria-live="polite" className="sr-only" role="status">
+        {onboardingStatusMessage}
+      </div>
       {step === "choose" ? (
         <div className="grid gap-4 md:grid-cols-2">
           <button
@@ -173,9 +188,15 @@ export function OnboardingPanel() {
             </label>
           </div>
 
-          {error ? <p className="mt-4 text-sm text-[var(--forge-danger)]">{error}</p> : null}
+          {error ? (
+            <ForgeErrorState
+              className="mt-4 px-4 py-5"
+              description={error}
+              title="Onboarding update failed"
+            />
+          ) : null}
 
-          <div className="mt-6 flex gap-3">
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <button
               className={onboardingSecondaryButtonClass}
               onClick={() => {
@@ -220,9 +241,15 @@ export function OnboardingPanel() {
             </label>
           </div>
 
-          {error ? <p className="mt-4 text-sm text-[var(--forge-danger)]">{error}</p> : null}
+          {error ? (
+            <ForgeErrorState
+              className="mt-4 px-4 py-5"
+              description={error}
+              title="Onboarding update failed"
+            />
+          ) : null}
 
-          <div className="mt-6 flex gap-3">
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <button
               className={onboardingSecondaryButtonClass}
               onClick={() => {
@@ -316,10 +343,25 @@ export function OnboardingPanel() {
             ) : null}
           </div>
 
-          {error ? <p className="mt-4 text-sm text-[var(--forge-danger)]">{error}</p> : null}
-          {inviteSuccess ? <p className="mt-4 text-sm text-[var(--forge-success)]">{inviteSuccess}</p> : null}
+          {error ? (
+            <ForgeErrorState
+              className="mt-4 px-4 py-5"
+              description={error}
+              title="Onboarding update failed"
+            />
+          ) : null}
+          {inviteSuccess ? (
+            <ForgeStatusPanel
+              announce="polite"
+              className="mt-4 px-4 py-5"
+              description={inviteSuccess}
+              icon="mark_email_read"
+              title="Invite sent"
+              tone="success"
+            />
+          ) : null}
 
-          <div className="mt-6 flex gap-3">
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <button
               className={onboardingPrimaryButtonClass}
               disabled={!inviteEmail.trim() || isMutating}

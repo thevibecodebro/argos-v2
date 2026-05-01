@@ -7,9 +7,13 @@ import {
   ForgeButton,
   ForgeChip,
   ForgeEmptyState,
+  ForgeErrorState,
   ForgeIcon,
   ForgeSegmentedTab,
+  ForgeScoreMeter,
   ForgeSegmentedTabs,
+  ForgeStatCard,
+  ForgeStatusPanel,
   ForgeSurface,
 } from "@/components/forge";
 import { HighlightNote } from "@/components/highlight-note";
@@ -41,28 +45,24 @@ function formatDate(value: string) {
 function scoreTint(value: number | null | undefined) {
   if (typeof value !== "number") {
     return {
-      bar: "bg-[rgba(255,244,230,0.18)]",
       text: "text-[var(--forge-muted)]",
       tone: "muted" as const,
     };
   }
   if (value >= 85) {
     return {
-      bar: "bg-[var(--forge-cyan)] shadow-[0_0_14px_rgba(136,218,247,0.22)]",
       text: "text-[var(--forge-cyan)]",
       tone: "cyan" as const,
     };
   }
   if (value >= 70) {
     return {
-      bar: "bg-[rgba(136,218,247,0.72)]",
       text: "text-[rgba(136,218,247,0.84)]",
       tone: "cyan" as const,
     };
   }
   if (value >= 60) {
     return {
-      bar: "bg-[var(--forge-gold)]",
       text: "text-[var(--forge-gold)]",
       tone: "gold" as const,
     };
@@ -90,10 +90,6 @@ function statusTone(status: string | null | undefined): "danger" | "ember" | "mu
   return "muted";
 }
 
-function progressWidth(value: number | null | undefined) {
-  if (typeof value !== "number") return 18;
-  return Math.max(8, Math.min(100, value));
-}
 
 function analysisStateLabel(status: string | null | undefined) {
   const normalized = status?.toLowerCase();
@@ -103,6 +99,61 @@ function analysisStateLabel(status: string | null | undefined) {
     return "Analysis processing";
   }
   return "Analysis pending";
+}
+
+export function getCallMediaState({
+  hasRecording,
+  hasTranscript,
+  status,
+}: {
+  hasRecording: boolean;
+  hasTranscript: boolean;
+  status: string | null | undefined;
+}) {
+  const normalized = status?.toLowerCase();
+
+  if (normalized === "failed") {
+    return {
+      description: "Analysis failed before this call could be prepared for review.",
+      icon: "warning",
+      title: "Processing failed",
+      tone: "danger" as const,
+    };
+  }
+
+  if (normalized === "processing" || normalized === "transcribing" || normalized === "evaluating") {
+    return {
+      description: "Argos is still preparing the transcript, scorecard, and coaching moments.",
+      icon: "pending",
+      title: "Processing call",
+      tone: "gold" as const,
+    };
+  }
+
+  if (!hasRecording) {
+    return {
+      description: "Attach or process a recording before audio playback can be offered here.",
+      icon: "cloud_off",
+      title: "Recording unavailable",
+      tone: "muted" as const,
+    };
+  }
+
+  if (!hasTranscript) {
+    return {
+      description: "Recording exists, but transcript data is not available in this review panel yet.",
+      icon: "subject",
+      title: "Transcript unavailable",
+      tone: "ember" as const,
+    };
+  }
+
+  return {
+    description: "Recording and transcript data are linked. Playback is unavailable in this review panel.",
+    icon: "graphic_eq",
+    title: "Review data ready",
+    tone: "success" as const,
+  };
 }
 
 function initials(speaker: string) {
@@ -148,6 +199,27 @@ export function CallDetailPanel({
   const ringOffset = circumference - (Math.max(0, Math.min(100, overallScore)) / 100) * circumference;
   const hasRecording = Boolean(call.recordingUrl);
   const hasTranscript = Boolean(call.transcriptUrl || (call.transcript ?? []).length);
+  const mediaState = getCallMediaState({
+    hasRecording,
+    hasTranscript,
+    status: call.status,
+  });
+  const mediaAnnounce = call.status === "failed"
+    ? "assertive"
+    : call.status === "processing" || call.status === "transcribing" || call.status === "evaluating"
+      ? "polite"
+      : "off";
+  const busyAnnouncement = isSubmitting
+    ? "Saving coaching note."
+    : isLoadingGeneratePreview
+      ? "Preparing roleplay scenario."
+      : isGeneratingRoleplay
+        ? "Generating roleplay session."
+        : noteActionMomentId
+          ? "Updating highlight note."
+          : highlightActionMomentId
+            ? "Updating highlighted moment."
+            : "";
 
   async function submitAnnotation() {
     if (!note.trim()) {
@@ -334,6 +406,9 @@ export function CallDetailPanel({
 
   return (
     <>
+      <div aria-live="polite" className="sr-only" role="status">
+        {busyAnnouncement}
+      </div>
       <div className="grid grid-cols-12 gap-5 xl:gap-6" data-call-detail-panel="forge-review-bench">
         <div className="col-span-12 space-y-5 lg:col-span-5">
           <ForgeSurface className="p-5 sm:p-6">
@@ -390,17 +465,13 @@ export function CallDetailPanel({
                     <span className="min-w-0 truncate text-sm font-medium text-[var(--forge-text)]">
                       {category.name}
                     </span>
-                    <div className="flex items-center gap-3">
-                      <div className="h-1.5 w-28 overflow-hidden rounded-full bg-[rgba(255,244,230,0.08)] sm:w-32">
-                        <div
-                          className={`h-full rounded-full ${tint.bar}`}
-                          style={{ width: `${progressWidth(category.score)}%` }}
-                        />
-                      </div>
-                      <span className={`w-7 text-right text-xs font-bold ${tint.text}`}>
-                        {category.score ?? "-"}
-                      </span>
-                    </div>
+                    <ForgeScoreMeter
+                      className="w-40 sm:w-48"
+                      label={`${category.name} score`}
+                      showValue
+                      tone={tint.tone}
+                      value={category.score}
+                    />
                   </div>
                 );
               })}
@@ -447,48 +518,47 @@ export function CallDetailPanel({
               <div className="w-full rounded-2xl border border-[var(--forge-border)] bg-[rgba(5,4,3,0.58)] p-4 shadow-[0_18px_60px_rgba(0,0,0,0.24)] backdrop-blur-sm sm:p-5">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2 font-[var(--font-display)] text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-gold)]">
-                      <ForgeIcon name={hasRecording ? "graphic_eq" : "cloud_off"} size={16} />
-                      <span>{hasRecording ? "Recording linked" : "No recording linked"}</span>
-                    </div>
-                    <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--forge-muted)]">
+                    <ForgeStatusPanel
+                      announce={mediaAnnounce}
+                      className="px-4 py-5"
+                      description={mediaState.description}
+                      icon={mediaState.icon}
+                      title={mediaState.title}
+                      tone={mediaState.tone}
+                    />
+                    <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--forge-muted)]">
                       Playback is not available in this review panel.
-                      {hasRecording
-                        ? " Use the transcript, moments, and scorecard below for review."
-                        : " Attach or process a recording before audio playback can be offered here."}
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs sm:min-w-64">
-                    <div className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-2">
-                      <p className="font-[var(--font-display)] font-bold uppercase tracking-[0.14em] text-[var(--forge-muted)]">
-                        Duration
-                      </p>
-                      <p className="mt-1 font-semibold text-[var(--forge-text)]">
-                        {call.durationSeconds != null ? formatTimestamp(call.durationSeconds) : "No duration"}
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-2">
-                      <p className="font-[var(--font-display)] font-bold uppercase tracking-[0.14em] text-[var(--forge-muted)]">
-                        Transcript
-                      </p>
-                      <p className="mt-1 font-semibold text-[var(--forge-text)]">
-                        {hasTranscript ? "Transcript linked" : "Transcript pending"}
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-2">
-                      <p className="font-[var(--font-display)] font-bold uppercase tracking-[0.14em] text-[var(--forge-muted)]">
-                        Status
-                      </p>
-                      <p className="mt-1 font-semibold text-[var(--forge-text)]">{call.status ?? "Unknown"}</p>
-                    </div>
-                    <div className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-2">
-                      <p className="font-[var(--font-display)] font-bold uppercase tracking-[0.14em] text-[var(--forge-muted)]">
-                        Analysis
-                      </p>
-                      <p className="mt-1 font-semibold text-[var(--forge-text)]">
-                        {analysisStateLabel(call.status)}
-                      </p>
-                    </div>
+                    <ForgeStatCard
+                      className="px-3 py-2"
+                      valueSize="compact"
+                      label="Duration"
+                      tone="muted"
+                      value={call.durationSeconds != null ? formatTimestamp(call.durationSeconds) : "No duration"}
+                    />
+                    <ForgeStatCard
+                      className="px-3 py-2"
+                      valueSize="compact"
+                      label="Transcript"
+                      tone={hasTranscript ? "success" : "muted"}
+                      value={hasTranscript ? "Transcript linked" : "Transcript pending"}
+                    />
+                    <ForgeStatCard
+                      className="px-3 py-2"
+                      valueSize="compact"
+                      label="Status"
+                      tone={statusTone(call.status)}
+                      value={call.status ?? "Unknown"}
+                    />
+                    <ForgeStatCard
+                      className="px-3 py-2"
+                      valueSize="compact"
+                      label="Analysis"
+                      tone={statusTone(call.status)}
+                      value={analysisStateLabel(call.status)}
+                    />
                   </div>
                 </div>
               </div>
@@ -724,29 +794,24 @@ export function CallDetailPanel({
 
               <div className={activeWorkbenchTab === "notes" ? "space-y-6" : "hidden space-y-6"}>
                 <ForgeSurface className="p-4" variant="inset">
+                  <label
+                    className="block font-[var(--font-display)] text-[0.65rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-muted)]"
+                    htmlFor="call-coaching-note"
+                  >
+                    Coaching note
+                  </label>
                   <textarea
-                    className="min-h-[120px] w-full resize-none border-none bg-transparent text-sm text-[var(--forge-text)] outline-none placeholder:text-[rgba(255,244,230,0.38)] focus:ring-0"
+                    aria-describedby="call-coaching-note-help"
+                    className="mt-2 min-h-[120px] w-full resize-none border-none bg-transparent text-sm text-[var(--forge-text)] outline-none placeholder:text-[rgba(255,244,230,0.38)] focus:ring-0"
+                    id="call-coaching-note"
                     onChange={(event) => setNote(event.target.value)}
                     placeholder="Add a coaching observation..."
                     value={note}
                   />
-                  <div className="mt-3 flex items-center justify-between border-t border-[var(--forge-border)] pt-3">
-                    <div className="flex gap-2">
-                      <button
-                        aria-label="Attach file"
-                        className="rounded p-1.5 text-[var(--forge-muted)] transition hover:bg-[rgba(255,244,230,0.05)]"
-                        type="button"
-                      >
-                        <ForgeIcon name="attach_file" size={16} />
-                      </button>
-                      <button
-                        aria-label="Mention teammate"
-                        className="rounded p-1.5 text-[var(--forge-muted)] transition hover:bg-[rgba(255,244,230,0.05)]"
-                        type="button"
-                      >
-                        <ForgeIcon name="alternate_email" size={16} />
-                      </button>
-                    </div>
+                  <div className="mt-3 flex flex-col gap-3 border-t border-[var(--forge-border)] pt-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-xs leading-5 text-[var(--forge-muted)]" id="call-coaching-note-help">
+                      Add a plain-text coaching note for this call.
+                    </p>
                     <ForgeButton
                       disabled={isSubmitting || !note.trim()}
                       onClick={() => {
@@ -833,9 +898,14 @@ export function CallDetailPanel({
       >
         <div className="space-y-4">
           {isLoadingGeneratePreview ? (
-            <ForgeSurface className="px-4 py-5 text-sm text-[var(--forge-muted)]" variant="inset">
-              Preparing anonymized scenario preview...
-            </ForgeSurface>
+            <ForgeStatusPanel
+              announce="polite"
+              className="px-4 py-5"
+              description="Preparing anonymized scenario preview..."
+              icon="pending"
+              title="Preparing scenario"
+              tone="cyan"
+            />
           ) : generatePreview ? (
             <>
               <ForgeSurface className="px-4 py-5" variant="inset">
@@ -866,9 +936,7 @@ export function CallDetailPanel({
           ) : null}
 
           {generateError ? (
-            <div className="rounded-xl border border-[rgba(255,113,108,0.26)] bg-[rgba(255,113,108,0.09)] px-4 py-3 text-sm text-[var(--forge-danger)]">
-              {generateError}
-            </div>
+            <ForgeErrorState description={generateError} title="Roleplay generation failed" />
           ) : null}
         </div>
       </ForgeDialog>

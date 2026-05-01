@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
 import { ForgeButton, ForgeChip, ForgeIcon, ForgeSurface } from "@/components/forge";
 import { CallDetailPanel } from "@/components/page-panel-loaders";
 import {
@@ -35,9 +36,9 @@ export default async function CallDetailPage({
   const topic = call.callTopic ?? "Untitled call";
 
   return (
-    <div
-      className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8"
+    <AuthenticatedPageContainer
       data-call-detail-shell="forge-review-bench"
+      size="wide"
     >
       <ForgeSurface className="mb-6 p-4 sm:p-5">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
@@ -87,6 +88,6 @@ export default async function CallDetailPage({
         call={call}
         canManage={profile?.role === "admin" || profile?.role === "manager" || profile?.role === "executive"}
       />
-    </div>
+    </AuthenticatedPageContainer>
   );
 }

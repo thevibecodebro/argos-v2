@@ -13,6 +13,7 @@ import {
   ForgeSkeleton,
   ForgeSurface,
 } from "@/components/forge";
+import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
 import { CallsFilters } from "./calls-filters";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -48,7 +49,7 @@ export default async function CallsPage({
     activeSort !== "createdAt:desc";
 
   return (
-    <div className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6 lg:px-8">
+    <AuthenticatedPageContainer size="wide">
       <div className="space-y-5" data-calls-surface="forge-ledger">
         <ForgeSurface className="p-4 sm:p-5">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -381,7 +382,7 @@ export default async function CallsPage({
           </div>
         </section>
       </div>
-    </div>
+    </AuthenticatedPageContainer>
   );
 }
 

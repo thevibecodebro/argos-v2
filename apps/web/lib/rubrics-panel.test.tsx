@@ -186,6 +186,11 @@ describe("RubricsPanel", () => {
     expect(html).toContain("Import CSV");
     expect(html).toContain("Import JSON");
     expect(html).toContain("Preview Import");
+    expect(html).toContain('aria-label="Import CSV rubric file"');
+    expect(rubricsPanelSource).toContain('setRubricRequestStatus("prepare")');
+    expect(rubricsPanelSource).toContain('setRubricRequestStatus("publish")');
+    expect(rubricsPanelSource).toContain("Preparing rubric draft.");
+    expect(rubricsPanelSource).toContain("Publishing rubric draft.");
     expect(html).toContain("Publish Draft");
     expect(html).not.toContain("Review Draft");
     expect(html).toContain("Version History");

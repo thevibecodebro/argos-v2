@@ -504,6 +504,18 @@ export function TeamsPanel({
     );
   }
 
+  const pendingStatusMessage = pendingKey
+    ? pendingKey === "create-team"
+      ? "Creating team."
+      : pendingKey.startsWith("save:")
+        ? "Saving team."
+        : pendingKey.startsWith("add:")
+          ? "Adding team member."
+          : pendingKey.startsWith("remove:")
+            ? "Removing team member."
+            : "Updating team."
+    : "";
+
   const teamControls = (
     <ForgeWorkspaceRail
       collapsible
@@ -613,15 +625,29 @@ export function TeamsPanel({
           </span>
         </div>
 
+        <div aria-live="polite" className="sr-only" role="status">
+          {pendingStatusMessage}
+        </div>
+
         {error ? (
-          <div className="mt-4 rounded-xl border border-[rgba(255,113,108,0.26)] bg-[rgba(255,113,108,0.1)] px-4 py-3 text-sm text-[var(--forge-danger)]">
-            {error}
-          </div>
+          <ForgeStatusPanel
+            announce="assertive"
+            className="mt-4"
+            description={error}
+            icon="warning"
+            title="Team update failed"
+            tone="danger"
+          />
         ) : null}
         {notice ? (
-          <div className="mt-4 rounded-xl border border-[rgba(139,215,168,0.24)] bg-[rgba(139,215,168,0.1)] px-4 py-3 text-sm text-[var(--forge-success)]">
-            {notice}
-          </div>
+          <ForgeStatusPanel
+            announce="polite"
+            className="mt-4"
+            description={notice}
+            icon="check_circle"
+            title="Team updated"
+            tone="success"
+          />
         ) : null}
 
         {!selectedTeam || !selectedDraft ? (

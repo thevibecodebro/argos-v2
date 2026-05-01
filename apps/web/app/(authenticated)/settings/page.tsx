@@ -1,7 +1,7 @@
 // apps/web/app/(authenticated)/settings/page.tsx
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ForgeIcon, ForgeSettingsGroup } from "@/components/forge";
+import { ForgeErrorState, ForgeIcon, ForgeSettingsGroup } from "@/components/forge";
 import { PageFrame } from "@/components/page-frame";
 import { AccountPanel } from "@/components/page-panel-loaders";
 import {
@@ -68,9 +68,10 @@ export default async function SettingsAccountPage() {
         title="Account"
         tone="warning"
       >
-        <section className="rounded-[1.75rem] border border-[rgba(255,159,95,0.22)] bg-[rgba(255,159,95,0.06)] p-6 text-sm leading-7 text-[var(--forge-ember)]">
-          {result?.error ?? "Unable to load settings."}
-        </section>
+        <ForgeErrorState
+          description={result?.error ?? "Unable to load settings."}
+          title="Settings unavailable"
+        />
       </PageFrame>
     );
   }

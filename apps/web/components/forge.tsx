@@ -55,6 +55,28 @@ type ForgeMetricProps = {
   value: string | number;
 };
 
+type ForgeStatCardProps = {
+  className?: string;
+  description?: string;
+  icon?: string;
+  label: string;
+  tone?: ForgeTone;
+  value: React.ReactNode;
+  valueSize?: "standard" | "compact";
+  variant?: ForgeSurfaceVariant;
+};
+
+type ForgeScoreMeterProps = {
+  className?: string;
+  label: string;
+  max?: number;
+  minVisiblePercent?: number;
+  showValue?: boolean;
+  tone?: ForgeTone;
+  value: number | null | undefined;
+  valueSuffix?: string;
+};
+
 type ForgeEmptyStateProps = {
   action?: ForgeAction;
   className?: string;
@@ -65,6 +87,7 @@ type ForgeEmptyStateProps = {
 
 type ForgeSkeletonProps = {
   className?: string;
+  label?: string;
   lines?: number;
 };
 
@@ -90,8 +113,11 @@ type ForgeSidePanelShellProps = {
   title: string;
 };
 
+type ForgeStatusAnnouncement = "off" | "polite" | "assertive";
+
 type ForgeStatusPanelProps = Omit<React.HTMLAttributes<HTMLElement>, "title"> & {
   action?: ForgeAction;
+  announce?: ForgeStatusAnnouncement;
   children?: React.ReactNode;
   className?: string;
   description?: string;
@@ -282,17 +308,155 @@ export function ForgeMetric({
 }: ForgeMetricProps) {
   return (
     <ForgeSurface className={cn("p-4", className)} data-forge-metric={tone} variant="inset">
-      <div className="flex items-start justify-between gap-3">
+      <dl className="flex items-start justify-between gap-3">
         <div>
-          <p className={cn("forge-metric-value", `forge-metric-value--${tone}`)} style={{ fontVariantNumeric: "tabular-nums" }}>
+          <dt className="forge-metric-label">{label}</dt>
+          <dd
+            className={cn("forge-metric-value", `forge-metric-value--${tone}`)}
+            style={{ fontVariantNumeric: "tabular-nums" }}
+          >
             {value}
-          </p>
-          <p className="forge-metric-label">{label}</p>
+          </dd>
         </div>
-        {delta ? <ForgeChip tone={tone}>{delta}</ForgeChip> : null}
-      </div>
+        {delta ? (
+          <div>
+            <dt className="sr-only">{label} change</dt>
+            <dd>
+              <ForgeChip tone={tone}>{delta}</ForgeChip>
+            </dd>
+          </div>
+        ) : null}
+      </dl>
       {description ? <p className="mt-3 text-sm leading-6 text-[var(--forge-muted)]">{description}</p> : null}
     </ForgeSurface>
+  );
+}
+
+function forgeToneTextClass(tone: ForgeTone) {
+  if (tone === "success") return "text-[var(--forge-success)]";
+  if (tone === "danger") return "text-[var(--forge-danger)]";
+  if (tone === "ember") return "text-[var(--forge-ember)]";
+  if (tone === "cyan") return "text-[var(--forge-cyan)]";
+  if (tone === "muted") return "text-[var(--forge-text)]";
+  return "text-[var(--forge-gold)]";
+}
+
+function forgeToneBarClass(tone: ForgeTone) {
+  if (tone === "success") return "bg-[var(--forge-success)]";
+  if (tone === "danger") return "bg-[var(--forge-danger)]";
+  if (tone === "ember") return "bg-[var(--forge-ember)]";
+  if (tone === "cyan") return "bg-[var(--forge-cyan)]";
+  if (tone === "muted") return "bg-[rgba(255,244,230,0.18)]";
+  return "bg-[var(--forge-gold)]";
+}
+
+function forgeToneIconClass(tone: ForgeTone) {
+  if (tone === "success") return "border-[rgba(139,215,168,0.24)] bg-[rgba(139,215,168,0.1)] text-[var(--forge-success)]";
+  if (tone === "danger") return "border-[rgba(255,113,108,0.24)] bg-[rgba(255,113,108,0.1)] text-[var(--forge-danger)]";
+  if (tone === "ember") return "border-[rgba(255,159,95,0.26)] bg-[rgba(255,159,95,0.1)] text-[var(--forge-ember)]";
+  if (tone === "cyan") return "border-[var(--forge-cyan)]/20 bg-[var(--forge-cyan)]/10 text-[var(--forge-cyan)]";
+  if (tone === "muted") return "border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface-2)]/45 text-[var(--forge-muted)]";
+  return "border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/10 text-[var(--forge-gold)]";
+}
+
+function forgeScoreTone(value: number | null | undefined, tone?: ForgeTone): ForgeTone {
+  if (tone) return tone;
+  if (typeof value !== "number" || !Number.isFinite(value)) return "muted";
+  if (value >= 85) return "success";
+  if (value >= 70) return "gold";
+  if (value >= 60) return "ember";
+  return "danger";
+}
+
+export function ForgeStatCard({
+  className,
+  description,
+  icon,
+  label,
+  tone = "gold",
+  value,
+  valueSize = "standard",
+  variant = "inset",
+}: ForgeStatCardProps) {
+  return (
+    <ForgeSurface
+      as="article"
+      className={cn("forge-stat-card p-4", className)}
+      data-forge-stat-card={tone}
+      variant={variant}
+    >
+      <dl className="flex items-start justify-between gap-4">
+        <div className="min-w-0 space-y-2">
+          <dt className="forge-metric-label">{label}</dt>
+          <dd
+            className={cn("forge-metric-value break-words", forgeToneTextClass(tone))}
+            style={{
+              fontVariantNumeric: "tabular-nums",
+              ...(valueSize === "compact"
+                ? { fontSize: "0.875rem", letterSpacing: "0", lineHeight: 1.35 }
+                : null),
+            }}
+          >
+            {value}
+          </dd>
+        </div>
+        {icon ? (
+          <div className={cn("rounded-2xl border p-2.5", forgeToneIconClass(tone))}>
+            <ForgeIcon name={icon} size={20} />
+          </div>
+        ) : null}
+      </dl>
+      {description ? <p className="mt-4 text-sm leading-6 text-[var(--forge-muted)]">{description}</p> : null}
+    </ForgeSurface>
+  );
+}
+
+export function ForgeScoreMeter({
+  className,
+  label,
+  max = 100,
+  minVisiblePercent = 8,
+  showValue = false,
+  tone,
+  value,
+  valueSuffix = "",
+}: ForgeScoreMeterProps) {
+  const hasValue = typeof value === "number" && Number.isFinite(value);
+  const clampedValue = hasValue ? Math.max(0, Math.min(value, max)) : null;
+  const resolvedTone = forgeScoreTone(clampedValue, tone);
+  const width = hasValue
+    ? Math.max(minVisiblePercent, Math.min(100, ((clampedValue ?? 0) / max) * 100))
+    : minVisiblePercent;
+  const roundedValue = clampedValue === null ? null : Math.round(clampedValue);
+  const displayValue = roundedValue === null ? "—" : `${roundedValue}${valueSuffix}`;
+  const ariaValueText = roundedValue === null
+    ? "No score yet"
+    : valueSuffix === "%"
+      ? displayValue
+      : `${displayValue} out of ${max}`;
+
+  return (
+    <div className={cn("forge-score-meter flex min-w-0 items-center gap-2", className)} data-forge-score-meter={resolvedTone}>
+      <div
+        aria-label={label}
+        aria-valuemax={max}
+        aria-valuemin={0}
+        aria-valuenow={roundedValue ?? undefined}
+        aria-valuetext={ariaValueText}
+        className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-[var(--forge-surface-3)]"
+        role="progressbar"
+      >
+        <div
+          className={cn("h-full rounded-full transition-all", forgeToneBarClass(resolvedTone))}
+          style={{ width: `${width}%` }}
+        />
+      </div>
+      {showValue ? (
+        <span className={cn("w-10 text-right text-sm font-semibold", forgeToneTextClass(resolvedTone))}>
+          {displayValue}
+        </span>
+      ) : null}
+    </div>
   );
 }
 
@@ -331,19 +495,31 @@ export function ForgeEmptyState({
 
 export function ForgeStatusPanel({
   action,
+  announce = "off",
   children,
   className,
   description,
   icon = "lightbulb",
+  role,
   title,
   tone = "muted",
+  "aria-live": ariaLive,
   ...props
 }: ForgeStatusPanelProps) {
+  const announcementProps =
+    announce === "off"
+      ? { "aria-live": ariaLive, role }
+      : {
+          "aria-live": ariaLive ?? announce,
+          role: role ?? (announce === "assertive" ? "alert" : "status"),
+        };
+
   return (
     <ForgeSurface
       className={cn("forge-status-panel px-5 py-6", className)}
       data-forge-status-panel={tone}
       variant="subtle"
+      {...announcementProps}
       {...props}
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -379,6 +555,7 @@ export function ForgeErrorState({
 }: ForgeErrorStateProps) {
   return (
     <ForgeStatusPanel
+      announce="assertive"
       data-forge-error-state="true"
       icon={icon}
       tone="danger"
@@ -418,9 +595,20 @@ export function ForgeTableShell({
   );
 }
 
-export function ForgeSkeleton({ className, lines = 4 }: ForgeSkeletonProps) {
+export function ForgeSkeleton({
+  className,
+  label = "Loading content",
+  lines = 4,
+}: ForgeSkeletonProps) {
   return (
-    <ForgeSurface aria-busy="true" className={cn("p-6", className)} variant="panel">
+    <ForgeSurface
+      aria-busy="true"
+      aria-label={label}
+      className={cn("p-6", className)}
+      role="status"
+      variant="panel"
+    >
+      <span className="sr-only">{label}</span>
       <div className="space-y-4">
         <div className="forge-skeleton-line h-7 w-48" />
         <div className="grid gap-3">

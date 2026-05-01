@@ -8,6 +8,7 @@ describe("LandingPage", () => {
     const html = renderToStaticMarkup(createElement(LandingPage));
 
     expect(html).toContain("argos-3d-page");
+    expect(html).toContain("text-[var(--forge-text)]");
     expect(html).toContain("argos-scene-fallback");
     expect(html).toContain("<h1>Argos</h1>");
     expect(html).toContain("Turn every sales call into the next practice plan.");

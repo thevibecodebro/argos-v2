@@ -4,11 +4,13 @@ import {
   getCachedAuthenticatedSupabaseUser,
   getCachedCurrentUserProfile,
 } from "@/lib/auth/request-user";
+import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
 import {
   ForgeButton,
   ForgeEmptyState as ForgeEmptyStatePrimitive,
   ForgeIcon,
   ForgeMetric,
+  ForgeScoreMeter,
   ForgeWidget,
 } from "@/components/forge";
 import { createDashboardRepository } from "@/lib/dashboard/create-repository";
@@ -34,7 +36,7 @@ export default async function DashboardPage() {
 
   if (!authUser || !profile) {
     return (
-      <div className="px-12 py-8 max-w-7xl mx-auto">
+      <AuthenticatedPageContainer>
         <PageFrame
           tone="warning"
           description="This account is authenticated but is not provisioned inside the Argos app database yet."
@@ -46,7 +48,7 @@ export default async function DashboardPage() {
             title="User record missing"
           />
         </PageFrame>
-      </div>
+      </AuthenticatedPageContainer>
     );
   }
 
@@ -64,7 +66,7 @@ export default async function DashboardPage() {
     ]);
 
   return (
-    <section className="px-12 pb-12 pt-8 flex-1 max-w-7xl mx-auto w-full">
+    <AuthenticatedPageContainer>
       <PageFrame
         description="Review performance, coaching focus, training progress, and workspace activity."
         eyebrow="Operating pulse"
@@ -87,7 +89,7 @@ export default async function DashboardPage() {
           <RepDashboardView badges={badges?.badges ?? []} dashboard={repDashboard} />
         )}
       </PageFrame>
-    </section>
+    </AuthenticatedPageContainer>
   );
 }
 
@@ -679,13 +681,13 @@ function BarRow({ label, tone, value }: { label: string; tone: string; value: nu
   return (
     <div className="flex items-center gap-3">
       <span className="w-36 shrink-0 text-sm text-[var(--forge-muted)]">{label}</span>
-      <div className="h-2 flex-1 overflow-hidden rounded-full bg-[var(--forge-surface-3)]">
-        <div
-          className={`h-full rounded-full ${barColor(tone)}`}
-          style={{ width: `${Math.max(0, Math.min(value ?? 0, 100))}%` }}
-        />
-      </div>
-      <span className={`w-10 text-right text-sm font-semibold ${tone}`}>{value ?? "—"}</span>
+      <ForgeScoreMeter
+        className="flex-1"
+        label={`${label} score`}
+        showValue
+        tone={scoreClassToForgeTone(tone)}
+        value={value}
+      />
     </div>
   );
 }
@@ -709,9 +711,10 @@ function scoreColor(value: number | null | undefined) {
   return "text-[var(--forge-danger)]";
 }
 
-function barColor(tone: string) {
-  if (tone.includes("success")) return "bg-[var(--forge-success)]";
-  if (tone.includes("ember")) return "bg-[var(--forge-ember)]";
-  if (tone.includes("danger")) return "bg-[var(--forge-danger)]";
-  return "bg-[var(--forge-gold)]";
+function scoreClassToForgeTone(tone: string) {
+  if (tone.includes("success")) return "success";
+  if (tone.includes("ember")) return "ember";
+  if (tone.includes("danger")) return "danger";
+  if (tone.includes("cyan")) return "cyan";
+  return "gold";
 }

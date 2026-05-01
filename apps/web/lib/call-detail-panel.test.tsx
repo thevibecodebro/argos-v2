@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -9,6 +10,8 @@ vi.mock("next/navigation", () => ({
     refresh: vi.fn(),
   }),
 }));
+
+const callDetailPanelSource = readFileSync(new URL("../components/call-detail-panel.tsx", import.meta.url), "utf8");
 
 afterEach(() => {
   vi.doUnmock("react");
@@ -120,10 +123,45 @@ const baseCall: CallDetail = {
 };
 
 describe("CallDetailPanel", () => {
+  it("classifies explicit media and analysis states", async () => {
+    const { getCallMediaState } = await import("../components/call-detail-panel");
+
+    expect(getCallMediaState({ hasRecording: false, hasTranscript: false, status: "complete" })).toMatchObject({
+      title: "Recording unavailable",
+      tone: "muted",
+    });
+    expect(getCallMediaState({ hasRecording: true, hasTranscript: false, status: "complete" })).toMatchObject({
+      title: "Transcript unavailable",
+      tone: "ember",
+    });
+    expect(getCallMediaState({ hasRecording: true, hasTranscript: true, status: "complete" })).toMatchObject({
+      title: "Review data ready",
+      tone: "success",
+    });
+    expect(getCallMediaState({ hasRecording: true, hasTranscript: true, status: "processing" })).toMatchObject({
+      title: "Processing call",
+      tone: "gold",
+    });
+    expect(getCallMediaState({ hasRecording: true, hasTranscript: false, status: "failed" })).toMatchObject({
+      title: "Processing failed",
+      tone: "danger",
+    });
+  });
+
   it("renders Generate Roleplay for completed calls", async () => {
     const html = await renderCallDetailPanel();
 
     expect(html).toContain("Generate Roleplay");
+    expect(html).toContain('role="status"');
+    expect(html).toContain('aria-live="polite"');
+  });
+
+  it("announces call detail busy states through a shared live region", () => {
+    expect(callDetailPanelSource).toContain("Saving coaching note.");
+    expect(callDetailPanelSource).toContain("Preparing roleplay scenario.");
+    expect(callDetailPanelSource).toContain("Generating roleplay session.");
+    expect(callDetailPanelSource).toContain("Updating highlight note.");
+    expect(callDetailPanelSource).toContain("Updating highlighted moment.");
   });
 
   it("does not render Generate Roleplay for incomplete calls", async () => {
@@ -149,6 +187,12 @@ describe("CallDetailPanel", () => {
     expect(html).toContain("Save note");
     expect(html).toContain("Remove note");
     expect(html).toContain("Remove highlight");
+    expect(html).toContain("Coaching note");
+    expect(html).toContain('id="call-coaching-note"');
+    expect(html).toContain('aria-describedby="call-coaching-note-help"');
+    expect(html).toContain("Add a plain-text coaching note for this call.");
+    expect(html).not.toContain('aria-label="Attach file"');
+    expect(html).not.toContain('aria-label="Mention teammate"');
   });
 
   it("uses the forge review bench treatment instead of the old blue glass style", async () => {
@@ -178,7 +222,7 @@ describe("CallDetailPanel", () => {
   it("renders honest media status when no recording is linked", async () => {
     const html = await renderCallDetailPanel();
 
-    expect(html).toContain("No recording linked");
+    expect(html).toContain("Recording unavailable");
     expect(html).toContain("Playback is not available in this review panel.");
     expect(html).toContain("Status");
     expect(html).toContain("Analysis complete");
@@ -201,7 +245,7 @@ describe("CallDetailPanel", () => {
       },
     });
 
-    expect(html).toContain("Recording linked");
+    expect(html).toContain("Review data ready");
     expect(html).toContain("Playback is not available in this review panel.");
     expect(html).toContain("Transcript linked");
     expect(html).not.toContain(">play_arrow</span>");

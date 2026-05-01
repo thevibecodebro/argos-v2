@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { AuthenticatedRouteError } from "@/components/authenticated-route-state";
 
-export default function TeamError({
+export default function AuthenticatedError({
   error,
   reset,
 }: {
@@ -16,11 +16,12 @@ export default function TeamError({
 
   return (
     <AuthenticatedRouteError
-      description="Review team performance with week-over-week trend, call volume, and coaching flags."
+      description="The authenticated workspace hit a recoverable rendering error."
       error={error}
-      eyebrow="Team"
+      eyebrow="Sales forge"
       reset={reset}
-      title="Team"
+      size="wide"
+      title="Workspace"
     />
   );
 }

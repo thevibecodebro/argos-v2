@@ -122,7 +122,11 @@ export function TrainingModuleStage({
         </div>
 
         {statusMessage ? (
-          <div className="rounded-xl border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/8 px-4 py-3 text-sm text-[var(--forge-text)]">
+          <div
+            aria-live="polite"
+            className="rounded-xl border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/8 px-4 py-3 text-sm text-[var(--forge-text)]"
+            role="status"
+          >
             {statusMessage}
           </div>
         ) : null}

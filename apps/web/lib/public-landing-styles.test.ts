@@ -15,6 +15,15 @@ describe("public landing styles", () => {
     expect(css).toContain(".argos-reveal-ready [data-reveal]");
     expect(css).toContain(":focus-visible");
     expect(css).toContain(".argos-nav-links a.is-active");
+    expect(css).toContain("--argos-ivory: var(--forge-text);");
+    expect(css).toContain("--argos-gold: var(--forge-gold);");
+    expect(css).toContain('--argos-serif: var(--font-display, "Space Grotesk", sans-serif);');
+    expect(css).toContain("outline: 2px solid var(--forge-gold);");
+    expect(css).toContain("color: var(--forge-text);");
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(css).not.toContain(".auth-page");
+    expect(css).not.toContain(".landing-page");
+    expect(css).not.toContain("#74b1ff");
+    expect(css).not.toContain("#6dddff");
   });
 });
