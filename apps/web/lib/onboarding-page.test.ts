@@ -37,7 +37,8 @@ describe("OnboardingPage", () => {
   });
 
   it("announces auth and onboarding async feedback", () => {
-    expect(onboardingPanelSource).toContain('role="alert"');
+    expect(onboardingPanelSource).toContain("ForgeErrorState");
+    expect(onboardingPanelSource).toContain("ForgeStatusPanel");
     expect(onboardingPanelSource).toContain('role="status"');
     expect(onboardingPanelSource).toContain('aria-live="polite"');
     expect(onboardingPanelSource).toContain("Creating organization.");

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import HomePage from "../app/page";
@@ -10,6 +11,8 @@ function getAriaHiddenSvgClasses(html: string) {
     (match) => match[1],
   );
 }
+
+const loginFormSource = readFileSync(new URL("../components/auth/login-form.tsx", import.meta.url), "utf8");
 
 const { createSupabaseServerClientMock, findInviteByTokenMock } = vi.hoisted(() => ({
   createSupabaseServerClientMock: vi.fn(),
@@ -53,6 +56,9 @@ describe("legacy auth shell", () => {
     expect(html).toContain('href="/security-policy"');
     expect(html).toContain("forge-form-control");
     expect(html).toContain("forge-focus-ring");
+    expect(html).toContain('aria-hidden="true"');
+    expect(loginFormSource).toContain("ForgeStatusPanel");
+    expect(loginFormSource).toContain("ForgeErrorState");
     expect(html).not.toContain("global logistics operations");
     expect(html).not.toContain("Security Protocol");
     expect(html).not.toContain("Terms of Access");

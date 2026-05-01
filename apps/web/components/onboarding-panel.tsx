@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ForgeErrorState, ForgeStatusPanel } from "@/components/forge";
 
 type Step = "choose" | "create" | "join" | "invite";
 
@@ -188,12 +189,14 @@ export function OnboardingPanel() {
           </div>
 
           {error ? (
-            <p className="mt-4 text-sm text-[var(--forge-danger)]" role="alert">
-              {error}
-            </p>
+            <ForgeErrorState
+              className="mt-4 px-4 py-5"
+              description={error}
+              title="Onboarding update failed"
+            />
           ) : null}
 
-          <div className="mt-6 flex gap-3">
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <button
               className={onboardingSecondaryButtonClass}
               onClick={() => {
@@ -239,12 +242,14 @@ export function OnboardingPanel() {
           </div>
 
           {error ? (
-            <p className="mt-4 text-sm text-[var(--forge-danger)]" role="alert">
-              {error}
-            </p>
+            <ForgeErrorState
+              className="mt-4 px-4 py-5"
+              description={error}
+              title="Onboarding update failed"
+            />
           ) : null}
 
-          <div className="mt-6 flex gap-3">
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <button
               className={onboardingSecondaryButtonClass}
               onClick={() => {
@@ -339,17 +344,24 @@ export function OnboardingPanel() {
           </div>
 
           {error ? (
-            <p className="mt-4 text-sm text-[var(--forge-danger)]" role="alert">
-              {error}
-            </p>
+            <ForgeErrorState
+              className="mt-4 px-4 py-5"
+              description={error}
+              title="Onboarding update failed"
+            />
           ) : null}
           {inviteSuccess ? (
-            <p aria-live="polite" className="mt-4 text-sm text-[var(--forge-success)]" role="status">
-              {inviteSuccess}
-            </p>
+            <ForgeStatusPanel
+              announce="polite"
+              className="mt-4 px-4 py-5"
+              description={inviteSuccess}
+              icon="mark_email_read"
+              title="Invite sent"
+              tone="success"
+            />
           ) : null}
 
-          <div className="mt-6 flex gap-3">
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <button
               className={onboardingPrimaryButtonClass}
               disabled={!inviteEmail.trim() || isMutating}

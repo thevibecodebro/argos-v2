@@ -83,7 +83,7 @@ const extraVoicePacks = [
 
 export function LandingPage() {
   return (
-    <div className="argos-3d-page min-h-screen overflow-x-hidden text-[var(--argos-ivory)]" id="top">
+    <div className="argos-3d-page min-h-screen overflow-x-hidden text-[var(--forge-text)]" id="top">
       <ArgosSceneLoader />
       <LandingMotionController />
       <LandingHeader />
