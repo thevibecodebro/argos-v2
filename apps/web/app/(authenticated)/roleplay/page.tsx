@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { RoleplayPanel } from "@/components/page-panel-loaders";
 import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
+import { ForgeErrorState } from "@/components/forge";
 import { getCachedAuthenticatedSupabaseUser } from "@/lib/auth/request-user";
 import { createRoleplayRepository } from "@/lib/roleplay/create-repository";
 import { listRoleplaySessions } from "@/lib/roleplay/service";
@@ -32,10 +33,10 @@ export default async function RoleplayPage({
   if (!result.ok) {
     return (
       <AuthenticatedPageContainer>
-        <section className="mb-8 rounded-2xl border border-[rgba(255,159,95,0.22)] bg-[rgba(255,159,95,0.06)] p-6 text-sm leading-7 text-[var(--forge-ember)]">
-          <p className="font-bold text-[var(--forge-ember)]">Roleplay unavailable</p>
-          <p className="mt-1">{result.error}</p>
-        </section>
+        <ForgeErrorState
+          description={result.error}
+          title="Roleplay unavailable"
+        />
       </AuthenticatedPageContainer>
     );
   }

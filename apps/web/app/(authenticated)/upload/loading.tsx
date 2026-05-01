@@ -3,11 +3,11 @@ import { AuthenticatedRouteLoading } from "@/components/authenticated-route-stat
 export default function Loading() {
   return (
     <AuthenticatedRouteLoading
-      description="Loading team performance, week-over-week trend, call volume, and coaching flags."
-      eyebrow="People operations"
-      lines={5}
+      description="Loading the call upload flow and analysis setup."
+      eyebrow="Capture"
+      lines={3}
       size="standard"
-      title="Team"
+      title="Upload call"
     />
   );
 }

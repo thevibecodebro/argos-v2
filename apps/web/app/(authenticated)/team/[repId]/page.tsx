@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
 import { PageFrame } from "@/components/page-frame";
 import { TeamRepProfileView } from "@/components/team/team-views";
 import {
@@ -41,7 +42,8 @@ export default async function RepProfilePage({
   }
 
   return (
-    <PageFrame
+    <AuthenticatedPageContainer>
+      <PageFrame
       actions={[
         { href: "/team", label: "Back to team" },
         { href: "/calls", label: "Open calls" },
@@ -49,8 +51,9 @@ export default async function RepProfilePage({
       description="Review score trends, focus categories, badges, and recent calls for the selected team member."
       eyebrow="Coaching"
       title="Rep Profile"
-    >
-      <TeamRepProfileView badges={badges} rep={rep} repDashboard={repDashboard} />
-    </PageFrame>
+      >
+        <TeamRepProfileView badges={badges} rep={rep} repDashboard={repDashboard} />
+      </PageFrame>
+    </AuthenticatedPageContainer>
   );
 }

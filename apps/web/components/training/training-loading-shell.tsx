@@ -3,12 +3,15 @@ import { PageFrame } from "@/components/page-frame";
 import { TrainingCourseShell } from "@/components/training/training-course-shell";
 
 function LoadingBlock({ className }: { className: string }) {
-  return <div aria-hidden="true" className={`animate-pulse rounded-full bg-white/10 ${className}`} />;
+  return <div aria-hidden="true" className={`animate-pulse rounded-full bg-[var(--forge-surface-3)] ${className}`} />;
 }
 
 export function TrainingLoadingShell() {
   return (
-    <AuthenticatedPageContainer>
+    <AuthenticatedPageContainer aria-busy="true" data-authenticated-route-state="loading">
+      <div aria-live="polite" className="sr-only" role="status">
+        Loading training
+      </div>
       <PageFrame
         description="Review assigned modules, complete lessons, and guide practice from one training surface."
         eyebrow="Training"
@@ -19,7 +22,7 @@ export function TrainingLoadingShell() {
           stage={
             <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
               <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[var(--forge-gold)]">Course player</p>
-              <h2 className="mt-4 text-3xl font-semibold tracking-tight text-white">Loading training</h2>
+              <h2 className="mt-4 text-3xl font-semibold tracking-tight text-[var(--forge-text)]">Loading training</h2>
               <div className="mt-6 space-y-5">
                 <LoadingBlock className="h-4 w-40" />
                 <LoadingBlock className="h-4 w-full rounded-xl" />
