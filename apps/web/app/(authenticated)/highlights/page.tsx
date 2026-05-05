@@ -127,11 +127,15 @@ export default async function HighlightsPage() {
                             {highlight.severity ? ` · ${highlight.severity}` : ""}
                           </ForgeChip>
                         </td>
-                        <td className="max-w-[280px] px-4 py-4 align-top text-sm font-semibold text-[var(--forge-text)]">
-                          {highlight.observation ?? "No observation recorded."}
+                        <td className="max-w-[280px] px-4 py-4 align-top text-sm font-semibold leading-5 text-[var(--forge-text)]">
+                          <p className="overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3]">
+                            {highlight.observation ?? "No observation recorded."}
+                          </p>
                         </td>
                         <td className="max-w-[300px] px-4 py-4 align-top text-sm leading-5 text-[var(--forge-muted)]">
-                          {highlight.recommendation ?? "No recommendation yet."}
+                          <p className="overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3]">
+                            {highlight.recommendation ?? "No recommendation yet."}
+                          </p>
                         </td>
                         <td className="px-4 py-4 align-top text-sm text-[var(--forge-muted)]">
                           <div className="max-w-[220px] truncate">

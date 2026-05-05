@@ -33,6 +33,10 @@ export function CallsFilters({ initialSearch }: Props) {
   const currentSort = searchParams.get("sort") ?? "createdAt:desc";
   const currentMinScore = searchParams.get("minScore") ?? "";
   const currentMaxScore = searchParams.get("maxScore") ?? "";
+  const scoreRangeLabel =
+    currentMinScore || currentMaxScore
+      ? `${currentMinScore ? `${currentMinScore}+` : "Any"} to ${currentMaxScore || "Any"}`
+      : "Any score";
 
   const hasActiveFilters =
     Boolean(search) ||
@@ -105,7 +109,7 @@ export function CallsFilters({ initialSearch }: Props) {
 
   return (
     <div
-      className="grid items-stretch gap-2 rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.024)] p-2 shadow-[inset_0_1px_0_rgba(255,244,230,0.035)] lg:grid-cols-[minmax(0,1.35fr)_repeat(4,minmax(0,0.58fr))_auto]"
+      className="grid items-stretch gap-2 rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.024)] p-2 shadow-[inset_0_1px_0_rgba(255,244,230,0.035)] lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.62fr)_minmax(0,0.72fr)_auto]"
       data-calls-filter-bar="operational"
     >
       <div className="group flex min-h-11 items-center rounded-lg border border-[var(--forge-border)] bg-[rgba(8,6,5,0.5)] px-3 transition focus-within:border-[rgba(136,218,247,0.35)] focus-within:bg-[rgba(136,218,247,0.045)]">
@@ -146,50 +150,6 @@ export function CallsFilters({ initialSearch }: Props) {
 
       <div className="rounded-lg border border-[var(--forge-border)] bg-[rgba(8,6,5,0.5)] px-3 py-2">
         <p className="mb-0.5 text-[0.64rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
-          Min Score
-        </p>
-        <label className="sr-only" htmlFor="minScore">
-          Minimum score
-        </label>
-        <select
-          className="w-full border-none bg-transparent px-0 py-0 text-sm font-semibold text-[var(--forge-text)] outline-none focus:ring-0"
-          id="minScore"
-          onChange={(e) => handleMinScoreChange(e.target.value)}
-          value={currentMinScore}
-        >
-          <option value="">Any</option>
-          {[50, 60, 70, 80, 90].map((v) => (
-            <option key={v} value={v}>
-              {v}+
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="rounded-lg border border-[var(--forge-border)] bg-[rgba(8,6,5,0.5)] px-3 py-2">
-        <p className="mb-0.5 text-[0.64rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
-          Max Score
-        </p>
-        <label className="sr-only" htmlFor="maxScore">
-          Maximum score
-        </label>
-        <select
-          className="w-full border-none bg-transparent px-0 py-0 text-sm font-semibold text-[var(--forge-text)] outline-none focus:ring-0"
-          id="maxScore"
-          onChange={(e) => handleMaxScoreChange(e.target.value)}
-          value={currentMaxScore}
-        >
-          <option value="">Any</option>
-          {[60, 70, 80, 90, 100].map((v) => (
-            <option key={v} value={v}>
-              {v}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="rounded-lg border border-[var(--forge-border)] bg-[rgba(8,6,5,0.5)] px-3 py-2">
-        <p className="mb-0.5 text-[0.64rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
           Sort By
         </p>
         <label className="sr-only" htmlFor="sort">
@@ -220,6 +180,66 @@ export function CallsFilters({ initialSearch }: Props) {
       >
         Clear
       </ForgeButton>
+
+      <details
+        className="rounded-lg border border-[var(--forge-border)] bg-[rgba(8,6,5,0.42)] lg:col-span-full"
+        open={Boolean(currentMinScore || currentMaxScore)}
+      >
+        <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-sm font-semibold text-[var(--forge-text)] marker:hidden">
+          <span className="flex min-w-0 items-center gap-2">
+            <ForgeIcon className="text-[var(--forge-muted)]" name="tune" size={16} />
+            <span>Score range</span>
+          </span>
+          <span className="text-xs font-semibold text-[var(--forge-muted)]">
+            {scoreRangeLabel}
+          </span>
+        </summary>
+        <div className="grid gap-2 border-t border-[var(--forge-border)] p-2 sm:grid-cols-2">
+          <div className="rounded-lg border border-[var(--forge-border)] bg-[rgba(8,6,5,0.5)] px-3 py-2">
+            <p className="mb-0.5 text-[0.64rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
+              Min Score
+            </p>
+            <label className="sr-only" htmlFor="minScore">
+              Minimum score
+            </label>
+            <select
+              className="w-full border-none bg-transparent px-0 py-0 text-sm font-semibold text-[var(--forge-text)] outline-none focus:ring-0"
+              id="minScore"
+              onChange={(e) => handleMinScoreChange(e.target.value)}
+              value={currentMinScore}
+            >
+              <option value="">Any</option>
+              {[50, 60, 70, 80, 90].map((v) => (
+                <option key={v} value={v}>
+                  {v}+
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="rounded-lg border border-[var(--forge-border)] bg-[rgba(8,6,5,0.5)] px-3 py-2">
+            <p className="mb-0.5 text-[0.64rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
+              Max Score
+            </p>
+            <label className="sr-only" htmlFor="maxScore">
+              Maximum score
+            </label>
+            <select
+              className="w-full border-none bg-transparent px-0 py-0 text-sm font-semibold text-[var(--forge-text)] outline-none focus:ring-0"
+              id="maxScore"
+              onChange={(e) => handleMaxScoreChange(e.target.value)}
+              value={currentMaxScore}
+            >
+              <option value="">Any</option>
+              {[60, 70, 80, 90, 100].map((v) => (
+                <option key={v} value={v}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </details>
     </div>
   );
 }
