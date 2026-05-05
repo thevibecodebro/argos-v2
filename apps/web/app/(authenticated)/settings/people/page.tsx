@@ -30,14 +30,6 @@ export default async function SettingsPeoplePage() {
     <SettingsOperationalLayout
       actions={[{ href: "/settings/people", icon: "person_add", label: "Invite user", variant: "primary" }]}
       description="Manage users, invitations, and account access."
-      previewDescription="Member access and pending invitation status."
-      previewRows={[
-        { label: "Members", value: membersResult?.ok ? membersResult.data.length : 0 },
-        { label: "Pending invites", value: pendingInvitesResult?.ok ? pendingInvitesResult.data.length : 0 },
-        { label: "Teams", value: teamAccessResult?.ok ? teamAccessResult.data.teams.length : 0 },
-        { label: "Scope", tone: "gold", value: "Admin" },
-      ]}
-      previewTitle="People status"
       route="people"
       title="People"
     >

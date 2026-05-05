@@ -282,7 +282,9 @@ import RoleplayPage from "../app/(authenticated)/roleplay/page";
 import RoleplayHistoryPage from "../app/(authenticated)/roleplay/history/page";
 import RepProfilePage from "../app/(authenticated)/team/[repId]/page";
 
-async function renderRoute(page: Promise<React.ReactElement> | React.ReactElement) {
+async function renderRoute(
+  page: Promise<React.ReactElement> | React.ReactElement,
+) {
   return renderToStaticMarkup(await page);
 }
 
@@ -290,7 +292,9 @@ describe("primary route hero removal", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    getCachedAuthenticatedSupabaseUserMock.mockResolvedValue({ id: "auth-user-1" });
+    getCachedAuthenticatedSupabaseUserMock.mockResolvedValue({
+      id: "auth-user-1",
+    });
 
     createDashboardRepositoryMock.mockReturnValue({});
     getCachedCurrentUserProfileMock.mockResolvedValue({ role: "manager" });
@@ -532,7 +536,9 @@ describe("primary route hero removal", () => {
   it("wraps the training route in the standard authenticated content canvas", async () => {
     const trainingHtml = await renderRoute(TrainingPage());
 
-    expect(trainingHtml).toContain('data-authenticated-page-container="standard"');
+    expect(trainingHtml).toContain(
+      'data-authenticated-page-container="standard"',
+    );
     expect(trainingHtml).toContain("px-4 py-6 sm:px-6 lg:px-8");
     expect(trainingHtml).toContain("max-w-7xl");
     expect(trainingHtml).toContain("Training panel marker");
@@ -560,7 +566,9 @@ describe("primary route hero removal", () => {
     expect(teamHtml).toContain("px-4 py-6 sm:px-6 lg:px-8");
     expect(teamHtml).toContain("max-w-7xl");
     expect(teamHtml).toContain("Team roster marker");
-    expect(leaderboardHtml).toContain('data-authenticated-page-container="standard"');
+    expect(leaderboardHtml).toContain(
+      'data-authenticated-page-container="standard"',
+    );
     expect(leaderboardHtml).toContain("px-4 py-6 sm:px-6 lg:px-8");
     expect(leaderboardHtml).toContain("max-w-7xl");
     expect(leaderboardHtml).toContain("Open team view");
@@ -616,7 +624,9 @@ describe("primary route hero removal", () => {
     expect(peopleHtml).not.toContain(
       "Manage org member roles and send or revoke invitations.",
     );
-    expect(peopleHtml).toContain("Manage users, invitations, and account access.");
+    expect(peopleHtml).toContain(
+      "Manage users, invitations, and account access.",
+    );
 
     expect(teamsHtml).toContain('data-teams-route="overview"');
     expect(teamsHtml).toContain('href="/settings/teams/manage"');
@@ -636,21 +646,27 @@ describe("primary route hero removal", () => {
     expect(permissionsHtml).not.toContain(
       "Configure permission presets and primary manager assignments per rep.",
     );
-    expect(permissionsHtml).toContain("Review role scopes and permission boundaries.");
+    expect(permissionsHtml).toContain(
+      "Review role scopes and permission boundaries.",
+    );
 
     expect(integrationsHtml).toContain("Integrations panel marker");
     expect(integrationsHtml).toContain(">Integrations<");
     expect(integrationsHtml).not.toContain(
       "Connect external tools to automate call imports and post-call workflows.",
     );
-    expect(integrationsHtml).toContain("Connect and monitor supported providers.");
+    expect(integrationsHtml).toContain(
+      "Connect and monitor supported providers.",
+    );
 
     expect(complianceHtml).toContain("Compliance panel marker");
     expect(complianceHtml).toContain(">Compliance<");
     expect(complianceHtml).not.toContain(
       "Configure call recording consent and review compliance acknowledgments.",
     );
-    expect(complianceHtml).toContain("Manage consent, retention, and coaching safeguards.");
+    expect(complianceHtml).toContain(
+      "Manage consent, retention, and coaching safeguards.",
+    );
   });
 
   it("removes dashboard hero titles for rep, manager, and executive views while keeping route content", async () => {
@@ -678,7 +694,9 @@ describe("primary route hero removal", () => {
     getCachedCurrentUserProfileMock.mockResolvedValueOnce({ role: "manager" });
     const managerHtml = await renderRoute(DashboardPage());
 
-    getCachedCurrentUserProfileMock.mockResolvedValueOnce({ role: "executive" });
+    getCachedCurrentUserProfileMock.mockResolvedValueOnce({
+      role: "executive",
+    });
     const executiveHtml = await renderRoute(DashboardPage());
 
     expect(repHtml).toContain('href="/calls"');
@@ -825,14 +843,18 @@ describe("primary route hero removal", () => {
     expect(highlightsHtml).not.toContain("Weekly Coaching Insights");
     expect(highlightsHtml).not.toContain("Intelligence Health");
 
-    expect(trainingHtml).toContain('data-training-route="operational-workspace"');
+    expect(trainingHtml).toContain(
+      'data-training-route="operational-workspace"',
+    );
     expect(trainingHtml).toContain('data-operational-metric-strip="true"');
     expect(trainingHtml).toContain("My training");
     expect(trainingHtml).toContain("Training panel marker");
     expect(trainingHtml).not.toContain("Module library");
     expect(trainingHtml).not.toContain('href="/training#builder"');
 
-    expect(roleplayHtml).toContain('data-roleplay-route="operational-workspace"');
+    expect(roleplayHtml).toContain(
+      'data-roleplay-route="operational-workspace"',
+    );
     expect(roleplayHtml).toContain('href="/roleplay/history"');
     expect(roleplayHtml).not.toContain('href="/roleplay#roleplay-history"');
     expect(roleplayHtml).toContain("Roleplay panel marker");
@@ -857,9 +879,13 @@ describe("primary route hero removal", () => {
     expect(settingsHtml).toContain("Personal");
     expect(settingsHtml).toContain("Visible sections");
 
-    expect(notificationsHtml).toContain('data-notifications-route="account-inbox"');
+    expect(notificationsHtml).toContain(
+      'data-notifications-route="account-inbox"',
+    );
     expect(notificationsHtml).toContain('data-operational-metric-strip="true"');
-    expect(notificationsHtml).toContain('data-operational-preview-drawer="true"');
+    expect(notificationsHtml).toContain(
+      'data-operational-preview-drawer="true"',
+    );
     expect(notificationsHtml).toContain("Mark all read");
     expect(notificationsHtml).toContain("Notifications panel marker");
   });
@@ -902,7 +928,9 @@ describe("primary route hero removal", () => {
       renderRoute(TrainingBuilderPage()),
     ]);
 
-    expect(trainingHtml).toContain('data-training-route="operational-workspace"');
+    expect(trainingHtml).toContain(
+      'data-training-route="operational-workspace"',
+    );
     expect(trainingHtml).toContain('href="/training/team"');
     expect(trainingHtml).toContain('href="/training/builder"');
     expect(trainingHtml).toContain("Training panel marker");
@@ -913,7 +941,9 @@ describe("primary route hero removal", () => {
     expect(teamProgressHtml).toContain('data-forge-table="true"');
     expect(teamProgressHtml).toContain("Morgan Lee");
     expect(teamProgressHtml).toContain("50%");
-    expect(teamProgressHtml).toContain('data-operational-preview-drawer="true"');
+    expect(teamProgressHtml).toContain(
+      'data-operational-preview-drawer="true"',
+    );
 
     expect(builderHtml).toContain('data-training-route="builder"');
     expect(builderHtml).toContain("Training panel marker");
@@ -1005,8 +1035,12 @@ describe("primary route hero removal", () => {
 
     const [uploadHtml, callDetailHtml, repProfileHtml] = await Promise.all([
       renderRoute(UploadPage()),
-      renderRoute(CallDetailPage({ params: Promise.resolve({ id: "call-1" }) })),
-      renderRoute(RepProfilePage({ params: Promise.resolve({ repId: "rep-1" }) })),
+      renderRoute(
+        CallDetailPage({ params: Promise.resolve({ id: "call-1" }) }),
+      ),
+      renderRoute(
+        RepProfilePage({ params: Promise.resolve({ repId: "rep-1" }) }),
+      ),
     ]);
 
     for (const html of [uploadHtml, callDetailHtml, repProfileHtml]) {
@@ -1028,7 +1062,9 @@ describe("primary route hero removal", () => {
     expect(callDetailHtml).toContain("Call detail panel marker");
     expect(callDetailHtml).not.toContain(">Review bench<");
 
-    expect(repProfileHtml).toContain('data-rep-profile-route="coaching-detail"');
+    expect(repProfileHtml).toContain(
+      'data-rep-profile-route="coaching-detail"',
+    );
     expect(repProfileHtml).toContain('data-operational-preview-drawer="true"');
     expect(repProfileHtml).toContain("Rep profile marker");
     expect(repProfileHtml).not.toContain(">Rep Profile<");
@@ -1060,20 +1096,34 @@ describe("primary route hero removal", () => {
     for (const html of [
       peopleHtml,
       teamsHtml,
+      teamsManageHtml,
       permissionsHtml,
+      permissionsManageHtml,
       integrationsHtml,
       rubricHtml,
+      rubricBuilderHtml,
       complianceHtml,
     ]) {
       expect(html).toContain('data-operational-workspace="true"');
       expect(html).toContain('data-operational-toolbar="true"');
       expect(html).toContain('data-settings-internal-subnav="true"');
-      expect(html).toContain('data-operational-preview-drawer="true"');
       expect(html).not.toContain('data-page-frame="true"');
+    }
+
+    for (const html of [
+      teamsHtml,
+      permissionsHtml,
+      integrationsHtml,
+      rubricHtml,
+      complianceHtml,
+    ]) {
+      expect(html).toContain('data-operational-preview-drawer="true"');
     }
 
     expect(peopleHtml).toContain('data-settings-detail-route="people"');
     expect(peopleHtml).toContain("People panel marker");
+    expect(peopleHtml).toContain('data-settings-detail-panel="true"');
+    expect(peopleHtml).not.toContain('data-operational-preview-drawer="true"');
     expect(teamsHtml).toContain('data-settings-detail-route="teams"');
     expect(teamsHtml).toContain('data-teams-route="overview"');
     expect(teamsHtml).toContain('data-forge-table="true"');
@@ -1083,20 +1133,34 @@ describe("primary route hero removal", () => {
     expect(teamsManageHtml).toContain('data-settings-editor-route="teams"');
     expect(teamsManageHtml).toContain('href="/settings/teams"');
     expect(teamsManageHtml).toContain("Teams panel marker");
-    expect(teamsManageHtml).not.toContain('data-settings-internal-subnav="true"');
-    expect(teamsManageHtml).not.toContain('data-operational-preview-drawer="true"');
-    expect(permissionsHtml).toContain('data-settings-detail-route="permissions"');
+    expect(teamsManageHtml).toContain('data-settings-editor-panel="true"');
+    expect(teamsManageHtml).not.toContain(
+      'data-operational-preview-drawer="true"',
+    );
+    expect(permissionsHtml).toContain(
+      'data-settings-detail-route="permissions"',
+    );
     expect(permissionsHtml).toContain('data-permissions-route="overview"');
     expect(permissionsHtml).toContain('data-forge-table="true"');
     expect(permissionsHtml).toContain('href="/settings/permissions/manage"');
     expect(permissionsHtml).not.toContain("Permissions panel marker");
-    expect(permissionsManageHtml).toContain('data-settings-detail-route="permissions"');
-    expect(permissionsManageHtml).toContain('data-settings-editor-route="permissions"');
+    expect(permissionsManageHtml).toContain(
+      'data-settings-detail-route="permissions"',
+    );
+    expect(permissionsManageHtml).toContain(
+      'data-settings-editor-route="permissions"',
+    );
     expect(permissionsManageHtml).toContain('href="/settings/permissions"');
     expect(permissionsManageHtml).toContain("Permissions panel marker");
-    expect(permissionsManageHtml).not.toContain('data-settings-internal-subnav="true"');
-    expect(permissionsManageHtml).not.toContain('data-operational-preview-drawer="true"');
-    expect(integrationsHtml).toContain('data-settings-detail-route="integrations"');
+    expect(permissionsManageHtml).toContain(
+      'data-settings-editor-panel="true"',
+    );
+    expect(permissionsManageHtml).not.toContain(
+      'data-operational-preview-drawer="true"',
+    );
+    expect(integrationsHtml).toContain(
+      'data-settings-detail-route="integrations"',
+    );
     expect(integrationsHtml).toContain("Integrations panel marker");
     expect(rubricHtml).toContain('data-settings-detail-route="rubrics"');
     expect(rubricHtml).toContain('data-rubric-route="overview"');
@@ -1107,8 +1171,10 @@ describe("primary route hero removal", () => {
     expect(rubricBuilderHtml).toContain('data-settings-editor-route="rubrics"');
     expect(rubricBuilderHtml).toContain('href="/settings/rubric"');
     expect(rubricBuilderHtml).toContain("Rubrics panel marker");
-    expect(rubricBuilderHtml).not.toContain('data-settings-internal-subnav="true"');
-    expect(rubricBuilderHtml).not.toContain('data-operational-preview-drawer="true"');
+    expect(rubricBuilderHtml).toContain('data-settings-editor-panel="true"');
+    expect(rubricBuilderHtml).not.toContain(
+      'data-operational-preview-drawer="true"',
+    );
     expect(complianceHtml).toContain('data-settings-detail-route="compliance"');
     expect(complianceHtml).toContain("Compliance panel marker");
   });

@@ -109,6 +109,7 @@ describe("SettingsRubricPage", () => {
     expect(html).toContain("Active Rubric Version History");
     expect(html).toContain('href="/settings/rubric"');
     expect(html).toContain(">Rubric builder<");
+    expect(html).toContain('data-settings-internal-subnav="true"');
   });
 
   it("redirects non-admin users back to settings", async () => {

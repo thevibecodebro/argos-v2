@@ -128,7 +128,7 @@ function expectOutlineNoneClassesToUseForgeFocus(source: string) {
 }
 
 describe("RubricsPanel", () => {
-  it("renders the scoring builder rail, compact category editor, and publish readiness panel", () => {
+  it("renders the scoring builder drawer, compact category editor, and publish readiness panel", () => {
     const html = renderToStaticMarkup(
       createElement(RubricsPanel, {
         initialActiveRubric: activeRubric,
@@ -137,27 +137,19 @@ describe("RubricsPanel", () => {
       }),
     );
 
-    expect(html).toContain('data-rubric-builder-rail=""');
+    expect(html).toContain('data-rubric-builder-drawer=""');
     expect(html).toContain('data-rubric-category-editor=""');
     expect(html).toContain('data-rubric-readiness-panel=""');
-    expect(html).toContain('data-forge-workspace-layout="two-rails"');
-    expect(html).toContain('data-forge-workspace-main="true"');
-    expect(html.indexOf('data-rubric-builder-rail=""')).toBeLessThan(
+    expect(html).toContain('data-settings-editor-workbench="rubrics"');
+    expect(html).not.toContain('data-forge-workspace-layout=');
+    expect(html).not.toContain('data-forge-workspace-rail=');
+    expect(html.indexOf('data-rubric-builder-drawer=""')).toBeGreaterThan(
       html.indexOf('data-rubric-category-editor=""'),
     );
     expect(html.indexOf('data-rubric-category-editor=""')).toBeLessThan(
       html.indexOf('data-rubric-readiness-panel=""'),
     );
-    expect(html).toContain("forge-workspace-layout");
-    expect(html).toContain("forge-workspace-rail");
-    expect(html).toContain('data-forge-workspace-rail-group="Source options"');
-    expect(html).toContain('data-forge-workspace-rail-group="Clone or import"');
-    expect(html).toContain('data-forge-workspace-rail-group="Active version"');
-    expect(html).toContain('data-forge-workspace-rail-group="Workflow"');
-    expect(html).toContain('data-forge-workspace-rail-group="Readiness"');
-    expect(html).toContain('data-forge-workspace-rail-group="Publish controls"');
     expect(html).toContain('data-rubric-publish-controls="streamlined"');
-    expect(html).toContain('data-forge-workspace-rail-action="true"');
     expect(html).not.toContain('xl:order-1');
     expect(html).not.toContain('xl:order-2');
     expect(html).not.toContain('xl:order-3');
