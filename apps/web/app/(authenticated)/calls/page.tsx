@@ -2,18 +2,23 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { getCachedAuthenticatedSupabaseUser } from "@/lib/auth/request-user";
 import { createCallsRepository } from "@/lib/calls/create-repository";
-import { listCalls } from "@/lib/calls/service";
+import { listCalls, type CallSummary } from "@/lib/calls/service";
 import {
-  ForgeButton,
   ForgeChip,
   ForgeEmptyState,
   ForgeIcon,
-  ForgeManagementTable,
-  ForgeMobileTableCards,
+  ForgeScoreMeter,
+  ForgeSegmentedTab,
+  ForgeSegmentedTabs,
   ForgeSkeleton,
-  ForgeSurface,
 } from "@/components/forge";
 import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
+import {
+  OperationalMetricStrip,
+  OperationalPreviewDrawer,
+  OperationalToolbar,
+  OperationalWorkspace,
+} from "@/components/operational-workspace";
 import { CallsFilters } from "./calls-filters";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -47,70 +52,115 @@ export default async function CallsPage({
     Boolean(filters.maxScore !== undefined) ||
     filters.status !== "all" ||
     activeSort !== "createdAt:desc";
+  const quickViews = buildQuickViews(filters);
+  const callStats = buildCallStats(calls);
+  const selectedCall = calls[0] ?? null;
+  const selectedCallRepName = selectedCall ? repDisplayName(selectedCall) : null;
 
   return (
-    <AuthenticatedPageContainer size="wide">
-      <div className="space-y-5" data-calls-surface="forge-ledger">
-        <ForgeSurface className="p-4 sm:p-5">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div className="min-w-0">
-              <p className="font-[var(--font-display)] text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-gold)]">
-                Call intake
-              </p>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <ForgeChip icon="query_stats" tone="gold">
-                  {total.toLocaleString()} {total === 1 ? "interaction" : "interactions"}
-                </ForgeChip>
-                {hasActiveFilters ? (
-                  <ForgeChip icon="filter_list" tone="ember">
-                    Filters applied
-                  </ForgeChip>
-                ) : null}
-              </div>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--forge-muted)]">
-                Review scored calls, processing status, rep ownership, and coaching readiness.
-              </p>
+    <AuthenticatedPageContainer className="py-4 sm:py-5" size="wide">
+      <OperationalWorkspace
+        data-calls-layout="operational-list"
+        data-calls-surface="forge-ledger"
+      >
+        <OperationalToolbar
+          actions={[
+            { href: "/upload", icon: "attach_file", label: "Upload call", variant: "primary" },
+          ]}
+          description="Review scored calls, processing status, rep ownership, and coaching readiness."
+          status={
+            hasActiveFilters
+              ? { icon: "filter_list", label: "Filters applied", tone: "ember" }
+              : { icon: "subject", label: `${total.toLocaleString()} records`, tone: "muted" }
+          }
+          title="Calls"
+        >
+          <div className="space-y-2">
+            <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
+              <ForgeSegmentedTabs
+                className="w-full justify-start overflow-x-auto xl:w-auto"
+                label="Saved call views"
+              >
+                {quickViews.map((view) => (
+                  <ForgeSegmentedTab
+                    active={view.active}
+                    href={view.href}
+                    key={view.label}
+                  >
+                    {view.label}
+                  </ForgeSegmentedTab>
+                ))}
+              </ForgeSegmentedTabs>
             </div>
 
-            <ForgeButton href="/upload" icon="attach_file" variant="primary">
-              Upload a call
-            </ForgeButton>
+            <Suspense
+              fallback={
+                <ForgeSkeleton className="rounded-xl py-4" lines={2} />
+              }
+            >
+              <CallsFilters initialSearch={filters.search ?? ""} />
+            </Suspense>
           </div>
-        </ForgeSurface>
+        </OperationalToolbar>
 
-        <section className="space-y-5">
-          <Suspense
-            fallback={
-              <ForgeSkeleton className="py-4" lines={2} />
-            }
+        <OperationalMetricStrip
+          metrics={[
+            {
+              icon: "subject",
+              label: "Records",
+              tone: "muted",
+              value: total.toLocaleString(),
+            },
+            {
+              icon: "monitoring",
+              label: "Avg score",
+              tone: callStats.averageScoreTone,
+              value: callStats.averageScoreLabel,
+            },
+            {
+              icon: "check_circle",
+              label: "Complete",
+              tone: "success",
+              value: callStats.completeCount,
+            },
+            {
+              icon: callStats.failureCount > 0 ? "warning" : "pending",
+              label: "Needs attention",
+              tone: callStats.failureCount > 0 ? "danger" : "cyan",
+              value: callStats.attentionLabel,
+            },
+          ]}
+        />
+
+        <section
+          className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_320px]"
+          data-operational-list-workspace="calls"
+        >
+          <div
+            className="min-w-0"
+            data-forge-management-table="true"
+            data-operational-list-table="true"
           >
-            <CallsFilters initialSearch={filters.search ?? ""} />
-          </Suspense>
-
-          <ForgeManagementTable
-            mobileCards={
-              <ForgeMobileTableCards>
+            <div className="md:hidden">
+              <div className="grid gap-2" data-forge-mobile-table-cards="true">
                 {calls.length ? (
                   calls.map((call) => {
                     const badge = statusBadge(call.status);
                     const icon = rowIcon(call.status);
                     const duration = formatDuration(call.durationSeconds);
-                    const repName =
-                      call.repFirstName || call.repLastName
-                        ? `${call.repFirstName ?? ""} ${call.repLastName ?? ""}`.trim()
-                        : null;
+                    const repName = repDisplayName(call);
                     const topic = call.callTopic ?? "Untitled call";
 
                     return (
                       <Link
-                        className="block rounded-2xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] p-4 transition hover:border-[rgba(241,191,123,0.3)] hover:bg-[rgba(241,191,123,0.055)]"
+                        className="block rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] p-4 transition hover:border-[rgba(241,191,123,0.3)] hover:bg-[rgba(241,191,123,0.055)]"
                         href={`/calls/${call.id}`}
                         key={call.id}
                       >
                         <div className="flex items-start gap-3">
                           <div
                             aria-hidden="true"
-                            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[0.9rem] border ${icon.className}`}
+                            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border ${icon.className}`}
                           >
                             <ForgeIcon name={icon.icon} size={18} />
                           </div>
@@ -129,7 +179,7 @@ export default async function CallsPage({
                             <div className="mt-4 grid grid-cols-3 gap-3 text-xs">
                               {canSeeRep ? (
                                 <div>
-                                  <p className="font-[var(--font-display)] font-bold uppercase tracking-[0.14em] text-[var(--forge-muted)]">
+                                  <p className="font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
                                     Rep
                                   </p>
                                   <p className="mt-1 truncate font-semibold text-[var(--forge-text)]">
@@ -138,7 +188,7 @@ export default async function CallsPage({
                                 </div>
                               ) : null}
                               <div>
-                                <p className="font-[var(--font-display)] font-bold uppercase tracking-[0.14em] text-[var(--forge-muted)]">
+                                <p className="font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
                                   Score
                                 </p>
                                 <p className={`mt-1 font-bold ${scoreColor(call.overallScore)}`}>
@@ -146,7 +196,7 @@ export default async function CallsPage({
                                 </p>
                               </div>
                               <div>
-                                <p className="font-[var(--font-display)] font-bold uppercase tracking-[0.14em] text-[var(--forge-muted)]">
+                                <p className="font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
                                   Duration
                                 </p>
                                 <p className="mt-1 font-semibold text-[var(--forge-text)]">
@@ -175,96 +225,86 @@ export default async function CallsPage({
                     title={hasActiveFilters ? "No matching calls" : "No calls yet"}
                   />
                 )}
-              </ForgeMobileTableCards>
-            }
-          >
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[860px] border-collapse">
-                <thead>
-                  <tr className="border-b border-[var(--forge-border)] bg-[rgba(255,244,230,0.025)]">
-                    <th
-                      className="px-5 py-4 text-left font-[var(--font-display)] text-[0.65rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-muted)]"
-                      scope="col"
-                    >
-                      Call
-                    </th>
-                    {canSeeRep ? (
+              </div>
+            </div>
+
+            <div
+              className="hidden overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[rgba(8,6,5,0.88)] shadow-[inset_0_1px_0_rgba(255,244,230,0.04)] md:block"
+              data-forge-table="true"
+            >
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[720px] border-collapse">
+                  <thead>
+                    <tr className="border-b border-[var(--forge-border)] bg-[rgba(255,244,230,0.024)]">
                       <th
-                        className="px-5 py-4 text-left font-[var(--font-display)] text-[0.65rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-muted)]"
+                        className="px-4 py-3 text-left text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]"
                         scope="col"
                       >
-                        Rep
+                        Call
                       </th>
-                    ) : null}
-                    <th
-                      className="px-5 py-4 text-left font-[var(--font-display)] text-[0.65rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-muted)]"
-                      scope="col"
-                    >
-                      Duration
-                    </th>
-                    <th
-                      className="px-5 py-4 text-left font-[var(--font-display)] text-[0.65rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-muted)]"
-                      scope="col"
-                    >
-                      Score
-                    </th>
-                    <th
-                      className="px-5 py-4 text-left font-[var(--font-display)] text-[0.65rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-muted)]"
-                      scope="col"
-                    >
-                      Status
-                    </th>
-                    <th className="w-14 px-5 py-4" scope="col" />
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--forge-border)]">
-                  {calls.length ? (
-                    calls.map((call) => {
-                      const badge = statusBadge(call.status);
-                      const icon = rowIcon(call.status);
-                      const duration = formatDuration(call.durationSeconds);
-                      const repName =
-                        call.repFirstName || call.repLastName
-                          ? `${call.repFirstName ?? ""} ${call.repLastName ?? ""}`.trim()
-                          : null;
-                      const topic = call.callTopic ?? "Untitled call";
-                      const scoreValue = normalizedScore(call.overallScore);
-
-                      return (
-                        <tr
-                          className="group relative transition hover:bg-[rgba(255,244,230,0.035)]"
-                          key={call.id}
+                      {canSeeRep ? (
+                        <th
+                          className="px-4 py-3 text-left text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]"
+                          scope="col"
                         >
-                          <td className="px-5 py-4">
-                            <a
-                              aria-label={`View call: ${topic}`}
-                              className="absolute inset-0"
-                              href={`/calls/${call.id}`}
-                            />
+                          Rep
+                        </th>
+                      ) : null}
+                      <th
+                        className="px-4 py-3 text-left text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]"
+                        scope="col"
+                      >
+                        Score
+                      </th>
+                      <th
+                        className="px-4 py-3 text-left text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]"
+                        scope="col"
+                      >
+                        Status
+                      </th>
+                      <th className="w-16 px-4 py-3" scope="col" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--forge-border)]">
+                    {calls.length ? (
+                      calls.map((call) => {
+                        const badge = statusBadge(call.status);
+                        const icon = rowIcon(call.status);
+                        const duration = formatDuration(call.durationSeconds);
+                        const repName = repDisplayName(call);
+                        const topic = call.callTopic ?? "Untitled call";
+
+                        return (
+                          <tr
+                            className="group transition hover:bg-[rgba(255,244,230,0.035)]"
+                            key={call.id}
+                          >
+                          <td className="px-4 py-3">
                             <div className="flex items-center gap-3">
                               <div
-                                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[0.9rem] border ${icon.className}`}
+                                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${icon.className}`}
                                 aria-hidden="true"
                               >
                                 <ForgeIcon name={icon.icon} size={18} />
                               </div>
                               <div className="min-w-0">
-                                <p
+                                <Link
                                   className="truncate text-sm font-semibold text-[var(--forge-text)] transition group-hover:text-[var(--forge-gold)]"
+                                  href={`/calls/${call.id}`}
                                   title={topic}
                                 >
                                   {topic}
-                                </p>
+                                </Link>
                                 <p className="mt-1 text-xs text-[var(--forge-muted)]">
-                                  {formatTimestamp(call.createdAt)}
+                                  {call.id}
                                 </p>
                               </div>
                             </div>
                           </td>
                           {canSeeRep ? (
-                            <td className="px-5 py-4">
+                            <td className="px-4 py-3">
                               <div className="flex items-center gap-3">
-                                <div className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--forge-border)] bg-[rgba(255,244,230,0.04)] text-xs font-bold text-[var(--forge-cyan)]">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--forge-border)] bg-[rgba(255,244,230,0.04)] text-xs font-bold text-[var(--forge-cyan)]">
                                   {initials(repName)}
                                 </div>
                                 <span
@@ -279,72 +319,140 @@ export default async function CallsPage({
                               </div>
                             </td>
                           ) : null}
-                          <td className="px-5 py-4">
-                            <span className="text-sm font-medium text-[var(--forge-muted)]">
-                              {duration ?? "--:--"}
-                            </span>
+                          <td className="px-4 py-3">
+                            <ForgeScoreMeter
+                              label={`${topic} score`}
+                              showValue
+                              value={call.overallScore}
+                            />
                           </td>
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="h-2 w-16 overflow-hidden rounded-full bg-[rgba(255,244,230,0.08)]">
-                                <div
-                                  className={`h-full rounded-full ${scoreBarClass(call.overallScore)}`}
-                                  style={{ width: `${scoreValue}%` }}
-                                />
-                              </div>
-                              <span className={`text-sm font-bold ${scoreColor(call.overallScore)}`}>
-                                {call.overallScore ?? "--"}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-5 py-4">
+                          <td className="px-4 py-3">
                             <ForgeChip tone={badge.tone}>{badge.label}</ForgeChip>
                           </td>
-                          <td className="px-5 py-4 text-right">
-                            <span className="inline-flex rounded-xl border border-transparent p-2 text-[var(--forge-muted)] transition group-hover:border-[var(--forge-border)] group-hover:bg-[rgba(241,191,123,0.08)] group-hover:text-[var(--forge-gold)]">
-                              <ForgeIcon name={badge.label === "Failed" ? "history" : "arrow_forward"} size={18} />
-                            </span>
+                          <td className="px-4 py-3 text-right">
+                            <Link
+                              aria-label={`Open ${topic}`}
+                              className="inline-flex rounded-lg border border-transparent p-2 text-[var(--forge-muted)] transition hover:border-[var(--forge-border)] hover:bg-[rgba(241,191,123,0.08)] hover:text-[var(--forge-gold)]"
+                              href={`/calls/${call.id}`}
+                            >
+                              <ForgeIcon name="arrow_forward" size={18} />
+                            </Link>
                           </td>
-                        </tr>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td className="px-5 py-10" colSpan={canSeeRep ? 6 : 5}>
-                        <ForgeEmptyState
-                          action={
-                            hasActiveFilters
-                              ? { href: "/calls", label: "Clear filters" }
-                              : { href: "/upload", label: "Upload a call" }
-                          }
-                          description={
-                            hasActiveFilters
-                              ? "No calls match the current filters. Clear the filters or upload a new recording when the next review is ready."
-                              : "Upload a call recording to populate the library and start the scoring workflow."
-                          }
-                          icon={hasActiveFilters ? "filter_list" : "attach_file"}
-                          title={hasActiveFilters ? "No matching calls" : "No calls yet"}
-                        />
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td className="px-4 py-10" colSpan={canSeeRep ? 5 : 4}>
+                          <ForgeEmptyState
+                            action={
+                              hasActiveFilters
+                                ? { href: "/calls", label: "Clear filters" }
+                                : { href: "/upload", label: "Upload a call" }
+                            }
+                            description={
+                              hasActiveFilters
+                                ? "No calls match the current filters. Clear the filters or upload a new recording when the next review is ready."
+                                : "Upload a call recording to populate the library and start the scoring workflow."
+                            }
+                            icon={hasActiveFilters ? "filter_list" : "attach_file"}
+                            title={hasActiveFilters ? "No matching calls" : "No calls yet"}
+                          />
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </ForgeManagementTable>
+          </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <p className="text-sm font-medium text-[var(--forge-muted)]">
-              {total > 0
-                ? `Showing ${(filters.offset ?? 0) + 1} - ${(filters.offset ?? 0) + calls.length} of ${total.toLocaleString()} ${total === 1 ? "interaction" : "interactions"}`
-                : "No interactions"}
-            </p>
+          <OperationalPreviewDrawer
+            actions={
+              selectedCall
+                ? [
+                    {
+                      href: `/calls/${selectedCall.id}`,
+                      icon: "open_in_new",
+                      label: "Open detail",
+                      variant: "primary",
+                    },
+                    { href: "/upload", icon: "attach_file", label: "Upload another" },
+                  ]
+                : [{ href: "/upload", icon: "attach_file", label: "Upload call", variant: "primary" }]
+            }
+            description={
+              selectedCall
+                ? "A compact preview of the first row in this view."
+                : "Upload a call to populate the library and preview details."
+            }
+            eyebrow="Preview"
+            title={selectedCall ? selectedCall.callTopic ?? "Untitled call" : "No call selected"}
+          >
+            {selectedCall ? (
+              <>
+                <div className="rounded-lg border border-[var(--forge-border)] bg-[rgba(8,6,5,0.5)] p-3">
+                  <p className="text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
+                    Score
+                  </p>
+                  <div className="mt-2 flex items-center gap-3">
+                    <span className={`text-2xl font-semibold tabular-nums ${scoreColor(selectedCall.overallScore)}`}>
+                      {selectedCall.overallScore ?? "--"}
+                    </span>
+                    <ForgeScoreMeter
+                      className="flex-1"
+                      label="Selected call score"
+                      value={selectedCall.overallScore}
+                    />
+                  </div>
+                </div>
+                <dl className="grid gap-2 text-sm">
+                  <div className="flex items-center justify-between gap-3 rounded-lg border border-[var(--forge-border)] bg-[rgba(8,6,5,0.5)] px-3 py-2">
+                    <dt className="text-[var(--forge-muted)]">Rep</dt>
+                    <dd className="truncate font-medium text-[var(--forge-text)]">
+                      {selectedCallRepName ?? "Unassigned"}
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 rounded-lg border border-[var(--forge-border)] bg-[rgba(8,6,5,0.5)] px-3 py-2">
+                    <dt className="text-[var(--forge-muted)]">Duration</dt>
+                    <dd className="font-medium text-[var(--forge-text)]">
+                      {formatDuration(selectedCall.durationSeconds) ?? "--:--"}
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 rounded-lg border border-[var(--forge-border)] bg-[rgba(8,6,5,0.5)] px-3 py-2">
+                    <dt className="text-[var(--forge-muted)]">Status</dt>
+                    <dd>
+                      <ForgeChip tone={statusBadge(selectedCall.status).tone}>
+                        {statusBadge(selectedCall.status).label}
+                      </ForgeChip>
+                    </dd>
+                  </div>
+                </dl>
+                <div className="rounded-lg border border-[var(--forge-border)] bg-[rgba(8,6,5,0.5)] p-3">
+                  <p className="text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
+                    Uploaded
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-[var(--forge-text)]">
+                    {formatTimestamp(selectedCall.createdAt)}
+                  </p>
+                </div>
+              </>
+            ) : null}
+          </OperationalPreviewDrawer>
+        </section>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.024)] px-3 py-2">
+          <p className="text-sm font-medium text-[var(--forge-muted)]">
+            {total > 0
+              ? `Showing ${(filters.offset ?? 0) + 1} - ${(filters.offset ?? 0) + calls.length} of ${total.toLocaleString()} ${total === 1 ? "interaction" : "interactions"}`
+              : "No interactions"}
+          </p>
 
             {totalPages > 1 ? (
               <div className="flex items-center gap-2">
                 <Link
                   aria-disabled={page === 0}
-                  className={`flex h-10 w-10 items-center justify-center rounded-xl border transition ${
+                  className={`flex h-9 w-9 items-center justify-center rounded-lg border transition ${
                     page === 0
                       ? "pointer-events-none border-[var(--forge-border)] bg-[rgba(255,244,230,0.025)] text-[rgba(255,244,230,0.26)]"
                       : "border-[var(--forge-border)] bg-[rgba(255,244,230,0.04)] text-[var(--forge-muted)] hover:border-[rgba(241,191,123,0.3)] hover:text-[var(--forge-gold)]"
@@ -356,16 +464,16 @@ export default async function CallsPage({
                 >
                   <ForgeIcon name="arrow_back" size={18} />
                 </Link>
-                <span className="flex h-10 min-w-10 items-center justify-center rounded-xl border border-[rgba(241,191,123,0.28)] bg-[rgba(241,191,123,0.11)] px-3 text-sm font-bold text-[var(--forge-gold)]">
+                <span className="flex h-9 min-w-9 items-center justify-center rounded-lg border border-[rgba(241,191,123,0.28)] bg-[rgba(241,191,123,0.11)] px-3 text-sm font-bold text-[var(--forge-gold)]">
                   {page + 1}
                 </span>
                 <span className="px-1 text-sm text-[var(--forge-muted)]">/</span>
-                <span className="flex h-10 min-w-10 items-center justify-center rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 text-sm font-semibold text-[var(--forge-muted)]">
+                <span className="flex h-9 min-w-9 items-center justify-center rounded-lg border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 text-sm font-semibold text-[var(--forge-muted)]">
                   {totalPages}
                 </span>
                 <Link
                   aria-disabled={page + 1 >= totalPages}
-                  className={`flex h-10 w-10 items-center justify-center rounded-xl border transition ${
+                  className={`flex h-9 w-9 items-center justify-center rounded-lg border transition ${
                     page + 1 >= totalPages
                       ? "pointer-events-none border-[var(--forge-border)] bg-[rgba(255,244,230,0.025)] text-[rgba(255,244,230,0.26)]"
                       : "border-[var(--forge-border)] bg-[rgba(255,244,230,0.04)] text-[var(--forge-muted)] hover:border-[rgba(241,191,123,0.3)] hover:text-[var(--forge-gold)]"
@@ -380,8 +488,7 @@ export default async function CallsPage({
               </div>
             ) : null}
           </div>
-        </section>
-      </div>
+      </OperationalWorkspace>
     </AuthenticatedPageContainer>
   );
 }
@@ -434,6 +541,59 @@ function buildCallsHref(
   return query ? `/calls?${query}` : "/calls";
 }
 
+function buildQuickViews(filters: ReturnType<typeof parseFilters>) {
+  return [
+    {
+      active: filters.status === "all" && filters.minScore === undefined && filters.maxScore === undefined,
+      href: buildCallsHref(filters, { maxScore: undefined, minScore: undefined, status: "all" }),
+      label: "All calls",
+    },
+    {
+      active: filters.status === "complete" && filters.maxScore === 79,
+      href: buildCallsHref(filters, { maxScore: 79, minScore: undefined, status: "complete" }),
+      label: "Needs review",
+    },
+    {
+      active: filters.maxScore === 69,
+      href: buildCallsHref(filters, { maxScore: 69, minScore: undefined, status: "all" }),
+      label: "Low score",
+    },
+    {
+      active: filters.minScore === 85,
+      href: buildCallsHref(filters, { maxScore: undefined, minScore: 85, status: "all" }),
+      label: "High score",
+    },
+    {
+      active: filters.status === "processing",
+      href: buildCallsHref(filters, { maxScore: undefined, minScore: undefined, status: "processing" }),
+      label: "Processing",
+    },
+  ];
+}
+
+function buildCallStats(calls: CallSummary[]) {
+  const scoredCalls = calls.filter((call) => typeof call.overallScore === "number");
+  const averageScore =
+    scoredCalls.length > 0
+      ? Math.round(
+          scoredCalls.reduce((sum, call) => sum + (call.overallScore ?? 0), 0) /
+            scoredCalls.length,
+        )
+      : null;
+  const failureCount = calls.filter((call) => call.status.toLowerCase() === "failed").length;
+  const processingCount = calls.filter((call) =>
+    ["processing", "transcribing", "evaluating"].includes(call.status.toLowerCase()),
+  ).length;
+
+  return {
+    attentionLabel: failureCount > 0 ? failureCount : processingCount,
+    averageScoreLabel: averageScore === null ? "--" : averageScore,
+    averageScoreTone: scoreTone(averageScore),
+    completeCount: calls.filter((call) => call.status.toLowerCase() === "complete").length,
+    failureCount,
+  };
+}
+
 function formatTimestamp(value: string) {
   return new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
@@ -456,17 +616,12 @@ function scoreColor(value: number | null | undefined) {
   return "text-[var(--forge-danger)]";
 }
 
-function scoreBarClass(value: number | null | undefined) {
-  if (typeof value !== "number") return "bg-[rgba(255,244,230,0.2)]";
-  if (value >= 85) return "bg-[var(--forge-cyan)] shadow-[0_0_14px_rgba(136,218,247,0.22)]";
-  if (value >= 70) return "bg-[rgba(136,218,247,0.76)]";
-  if (value >= 60) return "bg-[var(--forge-gold)]";
-  return "bg-[var(--forge-danger)]";
-}
-
-function normalizedScore(value: number | null | undefined) {
-  if (typeof value !== "number") return 20;
-  return Math.max(8, Math.min(100, value));
+function scoreTone(value: number | null): "cyan" | "danger" | "gold" | "muted" | "success" {
+  if (typeof value !== "number") return "muted";
+  if (value >= 85) return "cyan";
+  if (value >= 70) return "success";
+  if (value >= 60) return "gold";
+  return "danger";
 }
 
 function statusBadge(status: string) {
@@ -534,4 +689,10 @@ function initials(value: string | null | undefined) {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("");
+}
+
+function repDisplayName(call: Pick<CallSummary, "repFirstName" | "repLastName">) {
+  return call.repFirstName || call.repLastName
+    ? `${call.repFirstName ?? ""} ${call.repLastName ?? ""}`.trim()
+    : null;
 }

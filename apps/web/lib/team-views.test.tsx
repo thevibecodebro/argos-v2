@@ -93,16 +93,22 @@ const badges = {
 };
 
 describe("TeamRosterView", () => {
-  it("renders summary metrics and roster rows", () => {
+  it("renders a compact roster-first table without secondary segment cards", () => {
     const html = renderToStaticMarkup(createElement(TeamRosterView, { dashboard }));
 
-    expect(html).toContain("Roster overview");
     expect(html).toContain("Rep roster");
-    expect(html).toContain("Team average");
+    expect(html).toContain('data-team-roster-table="true"');
+    expect(html).toContain(">Trend<");
+    expect(html).toContain(">Status<");
+    expect(html).not.toContain("Focus area");
+    expect(html).not.toContain("Training status");
+    expect(html).not.toContain("Last reviewed");
+    expect(html).not.toContain('data-team-segments="true"');
     expect(html).toContain("Needs coaching");
     expect(html).toContain("Avery Stone");
     expect(html).toContain("Mina Cross");
     expect(html).toContain("Open profile");
+    expect(html).not.toContain("Team performance at a glance");
   });
 
   it("renders the empty state when no reps are available", () => {
@@ -132,8 +138,9 @@ describe("TeamRepProfileView", () => {
       }),
     );
 
-    expect(html).toContain("Team member");
-    expect(html).toContain("Current snapshot");
+    expect(html).toContain('data-rep-profile-workbench="true"');
+    expect(html).toContain('data-rep-coaching-bench="true"');
+    expect(html).toContain("Focus areas");
     expect(html).toContain("Weekly trend");
     expect(html).toContain("Recent calls");
     expect(html).toContain("Badges &amp; milestones");

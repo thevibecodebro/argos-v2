@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ForgeDialog } from "@/components/forge-dialog";
 import {
@@ -10,9 +10,7 @@ import {
   ForgeErrorState,
   ForgeIcon,
   ForgeSegmentedTab,
-  ForgeScoreMeter,
   ForgeSegmentedTabs,
-  ForgeStatCard,
   ForgeStatusPanel,
   ForgeSurface,
 } from "@/components/forge";
@@ -42,38 +40,6 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-function scoreTint(value: number | null | undefined) {
-  if (typeof value !== "number") {
-    return {
-      text: "text-[var(--forge-muted)]",
-      tone: "muted" as const,
-    };
-  }
-  if (value >= 85) {
-    return {
-      text: "text-[var(--forge-cyan)]",
-      tone: "cyan" as const,
-    };
-  }
-  if (value >= 70) {
-    return {
-      text: "text-[rgba(136,218,247,0.84)]",
-      tone: "cyan" as const,
-    };
-  }
-  if (value >= 60) {
-    return {
-      text: "text-[var(--forge-gold)]",
-      tone: "gold" as const,
-    };
-  }
-  return {
-    bar: "bg-[var(--forge-danger)]",
-    text: "text-[var(--forge-danger)]",
-    tone: "danger" as const,
-  };
-}
-
 function severityTint(severity: string | null | undefined): "cyan" | "danger" | "ember" {
   if (severity === "strength") return "cyan";
   if (severity === "critical") return "danger";
@@ -90,16 +56,6 @@ function statusTone(status: string | null | undefined): "danger" | "ember" | "mu
   return "muted";
 }
 
-
-function analysisStateLabel(status: string | null | undefined) {
-  const normalized = status?.toLowerCase();
-  if (normalized === "complete") return "Analysis complete";
-  if (normalized === "failed") return "Analysis failed";
-  if (normalized === "processing" || normalized === "transcribing" || normalized === "evaluating") {
-    return "Analysis processing";
-  }
-  return "Analysis pending";
-}
 
 export function getCallMediaState({
   hasRecording,
@@ -192,23 +148,6 @@ export function CallDetailPanel({
     "transcript" | "moments" | "summary" | "notes"
   >("transcript");
 
-  const scoreCards = useMemo(() => call.categoryScores, [call.categoryScores]);
-
-  const circumference = 2 * Math.PI * 40;
-  const overallScore = typeof call.overallScore === "number" ? call.overallScore : 0;
-  const ringOffset = circumference - (Math.max(0, Math.min(100, overallScore)) / 100) * circumference;
-  const hasRecording = Boolean(call.recordingUrl);
-  const hasTranscript = Boolean(call.transcriptUrl || (call.transcript ?? []).length);
-  const mediaState = getCallMediaState({
-    hasRecording,
-    hasTranscript,
-    status: call.status,
-  });
-  const mediaAnnounce = call.status === "failed"
-    ? "assertive"
-    : call.status === "processing" || call.status === "transcribing" || call.status === "evaluating"
-      ? "polite"
-      : "off";
   const busyAnnouncement = isSubmitting
     ? "Saving coaching note."
     : isLoadingGeneratePreview
@@ -409,92 +348,20 @@ export function CallDetailPanel({
       <div aria-live="polite" className="sr-only" role="status">
         {busyAnnouncement}
       </div>
-      <div className="grid grid-cols-12 gap-5 xl:gap-6" data-call-detail-panel="forge-review-bench">
-        <div className="col-span-12 space-y-5 lg:col-span-5">
-          <ForgeSurface className="p-5 sm:p-6">
-            <div className="mb-7 flex items-start justify-between gap-5">
-              <div className="min-w-0">
-                <h2 className="font-[var(--font-display)] text-xl font-semibold text-[var(--forge-text)]">
-                  Revenue Scorecard
-                </h2>
-                <p className="mt-1 font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
-                  AI-Powered Evaluation
-                </p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <ForgeChip tone="cyan">Confidence: {call.confidence ?? "unknown"}</ForgeChip>
-                  <ForgeChip tone="gold">Stage: {call.callStageReached ?? "not set"}</ForgeChip>
-                </div>
-                <p className="mt-3 text-xs uppercase tracking-[0.14em] text-[var(--forge-muted)]">
-                  Scorecard: {call.rubric?.name ?? "Revenue Scorecard"}
-                  {call.rubric?.version != null ? ` / v${call.rubric.version}` : ""}
-                </p>
-              </div>
-              <div className="relative flex items-center justify-center">
-                <svg className="h-24 w-24 -rotate-90 transform" aria-hidden="true">
-                  <circle
-                    cx="48"
-                    cy="48"
-                    fill="transparent"
-                    r="40"
-                    stroke="rgba(255,244,230,0.1)"
-                    strokeWidth="8"
-                  />
-                  <circle
-                    cx="48"
-                    cy="48"
-                    fill="transparent"
-                    r="40"
-                    stroke="var(--forge-cyan)"
-                    strokeDasharray={circumference}
-                    strokeDashoffset={ringOffset}
-                    strokeLinecap="round"
-                    strokeWidth="8"
-                  />
-                </svg>
-                <span className="absolute font-[var(--font-display)] text-2xl font-bold text-[var(--forge-cyan)]">
-                  {call.overallScore ?? "-"}
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {scoreCards.map((category) => {
-                const tint = scoreTint(category.score);
-                return (
-                  <div className="flex items-center justify-between gap-4" key={category.slug}>
-                    <span className="min-w-0 truncate text-sm font-medium text-[var(--forge-text)]">
-                      {category.name}
-                    </span>
-                    <ForgeScoreMeter
-                      className="w-40 sm:w-48"
-                      label={`${category.name} score`}
-                      showValue
-                      tone={tint.tone}
-                      value={category.score}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          </ForgeSurface>
-        </div>
-
-        <div className="col-span-12 space-y-5 lg:col-span-7">
-          <ForgeSurface
-            className="relative overflow-hidden p-0 lg:aspect-video"
-            style={{ background: "linear-gradient(180deg, rgba(16,9,7,0.88), rgba(5,4,3,0.98))" }}
-          >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,159,95,0.12),transparent_34%),linear-gradient(180deg,rgba(255,244,230,0.05),rgba(5,4,3,0.82))]" />
-            <div className="relative z-10 p-5 sm:p-6 lg:absolute lg:inset-x-0 lg:top-0">
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <ForgeChip tone={statusTone(call.status)}>{call.status}</ForgeChip>
-                  <h2 className="mt-3 truncate font-[var(--font-display)] text-2xl font-semibold text-[var(--forge-text)]">
-                    {call.callTopic ?? "Untitled call"}
+      <div className="space-y-3" data-call-detail-panel="forge-review-bench">
+        <ForgeSurface className="overflow-hidden p-0">
+            <div className="flex flex-col gap-4 border-b border-[var(--forge-border)] bg-[rgba(255,244,230,0.025)] p-5 sm:p-6">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-gold)]">
+                    Workbench
+                  </p>
+                  <h2 className="mt-1 font-[var(--font-display)] text-xl font-semibold text-[var(--forge-text)]">
+                    Call Review
                   </h2>
-                  <p className="mt-2 text-sm text-[var(--forge-muted)]">{formatDate(call.createdAt)}</p>
                 </div>
-                <div className="flex flex-wrap items-center justify-end gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <ForgeChip tone="cyan">Speaker Diarization</ForgeChip>
                   {call.status === "complete" ? (
                     <ForgeButton
                       icon="record_voice_over"
@@ -508,75 +375,7 @@ export function CallDetailPanel({
                       Generate Roleplay
                     </ForgeButton>
                   ) : null}
-                  <ForgeChip tone="muted">
-                    {call.durationSeconds != null ? formatTimestamp(call.durationSeconds) : "No duration"}
-                  </ForgeChip>
                 </div>
-              </div>
-            </div>
-            <div className="relative z-10 px-5 pb-5 sm:px-6 lg:absolute lg:inset-x-0 lg:bottom-5 lg:top-28 lg:flex lg:items-end">
-              <div className="w-full rounded-2xl border border-[var(--forge-border)] bg-[rgba(5,4,3,0.58)] p-4 shadow-[0_18px_60px_rgba(0,0,0,0.24)] backdrop-blur-sm sm:p-5">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0">
-                    <ForgeStatusPanel
-                      announce={mediaAnnounce}
-                      className="px-4 py-5"
-                      description={mediaState.description}
-                      icon={mediaState.icon}
-                      title={mediaState.title}
-                      tone={mediaState.tone}
-                    />
-                    <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--forge-muted)]">
-                      Playback is not available in this review panel.
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs sm:min-w-64">
-                    <ForgeStatCard
-                      className="px-3 py-2"
-                      valueSize="compact"
-                      label="Duration"
-                      tone="muted"
-                      value={call.durationSeconds != null ? formatTimestamp(call.durationSeconds) : "No duration"}
-                    />
-                    <ForgeStatCard
-                      className="px-3 py-2"
-                      valueSize="compact"
-                      label="Transcript"
-                      tone={hasTranscript ? "success" : "muted"}
-                      value={hasTranscript ? "Transcript linked" : "Transcript pending"}
-                    />
-                    <ForgeStatCard
-                      className="px-3 py-2"
-                      valueSize="compact"
-                      label="Status"
-                      tone={statusTone(call.status)}
-                      value={call.status ?? "Unknown"}
-                    />
-                    <ForgeStatCard
-                      className="px-3 py-2"
-                      valueSize="compact"
-                      label="Analysis"
-                      tone={statusTone(call.status)}
-                      value={analysisStateLabel(call.status)}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </ForgeSurface>
-
-          <ForgeSurface className="overflow-hidden p-0">
-            <div className="flex flex-col gap-4 border-b border-[var(--forge-border)] bg-[rgba(255,244,230,0.025)] p-5 sm:p-6">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-gold)]">
-                    Workbench
-                  </p>
-                  <h2 className="mt-1 font-[var(--font-display)] text-xl font-semibold text-[var(--forge-text)]">
-                    Call Review
-                  </h2>
-                </div>
-                <ForgeChip tone="cyan">Speaker Diarization</ForgeChip>
               </div>
               <ForgeSegmentedTabs label="Call workbench sections">
                 <ForgeSegmentedTab
@@ -860,8 +659,7 @@ export function CallDetailPanel({
                 </div>
               </div>
             </div>
-          </ForgeSurface>
-        </div>
+        </ForgeSurface>
       </div>
 
       <ForgeDialog

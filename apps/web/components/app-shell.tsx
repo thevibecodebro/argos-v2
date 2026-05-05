@@ -65,14 +65,6 @@ const navGroups: NavGroup[] = [
       { href: "/leaderboard", label: "Leaderboard", icon: "leaderboard" },
     ],
   },
-  {
-    label: "System",
-    icon: "settings",
-    items: [
-      { href: "/notifications", label: "Notifications", icon: "notifications" },
-      { href: "/settings", label: "Settings", icon: "settings" },
-    ],
-  },
 ];
 
 export function AuthenticatedAppShell({
@@ -249,15 +241,27 @@ export function AuthenticatedAppShell({
 
         <div
           className={cn(
-            "mt-4 border-t border-[var(--forge-border)] pt-3 text-xs leading-5 text-[var(--forge-muted)]",
-            primaryRailCollapsed && "lg:hidden",
+            "mt-4 border-t border-[var(--forge-border)] pt-3",
+            primaryRailCollapsed && "lg:px-0",
           )}
-          data-primary-rail-detail="true"
         >
-          <span className="font-[var(--font-display)] font-bold uppercase tracking-[0.16em] text-[var(--forge-gold)]">
-            Active scope
-          </span>
-          <span className="mt-1 block truncate">{roleContext}</span>
+          <Link
+            aria-current={isRouteActive(currentPath, "/settings") ? "page" : undefined}
+            aria-label="Settings"
+            className={cn(
+              "forge-nav-link flex items-center gap-3 rounded-2xl px-3 py-2.5 font-[var(--font-display)] text-[0.7rem] font-bold uppercase tracking-[0.16em]",
+              primaryRailCollapsed && "lg:h-11 lg:justify-center lg:px-0",
+              isRouteActive(currentPath, "/settings") && "forge-nav-link--active",
+            )}
+            data-primary-rail-footer-link="settings"
+            href="/settings"
+            title={primaryRailCollapsed ? "Settings" : undefined}
+          >
+            <ForgeIcon name="settings" size={18} />
+            <span className={cn("truncate", primaryRailCollapsed && "lg:sr-only")} data-primary-rail-label="true">
+              Settings
+            </span>
+          </Link>
         </div>
       </aside>
 
@@ -311,15 +315,6 @@ export function AuthenticatedAppShell({
               Upload call
             </Link>
 
-            <Link
-              aria-label="Notifications"
-              className="forge-icon-button flex h-10 w-10 items-center justify-center rounded-2xl"
-              data-active={isRouteActive(currentPath, "/notifications") ? "true" : "false"}
-              href="/notifications"
-            >
-              <ForgeIcon name="notifications" size={20} />
-            </Link>
-
             <div className="relative" ref={accountRef}>
               <button
                 aria-controls="account-menu"
@@ -359,6 +354,19 @@ export function AuthenticatedAppShell({
 
                 <Link
                   className="flex items-center gap-3 px-4 py-3 text-sm text-[var(--forge-muted)] transition hover:bg-[rgba(241,191,123,0.07)] hover:text-[var(--forge-text)]"
+                  data-account-menu-item="notifications"
+                  href="/notifications"
+                  onClick={() => setAccountOpen(false)}
+                  role="menuitem"
+                  tabIndex={accountOpen ? 0 : -1}
+                >
+                  <ForgeIcon name="notifications" size={17} />
+                  Notifications
+                </Link>
+
+                <Link
+                  className="flex items-center gap-3 px-4 py-3 text-sm text-[var(--forge-muted)] transition hover:bg-[rgba(241,191,123,0.07)] hover:text-[var(--forge-text)]"
+                  data-account-menu-item="settings"
                   href="/settings"
                   onClick={() => setAccountOpen(false)}
                   role="menuitem"

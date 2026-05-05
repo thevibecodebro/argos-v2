@@ -8,19 +8,31 @@ import {
   ForgeButton,
   ForgeManagementTable,
   ForgeMobileTableCards,
-  ForgeWorkspaceLayout,
-  ForgeWorkspaceRail,
-  ForgeWorkspaceRailAction,
 } from "../forge";
+import {
+  SettingsDrawerButton,
+  SettingsEditorDrawer,
+  SettingsEditorPanel,
+  SettingsEditorWorkbench,
+} from "./settings-workbench";
 
-function initials(firstName: string | null, lastName: string | null, fallback: string) {
-  const v = [firstName, lastName].filter(Boolean).map((s) => s?.[0]?.toUpperCase()).join("");
+function initials(
+  firstName: string | null,
+  lastName: string | null,
+  fallback: string,
+) {
+  const v = [firstName, lastName]
+    .filter(Boolean)
+    .map((s) => s?.[0]?.toUpperCase())
+    .join("");
   return v || fallback.slice(0, 2).toUpperCase();
 }
 
 function formatDate(value: string | null) {
   if (!value) return null;
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(value));
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(
+    new Date(value),
+  );
 }
 
 type PeoplePanelProps = {
@@ -47,11 +59,15 @@ export function PeoplePanel({
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [memberError, setMemberError] = useState<string | null>(null);
   const [memberSearch, setMemberSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"all" | "rep" | "manager" | "executive" | "admin">("all");
+  const [roleFilter, setRoleFilter] = useState<
+    "all" | "rep" | "manager" | "executive" | "admin"
+  >("all");
 
   const [showInviteForm, setShowInviteForm] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<"rep" | "manager" | "executive" | "admin">("rep");
+  const [inviteRole, setInviteRole] = useState<
+    "rep" | "manager" | "executive" | "admin"
+  >("rep");
   const [inviteTeamIds, setInviteTeamIds] = useState<string[]>([]);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSending, setInviteSending] = useState(false);
@@ -62,7 +78,10 @@ export function PeoplePanel({
   const visibleMembers = members.filter((member) => {
     const query = memberSearch.trim().toLowerCase();
     const role = member.role ?? "rep";
-    const memberName = [member.firstName, member.lastName].filter(Boolean).join(" ").trim();
+    const memberName = [member.firstName, member.lastName]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
     const matchesQuery =
       !query ||
       `${memberName} ${member.email} ${role}`.toLowerCase().includes(query);
@@ -81,16 +100,28 @@ export function PeoplePanel({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ role: newRole }),
     });
-    const payload = (await response.json()) as { id?: string; role?: OrganizationMember["role"]; error?: string };
+    const payload = (await response.json()) as {
+      id?: string;
+      role?: OrganizationMember["role"];
+      error?: string;
+    };
     if (!response.ok) {
-      setMemberError(payload.error ?? "Role change failed. Refresh and try again.");
+      setMemberError(
+        payload.error ?? "Role change failed. Refresh and try again.",
+      );
       setSavingRoleId(null);
       return;
     }
     setMembers((current) =>
-      current.map((m) => (m.id === memberId ? { ...m, role: payload.role ?? m.role } : m)),
+      current.map((m) =>
+        m.id === memberId ? { ...m, role: payload.role ?? m.role } : m,
+      ),
     );
-    setStagedRoles((current) => { const next = { ...current }; delete next[memberId]; return next; });
+    setStagedRoles((current) => {
+      const next = { ...current };
+      delete next[memberId];
+      return next;
+    });
     setSavingRoleId(null);
     router.refresh();
   }
@@ -98,10 +129,14 @@ export function PeoplePanel({
   async function removeMember(memberId: string) {
     setMemberError(null);
     setRemovingId(memberId);
-    const response = await fetch(`/api/organizations/members/${memberId}`, { method: "DELETE" });
+    const response = await fetch(`/api/organizations/members/${memberId}`, {
+      method: "DELETE",
+    });
     const payload = (await response.json()) as { error?: string };
     if (!response.ok) {
-      setMemberError(payload.error ?? "Couldn't remove member. Refresh and try again.");
+      setMemberError(
+        payload.error ?? "Couldn't remove member. Refresh and try again.",
+      );
       setRemovingId(null);
       setConfirmRemoveId(null);
       return;
@@ -137,16 +172,25 @@ export function PeoplePanel({
     setShowInviteForm(false);
     // Refresh invite list
     const listRes = await fetch("/api/invites");
-    if (listRes.ok) setPendingInvites(await listRes.json() as InviteRecord[]);
+    if (listRes.ok) setPendingInvites((await listRes.json()) as InviteRecord[]);
   }
 
   async function revokeInvite(invite: InviteRecord) {
-    setRevokeErrors((e) => { const next = { ...e }; delete next[invite.id]; return next; });
+    setRevokeErrors((e) => {
+      const next = { ...e };
+      delete next[invite.id];
+      return next;
+    });
     setRevokingId(invite.id);
-    const response = await fetch(`/api/invites/${invite.token}`, { method: "DELETE" });
+    const response = await fetch(`/api/invites/${invite.token}`, {
+      method: "DELETE",
+    });
     if (!response.ok) {
       const payload = (await response.json()) as { error?: string };
-      setRevokeErrors((e) => ({ ...e, [invite.id]: payload.error ?? "Revoke failed. Try again." }));
+      setRevokeErrors((e) => ({
+        ...e,
+        [invite.id]: payload.error ?? "Revoke failed. Try again.",
+      }));
       setRevokingId(null);
       return;
     }
@@ -155,13 +199,7 @@ export function PeoplePanel({
   }
 
   const inviteControls = (
-    <ForgeWorkspaceRail
-      collapsible
-      description="Invite teammates and review pending access without leaving the member table."
-      eyebrow="People controls"
-      title="Invite controls"
-      data-people-control-rail=""
-    >
+    <SettingsEditorDrawer data-people-invite-drawer="">
       <div className="space-y-5">
         <div className="space-y-3">
           <div className="flex items-start justify-between gap-3">
@@ -170,7 +208,8 @@ export function PeoplePanel({
                 Invites
               </p>
               <p className="mt-2 text-sm text-[var(--forge-muted)]">
-                Links expire in 7 days. Revoke a pending invite to invalidate it immediately.
+                Links expire in 7 days. Revoke a pending invite to invalidate it
+                immediately.
               </p>
             </div>
             <span className="rounded-full border border-[var(--forge-border-strong)]/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
@@ -178,20 +217,22 @@ export function PeoplePanel({
             </span>
           </div>
           {!showInviteForm ? (
-            <ForgeWorkspaceRailAction
+            <SettingsDrawerButton
               icon="person"
               onClick={() => setShowInviteForm(true)}
               type="button"
             >
               Invite member
-            </ForgeWorkspaceRailAction>
+            </SettingsDrawerButton>
           ) : null}
         </div>
 
         {showInviteForm ? (
           <div className="space-y-4 rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4">
             <label className="block">
-              <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">Email</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">
+                Email
+              </span>
               <input
                 className="mt-2 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3 text-sm text-white outline-none transition placeholder:text-[rgba(255,244,230,0.34)] focus:border-[var(--forge-gold)]/60"
                 onChange={(e) => setInviteEmail(e.target.value)}
@@ -202,7 +243,9 @@ export function PeoplePanel({
             </label>
 
             <label className="block">
-              <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">Role</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">
+                Role
+              </span>
               <select
                 className="mt-2 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
                 onChange={(e) => {
@@ -213,7 +256,9 @@ export function PeoplePanel({
               >
                 <option value="rep">Rep — records and reviews own calls</option>
                 <option value="manager">Manager — coaches team calls</option>
-                <option value="executive">Executive — views all team data</option>
+                <option value="executive">
+                  Executive — views all team data
+                </option>
                 <option value="admin">Admin — full access</option>
               </select>
             </label>
@@ -225,13 +270,18 @@ export function PeoplePanel({
                 </span>
                 <div className="mt-2 space-y-2">
                   {initialTeams.map((team) => (
-                    <label key={team.id} className="flex cursor-pointer items-center gap-2 text-sm text-white">
+                    <label
+                      key={team.id}
+                      className="flex cursor-pointer items-center gap-2 text-sm text-white"
+                    >
                       <input
                         checked={inviteTeamIds.includes(team.id)}
                         className="accent-[var(--forge-gold)]"
                         onChange={(e) =>
                           setInviteTeamIds((prev) =>
-                            e.target.checked ? [...prev, team.id] : prev.filter((id) => id !== team.id),
+                            e.target.checked
+                              ? [...prev, team.id]
+                              : prev.filter((id) => id !== team.id),
                           )
                         }
                         type="checkbox"
@@ -243,7 +293,11 @@ export function PeoplePanel({
               </div>
             ) : null}
 
-            {inviteError ? <p className="text-sm text-[var(--forge-danger)]">{inviteError}</p> : null}
+            {inviteError ? (
+              <p className="text-sm text-[var(--forge-danger)]">
+                {inviteError}
+              </p>
+            ) : null}
 
             <div className="grid gap-2">
               <ForgeButton
@@ -289,9 +343,12 @@ export function PeoplePanel({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-white">{invite.email}</p>
+                      <p className="truncate text-sm font-medium text-white">
+                        {invite.email}
+                      </p>
                       <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[var(--forge-muted)]">
-                        {invite.role} · expires {new Date(invite.expiresAt).toLocaleDateString()}
+                        {invite.role} · expires{" "}
+                        {new Date(invite.expiresAt).toLocaleDateString()}
                       </p>
                     </div>
                     <button
@@ -304,7 +361,9 @@ export function PeoplePanel({
                     </button>
                   </div>
                   {revokeErrors[invite.id] ? (
-                    <p className="mt-2 text-xs text-[var(--forge-danger)]">{revokeErrors[invite.id]}</p>
+                    <p className="mt-2 text-xs text-[var(--forge-danger)]">
+                      {revokeErrors[invite.id]}
+                    </p>
                   ) : null}
                 </li>
               ))}
@@ -312,20 +371,27 @@ export function PeoplePanel({
           )}
         </div>
       </div>
-    </ForgeWorkspaceRail>
+    </SettingsEditorDrawer>
   );
 
   function renderMemberRoleControls(member: OrganizationMember) {
     const isSelf = member.id === currentUserId;
-    const memberName = [member.firstName, member.lastName].filter(Boolean).join(" ").trim() || member.email;
+    const memberName =
+      [member.firstName, member.lastName].filter(Boolean).join(" ").trim() ||
+      member.email;
     const stagedRole = stagedRoles[member.id];
-    const hasUnappliedChange = stagedRole !== undefined && stagedRole !== (member.role ?? "rep");
+    const hasUnappliedChange =
+      stagedRole !== undefined && stagedRole !== (member.role ?? "rep");
     const isConfirmingRemove = confirmRemoveId === member.id;
     const isRemoving = removingId === member.id;
     const isSavingRole = savingRoleId === member.id;
 
     if (isSelf) {
-      return <span className="text-xs uppercase tracking-[0.16em] text-[var(--forge-muted)]">Protected</span>;
+      return (
+        <span className="text-xs uppercase tracking-[0.16em] text-[var(--forge-muted)]">
+          Protected
+        </span>
+      );
     }
 
     return (
@@ -335,7 +401,12 @@ export function PeoplePanel({
           <select
             className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60 disabled:opacity-50"
             disabled={isSavingRole}
-            onChange={(e) => setStagedRoles((current) => ({ ...current, [member.id]: e.target.value }))}
+            onChange={(e) =>
+              setStagedRoles((current) => ({
+                ...current,
+                [member.id]: e.target.value,
+              }))
+            }
             value={stagedRole ?? member.role ?? "rep"}
           >
             <option value="rep">Rep</option>
@@ -358,7 +429,9 @@ export function PeoplePanel({
 
         {isConfirmingRemove ? (
           <>
-            <span className="text-xs text-[var(--forge-muted)]">Remove {memberName}?</span>
+            <span className="text-xs text-[var(--forge-muted)]">
+              Remove {memberName}?
+            </span>
             <ForgeButton
               disabled={isRemoving}
               onClick={() => void removeMember(member.id)}
@@ -392,16 +465,23 @@ export function PeoplePanel({
   }
 
   return (
-    <ForgeWorkspaceLayout data-people-workspace="management" railCount={1} rails={inviteControls}>
-      <section
-        className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]"
-        data-people-member-table=""
-      >
+    <SettingsEditorWorkbench
+      data-people-workspace="management"
+      drawer={inviteControls}
+      workbench="people"
+    >
+      <SettingsEditorPanel data-people-member-table="">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">Member management</p>
-            <h3 className="mt-2 text-xl font-semibold text-white">People table</h3>
-            <p className="mt-2 text-sm text-[var(--forge-muted)]">Search members, stage role changes, and remove inactive access.</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
+              Member management
+            </p>
+            <h3 className="mt-2 text-xl font-semibold text-white">
+              People table
+            </h3>
+            <p className="mt-2 text-sm text-[var(--forge-muted)]">
+              Search members, stage role changes, and remove inactive access.
+            </p>
           </div>
           <span className="rounded-full border border-[var(--forge-border-strong)]/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
             {members.length} {members.length === 1 ? "member" : "members"}
@@ -428,7 +508,9 @@ export function PeoplePanel({
             <span>Role filter</span>
             <select
               className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
-              onChange={(event) => setRoleFilter(event.target.value as typeof roleFilter)}
+              onChange={(event) =>
+                setRoleFilter(event.target.value as typeof roleFilter)
+              }
               value={roleFilter}
             >
               <option value="all">All roles</option>
@@ -441,16 +523,24 @@ export function PeoplePanel({
         </div>
 
         {members.length === 0 ? (
-          <p className="mt-5 text-sm text-[var(--forge-muted)]">Invite teammates from the rail to add the first member.</p>
+          <p className="mt-5 text-sm text-[var(--forge-muted)]">
+            Invite teammates from the drawer to add the first member.
+          </p>
         ) : visibleMembers.length === 0 ? (
-          <p className="mt-5 text-sm text-[var(--forge-muted)]">No members match the current search or role filter.</p>
+          <p className="mt-5 text-sm text-[var(--forge-muted)]">
+            No members match the current search or role filter.
+          </p>
         ) : (
           <ForgeManagementTable
             className="mt-5"
             mobileCards={
               <ForgeMobileTableCards>
                 {visibleMembers.map((member) => {
-                  const memberName = [member.firstName, member.lastName].filter(Boolean).join(" ").trim() || member.email;
+                  const memberName =
+                    [member.firstName, member.lastName]
+                      .filter(Boolean)
+                      .join(" ")
+                      .trim() || member.email;
                   const isSelf = member.id === currentUserId;
 
                   return (
@@ -460,20 +550,32 @@ export function PeoplePanel({
                     >
                       <div className="flex items-center gap-3">
                         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/8 text-sm font-semibold text-[var(--forge-gold)]">
-                          {initials(member.firstName, member.lastName, member.email)}
+                          {initials(
+                            member.firstName,
+                            member.lastName,
+                            member.email,
+                          )}
                         </div>
                         <div className="min-w-0">
                           <p className="truncate text-sm font-semibold text-white">
                             {memberName}
-                            {isSelf ? <span className="ml-2 text-xs font-medium text-[var(--forge-muted)]">(you)</span> : null}
+                            {isSelf ? (
+                              <span className="ml-2 text-xs font-medium text-[var(--forge-muted)]">
+                                (you)
+                              </span>
+                            ) : null}
                           </p>
-                          <p className="mt-1 truncate text-sm text-[var(--forge-muted)]">{member.email}</p>
+                          <p className="mt-1 truncate text-sm text-[var(--forge-muted)]">
+                            {member.email}
+                          </p>
                           <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[var(--forge-muted)]">
                             {member.role ?? "rep"} · {member.callCount} calls
                           </p>
                         </div>
                       </div>
-                      <div className="mt-4">{renderMemberRoleControls(member)}</div>
+                      <div className="mt-4">
+                        {renderMemberRoleControls(member)}
+                      </div>
                     </div>
                   );
                 })}
@@ -491,7 +593,11 @@ export function PeoplePanel({
               </thead>
               <tbody className="divide-y divide-[var(--forge-border-strong)]/10">
                 {visibleMembers.map((member) => {
-                  const memberName = [member.firstName, member.lastName].filter(Boolean).join(" ").trim() || member.email;
+                  const memberName =
+                    [member.firstName, member.lastName]
+                      .filter(Boolean)
+                      .join(" ")
+                      .trim() || member.email;
                   const isSelf = member.id === currentUserId;
 
                   return (
@@ -499,22 +605,37 @@ export function PeoplePanel({
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/8 text-xs font-semibold text-[var(--forge-gold)]">
-                            {initials(member.firstName, member.lastName, member.email)}
+                            {initials(
+                              member.firstName,
+                              member.lastName,
+                              member.email,
+                            )}
                           </div>
                           <div className="min-w-0">
                             <p className="truncate text-sm font-semibold text-white">
                               {memberName}
-                              {isSelf ? <span className="ml-2 text-xs font-medium text-[var(--forge-muted)]">(you)</span> : null}
+                              {isSelf ? (
+                                <span className="ml-2 text-xs font-medium text-[var(--forge-muted)]">
+                                  (you)
+                                </span>
+                              ) : null}
                             </p>
-                            <p className="mt-1 truncate text-sm text-[var(--forge-muted)]">{member.email}</p>
+                            <p className="mt-1 truncate text-sm text-[var(--forge-muted)]">
+                              {member.email}
+                            </p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm capitalize text-[var(--forge-text)]">{member.role ?? "rep"}</td>
-                      <td className="px-4 py-3 text-xs uppercase tracking-[0.18em] text-[var(--forge-muted)]">
-                        {member.callCount} calls · joined {formatDate(member.joinedAt)}
+                      <td className="px-4 py-3 text-sm capitalize text-[var(--forge-text)]">
+                        {member.role ?? "rep"}
                       </td>
-                      <td className="px-4 py-3 text-right">{renderMemberRoleControls(member)}</td>
+                      <td className="px-4 py-3 text-xs uppercase tracking-[0.18em] text-[var(--forge-muted)]">
+                        {member.callCount} calls · joined{" "}
+                        {formatDate(member.joinedAt)}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {renderMemberRoleControls(member)}
+                      </td>
                     </tr>
                   );
                 })}
@@ -522,8 +643,7 @@ export function PeoplePanel({
             </table>
           </ForgeManagementTable>
         )}
-      </section>
-
-    </ForgeWorkspaceLayout>
+      </SettingsEditorPanel>
+    </SettingsEditorWorkbench>
   );
 }

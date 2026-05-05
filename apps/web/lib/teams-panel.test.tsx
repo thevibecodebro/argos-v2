@@ -91,9 +91,11 @@ describe("TeamsPanel", () => {
 
     expect(html).toContain("Create team");
     expect(html).toContain('data-teams-workspace="management"');
-    expect(html).toContain('data-forge-workspace-layout="one-rail"');
-    expect(html).toContain('data-teams-control-rail=""');
+    expect(html).toContain('data-settings-editor-workbench="teams"');
+    expect(html).toContain('data-teams-control-drawer=""');
     expect(html).toContain('data-teams-editor=""');
+    expect(html).not.toContain('data-forge-workspace-layout=');
+    expect(html).not.toContain('data-forge-workspace-rail=');
     expect(html).toContain('data-selected-team-editor="team-a"');
     expect(html).toContain("Team name");
     expect(html).toContain("Status");

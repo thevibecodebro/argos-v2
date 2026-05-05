@@ -10,7 +10,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("PeoplePanel", () => {
-  it("renders people management with a compact workspace rail and member table", () => {
+  it("renders people management with a compact drawer and member table", () => {
     const html = renderToStaticMarkup(
       createElement(PeoplePanel, {
         currentUserId: "user-admin",
@@ -56,9 +56,11 @@ describe("PeoplePanel", () => {
     );
 
     expect(html).toContain('data-people-workspace="management"');
-    expect(html).toContain('data-forge-workspace-layout="one-rail"');
-    expect(html).toContain('data-people-control-rail=""');
+    expect(html).toContain('data-settings-editor-workbench="people"');
+    expect(html).toContain('data-people-invite-drawer=""');
     expect(html).toContain('data-people-member-table=""');
+    expect(html).not.toContain('data-forge-workspace-layout=');
+    expect(html).not.toContain('data-forge-workspace-rail=');
     expect(html).toContain('data-forge-management-table="true"');
     expect(html).toContain('data-forge-mobile-table-cards="true"');
     expect(html).toContain("Search members");

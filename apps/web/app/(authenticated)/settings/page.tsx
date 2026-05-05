@@ -1,8 +1,12 @@
 // apps/web/app/(authenticated)/settings/page.tsx
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ForgeErrorState, ForgeIcon, ForgeSettingsGroup } from "@/components/forge";
-import { PageFrame } from "@/components/page-frame";
+import { ForgeChip, ForgeErrorState, ForgeIcon } from "@/components/forge";
+import {
+  OperationalPreviewDrawer,
+  OperationalToolbar,
+  OperationalWorkspace,
+} from "@/components/operational-workspace";
 import { AccountPanel } from "@/components/page-panel-loaders";
 import {
   getCachedAuthenticatedSupabaseUser,
@@ -62,68 +66,190 @@ export default async function SettingsAccountPage() {
 
   if (!result?.ok) {
     return (
-      <PageFrame
-        description="Settings needs an app user record before profile and org management can load."
-        eyebrow="Provisioning"
-        title="Account"
-        tone="warning"
-      >
+      <OperationalWorkspace data-settings-route="control-room">
+        <OperationalToolbar
+          description="Settings needs an app user record before profile and org management can load."
+          eyebrow="Provisioning"
+          title="Account"
+        />
         <ForgeErrorState
           description={result?.error ?? "Unable to load settings."}
           title="Settings unavailable"
         />
-      </PageFrame>
+      </OperationalWorkspace>
     );
   }
 
+  const visibleSections = SETTINGS_SECTIONS.filter(
+    (section) =>
+      !section.visibleTo ||
+      (result.data.role !== null &&
+        (section.visibleTo as readonly string[]).includes(result.data.role)),
+  );
+  const workspaceRows = [
+    {
+      description: "Manage profile details and organization context.",
+      href: "/settings",
+      icon: "person",
+      label: "Account",
+      scope: "Personal",
+    },
+    ...visibleSections.map((section) => ({
+      description: section.description,
+      href: section.href,
+      icon: section.icon,
+      label: section.label,
+      scope: "Admin",
+    })),
+  ];
+
   return (
-    <PageFrame
-      description="Control account details, people, teams, integrations, compliance, and the scoring rubric from one workspace."
-      eyebrow="Settings"
-      title="Control room"
-    >
-      <div className="space-y-5">
-        <ForgeSettingsGroup
-          description="HighLevel-style settings architecture for the Argos workspace: one landing page, grouped controls, and clear admin scope."
-          title="Workspace map"
+    <OperationalWorkspace data-settings-route="control-room">
+      <OperationalToolbar
+        description="Control account details, people, teams, integrations, compliance, and the scoring rubric from one workspace."
+        eyebrow="Settings"
+        status={{ icon: "admin_panel_settings", label: `${result.data.role ?? "member"} scope`, tone: "muted" }}
+        title="Control room"
+      />
+
+      <section className="grid min-w-0 gap-3 xl:grid-cols-[180px_minmax(0,1fr)_320px]">
+        <nav
+          aria-label="Settings sections"
+          className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.026)] p-2"
+          data-settings-internal-subnav="true"
         >
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {SETTINGS_SECTIONS.filter(
-              (section) =>
-                !section.visibleTo ||
-                (result.data.role !== null &&
-                  (section.visibleTo as readonly string[]).includes(result.data.role)),
-            ).map((section) => (
-              <Link
-                className="group rounded-[1.15rem] border border-[var(--forge-border)] bg-[rgba(255,244,230,0.028)] p-4 transition hover:-translate-y-0.5 hover:border-[rgba(241,191,123,0.32)] hover:bg-[rgba(241,191,123,0.055)]"
+          <div className="grid gap-1">
+            <SettingsSubnavLink active href="/settings" icon="person" label="Account" />
+            {visibleSections.map((section) => (
+              <SettingsSubnavLink
                 href={section.href}
+                icon={section.icon}
                 key={section.href}
-              >
-                <div className="flex items-start gap-3">
-                  <span className="mt-0.5 rounded-xl border border-[rgba(241,191,123,0.24)] bg-[rgba(241,191,123,0.08)] p-2 text-[var(--forge-gold)]">
-                    <ForgeIcon name={section.icon} size={18} />
-                  </span>
-                  <div>
-                    <h3 className="font-[var(--font-display)] text-sm font-semibold text-[var(--forge-text)] transition group-hover:text-[var(--forge-gold)]">
-                      {section.label}
-                    </h3>
-                    <p className="mt-1 text-sm leading-6 text-[var(--forge-muted)]">
-                      {section.description}
-                    </p>
-                  </div>
-                </div>
-              </Link>
+                label={section.label}
+              />
             ))}
           </div>
-        </ForgeSettingsGroup>
+        </nav>
 
-        <ForgeSettingsGroup
-          description="Manage your display name and view your organization details."
-          title="Account"
+        <div className="min-w-0 space-y-3">
+          <section
+            className="overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[rgba(8,6,5,0.88)]"
+            data-settings-workspace-map="true"
+          >
+            <div className="border-b border-[var(--forge-border)] bg-[rgba(255,244,230,0.024)] px-4 py-3">
+              <p className="text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
+                Workspace map
+              </p>
+              <p className="mt-1 text-sm text-[var(--forge-muted)]">
+                One landing page for grouped controls, clear status, and admin scope.
+              </p>
+            </div>
+            <div className="divide-y divide-[var(--forge-border)]">
+              {workspaceRows.map((section) => (
+                <Link
+                  className="grid gap-3 px-4 py-3 transition hover:bg-[rgba(241,191,123,0.045)] md:grid-cols-[minmax(0,1fr)_120px_80px]"
+                  href={section.href}
+                  key={section.href}
+                >
+                  <div className="flex min-w-0 items-start gap-3">
+                    <span className="mt-0.5 rounded-lg border border-[rgba(241,191,123,0.24)] bg-[rgba(241,191,123,0.08)] p-2 text-[var(--forge-gold)]">
+                      <ForgeIcon name={section.icon} size={18} />
+                    </span>
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-semibold text-[var(--forge-text)]">
+                        {section.label}
+                      </h3>
+                      <p className="mt-1 text-sm leading-5 text-[var(--forge-muted)]">
+                        {section.description}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center md:justify-end">
+                    <ForgeChip tone={section.scope === "Admin" ? "gold" : "muted"}>
+                      {section.scope}
+                    </ForgeChip>
+                  </div>
+                  <div className="flex items-center text-sm font-semibold text-[var(--forge-gold)] md:justify-end">
+                    Edit
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          <section
+            className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.026)] p-4"
+            data-settings-inline-detail="account"
+          >
+            <div className="mb-3">
+              <p className="text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
+                Account
+              </p>
+              <p className="mt-1 text-sm text-[var(--forge-muted)]">
+                Manage your display name and view organization details.
+              </p>
+            </div>
+            <AccountPanel initialUser={result.data} />
+          </section>
+        </div>
+
+        <OperationalPreviewDrawer
+          actions={[{ href: "/settings/rubric", label: "Open rubrics", variant: "secondary" }]}
+          description="Workspace-level configuration status and guardrails."
+          eyebrow="Organization"
+          title={result.data.org?.name ?? "Argos workspace"}
         >
-          <AccountPanel initialUser={result.data} />
-        </ForgeSettingsGroup>
-      </div>
-    </PageFrame>
+          <div className="grid gap-2 text-sm">
+            <SummaryRow label="Plan" value={result.data.org?.plan ?? "No plan"} />
+            <SummaryRow label="Role" value={result.data.role ?? "member"} />
+            <SummaryRow label="Email" value={result.data.email} />
+            <SummaryRow label="Org slug" value={result.data.org?.slug ?? "Not assigned"} />
+            <SummaryRow label="Visible sections" value={`${workspaceRows.length} visible`} />
+          </div>
+        </OperationalPreviewDrawer>
+      </section>
+    </OperationalWorkspace>
+  );
+}
+
+function SettingsSubnavLink({
+  active = false,
+  href,
+  icon,
+  label,
+}: {
+  active?: boolean;
+  href: string;
+  icon: string;
+  label: string;
+}) {
+  return (
+    <Link
+      aria-current={active ? "page" : undefined}
+      className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition ${
+        active
+          ? "bg-[rgba(241,191,123,0.12)] text-[var(--forge-gold)]"
+          : "text-[var(--forge-muted)] hover:bg-[rgba(255,244,230,0.04)] hover:text-[var(--forge-text)]"
+      }`}
+      href={href}
+    >
+      <ForgeIcon name={icon} size={16} />
+      <span className="truncate">{label}</span>
+    </Link>
+  );
+}
+
+function SummaryRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-[var(--forge-border)] py-2 last:border-b-0">
+      <span className="text-[var(--forge-muted)]">{label}</span>
+      <span className="font-semibold text-[var(--forge-text)]">{value}</span>
+    </div>
   );
 }

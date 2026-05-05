@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { PageFrame } from "@/components/page-frame";
 import { CompliancePanel } from "@/components/page-panel-loaders";
 import {
   getCachedAuthenticatedSupabaseUser,
@@ -7,6 +6,7 @@ import {
 } from "@/lib/auth/request-user";
 import { createComplianceRepository } from "@/lib/compliance/create-repository";
 import { getComplianceStatus } from "@/lib/compliance/service";
+import { SettingsOperationalLayout } from "../settings-operational-layout";
 
 export default async function SettingsCompliancePage() {
   const authUser = await getCachedAuthenticatedSupabaseUser();
@@ -23,9 +23,17 @@ export default async function SettingsCompliancePage() {
   const compliance = complianceResult.ok ? complianceResult.data : null;
 
   return (
-    <PageFrame
+    <SettingsOperationalLayout
       description="Manage consent, retention, and coaching safeguards."
-      eyebrow="Settings"
+      previewDescription="Consent and recording safeguard state."
+      previewRows={[
+        { label: "Consent", tone: compliance?.consentedAt ? "success" : "muted", value: compliance?.consentedAt ? "Acknowledged" : "Not acknowledged" },
+        { label: "Recording", tone: "muted", value: "Disabled" },
+        { label: "Acknowledged", value: compliance?.consentedAt ? formatDate(compliance.consentedAt) : "Not recorded" },
+        { label: "Scope", tone: "gold", value: "Workspace" },
+      ]}
+      previewTitle="Compliance status"
+      route="compliance"
       title="Compliance"
     >
       <CompliancePanel
@@ -34,6 +42,12 @@ export default async function SettingsCompliancePage() {
         acknowledgedByName={null}
         recordingEnabled={false}
       />
-    </PageFrame>
+    </SettingsOperationalLayout>
   );
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+  }).format(new Date(value));
 }

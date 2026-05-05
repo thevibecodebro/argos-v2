@@ -107,11 +107,11 @@ describe("PermissionsPanel", () => {
 
     expect(html).toContain("Team Preset Assignments");
     expect(html).toContain('data-permissions-workspace="matrix"');
-    expect(html).toContain('data-forge-workspace-layout="one-rail"');
-    expect(html).toContain('data-permissions-control-rail=""');
+    expect(html).toContain('data-settings-editor-workbench="permissions"');
+    expect(html).toContain('data-permissions-control-drawer=""');
     expect(html).toContain('data-permissions-assignment-matrix=""');
-    expect(html).toContain('data-forge-workspace-rail-group="Team context"');
-    expect(html).toContain('data-forge-workspace-rail-action="true"');
+    expect(html).not.toContain('data-forge-workspace-layout=');
+    expect(html).not.toContain('data-forge-workspace-rail=');
     expect(html).toContain("Closers");
     expect(html).toContain("Expansion · 1 managers · 0 reps");
     expect(html).toContain("Morgan Lane");
@@ -120,7 +120,7 @@ describe("PermissionsPanel", () => {
     expect(html).toContain("Coach");
     expect(html).toContain("Primary Manager");
     expect(html.match(/data-permissions-assignment-matrix=""/g)).toHaveLength(1);
-    expect(html.indexOf("Expansion · 1 managers · 0 reps")).toBeLessThan(
+    expect(html.indexOf("Expansion · 1 managers · 0 reps")).toBeGreaterThan(
       html.indexOf('data-permissions-assignment-matrix=""'),
     );
   });

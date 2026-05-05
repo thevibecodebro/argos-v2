@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import SettingsRubricPage from "../app/(authenticated)/settings/rubric/page";
+import SettingsRubricBuilderPage from "../app/(authenticated)/settings/rubric/builder/page";
 
 const {
   createRubricsRepository,
@@ -91,13 +92,24 @@ describe("SettingsRubricPage", () => {
     loadRubricHistory.mockResolvedValue([]);
   });
 
-  it("renders the admin rubrics settings workflow inside a visible compact PageFrame header", async () => {
+  it("renders the admin rubric overview inside the operational settings workspace", async () => {
     const html = renderToStaticMarkup(await SettingsRubricPage());
 
-    expect(html).toContain("Active Rubric");
-    expect(html).toContain("Version History");
+    expect(html).toContain("Active rubric");
+    expect(html).toContain("Version history");
     expect(html).toContain(">Rubrics<");
     expect(html).toContain("Configure the scoring rubric used across reviewed calls.");
+    expect(html).toContain('href="/settings/rubric/builder"');
+    expect(html).not.toContain("Active Rubric Version History");
+  });
+
+  it("keeps the full rubric builder on the builder route", async () => {
+    const html = renderToStaticMarkup(await SettingsRubricBuilderPage());
+
+    expect(html).toContain("Active Rubric Version History");
+    expect(html).toContain('href="/settings/rubric"');
+    expect(html).toContain(">Rubric builder<");
+    expect(html).toContain('data-settings-internal-subnav="true"');
   });
 
   it("redirects non-admin users back to settings", async () => {

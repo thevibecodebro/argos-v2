@@ -673,7 +673,7 @@ describe("TrainingPanel", () => {
     expect(html).toContain('data-training-course-stage=""');
     expect(html).not.toContain("Builder controls");
     expect(html).toContain(
-      "Review assigned modules, complete lessons, and guide practice from one training surface.",
+      "Review assigned modules and complete the next lesson without manager tools crowding the page.",
     );
   });
 

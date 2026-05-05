@@ -2,14 +2,14 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { ForgeReadinessPanel, ForgeStatusPanel } from "../forge";
 import {
-  ForgeReadinessPanel,
-  ForgeStatusPanel,
-  ForgeWorkspaceLayout,
-  ForgeWorkspaceRail,
-  ForgeWorkspaceRailAction,
-  ForgeWorkspaceRailGroup,
-} from "../forge";
+  SettingsDrawerButton,
+  SettingsDrawerGroup,
+  SettingsEditorDrawer,
+  SettingsEditorPanel,
+  SettingsEditorWorkbench,
+} from "./settings-workbench";
 import type {
   RubricImportIssue,
   RubricInput,
@@ -18,9 +18,7 @@ import type {
   RubricWithCategories,
 } from "@/lib/rubrics/types";
 
-type RequestResult<T> =
-  | { ok: true; data: T }
-  | { ok: false; error: string };
+type RequestResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
 type RubricImportPreviewResponse = {
   rubric: RubricInput;
@@ -132,10 +130,15 @@ function toSummary(rubric: RubricWithCategories): RubricSummary {
 
 function updateHistory(history: RubricSummary[], summary: RubricSummary) {
   const existing = history.filter((entry) => entry.id !== summary.id);
-  return [summary, ...existing].sort((left, right) => right.version - left.version);
+  return [summary, ...existing].sort(
+    (left, right) => right.version - left.version,
+  );
 }
 
-function publishHistory(history: RubricSummary[], rubric: RubricWithCategories) {
+function publishHistory(
+  history: RubricSummary[],
+  rubric: RubricWithCategories,
+) {
   const publishedSummary = toSummary(rubric);
   return updateHistory(
     history.map((entry) =>
@@ -150,7 +153,9 @@ function publishHistory(history: RubricSummary[], rubric: RubricWithCategories) 
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(value));
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(
+    new Date(value),
+  );
 }
 
 function collectDraftIssues(rubric: RubricInput | null) {
@@ -162,7 +167,11 @@ function collectDraftIssues(rubric: RubricInput | null) {
   const name = rubric.name.trim();
 
   if (!name) {
-    issues.push({ row: null, field: "name", message: "Rubric name is required" });
+    issues.push({
+      row: null,
+      field: "name",
+      message: "Rubric name is required",
+    });
   }
 
   if (rubric.categories.length === 0) {
@@ -187,7 +196,11 @@ function collectDraftIssues(rubric: RubricInput | null) {
     if (!slug) {
       issues.push({ row, field: "slug", message: "Slug is required" });
     } else if (seenSlugs.has(slug)) {
-      issues.push({ row, field: "slug", message: `Slug "${slug}" must be unique` });
+      issues.push({
+        row,
+        field: "slug",
+        message: `Slug "${slug}" must be unique`,
+      });
     } else {
       seenSlugs.add(slug);
     }
@@ -197,23 +210,43 @@ function collectDraftIssues(rubric: RubricInput | null) {
     }
 
     if (!description) {
-      issues.push({ row, field: "description", message: "Category description is required" });
+      issues.push({
+        row,
+        field: "description",
+        message: "Category description is required",
+      });
     }
 
     if (!Number.isFinite(category.weight) || category.weight <= 0) {
-      issues.push({ row, field: "weight", message: "Weight must be a positive number" });
+      issues.push({
+        row,
+        field: "weight",
+        message: "Weight must be a positive number",
+      });
     }
 
     if (!excellent) {
-      issues.push({ row, field: "excellent", message: "Excellent guidance is required" });
+      issues.push({
+        row,
+        field: "excellent",
+        message: "Excellent guidance is required",
+      });
     }
 
     if (!proficient) {
-      issues.push({ row, field: "proficient", message: "Proficient guidance is required" });
+      issues.push({
+        row,
+        field: "proficient",
+        message: "Proficient guidance is required",
+      });
     }
 
     if (!developing) {
-      issues.push({ row, field: "developing", message: "Developing guidance is required" });
+      issues.push({
+        row,
+        field: "developing",
+        message: "Developing guidance is required",
+      });
     }
   });
 
@@ -231,7 +264,10 @@ async function readResponse<T>(response: Response): Promise<RequestResult<T>> {
 
   if (!response.ok) {
     const error =
-      payload && typeof payload === "object" && "error" in payload && typeof payload.error === "string"
+      payload &&
+      typeof payload === "object" &&
+      "error" in payload &&
+      typeof payload.error === "string"
         ? payload.error
         : "Request failed";
 
@@ -245,10 +281,13 @@ export async function fetchRubricDetailRequest(
   fetchImpl: typeof fetch,
   rubricId: string,
 ): Promise<RequestResult<RubricWithCategories>> {
-  const response = await fetchImpl(`/api/rubrics?rubricId=${encodeURIComponent(rubricId)}`, {
-    method: "GET",
-    headers: { "Content-Type": "application/json" },
-  });
+  const response = await fetchImpl(
+    `/api/rubrics?rubricId=${encodeURIComponent(rubricId)}`,
+    {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    },
+  );
 
   return readResponse<RubricWithCategories>(response);
 }
@@ -298,10 +337,13 @@ export async function publishRubricRequest(
   fetchImpl: typeof fetch,
   rubricId: string,
 ): Promise<RequestResult<RubricWithCategories>> {
-  const response = await fetchImpl(`/api/rubrics/${encodeURIComponent(rubricId)}/publish`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-  });
+  const response = await fetchImpl(
+    `/api/rubrics/${encodeURIComponent(rubricId)}/publish`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    },
+  );
 
   return readResponse<RubricWithCategories>(response);
 }
@@ -313,21 +355,31 @@ export function RubricsPanel({
 }: RubricsPanelProps) {
   const router = useRouter();
   const [step, setStep] = useState<WizardStep>("source");
-  const [activeRubric, setActiveRubric] = useState<RubricWithCategories | null>(initialActiveRubric);
+  const [activeRubric, setActiveRubric] = useState<RubricWithCategories | null>(
+    initialActiveRubric,
+  );
   const [history, setHistory] = useState(initialHistory);
   const [draft, setDraft] = useState<RubricInput | null>(null);
-  const [draftSourceType, setDraftSourceType] = useState<RubricSourceType>("manual");
-  const [draftSourceLabel, setDraftSourceLabel] = useState<string>("Not started");
+  const [draftSourceType, setDraftSourceType] =
+    useState<RubricSourceType>("manual");
+  const [draftSourceLabel, setDraftSourceLabel] =
+    useState<string>("Not started");
   const [sourceIssues, setSourceIssues] = useState<RubricImportIssue[]>([]);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string>(
     initialHistory.find((entry) => !entry.isActive)?.id ?? "",
   );
-  const [importMode, setImportMode] = useState<"csv_import" | "json_import">("csv_import");
+  const [importMode, setImportMode] = useState<"csv_import" | "json_import">(
+    "csv_import",
+  );
   const [importFile, setImportFile] = useState<File | null>(null);
-  const [serverDraft, setServerDraft] = useState<RubricWithCategories | null>(null);
+  const [serverDraft, setServerDraft] = useState<RubricWithCategories | null>(
+    null,
+  );
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [rubricRequestStatus, setRubricRequestStatus] = useState<"idle" | "prepare" | "publish">("idle");
+  const [rubricRequestStatus, setRubricRequestStatus] = useState<
+    "idle" | "prepare" | "publish"
+  >("idle");
   const [isPending, startTransition] = useTransition();
 
   const historicalVersions = useMemo(
@@ -341,7 +393,11 @@ export function RubricsPanel({
     setStatusMessage(null);
   }
 
-  function beginDraft(nextDraft: RubricInput, sourceLabel: string, sourceType: RubricSourceType) {
+  function beginDraft(
+    nextDraft: RubricInput,
+    sourceLabel: string,
+    sourceType: RubricSourceType,
+  ) {
     setDraft(copyRubricInput(nextDraft));
     setDraftSourceLabel(sourceLabel);
     setDraftSourceType(sourceType);
@@ -377,13 +433,19 @@ export function RubricsPanel({
       return;
     }
 
-    beginDraft(copyRubricToInput(result.data), `Cloned from ${result.data.name}`, "manual");
+    beginDraft(
+      copyRubricToInput(result.data),
+      `Cloned from ${result.data.name}`,
+      "manual",
+    );
     setSourceIssues([]);
   }
 
   async function handleImportPreview() {
     if (!importFile) {
-      setErrorMessage(`Choose a ${importMode === "csv_import" ? "CSV" : "JSON"} file to import.`);
+      setErrorMessage(
+        `Choose a ${importMode === "csv_import" ? "CSV" : "JSON"} file to import.`,
+      );
       return;
     }
 
@@ -401,7 +463,11 @@ export function RubricsPanel({
     }
 
     setSourceIssues(result.data.issues);
-    beginDraft(result.data.rubric, importMode === "csv_import" ? "Imported CSV" : "Imported JSON", importMode);
+    beginDraft(
+      result.data.rubric,
+      importMode === "csv_import" ? "Imported CSV" : "Imported JSON",
+      importMode,
+    );
     setStep("edit");
   }
 
@@ -412,7 +478,9 @@ export function RubricsPanel({
     }
 
     if (draftIssues.length > 0) {
-      setErrorMessage("Resolve draft validation issues before preparing publish.");
+      setErrorMessage(
+        "Resolve draft validation issues before preparing publish.",
+      );
       setStep("review");
       return;
     }
@@ -443,8 +511,9 @@ export function RubricsPanel({
 
     setErrorMessage(null);
     setRubricRequestStatus("publish");
-    const result = await publishRubricRequest(fetch, serverDraft.id)
-      .finally(() => setRubricRequestStatus("idle"));
+    const result = await publishRubricRequest(fetch, serverDraft.id).finally(
+      () => setRubricRequestStatus("idle"),
+    );
 
     if (!result.ok) {
       setErrorMessage(result.error);
@@ -458,7 +527,9 @@ export function RubricsPanel({
     setSourceIssues([]);
     setDraftSourceLabel("Not started");
     setStep("source");
-    setStatusMessage(`Published ${result.data.name} as version ${result.data.version}.`);
+    setStatusMessage(
+      `Published ${result.data.name} as version ${result.data.version}.`,
+    );
     startTransition(() => {
       router.refresh();
     });
@@ -474,18 +545,25 @@ export function RubricsPanel({
           ? "Refreshing rubric workspace."
           : "";
 
-  return (
-    <ForgeWorkspaceLayout railCount={2}>
-      <ForgeWorkspaceRail
-        collapsible
-        description="Choose the source for the next scoring draft without changing the live version."
-        eyebrow="Source and versions"
-        title="Scoring sources"
-        data-rubric-builder-rail=""
-      >
-        <ForgeWorkspaceRailGroup label="Active version">
+  const builderDrawer = (
+    <SettingsEditorDrawer data-rubric-builder-drawer="">
+      <div className="space-y-5">
+        <div className="border-b border-[var(--forge-border)] pb-3">
+          <p className="text-[0.66rem] font-semibold uppercase tracking-[0.1em] text-[var(--forge-muted)]">
+            Source and versions
+          </p>
+          <h3 className="mt-1 text-base font-semibold text-[var(--forge-text)]">
+            Scoring sources
+          </h3>
+          <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">
+            Choose the next draft source without changing the live version.
+          </p>
+        </div>
+        <SettingsDrawerGroup label="Active version">
           <div className="rounded-2xl border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/8 px-4 py-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-gold)]">Active Rubric</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-gold)]">
+              Active Rubric
+            </p>
             <p className="mt-2 text-sm font-semibold text-[var(--forge-text)]">
               {activeRubric ? activeRubric.name : "No active rubric yet"}
             </p>
@@ -495,10 +573,10 @@ export function RubricsPanel({
                 : "Publish the first rubric version to start attaching it to new scoring jobs."}
             </p>
           </div>
-        </ForgeWorkspaceRailGroup>
+        </SettingsDrawerGroup>
 
-        <ForgeWorkspaceRailGroup label="Source options">
-          <ForgeWorkspaceRailAction
+        <SettingsDrawerGroup label="Source options">
+          <SettingsDrawerButton
             disabled={!activeRubric}
             icon="content_copy"
             onClick={() => {
@@ -507,27 +585,37 @@ export function RubricsPanel({
               }
 
               setSourceIssues([]);
-              beginDraft(copyRubricToInput(activeRubric), "New Draft from Active", "manual");
+              beginDraft(
+                copyRubricToInput(activeRubric),
+                "New Draft from Active",
+                "manual",
+              );
             }}
             type="button"
           >
             New Draft from Active
-          </ForgeWorkspaceRailAction>
-          <ForgeWorkspaceRailAction
+          </SettingsDrawerButton>
+          <SettingsDrawerButton
             icon="auto_fix"
             onClick={() => {
               setSourceIssues([]);
-              beginDraft(defaultTemplate, "Started from Default Template", "manual");
+              beginDraft(
+                defaultTemplate,
+                "Started from Default Template",
+                "manual",
+              );
             }}
             type="button"
           >
             Start from Default Template
-          </ForgeWorkspaceRailAction>
-        </ForgeWorkspaceRailGroup>
+          </SettingsDrawerButton>
+        </SettingsDrawerGroup>
 
-        <ForgeWorkspaceRailGroup label="Clone or import">
+        <SettingsDrawerGroup label="Clone or import">
           <label className="block space-y-2 px-3">
-            <span className="text-xs font-black uppercase tracking-[0.18em] text-[var(--forge-muted)]">Clone Historical Version</span>
+            <span className="text-xs font-black uppercase tracking-[0.18em] text-[var(--forge-muted)]">
+              Clone Historical Version
+            </span>
             <select
               className={RUBRIC_RAIL_FIELD_CLASS}
               data-rubric-focus-hardened="true"
@@ -542,55 +630,61 @@ export function RubricsPanel({
               ))}
             </select>
           </label>
-          <ForgeWorkspaceRailAction
+          <SettingsDrawerButton
             className="mt-3"
             icon="account_tree"
             onClick={() => void handleCloneHistory()}
             type="button"
           >
             Clone
-          </ForgeWorkspaceRailAction>
+          </SettingsDrawerButton>
 
           <div className="mt-5 space-y-1">
-            <ForgeWorkspaceRailAction
+            <SettingsDrawerButton
               active={importMode === "csv_import"}
               icon="table"
               onClick={() => setImportMode("csv_import")}
               type="button"
             >
               Import CSV
-            </ForgeWorkspaceRailAction>
-            <ForgeWorkspaceRailAction
+            </SettingsDrawerButton>
+            <SettingsDrawerButton
               active={importMode === "json_import"}
               icon="data_object"
               onClick={() => setImportMode("json_import")}
               type="button"
             >
               Import JSON
-            </ForgeWorkspaceRailAction>
+            </SettingsDrawerButton>
           </div>
           <input
-            accept={importMode === "csv_import" ? ".csv,text/csv" : ".json,application/json"}
+            accept={
+              importMode === "csv_import"
+                ? ".csv,text/csv"
+                : ".json,application/json"
+            }
             aria-label={`Import ${importMode === "csv_import" ? "CSV" : "JSON"} rubric file`}
             className={RUBRIC_RAIL_FILE_FIELD_CLASS}
             data-rubric-focus-hardened="true"
             onChange={(event) => setImportFile(event.target.files?.[0] ?? null)}
             type="file"
           />
-          <ForgeWorkspaceRailAction
+          <SettingsDrawerButton
             className="mt-3"
             icon="preview"
             onClick={() => void handleImportPreview()}
             type="button"
           >
             Preview Import
-          </ForgeWorkspaceRailAction>
-        </ForgeWorkspaceRailGroup>
+          </SettingsDrawerButton>
+        </SettingsDrawerGroup>
 
-        <ForgeWorkspaceRailGroup label={`Version History (${history.length})`}>
+        <SettingsDrawerGroup label={`Version History (${history.length})`}>
           <div className="space-y-2">
             {history.length === 0 ? (
-              <p className="text-sm text-[var(--forge-muted)]">No rubric versions yet.</p>
+              <p className="text-sm text-[var(--forge-muted)]">
+                No rubric versions yet.
+              </p>
             ) : (
               history.map((entry) => (
                 <div
@@ -598,7 +692,9 @@ export function RubricsPanel({
                   key={entry.id}
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <p className="truncate text-sm font-semibold text-white">v{entry.version} · {entry.name}</p>
+                    <p className="truncate text-sm font-semibold text-white">
+                      v{entry.version} · {entry.name}
+                    </p>
                     <span
                       className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.16em] ${
                         entry.isActive
@@ -610,22 +706,238 @@ export function RubricsPanel({
                     </span>
                   </div>
                   <p className="mt-2 text-xs text-[var(--forge-muted)]">
-                    {entry.categoryCount} categories · Updated {formatDate(entry.updatedAt)}
+                    {entry.categoryCount} categories · Updated{" "}
+                    {formatDate(entry.updatedAt)}
                   </p>
                 </div>
               ))
             )}
           </div>
-        </ForgeWorkspaceRailGroup>
-      </ForgeWorkspaceRail>
+        </SettingsDrawerGroup>
 
-      <main className="min-w-0 xl:[grid-column:3] xl:[grid-row:1]" data-forge-workspace-main="true" data-rubric-category-editor="">
-        <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+        <section className="space-y-5" data-rubric-readiness-panel="">
+          <div className="border-t border-[var(--forge-border)] pt-4">
+            <p className="text-[0.66rem] font-semibold uppercase tracking-[0.1em] text-[var(--forge-muted)]">
+              Admin controls
+            </p>
+            <h3 className="mt-1 text-base font-semibold text-[var(--forge-text)]">
+              Readiness panel
+            </h3>
+          </div>
+          <div aria-live="polite" className="sr-only" role="status">
+            {rubricPendingStatusMessage}
+          </div>
+
+          {statusMessage ? (
+            <ForgeStatusPanel
+              announce="polite"
+              description={statusMessage}
+              icon="check_circle"
+              title="Rubric updated"
+              tone="success"
+            />
+          ) : null}
+
+          {errorMessage ? (
+            <ForgeStatusPanel
+              announce="assertive"
+              description={errorMessage}
+              icon="warning"
+              title="Rubric update failed"
+              tone="danger"
+            />
+          ) : null}
+
+          <nav
+            aria-label="Rubric admin controls"
+            className="space-y-5"
+            data-settings-nav-theme="forge"
+          >
+            <SettingsDrawerGroup label="Workflow">
+              {BUILDER_STEPS.map((item) => {
+                const disabled = item.id !== "source" && !draft;
+
+                return (
+                  <SettingsDrawerButton
+                    active={step === item.id}
+                    aria-current={step === item.id ? "step" : undefined}
+                    disabled={disabled}
+                    icon={
+                      item.id === "source"
+                        ? "input"
+                        : item.id === "edit"
+                          ? "edit_note"
+                          : item.id === "review"
+                            ? "rule"
+                            : "publish"
+                    }
+                    key={item.id}
+                    onClick={() => setStep(item.id)}
+                    type="button"
+                  >
+                    {item.label}
+                  </SettingsDrawerButton>
+                );
+              })}
+            </SettingsDrawerGroup>
+
+            <SettingsDrawerGroup label="Readiness">
+              <ForgeReadinessPanel
+                description={draftSourceLabel}
+                items={[
+                  { label: "Validation issues", value: draftIssues.length },
+                  { label: "Import warnings", value: sourceIssues.length },
+                  {
+                    label: "Server draft",
+                    value: serverDraft
+                      ? `v${serverDraft.version}`
+                      : "Not prepared",
+                  },
+                ]}
+                label="Draft status"
+                statusLabel={
+                  draftIssues.length > 0
+                    ? "Needs fixes"
+                    : draft
+                      ? "Ready to review"
+                      : "Not started"
+                }
+                statusTone={
+                  draftIssues.length > 0
+                    ? "danger"
+                    : draft
+                      ? "success"
+                      : "muted"
+                }
+                tone={
+                  draftIssues.length > 0 ? "danger" : draft ? "gold" : "muted"
+                }
+                value={
+                  draft
+                    ? `${draft.categories.length} categories`
+                    : "No draft started"
+                }
+              />
+              <div className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+                  Validation issues
+                </p>
+                {draftIssues.length > 0 ? (
+                  <ul className="mt-2 space-y-2 text-xs leading-5 text-[var(--forge-danger)]">
+                    {draftIssues.map((issue, index) => (
+                      <li
+                        key={`${issue.row ?? "global"}-${issue.field}-${index}`}
+                      >
+                        Row {issue.row ?? "global"} · {issue.field}:{" "}
+                        {issue.message}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">
+                    {draft
+                      ? "No validation issues."
+                      : "Start a draft to run validation."}
+                  </p>
+                )}
+              </div>
+              <div className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+                  Import warnings
+                </p>
+                {sourceIssues.length > 0 ? (
+                  <ul className="mt-2 space-y-2 text-xs leading-5 text-[var(--forge-ember)]">
+                    {sourceIssues.map((issue, index) => (
+                      <li
+                        key={`${issue.row ?? "import"}-${issue.field}-${index}`}
+                      >
+                        Row {issue.row ?? "global"} · {issue.field}:{" "}
+                        {issue.message}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">
+                    No import warnings.
+                  </p>
+                )}
+              </div>
+              <div className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+                  Server draft
+                </p>
+                <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">
+                  {serverDraft
+                    ? `Draft version ${serverDraft.version} · ${serverDraft.categoryCount} categories`
+                    : "Prepare publish to create a server draft."}
+                </p>
+              </div>
+            </SettingsDrawerGroup>
+
+            <SettingsDrawerGroup label="Publish controls">
+              <div
+                className="space-y-1"
+                data-rubric-publish-controls="streamlined"
+              >
+                <SettingsDrawerButton
+                  active={Boolean(draft) && !serverDraft}
+                  disabled={!draft || isRubricBusy}
+                  icon="task_alt"
+                  onClick={() => void handlePreparePublish()}
+                  type="button"
+                >
+                  Prepare Publish
+                </SettingsDrawerButton>
+                {draft && step !== "edit" ? (
+                  <SettingsDrawerButton
+                    icon="edit_note"
+                    onClick={() => setStep("edit")}
+                    type="button"
+                  >
+                    Back to Edit
+                  </SettingsDrawerButton>
+                ) : null}
+                {draft && step === "publish" ? (
+                  <SettingsDrawerButton
+                    icon="rule"
+                    onClick={() => setStep("review")}
+                    type="button"
+                  >
+                    Back to Review
+                  </SettingsDrawerButton>
+                ) : null}
+                <SettingsDrawerButton
+                  active={Boolean(serverDraft)}
+                  disabled={!serverDraft || isRubricBusy}
+                  icon="publish"
+                  onClick={() => void handlePublish()}
+                  type="button"
+                >
+                  {rubricRequestStatus === "publish"
+                    ? "Publishing..."
+                    : "Publish Draft"}
+                </SettingsDrawerButton>
+              </div>
+            </SettingsDrawerGroup>
+          </nav>
+        </section>
+      </div>
+    </SettingsEditorDrawer>
+  );
+
+  return (
+    <SettingsEditorWorkbench drawer={builderDrawer} workbench="rubrics">
+      <main className="min-w-0" data-rubric-category-editor="">
+        <SettingsEditorPanel>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[var(--forge-gold)]">Category editor</p>
+              <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[var(--forge-gold)]">
+                Category editor
+              </p>
               <h3 className="mt-2 text-2xl font-semibold text-white">
-                {draft ? draft.name || "Untitled rubric draft" : activeRubric?.name ?? "No scoring draft selected"}
+                {draft
+                  ? draft.name || "Untitled rubric draft"
+                  : (activeRubric?.name ?? "No scoring draft selected")}
               </h3>
               <p className="mt-2 max-w-3xl text-sm leading-7 text-[var(--forge-muted)]">
                 {draft
@@ -634,39 +946,58 @@ export function RubricsPanel({
               </p>
             </div>
             <span className="rounded-full border border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface-2)]/70 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--forge-muted)]">
-              {draft ? `${draft.categories.length} draft categories` : `${activeRubric?.categoryCount ?? 0} active categories`}
+              {draft
+                ? `${draft.categories.length} draft categories`
+                : `${activeRubric?.categoryCount ?? 0} active categories`}
             </span>
           </div>
 
           {draft ? (
             <div className="mt-6 space-y-5">
               <div className="rounded-2xl border border-[var(--forge-border-strong)]/12 bg-[var(--forge-surface-2)]/55 p-4">
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-gold)]">Draft Source</p>
-                <p className="mt-2 text-sm text-[var(--forge-text)]">{draftSourceLabel}</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-gold)]">
+                  Draft Source
+                </p>
+                <p className="mt-2 text-sm text-[var(--forge-text)]">
+                  {draftSourceLabel}
+                </p>
                 {sourceIssues.length > 0 ? (
                   <p className="mt-2 text-sm text-[var(--forge-ember)]">
-                    Import preview dropped {sourceIssues.length} invalid field issue{sourceIssues.length === 1 ? "" : "s"}.
+                    Import preview dropped {sourceIssues.length} invalid field
+                    issue{sourceIssues.length === 1 ? "" : "s"}.
                   </p>
                 ) : null}
               </div>
 
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
                 <label className="space-y-2">
-                  <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Rubric name</span>
-                  <input
-                    className={RUBRIC_DRAFT_FIELD_CLASS}
-                    data-rubric-focus-hardened="true"
-                    onChange={(event) => updateDraft((current) => ({ ...current, name: event.target.value }))}
-                    value={draft.name}
-                  />
-                </label>
-                <label className="space-y-2">
-                  <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Description</span>
+                  <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+                    Rubric name
+                  </span>
                   <input
                     className={RUBRIC_DRAFT_FIELD_CLASS}
                     data-rubric-focus-hardened="true"
                     onChange={(event) =>
-                      updateDraft((current) => ({ ...current, description: event.target.value || null }))
+                      updateDraft((current) => ({
+                        ...current,
+                        name: event.target.value,
+                      }))
+                    }
+                    value={draft.name}
+                  />
+                </label>
+                <label className="space-y-2">
+                  <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+                    Description
+                  </span>
+                  <input
+                    className={RUBRIC_DRAFT_FIELD_CLASS}
+                    data-rubric-focus-hardened="true"
+                    onChange={(event) =>
+                      updateDraft((current) => ({
+                        ...current,
+                        description: event.target.value || null,
+                      }))
                     }
                     value={draft.description ?? ""}
                   />
@@ -692,7 +1023,9 @@ export function RubricsPanel({
                             Category {index + 1}
                           </p>
                           <p className="mt-1 truncate text-sm font-semibold text-white">
-                            {category.name || "Untitled category"} · {category.slug || "missing-slug"} · weight {category.weight}
+                            {category.name || "Untitled category"} ·{" "}
+                            {category.slug || "missing-slug"} · weight{" "}
+                            {category.weight}
                           </p>
                         </div>
                       </summary>
@@ -700,15 +1033,20 @@ export function RubricsPanel({
                       <div className="border-t border-[var(--forge-border-strong)]/10 px-4 pb-4 pt-3">
                         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_7rem]">
                           <label className="space-y-2">
-                            <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Name</span>
+                            <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+                              Name
+                            </span>
                             <input
                               className={RUBRIC_CATEGORY_FIELD_CLASS}
                               data-rubric-focus-hardened="true"
                               onChange={(event) =>
                                 updateDraft((current) => ({
                                   ...current,
-                                  categories: current.categories.map((entry, categoryIndex) =>
-                                    categoryIndex === index ? { ...entry, name: event.target.value } : entry,
+                                  categories: current.categories.map(
+                                    (entry, categoryIndex) =>
+                                      categoryIndex === index
+                                        ? { ...entry, name: event.target.value }
+                                        : entry,
                                   ),
                                 }))
                               }
@@ -716,15 +1054,20 @@ export function RubricsPanel({
                             />
                           </label>
                           <label className="space-y-2">
-                            <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Slug</span>
+                            <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+                              Slug
+                            </span>
                             <input
                               className={RUBRIC_CATEGORY_FIELD_CLASS}
                               data-rubric-focus-hardened="true"
                               onChange={(event) =>
                                 updateDraft((current) => ({
                                   ...current,
-                                  categories: current.categories.map((entry, categoryIndex) =>
-                                    categoryIndex === index ? { ...entry, slug: event.target.value } : entry,
+                                  categories: current.categories.map(
+                                    (entry, categoryIndex) =>
+                                      categoryIndex === index
+                                        ? { ...entry, slug: event.target.value }
+                                        : entry,
                                   ),
                                 }))
                               }
@@ -732,7 +1075,9 @@ export function RubricsPanel({
                             />
                           </label>
                           <label className="space-y-2">
-                            <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Weight</span>
+                            <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+                              Weight
+                            </span>
                             <input
                               className={RUBRIC_CATEGORY_FIELD_CLASS}
                               data-rubric-focus-hardened="true"
@@ -740,10 +1085,15 @@ export function RubricsPanel({
                               onChange={(event) =>
                                 updateDraft((current) => ({
                                   ...current,
-                                  categories: current.categories.map((entry, categoryIndex) =>
-                                    categoryIndex === index
-                                      ? { ...entry, weight: Number(event.target.value) || 0 }
-                                      : entry,
+                                  categories: current.categories.map(
+                                    (entry, categoryIndex) =>
+                                      categoryIndex === index
+                                        ? {
+                                            ...entry,
+                                            weight:
+                                              Number(event.target.value) || 0,
+                                          }
+                                        : entry,
                                   ),
                                 }))
                               }
@@ -754,15 +1104,23 @@ export function RubricsPanel({
                         </div>
 
                         <label className="mt-3 block space-y-2">
-                          <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Description</span>
+                          <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+                            Description
+                          </span>
                           <textarea
                             className={RUBRIC_CATEGORY_TEXTAREA_CLASS}
                             data-rubric-focus-hardened="true"
                             onChange={(event) =>
                               updateDraft((current) => ({
                                 ...current,
-                                categories: current.categories.map((entry, categoryIndex) =>
-                                  categoryIndex === index ? { ...entry, description: event.target.value } : entry,
+                                categories: current.categories.map(
+                                  (entry, categoryIndex) =>
+                                    categoryIndex === index
+                                      ? {
+                                          ...entry,
+                                          description: event.target.value,
+                                        }
+                                      : entry,
                                 ),
                               }))
                             }
@@ -782,16 +1140,17 @@ export function RubricsPanel({
                                 onChange={(event) =>
                                   updateDraft((current) => ({
                                     ...current,
-                                    categories: current.categories.map((entry, categoryIndex) =>
-                                      categoryIndex === index
-                                        ? {
-                                            ...entry,
-                                            scoringCriteria: {
-                                              ...entry.scoringCriteria,
-                                              [field]: event.target.value,
-                                            },
-                                          }
-                                        : entry,
+                                    categories: current.categories.map(
+                                      (entry, categoryIndex) =>
+                                        categoryIndex === index
+                                          ? {
+                                              ...entry,
+                                              scoringCriteria: {
+                                                ...entry.scoringCriteria,
+                                                [field]: event.target.value,
+                                              },
+                                            }
+                                          : entry,
                                     ),
                                   }))
                                 }
@@ -811,19 +1170,20 @@ export function RubricsPanel({
                             onChange={(event) =>
                               updateDraft((current) => ({
                                 ...current,
-                                categories: current.categories.map((entry, categoryIndex) =>
-                                  categoryIndex === index
-                                    ? {
-                                        ...entry,
-                                        scoringCriteria: {
-                                          ...entry.scoringCriteria,
-                                          lookFor: event.target.value
-                                            .split("|")
-                                            .map((value) => value.trim())
-                                            .filter(Boolean),
-                                        },
-                                      }
-                                    : entry,
+                                categories: current.categories.map(
+                                  (entry, categoryIndex) =>
+                                    categoryIndex === index
+                                      ? {
+                                          ...entry,
+                                          scoringCriteria: {
+                                            ...entry.scoringCriteria,
+                                            lookFor: event.target.value
+                                              .split("|")
+                                              .map((value) => value.trim())
+                                              .filter(Boolean),
+                                          },
+                                        }
+                                      : entry,
                                 ),
                               }))
                             }
@@ -839,8 +1199,14 @@ export function RubricsPanel({
                               updateDraft((current) => ({
                                 ...current,
                                 categories: current.categories
-                                  .filter((_, categoryIndex) => categoryIndex !== index)
-                                  .map((entry, nextIndex) => ({ ...entry, sortOrder: nextIndex })),
+                                  .filter(
+                                    (_, categoryIndex) =>
+                                      categoryIndex !== index,
+                                  )
+                                  .map((entry, nextIndex) => ({
+                                    ...entry,
+                                    sortOrder: nextIndex,
+                                  })),
                               }));
                             }}
                             type="button"
@@ -860,7 +1226,10 @@ export function RubricsPanel({
                   onClick={() =>
                     updateDraft((current) => ({
                       ...current,
-                      categories: [...current.categories, createEmptyCategory(current.categories.length)],
+                      categories: [
+                        ...current.categories,
+                        createEmptyCategory(current.categories.length),
+                      ],
                     }))
                   }
                   type="button"
@@ -879,9 +1248,12 @@ export function RubricsPanel({
           ) : (
             <div className="mt-6 space-y-3">
               <div className="rounded-2xl border border-dashed border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/40 p-5">
-                <h4 className="text-lg font-semibold text-white">Choose a source to start a scoring draft.</h4>
+                <h4 className="text-lg font-semibold text-white">
+                  Choose a source to start a scoring draft.
+                </h4>
                 <p className="mt-2 text-sm leading-7 text-[var(--forge-muted)]">
-                  Use the rail to start from the active rubric, the default template, a historical version, or an import preview.
+                  Use the drawer to start from the active rubric, the default
+                  template, a historical version, or an import preview.
                 </p>
               </div>
 
@@ -898,184 +1270,41 @@ export function RubricsPanel({
                     >
                       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_7rem]">
                         <div>
-                          <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Name</p>
-                          <p className="mt-1 text-sm font-semibold text-white">{category.name || `Category ${index + 1}`}</p>
+                          <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+                            Name
+                          </p>
+                          <p className="mt-1 text-sm font-semibold text-white">
+                            {category.name || `Category ${index + 1}`}
+                          </p>
                         </div>
                         <div>
-                          <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Slug</p>
-                          <p className="mt-1 text-sm text-[var(--forge-text)]">{category.slug}</p>
+                          <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+                            Slug
+                          </p>
+                          <p className="mt-1 text-sm text-[var(--forge-text)]">
+                            {category.slug}
+                          </p>
                         </div>
                         <div>
-                          <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Weight</p>
-                          <p className="mt-1 text-sm text-[var(--forge-text)]">{category.weight}</p>
+                          <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+                            Weight
+                          </p>
+                          <p className="mt-1 text-sm text-[var(--forge-text)]">
+                            {category.weight}
+                          </p>
                         </div>
                       </div>
-                      <p className="mt-3 text-sm leading-6 text-[var(--forge-muted)]">{category.description}</p>
+                      <p className="mt-3 text-sm leading-6 text-[var(--forge-muted)]">
+                        {category.description}
+                      </p>
                     </div>
                   ))}
                 </div>
               ) : null}
             </div>
           )}
-        </section>
+        </SettingsEditorPanel>
       </main>
-
-      <ForgeWorkspaceRail
-        className="xl:[grid-column:2] xl:[grid-row:1]"
-        description={draft ? `${draft.categories.length} categories in draft` : "No draft started"}
-        eyebrow="Admin controls"
-        title="Readiness panel"
-        data-rubric-readiness-panel=""
-      >
-        <div aria-live="polite" className="sr-only" role="status">
-          {rubricPendingStatusMessage}
-        </div>
-
-        {statusMessage ? (
-          <ForgeStatusPanel
-            announce="polite"
-            description={statusMessage}
-            icon="check_circle"
-            title="Rubric updated"
-            tone="success"
-          />
-        ) : null}
-
-        {errorMessage ? (
-          <ForgeStatusPanel
-            announce="assertive"
-            description={errorMessage}
-            icon="warning"
-            title="Rubric update failed"
-            tone="danger"
-          />
-        ) : null}
-
-        <nav aria-label="Rubric admin controls" className="space-y-5" data-settings-nav-theme="forge">
-          <ForgeWorkspaceRailGroup label="Workflow">
-            {BUILDER_STEPS.map((item) => {
-              const disabled = item.id !== "source" && !draft;
-
-              return (
-                <ForgeWorkspaceRailAction
-                  active={step === item.id}
-                  aria-current={step === item.id ? "step" : undefined}
-                  disabled={disabled}
-                  icon={
-                    item.id === "source"
-                      ? "input"
-                      : item.id === "edit"
-                        ? "edit_note"
-                        : item.id === "review"
-                          ? "rule"
-                          : "publish"
-                  }
-                  key={item.id}
-                  onClick={() => setStep(item.id)}
-                  type="button"
-                >
-                  {item.label}
-                </ForgeWorkspaceRailAction>
-              );
-            })}
-          </ForgeWorkspaceRailGroup>
-
-          <ForgeWorkspaceRailGroup label="Readiness">
-            <ForgeReadinessPanel
-              description={draftSourceLabel}
-              items={[
-                { label: "Validation issues", value: draftIssues.length },
-                { label: "Import warnings", value: sourceIssues.length },
-                { label: "Server draft", value: serverDraft ? `v${serverDraft.version}` : "Not prepared" },
-              ]}
-              label="Draft status"
-              statusLabel={draftIssues.length > 0 ? "Needs fixes" : draft ? "Ready to review" : "Not started"}
-              statusTone={draftIssues.length > 0 ? "danger" : draft ? "success" : "muted"}
-              tone={draftIssues.length > 0 ? "danger" : draft ? "gold" : "muted"}
-              value={draft ? `${draft.categories.length} categories` : "No draft started"}
-            />
-            <div className="rounded-2xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Validation issues</p>
-              {draftIssues.length > 0 ? (
-                <ul className="mt-2 space-y-2 text-xs leading-5 text-[var(--forge-danger)]">
-                  {draftIssues.map((issue, index) => (
-                    <li key={`${issue.row ?? "global"}-${issue.field}-${index}`}>
-                      Row {issue.row ?? "global"} · {issue.field}: {issue.message}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">
-                  {draft ? "No validation issues." : "Start a draft to run validation."}
-                </p>
-              )}
-            </div>
-            <div className="rounded-2xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Import warnings</p>
-              {sourceIssues.length > 0 ? (
-                <ul className="mt-2 space-y-2 text-xs leading-5 text-[var(--forge-ember)]">
-                  {sourceIssues.map((issue, index) => (
-                    <li key={`${issue.row ?? "import"}-${issue.field}-${index}`}>
-                      Row {issue.row ?? "global"} · {issue.field}: {issue.message}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">No import warnings.</p>
-              )}
-            </div>
-            <div className="rounded-2xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">Server draft</p>
-              <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">
-                {serverDraft
-                  ? `Draft version ${serverDraft.version} · ${serverDraft.categoryCount} categories`
-                  : "Prepare publish to create a server draft."}
-              </p>
-            </div>
-          </ForgeWorkspaceRailGroup>
-
-          <ForgeWorkspaceRailGroup label="Publish controls">
-            <div className="space-y-1" data-rubric-publish-controls="streamlined">
-              <ForgeWorkspaceRailAction
-                active={Boolean(draft) && !serverDraft}
-                disabled={!draft || isRubricBusy}
-                icon="task_alt"
-                onClick={() => void handlePreparePublish()}
-                type="button"
-              >
-                Prepare Publish
-              </ForgeWorkspaceRailAction>
-              {draft && step !== "edit" ? (
-                <ForgeWorkspaceRailAction
-                  icon="edit_note"
-                  onClick={() => setStep("edit")}
-                  type="button"
-                >
-                  Back to Edit
-                </ForgeWorkspaceRailAction>
-              ) : null}
-              {draft && step === "publish" ? (
-                <ForgeWorkspaceRailAction
-                  icon="rule"
-                  onClick={() => setStep("review")}
-                  type="button"
-                >
-                  Back to Review
-                </ForgeWorkspaceRailAction>
-              ) : null}
-              <ForgeWorkspaceRailAction
-                active={Boolean(serverDraft)}
-                disabled={!serverDraft || isRubricBusy}
-                icon="publish"
-                onClick={() => void handlePublish()}
-                type="button"
-              >
-                {rubricRequestStatus === "publish" ? "Publishing..." : "Publish Draft"}
-              </ForgeWorkspaceRailAction>
-            </div>
-          </ForgeWorkspaceRailGroup>
-        </nav>
-      </ForgeWorkspaceRail>
-    </ForgeWorkspaceLayout>
+    </SettingsEditorWorkbench>
   );
 }

@@ -7,11 +7,14 @@ import {
   ForgeManagementTable,
   ForgeMobileTableCards,
   ForgeStatusPanel,
-  ForgeWorkspaceLayout,
-  ForgeWorkspaceRail,
-  ForgeWorkspaceRailAction,
-  ForgeWorkspaceRailGroup,
 } from "../forge";
+import {
+  SettingsDrawerButton,
+  SettingsDrawerGroup,
+  SettingsEditorDrawer,
+  SettingsEditorPanel,
+  SettingsEditorWorkbench,
+} from "./settings-workbench";
 
 type Team = {
   id: string;
@@ -56,9 +59,7 @@ type MembershipPayload = {
   userId: string;
 };
 
-type RequestResult<T> =
-  | { ok: true; data: T }
-  | { ok: false; error: string };
+type RequestResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
 type FetchFn = typeof fetch;
 
@@ -157,7 +158,10 @@ export async function removeTeamMembershipRequest(
   const data = await readJson(response);
 
   if (!response.ok) {
-    return { ok: false, error: readError(data, "Unable to remove team member") };
+    return {
+      ok: false,
+      error: readError(data, "Unable to remove team member"),
+    };
   }
 
   return { ok: true, data };
@@ -193,54 +197,71 @@ export function TeamsPanel({
   const router = useRouter();
   const [localTeams, setLocalTeams] = useState(() => sortTeamsByName(teams));
   const [localMemberships, setLocalMemberships] = useState(memberships);
-  const [draftsByTeamId, setDraftsByTeamId] = useState<Record<string, TeamDraft>>(
-    () => buildDrafts(teams),
+  const [draftsByTeamId, setDraftsByTeamId] = useState<
+    Record<string, TeamDraft>
+  >(() => buildDrafts(teams));
+  const [selectedTeamId, setSelectedTeamId] = useState(
+    () => sortTeamsByName(teams)[0]?.id ?? "",
   );
-  const [selectedTeamId, setSelectedTeamId] = useState(() => sortTeamsByName(teams)[0]?.id ?? "");
   const [teamSearch, setTeamSearch] = useState("");
   const [newTeam, setNewTeam] = useState({ name: "", description: "" });
-  const [managerSelectionByTeamId, setManagerSelectionByTeamId] = useState<Record<string, string>>(
-    {},
-  );
-  const [repSelectionByTeamId, setRepSelectionByTeamId] = useState<Record<string, string>>({});
+  const [managerSelectionByTeamId, setManagerSelectionByTeamId] = useState<
+    Record<string, string>
+  >({});
+  const [repSelectionByTeamId, setRepSelectionByTeamId] = useState<
+    Record<string, string>
+  >({});
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   const managerNames = memberNameById(managers);
   const repNames = memberNameById(reps);
-  const selectedTeam = localTeams.find((team) => team.id === selectedTeamId) ?? localTeams[0] ?? null;
+  const selectedTeam =
+    localTeams.find((team) => team.id === selectedTeamId) ??
+    localTeams[0] ??
+    null;
   const selectedDraft = selectedTeam
-    ? draftsByTeamId[selectedTeam.id] ?? {
+    ? (draftsByTeamId[selectedTeam.id] ?? {
         name: selectedTeam.name,
         description: selectedTeam.description ?? "",
         status: selectedTeam.status,
-      }
+      })
     : null;
   const selectedTeamManagers = selectedTeam
     ? localMemberships.filter(
         (membership) =>
-          membership.teamId === selectedTeam.id && membership.membershipType === "manager",
+          membership.teamId === selectedTeam.id &&
+          membership.membershipType === "manager",
       )
     : [];
   const selectedTeamReps = selectedTeam
     ? localMemberships.filter(
-        (membership) => membership.teamId === selectedTeam.id && membership.membershipType === "rep",
+        (membership) =>
+          membership.teamId === selectedTeam.id &&
+          membership.membershipType === "rep",
       )
     : [];
   const availableManagers = selectedTeam
     ? managers.filter(
         (manager) =>
-          !selectedTeamManagers.some((membership) => membership.userId === manager.id),
+          !selectedTeamManagers.some(
+            (membership) => membership.userId === manager.id,
+          ),
       )
     : [];
   const availableReps = selectedTeam
-    ? reps.filter((rep) => !selectedTeamReps.some((membership) => membership.userId === rep.id))
+    ? reps.filter(
+        (rep) =>
+          !selectedTeamReps.some((membership) => membership.userId === rep.id),
+      )
     : [];
   const filteredTeams = localTeams.filter((team) => {
     const query = teamSearch.trim().toLowerCase();
     if (!query) return true;
-    return `${team.name} ${team.description ?? ""} ${team.status}`.toLowerCase().includes(query);
+    return `${team.name} ${team.description ?? ""} ${team.status}`
+      .toLowerCase()
+      .includes(query);
   });
 
   function resetMessage() {
@@ -435,7 +456,9 @@ export function TeamsPanel({
         mobileCards={
           <ForgeMobileTableCards>
             {selectedMembers.length === 0 ? (
-              <p className="text-sm text-[var(--forge-muted)]">No {label.toLowerCase()} on this team yet.</p>
+              <p className="text-sm text-[var(--forge-muted)]">
+                No {label.toLowerCase()} on this team yet.
+              </p>
             ) : (
               selectedMembers.map((membership) => (
                 <div
@@ -447,9 +470,16 @@ export function TeamsPanel({
                   </p>
                   <ForgeButton
                     className="mt-3"
-                    disabled={pendingKey === `remove:${membershipType}:${selectedTeam.id}:${membership.userId}`}
+                    disabled={
+                      pendingKey ===
+                      `remove:${membershipType}:${selectedTeam.id}:${membership.userId}`
+                    }
                     onClick={() => {
-                      void handleRemoveMembership(selectedTeam.id, membership.userId, membershipType);
+                      void handleRemoveMembership(
+                        selectedTeam.id,
+                        membership.userId,
+                        membershipType,
+                      );
                     }}
                     size="sm"
                     type="button"
@@ -479,16 +509,25 @@ export function TeamsPanel({
               </tr>
             ) : (
               selectedMembers.map((membership) => (
-                <tr key={`${membership.teamId}:${membership.userId}:${membership.membershipType}`}>
+                <tr
+                  key={`${membership.teamId}:${membership.userId}:${membership.membershipType}`}
+                >
                   <td className="px-4 py-3 text-[var(--forge-text)]">
                     {names.get(membership.userId) ?? membership.userId}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button
                       className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--forge-muted)] transition hover:text-[var(--forge-danger)] disabled:opacity-50"
-                      disabled={pendingKey === `remove:${membershipType}:${selectedTeam.id}:${membership.userId}`}
+                      disabled={
+                        pendingKey ===
+                        `remove:${membershipType}:${selectedTeam.id}:${membership.userId}`
+                      }
                       onClick={() => {
-                        void handleRemoveMembership(selectedTeam.id, membership.userId, membershipType);
+                        void handleRemoveMembership(
+                          selectedTeam.id,
+                          membership.userId,
+                          membershipType,
+                        );
                       }}
                       type="button"
                     >
@@ -517,94 +556,104 @@ export function TeamsPanel({
     : "";
 
   const teamControls = (
-    <ForgeWorkspaceRail
-      collapsible
-      description="Create, search, and select one team before editing its roster."
-      eyebrow="Team controls"
-      title="Team directory"
-      data-teams-control-rail=""
-    >
-      <ForgeWorkspaceRailGroup label="Create team">
-        <div className="space-y-3 rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4">
-          <label className="space-y-2 text-sm text-[var(--forge-muted)]">
-            <span>Team name</span>
+    <SettingsEditorDrawer data-teams-control-drawer="">
+      <div className="space-y-5">
+        <SettingsDrawerGroup label="Create team">
+          <div className="space-y-3 rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4">
+            <label className="space-y-2 text-sm text-[var(--forge-muted)]">
+              <span>Team name</span>
+              <input
+                className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
+                onChange={(event) =>
+                  setNewTeam((current) => ({
+                    ...current,
+                    name: event.target.value,
+                  }))
+                }
+                value={newTeam.name}
+              />
+            </label>
+            <label className="space-y-2 text-sm text-[var(--forge-muted)]">
+              <span>Description</span>
+              <input
+                className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
+                onChange={(event) =>
+                  setNewTeam((current) => ({
+                    ...current,
+                    description: event.target.value,
+                  }))
+                }
+                value={newTeam.description}
+              />
+            </label>
+            <ForgeButton
+              className="w-full"
+              disabled={pendingKey === "create-team"}
+              icon="add"
+              onClick={() => {
+                void handleCreateTeam();
+              }}
+              type="button"
+              variant="primary"
+            >
+              {pendingKey === "create-team" ? "Creating..." : "Create team"}
+            </ForgeButton>
+          </div>
+        </SettingsDrawerGroup>
+
+        <SettingsDrawerGroup label="Select team">
+          <label className="block px-3 pb-2 text-sm text-[var(--forge-muted)]">
+            <span className="sr-only">Search teams</span>
             <input
-              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
-              onChange={(event) =>
-                setNewTeam((current) => ({ ...current, name: event.target.value }))
-              }
-              value={newTeam.name}
+              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
+              onChange={(event) => setTeamSearch(event.target.value)}
+              placeholder="Search teams"
+              value={teamSearch}
             />
           </label>
-          <label className="space-y-2 text-sm text-[var(--forge-muted)]">
-            <span>Description</span>
-            <input
-              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
-              onChange={(event) =>
-                setNewTeam((current) => ({ ...current, description: event.target.value }))
-              }
-              value={newTeam.description}
-            />
-          </label>
-          <ForgeButton
-            className="w-full"
-            disabled={pendingKey === "create-team"}
-            icon="add"
-            onClick={() => {
-              void handleCreateTeam();
-            }}
-            type="button"
-            variant="primary"
-          >
-            {pendingKey === "create-team" ? "Creating..." : "Create team"}
-          </ForgeButton>
-        </div>
-      </ForgeWorkspaceRailGroup>
+          {filteredTeams.length === 0 ? (
+            <p className="px-3 text-sm text-[var(--forge-muted)]">
+              No matching teams. Clear search or create one.
+            </p>
+          ) : (
+            filteredTeams.map((team) => {
+              const teamManagers = localMemberships.filter(
+                (membership) =>
+                  membership.teamId === team.id &&
+                  membership.membershipType === "manager",
+              );
+              const teamReps = localMemberships.filter(
+                (membership) =>
+                  membership.teamId === team.id &&
+                  membership.membershipType === "rep",
+              );
 
-      <ForgeWorkspaceRailGroup label="Select team">
-        <label className="block px-3 pb-2 text-sm text-[var(--forge-muted)]">
-          <span className="sr-only">Search teams</span>
-          <input
-            className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
-            onChange={(event) => setTeamSearch(event.target.value)}
-            placeholder="Search teams"
-            value={teamSearch}
-          />
-        </label>
-        {filteredTeams.length === 0 ? (
-          <p className="px-3 text-sm text-[var(--forge-muted)]">No matching teams. Clear search or create one.</p>
-        ) : (
-          filteredTeams.map((team) => {
-            const teamManagers = localMemberships.filter(
-              (membership) =>
-                membership.teamId === team.id && membership.membershipType === "manager",
-            );
-            const teamReps = localMemberships.filter(
-              (membership) =>
-                membership.teamId === team.id && membership.membershipType === "rep",
-            );
-
-            return (
-              <ForgeWorkspaceRailAction
-                active={selectedTeam?.id === team.id}
-                icon="groups"
-                key={team.id}
-                onClick={() => setSelectedTeamId(team.id)}
-                type="button"
-              >
-                {team.name} · {teamManagers.length} managers · {teamReps.length} reps
-              </ForgeWorkspaceRailAction>
-            );
-          })
-        )}
-      </ForgeWorkspaceRailGroup>
-    </ForgeWorkspaceRail>
+              return (
+                <SettingsDrawerButton
+                  active={selectedTeam?.id === team.id}
+                  icon="groups"
+                  key={team.id}
+                  onClick={() => setSelectedTeamId(team.id)}
+                  type="button"
+                >
+                  {team.name} · {teamManagers.length} managers ·{" "}
+                  {teamReps.length} reps
+                </SettingsDrawerButton>
+              );
+            })
+          )}
+        </SettingsDrawerGroup>
+      </div>
+    </SettingsEditorDrawer>
   );
 
   return (
-    <ForgeWorkspaceLayout data-teams-workspace="management" railCount={1} rails={teamControls}>
-      <section
-        className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]"
+    <SettingsEditorWorkbench
+      data-teams-workspace="management"
+      drawer={teamControls}
+      workbench="teams"
+    >
+      <SettingsEditorPanel
         data-selected-team-editor={selectedTeam?.id ?? "none"}
         data-teams-editor=""
       >
@@ -617,7 +666,8 @@ export function TeamsPanel({
               {selectedTeam ? selectedTeam.name : "Create or select a team"}
             </h3>
             <p className="mt-2 text-sm text-[var(--forge-muted)]">
-              Edit one team at a time, then manage its manager and rep membership below.
+              Edit one team at a time, then manage its manager and rep
+              membership below.
             </p>
           </div>
           <span className="rounded-full border border-[var(--forge-border-strong)]/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
@@ -653,7 +703,7 @@ export function TeamsPanel({
         {!selectedTeam || !selectedDraft ? (
           <ForgeStatusPanel
             className="mt-6"
-            description="Create a team in the rail or select an existing team to edit metadata and membership."
+            description="Create a team in the drawer or select an existing team to edit metadata and membership."
             icon="groups"
             title="No team selected"
           />
@@ -675,7 +725,9 @@ export function TeamsPanel({
                 <input
                   className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
                   onChange={(event) =>
-                    updateDraft(selectedTeam.id, { description: event.target.value })
+                    updateDraft(selectedTeam.id, {
+                      description: event.target.value,
+                    })
                   }
                   value={selectedDraft.description}
                 />
@@ -702,14 +754,20 @@ export function TeamsPanel({
                   type="button"
                   variant="primary"
                 >
-                  {pendingKey === `save:${selectedTeam.id}` ? "Saving..." : "Save team"}
+                  {pendingKey === `save:${selectedTeam.id}`
+                    ? "Saving..."
+                    : "Save team"}
                 </ForgeButton>
               </div>
             </div>
 
             <p className="text-xs text-[var(--forge-muted)]">
-              Team membership is managed here. Rep-level primary manager assignments stay on{" "}
-              <a className="underline hover:text-white" href="/settings/permissions">
+              Team membership is managed here. Rep-level primary manager
+              assignments stay on{" "}
+              <a
+                className="underline hover:text-white"
+                href="/settings/permissions"
+              >
                 /settings/permissions
               </a>
               .
@@ -763,7 +821,12 @@ export function TeamsPanel({
                   </ForgeButton>
                 </div>
                 <div className="mt-4">
-                  {renderMembershipTable("Managers", selectedTeamManagers, managerNames, "manager")}
+                  {renderMembershipTable(
+                    "Managers",
+                    selectedTeamManagers,
+                    managerNames,
+                    "manager",
+                  )}
                 </div>
               </section>
 
@@ -814,13 +877,18 @@ export function TeamsPanel({
                   </ForgeButton>
                 </div>
                 <div className="mt-4">
-                  {renderMembershipTable("Reps", selectedTeamReps, repNames, "rep")}
+                  {renderMembershipTable(
+                    "Reps",
+                    selectedTeamReps,
+                    repNames,
+                    "rep",
+                  )}
                 </div>
               </section>
             </div>
           </div>
         )}
-      </section>
-    </ForgeWorkspaceLayout>
+      </SettingsEditorPanel>
+    </SettingsEditorWorkbench>
   );
 }

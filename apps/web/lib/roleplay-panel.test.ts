@@ -54,7 +54,7 @@ describe("RoleplayPanel", () => {
     ).toBe(false);
   });
 
-  it("renders the archived-style scorecard depth and session history", () => {
+  it("renders the practice workbench without embedding session history", () => {
     const html = renderToStaticMarkup(
       createElement(RoleplayPanel, {
         initialPersonas: [
@@ -142,14 +142,13 @@ describe("RoleplayPanel", () => {
     expect(html).toContain(">Scenario</span>");
     expect(html).toContain(">Practice</span>");
     expect(html).toContain(">Score</span>");
-    expect(html).toContain('data-roleplay-workspace="simulation"');
-    expect(html).toContain('data-forge-workspace-layout="two-rails"');
+    expect(html).toContain('data-roleplay-workspace="practice-workbench"');
     expect(html).toContain('data-roleplay-scenario-rail=""');
     expect(html).toContain('id="roleplay-scenario"');
     expect(html).toContain('aria-label="Scenario"');
-    expect(html).toContain('data-roleplay-score-rail=""');
+    expect(html).toContain('data-operational-preview-drawer="true"');
+    expect(html).toContain('data-roleplay-score-drawer=""');
     expect(html).toContain('id="roleplay-score"');
-    expect(html).toContain('aria-label="Score"');
     expect(html).toContain('data-roleplay-simulation-stage=""');
     expect(html).toContain('id="roleplay-practice"');
     expect(html).toContain('aria-labelledby="roleplay-practice-title"');
@@ -157,7 +156,7 @@ describe("RoleplayPanel", () => {
     expect(html).toContain("Stage");
     expect(html).toContain("Improve");
     expect(html).toContain("Frame Control");
-    expect(html).toContain("Recent History");
+    expect(html).not.toContain("Recent History");
     expect(html).toContain('data-roleplay-transcript="responsive"');
     expect(html).toContain('role="log"');
     expect(html).toContain('aria-label="Roleplay transcript"');
@@ -176,10 +175,10 @@ describe("RoleplayPanel", () => {
     expect(html).toContain('title="Send response"');
     expect(html).toContain('data-forge-icon-name="send"');
     expect(html).toContain('aria-label="End and score current session"');
-    expect(html).toContain('aria-labelledby="roleplay-history-title"');
-    expect(html).toContain('data-roleplay-history-mobile="true"');
-    expect(html).toContain('data-roleplay-history-table="true"');
-    expect(html).toContain("Review session");
+    expect(html).not.toContain('aria-labelledby="roleplay-history-title"');
+    expect(html).not.toContain('data-roleplay-history-mobile="true"');
+    expect(html).not.toContain('data-roleplay-history-table="true"');
+    expect(html).not.toContain("Review session");
     expect(html).toContain("Listen");
     expect(html).toContain('data-forge-icon-name="insights"');
     expect(html).not.toContain(">videocam<");
@@ -212,7 +211,7 @@ describe("RoleplayPanel", () => {
     expect(html).toContain('id="roleplay-scenario"');
     expect(html).toContain('data-roleplay-simulation-stage=""');
     expect(html).toContain('id="roleplay-practice"');
-    expect(html).toContain('data-roleplay-score-rail=""');
+    expect(html).toContain('data-roleplay-score-drawer=""');
     expect(html).toContain('id="roleplay-score"');
     expect(html).toContain("Start simulation");
     expect(html).toContain("No active simulation");

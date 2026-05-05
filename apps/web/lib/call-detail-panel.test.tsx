@@ -179,11 +179,8 @@ describe("CallDetailPanel", () => {
     const html = await renderCallDetailPanel();
 
     expect(html).toContain("Manager note");
-    expect(html).toContain("ACME Enterprise Scorecard");
-    expect(html).toContain("Set a Strong Frame");
-    expect(html).toContain("Transition to Pitch");
-    expect(html).toContain("Pitch/Demo");
-    expect(html).toContain("Overcome Objections");
+    expect(html).toContain("Workbench");
+    expect(html).toContain("Key Moments");
     expect(html).toContain("Save note");
     expect(html).toContain("Remove note");
     expect(html).toContain("Remove highlight");
@@ -201,14 +198,12 @@ describe("CallDetailPanel", () => {
     expect(html).toContain('data-call-detail-panel="forge-review-bench"');
     expect(html).toContain('data-forge-surface="panel"');
     expect(html).toContain('data-forge-chip="cyan"');
-    expect(html).toContain("Revenue Scorecard");
     expect(html).toContain("Workbench");
     expect(html).toContain('data-forge-segmented-tabs="true"');
     expect(html).toContain("Transcript");
     expect(html).toContain("Key Moments");
     expect(html).toContain("Call Summary");
     expect(html).toContain("Coaching Notes");
-    expect(html).toContain("ACME Enterprise Scorecard");
     expect(html).not.toContain("#74b1ff");
     expect(html).not.toContain("#6dddff");
     expect(html).not.toContain("backdrop-blur-md");
@@ -222,16 +217,8 @@ describe("CallDetailPanel", () => {
   it("renders honest media status when no recording is linked", async () => {
     const html = await renderCallDetailPanel();
 
-    expect(html).toContain("Recording unavailable");
-    expect(html).toContain("Playback is not available in this review panel.");
-    expect(html).toContain("Status");
-    expect(html).toContain("Analysis complete");
     expect(html).toContain("Transcript pending");
-    expect(html).toContain("relative z-10 p-5 sm:p-6 lg:absolute lg:inset-x-0 lg:top-0");
-    expect(html).toContain(
-      "relative z-10 px-5 pb-5 sm:px-6 lg:absolute lg:inset-x-0 lg:bottom-5 lg:top-28 lg:flex lg:items-end",
-    );
-    expect(html).not.toContain("absolute inset-x-0 bottom-5 top-28 flex items-end px-5 sm:px-6");
+    expect(html).toContain("No transcript lines are available yet.");
     expect(html).not.toContain(">play_arrow</span>");
     expect(html).not.toContain(">Preview</span>");
   });
@@ -245,9 +232,8 @@ describe("CallDetailPanel", () => {
       },
     });
 
-    expect(html).toContain("Review data ready");
-    expect(html).toContain("Playback is not available in this review panel.");
-    expect(html).toContain("Transcript linked");
+    expect(html).toContain('data-call-detail-panel="forge-review-bench"');
+    expect(html).toContain("Transcript pending");
     expect(html).not.toContain(">play_arrow</span>");
   });
 

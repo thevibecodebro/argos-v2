@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { PageFrame } from "@/components/page-frame";
 import { PeoplePanel } from "@/components/page-panel-loaders";
 import {
   getCachedAuthenticatedSupabaseUser,
@@ -11,6 +10,7 @@ import { createTeamAccessRepository } from "@/lib/team-access/create-repository"
 import { getTeamAccessSnapshot } from "@/lib/team-access/service";
 import { createUsersRepository } from "@/lib/users/create-repository";
 import { listOrganizationMembers } from "@/lib/users/service";
+import { SettingsOperationalLayout } from "../settings-operational-layout";
 
 export default async function SettingsPeoplePage() {
   const authUser = await getCachedAuthenticatedSupabaseUser();
@@ -27,9 +27,10 @@ export default async function SettingsPeoplePage() {
   ]);
 
   return (
-    <PageFrame
+    <SettingsOperationalLayout
+      actions={[{ href: "/settings/people", icon: "person_add", label: "Invite user", variant: "primary" }]}
       description="Manage users, invitations, and account access."
-      eyebrow="Settings"
+      route="people"
       title="People"
     >
       <PeoplePanel
@@ -38,6 +39,6 @@ export default async function SettingsPeoplePage() {
         initialPendingInvites={pendingInvitesResult?.ok ? pendingInvitesResult.data : []}
         initialTeams={teamAccessResult?.ok ? teamAccessResult.data.teams : []}
       />
-    </PageFrame>
+    </SettingsOperationalLayout>
   );
 }
