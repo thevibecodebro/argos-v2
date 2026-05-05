@@ -40,6 +40,29 @@ describe("trusted origin helpers", () => {
     ).toBe("https://preview.argos.ai");
   });
 
+  it("accepts the current Vercel preview branch origin in production", () => {
+    const request = new Request("http://internal.argos.local/auth/callback", {
+      headers: {
+        "x-forwarded-host": "argos-v2-git-codex-operational-layout-calls-thevibecodebro.vercel.app",
+        "x-forwarded-proto": "https",
+      },
+    });
+
+    expect(
+      getSafeRequestOrigin(request, {
+        env: {
+          NEXT_PUBLIC_SITE_URL: "https://argos-v2-nine.vercel.app",
+          VERCEL_BRANCH_URL:
+            "argos-v2-git-codex-operational-layout-calls-thevibecodebro.vercel.app",
+          VERCEL_ENV: "preview",
+          VERCEL_PROJECT_PRODUCTION_URL: "argos-v2-nine.vercel.app",
+          VERCEL_URL: "argos-v2-4t45emiaj-thevibecodebro.vercel.app",
+        },
+        nodeEnv: "production",
+      }),
+    ).toBe("https://argos-v2-git-codex-operational-layout-calls-thevibecodebro.vercel.app");
+  });
+
   it("falls back to the trusted site origin for untrusted forwarded hosts in production", () => {
     const request = new Request("http://internal.argos.local/auth/callback", {
       headers: {

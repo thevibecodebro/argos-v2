@@ -14,6 +14,12 @@ const SITE_ORIGIN_ENV_KEYS = [
   "VERCEL_PROJECT_PRODUCTION_URL",
   "VERCEL_URL",
 ] as const;
+const VERCEL_PREVIEW_ORIGIN_ENV_KEYS = [
+  "NEXT_PUBLIC_VERCEL_BRANCH_URL",
+  "VERCEL_BRANCH_URL",
+  "NEXT_PUBLIC_VERCEL_URL",
+  "VERCEL_URL",
+] as const;
 
 function firstHeaderValue(value: string | null) {
   return value?.split(",")[0]?.trim() || null;
@@ -83,6 +89,18 @@ function getTrustedSiteOrigin(env: EnvSource, nodeEnv: string | undefined) {
   return DEFAULT_LOCAL_ORIGIN;
 }
 
+function isVercelPreviewEnvironment(env: EnvSource) {
+  return env.VERCEL_ENV === "preview" || env.NEXT_PUBLIC_VERCEL_ENV === "preview";
+}
+
+function getVercelPreviewOrigins(env: EnvSource) {
+  if (!isVercelPreviewEnvironment(env)) {
+    return [];
+  }
+
+  return VERCEL_PREVIEW_ORIGIN_ENV_KEYS.map((key) => env[key]);
+}
+
 function getForwardedOrigin(request: Request) {
   const forwardedHost = firstHeaderValue(request.headers.get("x-forwarded-host"));
 
@@ -122,6 +140,7 @@ function isLocalOrigin(origin: string) {
 export function getTrustedOrigins(env: EnvSource = process.env) {
   const origins = [
     getConfiguredSiteOrigin(env),
+    ...getVercelPreviewOrigins(env),
     ...(env.ARGOS_ALLOWED_ORIGINS?.split(",") ?? []),
   ];
   const trustedOrigins: string[] = [];
