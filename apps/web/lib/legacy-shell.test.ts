@@ -90,7 +90,7 @@ describe("legacy UI shell", () => {
     expect(html).not.toContain("#6dddff");
   });
 
-  it("renders the executive dashboard shell with legacy navigation labels", async () => {
+  it("renders the executive dashboard shell with operational navigation labels", async () => {
     getCachedAuthenticatedSupabaseUserMock.mockResolvedValue({ id: "auth-user-1" });
     getCachedCurrentUserProfileMock.mockResolvedValue({
       id: "user-1",
@@ -162,15 +162,14 @@ describe("legacy UI shell", () => {
 
     const html = renderToStaticMarkup(await DashboardPage());
 
+    expect(html).toContain('data-dashboard-route="operational-pulse"');
+    expect(html).toContain('data-operational-toolbar="true"');
+    expect(html).toContain('data-dashboard-today-queue="true"');
     expect(html).toContain("Open team");
-    expect(html).toContain("Open call library");
     expect(html).toContain("Upload call");
-    expect(html).toContain("Rep Skill Matrix");
-    expect(html).toContain('data-rep-skill-matrix-table="true"');
-    expect(html).toContain('data-rep-skill-matrix-mobile="true"');
-    expect(html).toContain('href="/team/rep-1"');
-    expect(html).toContain("Overall");
-    expect(html).toContain("Discovery");
-    expect(html).toContain("Closing");
+    expect(html).toContain("Review queue");
+    expect(html).not.toContain("Rep Skill Matrix");
+    expect(html).not.toContain('data-rep-skill-matrix-table="true"');
+    expect(html).not.toContain('href="/team/rep-1"');
   });
 });

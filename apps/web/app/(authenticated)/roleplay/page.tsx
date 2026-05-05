@@ -2,6 +2,11 @@ import { notFound } from "next/navigation";
 import { RoleplayPanel } from "@/components/page-panel-loaders";
 import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
 import { ForgeErrorState } from "@/components/forge";
+import {
+  OperationalMetricStrip,
+  OperationalToolbar,
+  OperationalWorkspace,
+} from "@/components/operational-workspace";
 import { getCachedAuthenticatedSupabaseUser } from "@/lib/auth/request-user";
 import { createRoleplayRepository } from "@/lib/roleplay/create-repository";
 import { listRoleplaySessions } from "@/lib/roleplay/service";
@@ -33,21 +38,76 @@ export default async function RoleplayPage({
   if (!result.ok) {
     return (
       <AuthenticatedPageContainer>
-        <ForgeErrorState
-          description={result.error}
-          title="Roleplay unavailable"
-        />
+        <OperationalWorkspace data-roleplay-route="operational-workspace">
+          <OperationalToolbar
+            description="Practice sales conversations from call evidence and coaching scenarios."
+            eyebrow="Coach"
+            title="Roleplay"
+          />
+          <ForgeErrorState
+            description={result.error}
+            title="Roleplay unavailable"
+          />
+        </OperationalWorkspace>
       </AuthenticatedPageContainer>
     );
   }
 
+  const completedSessions = result.data.sessions.filter((session) => session.status === "complete");
+  const activeSessions = result.data.sessions.filter((session) => session.status !== "complete");
+  const averageScore = completedSessions.length
+    ? Math.round(
+        completedSessions.reduce((sum, session) => sum + (session.overallScore ?? 0), 0) /
+          completedSessions.length,
+      )
+    : null;
+
   return (
-    <AuthenticatedPageContainer className="space-y-12">
-      <RoleplayPanel
-        initialPersonas={result.data.personas}
-        initialSessions={result.data.sessions}
-        initialSessionId={firstSearchParamValue(resolvedSearchParams.sessionId)}
-      />
+    <AuthenticatedPageContainer>
+      <OperationalWorkspace data-roleplay-route="operational-workspace">
+        <OperationalToolbar
+          actions={[{ href: "/roleplay/history", icon: "history", label: "History", variant: "secondary" }]}
+          description="Practice sales conversations from call evidence and coaching scenarios."
+          eyebrow="Coach"
+          status={{ icon: "psychology", label: `${result.data.personas.length} personas`, tone: "muted" }}
+          title="Roleplay"
+        />
+
+        <OperationalMetricStrip
+          metrics={[
+            {
+              icon: "theater_comedy",
+              label: "Scenarios",
+              tone: "gold",
+              value: result.data.personas.length,
+            },
+            {
+              icon: "bolt",
+              label: "Active",
+              tone: activeSessions.length > 0 ? "cyan" : "muted",
+              value: activeSessions.length,
+            },
+            {
+              icon: "task_alt",
+              label: "Completed",
+              tone: completedSessions.length > 0 ? "success" : "muted",
+              value: completedSessions.length,
+            },
+            {
+              icon: "query_stats",
+              label: "Avg score",
+              tone: averageScore === null ? "muted" : averageScore >= 75 ? "success" : "gold",
+              value: averageScore === null ? "--" : averageScore,
+            },
+          ]}
+        />
+
+        <RoleplayPanel
+          initialPersonas={result.data.personas}
+          initialSessions={result.data.sessions}
+          initialSessionId={firstSearchParamValue(resolvedSearchParams.sessionId)}
+        />
+      </OperationalWorkspace>
     </AuthenticatedPageContainer>
   );
 }

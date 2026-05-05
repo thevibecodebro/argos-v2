@@ -13,34 +13,21 @@ import {
   ForgeChip,
   ForgeErrorState,
   ForgeIcon,
-  ForgeScoreMeter,
   ForgeStatCard,
   ForgeSegmentedTab,
   ForgeSegmentedTabs,
   ForgeStatusPanel,
-  ForgeWorkspaceLayout,
   ForgeWorkspaceRail,
   ForgeWorkspaceRailAction,
   ForgeWorkspaceRailGroup,
 } from "./forge";
+import { OperationalPreviewDrawer } from "./operational-workspace";
 
 type RoleplayPanelProps = {
   initialPersonas: RoleplayPersona[];
   initialSessions: RoleplaySession[];
   initialSessionId?: string | null;
 };
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(value));
-}
-
-function formatDuration(session: RoleplaySession) {
-  const msgs = session.transcript.length;
-  const seconds = msgs * 45;
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-}
 
 function labelCallStage(value: string | undefined) {
   switch (value) {
@@ -108,10 +95,6 @@ function mergeSessionIntoList(
   return sessions.map((candidate) => (
     candidate.id === session.id ? session : candidate
   ));
-}
-
-function isGeneratedSession(session: RoleplaySession | null | undefined) {
-  return session?.origin === "generated_from_call";
 }
 
 function formatRoleplayCategoryLabel(slug: string | null) {
@@ -489,7 +472,6 @@ export function RoleplayPanel({
   const selectedPersona = personas.find((p) => p.id === selectedPersonaId) ?? activeSession?.personaDetails ?? null;
   const activeScorecard = activeSession?.scorecard ?? null;
   const activeSessionWithScorecard = activeSession && activeScorecard ? activeSession : null;
-  const completedSessions = sessions.filter((s) => s.status === "complete");
   const isVoiceControlDisabled = isRoleplayVoiceControlDisabled({
     activeSessionStatus: activeSession?.status,
     isStartingVoice,
@@ -518,7 +500,10 @@ export function RoleplayPanel({
         </ForgeSegmentedTabs>
       </div>
 
-      <ForgeWorkspaceLayout railCount={2} railPlacement="bookend" data-roleplay-workspace="simulation">
+      <div
+        className="grid min-w-0 gap-3 xl:grid-cols-[280px_minmax(0,1fr)_320px]"
+        data-roleplay-workspace="practice-workbench"
+      >
         <ForgeWorkspaceRail
           collapsible
           description="Choose a persona and start a focused practice session."
@@ -783,12 +768,11 @@ export function RoleplayPanel({
           <audio autoPlay className="hidden" playsInline ref={remoteAudioRef} />
         </main>
 
-        <ForgeWorkspaceRail
+        <OperationalPreviewDrawer
           description="Current scoring, readiness, and post-session guidance."
           eyebrow="Simulation score"
           title="Session Scorecard"
-          aria-label="Score"
-          data-roleplay-score-rail=""
+          data-roleplay-score-drawer=""
           id="roleplay-score"
         >
           <div className="space-y-5">
@@ -873,119 +857,9 @@ export function RoleplayPanel({
               tone="cyan"
             />
           </div>
-        </ForgeWorkspaceRail>
-      </ForgeWorkspaceLayout>
+        </OperationalPreviewDrawer>
+      </div>
 
-      {/* Recent History Table */}
-      {completedSessions.length > 0 && (
-        <section aria-labelledby="roleplay-history-title" className="space-y-6 pb-12">
-          <div className="flex items-center gap-3">
-            <ForgeIcon className="text-[var(--forge-muted)]" name="archive" size={20} />
-            <h2 className="font-['Space_Grotesk'] text-2xl font-bold text-[var(--forge-text)]" id="roleplay-history-title">Recent History</h2>
-          </div>
-          <div className="grid gap-3 md:hidden" data-roleplay-history-mobile="true">
-            {completedSessions.map((session) => {
-              const score = session.overallScore ?? 0;
-              return (
-                <button
-                  className="w-full rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[rgba(34,38,47,0.55)] p-4 text-left transition-colors hover:bg-[var(--forge-surface-3)]/35"
-                  key={session.id}
-                  onClick={() => void loadSession(session.id)}
-                  type="button"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 space-y-1">
-                      <p className="font-bold text-[var(--forge-text)]">
-                        {session.personaDetails?.objectionType ?? (isGeneratedSession(session) ? "Generated roleplay" : "Practice Session")}
-                      </p>
-                      <p className="text-xs text-[var(--forge-muted)]">{getSessionPersonaLabel(session)}</p>
-                    </div>
-                    <ForgeScoreMeter
-                      className="w-28 shrink-0"
-                      label="Session score"
-                      showValue
-                      tone={roleplayScoreTone(score)}
-                      value={score}
-                      valueSuffix="%"
-                    />
-                  </div>
-                  {isGeneratedSession(session) && (
-                    <span className="mt-3 inline-flex rounded-full border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/10 px-2.5 py-1 font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.18em] text-[var(--forge-gold)]">
-                      Generated from call
-                    </span>
-                  )}
-                  <div className="mt-4 flex items-center justify-between gap-3 text-xs text-[var(--forge-muted)]">
-                    <span>{formatDate(session.createdAt)}</span>
-                    <span className="font-bold text-[var(--forge-gold)] underline">Review session</span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-          <div
-            className="hidden overflow-hidden rounded-2xl border border-[var(--forge-border-strong)]/20 md:block"
-            data-roleplay-history-table="true"
-            style={{ background: "rgba(34,38,47,0.4)", backdropFilter: "blur(12px)" }}
-          >
-            <table className="w-full border-collapse text-left text-sm">
-              <thead>
-                <tr className="bg-[var(--forge-surface-3)]/50 font-['Space_Grotesk'] text-[10px] uppercase tracking-[0.2em] text-[rgba(255,244,230,0.7)]">
-                  <th className="px-6 py-4">Scenario</th>
-                  <th className="px-6 py-4">Persona</th>
-                  <th className="px-6 py-4">Score</th>
-                  <th className="px-6 py-4">Duration</th>
-                  <th className="px-6 py-4">Date</th>
-                  <th className="px-6 py-4 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--forge-border-strong)]/10">
-                {completedSessions.map((session) => {
-                  const score = session.overallScore ?? 0;
-                  return (
-                    <tr
-                      key={session.id}
-                      className="transition-colors hover:bg-[var(--forge-surface-3)]/30"
-                    >
-                      <td className="px-6 py-4 font-bold text-[var(--forge-text)]">
-                        <div className="space-y-1">
-                          <p>{session.personaDetails?.objectionType ?? (isGeneratedSession(session) ? "Generated roleplay" : "Practice Session")}</p>
-                          {isGeneratedSession(session) && (
-                            <span className="inline-flex rounded-full border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/10 px-2.5 py-1 font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.18em] text-[var(--forge-gold)]">
-                              Generated from call
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-[var(--forge-muted)]">{getSessionPersonaLabel(session)}</td>
-                      <td className="px-6 py-4">
-                        <ForgeScoreMeter
-                          className="w-28"
-                          label="Session score"
-                          showValue
-                          tone={roleplayScoreTone(score)}
-                          value={score}
-                          valueSuffix="%"
-                        />
-                      </td>
-                      <td className="px-6 py-4 text-[var(--forge-muted)]">{formatDuration(session)}</td>
-                      <td className="px-6 py-4 text-[var(--forge-muted)]">{formatDate(session.createdAt)}</td>
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          className="font-medium text-[var(--forge-gold)] underline hover:text-[var(--forge-gold)]/80"
-                          onClick={() => void loadSession(session.id)}
-                          type="button"
-                        >
-                          Review
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
     </>
   );
 }

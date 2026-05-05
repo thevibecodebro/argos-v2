@@ -3,12 +3,14 @@ import {
   ForgeChip,
   ForgeEmptyState,
   ForgeIcon,
-  ForgeScoreMeter,
-  ForgeStatCard,
-  ForgeSurface,
 } from "@/components/forge";
 import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
-import { PageFrame } from "@/components/page-frame";
+import {
+  OperationalMetricStrip,
+  OperationalPreviewDrawer,
+  OperationalToolbar,
+  OperationalWorkspace,
+} from "@/components/operational-workspace";
 import { getCachedAuthenticatedSupabaseUser } from "@/lib/auth/request-user";
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { listHighlights } from "@/lib/calls/service";
@@ -20,199 +22,205 @@ export default async function HighlightsPage() {
     : null;
   const highlights = result?.ok ? result.data.highlights : [];
 
-  // Derive live stats
   const categoryCounts: Record<string, number> = {};
-  for (const h of highlights) {
-    const cat = h.category ?? "Highlight";
-    categoryCounts[cat] = (categoryCounts[cat] ?? 0) + 1;
+  for (const highlight of highlights) {
+    const category = highlight.category ?? "Highlight";
+    categoryCounts[category] = (categoryCounts[category] ?? 0) + 1;
   }
+
   const topCategory =
     Object.entries(categoryCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
-  const withRecommendation = highlights.filter((h) => h.recommendation).length;
+  const withRecommendation = highlights.filter((highlight) => highlight.recommendation).length;
   const completeness =
     highlights.length > 0
       ? Math.round((withRecommendation / highlights.length) * 100)
       : null;
+  const selectedHighlight = highlights[0] ?? null;
 
   return (
     <AuthenticatedPageContainer>
-      <PageFrame
-        actions={[{ href: "/calls", label: "Back to call library" }]}
-        description="Review starred coaching moments, recommendations, and recurring patterns from call reviews."
-        eyebrow="Coaching evidence"
-        title="Coaching evidence"
+      <OperationalWorkspace
+        data-highlights-layout="evidence-inbox"
+        data-highlights-surface="operational-evidence"
       >
-        <section className="grid gap-4 md:grid-cols-3" data-highlights-status-band="">
-          <ForgeStatCard
-            description="Saved from reviewed calls."
-            icon="auto_awesome"
-            label="Captured moments"
-            tone="gold"
-            value={highlights.length}
-            variant="panel"
-          />
-          <ForgeStatCard
-            description="Most frequent category in the library."
-            icon="insights"
-            label="Top pattern"
-            tone="cyan"
-            value={topCategory ?? "None yet"}
-            variant="panel"
-          />
-          <ForgeStatCard
-            description={`${withRecommendation} with next-step guidance.`}
-            icon="task_alt"
-            label="Recommendation coverage"
-            tone={completeness !== null && completeness >= 80 ? "success" : "gold"}
-            value={completeness !== null ? `${completeness}%` : "—"}
-            variant="panel"
-          />
-        </section>
+        <OperationalToolbar
+          actions={[{ href: "/calls", label: "Back to call library", variant: "secondary" }]}
+          description="Review starred coaching moments, recommendations, and recurring patterns from call reviews."
+          eyebrow="Review"
+          status={{ icon: "auto_awesome", label: `${highlights.length} evidence rows`, tone: "muted" }}
+          title="Coaching evidence"
+        />
 
-        <section className="space-y-4" data-highlights-library="">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="font-['Space_Grotesk'] text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
-                Highlight library
-              </p>
-              <p className="mt-2 text-sm text-[var(--forge-muted)]">
-                Open the source call to inspect transcript context and scorecard notes.
-              </p>
-            </div>
-            <span className="rounded-full border border-[var(--forge-border-strong)]/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
-              {highlights.length} {highlights.length === 1 ? "item" : "items"}
-            </span>
-          </div>
+        <OperationalMetricStrip
+          metrics={[
+            {
+              icon: "auto_awesome",
+              label: "Captured moments",
+              tone: "gold",
+              value: highlights.length,
+            },
+            {
+              icon: "insights",
+              label: "Top pattern",
+              tone: "cyan",
+              value: topCategory ?? "None yet",
+            },
+            {
+              icon: "task_alt",
+              label: "Recommendation coverage",
+              tone: completeness !== null && completeness >= 80 ? "success" : "gold",
+              value: completeness !== null ? `${completeness}%` : "--",
+            },
+            {
+              icon: "subject",
+              label: "With guidance",
+              tone: withRecommendation > 0 ? "success" : "muted",
+              value: withRecommendation,
+            },
+          ]}
+        />
 
-          <div className="space-y-3">
-            {highlights.map((highlight, i) => {
-              const isPrimary = i % 2 === 0;
-              const chipTone = isPrimary ? "gold" : "cyan";
-              const hoverTitle = isPrimary
-                ? "group-hover:text-[var(--forge-gold)]"
-                : "group-hover:text-[var(--forge-cyan)]";
-              const hoverBtn = isPrimary
-                ? "hover:border-[var(--forge-gold)]/50"
-                : "hover:border-[var(--forge-cyan)]/50";
-              return (
-                <ForgeSurface
-                  as="article"
-                  className="group flex flex-col items-start gap-6 p-6 md:flex-row md:items-center"
-                  data-highlight-tone={chipTone}
-                  key={highlight.id}
-                  variant="interactive"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="mb-3 flex items-center gap-3">
-                      <ForgeChip tone={chipTone}>
-                        {highlight.category ?? "Highlight"}
-                        {highlight.severity ? ` • ${highlight.severity}` : ""}
-                      </ForgeChip>
-                    </div>
-                    <h3
-                      className={`mb-2 font-['Space_Grotesk'] text-xl font-bold text-[var(--forge-text)] transition-colors ${hoverTitle}`}
-                    >
-                      {highlight.observation}
-                    </h3>
-                    {highlight.recommendation && (
-                      <p className="line-clamp-2 text-sm leading-relaxed text-[var(--forge-muted)]">
-                        {highlight.recommendation}
-                      </p>
-                    )}
-                    {highlight.highlightNote && (
-                      <p className="mt-2 text-sm italic text-[var(--forge-ember)]">
-                        {highlight.highlightNote}
-                      </p>
-                    )}
-                  </div>
-                  <div className="w-full shrink-0 md:w-auto">
-                    <ForgeButton
-                      className={`w-full md:w-auto ${hoverBtn}`}
-                      href={`/calls/${highlight.callId}`}
-                      size="sm"
-                      trailingIcon="arrow_forward"
-                      variant="secondary"
-                    >
-                      Open call
-                    </ForgeButton>
-                  </div>
-                </ForgeSurface>
-              );
-            })}
-
-            {highlights.length === 0 ? (
-              <ForgeEmptyState
-                description="Managers can star moments from a call detail page to build a reusable coaching library here."
-                icon="auto_awesome"
-                title="No highlights yet"
-              />
-            ) : null}
-          </div>
-        </section>
-
-        {/* Bento cards */}
-        <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2">
-          {/* Coaching Insights */}
-          <ForgeSurface as="section" className="group relative overflow-hidden p-6" variant="panel">
-            <div className="relative z-10">
-              <h4 className="mb-4 font-['Space_Grotesk'] text-xs font-black uppercase tracking-widest text-[var(--forge-cyan)]">
-                Weekly Coaching Insights
-              </h4>
-              {topCategory ? (
-                <>
-                  <p className="mb-4 font-['Space_Grotesk'] text-2xl font-bold">
-                    Focus on &ldquo;{topCategory}&rdquo;
+        <section className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <div
+            className="min-w-0 overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[rgba(8,6,5,0.88)] shadow-[inset_0_1px_0_rgba(255,244,230,0.04)]"
+            data-forge-table="true"
+            data-highlights-library="operational-table"
+          >
+            <div className="border-b border-[var(--forge-border)] bg-[rgba(255,244,230,0.024)] px-4 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
+                    Evidence inbox
                   </p>
-                  <p className="text-sm text-[var(--forge-muted)]">
-                    This is the most frequent pattern across your{" "}
-                    {highlights.length} highlight
-                    {highlights.length === 1 ? "" : "s"}; lean into coaching
-                    around it in your next sessions.
+                  <p className="mt-1 text-sm text-[var(--forge-muted)]">
+                    Open the source call to inspect transcript context and scorecard notes.
                   </p>
-                </>
-              ) : (
-                <>
-                  <p className="mb-4 font-['Space_Grotesk'] text-2xl font-bold">
-                    No data yet
-                  </p>
-                  <p className="text-sm text-[var(--forge-muted)]">
-                    Coaching insights will appear once highlights are captured
-                    from your calls.
-                  </p>
-                </>
-              )}
-            </div>
-            <div className="absolute -bottom-12 -right-12 opacity-5 transition-opacity group-hover:opacity-10">
-              <ForgeIcon name="insights" size={160} />
-            </div>
-          </ForgeSurface>
-
-          {/* Intelligence Health */}
-          <ForgeSurface as="section" className="flex flex-col justify-between p-6" variant="panel">
-            <div>
-              <h4 className="mb-4 font-['Space_Grotesk'] text-xs font-black uppercase tracking-widest text-[var(--forge-gold)]">
-                Intelligence Health
-              </h4>
-              <div className="mb-2 flex items-end gap-2">
-                <span className="font-['Space_Grotesk'] text-4xl font-bold">
-                  {completeness !== null ? `${completeness}%` : "—"}
-                </span>
+                </div>
+                <ForgeChip tone="muted">
+                  {highlights.length} {highlights.length === 1 ? "item" : "items"}
+                </ForgeChip>
               </div>
-              <p className="text-sm text-[var(--forge-muted)]">
-                {completeness !== null
-                  ? `${withRecommendation} of ${highlights.length} highlights include actionable recommendations.`
-                  : "No highlights to analyze yet. Start starring moments from call detail pages."}
-              </p>
             </div>
-            <ForgeScoreMeter
-              className="mt-6"
-              label="Recommendation coverage"
-              tone={completeness !== null && completeness >= 80 ? "success" : "gold"}
-              value={completeness}
-            />
-          </ForgeSurface>
-        </div>
-      </PageFrame>
+
+            {highlights.length ? (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[860px] border-collapse">
+                  <thead>
+                    <tr className="border-b border-[var(--forge-border)] text-left text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
+                      <th className="px-4 py-3" scope="col">Type</th>
+                      <th className="px-4 py-3" scope="col">Observation</th>
+                      <th className="px-4 py-3" scope="col">Recommendation</th>
+                      <th className="px-4 py-3" scope="col">Source</th>
+                      <th className="px-4 py-3 text-right" scope="col">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--forge-border)]">
+                    {highlights.map((highlight, index) => (
+                      <tr
+                        className="transition hover:bg-[rgba(241,191,123,0.045)]"
+                        data-highlight-row={index === 0 ? "selected" : "default"}
+                        key={highlight.id}
+                      >
+                        <td className="px-4 py-4 align-top">
+                          <ForgeChip tone={index === 0 ? "gold" : "cyan"}>
+                            {highlight.category ?? "Highlight"}
+                            {highlight.severity ? ` · ${highlight.severity}` : ""}
+                          </ForgeChip>
+                        </td>
+                        <td className="max-w-[280px] px-4 py-4 align-top text-sm font-semibold text-[var(--forge-text)]">
+                          {highlight.observation ?? "No observation recorded."}
+                        </td>
+                        <td className="max-w-[300px] px-4 py-4 align-top text-sm leading-5 text-[var(--forge-muted)]">
+                          {highlight.recommendation ?? "No recommendation yet."}
+                        </td>
+                        <td className="px-4 py-4 align-top text-sm text-[var(--forge-muted)]">
+                          <div className="max-w-[220px] truncate">
+                            {highlight.callTopic ?? "Source call"}
+                          </div>
+                          <p className="mt-1 text-xs">{formatTimestamp(highlight.callCreatedAt)}</p>
+                        </td>
+                        <td className="px-4 py-4 text-right align-top">
+                          <ForgeButton
+                            href={`/calls/${highlight.callId}`}
+                            size="sm"
+                            trailingIcon="arrow_forward"
+                            variant="secondary"
+                          >
+                            Open call
+                          </ForgeButton>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="p-4">
+                <ForgeEmptyState
+                  description="Managers can star moments from a call detail page to build a reusable coaching library here."
+                  icon="auto_awesome"
+                  title="No highlights yet"
+                />
+              </div>
+            )}
+          </div>
+
+          <OperationalPreviewDrawer
+            actions={
+              selectedHighlight
+                ? [{ href: `/calls/${selectedHighlight.callId}`, label: "Open call", variant: "primary" }]
+                : [{ href: "/calls", label: "Open call library", variant: "secondary" }]
+            }
+            description={
+              selectedHighlight?.recommendation ??
+              "Select an evidence row to inspect its recommendation and source call."
+            }
+            eyebrow="Selected evidence"
+            title={selectedHighlight?.category ?? "No evidence selected"}
+          >
+            {selectedHighlight ? (
+              <div className="space-y-3">
+                <div className="rounded-lg border border-[var(--forge-border)] bg-[rgba(8,6,5,0.66)] p-3">
+                  <p className="text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
+                    Observation
+                  </p>
+                  <p className="mt-2 text-sm leading-5 text-[var(--forge-text)]">
+                    {selectedHighlight.observation}
+                  </p>
+                </div>
+                {selectedHighlight.highlightNote ? (
+                  <div className="rounded-lg border border-[rgba(255,159,95,0.24)] bg-[rgba(255,159,95,0.06)] p-3">
+                    <p className="text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-ember)]">
+                      Manager note
+                    </p>
+                    <p className="mt-2 text-sm leading-5 text-[var(--forge-text)]">
+                      {selectedHighlight.highlightNote}
+                    </p>
+                  </div>
+                ) : null}
+                <div className="flex items-center gap-2 text-sm text-[var(--forge-muted)]">
+                  <ForgeIcon name="subject" size={16} />
+                  <span className="min-w-0 truncate">
+                    {selectedHighlight.callTopic ?? "Source call"}
+                  </span>
+                </div>
+              </div>
+            ) : null}
+          </OperationalPreviewDrawer>
+        </section>
+      </OperationalWorkspace>
     </AuthenticatedPageContainer>
   );
+}
+
+function formatTimestamp(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "No source date";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 }

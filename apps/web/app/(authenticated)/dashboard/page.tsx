@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import Link from "next/link";
 import {
   getCachedAuthenticatedSupabaseUser,
@@ -6,28 +5,29 @@ import {
 } from "@/lib/auth/request-user";
 import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
 import {
-  ForgeButton,
+  ForgeChip,
   ForgeEmptyState as ForgeEmptyStatePrimitive,
   ForgeIcon,
-  ForgeMetric,
-  ForgeScoreMeter,
-  ForgeWidget,
+  type ForgeTone,
 } from "@/components/forge";
 import { createDashboardRepository } from "@/lib/dashboard/create-repository";
 import {
-  getDashboardLeaderboard,
   getExecutiveDashboard,
   getManagerDashboard,
   getRepBadges,
   getRepDashboard,
   getSetupStatus,
   type Badge,
-  type DashboardLeaderboard,
   type ExecutiveDashboard,
   type ManagerDashboard,
   type RepDashboard,
 } from "@/lib/dashboard/service";
-import { PageFrame } from "@/components/page-frame";
+import {
+  OperationalMetricStrip,
+  OperationalPreviewDrawer,
+  OperationalToolbar,
+  OperationalWorkspace,
+} from "@/components/operational-workspace";
 
 export default async function DashboardPage() {
   const authUser = await getCachedAuthenticatedSupabaseUser();
@@ -37,17 +37,17 @@ export default async function DashboardPage() {
   if (!authUser || !profile) {
     return (
       <AuthenticatedPageContainer>
-        <PageFrame
-          tone="warning"
-          description="This account is authenticated but is not provisioned inside the Argos app database yet."
-          eyebrow="Provisioning"
-          title="Dashboard unavailable"
-        >
+        <OperationalWorkspace data-dashboard-route="operational-pulse">
+          <OperationalToolbar
+            description="This account is authenticated but is not provisioned inside the Argos app database yet."
+            eyebrow="Provisioning"
+            title="Dashboard unavailable"
+          />
           <EmptyState
             description="Complete app provisioning first, then reload this route to unlock the product dashboards."
             title="User record missing"
           />
-        </PageFrame>
+        </OperationalWorkspace>
       </AuthenticatedPageContainer>
     );
   }
@@ -55,640 +55,552 @@ export default async function DashboardPage() {
   const isExecutive = profile.role === "executive";
   const isManager = isExecutive || profile.role === "manager" || profile.role === "admin";
 
-  const [repDashboard, badges, managerDashboard, executiveDashboard, leaderboard, setupStatus] =
+  const [repDashboard, badges, managerDashboard, executiveDashboard, setupStatus] =
     await Promise.all([
       getRepDashboard(repository, authUser.id),
       getRepBadges(repository, authUser.id),
       isManager ? getManagerDashboard(repository, authUser.id) : Promise.resolve(null),
       isExecutive ? getExecutiveDashboard(repository, authUser.id) : Promise.resolve(null),
-      isManager ? getDashboardLeaderboard(repository, authUser.id) : Promise.resolve(null),
       isManager ? getSetupStatus(repository, authUser.id) : Promise.resolve(null),
     ]);
+  const roleLabel = isExecutive ? "Executive view" : isManager ? "Manager view" : "Rep view";
 
   return (
     <AuthenticatedPageContainer>
-      <PageFrame
-        description="Review performance, coaching focus, training progress, and workspace activity."
-        eyebrow="Operating pulse"
-        title="Dashboard"
-      >
+      <OperationalWorkspace data-dashboard-route="operational-pulse">
+        <OperationalToolbar
+          actions={
+            isManager
+              ? [
+                  { href: "/team", icon: "group", label: "Open team", variant: "secondary" },
+                  { href: "/upload", icon: "cloud_upload", label: "Upload call", variant: "primary" },
+                ]
+              : [
+                  { href: "/calls", icon: "subject", label: "Open calls", variant: "secondary" },
+                  { href: "/training", icon: "school", label: "Open training", variant: "primary" },
+                ]
+          }
+          description="See what needs attention today, then jump into the right workspace."
+          eyebrow="Review"
+          status={{ icon: "dashboard", label: roleLabel, tone: "muted" }}
+          title="Dashboard"
+        />
+
+        <OperationalMetricStrip
+          metrics={
+            isExecutive
+              ? [
+                  {
+                    icon: "monitoring",
+                    label: "Team avg score",
+                    tone: scoreMetricTone(managerDashboard?.teamAvgScore),
+                    value: managerDashboard?.teamAvgScore ?? "--",
+                  },
+                  {
+                    icon: "call",
+                    label: "Total calls",
+                    tone: "cyan",
+                    value: managerDashboard?.totalCallsThisMonth ?? 0,
+                  },
+                  {
+                    icon: "school",
+                    label: "Training completion",
+                    tone: "gold",
+                    value: executiveDashboard?.trainingStats
+                      ? `${executiveDashboard.trainingStats.completionRate}%`
+                      : "--",
+                  },
+                  {
+                    icon: "warning",
+                    label: "Coaching flags",
+                    tone: (managerDashboard?.coachingFlagsCount ?? 0) > 0 ? "ember" : "success",
+                    value: managerDashboard?.coachingFlagsCount ?? 0,
+                  },
+                ]
+              : isManager
+                ? [
+                    {
+                      icon: "monitoring",
+                      label: "Team avg score",
+                      tone: scoreMetricTone(managerDashboard?.teamAvgScore),
+                      value: managerDashboard?.teamAvgScore ?? "--",
+                    },
+                    {
+                      icon: "call",
+                      label: "Total calls",
+                      tone: "cyan",
+                      value: managerDashboard?.totalCallsThisMonth ?? 0,
+                    },
+                    {
+                      icon: "group",
+                      label: "Active reps",
+                      tone: "gold",
+                      value: managerDashboard?.reps.length ?? 0,
+                    },
+                    {
+                      icon: "warning",
+                      label: "Coaching flags",
+                      tone: (managerDashboard?.coachingFlagsCount ?? 0) > 0 ? "ember" : "success",
+                      value: managerDashboard?.coachingFlagsCount ?? 0,
+                    },
+                  ]
+                : [
+                    {
+                      icon: "monitoring",
+                      label: "30-day average",
+                      tone: scoreMetricTone(repDashboard?.monthlyAvgScore),
+                      value: repDashboard?.monthlyAvgScore ?? "--",
+                    },
+                    {
+                      icon: "subject",
+                      label: "Calls analyzed",
+                      tone: "cyan",
+                      value: repDashboard?.recentCalls.length ?? 0,
+                    },
+                    {
+                      icon: "target",
+                      label: "Focus categories",
+                      tone: "gold",
+                      value: repDashboard?.lowestCategories.length ?? 0,
+                    },
+                    {
+                      icon: "workspace_premium",
+                      label: "Badges earned",
+                      tone: "success",
+                      value: badges?.badges.filter((badge) => badge.earned).length ?? 0,
+                    },
+                  ]
+          }
+        />
+
         {isExecutive ? (
-          <ExecutiveDashboardView
+          <TodayDashboardView
+            badges={badges?.badges ?? []}
             executiveDashboard={executiveDashboard}
-            leaderboard={leaderboard}
+            isExecutive
+            isManager={isManager}
             managerDashboard={managerDashboard}
+            repDashboard={repDashboard}
             setupStatus={setupStatus}
           />
         ) : isManager ? (
-          <ManagerDashboardView
-            leaderboard={leaderboard}
+          <TodayDashboardView
+            badges={badges?.badges ?? []}
+            executiveDashboard={executiveDashboard}
+            isExecutive={false}
+            isManager={isManager}
             managerDashboard={managerDashboard}
+            repDashboard={repDashboard}
             setupStatus={setupStatus}
           />
         ) : (
-          <RepDashboardView badges={badges?.badges ?? []} dashboard={repDashboard} />
+          <TodayDashboardView
+            badges={badges?.badges ?? []}
+            executiveDashboard={executiveDashboard}
+            isExecutive={false}
+            isManager={false}
+            managerDashboard={managerDashboard}
+            repDashboard={repDashboard}
+            setupStatus={setupStatus}
+          />
         )}
-      </PageFrame>
+      </OperationalWorkspace>
     </AuthenticatedPageContainer>
   );
 }
 
-/* ── Rep Dashboard ──────────────────────────────────────────────── */
+function scoreMetricTone(value: number | null | undefined): ForgeTone {
+  if (typeof value !== "number") return "muted";
+  if (value >= 85) return "success";
+  if (value >= 70) return "gold";
+  if (value >= 60) return "ember";
+  return "danger";
+}
 
-function RepDashboardView({
+type TodayQueueItem = {
+  actionLabel: string;
+  description: string;
+  href: string;
+  icon: string;
+  id: string;
+  label: string;
+  signal: string;
+  statusLabel: string;
+  tone: ForgeTone;
+  typeLabel: string;
+};
+
+type SetupStatusResult = Awaited<ReturnType<typeof getSetupStatus>>;
+
+function TodayDashboardView({
   badges,
-  dashboard,
+  executiveDashboard,
+  isExecutive,
+  isManager,
+  managerDashboard,
+  repDashboard,
+  setupStatus,
 }: {
   badges: Badge[];
-  dashboard: RepDashboard | null;
+  executiveDashboard: ExecutiveDashboard | null;
+  isExecutive: boolean;
+  isManager: boolean;
+  managerDashboard: ManagerDashboard | null;
+  repDashboard: RepDashboard | null;
+  setupStatus: SetupStatusResult;
 }) {
-  const recentCalls = dashboard?.recentCalls ?? [];
-  const focusAreas = dashboard?.lowestCategories ?? [];
-  const focusAreasLabel = dashboard?.categoryAnalyticsContextLabel ?? null;
+  const queueItems = buildTodayQueueItems({
+    badges,
+    executiveDashboard,
+    isExecutive,
+    isManager,
+    managerDashboard,
+    repDashboard,
+    setupStatus,
+  });
+  const selected = queueItems[0] ?? null;
 
   return (
-    <div className="space-y-8">
-      <div className="grid gap-6 md:grid-cols-3">
-        <MetricCard label="30-day average" value={dashboard?.monthlyAvgScore ?? "—"} />
-        <MetricCard label="Calls analyzed" value={recentCalls.length} />
-        <MetricCard label="Focus categories" value={focusAreas.length} />
-      </div>
+    <section
+      className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_320px]"
+      data-dashboard-today-queue="true"
+    >
+      <div
+        className="min-w-0 overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[rgba(8,6,5,0.88)] shadow-[inset_0_1px_0_rgba(255,244,230,0.04)]"
+        data-dashboard-queue-table="true"
+        data-forge-table="true"
+      >
+        <div className="border-b border-[var(--forge-border)] bg-[rgba(255,244,230,0.024)] px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
+                Review queue
+              </p>
+              <h2 className="mt-1 text-base font-semibold text-[var(--forge-text)]">
+                Today
+              </h2>
+            </div>
+            <ForgeChip tone={queueItems.length ? "gold" : "muted"}>
+              {queueItems.length} {queueItems.length === 1 ? "item" : "items"}
+            </ForgeChip>
+          </div>
+        </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.2fr,0.8fr]">
-        <SurfacePanel title="Recent Calls" link={{ href: "/calls", label: "View all" }}>
-          {recentCalls.length ? (
-            <div className="space-y-3">
-              {recentCalls.map((call) => (
+        {queueItems.length ? (
+          <>
+            <div className="grid gap-2 p-3 md:hidden">
+              {queueItems.map((item) => (
                 <Link
-                  className="flex items-center justify-between gap-4 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-4 transition hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/5"
-                  href={`/calls/${call.id}`}
-                  key={call.id}
+                  className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] p-4 transition hover:border-[rgba(241,191,123,0.3)] hover:bg-[rgba(241,191,123,0.055)]"
+                  href={item.href}
+                  key={`${item.id}-mobile`}
                 >
-                  <div>
-                    <p className="text-sm font-medium text-[var(--forge-text)]">
-                      {call.callTopic ?? "Untitled call"}
-                    </p>
-                    <p className="mt-1 text-xs text-[var(--forge-muted)]">{formatTimestamp(call.createdAt)}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className={`text-sm font-semibold ${scoreColor(call.overallScore)}`}>
-                      {call.overallScore ?? "—"}
-                    </p>
-                    <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[var(--forge-muted)]">
-                      {call.status}
-                    </p>
+                  <div className="flex items-start gap-3">
+                    <QueueIcon item={item} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-[var(--forge-text)]">
+                            {item.label}
+                          </p>
+                          <p className="mt-1 text-xs text-[var(--forge-muted)]">
+                            {item.description}
+                          </p>
+                        </div>
+                        <ForgeChip tone={item.tone}>{item.statusLabel}</ForgeChip>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between gap-3 text-xs text-[var(--forge-muted)]">
+                        <span>{item.signal}</span>
+                        <span className="font-semibold text-[var(--forge-gold)]">
+                          {item.actionLabel}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </Link>
               ))}
             </div>
-          ) : (
-            <EmptyState
-              description="Upload a call to create a scored record, highlights, and coaching feedback."
-              title="No recent calls"
-            />
-          )}
-        </SurfacePanel>
 
-        <SurfacePanel title="Focus Areas" link={{ href: "/training", label: "Open training" }}>
-          {focusAreasLabel ? (
-            <p className="mb-4 text-xs font-medium uppercase tracking-[0.18em] text-[var(--forge-gold)]">
-              {focusAreasLabel}
-            </p>
-          ) : null}
-          {focusAreas.length ? (
-            <div className="space-y-3">
-              {focusAreas.map((area) => (
-                <BarRow
-                  key={area.category}
-                  label={area.category}
-                  tone={scoreColor(area.avgScore)}
-                  value={area.avgScore}
-                />
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              description="Your lowest categories appear here once scored calls are available."
-              title="No focus data"
-            />
-          )}
-        </SurfacePanel>
-      </div>
-
-      <SurfacePanel title="Badges & Milestones" link={{ href: "/training", label: "Keep progressing" }}>
-        {badges.length ? (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {badges.map((badge) => (
-              <article
-                className={`rounded-xl border px-4 py-4 ${
-                  badge.earned
-                    ? "border-[rgba(255,159,95,0.26)] bg-[rgba(255,159,95,0.06)]"
-                    : "border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 opacity-70"
-                }`}
-                key={badge.id}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{badge.emoji}</span>
-                  <div>
-                    <p className="text-sm font-semibold text-[var(--forge-text)]">{badge.name}</p>
-                    <p className="mt-1 text-xs text-[var(--forge-muted)]">{badge.description}</p>
-                  </div>
-                </div>
-                <p className="mt-4 text-xs font-medium text-[var(--forge-muted)]">
-                  {badge.earned && badge.earnedAt
-                    ? `Earned ${formatTimestamp(badge.earnedAt)}`
-                    : "Not earned yet"}
-                </p>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            description="Badges populate as call, training, and roleplay milestones are completed."
-            title="No badges yet"
-          />
-        )}
-      </SurfacePanel>
-    </div>
-  );
-}
-
-/* ── Manager Dashboard ──────────────────────────────────────────── */
-
-function ManagerDashboardView({
-  leaderboard,
-  managerDashboard,
-  setupStatus,
-}: {
-  leaderboard: DashboardLeaderboard | null;
-  managerDashboard: ManagerDashboard | null;
-  setupStatus: Awaited<ReturnType<typeof getSetupStatus>>;
-}) {
-  const reps = managerDashboard?.reps ?? [];
-
-  return (
-    <div className="space-y-8">
-      {/* Row 1: Operating pulse + Org Setup */}
-      <div className="grid grid-cols-12 gap-6">
-        <OperatingPulseCard />
-
-        <OrgSetupCard setupStatus={setupStatus} />
-      </div>
-
-      {/* Row 2: Rep Performance */}
-      <RepPerformanceSection reps={reps} />
-
-      {/* Row 3: Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard label="Team Avg Score" value={managerDashboard?.teamAvgScore ?? "—"} unit="/ 100" />
-        <MetricCard label="Total Calls" value={managerDashboard?.totalCallsThisMonth ?? 0} />
-        <MetricCard label="Active Reps" value={reps.length} />
-        <MetricCard label="Coaching Flags" value={managerDashboard?.coachingFlagsCount ?? 0} />
-      </div>
-
-      {/* Row 4: Leaderboard columns */}
-      <LeaderboardColumns leaderboard={leaderboard} />
-    </div>
-  );
-}
-
-/* ── Executive Dashboard ────────────────────────────────────────── */
-
-function ExecutiveDashboardView({
-  executiveDashboard,
-  leaderboard,
-  managerDashboard,
-  setupStatus,
-}: {
-  executiveDashboard: ExecutiveDashboard | null;
-  leaderboard: DashboardLeaderboard | null;
-  managerDashboard: ManagerDashboard | null;
-  setupStatus: Awaited<ReturnType<typeof getSetupStatus>>;
-}) {
-  const reps = managerDashboard?.reps ?? [];
-  const repSkillBreakdown = executiveDashboard?.repSkillBreakdown ?? [];
-  const trainingStats = executiveDashboard?.trainingStats;
-  const skillAveragesLabel = executiveDashboard?.categoryAnalyticsContextLabel ?? null;
-  const dynamicSkillColumns = executiveDashboard?.skillColumns ?? [];
-  const hasDynamicSkillMatrix =
-    dynamicSkillColumns.length > 0 &&
-    repSkillBreakdown.some((rep) => (rep.skillBreakdown?.length ?? 0) > 0);
-  const skillMatrixColumns = hasDynamicSkillMatrix
-    ? dynamicSkillColumns
-    : ["Frame", "Rapport", "Discovery", "Pain", "Solution", "Objection", "Closing"];
-
-  return (
-    <div className="space-y-8">
-      {/* Row 1: Operating pulse + Org Setup */}
-      <div className="grid grid-cols-12 gap-6">
-        <OperatingPulseCard />
-
-        <OrgSetupCard setupStatus={setupStatus} />
-      </div>
-
-      {/* Row 2: Rep Performance */}
-      <RepPerformanceSection reps={reps} />
-
-      {/* Row 3: Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard label="Team Avg Score" value={managerDashboard?.teamAvgScore ?? "—"} unit="/ 100" />
-        <MetricCard label="Total Calls" value={managerDashboard?.totalCallsThisMonth ?? 0} />
-        <MetricCard
-          label="Training Completion"
-          value={trainingStats ? `${trainingStats.completionRate}%` : "—"}
-        />
-        <MetricCard label="Coaching Flags" value={managerDashboard?.coachingFlagsCount ?? 0} />
-      </div>
-
-      {/* Row 4: Leaderboard columns */}
-      <LeaderboardColumns leaderboard={leaderboard} />
-
-      {/* Row 5: Org Skill Averages + Call Volume */}
-      <div className="grid gap-6 xl:grid-cols-[1.05fr,0.95fr]">
-        <SurfacePanel title="Org Skill Averages" link={{ href: "/training", label: "Open training" }}>
-          {skillAveragesLabel ? (
-            <p className="mb-4 text-xs font-medium uppercase tracking-[0.18em] text-[var(--forge-gold)]">
-              {skillAveragesLabel}
-            </p>
-          ) : null}
-          {executiveDashboard?.skillAverages?.some((s) => s.avgScore !== null) ? (
-            <div className="space-y-3">
-              {executiveDashboard.skillAverages.map((skill) => (
-                <BarRow
-                  key={skill.category}
-                  label={skill.category}
-                  tone={scoreColor(skill.avgScore)}
-                  value={skill.avgScore}
-                />
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              description="Org skill averages appear once scored calls exist across the team."
-              title="No skill averages yet"
-            />
-          )}
-        </SurfacePanel>
-
-        <SurfacePanel title="Call Volume" link={{ href: "/calls", label: "Open call library" }}>
-          {executiveDashboard?.weeklyCallVolume?.some((w) => w.callCount > 0) ? (
-            <div className="flex h-48 items-end gap-2">
-              {executiveDashboard.weeklyCallVolume.map((week) => {
-                const max = Math.max(...executiveDashboard.weeklyCallVolume.map((w) => w.callCount), 1);
-                const pct = Math.max(8, Math.round((week.callCount / max) * 100));
-                return (
-                  <div className="flex flex-1 flex-col items-center gap-2" key={week.week}>
-                    <div className="flex h-36 w-full items-end">
-                      <div
-                        className="w-full rounded-t-md bg-[var(--forge-gold)]/60 transition hover:bg-[var(--forge-gold)]/80"
-                        style={{ height: `${pct}%` }}
-                      />
-                    </div>
-                    <span className="text-[10px] text-[var(--forge-muted)]">
-                      {new Date(week.week).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <EmptyState
-              description="Weekly call volume appears after calls are uploaded and scored."
-              title="No call volume yet"
-            />
-          )}
-        </SurfacePanel>
-      </div>
-
-      {/* Row 6: Rep Skill Matrix */}
-      {repSkillBreakdown.length > 0 && (
-        <SurfacePanel title="Rep Skill Matrix" link={{ href: "/team", label: "View team" }}>
-          <div className="grid gap-3 md:hidden" data-rep-skill-matrix-mobile="true">
-            {repSkillBreakdown.map((rep) => (
-              <Link
-                className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-4 transition hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/5"
-                href={`/team/${rep.repId}`}
-                key={rep.repId}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-[var(--forge-text)]">
-                      {formatRepName(rep)}
-                    </p>
-                    <p className="mt-1 text-xs text-[var(--forge-muted)]">
-                      {rep.callCount} scored calls
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className={`text-lg font-bold ${scoreColor(rep.compositeScore)}`}>
-                      {rep.compositeScore ?? "—"}
-                    </p>
-                    <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--forge-muted)]">
-                      Overall
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-4 grid grid-cols-2 gap-2">
-                  {getRepSkillScores(rep, hasDynamicSkillMatrix, skillMatrixColumns).map((skill) => (
-                    <div
-                      className="rounded-lg border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface-3)]/35 px-3 py-2"
-                      key={`${rep.repId}-mobile-${skill.label}`}
-                    >
-                      <p className="truncate text-[11px] font-medium text-[var(--forge-muted)]">{skill.label}</p>
-                      <p className={`mt-1 text-sm font-semibold ${scoreColor(skill.score)}`}>
-                        {skill.score ?? "—"}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </Link>
-            ))}
-          </div>
-
-          <div className="hidden overflow-x-auto md:block" data-rep-skill-matrix-table="true">
-            <table className="w-full min-w-[760px] text-sm">
-              <thead>
-                <tr className="border-b border-[var(--forge-border-strong)]/20 text-[var(--forge-muted)]">
-                  <th className="pb-3 text-left font-medium">Rep</th>
-                  <th className="pb-3 text-center font-medium">Overall</th>
-                  {skillMatrixColumns.map((column) => (
-                    <th className="pb-3 text-center font-medium" key={column}>{column}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {repSkillBreakdown.map((rep) => (
-                  <tr className="border-b border-[var(--forge-border-strong)]/10 last:border-b-0" key={rep.repId}>
-                    <td className="py-3 pr-4">
-                      <Link className="font-medium text-[var(--forge-text)] hover:text-[var(--forge-gold)]" href={`/team/${rep.repId}`}>
-                        {formatRepName(rep)}
-                      </Link>
-                    </td>
-                    <td className={`py-3 text-center font-semibold ${scoreColor(rep.compositeScore)}`}>{rep.compositeScore ?? "—"}</td>
-                    {getRepSkillScores(rep, hasDynamicSkillMatrix, skillMatrixColumns).map((skill) => (
-                      <td className={`py-3 text-center ${scoreColor(skill.score)}`} key={`${rep.repId}-${skill.label}`}>
-                        {skill.score ?? "—"}
-                      </td>
-                    ))}
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full min-w-[760px] border-collapse">
+                <thead>
+                  <tr className="border-b border-[var(--forge-border)] bg-[rgba(255,244,230,0.024)] text-left text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
+                    <th className="px-4 py-3" scope="col">Work item</th>
+                    <th className="px-4 py-3" scope="col">Signal</th>
+                    <th className="px-4 py-3" scope="col">Status</th>
+                    <th className="px-4 py-3 text-right" scope="col">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </SurfacePanel>
-      )}
-    </div>
-  );
-}
-
-/* ── Shared sub-components ──────────────────────────────────────── */
-
-type RepSkillMatrixRep = NonNullable<ExecutiveDashboard["repSkillBreakdown"]>[number];
-
-function formatRepName(rep: RepSkillMatrixRep) {
-  return [rep.firstName, rep.lastName].filter(Boolean).join(" ") || "Unknown rep";
-}
-
-function getRepSkillScores(
-  rep: RepSkillMatrixRep,
-  hasDynamicSkillMatrix: boolean,
-  columns: string[],
-) {
-  if (hasDynamicSkillMatrix) {
-    return columns.map((column) => ({
-      label: column,
-      score: rep.skillBreakdown?.find((entry) => entry.category === column)?.avgScore ?? null,
-    }));
-  }
-
-  return [
-    { label: "Frame", score: rep.skills.frameControl },
-    { label: "Rapport", score: rep.skills.rapport },
-    { label: "Discovery", score: rep.skills.discovery },
-    { label: "Pain", score: rep.skills.painExpansion },
-    { label: "Solution", score: rep.skills.solution },
-    { label: "Objection", score: rep.skills.objection },
-    { label: "Closing", score: rep.skills.closing },
-  ];
-}
-
-function OperatingPulseCard() {
-  return (
-    <ForgeWidget
-      className="col-span-12 lg:col-span-8"
-      eyebrow="Dashboard OS"
-      title="Operating pulse"
-    >
-      <div className="grid gap-5 lg:grid-cols-[1fr,auto] lg:items-end">
-        <p className="max-w-2xl text-sm leading-7 text-[var(--forge-muted)]">
-          Current team activity, leaderboard movement, call intake, and setup health for this cycle.
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <ForgeButton href="/team" icon="group" variant="primary">
-            Open team
-          </ForgeButton>
-          <ForgeButton href="/leaderboard" icon="leaderboard" variant="secondary">
-            View ranks
-          </ForgeButton>
-          <ForgeButton href="/upload" icon="cloud_upload" variant="ghost">
-            Upload call
-          </ForgeButton>
-        </div>
-      </div>
-    </ForgeWidget>
-  );
-}
-
-function OrgSetupCard({
-  setupStatus,
-}: {
-  setupStatus: Awaited<ReturnType<typeof getSetupStatus>>;
-}) {
-  return (
-    <ForgeWidget className="col-span-12 lg:col-span-4" eyebrow="Workspace" title="Setup health">
-      <div className="mb-4 flex items-center justify-between">
-        {setupStatus?.orgSlug && (
-          <div className="flex items-center gap-2 px-2 py-1 bg-[var(--forge-surface-2)] rounded-md border border-[var(--forge-border-strong)]/20">
-            <ForgeIcon className="text-[var(--forge-gold)]" name="fingerprint" size={14} />
-            <code className="text-[10px] text-[var(--forge-muted)] font-mono">{setupStatus.orgSlug}</code>
+                </thead>
+                <tbody className="divide-y divide-[var(--forge-border)]">
+                  {queueItems.map((item, index) => (
+                    <tr
+                      className="transition hover:bg-[rgba(241,191,123,0.045)]"
+                      data-dashboard-queue-row={index === 0 ? "selected" : "default"}
+                      key={item.id}
+                    >
+                      <td className="px-4 py-4">
+                        <div className="flex min-w-0 items-start gap-3">
+                          <QueueIcon item={item} />
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-[var(--forge-text)]">
+                              {item.label}
+                            </p>
+                            <p className="mt-1 line-clamp-1 text-xs text-[var(--forge-muted)]">
+                              {item.description}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-sm font-semibold text-[var(--forge-text)]">
+                        {item.signal}
+                      </td>
+                      <td className="px-4 py-4">
+                        <ForgeChip tone={item.tone}>{item.statusLabel}</ForgeChip>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <Link
+                          className="inline-flex items-center justify-end gap-1 text-sm font-semibold text-[var(--forge-gold)] transition hover:text-[var(--forge-text)]"
+                          href={item.href}
+                        >
+                          {item.actionLabel}
+                          <ForgeIcon name="arrow_forward" size={15} />
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        ) : (
+          <div className="p-4">
+            <EmptyState
+              description="Your highest-priority call, coaching, training, and setup items will appear here."
+              title="No attention items"
+            />
           </div>
         )}
       </div>
-      <div className="grid grid-cols-1 gap-3">
-        <div className="flex justify-between items-center py-2 border-b border-[var(--forge-border-strong)]/10">
-          <span className="text-[var(--forge-muted)] text-sm">Reps</span>
-          <span className="text-[var(--forge-gold)] font-bold">{setupStatus?.repsCount ?? 0}</span>
+
+      <OperationalPreviewDrawer
+        actions={
+          selected
+            ? [{ href: selected.href, icon: selected.icon, label: selected.actionLabel, variant: "primary" }]
+            : [{ href: isManager ? "/team" : "/calls", icon: isManager ? "group" : "subject", label: isManager ? "Open team" : "Open calls", variant: "secondary" }]
+        }
+        description={
+          selected?.description ??
+          "This drawer previews the selected attention item and keeps the dashboard focused on the next action."
+        }
+        eyebrow="Selected item"
+        title={selected?.label ?? "Queue clear"}
+      >
+        <div className="grid gap-2 text-sm">
+          <SummaryRow label="Type" value={selected?.typeLabel ?? "None"} />
+          <SummaryRow label="Signal" value={selected?.signal ?? "--"} />
+          <SummaryRow label="Status" value={selected?.statusLabel ?? "Clear"} />
+          <SummaryRow label="Earned badges" value={badges.filter((badge) => badge.earned).length} />
         </div>
-        <div className="flex justify-between items-center py-2 border-b border-[var(--forge-border-strong)]/10">
-          <span className="text-[var(--forge-muted)] text-sm">Calls</span>
-          <span className="text-[var(--forge-gold)] font-bold">{setupStatus?.callsCount ?? 0}</span>
-        </div>
-        <div className="flex justify-between items-center py-2">
-          <span className="text-[var(--forge-muted)] text-sm">Roleplay</span>
-          <span className="text-[var(--forge-gold)] font-bold">{setupStatus?.roleplayCount ?? 0}</span>
-        </div>
-      </div>
-    </ForgeWidget>
+      </OperationalPreviewDrawer>
+    </section>
   );
 }
 
-function RepPerformanceSection({ reps }: { reps: ManagerDashboard["reps"] }) {
-  if (!reps.length) {
-    return (
-      <ForgeWidget eyebrow="People" title="Rep Performance">
-        <ForgeEmptyStatePrimitive
-          description="Once reps and scored calls exist in this org, the coaching roster appears here."
-          icon="monitoring"
-          title="No rep performance yet"
-        />
-      </ForgeWidget>
-    );
+function buildTodayQueueItems({
+  executiveDashboard,
+  isExecutive,
+  isManager,
+  managerDashboard,
+  repDashboard,
+  setupStatus,
+}: {
+  badges: Badge[];
+  executiveDashboard: ExecutiveDashboard | null;
+  isExecutive: boolean;
+  isManager: boolean;
+  managerDashboard: ManagerDashboard | null;
+  repDashboard: RepDashboard | null;
+  setupStatus: SetupStatusResult;
+}): TodayQueueItem[] {
+  const items: TodayQueueItem[] = [];
+
+  if (isManager) {
+    for (const rep of (managerDashboard?.reps ?? []).filter((member) => member.needsCoaching).slice(0, 5)) {
+      items.push({
+        actionLabel: "Open profile",
+        description: `${formatRepCardName(rep)} is flagged for coaching. Review recent calls before assigning training.`,
+        href: `/team/${rep.id}`,
+        icon: rep.compositeScore != null && rep.compositeScore < 60 ? "priority_high" : "warning",
+        id: `rep-${rep.id}`,
+        label: formatRepCardName(rep),
+        signal: rep.compositeScore != null ? `${rep.compositeScore} score` : `${rep.callCount} calls`,
+        statusLabel: "Needs coaching",
+        tone: rep.compositeScore != null && rep.compositeScore < 60 ? "danger" : "ember",
+        typeLabel: "Rep coaching",
+      });
+    }
+
+    if ((managerDashboard?.coachingFlagsCount ?? 0) > items.length) {
+      items.push({
+        actionLabel: "Open team",
+        description: "Additional coaching flags are present across the team roster.",
+        href: "/team",
+        icon: "flag",
+        id: "team-coaching-flags",
+        label: "Review remaining coaching flags",
+        signal: `${managerDashboard?.coachingFlagsCount ?? 0} flags`,
+        statusLabel: "Attention",
+        tone: "ember",
+        typeLabel: "Team coaching",
+      });
+    }
+
+    if ((managerDashboard?.totalCallsThisMonth ?? 0) === 0) {
+      items.push({
+        actionLabel: "Upload call",
+        description: "No calls have been scored this month. Upload a recording to restart the review loop.",
+        href: "/upload",
+        icon: "cloud_upload",
+        id: "no-calls-this-month",
+        label: "No calls scored this month",
+        signal: "0 calls",
+        statusLabel: "Setup",
+        tone: "gold",
+        typeLabel: "Call intake",
+      });
+    }
+
+    if (setupStatus && setupStatus.roleplayCount === 0) {
+      items.push({
+        actionLabel: "Open roleplay",
+        description: "No completed roleplay sessions are recorded for this workspace.",
+        href: "/roleplay",
+        icon: "psychology",
+        id: "roleplay-not-started",
+        label: "Roleplay has not started",
+        signal: "0 sessions",
+        statusLabel: "Optional",
+        tone: "muted",
+        typeLabel: "Practice",
+      });
+    }
+  } else {
+    for (const call of (repDashboard?.recentCalls ?? []).slice(0, 3)) {
+      items.push({
+        actionLabel: "Open call",
+        description: `${call.callTopic ?? "Untitled call"} was reviewed ${formatTimestamp(call.createdAt)}.`,
+        href: `/calls/${call.id}`,
+        icon: call.status === "failed" ? "error" : "subject",
+        id: `call-${call.id}`,
+        label: call.callTopic ?? "Untitled call",
+        signal: call.overallScore != null ? `${call.overallScore} score` : call.status,
+        statusLabel: call.status,
+        tone: call.status === "failed" ? "danger" : scoreMetricTone(call.overallScore),
+        typeLabel: "Recent call",
+      });
+    }
+
+    for (const focusArea of (repDashboard?.lowestCategories ?? []).slice(0, 2)) {
+      items.push({
+        actionLabel: "Open training",
+        description: `${focusArea.category} is currently the clearest coaching focus from scored calls.`,
+        href: "/training",
+        icon: "target",
+        id: `focus-${focusArea.category}`,
+        label: `${focusArea.category} focus`,
+        signal: `${focusArea.avgScore} avg`,
+        statusLabel: "Practice",
+        tone: scoreMetricTone(focusArea.avgScore),
+        typeLabel: "Focus area",
+      });
+    }
   }
 
+  if (isExecutive) {
+    const completionRate = executiveDashboard?.trainingStats?.completionRate;
+    if (typeof completionRate === "number" && completionRate < 80) {
+      items.push({
+        actionLabel: "Open training",
+        description: "Training completion is below the target threshold for this workspace.",
+        href: "/training",
+        icon: "school",
+        id: "training-completion",
+        label: "Training completion below target",
+        signal: `${completionRate}% complete`,
+        statusLabel: "Watch",
+        tone: "gold",
+        typeLabel: "Training",
+      });
+    }
+
+    const weakSkill = executiveDashboard?.skillAverages.find(
+      (skill) => typeof skill.avgScore === "number" && skill.avgScore < 70,
+    );
+    if (weakSkill) {
+      items.push({
+        actionLabel: "Open training",
+        description: `${weakSkill.category} is the lowest org-level skill average in the current scoring context.`,
+        href: "/training",
+        icon: "insights",
+        id: `skill-${weakSkill.category}`,
+        label: `${weakSkill.category} needs review`,
+        signal: `${weakSkill.avgScore} avg`,
+        statusLabel: "Focus",
+        tone: "ember",
+        typeLabel: "Skill trend",
+      });
+    }
+  }
+
+  if (!items.length) {
+    items.push({
+      actionLabel: isManager ? "Open team" : "Open calls",
+      description: isManager
+        ? "No immediate coaching or setup issues are flagged. Use Team for deeper review."
+        : "No urgent coaching items are flagged. Use Calls to review recent scored conversations.",
+      href: isManager ? "/team" : "/calls",
+      icon: "check_circle",
+      id: "queue-clear",
+      label: "No urgent items",
+      signal: "Clear",
+      statusLabel: "Stable",
+      tone: "success",
+      typeLabel: "Workspace status",
+    });
+  }
+
+  return items.slice(0, 7);
+}
+
+function QueueIcon({ item }: { item: TodayQueueItem }) {
   return (
-    <SurfacePanel title="Rep Performance" link={{ href: "/team", label: "Open team" }}>
-      <div className="grid gap-3 md:grid-cols-2">
-        {reps.map((rep) => (
-          <Link
-            className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-4 transition hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/5"
-            href={`/team/${rep.id}`}
-            key={rep.id}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-[var(--forge-text)]">
-                  {[rep.firstName, rep.lastName].filter(Boolean).join(" ") || "Unknown rep"}
-                </p>
-                <p className="mt-1 text-xs text-[var(--forge-muted)]">{rep.callCount} scored calls</p>
-              </div>
-              <span className={`text-lg font-bold ${scoreColor(rep.compositeScore)}`}>
-                {rep.compositeScore ?? "—"}
-              </span>
-            </div>
-            <div className="mt-4 flex items-center justify-between text-xs">
-              <span className="uppercase tracking-[0.2em] text-[var(--forge-muted)]">Week over week</span>
-              <span
-                className={
-                  rep.weekOverWeekDelta === null
-                    ? "text-[var(--forge-muted)]"
-                    : rep.weekOverWeekDelta < 0
-                      ? "text-[var(--forge-danger)]"
-                      : "text-[var(--forge-success)]"
-                }
-              >
-                {rep.weekOverWeekDelta === null ? "—" : formatDelta(rep.weekOverWeekDelta)}
-              </span>
-            </div>
-          </Link>
-        ))}
-      </div>
-    </SurfacePanel>
+    <span
+      aria-hidden="true"
+      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${queueIconToneClass(item.tone)}`}
+    >
+      <ForgeIcon name={item.icon} size={17} />
+    </span>
   );
 }
 
-function LeaderboardColumns({ leaderboard }: { leaderboard: DashboardLeaderboard | null }) {
-  const groups = [
-    { key: "topQuality", title: "Top Quality", icon: "stars" },
-    { key: "topVolume", title: "Top Volume", icon: "bar_chart" },
-    { key: "mostImproved", title: "Most Improved", icon: "trending_up" },
-  ] as const;
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      {groups.map((group) => {
-        const entries = leaderboard?.[group.key] ?? [];
-        return (
-          <ForgeWidget
-            key={group.key}
-            eyebrow="Ranks"
-            title={group.title}
-          >
-            {entries.length ? (
-              <div className="space-y-3">
-                {entries.map((entry) => (
-                  <Link
-                    className="flex items-center justify-between gap-3 hover:text-[var(--forge-gold)]"
-                    href={`/team/${entry.userId}`}
-                    key={entry.userId}
-                  >
-                    <p className="text-sm font-medium text-[var(--forge-text)]">
-                      {entry.rank}. {[entry.firstName, entry.lastName].filter(Boolean).join(" ") || "Unknown rep"}
-                    </p>
-                    <span className={`text-sm font-semibold ${scoreColor(entry.value)}`}>
-                      {entry.value ?? "—"}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <EmptyState
-                description="Rankings populate once reps have scored calls in this workspace."
-                title="No data yet"
-              />
-            )}
-          </ForgeWidget>
-        );
-      })}
-    </div>
-  );
-}
-
-function MetricCard({
+function SummaryRow({
   label,
   value,
-  unit,
 }: {
   label: string;
   value: number | string;
-  unit?: string;
 }) {
   return (
-    <ForgeMetric
-      description={unit ? unit : undefined}
-      label={label}
-      tone="cyan"
-      value={value}
-    />
-  );
-}
-
-function SurfacePanel({
-  children,
-  link,
-  title,
-}: {
-  children: ReactNode;
-  link?: { href: string; label: string };
-  title: string;
-}) {
-  return (
-    <ForgeWidget action={link} title={title}>
-      {children}
-    </ForgeWidget>
+    <div className="flex items-center justify-between gap-3 border-b border-[var(--forge-border)] py-2 last:border-b-0">
+      <span className="text-[var(--forge-muted)]">{label}</span>
+      <span className="text-right font-semibold text-[var(--forge-text)]">{value}</span>
+    </div>
   );
 }
 
 function EmptyState({ description, title }: { description: string; title: string }) {
   return (
     <ForgeEmptyStatePrimitive description={description} title={title} />
-  );
-}
-
-function BarRow({ label, tone, value }: { label: string; tone: string; value: number | null }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="w-36 shrink-0 text-sm text-[var(--forge-muted)]">{label}</span>
-      <ForgeScoreMeter
-        className="flex-1"
-        label={`${label} score`}
-        showValue
-        tone={scoreClassToForgeTone(tone)}
-        value={value}
-      />
-    </div>
   );
 }
 
@@ -699,22 +611,25 @@ function formatTimestamp(value: string) {
   }).format(new Date(value));
 }
 
-function formatDelta(value: number) {
-  return value > 0 ? `+${value}` : `${value}`;
+function formatRepCardName(rep: ManagerDashboard["reps"][number]) {
+  return [rep.firstName, rep.lastName].filter(Boolean).join(" ") || "Unknown rep";
 }
 
-function scoreColor(value: number | null | undefined) {
-  if (typeof value !== "number") return "text-[var(--forge-muted)]";
-  if (value >= 85) return "text-[var(--forge-success)]";
-  if (value >= 70) return "text-[var(--forge-gold)]";
-  if (value >= 60) return "text-[var(--forge-ember)]";
-  return "text-[var(--forge-danger)]";
-}
-
-function scoreClassToForgeTone(tone: string) {
-  if (tone.includes("success")) return "success";
-  if (tone.includes("ember")) return "ember";
-  if (tone.includes("danger")) return "danger";
-  if (tone.includes("cyan")) return "cyan";
-  return "gold";
+function queueIconToneClass(tone: ForgeTone) {
+  if (tone === "success") {
+    return "border-[rgba(139,215,168,0.24)] bg-[rgba(139,215,168,0.08)] text-[var(--forge-success)]";
+  }
+  if (tone === "danger") {
+    return "border-[rgba(255,113,108,0.26)] bg-[rgba(255,113,108,0.08)] text-[var(--forge-danger)]";
+  }
+  if (tone === "ember") {
+    return "border-[rgba(255,159,95,0.24)] bg-[rgba(255,159,95,0.07)] text-[var(--forge-ember)]";
+  }
+  if (tone === "cyan") {
+    return "border-[rgba(136,218,247,0.24)] bg-[rgba(136,218,247,0.07)] text-[var(--forge-cyan)]";
+  }
+  if (tone === "gold") {
+    return "border-[rgba(241,191,123,0.24)] bg-[rgba(241,191,123,0.08)] text-[var(--forge-gold)]";
+  }
+  return "border-[var(--forge-border)] bg-[rgba(255,244,230,0.04)] text-[var(--forge-muted)]";
 }

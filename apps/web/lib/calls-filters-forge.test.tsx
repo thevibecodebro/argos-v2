@@ -23,19 +23,20 @@ describe("CallsFilters forge treatment", () => {
     );
   });
 
-  it("renders a forge action bar without the old blue glass filter treatment", () => {
+  it("renders a compact operational filter bar without the old blue glass treatment", () => {
     const html = renderToStaticMarkup(
       createElement(CallsFilters, { initialSearch: "pricing" }),
     );
 
-    expect(html).toContain('data-calls-filter-bar="forge"');
-    expect(html).toContain('data-forge-action-bar="true"');
-    expect(html).toContain('data-filter-status="processing"');
-    expect(html).toContain('aria-current="page"');
-    expect(html).toContain("Active filters");
+    expect(html).toContain('data-calls-filter-bar="operational"');
+    expect(html).toContain('id="status"');
+    expect(html).toContain(">Processing</option>");
+    expect(html).toContain(">Status</p>");
     expect(html).toContain(">Clear</span>");
     expect(html).not.toContain(">Clear filters</button>");
-    expect(html).toContain('placeholder="Search by topics, deals, or objections"');
+    expect(html).toContain('placeholder="Search calls, reps, topics..."');
+    expect(html).not.toContain('data-forge-action-bar="true"');
+    expect(html).not.toContain("Active filters");
     expect(html).not.toContain("#74b1ff");
     expect(html).not.toContain("#6dddff");
     expect(html).not.toContain("backdrop-blur-md");

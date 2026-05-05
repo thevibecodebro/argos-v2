@@ -10,7 +10,7 @@ describe("PageFrame", () => {
       createElement(PageFrame, {
         title: "Training",
         description:
-          "Review assigned modules, complete lessons, and guide practice from one training surface.",
+          "Review assigned modules and complete the next lesson without manager tools crowding the page.",
         eyebrow: "Training",
         actions: [{ href: "/highlights", label: "Open highlights" }],
         children: createElement("div", null, "Training body"),
@@ -19,7 +19,7 @@ describe("PageFrame", () => {
 
     expect(html).toContain("Training");
     expect(html).toContain(
-      "Review assigned modules, complete lessons, and guide practice from one training surface.",
+      "Review assigned modules and complete the next lesson without manager tools crowding the page.",
     );
     expect(html).toContain("Open highlights");
     expect(html).toContain("Training body");

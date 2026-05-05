@@ -41,14 +41,17 @@ describe("AuthenticatedAppShell", () => {
     expect(html).toContain('href="/team"');
     // Header items
     expect(html).toContain('href="/upload"');
+    // Account menu and bottom rail utility items
+    expect(html).toContain('data-account-menu-item="notifications"');
     expect(html).toContain('href="/notifications"');
-    // Account menu
+    expect(html).toContain('data-primary-rail-footer-link="settings"');
     expect(html).toContain('href="/settings"');
     expect(html).toContain("Review");
     expect(html).toContain("Coach");
     expect(html).toContain("People");
-    expect(html).toContain("System");
+    expect(html).not.toContain("System");
     expect(html).toContain("Workspace scope");
+    expect(html).not.toContain("Active scope");
     expect(html).toContain("Manager view");
   });
 

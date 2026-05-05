@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ForgeActionBar, ForgeButton, ForgeChip, ForgeIcon } from "@/components/forge";
+import { ForgeButton, ForgeIcon } from "@/components/forge";
 
 const STATUS_OPTIONS = [
   { label: "All", value: "all" },
@@ -104,130 +104,122 @@ export function CallsFilters({ initialSearch }: Props) {
   }
 
   return (
-    <div className="space-y-4" data-calls-filter-bar="forge">
-      <ForgeActionBar className="grid items-stretch gap-3 lg:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,0.72fr))_auto]">
-        <div className="group flex items-center rounded-[1.05rem] border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-4 py-1.5 shadow-[inset_0_1px_0_rgba(255,244,230,0.045)] transition focus-within:border-[rgba(241,191,123,0.34)] focus-within:bg-[rgba(241,191,123,0.055)]">
-          <ForgeIcon className="mr-3 text-[var(--forge-gold)]" name="search" size={18} />
-          <label className="sr-only" htmlFor="search">
-            Search by topic
-          </label>
-          <input
-            className="w-full border-none bg-transparent px-0 py-3 text-sm font-medium text-[var(--forge-text)] outline-none placeholder:text-[rgba(255,244,230,0.42)] focus:ring-0"
-            id="search"
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by topics, deals, or objections"
-            type="text"
-            value={search}
-          />
-        </div>
-
-        <div className="rounded-[1.05rem] border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,244,230,0.045)]">
-          <p className="mb-1 font-[var(--font-display)] text-[0.63rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
-            Min Score
-          </p>
-          <label className="sr-only" htmlFor="minScore">
-            Minimum score
-          </label>
-          <select
-            className="w-full border-none bg-transparent px-0 py-0 text-sm font-semibold text-[var(--forge-text)] outline-none focus:ring-0"
-            id="minScore"
-            onChange={(e) => handleMinScoreChange(e.target.value)}
-            value={currentMinScore}
-          >
-            <option value="">Any</option>
-            {[50, 60, 70, 80, 90].map((v) => (
-              <option key={v} value={v}>
-                {v}+
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="rounded-[1.05rem] border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,244,230,0.045)]">
-          <p className="mb-1 font-[var(--font-display)] text-[0.63rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
-            Max Score
-          </p>
-          <label className="sr-only" htmlFor="maxScore">
-            Maximum score
-          </label>
-          <select
-            className="w-full border-none bg-transparent px-0 py-0 text-sm font-semibold text-[var(--forge-text)] outline-none focus:ring-0"
-            id="maxScore"
-            onChange={(e) => handleMaxScoreChange(e.target.value)}
-            value={currentMaxScore}
-          >
-            <option value="">Any</option>
-            {[60, 70, 80, 90, 100].map((v) => (
-              <option key={v} value={v}>
-                {v}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="rounded-[1.05rem] border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,244,230,0.045)]">
-          <p className="mb-1 font-[var(--font-display)] text-[0.63rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
-            Sort By
-          </p>
-          <label className="sr-only" htmlFor="sort">
-            Sort order
-          </label>
-          <select
-            className="w-full border-none bg-transparent px-0 py-0 text-sm font-semibold text-[var(--forge-text)] outline-none focus:ring-0"
-            id="sort"
-            onChange={(e) => router.replace(buildUrl({ sort: e.target.value }))}
-            value={currentSort}
-          >
-            {SORT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <ForgeButton
-          aria-label={hasActiveFilters ? "Clear filters" : "No filters to clear"}
-          className={hasActiveFilters ? "min-h-[62px]" : "min-h-[62px] opacity-45"}
-          disabled={!hasActiveFilters}
-          icon="filter_list"
-          onClick={clearFilters}
-          type="button"
-          variant="secondary"
-        >
-          Clear
-        </ForgeButton>
-      </ForgeActionBar>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-muted)]">
-          {hasActiveFilters ? "Active filters" : "Status"}
-        </span>
-        {STATUS_OPTIONS.map((option) => (
-          <button
-            aria-current={currentStatus === option.value ? "page" : undefined}
-            className="rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(241,191,123,0.42)]"
-            data-filter-active={currentStatus === option.value ? "true" : "false"}
-            data-filter-status={option.value}
-            key={option.value}
-            onClick={() => router.replace(buildUrl({ status: option.value }))}
-            type="button"
-          >
-            <ForgeChip tone={currentStatus === option.value ? statusTone(option.value) : "muted"}>
-              {option.label}
-            </ForgeChip>
-          </button>
-        ))}
+    <div
+      className="grid items-stretch gap-2 rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.024)] p-2 shadow-[inset_0_1px_0_rgba(255,244,230,0.035)] lg:grid-cols-[minmax(0,1.35fr)_repeat(4,minmax(0,0.58fr))_auto]"
+      data-calls-filter-bar="operational"
+    >
+      <div className="group flex min-h-11 items-center rounded-lg border border-[var(--forge-border)] bg-[rgba(8,6,5,0.5)] px-3 transition focus-within:border-[rgba(136,218,247,0.35)] focus-within:bg-[rgba(136,218,247,0.045)]">
+        <ForgeIcon className="mr-2 text-[var(--forge-cyan)]" name="search" size={17} />
+        <label className="sr-only" htmlFor="search">
+          Search by topic
+        </label>
+        <input
+          className="w-full border-none bg-transparent px-0 py-2 text-sm font-medium text-[var(--forge-text)] outline-none placeholder:text-[rgba(255,244,230,0.42)] focus:ring-0"
+          id="search"
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search calls, reps, topics..."
+          type="text"
+          value={search}
+        />
       </div>
+
+      <div className="rounded-lg border border-[var(--forge-border)] bg-[rgba(8,6,5,0.5)] px-3 py-2">
+        <p className="mb-0.5 text-[0.64rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
+          Status
+        </p>
+        <label className="sr-only" htmlFor="status">
+          Status
+        </label>
+        <select
+          className="w-full border-none bg-transparent px-0 py-0 text-sm font-semibold text-[var(--forge-text)] outline-none focus:ring-0"
+          id="status"
+          onChange={(e) => router.replace(buildUrl({ status: e.target.value }))}
+          value={currentStatus}
+        >
+          {STATUS_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="rounded-lg border border-[var(--forge-border)] bg-[rgba(8,6,5,0.5)] px-3 py-2">
+        <p className="mb-0.5 text-[0.64rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
+          Min Score
+        </p>
+        <label className="sr-only" htmlFor="minScore">
+          Minimum score
+        </label>
+        <select
+          className="w-full border-none bg-transparent px-0 py-0 text-sm font-semibold text-[var(--forge-text)] outline-none focus:ring-0"
+          id="minScore"
+          onChange={(e) => handleMinScoreChange(e.target.value)}
+          value={currentMinScore}
+        >
+          <option value="">Any</option>
+          {[50, 60, 70, 80, 90].map((v) => (
+            <option key={v} value={v}>
+              {v}+
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="rounded-lg border border-[var(--forge-border)] bg-[rgba(8,6,5,0.5)] px-3 py-2">
+        <p className="mb-0.5 text-[0.64rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
+          Max Score
+        </p>
+        <label className="sr-only" htmlFor="maxScore">
+          Maximum score
+        </label>
+        <select
+          className="w-full border-none bg-transparent px-0 py-0 text-sm font-semibold text-[var(--forge-text)] outline-none focus:ring-0"
+          id="maxScore"
+          onChange={(e) => handleMaxScoreChange(e.target.value)}
+          value={currentMaxScore}
+        >
+          <option value="">Any</option>
+          {[60, 70, 80, 90, 100].map((v) => (
+            <option key={v} value={v}>
+              {v}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="rounded-lg border border-[var(--forge-border)] bg-[rgba(8,6,5,0.5)] px-3 py-2">
+        <p className="mb-0.5 text-[0.64rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
+          Sort By
+        </p>
+        <label className="sr-only" htmlFor="sort">
+          Sort order
+        </label>
+        <select
+          className="w-full border-none bg-transparent px-0 py-0 text-sm font-semibold text-[var(--forge-text)] outline-none focus:ring-0"
+          id="sort"
+          onChange={(e) => router.replace(buildUrl({ sort: e.target.value }))}
+          value={currentSort}
+        >
+          {SORT_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <ForgeButton
+        aria-label={hasActiveFilters ? "Clear filters" : "No filters to clear"}
+        className={hasActiveFilters ? "min-h-11" : "min-h-11 opacity-45"}
+        disabled={!hasActiveFilters}
+        icon="filter_list"
+        onClick={clearFilters}
+        type="button"
+        variant="secondary"
+      >
+        Clear
+      </ForgeButton>
     </div>
   );
-}
-
-function statusTone(
-  value: (typeof STATUS_OPTIONS)[number]["value"],
-): "cyan" | "danger" | "gold" | "success" {
-  if (value === "complete") return "success";
-  if (value === "processing") return "cyan";
-  if (value === "failed") return "danger";
-  return "gold";
 }

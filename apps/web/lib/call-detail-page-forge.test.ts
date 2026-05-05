@@ -78,7 +78,10 @@ describe("CallDetailPage forge treatment", () => {
     );
 
     expect(html).toContain('data-call-detail-shell="forge-review-bench"');
-    expect(html).toContain('data-forge-surface="panel"');
+    expect(html).toContain('data-operational-workspace="true"');
+    expect(html).toContain('data-operational-toolbar="true"');
+    expect(html).toContain('data-operational-metric-strip="true"');
+    expect(html).toContain('data-operational-preview-drawer="true"');
     expect(html).toContain('href="/calls"');
     expect(html).toContain('href="/highlights"');
     expect(html).toContain("Open Highlights");

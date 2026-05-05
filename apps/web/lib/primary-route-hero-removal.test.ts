@@ -21,12 +21,17 @@ const {
   getTrainingAiStatusMock,
   createRubricsRepositoryMock,
   getActiveRubricMock,
+  loadRubricHistoryMock,
   createNotificationsRepositoryMock,
   getNotificationsMock,
   listOrganizationMembersMock,
   createCallsRepositoryMock,
   listCallsMock,
+  getCallDetailMock,
+  listAnnotationsMock,
   listHighlightsMock,
+  createRoleplayRepositoryMock,
+  listRoleplaySessionsMock,
   createInvitesRepositoryMock,
   listPendingInvitesMock,
   createTeamAccessRepositoryMock,
@@ -55,12 +60,17 @@ const {
   getTrainingAiStatusMock: vi.fn(),
   createRubricsRepositoryMock: vi.fn(),
   getActiveRubricMock: vi.fn(),
+  loadRubricHistoryMock: vi.fn(),
   createNotificationsRepositoryMock: vi.fn(),
   getNotificationsMock: vi.fn(),
   listOrganizationMembersMock: vi.fn(),
   createCallsRepositoryMock: vi.fn(),
   listCallsMock: vi.fn(),
+  getCallDetailMock: vi.fn(),
+  listAnnotationsMock: vi.fn(),
   listHighlightsMock: vi.fn(),
+  createRoleplayRepositoryMock: vi.fn(),
+  listRoleplaySessionsMock: vi.fn(),
   createInvitesRepositoryMock: vi.fn(),
   listPendingInvitesMock: vi.fn(),
   createTeamAccessRepositoryMock: vi.fn(),
@@ -77,6 +87,7 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/components/team/team-views", () => ({
   TeamRosterView: () => "Team roster marker",
+  TeamRepProfileView: () => "Rep profile marker",
 }));
 
 vi.mock("@/components/training-panel", () => ({
@@ -91,16 +102,23 @@ vi.mock("@/components/notifications-panel", () => ({
   NotificationsPanel: () => "Notifications panel marker",
 }));
 
+vi.mock("@/components/roleplay-panel", () => ({
+  RoleplayPanel: () => "Roleplay panel marker",
+}));
+
 vi.mock("@/components/page-panel-loaders", () => ({
   TrainingPanel: () => "Training panel marker",
   UploadCallPanel: () => "Upload call panel marker",
   NotificationsPanel: () => "Notifications panel marker",
+  RoleplayPanel: () => "Roleplay panel marker",
   AccountPanel: () => "Account panel marker",
   PeoplePanel: () => "People panel marker",
   TeamsPanel: () => "Teams panel marker",
   PermissionsPanel: () => "Permissions panel marker",
   IntegrationsPanel: () => "Integrations panel marker",
+  RubricsPanel: () => "Rubrics panel marker",
   CompliancePanel: () => "Compliance panel marker",
+  CallDetailPanel: () => "Call detail panel marker",
 }));
 
 vi.mock("@/components/settings/account-panel", () => ({
@@ -166,6 +184,7 @@ vi.mock("@/lib/rubrics/create-repository", () => ({
 
 vi.mock("@/lib/rubrics/service", () => ({
   getActiveRubric: getActiveRubricMock,
+  loadRubricHistory: loadRubricHistoryMock,
 }));
 
 vi.mock("@/lib/notifications/create-repository", () => ({
@@ -220,8 +239,18 @@ vi.mock("@/lib/calls/create-repository", () => ({
 }));
 
 vi.mock("@/lib/calls/service", () => ({
+  getCallDetail: getCallDetailMock,
+  listAnnotations: listAnnotationsMock,
   listCalls: listCallsMock,
   listHighlights: listHighlightsMock,
+}));
+
+vi.mock("@/lib/roleplay/create-repository", () => ({
+  createRoleplayRepository: createRoleplayRepositoryMock,
+}));
+
+vi.mock("@/lib/roleplay/service", () => ({
+  listRoleplaySessions: listRoleplaySessionsMock,
 }));
 
 vi.mock("../app/(authenticated)/calls/calls-filters", () => ({
@@ -232,16 +261,26 @@ import DashboardPage from "../app/(authenticated)/dashboard/page";
 import TeamPage from "../app/(authenticated)/team/page";
 import LeaderboardPage from "../app/(authenticated)/leaderboard/page";
 import TrainingPage from "../app/(authenticated)/training/page";
+import TrainingBuilderPage from "../app/(authenticated)/training/builder/page";
+import TrainingTeamPage from "../app/(authenticated)/training/team/page";
 import NotificationsPage from "../app/(authenticated)/notifications/page";
 import SettingsAccountPage from "../app/(authenticated)/settings/page";
 import SettingsPeoplePage from "../app/(authenticated)/settings/people/page";
 import SettingsTeamsPage from "../app/(authenticated)/settings/teams/page";
+import SettingsTeamsManagePage from "../app/(authenticated)/settings/teams/manage/page";
 import SettingsPermissionsPage from "../app/(authenticated)/settings/permissions/page";
+import SettingsPermissionsManagePage from "../app/(authenticated)/settings/permissions/manage/page";
 import SettingsIntegrationsPage from "../app/(authenticated)/settings/integrations/page";
+import SettingsRubricPage from "../app/(authenticated)/settings/rubric/page";
+import SettingsRubricBuilderPage from "../app/(authenticated)/settings/rubric/builder/page";
 import SettingsCompliancePage from "../app/(authenticated)/settings/compliance/page";
 import UploadPage from "../app/(authenticated)/upload/page";
 import CallsPage from "../app/(authenticated)/calls/page";
+import CallDetailPage from "../app/(authenticated)/calls/[id]/page";
 import HighlightsPage from "../app/(authenticated)/highlights/page";
+import RoleplayPage from "../app/(authenticated)/roleplay/page";
+import RoleplayHistoryPage from "../app/(authenticated)/roleplay/history/page";
+import RepProfilePage from "../app/(authenticated)/team/[repId]/page";
 
 async function renderRoute(page: Promise<React.ReactElement> | React.ReactElement) {
   return renderToStaticMarkup(await page);
@@ -313,6 +352,7 @@ describe("primary route hero removal", () => {
         email: "user@example.com",
         fullName: "Argos User",
         orgName: "Argos",
+        orgId: "org-1",
         role: "admin",
       },
     });
@@ -382,6 +422,7 @@ describe("primary route hero removal", () => {
       status: 404,
       error: "Active rubric not found",
     });
+    loadRubricHistoryMock.mockResolvedValue([]);
 
     createNotificationsRepositoryMock.mockReturnValue({});
     getNotificationsMock.mockResolvedValue({
@@ -412,6 +453,22 @@ describe("primary route hero removal", () => {
         },
       },
     });
+    getCallDetailMock.mockResolvedValue({
+      ok: true,
+      data: {
+        id: "call-1",
+        callTopic: "Discovery call with ACME",
+        durationSeconds: 1096,
+        overallScore: 82,
+        repFirstName: "Morgan",
+        repLastName: "Lee",
+        status: "complete",
+      },
+    });
+    listAnnotationsMock.mockResolvedValue({
+      ok: true,
+      data: { annotations: [] },
+    });
     listHighlightsMock.mockResolvedValue({
       ok: true,
       data: {
@@ -426,6 +483,14 @@ describe("primary route hero removal", () => {
             callId: "call-1",
           },
         ],
+      },
+    });
+    createRoleplayRepositoryMock.mockReturnValue({});
+    listRoleplaySessionsMock.mockResolvedValue({
+      ok: true,
+      data: {
+        personas: [],
+        sessions: [],
       },
     });
   });
@@ -459,7 +524,7 @@ describe("primary route hero removal", () => {
     expect(trainingHtml).toContain("Open highlights");
     expect(trainingHtml).toContain("Training panel marker");
     expect(trainingHtml).toContain(
-      "Review assigned modules, complete lessons, and guide practice from one training surface.",
+      "Review assigned modules and complete the next lesson without manager tools crowding the page.",
     );
     expect(trainingHtml).toContain(">Training<");
   });
@@ -471,6 +536,18 @@ describe("primary route hero removal", () => {
     expect(trainingHtml).toContain("px-4 py-6 sm:px-6 lg:px-8");
     expect(trainingHtml).toContain("max-w-7xl");
     expect(trainingHtml).toContain("Training panel marker");
+  });
+
+  it("keeps the learner training route from loading manager progress", async () => {
+    getTrainingModulesMock.mockResolvedValue({
+      ok: true,
+      data: { canManage: false, modules: [] },
+    });
+    getTrainingTeamProgressMock.mockClear();
+
+    await renderRoute(TrainingPage());
+
+    expect(getTrainingTeamProgressMock).not.toHaveBeenCalled();
   });
 
   it("wraps the team and leaderboard routes in the standard authenticated content canvas", async () => {
@@ -513,14 +590,18 @@ describe("primary route hero removal", () => {
       accountHtml,
       peopleHtml,
       teamsHtml,
+      teamsManageHtml,
       permissionsHtml,
+      permissionsManageHtml,
       integrationsHtml,
       complianceHtml,
     ] = await Promise.all([
       renderRoute(SettingsAccountPage()),
       renderRoute(SettingsPeoplePage()),
       renderRoute(SettingsTeamsPage()),
+      renderRoute(SettingsTeamsManagePage()),
       renderRoute(SettingsPermissionsPage()),
+      renderRoute(SettingsPermissionsManagePage()),
       renderRoute(SettingsIntegrationsPage()),
       renderRoute(SettingsCompliancePage()),
     ]);
@@ -537,14 +618,20 @@ describe("primary route hero removal", () => {
     );
     expect(peopleHtml).toContain("Manage users, invitations, and account access.");
 
-    expect(teamsHtml).toContain("Teams panel marker");
+    expect(teamsHtml).toContain('data-teams-route="overview"');
+    expect(teamsHtml).toContain('href="/settings/teams/manage"');
+    expect(teamsHtml).not.toContain("Teams panel marker");
+    expect(teamsManageHtml).toContain("Teams panel marker");
     expect(teamsHtml).toContain(">Teams<");
     expect(teamsHtml).not.toContain(
       "Create teams, edit metadata, and manage manager and rep assignments.",
     );
     expect(teamsHtml).toContain("Configure teams and manager assignments.");
 
-    expect(permissionsHtml).toContain("Permissions panel marker");
+    expect(permissionsHtml).toContain('data-permissions-route="overview"');
+    expect(permissionsHtml).toContain('href="/settings/permissions/manage"');
+    expect(permissionsHtml).not.toContain("Permissions panel marker");
+    expect(permissionsManageHtml).toContain("Permissions panel marker");
     expect(permissionsHtml).toContain(">Permissions<");
     expect(permissionsHtml).not.toContain(
       "Configure permission presets and primary manager assignments per rep.",
@@ -568,7 +655,18 @@ describe("primary route hero removal", () => {
 
   it("removes dashboard hero titles for rep, manager, and executive views while keeping route content", async () => {
     getManagerDashboardMock.mockResolvedValue({
-      reps: [],
+      reps: [
+        {
+          id: "rep-1",
+          firstName: "Morgan",
+          lastName: "Lee",
+          profileImageUrl: null,
+          compositeScore: 62,
+          weekOverWeekDelta: -8,
+          needsCoaching: true,
+          callCount: 3,
+        },
+      ],
       teamAvgScore: 84,
       totalCallsThisMonth: 17,
       coachingFlagsCount: 2,
@@ -586,25 +684,42 @@ describe("primary route hero removal", () => {
     expect(repHtml).toContain('href="/calls"');
     expect(repHtml).toContain('href="/training"');
     expect(repHtml).toContain('href="/calls/call-1"');
-    expect(repHtml).toContain('data-page-header="forge"');
+    expect(repHtml).toContain('data-dashboard-route="operational-pulse"');
+    expect(repHtml).toContain('data-dashboard-today-queue="true"');
+    expect(repHtml).toContain(">Today<");
+    expect(repHtml).toContain('data-operational-toolbar="true"');
+    expect(repHtml).toContain('data-operational-metric-strip="true"');
     expect(repHtml).toContain(">Dashboard<");
+    expect(repHtml).toContain("Review queue");
+    expect(repHtml).not.toContain("Badges &amp; Milestones");
     expect(repHtml).not.toContain(">My Dashboard<");
 
     expect(managerHtml).toContain('href="/team"');
-    expect(managerHtml).toContain('href="/leaderboard"');
     expect(managerHtml).toContain('href="/upload"');
-    expect(managerHtml).toContain("Team Avg Score");
-    expect(managerHtml).toContain('data-page-header="forge"');
+    expect(managerHtml).toContain("Morgan Lee");
+    expect(managerHtml).toContain('data-dashboard-route="operational-pulse"');
+    expect(managerHtml).toContain('data-dashboard-today-queue="true"');
+    expect(managerHtml).toContain(">Today<");
+    expect(managerHtml).toContain('data-operational-toolbar="true"');
+    expect(managerHtml).toContain('data-operational-metric-strip="true"');
+    expect(managerHtml).toContain("Needs coaching");
     expect(managerHtml).toContain(">Dashboard<");
+    expect(managerHtml).not.toContain("Team Avg Score");
+    expect(managerHtml).not.toContain("Rep Performance");
     expect(managerHtml).not.toContain(">Team Dashboard<");
 
     expect(executiveHtml).toContain('href="/team"');
-    expect(executiveHtml).toContain('href="/leaderboard"');
     expect(executiveHtml).toContain('href="/upload"');
     expect(executiveHtml).toContain('href="/training"');
-    expect(executiveHtml).toContain("Training Completion");
-    expect(executiveHtml).toContain('data-page-header="forge"');
+    expect(executiveHtml).toContain("Training completion");
+    expect(executiveHtml).toContain('data-dashboard-route="operational-pulse"');
+    expect(executiveHtml).toContain('data-dashboard-today-queue="true"');
+    expect(executiveHtml).toContain('data-operational-toolbar="true"');
+    expect(executiveHtml).toContain('data-operational-metric-strip="true"');
     expect(executiveHtml).toContain(">Dashboard<");
+    expect(executiveHtml).not.toContain("Org Skill Averages");
+    expect(executiveHtml).not.toContain("Call Volume");
+    expect(executiveHtml).not.toContain("Rep Skill Matrix");
     expect(executiveHtml).not.toContain(">Executive Dashboard<");
     expect(executiveHtml).not.toContain(">Team Dashboard<");
   });
@@ -621,8 +736,17 @@ describe("primary route hero removal", () => {
     expect(callsHtml).toContain("Calls filters marker");
     expect(callsHtml).toContain('href="/calls/call-1"');
     expect(callsHtml).toContain('data-calls-surface="forge-ledger"');
+    expect(callsHtml).toContain('data-calls-layout="operational-list"');
+    expect(callsHtml).toContain('data-operational-toolbar="true"');
+    expect(callsHtml).toContain('data-operational-metric-strip="true"');
+    expect(callsHtml).toContain('data-operational-preview-drawer="true"');
     expect(callsHtml).toContain('data-forge-table="true"');
     expect(callsHtml).toContain('data-forge-chip="success"');
+    expect(callsHtml).toContain("Saved call views");
+    expect(callsHtml).toContain("Open detail");
+    expect(callsHtml).toContain("min-w-[720px]");
+    expect(callsHtml).not.toContain(">Duration</th>");
+    expect(callsHtml).not.toContain(">Uploaded</th>");
     expect(callsHtml).not.toContain("#74b1ff");
     expect(callsHtml).not.toContain("#6dddff");
     expect(callsHtml).not.toContain("backdrop-blur-md");
@@ -660,5 +784,332 @@ describe("primary route hero removal", () => {
     expect(highlightsHtml).toContain('href="/calls"');
     expect(highlightsHtml).toContain('href="/calls/call-1"');
     expect(highlightsHtml).not.toContain(">Highlights<");
+  });
+
+  it("translates approved Stitch patterns onto the remaining top-level menu routes", async () => {
+    const [
+      highlightsHtml,
+      trainingHtml,
+      roleplayHtml,
+      teamHtml,
+      leaderboardHtml,
+      notificationsHtml,
+      settingsHtml,
+    ] = await Promise.all([
+      renderRoute(HighlightsPage()),
+      renderRoute(TrainingPage()),
+      renderRoute(RoleplayPage({ searchParams: Promise.resolve({}) })),
+      renderRoute(TeamPage()),
+      renderRoute(LeaderboardPage()),
+      renderRoute(NotificationsPage()),
+      renderRoute(SettingsAccountPage()),
+    ]);
+
+    for (const html of [
+      highlightsHtml,
+      trainingHtml,
+      roleplayHtml,
+      teamHtml,
+      leaderboardHtml,
+      notificationsHtml,
+      settingsHtml,
+    ]) {
+      expect(html).toContain('data-operational-workspace="true"');
+      expect(html).toContain('data-operational-toolbar="true"');
+    }
+
+    expect(highlightsHtml).toContain('data-highlights-layout="evidence-inbox"');
+    expect(highlightsHtml).toContain('data-operational-metric-strip="true"');
+    expect(highlightsHtml).toContain('data-operational-preview-drawer="true"');
+    expect(highlightsHtml).toContain('data-forge-table="true"');
+    expect(highlightsHtml).not.toContain("Weekly Coaching Insights");
+    expect(highlightsHtml).not.toContain("Intelligence Health");
+
+    expect(trainingHtml).toContain('data-training-route="operational-workspace"');
+    expect(trainingHtml).toContain('data-operational-metric-strip="true"');
+    expect(trainingHtml).toContain("My training");
+    expect(trainingHtml).toContain("Training panel marker");
+    expect(trainingHtml).not.toContain("Module library");
+    expect(trainingHtml).not.toContain('href="/training#builder"');
+
+    expect(roleplayHtml).toContain('data-roleplay-route="operational-workspace"');
+    expect(roleplayHtml).toContain('href="/roleplay/history"');
+    expect(roleplayHtml).not.toContain('href="/roleplay#roleplay-history"');
+    expect(roleplayHtml).toContain("Roleplay panel marker");
+
+    expect(teamHtml).toContain('data-team-route="roster-first"');
+    expect(teamHtml).toContain('data-operational-metric-strip="true"');
+    expect(teamHtml).toContain('data-operational-preview-drawer="true"');
+
+    expect(leaderboardHtml).toContain('data-leaderboard-route="rank-table"');
+    expect(leaderboardHtml).toContain('data-operational-metric-strip="true"');
+    expect(leaderboardHtml).toContain('data-operational-preview-drawer="true"');
+    expect(leaderboardHtml).toContain("Overall");
+    expect(leaderboardHtml).toContain("Quality");
+    expect(leaderboardHtml).toContain("Volume");
+    expect(leaderboardHtml).toContain("Improvement");
+    expect(leaderboardHtml).not.toContain(">Top Quality<");
+    expect(leaderboardHtml).not.toContain(">Top Volume<");
+    expect(leaderboardHtml).not.toContain(">Most Improved<");
+
+    expect(settingsHtml).toContain('data-settings-route="control-room"');
+    expect(settingsHtml).toContain('data-operational-preview-drawer="true"');
+    expect(settingsHtml).toContain("Personal");
+    expect(settingsHtml).toContain("Visible sections");
+
+    expect(notificationsHtml).toContain('data-notifications-route="account-inbox"');
+    expect(notificationsHtml).toContain('data-operational-metric-strip="true"');
+    expect(notificationsHtml).toContain('data-operational-preview-drawer="true"');
+    expect(notificationsHtml).toContain("Mark all read");
+    expect(notificationsHtml).toContain("Notifications panel marker");
+  });
+
+  it("splits manager training work into real team and builder routes", async () => {
+    getTrainingModulesMock.mockResolvedValue({
+      ok: true,
+      data: {
+        canManage: true,
+        modules: [
+          {
+            id: "module-1",
+            title: "Discovery fundamentals",
+            progress: { status: "assigned" },
+          },
+        ],
+      },
+    });
+    getTrainingTeamProgressMock.mockResolvedValue({
+      ok: true,
+      data: {
+        progress: { modules: [], repProgress: [] },
+        rows: [
+          {
+            repId: "rep-1",
+            firstName: "Morgan",
+            lastName: "Lee",
+            email: "morgan@example.com",
+            assigned: 2,
+            passed: 1,
+            completionRate: 50,
+          },
+        ],
+      },
+    });
+
+    const [trainingHtml, teamProgressHtml, builderHtml] = await Promise.all([
+      renderRoute(TrainingPage()),
+      renderRoute(TrainingTeamPage()),
+      renderRoute(TrainingBuilderPage()),
+    ]);
+
+    expect(trainingHtml).toContain('data-training-route="operational-workspace"');
+    expect(trainingHtml).toContain('href="/training/team"');
+    expect(trainingHtml).toContain('href="/training/builder"');
+    expect(trainingHtml).toContain("Training panel marker");
+    expect(trainingHtml).not.toContain('href="/training#team-progress"');
+    expect(trainingHtml).not.toContain('href="/training#builder"');
+
+    expect(teamProgressHtml).toContain('data-training-route="team-progress"');
+    expect(teamProgressHtml).toContain('data-forge-table="true"');
+    expect(teamProgressHtml).toContain("Morgan Lee");
+    expect(teamProgressHtml).toContain("50%");
+    expect(teamProgressHtml).toContain('data-operational-preview-drawer="true"');
+
+    expect(builderHtml).toContain('data-training-route="builder"');
+    expect(builderHtml).toContain("Training panel marker");
+    expect(builderHtml).toContain('href="/training/team"');
+    expect(builderHtml).toContain('href="/training"');
+    expect(builderHtml).not.toContain('data-operational-metric-strip="true"');
+  });
+
+  it("splits roleplay history into a dedicated table route", async () => {
+    listRoleplaySessionsMock.mockResolvedValue({
+      ok: true,
+      data: {
+        personas: [],
+        sessions: [
+          {
+            id: "session-1",
+            repId: "rep-1",
+            orgId: "org-1",
+            rubricId: "rubric-1",
+            persona: null,
+            personaDetails: {
+              id: "skeptical-cfo",
+              name: "Dana Mercer",
+              role: "CFO",
+              company: "Apex Manufacturing",
+              industry: "Manufacturing",
+              difficulty: "advanced",
+              objectionType: "ROI & Budget",
+              description: "Numbers-first evaluator.",
+              avatarInitials: "DM",
+            },
+            industry: "Manufacturing",
+            difficulty: "advanced",
+            overallScore: 87,
+            origin: "manual",
+            sourceCallId: null,
+            focusMode: "all",
+            focusCategorySlug: null,
+            scenarioSummary: null,
+            scenarioBrief: null,
+            transcript: [],
+            scorecard: null,
+            status: "complete",
+            createdAt: "2026-04-03T00:00:00.000Z",
+          },
+        ],
+      },
+    });
+
+    const [roleplayHtml, historyHtml] = await Promise.all([
+      renderRoute(RoleplayPage({ searchParams: Promise.resolve({}) })),
+      renderRoute(RoleplayHistoryPage()),
+    ]);
+
+    expect(roleplayHtml).toContain('href="/roleplay/history"');
+    expect(historyHtml).toContain('data-roleplay-route="history"');
+    expect(historyHtml).toContain('data-forge-table="true"');
+    expect(historyHtml).toContain('data-operational-preview-drawer="true"');
+    expect(historyHtml).toContain("ROI &amp; Budget");
+    expect(historyHtml).toContain("87");
+    expect(historyHtml).toContain('href="/roleplay?sessionId=session-1"');
+  });
+
+  it("translates generated Stitch patterns onto deeper drill-down workflows", async () => {
+    getManagerDashboardMock.mockResolvedValue({
+      reps: [
+        {
+          id: "rep-1",
+          firstName: "Jared",
+          lastName: "Newman",
+          profileImageUrl: null,
+          compositeScore: 82,
+          callCount: 12,
+          weekOverWeekDelta: 4,
+          needsCoaching: true,
+        },
+      ],
+      teamAvgScore: 84,
+      totalCallsThisMonth: 17,
+      coachingFlagsCount: 1,
+    });
+    getRepDashboardMock.mockResolvedValue({
+      monthlyAvgScore: 78,
+      recentCalls: [],
+      lowestCategories: [],
+      weeklyTrend: [],
+      categoryAnalyticsContextLabel: "Last 30 days",
+    });
+
+    const [uploadHtml, callDetailHtml, repProfileHtml] = await Promise.all([
+      renderRoute(UploadPage()),
+      renderRoute(CallDetailPage({ params: Promise.resolve({ id: "call-1" }) })),
+      renderRoute(RepProfilePage({ params: Promise.resolve({ repId: "rep-1" }) })),
+    ]);
+
+    for (const html of [uploadHtml, callDetailHtml, repProfileHtml]) {
+      expect(html).toContain('data-operational-workspace="true"');
+      expect(html).toContain('data-operational-toolbar="true"');
+      expect(html).toContain('data-operational-metric-strip="true"');
+    }
+
+    expect(uploadHtml).toContain('data-upload-route="capture-workflow"');
+    expect(uploadHtml).toContain('data-operational-preview-drawer="true"');
+    expect(uploadHtml).toContain("Upload readiness");
+    expect(uploadHtml).toContain("Choose recording");
+    expect(uploadHtml).toContain("Upload call panel marker");
+    expect(uploadHtml).not.toContain('data-page-frame="true"');
+
+    expect(callDetailHtml).toContain('data-call-detail-route="review-bench"');
+    expect(callDetailHtml).toContain('data-operational-preview-drawer="true"');
+    expect(callDetailHtml).toContain("Morgan Lee");
+    expect(callDetailHtml).toContain("Call detail panel marker");
+    expect(callDetailHtml).not.toContain(">Review bench<");
+
+    expect(repProfileHtml).toContain('data-rep-profile-route="coaching-detail"');
+    expect(repProfileHtml).toContain('data-operational-preview-drawer="true"');
+    expect(repProfileHtml).toContain("Rep profile marker");
+    expect(repProfileHtml).not.toContain(">Rep Profile<");
+  });
+
+  it("translates the settings detail pages into the generated Stitch settings workspace", async () => {
+    const [
+      peopleHtml,
+      teamsHtml,
+      teamsManageHtml,
+      permissionsHtml,
+      permissionsManageHtml,
+      integrationsHtml,
+      rubricHtml,
+      rubricBuilderHtml,
+      complianceHtml,
+    ] = await Promise.all([
+      renderRoute(SettingsPeoplePage()),
+      renderRoute(SettingsTeamsPage()),
+      renderRoute(SettingsTeamsManagePage()),
+      renderRoute(SettingsPermissionsPage()),
+      renderRoute(SettingsPermissionsManagePage()),
+      renderRoute(SettingsIntegrationsPage()),
+      renderRoute(SettingsRubricPage()),
+      renderRoute(SettingsRubricBuilderPage()),
+      renderRoute(SettingsCompliancePage()),
+    ]);
+
+    for (const html of [
+      peopleHtml,
+      teamsHtml,
+      permissionsHtml,
+      integrationsHtml,
+      rubricHtml,
+      complianceHtml,
+    ]) {
+      expect(html).toContain('data-operational-workspace="true"');
+      expect(html).toContain('data-operational-toolbar="true"');
+      expect(html).toContain('data-settings-internal-subnav="true"');
+      expect(html).toContain('data-operational-preview-drawer="true"');
+      expect(html).not.toContain('data-page-frame="true"');
+    }
+
+    expect(peopleHtml).toContain('data-settings-detail-route="people"');
+    expect(peopleHtml).toContain("People panel marker");
+    expect(teamsHtml).toContain('data-settings-detail-route="teams"');
+    expect(teamsHtml).toContain('data-teams-route="overview"');
+    expect(teamsHtml).toContain('data-forge-table="true"');
+    expect(teamsHtml).toContain('href="/settings/teams/manage"');
+    expect(teamsHtml).not.toContain("Teams panel marker");
+    expect(teamsManageHtml).toContain('data-settings-detail-route="teams"');
+    expect(teamsManageHtml).toContain('data-settings-editor-route="teams"');
+    expect(teamsManageHtml).toContain('href="/settings/teams"');
+    expect(teamsManageHtml).toContain("Teams panel marker");
+    expect(teamsManageHtml).not.toContain('data-settings-internal-subnav="true"');
+    expect(teamsManageHtml).not.toContain('data-operational-preview-drawer="true"');
+    expect(permissionsHtml).toContain('data-settings-detail-route="permissions"');
+    expect(permissionsHtml).toContain('data-permissions-route="overview"');
+    expect(permissionsHtml).toContain('data-forge-table="true"');
+    expect(permissionsHtml).toContain('href="/settings/permissions/manage"');
+    expect(permissionsHtml).not.toContain("Permissions panel marker");
+    expect(permissionsManageHtml).toContain('data-settings-detail-route="permissions"');
+    expect(permissionsManageHtml).toContain('data-settings-editor-route="permissions"');
+    expect(permissionsManageHtml).toContain('href="/settings/permissions"');
+    expect(permissionsManageHtml).toContain("Permissions panel marker");
+    expect(permissionsManageHtml).not.toContain('data-settings-internal-subnav="true"');
+    expect(permissionsManageHtml).not.toContain('data-operational-preview-drawer="true"');
+    expect(integrationsHtml).toContain('data-settings-detail-route="integrations"');
+    expect(integrationsHtml).toContain("Integrations panel marker");
+    expect(rubricHtml).toContain('data-settings-detail-route="rubrics"');
+    expect(rubricHtml).toContain('data-rubric-route="overview"');
+    expect(rubricHtml).toContain('data-forge-table="true"');
+    expect(rubricHtml).toContain('href="/settings/rubric/builder"');
+    expect(rubricHtml).not.toContain("Rubrics panel marker");
+    expect(rubricBuilderHtml).toContain('data-settings-detail-route="rubrics"');
+    expect(rubricBuilderHtml).toContain('data-settings-editor-route="rubrics"');
+    expect(rubricBuilderHtml).toContain('href="/settings/rubric"');
+    expect(rubricBuilderHtml).toContain("Rubrics panel marker");
+    expect(rubricBuilderHtml).not.toContain('data-settings-internal-subnav="true"');
+    expect(rubricBuilderHtml).not.toContain('data-operational-preview-drawer="true"');
+    expect(complianceHtml).toContain('data-settings-detail-route="compliance"');
+    expect(complianceHtml).toContain("Compliance panel marker");
   });
 });

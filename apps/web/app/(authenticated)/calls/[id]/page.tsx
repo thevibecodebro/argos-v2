@@ -1,8 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
-import { ForgeButton, ForgeChip, ForgeIcon, ForgeSurface } from "@/components/forge";
 import { CallDetailPanel } from "@/components/page-panel-loaders";
+import {
+  OperationalMetricStrip,
+  OperationalPreviewDrawer,
+  OperationalToolbar,
+  OperationalWorkspace,
+} from "@/components/operational-workspace";
 import {
   getCachedAuthenticatedSupabaseUser,
   getCachedCurrentUserProfile,
@@ -34,60 +39,133 @@ export default async function CallDetailPage({
 
   const call = detailResult.data;
   const topic = call.callTopic ?? "Untitled call";
+  const repName = formatRepName(call);
+  const canManage =
+    profile?.role === "admin" ||
+    profile?.role === "manager" ||
+    profile?.role === "executive";
 
   return (
     <AuthenticatedPageContainer
       data-call-detail-shell="forge-review-bench"
       size="wide"
     >
-      <ForgeSurface className="mb-6 p-4 sm:p-5">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div className="min-w-0 space-y-4">
-            <nav className="flex items-center gap-2 font-[var(--font-display)] text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-gold)]">
-              <Link className="text-[var(--forge-muted)] transition hover:text-[var(--forge-gold)]" href="/calls">
-                Call Library
-              </Link>
-              <ForgeIcon className="text-[var(--forge-muted)]" name="chevron_right" size={16} />
-              <span className="truncate">{topic}</span>
-            </nav>
-
-            <div>
-              <p className="font-[var(--font-display)] text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
-                Review bench
-              </p>
-              <h1 className="mt-2 max-w-4xl truncate font-[var(--font-display)] text-3xl font-semibold tracking-[-0.02em] text-[var(--forge-text)]">
-                {topic}
-              </h1>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <ForgeChip icon="query_stats" tone="cyan">
-                  {call.overallScore ?? "No score"}
-                </ForgeChip>
-                <ForgeChip icon="history" tone="muted">
-                  {call.status}
-                </ForgeChip>
-              </div>
-              <p className="mt-3 text-xs leading-5 text-[var(--forge-muted)]">
-                Access scoped to {profile?.role ?? "member"} permissions.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <ForgeButton href="/calls" icon="arrow_back" variant="secondary">
+      <OperationalWorkspace data-call-detail-route="review-bench">
+        <OperationalToolbar
+          actions={[
+            { href: "/calls", icon: "arrow_back", label: "Call Library", variant: "secondary" },
+            { href: "/highlights", icon: "insights", label: "Open Highlights", variant: "primary" },
+          ]}
+          description={`Access scoped to ${profile?.role ?? "member"} permissions.`}
+          eyebrow="Call detail"
+          status={{ icon: "query_stats", label: call.status, tone: statusTone(call.status) }}
+          title={topic}
+        >
+          <nav className="flex min-w-0 items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
+            <Link className="transition hover:text-[var(--forge-gold)]" href="/calls">
               Call Library
-            </ForgeButton>
-            <ForgeButton href="/highlights" icon="insights" variant="primary">
-              Open Highlights
-            </ForgeButton>
-          </div>
-        </div>
-      </ForgeSurface>
+            </Link>
+            <span>/</span>
+            <span className="truncate text-[var(--forge-gold)]">{topic}</span>
+          </nav>
+        </OperationalToolbar>
 
-      <CallDetailPanel
-        annotations={annotationsResult.ok ? annotationsResult.data.annotations : []}
-        call={call}
-        canManage={profile?.role === "admin" || profile?.role === "manager" || profile?.role === "executive"}
-      />
+        <OperationalMetricStrip
+          metrics={[
+            {
+              icon: "person",
+              label: "Rep",
+              tone: "muted",
+              value: repName,
+            },
+            {
+              icon: "timer",
+              label: "Duration",
+              tone: "cyan",
+              value: formatDuration(call.durationSeconds),
+            },
+            {
+              icon: "monitoring",
+              label: "Overall score",
+              tone: scoreTone(call.overallScore),
+              value: call.overallScore ?? "--",
+            },
+            {
+              icon: "fact_check",
+              label: "Analysis status",
+              tone: statusTone(call.status),
+              value: call.status,
+            },
+          ]}
+        />
+
+        <section className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="min-w-0">
+            <CallDetailPanel
+              annotations={annotationsResult.ok ? annotationsResult.data.annotations : []}
+              call={call}
+              canManage={canManage}
+            />
+          </div>
+          <OperationalPreviewDrawer
+            actions={[{ href: "/highlights", icon: "insights", label: "Open Highlights", variant: "secondary" }]}
+            description="Score, status, and review readiness for this call."
+            eyebrow="Insight drawer"
+            title="Call summary"
+          >
+            <div className="grid gap-2 text-sm">
+              <SummaryRow label="Score" value={call.overallScore ?? "--"} />
+              <SummaryRow label="Status" value={call.status} />
+              <SummaryRow label="Duration" value={formatDuration(call.durationSeconds)} />
+              <SummaryRow label="Can manage" value={canManage ? "Yes" : "No"} />
+            </div>
+          </OperationalPreviewDrawer>
+        </section>
+      </OperationalWorkspace>
     </AuthenticatedPageContainer>
+  );
+}
+
+function formatRepName(call: { repFirstName?: string | null; repLastName?: string | null }) {
+  return [call.repFirstName, call.repLastName].filter(Boolean).join(" ") || "Scoped viewer";
+}
+
+function formatDuration(seconds: number | null | undefined) {
+  if (typeof seconds !== "number") return "--";
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  return `${minutes}:${remainder.toString().padStart(2, "0")}`;
+}
+
+function scoreTone(value: number | null | undefined) {
+  if (typeof value !== "number") return "muted";
+  if (value >= 85) return "success";
+  if (value >= 70) return "gold";
+  if (value >= 60) return "ember";
+  return "danger";
+}
+
+function statusTone(status: string | null | undefined) {
+  const normalized = status?.toLowerCase();
+  if (normalized === "complete") return "success";
+  if (normalized === "failed") return "danger";
+  if (normalized === "processing" || normalized === "transcribing" || normalized === "evaluating") {
+    return "ember";
+  }
+  return "muted";
+}
+
+function SummaryRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: number | string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-[var(--forge-border)] py-2 last:border-b-0">
+      <span className="text-[var(--forge-muted)]">{label}</span>
+      <span className="font-semibold text-[var(--forge-text)]">{value}</span>
+    </div>
   );
 }

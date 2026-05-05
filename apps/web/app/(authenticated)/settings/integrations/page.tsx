@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { PageFrame } from "@/components/page-frame";
 import { IntegrationsPanel } from "@/components/page-panel-loaders";
 import {
   getCachedAuthenticatedSupabaseUser,
@@ -7,6 +6,7 @@ import {
 } from "@/lib/auth/request-user";
 import { createIntegrationsRepository } from "@/lib/integrations/create-repository";
 import { getIntegrationStatuses } from "@/lib/integrations/service";
+import { SettingsOperationalLayout } from "../settings-operational-layout";
 
 export default async function SettingsIntegrationsPage() {
   const authUser = await getCachedAuthenticatedSupabaseUser();
@@ -22,11 +22,20 @@ export default async function SettingsIntegrationsPage() {
   );
 
   const integrations = integrationsResult.ok ? integrationsResult.data : null;
+  const connectedCount = [integrations?.zoom.connected, integrations?.ghl.connected].filter(Boolean).length;
 
   return (
-    <PageFrame
+    <SettingsOperationalLayout
       description="Connect and monitor supported providers."
-      eyebrow="Settings"
+      previewDescription="Provider availability and connection state."
+      previewRows={[
+        { label: "Connected", value: connectedCount },
+        { label: "Zoom", tone: integrations?.zoom.connected ? "success" : "muted", value: integrations?.zoom.connected ? "Connected" : "Not connected" },
+        { label: "GoHighLevel", tone: integrations?.ghl.connected ? "success" : "muted", value: integrations?.ghl.connected ? "Connected" : "Not connected" },
+        { label: "Available", value: [integrations?.zoom.available, integrations?.ghl.available].filter(Boolean).length },
+      ]}
+      previewTitle="Integration status"
+      route="integrations"
       title="Integrations"
     >
       <IntegrationsPanel
@@ -52,6 +61,6 @@ export default async function SettingsIntegrationsPage() {
           }
         }
       />
-    </PageFrame>
+    </SettingsOperationalLayout>
   );
 }

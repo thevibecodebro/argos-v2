@@ -1,7 +1,18 @@
 import Link from "next/link";
-import { ForgeEmptyState, ForgeWidget } from "@/components/forge";
+import {
+  ForgeChip,
+  ForgeEmptyState,
+  ForgeIcon,
+  ForgeSegmentedTab,
+  ForgeSegmentedTabs,
+} from "@/components/forge";
 import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
-import { PageFrame } from "@/components/page-frame";
+import {
+  OperationalMetricStrip,
+  OperationalPreviewDrawer,
+  OperationalToolbar,
+  OperationalWorkspace,
+} from "@/components/operational-workspace";
 import { getCachedAuthenticatedSupabaseUser } from "@/lib/auth/request-user";
 import { createDashboardRepository } from "@/lib/dashboard/create-repository";
 import { getDashboardLeaderboard } from "@/lib/dashboard/service";
@@ -12,65 +23,252 @@ export default async function LeaderboardPage() {
     ? await getDashboardLeaderboard(createDashboardRepository(), authUser.id)
     : null;
 
-  const groups = [
-    { key: "topQuality", title: "Top Quality", description: "Highest average scores this month" },
-    { key: "topVolume", title: "Top Volume", description: "Most scored calls this month" },
-    { key: "mostImproved", title: "Most Improved", description: "Largest month-over-month gains" },
-  ] as const;
+  const qualityRows = leaderboard?.topQuality ?? [];
+  const volumeRows = leaderboard?.topVolume ?? [];
+  const improvementRows = leaderboard?.mostImproved ?? [];
+  const rows = buildLeaderboardRows(qualityRows, volumeRows, improvementRows);
+  const selected = rows[0] ?? null;
 
   return (
     <AuthenticatedPageContainer>
-      <PageFrame
-        actions={[{ href: "/team", label: "Open team view" }]}
-        description="Compare rank, score quality, call volume, and improvement across your team."
-        eyebrow="Performance"
-        title="Leaderboard"
-      >
-        <section className="grid gap-4 xl:grid-cols-3">
-          {groups.map((group) => {
-            const entries = leaderboard?.[group.key] ?? [];
+      <OperationalWorkspace data-leaderboard-route="rank-table">
+        <OperationalToolbar
+          actions={[{ href: "/team", label: "Open team view", variant: "secondary" }]}
+          description="Compare rank, score quality, call volume, and improvement across your team."
+          eyebrow="People"
+          status={{ icon: "leaderboard", label: `${rows.length} ranked reps`, tone: "muted" }}
+          title="Leaderboard"
+        >
+          <div className="space-y-2">
+            <ForgeSegmentedTabs
+              className="w-full justify-start overflow-x-auto"
+              label="Leaderboard views"
+            >
+              <ForgeSegmentedTab active href="/leaderboard" icon="leaderboard">
+                Overall
+              </ForgeSegmentedTab>
+              <ForgeSegmentedTab href="/leaderboard?view=quality" icon="workspace_premium">
+                Quality
+              </ForgeSegmentedTab>
+              <ForgeSegmentedTab href="/leaderboard?view=volume" icon="call">
+                Volume
+              </ForgeSegmentedTab>
+              <ForgeSegmentedTab href="/leaderboard?view=improvement" icon="trending_up">
+                Improvement
+              </ForgeSegmentedTab>
+            </ForgeSegmentedTabs>
+            <div className="flex flex-wrap gap-2 text-xs text-[var(--forge-muted)]">
+              <span className="rounded-lg border border-[var(--forge-border)] px-2 py-1">Period: Last 30 days</span>
+              <span className="rounded-lg border border-[var(--forge-border)] px-2 py-1">Team: All teams</span>
+              <span className="rounded-lg border border-[var(--forge-border)] px-2 py-1">Role: All roles</span>
+            </div>
+          </div>
+        </OperationalToolbar>
 
-            return (
-              <ForgeWidget
-                eyebrow="Ranks"
-                key={group.key}
-                title={group.title}
-              >
-                <p className="text-sm leading-6 text-[var(--forge-muted)]">{group.description}</p>
+        <OperationalMetricStrip
+          metrics={[
+            {
+              icon: "workspace_premium",
+              label: "Top score",
+              tone: scoreTone(qualityRows[0]?.value),
+              value: qualityRows[0]?.value ?? "--",
+            },
+            {
+              icon: "trending_up",
+              label: "Most improved",
+              tone: improvementRows[0]?.value != null ? "success" : "muted",
+              value: improvementRows[0]?.value ?? "--",
+            },
+            {
+              icon: "call",
+              label: "Calls scored",
+              tone: volumeRows[0]?.value != null ? "cyan" : "muted",
+              value: volumeRows[0]?.value ?? "--",
+            },
+            {
+              icon: "groups",
+              label: "Ranked reps",
+              tone: rows.length > 0 ? "gold" : "muted",
+              value: rows.length,
+            },
+          ]}
+        />
 
-                {entries.length ? (
-                  <div className="mt-6 space-y-3">
-                    {entries.map((entry) => (
-                      <Link
-                        className="flex items-center justify-between gap-4 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-4 transition hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/5"
-                        href={`/team/${entry.userId}`}
+        <section className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <div
+            className="min-w-0 overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[rgba(8,6,5,0.88)] shadow-[inset_0_1px_0_rgba(255,244,230,0.04)]"
+            data-forge-table="true"
+          >
+            {rows.length ? (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[860px] border-collapse">
+                  <thead>
+                    <tr className="border-b border-[var(--forge-border)] bg-[rgba(255,244,230,0.024)] text-left text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
+                      <th className="px-4 py-3" scope="col">Rank</th>
+                      <th className="px-4 py-3" scope="col">Rep</th>
+                      <th className="px-4 py-3" scope="col">Score</th>
+                      <th className="px-4 py-3" scope="col">Calls</th>
+                      <th className="px-4 py-3" scope="col">Movement</th>
+                      <th className="px-4 py-3" scope="col">Focus area</th>
+                      <th className="px-4 py-3 text-right" scope="col">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--forge-border)]">
+                    {rows.map((entry) => (
+                      <tr
+                        className="transition hover:bg-[rgba(241,191,123,0.045)]"
                         key={entry.userId}
                       >
-                        <div>
-                          <p className="text-sm font-medium text-[var(--forge-text)]">
-                            {entry.rank}. {[entry.firstName, entry.lastName].filter(Boolean).join(" ") || "Unknown rep"}
-                          </p>
-                          <p className="mt-1 text-xs text-[var(--forge-muted)]">Drill into team profile</p>
-                        </div>
-                        <span className={`text-lg font-semibold ${scoreColor(entry.value)}`}>{entry.value ?? "—"}</span>
-                      </Link>
+                        <td className="px-4 py-4 text-sm font-semibold text-[var(--forge-gold)]">
+                          #{entry.rank}
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--forge-border)] bg-[rgba(255,244,230,0.04)] text-xs font-semibold text-[var(--forge-text)]">
+                              {initials(entry.name)}
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-[var(--forge-text)]">{entry.name}</p>
+                              <p className="text-xs text-[var(--forge-muted)]">Team profile</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className={`px-4 py-4 text-sm font-semibold ${scoreColor(entry.score)}`}>
+                          {entry.score ?? "--"}
+                        </td>
+                        <td className="px-4 py-4 text-sm text-[var(--forge-text)]">{entry.calls ?? "--"}</td>
+                        <td className="px-4 py-4 text-sm text-[var(--forge-success)]">
+                          {entry.improvement != null ? `+${entry.improvement}` : "--"}
+                        </td>
+                        <td className="px-4 py-4">
+                          <ForgeChip tone={entry.score != null && entry.score < 70 ? "ember" : "muted"}>
+                            {entry.score != null && entry.score < 70 ? "Needs review" : "Maintain quality"}
+                          </ForgeChip>
+                        </td>
+                        <td className="px-4 py-4 text-right">
+                          <Link
+                            className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--forge-gold)] hover:underline"
+                            href={`/team/${entry.userId}`}
+                          >
+                            Review
+                            <ForgeIcon name="arrow_forward" size={15} />
+                          </Link>
+                        </td>
+                      </tr>
                     ))}
-                  </div>
-                ) : (
-                  <ForgeEmptyState
-                    className="mt-6"
-                    description="Once this org has enough scored calls, this leaderboard slice will populate automatically."
-                    icon="leaderboard"
-                    title="No data yet"
-                  />
-                )}
-              </ForgeWidget>
-            );
-          })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="p-4">
+                <ForgeEmptyState
+                  description="Once this org has enough scored calls, ranked reps will populate automatically."
+                  icon="leaderboard"
+                  title="No leaderboard data yet"
+                />
+              </div>
+            )}
+          </div>
+
+          <OperationalPreviewDrawer
+            actions={
+              selected
+                ? [{ href: `/team/${selected.userId}`, label: "Open profile", variant: "primary" }]
+                : [{ href: "/team", label: "Open team view", variant: "secondary" }]
+            }
+            description={
+              selected
+                ? "Rank is based on quality, call activity, and improvement signals for the selected period."
+                : "Rep ranking context appears here once scored calls are available."
+            }
+            eyebrow="Rep insight"
+            title={selected?.name ?? "No rank selected"}
+          >
+            <div className="grid gap-2 text-sm">
+              <InsightRow label="Quality score" value={selected?.score ?? "--"} />
+              <InsightRow label="Call volume" value={selected?.calls ?? "--"} />
+              <InsightRow label="Improvement" value={selected?.improvement != null ? `+${selected.improvement}` : "--"} />
+              <InsightRow label="Coaching action" value={selected?.score != null && selected.score < 70 ? "Review calls" : "Maintain pace"} />
+            </div>
+          </OperationalPreviewDrawer>
         </section>
-      </PageFrame>
+      </OperationalWorkspace>
     </AuthenticatedPageContainer>
   );
+}
+
+type SourceEntry = {
+  firstName: string | null;
+  lastName: string | null;
+  rank: number;
+  userId: string;
+  value: number | null;
+};
+
+function buildLeaderboardRows(
+  qualityRows: SourceEntry[],
+  volumeRows: SourceEntry[],
+  improvementRows: SourceEntry[],
+) {
+  const records = new Map<string, {
+    calls: number | null;
+    improvement: number | null;
+    name: string;
+    rank: number;
+    score: number | null;
+    userId: string;
+  }>();
+
+  for (const row of qualityRows) {
+    records.set(row.userId, {
+      calls: null,
+      improvement: null,
+      name: formatName(row),
+      rank: row.rank,
+      score: row.value,
+      userId: row.userId,
+    });
+  }
+
+  for (const row of volumeRows) {
+    const existing = records.get(row.userId);
+    records.set(row.userId, {
+      calls: row.value,
+      improvement: existing?.improvement ?? null,
+      name: existing?.name ?? formatName(row),
+      rank: existing?.rank ?? row.rank,
+      score: existing?.score ?? null,
+      userId: row.userId,
+    });
+  }
+
+  for (const row of improvementRows) {
+    const existing = records.get(row.userId);
+    records.set(row.userId, {
+      calls: existing?.calls ?? null,
+      improvement: row.value,
+      name: existing?.name ?? formatName(row),
+      rank: existing?.rank ?? row.rank,
+      score: existing?.score ?? null,
+      userId: row.userId,
+    });
+  }
+
+  return [...records.values()].sort((a, b) => a.rank - b.rank);
+}
+
+function formatName(row: { firstName: string | null; lastName: string | null }) {
+  return [row.firstName, row.lastName].filter(Boolean).join(" ") || "Unknown rep";
+}
+
+function initials(name: string) {
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 }
 
 function scoreColor(value: number | null | undefined) {
@@ -79,4 +277,27 @@ function scoreColor(value: number | null | undefined) {
   if (value >= 70) return "text-[var(--forge-gold)]";
   if (value >= 60) return "text-[var(--forge-ember)]";
   return "text-[var(--forge-danger)]";
+}
+
+function scoreTone(value: number | null | undefined) {
+  if (typeof value !== "number") return "muted";
+  if (value >= 85) return "success";
+  if (value >= 70) return "gold";
+  if (value >= 60) return "ember";
+  return "danger";
+}
+
+function InsightRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: number | string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-[var(--forge-border)] py-2 last:border-b-0">
+      <span className="text-[var(--forge-muted)]">{label}</span>
+      <span className="font-semibold text-[var(--forge-text)]">{value}</span>
+    </div>
+  );
 }
