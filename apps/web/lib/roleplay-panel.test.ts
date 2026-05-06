@@ -143,9 +143,10 @@ describe("RoleplayPanel", () => {
     expect(html).toContain(">Practice</span>");
     expect(html).toContain(">Score</span>");
     expect(html).toContain('data-roleplay-workspace="practice-workbench"');
-    expect(html).toContain('data-roleplay-scenario-rail=""');
+    expect(html).toContain('data-roleplay-scenario-picker=""');
     expect(html).toContain('id="roleplay-scenario"');
     expect(html).toContain('aria-label="Scenario"');
+    expect(html).not.toContain('data-roleplay-scenario-rail=""');
     expect(html).toContain('data-operational-preview-drawer="true"');
     expect(html).toContain('data-roleplay-score-drawer=""');
     expect(html).toContain('id="roleplay-score"');
@@ -207,7 +208,7 @@ describe("RoleplayPanel", () => {
     );
 
     expect(html).toContain('data-roleplay-mobile-sections="true"');
-    expect(html).toContain('data-roleplay-scenario-rail=""');
+    expect(html).toContain('data-roleplay-scenario-picker=""');
     expect(html).toContain('id="roleplay-scenario"');
     expect(html).toContain('data-roleplay-simulation-stage=""');
     expect(html).toContain('id="roleplay-practice"');
@@ -215,7 +216,7 @@ describe("RoleplayPanel", () => {
     expect(html).toContain('id="roleplay-score"');
     expect(html).toContain("Start simulation");
     expect(html).toContain("No active simulation");
-    expect(html).toContain("Choose a persona in the scenario rail, then start a simulation.");
+    expect(html).toContain("Choose a persona in the scenario picker, then start a simulation.");
     expect(html).toContain("Select a scenario to begin scoring.");
     expect(html).toContain('data-roleplay-transcript="responsive"');
     expect(html).toContain('data-roleplay-mode-control="true"');

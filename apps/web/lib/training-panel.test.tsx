@@ -517,7 +517,7 @@ describe("TrainingPanel", () => {
     expect(html).not.toContain("Training workspace quick switcher");
   });
 
-  it("renders the manager course shell as a builder grid with structure and command rails", () => {
+  it("renders the manager course shell as a builder workbench with one control drawer", () => {
     const html = renderToStaticMarkup(
       <TrainingPanel
         aiAvailable
@@ -530,20 +530,23 @@ describe("TrainingPanel", () => {
     );
 
     const shellIndex = html.indexOf('data-training-course-shell="manager"');
-    const workspaceIndex = html.indexOf('data-forge-workspace-layout="two-rails"');
-    const adminRailIndex = html.indexOf('data-training-admin-rail=""');
+    const workbenchIndex = html.indexOf('data-training-builder-workbench=""');
+    const adminDrawerIndex = html.indexOf('data-training-admin-drawer=""');
     const structureIndex = html.indexOf('data-training-course-structure=""');
     const stageIndex = html.indexOf('data-training-course-stage=""');
     const tocIndex = html.indexOf('aria-label="Curriculum map"');
     const commandDeckIndex = html.indexOf("Create module");
 
     expect(shellIndex).toBeGreaterThanOrEqual(0);
-    expect(workspaceIndex).toBeGreaterThan(shellIndex);
-    expect(adminRailIndex).toBeGreaterThan(workspaceIndex);
-    expect(structureIndex).toBeGreaterThan(adminRailIndex);
+    expect(workbenchIndex).toBeGreaterThanOrEqual(0);
+    expect(structureIndex).toBeGreaterThan(shellIndex);
     expect(stageIndex).toBeGreaterThan(structureIndex);
-    expect(tocIndex).toBeGreaterThan(structureIndex);
-    expect(commandDeckIndex).toBeGreaterThan(adminRailIndex);
+    expect(tocIndex).toBeGreaterThanOrEqual(0);
+    expect(tocIndex).toBeLessThan(stageIndex);
+    expect(adminDrawerIndex).toBeGreaterThan(stageIndex);
+    expect(commandDeckIndex).toBeGreaterThan(adminDrawerIndex);
+    expect(html).not.toContain('data-training-admin-rail=""');
+    expect(html).not.toContain('data-forge-workspace-layout="two-rails"');
   });
 
   it("renders curriculum rows as navigation instead of numbered mini-cards", () => {
@@ -722,10 +725,11 @@ describe("TrainingPanel", () => {
     );
 
     expect(shellHtml).toContain('data-training-course-shell="manager"');
-    expect(shellHtml).toContain('data-forge-workspace-layout="two-rails"');
-    expect(shellHtml).toContain("forge-workspace-layout");
-    expect(shellHtml).toContain("forge-workspace-rail");
-    expect(shellHtml).toContain('data-training-admin-rail=""');
+    expect(shellHtml).toContain('data-training-builder-workbench=""');
+    expect(shellHtml).toContain('data-training-admin-drawer=""');
+    expect(shellHtml).toContain('data-operational-preview-drawer="true"');
+    expect(shellHtml).not.toContain('data-forge-workspace-layout="two-rails"');
+    expect(shellHtml).not.toContain('data-training-admin-rail=""');
     expect(stageHtml).toContain("relative space-y-6");
     expect(stageHtml).toContain("rounded-[1.25rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface-2)]/45 p-6");
     expect(tocHtml).toContain("rounded-[1.5rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6");

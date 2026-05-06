@@ -17,9 +17,6 @@ import {
   ForgeSegmentedTab,
   ForgeSegmentedTabs,
   ForgeStatusPanel,
-  ForgeWorkspaceRail,
-  ForgeWorkspaceRailAction,
-  ForgeWorkspaceRailGroup,
 } from "./forge";
 import { OperationalPreviewDrawer } from "./operational-workspace";
 
@@ -501,75 +498,84 @@ export function RoleplayPanel({
       </div>
 
       <div
-        className="grid min-w-0 gap-3 xl:grid-cols-[280px_minmax(0,1fr)_320px]"
+        className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_320px]"
         data-roleplay-workspace="practice-workbench"
       >
-        <ForgeWorkspaceRail
-          collapsible
-          description="Choose a persona and start a focused practice session."
-          eyebrow="Scenario rail"
-          title="Target personas"
-          aria-label="Scenario"
-          data-roleplay-scenario-rail=""
-          id="roleplay-scenario"
-        >
-          <ForgeWorkspaceRailGroup label="Session">
-            <ForgeWorkspaceRailAction
-              disabled={!selectedPersonaId || isMutating}
-              icon="insights"
-              onClick={() => void createSession()}
-              type="button"
-            >
-              {isMutating ? "Starting..." : "Start simulation"}
-            </ForgeWorkspaceRailAction>
-          </ForgeWorkspaceRailGroup>
+        <main className="min-w-0 space-y-3" data-forge-workspace-main="true">
+          <section
+            aria-label="Scenario"
+            className="scroll-mt-24 rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.026)] p-3 shadow-[inset_0_1px_0_rgba(255,244,230,0.04)]"
+            data-roleplay-scenario-picker=""
+            id="roleplay-scenario"
+          >
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-[0.66rem] font-semibold uppercase tracking-[0.1em] text-[var(--forge-gold)]">
+                  Scenario
+                </p>
+                <h2 className="mt-1 text-base font-semibold text-[var(--forge-text)]">
+                  Target persona
+                </h2>
+                <p className="mt-1 max-w-2xl text-sm leading-5 text-[var(--forge-muted)]">
+                  Choose one buyer profile, then start a focused practice session.
+                </p>
+              </div>
+              <button
+                className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--forge-gold)] px-4 py-2 text-xs font-bold text-[var(--forge-bg)] transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-45"
+                disabled={!selectedPersonaId || isMutating}
+                onClick={() => void createSession()}
+                type="button"
+              >
+                <ForgeIcon name="insights" size={16} />
+                {isMutating ? "Starting..." : "Start simulation"}
+              </button>
+            </div>
 
-          <ForgeWorkspaceRailGroup label="Personas">
-            {personas.map((persona) => {
-              const isSelected = persona.id === selectedPersonaId;
-              return (
-                <button
-                  aria-pressed={isSelected}
-                  className={`group w-full rounded-2xl border px-3 py-3 text-left transition-all ${
-                    isSelected
-                      ? "border-[var(--forge-gold)]/30 bg-[var(--forge-gold)]/10 ring-1 ring-[var(--forge-gold)]/20"
-                      : "border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-3)]/40 hover:bg-[var(--forge-surface-3)]/60"
-                  }`}
-                  key={persona.id}
-                  onClick={() => setSelectedPersonaId(persona.id)}
-                  type="button"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={`flex h-12 w-12 items-center justify-center rounded-lg text-sm font-bold ${
-                      isSelected ? "border-2 border-[var(--forge-gold)] bg-[var(--forge-gold)]/10 text-[var(--forge-gold)]" : "bg-[var(--forge-surface-3)] text-[var(--forge-muted)]"
-                    }`}>
-                      {persona.avatarInitials}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <h3 className="truncate text-sm font-bold text-[var(--forge-text)]">{persona.name}</h3>
-                        <span className={`shrink-0 rounded-full px-2 py-1 font-['Space_Grotesk'] text-[9px] font-bold uppercase tracking-wider ${difficultyBadge(persona.difficulty)}`}>
-                          {persona.difficulty}
-                        </span>
+            <div className="mt-3 grid gap-2 md:grid-cols-2 2xl:grid-cols-3">
+              {personas.map((persona) => {
+                const isSelected = persona.id === selectedPersonaId;
+                return (
+                  <button
+                    aria-pressed={isSelected}
+                    className={`group w-full rounded-xl border px-3 py-2.5 text-left transition-all ${
+                      isSelected
+                        ? "border-[var(--forge-gold)]/30 bg-[var(--forge-gold)]/10 ring-1 ring-[var(--forge-gold)]/20"
+                        : "border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-3)]/40 hover:bg-[var(--forge-surface-3)]/60"
+                    }`}
+                    key={persona.id}
+                    onClick={() => setSelectedPersonaId(persona.id)}
+                    type="button"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-sm font-bold ${
+                        isSelected ? "border-2 border-[var(--forge-gold)] bg-[var(--forge-gold)]/10 text-[var(--forge-gold)]" : "bg-[var(--forge-surface-3)] text-[var(--forge-muted)]"
+                      }`}>
+                        {persona.avatarInitials}
                       </div>
-                      <p className="mt-1 truncate text-xs text-[var(--forge-gold)]">{persona.role}, {persona.company}</p>
-                      <p className="mt-2 line-clamp-2 text-xs leading-5 text-[var(--forge-muted)]">{persona.description}</p>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="truncate text-sm font-bold text-[var(--forge-text)]">{persona.name}</h3>
+                          <span className={`shrink-0 rounded-full px-2 py-1 font-['Space_Grotesk'] text-[9px] font-bold uppercase tracking-wider ${difficultyBadge(persona.difficulty)}`}>
+                            {persona.difficulty}
+                          </span>
+                        </div>
+                        <p className="mt-1 truncate text-xs text-[var(--forge-gold)]">{persona.role}, {persona.company}</p>
+                        <p className="mt-1 line-clamp-1 text-xs leading-5 text-[var(--forge-muted)]">{persona.description}</p>
+                      </div>
                     </div>
-                  </div>
-                </button>
-              );
-            })}
-          </ForgeWorkspaceRailGroup>
-        </ForgeWorkspaceRail>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
 
-        <main
-          aria-labelledby="roleplay-practice-title"
-          className="min-w-0 scroll-mt-24"
-          data-forge-workspace-main="true"
-          data-roleplay-simulation-stage=""
-          id="roleplay-practice"
-        >
-          <h2 className="sr-only" id="roleplay-practice-title">Practice</h2>
+          <section
+            aria-labelledby="roleplay-practice-title"
+            className="min-w-0 scroll-mt-24"
+            data-roleplay-simulation-stage=""
+            id="roleplay-practice"
+          >
+            <h2 className="sr-only" id="roleplay-practice-title">Practice</h2>
           <div className="mb-4 flex flex-col gap-3 rounded-xl bg-[var(--forge-surface)] p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
             <div className="flex items-start gap-3 sm:items-center sm:gap-4">
               <div className="relative">
@@ -696,7 +702,7 @@ export function RoleplayPanel({
                 </div>
                 <p className="font-['Space_Grotesk'] text-lg font-bold text-[var(--forge-text)]">No active simulation</p>
                 <p className="mt-2 max-w-sm text-sm text-[var(--forge-muted)]">
-                  Choose a persona in the scenario rail, then start a simulation.
+                  Choose a persona in the scenario picker, then start a simulation.
                 </p>
               </div>
             )}
@@ -766,6 +772,7 @@ export function RoleplayPanel({
           </div>
 
           <audio autoPlay className="hidden" playsInline ref={remoteAudioRef} />
+          </section>
         </main>
 
         <OperationalPreviewDrawer
@@ -843,7 +850,7 @@ export function RoleplayPanel({
               <ForgeStatusPanel
                 description={activeSession
                   ? "Complete the current roleplay to generate your performance analytics and improvement tips."
-                  : "Start a simulation from the left rail. Scoring, readiness, and next actions appear here."}
+                  : "Start a simulation from the scenario picker. Scoring, readiness, and next actions appear here."}
                 icon="query_stats"
                 title={activeSession ? "Waiting for session completion..." : "Select a scenario to begin scoring."}
                 tone="muted"
