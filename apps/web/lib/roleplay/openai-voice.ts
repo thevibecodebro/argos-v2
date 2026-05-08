@@ -1,4 +1,5 @@
 import type { RoleplaySession } from "@/lib/roleplay/service";
+import { getRoleplaySessionVoice } from "@/lib/roleplay/types";
 import { fetchWithTimeout } from "@/lib/security/fetch-timeout";
 
 const OPENAI_REALTIME_TIMEOUT_MS = 30_000;
@@ -67,10 +68,15 @@ export function buildRoleplayRealtimeInstructions(session: RoleplaySession) {
     .join("\n");
 }
 
+export function getRoleplayRealtimeVoice(session: RoleplaySession) {
+  return getRoleplaySessionVoice(session);
+}
+
 export async function createRealtimeCall(input: {
   env?: OpenAiVoiceEnvSource;
   instructions: string;
   offerSdp: string;
+  voice?: string;
 }) {
   const config = getOpenAiVoiceEnv(input.env);
   const formData = new FormData();
@@ -88,7 +94,7 @@ export async function createRealtimeCall(input: {
           },
         },
         output: {
-          voice: config.realtimeVoice,
+          voice: input.voice ?? config.realtimeVoice,
         },
       },
     }),

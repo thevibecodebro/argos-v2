@@ -164,6 +164,14 @@ describe("CallDetailPanel", () => {
     expect(callDetailPanelSource).toContain("Updating highlighted moment.");
   });
 
+  it("lets reps choose the generated roleplay buyer voice before starting", () => {
+    expect(callDetailPanelSource).toContain("buyerVoice");
+    expect(callDetailPanelSource).toContain("setBuyerVoice");
+    expect(callDetailPanelSource).toContain("Buyer voice");
+    expect(callDetailPanelSource).toContain("GENERATED_ROLEPLAY_BUYER_PERSONAS[voice].label");
+    expect(callDetailPanelSource).toContain('data-generated-roleplay-buyer-voice="true"');
+  });
+
   it("does not render Generate Roleplay for incomplete calls", async () => {
     const html = await renderCallDetailPanel({
       call: {

@@ -10,6 +10,41 @@ export const ROLEPLAY_CATEGORY_LABELS = {
 
 export type RoleplayCategory = keyof typeof ROLEPLAY_CATEGORY_LABELS;
 
+export type RoleplayVoice =
+  | "alloy"
+  | "ash"
+  | "ballad"
+  | "coral"
+  | "echo"
+  | "sage"
+  | "shimmer"
+  | "verse"
+  | "marin"
+  | "cedar";
+
+export type GeneratedRoleplayBuyerVoice = "male" | "female";
+
+export const DEFAULT_GENERATED_ROLEPLAY_BUYER_VOICE: GeneratedRoleplayBuyerVoice = "male";
+
+export const GENERATED_ROLEPLAY_BUYER_PERSONAS: Record<
+  GeneratedRoleplayBuyerVoice,
+  { label: string; persona: string; voice: RoleplayVoice }
+> = {
+  female: {
+    label: "Female",
+    persona: "generated-female-buyer",
+    voice: "marin",
+  },
+  male: {
+    label: "Male",
+    persona: "generated-male-buyer",
+    voice: "cedar",
+  },
+};
+
+export const GENERATED_ROLEPLAY_VOICE: RoleplayVoice =
+  GENERATED_ROLEPLAY_BUYER_PERSONAS[DEFAULT_GENERATED_ROLEPLAY_BUYER_VOICE].voice;
+
 export type RoleplayPersona = {
   id: string;
   name: string;
@@ -20,6 +55,7 @@ export type RoleplayPersona = {
   objectionType: string;
   description: string;
   avatarInitials: string;
+  voice: RoleplayVoice;
 };
 
 export type RoleplayMessage = {
@@ -151,6 +187,36 @@ export type RoleplaySessionRecord = {
   status: "active" | "evaluating" | "complete";
   createdAt: Date;
 };
+
+export function getRoleplaySessionVoice(
+  session: Pick<RoleplaySession, "origin" | "persona" | "personaDetails">,
+) {
+  if (session.personaDetails?.voice) {
+    return session.personaDetails.voice;
+  }
+
+  if (session.origin !== "generated_from_call") {
+    return undefined;
+  }
+
+  return getGeneratedRoleplayVoiceByPersona(session.persona) ?? GENERATED_ROLEPLAY_VOICE;
+}
+
+export function normalizeGeneratedRoleplayBuyerVoice(
+  value: unknown,
+): GeneratedRoleplayBuyerVoice {
+  return value === "female" ? "female" : DEFAULT_GENERATED_ROLEPLAY_BUYER_VOICE;
+}
+
+export function getGeneratedRoleplayPersonaId(value: GeneratedRoleplayBuyerVoice) {
+  return GENERATED_ROLEPLAY_BUYER_PERSONAS[value].persona;
+}
+
+function getGeneratedRoleplayVoiceByPersona(persona: string | null) {
+  return Object.values(GENERATED_ROLEPLAY_BUYER_PERSONAS).find(
+    (option) => option.persona === persona,
+  )?.voice;
+}
 
 export function normalizeRoleplaySessionCreateInput(
   input: RoleplaySessionCreateInput,

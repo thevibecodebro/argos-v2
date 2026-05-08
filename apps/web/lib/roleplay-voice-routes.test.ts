@@ -68,6 +68,7 @@ describe("roleplay voice routes", () => {
           objectionType: "ROI & Budget",
           description: "Numbers-first evaluator.",
           avatarInitials: "DM",
+          voice: "marin",
         },
         transcript: [
           { role: "assistant", content: "Show me the ROI math." },
@@ -144,6 +145,94 @@ describe("roleplay voice routes", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0]?.[0]).toBe("https://api.openai.com/v1/realtime/calls");
     expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("uses the selected persona voice when creating realtime roleplay calls", async () => {
+    process.env.OPENAI_API_KEY = "test-openai-key";
+    getRoleplaySession.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        id: "session-1",
+        persona: "busy-ops-director",
+        personaDetails: {
+          id: "busy-ops-director",
+          name: "Marcus Webb",
+          role: "Director of Operations",
+          company: "FastTrack Logistics",
+          industry: "Logistics",
+          difficulty: "intermediate",
+          objectionType: "Time & Bandwidth",
+          description: "Time-starved operations leader.",
+          avatarInitials: "MW",
+          voice: "cedar",
+        },
+        transcript: [],
+      },
+    });
+
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response("v=0\r\na=answer-sdp", {
+        status: 200,
+        headers: { "Content-Type": "application/sdp" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const route = await import("../app/api/roleplay/sessions/[id]/realtime/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/roleplay/sessions/session-1/realtime", {
+        method: "POST",
+        headers: { "Content-Type": "application/sdp" },
+        body: "v=0\r\na=offer-sdp",
+      }),
+      { params: Promise.resolve({ id: "session-1" }) },
+    );
+
+    expect(response.status).toBe(200);
+    const body = fetchMock.mock.calls[0]?.[1]?.body as FormData;
+    const session = JSON.parse(String(body.get("session"))) as {
+      audio?: { output?: { voice?: string } };
+    };
+    expect(session.audio?.output?.voice).toBe("cedar");
+  });
+
+  it("uses the generated buyer voice for roleplays created from real calls", async () => {
+    process.env.OPENAI_API_KEY = "test-openai-key";
+    getRoleplaySession.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        id: "session-generated-1",
+        persona: null,
+        personaDetails: null,
+        origin: "generated_from_call",
+        transcript: [],
+      },
+    });
+
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response("v=0\r\na=answer-sdp", {
+        status: 200,
+        headers: { "Content-Type": "application/sdp" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const route = await import("../app/api/roleplay/sessions/[id]/realtime/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/roleplay/sessions/session-generated-1/realtime", {
+        method: "POST",
+        headers: { "Content-Type": "application/sdp" },
+        body: "v=0\r\na=offer-sdp",
+      }),
+      { params: Promise.resolve({ id: "session-generated-1" }) },
+    );
+
+    expect(response.status).toBe(200);
+    const body = fetchMock.mock.calls[0]?.[1]?.body as FormData;
+    const session = JSON.parse(String(body.get("session"))) as {
+      audio?: { output?: { voice?: string } };
+    };
+    expect(session.audio?.output?.voice).toBe("cedar");
   });
 
   it("rejects oversized realtime SDP offers before contacting OpenAI", async () => {

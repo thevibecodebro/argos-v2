@@ -8,11 +8,13 @@ import {
   appendRoleplayTranscriptMessage,
   completeRoleplaySession,
   createRoleplaySession,
+  getRoleplayPersona,
   getRoleplaySession,
   listRoleplaySessions,
   normalizeRoleplaySessionCreateInput,
   type RoleplayRepository,
 } from "./service";
+import { getRoleplaySessionVoice, type RoleplaySession } from "./types";
 
 vi.mock("@/lib/access/create-repository", () => ({
   createAccessRepository: vi.fn(),
@@ -99,6 +101,34 @@ function mockAccessRepository(input: {
     findGrantsByUserId: vi.fn().mockResolvedValue(input.grants),
   } as never);
 }
+
+describe("roleplay personas", () => {
+  it("assigns masculine voices to male persona templates", () => {
+    expect(getRoleplayPersona("busy-ops-director")?.voice).toBe("cedar");
+    expect(getRoleplayPersona("price-sensitive-smb")?.voice).toBe("cedar");
+    expect(getRoleplayPersona("technical-buyer")?.voice).toBe("cedar");
+  });
+
+  it("uses a generated buyer voice for sessions created from real calls", () => {
+    expect(
+      getRoleplaySessionVoice({
+        origin: "generated_from_call",
+        persona: null,
+        personaDetails: null,
+      } satisfies Pick<RoleplaySession, "origin" | "persona" | "personaDetails">),
+    ).toBe("cedar");
+  });
+
+  it("uses the selected generated buyer voice when one is persisted", () => {
+    const generatedFemaleSession = {
+      origin: "generated_from_call",
+      persona: "generated-female-buyer",
+      personaDetails: null,
+    } satisfies Pick<RoleplaySession, "origin" | "persona" | "personaDetails">;
+
+    expect(getRoleplaySessionVoice(generatedFemaleSession)).toBe("marin");
+  });
+});
 
 describe("createRoleplaySession", () => {
   it("creates an active session with an opening assistant message for the chosen persona", async () => {

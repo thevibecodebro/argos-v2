@@ -7,6 +7,7 @@ import {
   buildGeneratedRoleplayPreview,
   createGeneratedRoleplaySession,
 } from "@/lib/roleplay/generate-from-call";
+import { normalizeGeneratedRoleplayBuyerVoice } from "@/lib/roleplay/types";
 import { createRubricsRepository } from "@/lib/rubrics/create-repository";
 import { loadActiveRubric } from "@/lib/rubrics/service";
 
@@ -83,7 +84,7 @@ export async function POST(
     }
 
     const body = (await request.json().catch(() => null)) as
-      | { focusCategorySlug?: unknown }
+      | { buyerVoice?: unknown; focusCategorySlug?: unknown }
       | null;
 
     const { id } = await params;
@@ -106,6 +107,7 @@ export async function POST(
       {
         call: context.data.call,
         activeRubric: context.data.activeRubric,
+        buyerVoice: normalizeGeneratedRoleplayBuyerVoice(body?.buyerVoice),
         focusCategorySlug,
       },
     );

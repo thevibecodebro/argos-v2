@@ -3,9 +3,14 @@ import { CALL_SCORING_CATEGORIES } from "@/lib/calls/rubric";
 import type { RubricWithCategories } from "@/lib/rubrics/types";
 import type { RoleplayRepository } from "./service";
 import type {
+  GeneratedRoleplayBuyerVoice,
   RoleplayMessage,
   RoleplaySession,
   RoleplaySessionRecord,
+} from "./types";
+import {
+  DEFAULT_GENERATED_ROLEPLAY_BUYER_VOICE,
+  getGeneratedRoleplayPersonaId,
 } from "./types";
 
 export type GeneratedRoleplayFocusOption = {
@@ -42,6 +47,7 @@ type GeneratedRoleplayPreviewInput = {
 };
 
 type GeneratedRoleplaySessionInput = GeneratedRoleplayPreviewInput & {
+  buyerVoice?: GeneratedRoleplayBuyerVoice;
   call: GeneratedRoleplayCreateCall;
   focusCategorySlug: string | null;
 };
@@ -279,6 +285,9 @@ function buildGeneratedRoleplaySessionCreateInput(
 ) {
   const preview = buildGeneratedRoleplayPreview(input);
   const focusCategorySlug = normalizeFocusCategorySlug(input.focusCategorySlug);
+  const persona = getGeneratedRoleplayPersonaId(
+    input.buyerVoice ?? DEFAULT_GENERATED_ROLEPLAY_BUYER_VOICE,
+  );
   const transcript: RoleplayMessage[] = [
     {
       role: "assistant",
@@ -291,7 +300,7 @@ function buildGeneratedRoleplaySessionCreateInput(
       difficulty: "intermediate" as const,
       industry: null,
       orgId: viewerOrgId,
-      persona: null,
+      persona,
       repId: viewerId,
       scorecard: null,
       status: "active" as const,
@@ -310,7 +319,7 @@ function buildGeneratedRoleplaySessionCreateInput(
     difficulty: "intermediate" as const,
     industry: null,
     orgId: viewerOrgId,
-    persona: null,
+    persona,
     repId: viewerId,
     scorecard: null,
     status: "active" as const,

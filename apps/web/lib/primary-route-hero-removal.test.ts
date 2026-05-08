@@ -974,6 +974,7 @@ describe("primary route hero removal", () => {
               objectionType: "ROI & Budget",
               description: "Numbers-first evaluator.",
               avatarInitials: "DM",
+              voice: "marin",
             },
             industry: "Manufacturing",
             difficulty: "advanced",

@@ -102,7 +102,7 @@ describe("generate roleplay route", () => {
       new Request("http://localhost:3100/api/calls/call-22/generate-roleplay", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ focusCategorySlug: "all" }),
+        body: JSON.stringify({ buyerVoice: "female", focusCategorySlug: "all" }),
       }),
       { params: Promise.resolve({ id: "call-22" }) },
     );
@@ -114,6 +114,7 @@ describe("generate roleplay route", () => {
       roleplayRepository,
       "auth-user-1",
       expect.objectContaining({
+        buyerVoice: "female",
         focusCategorySlug: null,
       }),
     );

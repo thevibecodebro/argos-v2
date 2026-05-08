@@ -4,6 +4,7 @@ import { startTransition, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ROLEPLAY_CATEGORY_LABELS,
+  getRoleplaySessionVoice,
   type RoleplayPersona,
   type RoleplayMessage,
   type RoleplayCategory,
@@ -385,7 +386,11 @@ export function RoleplayPanel({
       const res = await fetch("/api/roleplay/tts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ instructions: "Speak like a calm, direct buyer in a sales roleplay.", text }),
+        body: JSON.stringify({
+          instructions: "Speak like a calm, direct buyer in a sales roleplay.",
+          text,
+          voice: activeSession ? getRoleplaySessionVoice(activeSession) : undefined,
+        }),
       });
       if (!res.ok) {
         const p = (await res.json().catch(() => null)) as { error?: string } | null;

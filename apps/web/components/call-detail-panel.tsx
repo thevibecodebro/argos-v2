@@ -16,6 +16,11 @@ import {
 } from "@/components/forge";
 import { HighlightNote } from "@/components/highlight-note";
 import type { CallAnnotation, CallDetail, CallMoment } from "@/lib/calls/service";
+import {
+  DEFAULT_GENERATED_ROLEPLAY_BUYER_VOICE,
+  GENERATED_ROLEPLAY_BUYER_PERSONAS,
+  type GeneratedRoleplayBuyerVoice,
+} from "@/lib/roleplay/types";
 
 type CallDetailPanelProps = {
   annotations: CallAnnotation[];
@@ -143,6 +148,9 @@ export function CallDetailPanel({
     focusOptions: Array<{ slug: string; label: string }>;
     defaultFocusSlug: string;
   } | null>(null);
+  const [buyerVoice, setBuyerVoice] = useState<GeneratedRoleplayBuyerVoice>(
+    DEFAULT_GENERATED_ROLEPLAY_BUYER_VOICE,
+  );
   const [focusCategorySlug, setFocusCategorySlug] = useState("all");
   const [activeWorkbenchTab, setActiveWorkbenchTab] = useState<
     "transcript" | "moments" | "summary" | "notes"
@@ -266,6 +274,7 @@ export function CallDetailPanel({
     setIsGenerateModalOpen(true);
     setIsLoadingGeneratePreview(true);
     setGenerateError(null);
+    setBuyerVoice(DEFAULT_GENERATED_ROLEPLAY_BUYER_VOICE);
 
     try {
       const response = await fetch(`/api/calls/${call.id}/generate-roleplay`, {
@@ -319,6 +328,7 @@ export function CallDetailPanel({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          buyerVoice,
           focusCategorySlug: focusCategorySlug === "all" ? null : focusCategorySlug,
         }),
       });
@@ -730,6 +740,32 @@ export function CallDetailPanel({
                   ))}
                 </select>
               </label>
+              <fieldset className="space-y-2">
+                <legend className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-muted)]">
+                  Buyer voice
+                </legend>
+                <div className="grid grid-cols-2 gap-2" data-generated-roleplay-buyer-voice="true">
+                  {(["male", "female"] as const).map((voice) => {
+                    const isSelected = buyerVoice === voice;
+                    return (
+                      <button
+                        aria-pressed={isSelected}
+                        className={`min-h-11 rounded-xl border px-3 py-2 text-sm font-semibold transition ${
+                          isSelected
+                            ? "border-[var(--forge-gold)]/35 bg-[var(--forge-gold)]/10 text-[var(--forge-gold)]"
+                            : "border-[var(--forge-border)] bg-[rgba(255,244,230,0.025)] text-[var(--forge-muted)] hover:text-[var(--forge-text)]"
+                        }`}
+                        disabled={isGeneratingRoleplay}
+                        key={voice}
+                        onClick={() => setBuyerVoice(voice)}
+                        type="button"
+                      >
+                        {GENERATED_ROLEPLAY_BUYER_PERSONAS[voice].label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
             </>
           ) : null}
 

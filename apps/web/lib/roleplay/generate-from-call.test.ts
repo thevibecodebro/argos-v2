@@ -175,7 +175,7 @@ describe("createGeneratedRoleplaySession", () => {
         rubricId: "rubric-active",
         focusMode: "all",
         focusCategorySlug: null,
-        persona: null,
+        persona: "generated-male-buyer",
         industry: null,
       }),
     );
@@ -228,6 +228,55 @@ describe("createGeneratedRoleplaySession", () => {
         rubricId: "rubric-active",
         focusMode: "category",
         focusCategorySlug: "discovery",
+        persona: "generated-male-buyer",
+      }),
+    );
+  });
+
+  it("persists the selected generated buyer voice as the generated persona", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "rep-9",
+        email: "rep@argos.ai",
+        role: "rep",
+        firstName: "Riley",
+        lastName: "Stone",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      createSession: vi.fn().mockResolvedValue({
+        id: "session-generated-4",
+        repId: "rep-9",
+        orgId: "org-1",
+        persona: "generated-female-buyer",
+        industry: null,
+        difficulty: "intermediate",
+        overallScore: null,
+        transcript: [{ role: "assistant", content: "Keep this practical for me." }],
+        scorecard: null,
+        status: "active",
+        rubricId: "rubric-active",
+        origin: "generated_from_call",
+        sourceCallId: "call-22",
+        focusMode: "all",
+        focusCategorySlug: null,
+        scenarioSummary: "An anonymized buyer wants a firmer close and clearer ownership.",
+        scenarioBrief: "Push the rep on commitment and next-step clarity.",
+        createdAt: new Date("2026-04-20T16:00:00.000Z"),
+      }),
+    });
+
+    const result = await createGeneratedRoleplaySession(repository, "auth-user-9", {
+      call,
+      activeRubric,
+      focusCategorySlug: null,
+      buyerVoice: "female",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(repository.createSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        origin: "generated_from_call",
+        persona: "generated-female-buyer",
       }),
     );
   });

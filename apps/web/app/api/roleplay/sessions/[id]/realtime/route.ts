@@ -9,6 +9,7 @@ import { getRoleplaySession } from "@/lib/roleplay/service";
 import {
   buildRoleplayRealtimeInstructions,
   createRealtimeCall,
+  getRoleplayRealtimeVoice,
   getOpenAiVoiceConfigurationError,
 } from "@/lib/roleplay/openai-voice";
 import { readRequestTextWithLimit } from "@/lib/security/request-body";
@@ -113,6 +114,7 @@ export async function POST(
     const realtime = await createRealtimeCall({
       instructions: buildRoleplayRealtimeInstructions(sessionResult.data),
       offerSdp,
+      voice: getRoleplayRealtimeVoice(sessionResult.data),
     });
 
     return new Response(realtime.answerSdp, {

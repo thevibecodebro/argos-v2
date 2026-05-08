@@ -77,6 +77,7 @@ const PERSONAS: RoleplayPersona[] = [
     description:
       "Numbers-first CFO who demands hard ROI, challenges assumptions, and pushes back on vague claims.",
     avatarInitials: "DM",
+    voice: "marin",
   },
   {
     id: "busy-ops-director",
@@ -89,6 +90,7 @@ const PERSONAS: RoleplayPersona[] = [
     description:
       "Time-starved operations leader who cares about implementation load and wants a sharp, practical conversation.",
     avatarInitials: "MW",
+    voice: "cedar",
   },
   {
     id: "stalling-vp",
@@ -101,6 +103,7 @@ const PERSONAS: RoleplayPersona[] = [
     description:
       "Interested sales leader who sees the value but delays decisions until a rep creates a concrete next step.",
     avatarInitials: "PS",
+    voice: "marin",
   },
   {
     id: "price-sensitive-smb",
@@ -113,6 +116,7 @@ const PERSONAS: RoleplayPersona[] = [
     description:
       "Friendly SMB owner who watches every dollar, compares against cheaper options, and values simplicity.",
     avatarInitials: "KT",
+    voice: "cedar",
   },
   {
     id: "technical-buyer",
@@ -125,6 +129,7 @@ const PERSONAS: RoleplayPersona[] = [
     description:
       "Deep technical evaluator who probes architecture, security, integrations, and proof-of-concept requirements.",
     avatarInitials: "AC",
+    voice: "cedar",
   },
 ];
 
