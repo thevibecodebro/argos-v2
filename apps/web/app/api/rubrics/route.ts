@@ -51,6 +51,10 @@ function noStoreJson(body: unknown, init?: ResponseInit) {
   });
 }
 
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 export async function GET(request: Request) {
   try {
     const admin = await requireAdminContext();
@@ -98,12 +102,18 @@ export async function POST(request: Request) {
       return admin.response;
     }
 
-    let body: Record<string, unknown>;
+    let parsedBody: unknown;
     try {
-      body = (await request.json()) as Record<string, unknown>;
+      parsedBody = (await request.json()) as unknown;
     } catch {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
+
+    if (!isObjectRecord(parsedBody)) {
+      return NextResponse.json({ error: "JSON body must be an object" }, { status: 400 });
+    }
+
+    const body = parsedBody;
 
     const repository = createRubricsRepository();
     const preview = body.preview === true;

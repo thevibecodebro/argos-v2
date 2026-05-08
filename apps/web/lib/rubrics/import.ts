@@ -139,11 +139,46 @@ function splitCsvLine(line: string) {
 }
 
 function parseCsvRows(content: string) {
-  return content
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map(splitCsvLine);
+  const rows: string[][] = [];
+  let currentLine = "";
+  let inQuotes = false;
+
+  for (let index = 0; index < content.length; index += 1) {
+    const char = content[index];
+
+    if (char === '"') {
+      if (inQuotes && content[index + 1] === '"') {
+        currentLine += '""';
+        index += 1;
+        continue;
+      }
+
+      inQuotes = !inQuotes;
+      currentLine += char;
+      continue;
+    }
+
+    if ((char === "\n" || char === "\r") && !inQuotes) {
+      if (char === "\r" && content[index + 1] === "\n") {
+        index += 1;
+      }
+
+      if (currentLine.trim()) {
+        rows.push(splitCsvLine(currentLine));
+      }
+
+      currentLine = "";
+      continue;
+    }
+
+    currentLine += char;
+  }
+
+  if (currentLine.trim()) {
+    rows.push(splitCsvLine(currentLine));
+  }
+
+  return rows;
 }
 
 export function parseCsvRubricImport(content: string, fallbackName: string): RubricImportResult {

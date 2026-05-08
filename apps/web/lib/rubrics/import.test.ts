@@ -30,6 +30,26 @@ describe("parseCsvRubricImport", () => {
       }),
     ]);
   });
+
+  it("preserves quoted multiline cells in a single csv row", () => {
+    const result = parseCsvRubricImport(
+      [
+        "name,slug,description,weight,excellent,proficient,developing,lookFor",
+        '"Discovery",discovery,"Line one',
+        'Line two",10,"Great","Good","Weak","Pain|Urgency"',
+      ].join("\n"),
+      "Imported CSV Rubric",
+    );
+
+    expect(result.issues).toEqual([]);
+    expect(result.rubric.categories).toHaveLength(1);
+    expect(result.rubric.categories[0]).toMatchObject({
+      slug: "discovery",
+      name: "Discovery",
+      description: "Line one\nLine two",
+      weight: 10,
+    });
+  });
 });
 
 describe("parseJsonRubricImport", () => {

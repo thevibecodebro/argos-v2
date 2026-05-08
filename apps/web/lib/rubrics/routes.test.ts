@@ -160,6 +160,40 @@ describe("rubrics routes", () => {
     expect(createDraftRubric).not.toHaveBeenCalled();
   });
 
+  it("returns 400 for non-object json bodies", async () => {
+    const route = await import("../../app/api/rubrics/route");
+
+    const nullResponse = await route.POST(
+      new Request("http://localhost:3000/api/rubrics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "null",
+      }),
+    );
+
+    expect(nullResponse.status).toBe(400);
+    await expect(nullResponse.json()).resolves.toEqual({
+      error: "JSON body must be an object",
+    });
+
+    const arrayResponse = await route.POST(
+      new Request("http://localhost:3000/api/rubrics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "[]",
+      }),
+    );
+
+    expect(arrayResponse.status).toBe(400);
+    await expect(arrayResponse.json()).resolves.toEqual({
+      error: "JSON body must be an object",
+    });
+    expect(parseCsvRubricImport).not.toHaveBeenCalled();
+    expect(parseJsonRubricImport).not.toHaveBeenCalled();
+    expect(validateRubricInput).not.toHaveBeenCalled();
+    expect(createDraftRubric).not.toHaveBeenCalled();
+  });
+
   it("creates a draft only after the rubric payload validates", async () => {
     createDraftRubric.mockResolvedValue({
       id: "rubric-5",
