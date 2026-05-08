@@ -37,5 +37,31 @@ describe("public landing styles", () => {
     expect(moduleCss).not.toContain(".landing-page");
     expect(moduleCss).not.toContain("#74b1ff");
     expect(moduleCss).not.toContain("#6dddff");
+    expect(moduleCss).toContain("scroll-padding-top: 7.5rem;");
+    expect(moduleCss).toContain(".argos-footer nav[aria-label=\"Legal\"] a");
+    expect(moduleCss).toContain("min-height: 2.75rem;");
+    expect(moduleCss).not.toContain("mix-blend-mode: screen");
+    expect(moduleCss).not.toContain("clip-path: inset");
+    expect(moduleCss).not.toContain("filter: blur(12px)");
+  });
+
+  it("keeps the landing scroll spy deterministic and the forge scene stable", () => {
+    const controller = readFileSync(
+      new URL("../components/public/landing-motion-controller.tsx", import.meta.url),
+      "utf8",
+    );
+    const scene = readFileSync(
+      new URL("../components/public/argos-listening-engine-scene.tsx", import.meta.url),
+      "utf8",
+    );
+
+    expect(controller).toContain("getSectionVisibilityScore");
+    expect(controller).toContain("requestActiveSectionUpdate");
+    expect(controller).toContain('link.setAttribute("aria-current", "true")');
+    expect(controller).toContain('link.classList.toggle(styles["is-active"], isActive)');
+    expect(controller).toContain('window.addEventListener("scroll", requestActiveSectionUpdate');
+    expect(scene).not.toContain("pointermove");
+    expect(scene).toContain('root.style.setProperty("--forge-pointer-x", "0")');
+    expect(scene).toContain('root.style.setProperty("--forge-pointer-y", "0")');
   });
 });

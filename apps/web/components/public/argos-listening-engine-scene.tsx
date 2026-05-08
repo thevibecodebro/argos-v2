@@ -50,8 +50,6 @@ export function ArgosListeningEngineScene() {
     const reduceQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     let stops = measureFilmStops();
     let frame = 0;
-    let pointerX = 0;
-    let pointerY = 0;
     let lastScrollY = window.scrollY;
     let velocityTimer: number | undefined;
 
@@ -70,10 +68,9 @@ export function ArgosListeningEngineScene() {
         if (!layer) return;
         const opacity = opacities[index];
         const distance = index - filmFrame;
-        const scale = 1.035 + progress * 0.035 + Math.abs(distance) * 0.008;
-        const driftX =
-          distance * -1.8 + (progress - 0.5) * (index + 1) * 0.65 + pointerX * (0.7 + index * 0.18);
-        const driftY = -progress * (index + 1) * 0.35 + distance * 0.22 + pointerY * (0.48 + index * 0.12);
+        const scale = 1.02 + progress * 0.018 + Math.abs(distance) * 0.004;
+        const driftX = distance * -0.9 + (progress - 0.5) * (index + 1) * 0.28;
+        const driftY = -progress * (index + 1) * 0.16 + distance * 0.12;
         layer.style.opacity = String(opacity);
         layer.style.transform = `translate3d(${driftX}vw, ${driftY}vh, 0) scale(${scale})`;
       });
@@ -82,10 +79,10 @@ export function ArgosListeningEngineScene() {
         if (!layer) return;
         const opacity = opacities[index];
         const distance = index - filmFrame;
-        const depthScale = 1.09 + progress * 0.055 + opacity * 0.018;
-        const depthX = distance * -3.8 + pointerX * (2.4 + index * 0.44) + progress * (index + 1) * 0.42;
-        const depthY = distance * 0.36 + pointerY * (1.7 + index * 0.36) - progress * (index + 1) * 0.42;
-        layer.style.opacity = String(opacity * (0.36 + opacity * 0.34));
+        const depthScale = 1.045 + progress * 0.025 + opacity * 0.01;
+        const depthX = distance * -1.6 + progress * (index + 1) * 0.18;
+        const depthY = distance * 0.18 - progress * (index + 1) * 0.18;
+        layer.style.opacity = String(opacity * (0.16 + opacity * 0.18));
         layer.style.transform = `translate3d(${depthX}vw, ${depthY}vh, 0) scale(${depthScale})`;
       });
 
@@ -97,8 +94,8 @@ export function ArgosListeningEngineScene() {
       root.style.setProperty("--forge-furnace", String(opacities[0]));
       root.style.setProperty("--forge-anvil", String(opacities[1]));
       root.style.setProperty("--forge-velocity", String(scrollDelta));
-      root.style.setProperty("--forge-pointer-x", String(reduceMotion ? 0 : pointerX));
-      root.style.setProperty("--forge-pointer-y", String(reduceMotion ? 0 : pointerY));
+      root.style.setProperty("--forge-pointer-x", "0");
+      root.style.setProperty("--forge-pointer-y", "0");
 
       if (!reduceMotion && scrollDelta > 0.015) {
         window.clearTimeout(velocityTimer);
@@ -109,13 +106,6 @@ export function ArgosListeningEngineScene() {
     const requestFrame = () => {
       if (frame) return;
       frame = window.requestAnimationFrame(setFrame);
-    };
-
-    const handlePointerMove = (event: PointerEvent) => {
-      if (reduceQuery.matches) return;
-      pointerX = (event.clientX / Math.max(1, window.innerWidth) - 0.5) * 2;
-      pointerY = (event.clientY / Math.max(1, window.innerHeight) - 0.5) * 2;
-      requestFrame();
     };
 
     const requestMeasure = () => {
@@ -130,7 +120,6 @@ export function ArgosListeningEngineScene() {
 
     setFrame();
     reduceQuery.addEventListener("change", requestMeasure);
-    window.addEventListener("pointermove", handlePointerMove, { passive: true });
     window.addEventListener("scroll", requestFrame, { passive: true });
     window.addEventListener("resize", requestMeasure, { passive: true });
 
@@ -138,7 +127,6 @@ export function ArgosListeningEngineScene() {
       if (frame) window.cancelAnimationFrame(frame);
       window.clearTimeout(velocityTimer);
       reduceQuery.removeEventListener("change", requestMeasure);
-      window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("scroll", requestFrame);
       window.removeEventListener("resize", requestMeasure);
     };

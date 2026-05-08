@@ -1,6 +1,7 @@
 /* Argos 3D Listening Engine homepage */
 html:has(.argos-3d-page) {
   scroll-behavior: smooth;
+  scroll-padding-top: 7.5rem;
 }
 
 .argos-3d-page {
@@ -18,10 +19,15 @@ html:has(.argos-3d-page) {
   position: relative;
   isolation: isolate;
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--forge-bg) 12%, transparent), color-mix(in srgb, var(--forge-bg) 96%, transparent) 78%),
-    linear-gradient(112deg, var(--forge-bg) 0%, var(--forge-surface) 38%, var(--forge-depth) 72%, var(--forge-bg) 100%);
+    linear-gradient(180deg, rgba(5, 4, 3, 0.24), rgba(5, 4, 3, 0.98) 82%),
+    linear-gradient(112deg, var(--forge-bg) 0%, var(--forge-surface) 42%, var(--forge-depth) 74%, var(--forge-bg) 100%);
   color: var(--forge-text);
   font-family: var(--font-body, "Source Sans 3", sans-serif);
+}
+
+.argos-3d-page,
+.argos-3d-page * {
+  box-sizing: border-box;
 }
 
 .argos-3d-page :focus-visible {
@@ -36,11 +42,11 @@ html:has(.argos-3d-page) {
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  opacity: 0.18;
+  opacity: 0.1;
   background-image:
-    linear-gradient(rgba(255, 244, 230, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 244, 230, 0.022) 1px, transparent 1px);
-  background-size: 72px 72px;
+    linear-gradient(rgba(255, 244, 230, 0.024) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 244, 230, 0.018) 1px, transparent 1px);
+  background-size: 96px 96px;
   mask-image: linear-gradient(180deg, transparent 0%, black 12%, black 86%, transparent 100%);
 }
 
@@ -51,8 +57,8 @@ html:has(.argos-3d-page) {
   z-index: 1;
   pointer-events: none;
   background:
-    linear-gradient(90deg, rgba(5, 4, 3, 0.72), transparent 28%, transparent 72%, rgba(5, 4, 3, 0.72)),
-    linear-gradient(180deg, rgba(5, 4, 3, 0.38), transparent 32%, rgba(5, 4, 3, 0.78) 100%);
+    linear-gradient(90deg, rgba(5, 4, 3, 0.88), rgba(5, 4, 3, 0.22) 36%, rgba(5, 4, 3, 0.2) 66%, rgba(5, 4, 3, 0.86)),
+    linear-gradient(180deg, rgba(5, 4, 3, 0.46), transparent 32%, rgba(5, 4, 3, 0.86) 100%);
 }
 
 .argos-scene-canvas,
@@ -60,6 +66,7 @@ html:has(.argos-3d-page) {
   position: fixed;
   inset: 0;
   z-index: 0;
+  opacity: 0.84;
   pointer-events: none;
 }
 
@@ -96,12 +103,12 @@ html:has(.argos-3d-page) {
   background-position: 72% center;
   background-repeat: no-repeat;
   background-size: cover;
-  filter: contrast(1.04) saturate(0.98);
+  filter: contrast(1.02) saturate(0.9) brightness(0.9);
   opacity: 0;
   transform: scale(1.02);
   transition:
-    opacity 900ms var(--argos-ease),
-    transform 900ms var(--argos-ease);
+    opacity 1100ms var(--argos-ease),
+    transform 1100ms var(--argos-ease);
   will-change: opacity, transform;
 }
 
@@ -144,33 +151,32 @@ html:has(.argos-3d-page) {
   background-position: 72% center;
   background-repeat: no-repeat;
   background-size: cover;
-  filter: contrast(1.22) saturate(1.08) brightness(1.05);
-  mix-blend-mode: screen;
+  filter: contrast(1.06) saturate(0.92) brightness(0.92);
+  mix-blend-mode: normal;
   opacity: 0;
   transform: scale(1.08);
   transition:
-    opacity 900ms var(--argos-ease),
-    transform 900ms var(--argos-ease);
+    opacity 1100ms var(--argos-ease),
+    transform 1100ms var(--argos-ease);
   will-change: opacity, transform;
-  animation: argos-forge-depth-breathe 9s ease-in-out infinite alternate;
   mask-image: radial-gradient(ellipse at 76% 50%, black 0%, black 22%, transparent 54%);
 }
 
 .argos-forge-depth-layer[data-depth="anvil"] {
   background-position: 72% 52%;
-  filter: contrast(1.18) saturate(0.9) brightness(1.02);
+  filter: contrast(1.04) saturate(0.86) brightness(0.9);
   mask-image: radial-gradient(ellipse at 71% 50%, black 0%, black 24%, transparent 58%);
 }
 
 .argos-forge-depth-layer[data-depth="tempering"] {
   background-position: 70% 50%;
-  filter: contrast(1.26) saturate(1.08) brightness(1.1);
+  filter: contrast(1.08) saturate(0.92) brightness(0.94);
   mask-image: radial-gradient(ellipse at 66% 48%, black 0%, black 20%, transparent 56%);
 }
 
 .argos-forge-depth-layer[data-depth="casting"] {
   background-position: 74% 51%;
-  filter: contrast(1.2) saturate(1.05) brightness(1.08);
+  filter: contrast(1.08) saturate(0.92) brightness(0.94);
   mask-image: radial-gradient(ellipse at 74% 52%, black 0%, black 25%, transparent 58%);
 }
 
@@ -189,10 +195,10 @@ html:has(.argos-3d-page) {
   inset: 0;
   z-index: 5;
   pointer-events: none;
-  opacity: 0.48;
+  opacity: 0.58;
   background:
-    radial-gradient(circle at 74% 48%, rgba(255, 177, 102, 0.18), transparent 26%),
-    linear-gradient(90deg, rgba(5, 4, 3, 0.96) 0%, rgba(5, 4, 3, 0.78) 32%, rgba(5, 4, 3, 0.16) 68%, rgba(5, 4, 3, 0.46) 100%);
+    radial-gradient(circle at 74% 48%, rgba(255, 177, 102, 0.12), transparent 28%),
+    linear-gradient(90deg, rgba(5, 4, 3, 0.98) 0%, rgba(5, 4, 3, 0.9) 36%, rgba(5, 4, 3, 0.32) 68%, rgba(5, 4, 3, 0.7) 100%);
 }
 
 .argos-forge-heat-field {
@@ -200,22 +206,22 @@ html:has(.argos-3d-page) {
   inset: -14%;
   z-index: 3;
   pointer-events: none;
-  opacity: calc(0.1 + var(--forge-furnace) * 0.16 + var(--forge-temper) * 0.22 + var(--forge-velocity) * 0.18);
+  opacity: calc(0.05 + var(--forge-furnace) * 0.08 + var(--forge-temper) * 0.12 + var(--forge-velocity) * 0.08);
   background:
     repeating-linear-gradient(
       104deg,
       transparent 0 28px,
-      rgba(255, 157, 91, 0.08) 29px 31px,
+      rgba(255, 157, 91, 0.04) 29px 31px,
       transparent 34px 72px
     ),
-    radial-gradient(circle at calc(72% + var(--forge-pointer-x) * 4%) calc(52% + var(--forge-pointer-y) * 3%), rgba(255, 166, 96, 0.35), transparent 28%),
-    radial-gradient(circle at 58% 56%, rgba(113, 217, 255, 0.13), transparent 32%);
-  filter: blur(16px);
-  mix-blend-mode: screen;
+    radial-gradient(circle at calc(72% + var(--forge-pointer-x) * 4%) calc(52% + var(--forge-pointer-y) * 3%), rgba(255, 166, 96, 0.22), transparent 30%),
+    radial-gradient(circle at 58% 56%, rgba(136, 218, 247, 0.07), transparent 34%);
+  filter: blur(8px);
+  mix-blend-mode: normal;
   transform:
     translate3d(calc(var(--forge-pointer-x) * 1.8vw), calc(var(--forge-pointer-y) * 1.2vh), 0)
     rotate(calc(-3deg + var(--forge-stage) * 6deg));
-  animation: argos-forge-heat-shimmer 8s ease-in-out infinite alternate;
+  animation: argos-forge-heat-shimmer 12s ease-in-out infinite alternate;
 }
 
 .argos-forge-aperture {
@@ -223,13 +229,12 @@ html:has(.argos-3d-page) {
   inset: -8%;
   z-index: 4;
   pointer-events: none;
-  opacity: calc(0.18 + var(--forge-cast) * 0.24 + var(--forge-scan) * 0.08);
+  opacity: calc(0.08 + var(--forge-cast) * 0.13 + var(--forge-scan) * 0.04);
   background:
-    radial-gradient(ellipse at calc(76% + var(--forge-pointer-x) * 2%) calc(50% + var(--forge-pointer-y) * 2%), transparent 0%, transparent 17%, rgba(255, 244, 230, 0.14) 17.5%, transparent 18.5%, transparent 31%, rgba(136, 218, 247, 0.12) 31.5%, transparent 33%),
-    linear-gradient(116deg, transparent 42%, rgba(255, 244, 230, 0.16), transparent 58%);
-  mix-blend-mode: screen;
+    radial-gradient(ellipse at calc(76% + var(--forge-pointer-x) * 2%) calc(50% + var(--forge-pointer-y) * 2%), transparent 0%, transparent 17%, rgba(255, 244, 230, 0.08) 17.5%, transparent 18.5%, transparent 31%, rgba(136, 218, 247, 0.06) 31.5%, transparent 33%),
+    linear-gradient(116deg, transparent 42%, rgba(255, 244, 230, 0.08), transparent 58%);
+  mix-blend-mode: normal;
   transform: translate3d(calc(var(--forge-pointer-x) * -1.2vw), calc(var(--forge-pointer-y) * -1vh), 0);
-  animation: argos-forge-aperture-turn 13s linear infinite;
 }
 
 .argos-forge-film::after {
@@ -238,12 +243,12 @@ html:has(.argos-3d-page) {
   inset: 0;
   z-index: 7;
   pointer-events: none;
-  opacity: 0.12;
+  opacity: 0.07;
   background-image:
     linear-gradient(rgba(255, 244, 230, 0.08) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 244, 230, 0.055) 1px, transparent 1px);
   background-size: 120px 120px;
-  transform: translate3d(calc(var(--forge-progress) * -24px), calc(var(--forge-progress) * -18px), 0);
+  transform: translate3d(calc(var(--forge-progress) * -14px), calc(var(--forge-progress) * -10px), 0);
 }
 
 .argos-forge-vignette {
@@ -261,9 +266,9 @@ html:has(.argos-3d-page) {
   inset: -20% -18%;
   z-index: 6;
   pointer-events: none;
-  opacity: calc(0.08 + var(--forge-scan) * 0.22);
-  background: linear-gradient(105deg, transparent 34%, rgba(255, 244, 230, 0.2) 47%, rgba(255, 179, 107, 0.13) 51%, transparent 64%);
-  mix-blend-mode: screen;
+  opacity: calc(0.04 + var(--forge-scan) * 0.12);
+  background: linear-gradient(105deg, transparent 34%, rgba(255, 244, 230, 0.13) 47%, rgba(255, 179, 107, 0.08) 51%, transparent 64%);
+  mix-blend-mode: normal;
   transform: translate3d(calc(-28vw + var(--forge-stage) * 58vw), calc(10vh - var(--forge-stage) * 18vh), 0) rotate(-8deg);
   transition:
     opacity 900ms var(--argos-ease),
@@ -275,7 +280,7 @@ html:has(.argos-3d-page) {
   inset: 0;
   z-index: 6;
   pointer-events: none;
-  opacity: calc(0.4 + var(--forge-scan) * 0.18 + var(--forge-temper) * 0.22);
+  opacity: calc(0.18 + var(--forge-scan) * 0.1 + var(--forge-temper) * 0.12);
   transform: translate3d(calc(var(--forge-pointer-x) * 1.4vw), calc(var(--forge-pointer-y) * 1vh), 0);
 }
 
@@ -291,7 +296,7 @@ html:has(.argos-3d-page) {
     0 0 16px rgba(136, 218, 247, 0.28),
     0 0 28px rgba(255, 181, 104, 0.22);
   transform-origin: left center;
-  animation: argos-forge-signal-travel 5.6s ease-in-out infinite;
+  animation: argos-forge-signal-travel 8.5s ease-in-out infinite;
 }
 
 .argos-forge-signal-path span:nth-child(1) {
@@ -341,7 +346,7 @@ html:has(.argos-3d-page) {
   inset: 0;
   z-index: 6;
   pointer-events: none;
-  opacity: 0.88;
+  opacity: 0.36;
   transform: translate3d(calc(var(--forge-progress) * 6vw), calc(var(--forge-progress) * -1.6vh), 0);
 }
 
@@ -356,7 +361,7 @@ html:has(.argos-3d-page) {
     0 0 18px rgba(255, 176, 100, 0.32),
     0 0 28px rgba(132, 221, 255, 0.16);
   transform-origin: center;
-  animation: argos-forge-ribbon-flow 7.5s var(--argos-ease) infinite alternate;
+  animation: argos-forge-ribbon-flow 10s var(--argos-ease) infinite alternate;
 }
 
 .argos-forge-ribbons span:nth-child(1) {
@@ -383,7 +388,7 @@ html:has(.argos-3d-page) {
   inset: 0;
   z-index: 6;
   pointer-events: none;
-  opacity: calc(0.3 + var(--forge-temper) * 0.45);
+  opacity: calc(0.08 + var(--forge-temper) * 0.18);
 }
 
 .argos-forge-sparks span {
@@ -393,9 +398,9 @@ html:has(.argos-3d-page) {
   width: 4px;
   height: 4px;
   border-radius: 999px;
-  background: #ffc17b;
-  box-shadow: 0 0 18px rgba(255, 161, 91, 0.8);
-  animation: argos-forge-spark-rise 4.8s var(--argos-ease) infinite;
+  background: rgba(255, 193, 123, 0.8);
+  box-shadow: 0 0 14px rgba(255, 161, 91, 0.38);
+  animation: argos-forge-spark-rise 8.5s var(--argos-ease) infinite;
 }
 
 .argos-forge-sparks span:nth-child(2) {
@@ -469,17 +474,17 @@ html:has(.argos-3d-page) {
 @keyframes argos-forge-signal-travel {
   0% {
     opacity: 0;
-    clip-path: inset(0 100% 0 0);
+    scale: 0.12 1;
   }
 
   32% {
-    opacity: 0.95;
-    clip-path: inset(0 10% 0 0);
+    opacity: 0.72;
+    scale: 1 1;
   }
 
   100% {
     opacity: 0;
-    clip-path: inset(0 0 0 100%);
+    scale: 1.12 1;
   }
 }
 
@@ -524,8 +529,8 @@ html:has(.argos-3d-page) {
   box-shadow:
     inset 0 1px 0 rgba(255, 244, 230, 0.11),
     0 24px 80px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .argos-brand,
@@ -537,6 +542,7 @@ html:has(.argos-3d-page) {
 
 .argos-brand {
   gap: 0.72rem;
+  min-height: 2.75rem;
   font-family: var(--font-display, "Space Grotesk", sans-serif);
   font-size: 0.82rem;
   font-weight: 800;
@@ -564,8 +570,12 @@ html:has(.argos-3d-page) {
 
 .argos-nav-links a,
 .argos-login-link {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
   border-radius: 999px;
-  padding: 0.65rem 0.95rem;
+  padding: 0.5rem 0.95rem;
   color: rgba(255, 244, 230, 0.62);
   font-family: var(--font-display, "Space Grotesk", sans-serif);
   font-size: 0.72rem;
@@ -578,10 +588,15 @@ html:has(.argos-3d-page) {
 }
 
 .argos-nav-links a:hover,
-.argos-login-link:hover,
-.argos-nav-links a.is-active {
+.argos-login-link:hover {
   background: rgba(255, 244, 230, 0.07);
   color: var(--argos-ivory);
+}
+
+.argos-nav-links a.is-active {
+  background: rgba(241, 191, 123, 0.13);
+  box-shadow: inset 0 0 0 1px rgba(241, 191, 123, 0.2);
+  color: var(--argos-gold);
 }
 
 .argos-nav-actions {
@@ -590,6 +605,10 @@ html:has(.argos-3d-page) {
 }
 
 .argos-mini-cta {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
   border-radius: 999px;
   border: 1px solid rgba(255, 244, 230, 0.18);
   background: var(--argos-ivory);
@@ -617,6 +636,11 @@ html:has(.argos-3d-page) {
 .argos-footer {
   position: relative;
   z-index: 2;
+}
+
+.argos-hero,
+.argos-section {
+  scroll-margin-top: 7.5rem;
 }
 
 .argos-hero {
@@ -674,19 +698,19 @@ html:has(.argos-3d-page) {
   font-family: var(--font-display, "Space Grotesk", sans-serif);
   font-size: clamp(5.2rem, 16vw, 15.5rem);
   font-weight: 800;
-  letter-spacing: -0.12em;
-  line-height: 0.78;
+  letter-spacing: 0;
+  line-height: 0.82;
   text-transform: uppercase;
 }
 
 .argos-hero-line {
   margin-top: 2.25rem;
-  max-width: 13ch;
+  max-width: 15ch;
   color: var(--argos-ivory);
   font-family: var(--argos-serif);
-  font-size: clamp(2.4rem, 5vw, 5.6rem);
-  letter-spacing: -0.06em;
-  line-height: 0.9;
+  font-size: clamp(2.4rem, 4.8vw, 5.25rem);
+  letter-spacing: 0;
+  line-height: 0.98;
 }
 
 .argos-hero-body,
@@ -827,7 +851,7 @@ html:has(.argos-3d-page) {
   font-family: var(--argos-serif);
   font-size: 1.65rem;
   font-weight: 400;
-  letter-spacing: -0.035em;
+  letter-spacing: 0;
 }
 
 .argos-section {
@@ -848,8 +872,9 @@ html:has(.argos-3d-page) {
   font-family: var(--argos-serif);
   font-size: clamp(3rem, 7vw, 7rem);
   font-weight: 400;
-  letter-spacing: -0.075em;
-  line-height: 0.92;
+  letter-spacing: 0;
+  line-height: 0.96;
+  text-wrap: balance;
 }
 
 .argos-section-copy p,
@@ -879,14 +904,12 @@ html:has(.argos-3d-page) {
   box-shadow: inset 0 1px 0 rgba(255, 244, 230, 0.08);
   transition:
     border-color 700ms var(--argos-ease),
-    transform 700ms var(--argos-ease),
     background-color 700ms var(--argos-ease);
 }
 
 .argos-feature-shell:hover {
-  border-color: rgba(255, 244, 230, 0.22);
-  background: rgba(255, 244, 230, 0.055);
-  transform: translate3d(0, -0.38rem, 0);
+  border-color: rgba(241, 191, 123, 0.28);
+  background: rgba(241, 191, 123, 0.055);
 }
 
 .argos-feature-card {
@@ -914,8 +937,9 @@ html:has(.argos-3d-page) {
   font-family: var(--argos-serif);
   font-size: clamp(1.75rem, 2.35vw, 2.55rem);
   font-weight: 400;
-  letter-spacing: -0.055em;
-  line-height: 0.98;
+  letter-spacing: 0;
+  line-height: 1.04;
+  text-wrap: balance;
 }
 
 .argos-feature-card p {
@@ -945,6 +969,7 @@ html:has(.argos-3d-page) {
   display: grid;
   grid-template-columns: 4rem 1fr;
   align-items: center;
+  min-width: 0;
   border: 1px solid rgba(255, 244, 230, 0.1);
   border-radius: 999px;
   background: rgba(5, 4, 3, 0.64);
@@ -956,7 +981,8 @@ html:has(.argos-3d-page) {
   color: var(--argos-ivory);
   font-family: var(--font-display, "Space Grotesk", sans-serif);
   font-size: clamp(1rem, 1.6vw, 1.4rem);
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
 }
 
 .argos-trust-section {
@@ -976,8 +1002,11 @@ html:has(.argos-3d-page) {
 }
 
 .argos-trust-item {
-  border-left: 1px solid rgba(241, 191, 123, 0.45);
-  padding: 1.2rem 0 1.2rem 1.4rem;
+  border: 1px solid rgba(255, 244, 230, 0.1);
+  border-radius: 1.35rem;
+  background: rgba(16, 9, 7, 0.5);
+  padding: 1.2rem 1.35rem;
+  box-shadow: inset 0 1px 0 rgba(255, 244, 230, 0.07);
 }
 
 .argos-trust-item p {
@@ -994,8 +1023,10 @@ html:has(.argos-3d-page) {
 
 .argos-access-panel {
   width: min(72rem, 100%);
+  max-width: 100%;
+  overflow: hidden;
   border: 1px solid rgba(255, 244, 230, 0.11);
-  border-radius: 2.4rem;
+  border-radius: clamp(1.25rem, 4vw, 2.4rem);
   background: linear-gradient(180deg, rgba(15, 10, 8, 0.78), rgba(5, 4, 3, 0.9));
   padding: clamp(1.4rem, 4vw, 3rem);
   box-shadow:
@@ -1024,8 +1055,9 @@ html:has(.argos-3d-page) {
   font-family: var(--argos-serif);
   font-size: clamp(2rem, 4vw, 4rem);
   font-weight: 400;
-  letter-spacing: -0.07em;
-  line-height: 0.9;
+  letter-spacing: 0;
+  line-height: 0.96;
+  overflow-wrap: anywhere;
 }
 
 .argos-plan p {
@@ -1052,7 +1084,7 @@ html:has(.argos-3d-page) {
 .argos-plan-button,
 .argos-plan-secondary {
   display: inline-flex;
-  min-height: 2.8rem;
+  min-height: 2.75rem;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
@@ -1128,6 +1160,7 @@ html:has(.argos-3d-page) {
 
 .argos-credit-list a {
   display: flex;
+  min-height: 2.75rem;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
@@ -1135,6 +1168,7 @@ html:has(.argos-3d-page) {
   padding-bottom: 0.55rem;
   color: rgba(255, 244, 230, 0.8);
   letter-spacing: 0.1em;
+  line-height: 1.25;
 }
 
 .argos-credit-list a:last-child {
@@ -1181,6 +1215,12 @@ html:has(.argos-3d-page) {
   text-transform: uppercase;
 }
 
+.argos-footer nav[aria-label="Legal"] a {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+}
+
 .argos-top-link {
   display: grid;
   width: 2.75rem;
@@ -1201,30 +1241,19 @@ html:has(.argos-3d-page) {
 
 .argos-reveal-ready [data-reveal] {
   opacity: 0;
-  transform: translate3d(0, 3.5rem, 0);
-  filter: blur(12px);
+  transform: translate3d(0, 1.4rem, 0);
   transition:
-    opacity 950ms var(--argos-ease),
-    transform 950ms var(--argos-ease),
-    filter 950ms var(--argos-ease);
-  transition-delay: calc(var(--reveal-index, 0) * 55ms);
+    opacity 720ms var(--argos-ease),
+    transform 720ms var(--argos-ease);
+  transition-delay: calc(var(--reveal-index, 0) * 35ms);
 }
 
 .argos-reveal-ready [data-reveal].is-visible {
   opacity: 1;
   transform: translate3d(0, 0, 0);
-  filter: blur(0);
 }
 
 @media (max-width: 1024px) {
-  .argos-nav {
-    grid-template-columns: 1fr auto;
-  }
-
-  .argos-nav-links {
-    display: none;
-  }
-
   .argos-feature-section,
   .argos-detail-section,
   .argos-trust-section {
@@ -1237,6 +1266,21 @@ html:has(.argos-3d-page) {
 }
 
 @media (max-width: 700px) {
+  html:has(.argos-3d-page) {
+    scroll-padding-top: 9.75rem;
+  }
+
+  .argos-3d-page::after {
+    background:
+      linear-gradient(90deg, rgba(5, 4, 3, 0.96), rgba(5, 4, 3, 0.76) 46%, rgba(5, 4, 3, 0.42) 100%),
+      linear-gradient(180deg, rgba(5, 4, 3, 0.52), transparent 30%, rgba(5, 4, 3, 0.9) 100%);
+  }
+
+  .argos-scene-canvas,
+  .argos-scene-fallback {
+    opacity: 0.62;
+  }
+
   .argos-forge-frame {
     background-position: 73% center;
   }
@@ -1260,8 +1304,8 @@ html:has(.argos-3d-page) {
 
   .argos-forge-film::before {
     background:
-      linear-gradient(90deg, rgba(5, 4, 3, 0.96) 0%, rgba(5, 4, 3, 0.78) 58%, rgba(5, 4, 3, 0.28) 100%),
-      linear-gradient(180deg, rgba(5, 4, 3, 0.18), rgba(5, 4, 3, 0.68));
+      linear-gradient(90deg, rgba(5, 4, 3, 0.99) 0%, rgba(5, 4, 3, 0.9) 60%, rgba(5, 4, 3, 0.52) 100%),
+      linear-gradient(180deg, rgba(5, 4, 3, 0.24), rgba(5, 4, 3, 0.78));
   }
 
   .argos-forge-heat-field,
@@ -1284,8 +1328,10 @@ html:has(.argos-3d-page) {
   }
 
   .argos-nav {
-    gap: 0.75rem;
-    padding-left: 0.85rem;
+    grid-template-columns: 1fr auto auto;
+    gap: 0.45rem;
+    border-radius: 1.35rem;
+    padding: 0.55rem;
   }
 
   .argos-brand {
@@ -1294,26 +1340,53 @@ html:has(.argos-3d-page) {
   }
 
   .argos-login-link {
-    display: none;
+    padding-inline: 0.75rem;
+    font-size: 0.66rem;
+    letter-spacing: 0.12em;
   }
 
   .argos-mini-cta {
     padding-inline: 0.9rem;
+    font-size: 0.66rem;
+    letter-spacing: 0.1em;
+  }
+
+  .argos-nav-links {
+    grid-column: 1 / -1;
+    gap: 0.2rem;
+    justify-content: flex-start;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  .argos-nav-links::-webkit-scrollbar {
+    display: none;
+  }
+
+  .argos-nav-links a {
+    flex: 0 0 auto;
+    padding-inline: 0.68rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
   }
 
   .argos-hero {
     min-height: 94svh;
-    padding-top: 7.25rem;
+    padding-top: 12.75rem;
     padding-bottom: 4.5rem;
+    scroll-margin-top: 9.75rem;
   }
 
   .argos-hero h1 {
-    font-size: clamp(4.2rem, 28vw, 7rem);
-    letter-spacing: -0.14em;
+    font-size: clamp(3.75rem, 24vw, 6.2rem);
+    line-height: 0.9;
   }
 
   .argos-hero-line {
-    max-width: 10ch;
+    max-width: 13ch;
+    font-size: clamp(2.1rem, 10vw, 3.15rem);
+    line-height: 1.04;
   }
 
   .argos-hero-actions,
@@ -1345,14 +1418,14 @@ html:has(.argos-3d-page) {
 
   .argos-section {
     padding-block: 6rem;
+    scroll-margin-top: 9.75rem;
   }
 
   .argos-section-copy h2,
   .argos-detail-copy h2,
   .argos-access-panel h2 {
     font-size: clamp(2.75rem, 12.5vw, 3.4rem);
-    letter-spacing: -0.065em;
-    line-height: 0.98;
+    line-height: 1.02;
   }
 
   .argos-signal-step {
@@ -1364,6 +1437,81 @@ html:has(.argos-3d-page) {
   .argos-footer-inner {
     flex-direction: column;
     text-align: center;
+  }
+}
+
+@media (max-width: 420px) {
+  .argos-nav-shell {
+    padding-inline: 0.65rem;
+  }
+
+  .argos-brand {
+    gap: 0.5rem;
+    letter-spacing: 0.2em;
+  }
+
+  .argos-brand-mark {
+    width: 0.95rem;
+    height: 0.95rem;
+  }
+
+  .argos-login-link,
+  .argos-mini-cta,
+  .argos-nav-links a {
+    min-height: 2.75rem;
+  }
+
+  .argos-nav-links a {
+    padding-inline: 0.55rem;
+    font-size: 0.58rem;
+    letter-spacing: 0.08em;
+  }
+
+  .argos-login-link {
+    padding-inline: 0.65rem;
+  }
+
+  .argos-mini-cta {
+    padding-inline: 0.75rem;
+  }
+
+  .argos-hero,
+  .argos-section,
+  .argos-footer-inner {
+    padding-inline: 1rem;
+  }
+
+  .argos-hero h1 {
+    font-size: clamp(3.35rem, 22vw, 4.8rem);
+  }
+
+  .argos-hero-body,
+  .argos-section-copy p,
+  .argos-detail-copy p,
+  .argos-access-panel > div > p {
+    font-size: 1rem;
+    line-height: 1.68;
+  }
+
+  .argos-feature-card,
+  .argos-plan,
+  .argos-credit-strip {
+    padding: 1rem;
+  }
+
+  .argos-access-panel {
+    padding: 1rem;
+  }
+
+  .argos-plan-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .argos-credit-list a {
+    flex-wrap: wrap;
+    gap: 0.35rem 0.75rem;
+    letter-spacing: 0.06em;
   }
 }
 

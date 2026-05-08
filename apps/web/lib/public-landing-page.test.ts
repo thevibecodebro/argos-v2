@@ -33,6 +33,14 @@ describe("LandingPage", () => {
     expect(html).toContain("Access platform");
     expect(html).toContain("Book a demo");
     expect(html).toContain("Privacy Policy");
+    expect(html).toContain('href="#features"');
+    expect(html).toContain(">Calls</a>");
+    expect(html).toContain('href="#detail"');
+    expect(html).toContain(">Coaching</a>");
+    expect(html).toContain('href="#trust"');
+    expect(html).toContain(">Team</a>");
+    expect(html).toContain('href="#access"');
+    expect(html).toContain(">Pricing</a>");
     expect(html).toContain('id="platform"');
     expect(html).toContain('id="features"');
     expect(html).toContain('id="detail"');
