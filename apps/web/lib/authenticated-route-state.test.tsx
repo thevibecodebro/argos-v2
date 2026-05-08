@@ -3,10 +3,10 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
-  AuthenticatedRouteError,
   AuthenticatedRouteLoading,
   AuthenticatedRouteNotFound,
 } from "../components/authenticated-route-state";
+import { AuthenticatedRouteError } from "../components/authenticated-route-error";
 
 describe("authenticated route states", () => {
   it("renders loading with readable live status and labelled skeletons", () => {

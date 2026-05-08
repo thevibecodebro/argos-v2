@@ -5,7 +5,7 @@ import {
   OperationalToolbar,
   OperationalWorkspace,
 } from "@/components/operational-workspace";
-import { UploadCallPanel } from "@/components/page-panel-loaders";
+import { UploadCallPanel } from "@/components/panel-loaders/upload-call-panel-loader";
 
 export default function UploadPage() {
   return (

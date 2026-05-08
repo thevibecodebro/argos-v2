@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { AuthenticatedRouteError } from "@/components/authenticated-route-state";
+import { AuthenticatedRouteError } from "@/components/authenticated-route-error";
 
 export default function TeamError({
   error,

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { RoleplayPanel } from "@/components/page-panel-loaders";
+import { RoleplayPanel } from "@/components/panel-loaders/roleplay-panel-loader";
 import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
 import { ForgeErrorState } from "@/components/forge";
 import {

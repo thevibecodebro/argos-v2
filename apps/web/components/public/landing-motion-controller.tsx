@@ -1,14 +1,17 @@
 "use client";
 
 import { useEffect } from "react";
+import styles from "./landing-page.module.css";
 
 export function LandingMotionController() {
   useEffect(() => {
-    document.documentElement.classList.add("argos-reveal-ready");
+    document.documentElement.classList.add(styles["argos-reveal-ready"]);
 
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const revealTargets = Array.from(document.querySelectorAll<HTMLElement>("[data-reveal]"));
-    const navLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>(".argos-nav-links a[href^='#']"));
+    const navLinks = Array.from(
+      document.querySelectorAll<HTMLAnchorElement>("[data-landing-nav-links='true'] a[href^='#']"),
+    );
     const navLinkBySection = new Map(
       navLinks
         .map((link) => [link.hash.slice(1), link] as const)
@@ -52,8 +55,8 @@ export function LandingMotionController() {
 
         if (!visibleEntry) return;
 
-        navLinks.forEach((link) => link.classList.remove("is-active"));
-        navLinkBySection.get(visibleEntry.target.id)?.classList.add("is-active");
+        navLinks.forEach((link) => link.classList.remove(styles["is-active"]));
+        navLinkBySection.get(visibleEntry.target.id)?.classList.add(styles["is-active"]);
       },
       {
         rootMargin: "-34% 0px -48% 0px",
@@ -66,7 +69,7 @@ export function LandingMotionController() {
     return () => {
       observer.disconnect();
       sectionObserver.disconnect();
-      document.documentElement.classList.remove("argos-reveal-ready");
+      document.documentElement.classList.remove(styles["argos-reveal-ready"]);
     };
   }, []);
 

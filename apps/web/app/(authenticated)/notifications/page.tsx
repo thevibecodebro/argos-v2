@@ -1,5 +1,5 @@
 import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
-import { NotificationsPanel } from "@/components/page-panel-loaders";
+import { NotificationsPanel } from "@/components/panel-loaders/notifications-panel-loader";
 import {
   OperationalMetricStrip,
   OperationalPreviewDrawer,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import styles from "./landing-page.module.css";
 
 const forgeFrames = [
   {
@@ -144,10 +145,14 @@ export function ArgosListeningEngineScene() {
   }, []);
 
   return (
-    <div aria-hidden="true" className="argos-scene-canvas argos-forge-film" ref={rootRef}>
+    <div
+      aria-hidden="true"
+      className={cx(styles["argos-scene-canvas"], styles["argos-forge-film"])}
+      ref={rootRef}
+    >
       {forgeFrames.map((frame, index) => (
         <div
-          className="argos-forge-frame"
+          className={styles["argos-forge-frame"]}
           key={frame.src}
           ref={(node) => {
             frameRefs.current[index] = node;
@@ -160,10 +165,10 @@ export function ArgosListeningEngineScene() {
           <span>{frame.label}</span>
         </div>
       ))}
-      <div className="argos-forge-depth-stack">
+      <div className={styles["argos-forge-depth-stack"]}>
         {forgeFrames.map((frame, index) => (
           <div
-            className="argos-forge-depth-layer"
+            className={styles["argos-forge-depth-layer"]}
             data-depth={frame.key}
             key={`${frame.src}-depth`}
             ref={(node) => {
@@ -177,9 +182,9 @@ export function ArgosListeningEngineScene() {
           </div>
         ))}
       </div>
-      <div className="argos-forge-heat-field" />
-      <div className="argos-forge-aperture" />
-      <div className="argos-forge-signal-path">
+      <div className={styles["argos-forge-heat-field"]} />
+      <div className={styles["argos-forge-aperture"]} />
+      <div className={styles["argos-forge-signal-path"]}>
         <span />
         <span />
         <span />
@@ -187,22 +192,26 @@ export function ArgosListeningEngineScene() {
         <span />
         <span />
       </div>
-      <div className="argos-forge-light-sweep" />
-      <div className="argos-forge-ribbons">
+      <div className={styles["argos-forge-light-sweep"]} />
+      <div className={styles["argos-forge-ribbons"]}>
         <span />
         <span />
         <span />
       </div>
-      <div className="argos-forge-sparks">
+      <div className={styles["argos-forge-sparks"]}>
         <span />
         <span />
         <span />
         <span />
         <span />
       </div>
-      <div className="argos-forge-vignette" />
+      <div className={styles["argos-forge-vignette"]} />
     </div>
   );
+}
+
+function cx(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(" ");
 }
 
 function clamp(value: number, min: number, max: number) {

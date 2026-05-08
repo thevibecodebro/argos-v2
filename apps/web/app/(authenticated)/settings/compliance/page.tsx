@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { CompliancePanel } from "@/components/page-panel-loaders";
+import { CompliancePanel } from "@/components/panel-loaders/compliance-panel-loader";
 import {
   getCachedAuthenticatedSupabaseUser,
   getCachedCurrentUserDetails,

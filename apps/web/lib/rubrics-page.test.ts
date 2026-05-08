@@ -28,7 +28,7 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
-vi.mock("@/components/page-panel-loaders", () => ({
+vi.mock("@/components/panel-loaders/rubrics-panel-loader", () => ({
   RubricsPanel: () => "Active Rubric Version History",
 }));
 

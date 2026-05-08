@@ -1,4 +1,4 @@
-import { TeamsPanel } from "@/components/page-panel-loaders";
+import { TeamsPanel } from "@/components/panel-loaders/teams-panel-loader";
 import { SettingsOperationalLayout } from "../../settings-operational-layout";
 import { loadAdminTeamsSettings } from "../teams-page-data";
 

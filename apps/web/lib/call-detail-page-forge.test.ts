@@ -21,7 +21,7 @@ vi.mock("next/navigation", () => ({
   notFound: notFoundMock,
 }));
 
-vi.mock("@/components/page-panel-loaders", () => ({
+vi.mock("@/components/panel-loaders/call-detail-panel-loader", () => ({
   CallDetailPanel: () => "Call detail panel marker",
 }));
 

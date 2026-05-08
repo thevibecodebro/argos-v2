@@ -4,7 +4,7 @@ import {
   OperationalToolbar,
   OperationalWorkspace,
 } from "@/components/operational-workspace";
-import { TrainingLearnerPanel } from "@/components/page-panel-loaders";
+import { TrainingLearnerPanel } from "@/components/panel-loaders/training-learner-panel-loader";
 import { loadTrainingPageData } from "./training-page-data";
 
 export default async function TrainingPage() {

@@ -108,21 +108,57 @@ vi.mock("@/components/roleplay-panel", () => ({
   RoleplayPanel: () => "Roleplay panel marker",
 }));
 
-vi.mock("@/components/page-panel-loaders", () => ({
+vi.mock("@/components/panel-loaders/account-panel-loader", () => ({
+  AccountPanel: () => "Account panel marker",
+}));
+
+vi.mock("@/components/panel-loaders/call-detail-panel-loader", () => ({
+  CallDetailPanel: () => "Call detail panel marker",
+}));
+
+vi.mock("@/components/panel-loaders/compliance-panel-loader", () => ({
+  CompliancePanel: () => "Compliance panel marker",
+}));
+
+vi.mock("@/components/panel-loaders/integrations-panel-loader", () => ({
+  IntegrationsPanel: () => "Integrations panel marker",
+}));
+
+vi.mock("@/components/panel-loaders/notifications-panel-loader", () => ({
+  NotificationsPanel: () => "Notifications panel marker",
+}));
+
+vi.mock("@/components/panel-loaders/people-panel-loader", () => ({
+  PeoplePanel: () => "People panel marker",
+}));
+
+vi.mock("@/components/panel-loaders/permissions-panel-loader", () => ({
+  PermissionsPanel: () => "Permissions panel marker",
+}));
+
+vi.mock("@/components/panel-loaders/roleplay-panel-loader", () => ({
+  RoleplayPanel: () => "Roleplay panel marker",
+}));
+
+vi.mock("@/components/panel-loaders/rubrics-panel-loader", () => ({
+  RubricsPanel: () => "Rubrics panel marker",
+}));
+
+vi.mock("@/components/panel-loaders/teams-panel-loader", () => ({
+  TeamsPanel: () => "Teams panel marker",
+}));
+
+vi.mock("@/components/panel-loaders/training-curriculum-panel-loader", () => ({
   TrainingCurriculumPanel: () =>
     "Training curriculum panel marker Create module Edit selected module Assign selected module",
+}));
+
+vi.mock("@/components/panel-loaders/training-learner-panel-loader", () => ({
   TrainingLearnerPanel: () => "Training learner panel marker",
+}));
+
+vi.mock("@/components/panel-loaders/upload-call-panel-loader", () => ({
   UploadCallPanel: () => "Upload call panel marker",
-  NotificationsPanel: () => "Notifications panel marker",
-  RoleplayPanel: () => "Roleplay panel marker",
-  AccountPanel: () => "Account panel marker",
-  PeoplePanel: () => "People panel marker",
-  TeamsPanel: () => "Teams panel marker",
-  PermissionsPanel: () => "Permissions panel marker",
-  IntegrationsPanel: () => "Integrations panel marker",
-  RubricsPanel: () => "Rubrics panel marker",
-  CompliancePanel: () => "Compliance panel marker",
-  CallDetailPanel: () => "Call detail panel marker",
 }));
 
 vi.mock("@/components/settings/account-panel", () => ({

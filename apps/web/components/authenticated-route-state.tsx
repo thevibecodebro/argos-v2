@@ -1,10 +1,6 @@
-"use client";
-
 import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
 import {
-  ForgeButton,
   ForgeEmptyState,
-  ForgeErrorState,
   ForgeSkeleton,
   ForgeStatusPanel,
 } from "@/components/forge";
@@ -22,11 +18,6 @@ type AuthenticatedRouteStateCopy = {
 type AuthenticatedRouteLoadingProps = AuthenticatedRouteStateCopy & {
   lines?: number;
   skeletonLabel?: string;
-};
-
-type AuthenticatedRouteErrorProps = AuthenticatedRouteStateCopy & {
-  error?: (Error & { digest?: string }) | null;
-  reset: () => void;
 };
 
 type AuthenticatedRouteNotFoundProps = AuthenticatedRouteStateCopy & {
@@ -68,46 +59,6 @@ export function AuthenticatedRouteLoading({
           <ForgeSkeleton label={loadingLabel} lines={lines} />
           <ForgeSkeleton label={`${loadingLabel} supporting panels`} lines={Math.max(2, lines - 1)} />
         </div>
-      </PageFrame>
-    </AuthenticatedPageContainer>
-  );
-}
-
-export function AuthenticatedRouteError({
-  description,
-  error,
-  eyebrow,
-  reset,
-  size = "standard",
-  title,
-}: AuthenticatedRouteErrorProps) {
-  return (
-    <AuthenticatedPageContainer data-authenticated-route-state="error" size={size}>
-      <PageFrame
-        description={description}
-        eyebrow={eyebrow}
-        statusChips={[{ icon: "warning", label: "Needs retry", tone: "danger" }]}
-        title={title}
-        tone="warning"
-      >
-        <ForgeErrorState
-          description="Something interrupted this view before the data finished loading. Try again, or return to the dashboard."
-          title={`${title} could not be loaded`}
-        >
-          {error?.digest ? (
-            <p className="text-xs leading-5 text-[var(--forge-muted)]">
-              Error reference: {error.digest}
-            </p>
-          ) : null}
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <ForgeButton icon="pending" onClick={reset} type="button" variant="primary">
-              Try again
-            </ForgeButton>
-            <ForgeButton href="/dashboard" icon="dashboard" variant="secondary">
-              Back to dashboard
-            </ForgeButton>
-          </div>
-        </ForgeErrorState>
       </PageFrame>
     </AuthenticatedPageContainer>
   );

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { PeoplePanel } from "@/components/page-panel-loaders";
+import { PeoplePanel } from "@/components/panel-loaders/people-panel-loader";
 import {
   getCachedAuthenticatedSupabaseUser,
   getCachedCurrentUserDetails,

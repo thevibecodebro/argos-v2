@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
-import { CallDetailPanel } from "@/components/page-panel-loaders";
+import { CallDetailPanel } from "@/components/panel-loaders/call-detail-panel-loader";
 import {
   OperationalMetricStrip,
   OperationalPreviewDrawer,

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { IntegrationsPanel } from "@/components/page-panel-loaders";
+import { IntegrationsPanel } from "@/components/panel-loaders/integrations-panel-loader";
 import {
   getCachedAuthenticatedSupabaseUser,
   getCachedCurrentUserDetails,

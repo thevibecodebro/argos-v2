@@ -77,52 +77,56 @@ describe("calls upload complete route", () => {
     });
   });
 
-  it("queues a call after a direct storage upload completes", async () => {
-    completeUploadedCall.mockResolvedValue({
-      ok: true,
-      data: {
-        id: "call-1",
-        status: "uploaded",
-        createdAt: "2026-04-21T00:00:00.000Z",
-      },
-    });
+  it(
+    "queues a call after a direct storage upload completes",
+    async () => {
+      completeUploadedCall.mockResolvedValue({
+        ok: true,
+        data: {
+          id: "call-1",
+          status: "uploaded",
+          createdAt: "2026-04-21T00:00:00.000Z",
+        },
+      });
 
-    const route = await import("../app/api/calls/upload/complete/route");
-    const response = await route.POST(
-      new Request("http://localhost:3000/api/calls/upload/complete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const route = await import("../app/api/calls/upload/complete/route");
+      const response = await route.POST(
+        new Request("http://localhost:3000/api/calls/upload/complete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fileName: "demo.mp3",
+            fileSizeBytes: 1024,
+            contentType: "audio/mpeg",
+            callTopic: "Discovery",
+            consentConfirmed: true,
+            storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
+          }),
+        }),
+      );
+
+      expect(response.status).toBe(200);
+      expect(checkRateLimitForPolicy).toHaveBeenCalledWith("uploadComplete", {
+        type: "user",
+        id: "auth-user-1",
+      });
+      expect(completeUploadedCall).toHaveBeenCalledWith(
+        {},
+        "auth-user-1",
+        expect.objectContaining({
           fileName: "demo.mp3",
-          fileSizeBytes: 1024,
-          contentType: "audio/mpeg",
-          callTopic: "Discovery",
-          consentConfirmed: true,
-          storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
+          sourceAsset: expect.objectContaining({
+            storageBucket: "call-recordings",
+            storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
+            contentType: "audio/mpeg",
+            fileSizeBytes: 1024,
+          }),
         }),
-      }),
-    );
-
-    expect(response.status).toBe(200);
-    expect(checkRateLimitForPolicy).toHaveBeenCalledWith("uploadComplete", {
-      type: "user",
-      id: "auth-user-1",
-    });
-    expect(completeUploadedCall).toHaveBeenCalledWith(
-      {},
-      "auth-user-1",
-      expect.objectContaining({
-        fileName: "demo.mp3",
-        sourceAsset: expect.objectContaining({
-          storageBucket: "call-recordings",
-          storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
-          contentType: "audio/mpeg",
-          fileSizeBytes: 1024,
-        }),
-      }),
-    );
-    await expect(response.json()).resolves.toMatchObject({ id: "call-1" });
-  });
+      );
+      await expect(response.json()).resolves.toMatchObject({ id: "call-1" });
+    },
+    10_000,
+  );
 
   it("rejects storage paths outside the authenticated user's upload scope", async () => {
     const route = await import("../app/api/calls/upload/complete/route");

@@ -1,4 +1,4 @@
-import { PermissionsPanel } from "@/components/page-panel-loaders";
+import { PermissionsPanel } from "@/components/panel-loaders/permissions-panel-loader";
 import { SettingsOperationalLayout } from "../../settings-operational-layout";
 import { loadAdminPermissionsSettings } from "../permissions-page-data";
 

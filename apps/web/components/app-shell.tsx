@@ -9,7 +9,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@argos-v2/ui";
-import { FeedbackDialog } from "./feedback-widget";
+import { FeedbackDialogLoader } from "./feedback-dialog-loader";
 import { ForgeIcon } from "./forge";
 import type { AppUserRole } from "@/lib/users/roles";
 
@@ -256,7 +256,10 @@ export function AuthenticatedAppShell({
                   alt={`${user.orgName ?? "Organization"} logo`}
                   className="max-h-10 max-w-36 object-contain"
                   data-primary-rail-org-logo="true"
+                  decoding="async"
+                  height={40}
                   src={user.orgLogoUrl}
+                  width={144}
                 />
               ) : (
                 <h1 className="font-[var(--font-display)] text-2xl font-bold tracking-[-0.04em] text-[var(--forge-text)]">
@@ -475,7 +478,12 @@ export function AuthenticatedAppShell({
           </div>
         </header>
 
-        <FeedbackDialog onOpenChange={setFeedbackOpen} open={feedbackOpen} />
+        {feedbackOpen ? (
+          <FeedbackDialogLoader
+            onOpenChange={setFeedbackOpen}
+            open={feedbackOpen}
+          />
+        ) : null}
         <main className="min-h-dvh pt-16">{children}</main>
       </div>
     </div>

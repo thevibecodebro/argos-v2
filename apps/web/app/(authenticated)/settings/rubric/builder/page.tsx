@@ -1,4 +1,4 @@
-import { RubricsPanel } from "@/components/page-panel-loaders";
+import { RubricsPanel } from "@/components/panel-loaders/rubrics-panel-loader";
 import { SettingsOperationalLayout } from "../../settings-operational-layout";
 import { loadAdminRubricSettings } from "../rubric-page-data";
 

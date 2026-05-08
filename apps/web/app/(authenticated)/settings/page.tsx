@@ -7,7 +7,7 @@ import {
   OperationalToolbar,
   OperationalWorkspace,
 } from "@/components/operational-workspace";
-import { AccountPanel } from "@/components/page-panel-loaders";
+import { AccountPanel } from "@/components/panel-loaders/account-panel-loader";
 import { SettingsSecondaryRail } from "@/components/settings/settings-secondary-rail";
 import {
   getCachedAuthenticatedSupabaseUser,

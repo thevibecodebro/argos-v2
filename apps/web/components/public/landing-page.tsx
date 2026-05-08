@@ -4,6 +4,7 @@ import { getBillingCheckoutHref, type BillingPlanId } from "@/lib/billing/plans"
 import { ArgosSceneLoader } from "./argos-scene-loader";
 import { LegalFooterLinks } from "./legal-links";
 import { LandingMotionController } from "./landing-motion-controller";
+import styles from "./landing-page.module.css";
 
 const navLinks = [
   { label: "Calls", href: "#features" },
@@ -83,7 +84,10 @@ const extraVoicePacks = [
 
 export function LandingPage() {
   return (
-    <div className="argos-3d-page min-h-screen overflow-x-hidden text-[var(--forge-text)]" id="top">
+    <div
+      className={cx(styles["argos-3d-page"], "min-h-screen overflow-x-hidden text-[var(--forge-text)]")}
+      id="top"
+    >
       <ArgosSceneLoader />
       <LandingMotionController />
       <LandingHeader />
@@ -101,14 +105,18 @@ export function LandingPage() {
 
 function LandingHeader() {
   return (
-    <header className="argos-nav-shell" aria-label="Primary navigation">
-      <nav className="argos-nav">
-        <Link aria-label="Argos homepage" className="argos-brand" href="/">
-          <span className="argos-brand-mark" aria-hidden="true" />
+    <header className={styles["argos-nav-shell"]} aria-label="Primary navigation">
+      <nav className={styles["argos-nav"]}>
+        <Link aria-label="Argos homepage" className={styles["argos-brand"]} href="/">
+          <span className={styles["argos-brand-mark"]} aria-hidden="true" />
           <span>ARGOS</span>
         </Link>
 
-        <div className="argos-nav-links" aria-label="Page sections">
+        <div
+          aria-label="Page sections"
+          className={styles["argos-nav-links"]}
+          data-landing-nav-links="true"
+        >
           {navLinks.map((link) => (
             <a href={link.href} key={link.label}>
               {link.label}
@@ -116,11 +124,11 @@ function LandingHeader() {
           ))}
         </div>
 
-        <div className="argos-nav-actions">
-          <Link className="argos-login-link" href="/login">
+        <div className={styles["argos-nav-actions"]}>
+          <Link className={styles["argos-login-link"]} href="/login">
             Login
           </Link>
-          <Link className="argos-mini-cta" href="/login">
+          <Link className={styles["argos-mini-cta"]} href="/login">
             Access
           </Link>
         </div>
@@ -131,25 +139,25 @@ function LandingHeader() {
 
 function LandingHero() {
   return (
-    <section className="argos-hero" id="platform">
-      <div className="argos-hero-copy" data-reveal>
-        <p className="argos-eyebrow">Sales call review, coaching, and roleplay</p>
+    <section className={styles["argos-hero"]} id="platform">
+      <div className={styles["argos-hero-copy"]} data-reveal>
+        <p className={styles["argos-eyebrow"]}>Sales call review, coaching, and roleplay</p>
         <h1>Argos</h1>
-        <p className="argos-hero-line">Turn every sales call into the next practice plan.</p>
-        <p className="argos-hero-body">
+        <p className={styles["argos-hero-line"]}>Turn every sales call into the next practice plan.</p>
+        <p className={styles["argos-hero-body"]}>
           Argos pulls in a call from Zoom or a manual upload, transcribes the conversation, scores
           it against your rubric, and shows the few moments worth coaching. Managers can assign
           training, launch roleplay, and see where the team needs work.
         </p>
-        <div className="argos-hero-actions">
+        <div className={styles["argos-hero-actions"]}>
           <PremiumButton href="/login">Access platform</PremiumButton>
-          <a className="argos-secondary-action" href="#features">
+          <a className={styles["argos-secondary-action"]} href="#features">
             See the call flow
           </a>
         </div>
       </div>
 
-      <div className="argos-hero-meter" aria-hidden="true" data-reveal>
+      <div className={styles["argos-hero-meter"]} aria-hidden="true" data-reveal>
         <span>Revenue Command</span>
         <strong>call in, next drill out</strong>
       </div>
@@ -159,9 +167,9 @@ function LandingHero() {
 
 function LandingFeatures() {
   return (
-    <section className="argos-section argos-feature-section" id="features">
-      <div className="argos-section-copy" data-reveal>
-        <p className="argos-eyebrow">How Argos works</p>
+    <section className={cx(styles["argos-section"], styles["argos-feature-section"])} id="features">
+      <div className={styles["argos-section-copy"]} data-reveal>
+        <p className={styles["argos-eyebrow"]}>How Argos works</p>
         <h2>The call becomes the coaching plan.</h2>
         <p>
           A manager should not have to replay an hour of audio to find one teachable moment. Argos
@@ -169,10 +177,10 @@ function LandingFeatures() {
         </p>
       </div>
 
-      <div className="argos-feature-grid">
+      <div className={styles["argos-feature-grid"]}>
         {valueProps.map((item, index) => (
-          <article className="argos-feature-shell" data-reveal key={item.title}>
-            <div className="argos-feature-card">
+          <article className={styles["argos-feature-shell"]} data-reveal key={item.title}>
+            <div className={styles["argos-feature-card"]}>
               <span>{String(index + 1).padStart(2, "0")}</span>
               <h3>{item.title}</h3>
               <p>{item.body}</p>
@@ -186,9 +194,9 @@ function LandingFeatures() {
 
 function LandingProductDetail() {
   return (
-    <section className="argos-section argos-detail-section" id="detail">
-      <div className="argos-detail-copy" data-reveal>
-        <p className="argos-eyebrow">Product detail</p>
+    <section className={cx(styles["argos-section"], styles["argos-detail-section"])} id="detail">
+      <div className={styles["argos-detail-copy"]} data-reveal>
+        <p className={styles["argos-eyebrow"]}>Product detail</p>
         <h2>One thread from call review to practice.</h2>
         <p>
           A recorded call becomes a transcript, a rubric score, a short list of coaching moments,
@@ -197,9 +205,9 @@ function LandingProductDetail() {
         </p>
       </div>
 
-      <div className="argos-signal-track" data-reveal>
+      <div className={styles["argos-signal-track"]} data-reveal>
         {signalSteps.map((step, index) => (
-          <div className="argos-signal-step" key={step}>
+          <div className={styles["argos-signal-step"]} key={step}>
             <span>{String(index + 1).padStart(2, "0")}</span>
             <strong>{step}</strong>
           </div>
@@ -211,15 +219,15 @@ function LandingProductDetail() {
 
 function LandingTrust() {
   return (
-    <section className="argos-section argos-trust-section" id="trust">
-      <div className="argos-section-copy argos-trust-copy" data-reveal>
-        <p className="argos-eyebrow">For managers</p>
+    <section className={cx(styles["argos-section"], styles["argos-trust-section"])} id="trust">
+      <div className={cx(styles["argos-section-copy"], styles["argos-trust-copy"])} data-reveal>
+        <p className={styles["argos-eyebrow"]}>For managers</p>
         <h2>Coach from what happened, not from memory.</h2>
       </div>
 
-      <div className="argos-trust-list">
+      <div className={styles["argos-trust-list"]}>
         {trustPoints.map((point) => (
-          <article className="argos-trust-item" data-reveal key={point}>
+          <article className={styles["argos-trust-item"]} data-reveal key={point}>
             <p>{point}</p>
           </article>
         ))}
@@ -230,10 +238,10 @@ function LandingTrust() {
 
 function LandingAccess() {
   return (
-    <section className="argos-section argos-access-section" id="access">
-      <div className="argos-access-panel" data-reveal>
+    <section className={cx(styles["argos-section"], styles["argos-access-section"])} id="access">
+      <div className={styles["argos-access-panel"]} data-reveal>
         <div>
-          <p className="argos-eyebrow">Access model</p>
+          <p className={styles["argos-eyebrow"]}>Access model</p>
           <h2>Start with one rep. Add the team later.</h2>
           <p>
             Solo gives one seller a private practice loop. Team gives managers shared visibility,
@@ -241,19 +249,19 @@ function LandingAccess() {
           </p>
         </div>
 
-        <div className="argos-plan-row" aria-label="Argos pricing options">
+        <div className={styles["argos-plan-row"]} aria-label="Argos pricing options">
           {accessPlans.map((plan) => (
-            <article className="argos-plan" key={plan.name}>
+            <article className={styles["argos-plan"]} key={plan.name}>
               <span>{plan.name}</span>
               <strong>{plan.price}</strong>
               <p>{plan.detail}</p>
               <small>{plan.note}</small>
               <small>{plan.body}</small>
-              <div className="argos-plan-actions">
-                <Link className="argos-plan-button" href={getBillingCheckoutHref(plan.monthlyPlanId)}>
+              <div className={styles["argos-plan-actions"]}>
+                <Link className={styles["argos-plan-button"]} href={getBillingCheckoutHref(plan.monthlyPlanId)}>
                   Monthly checkout
                 </Link>
-                <Link className="argos-plan-secondary" href={getBillingCheckoutHref(plan.annualPlanId)}>
+                <Link className={styles["argos-plan-secondary"]} href={getBillingCheckoutHref(plan.annualPlanId)}>
                   Annual checkout
                 </Link>
               </div>
@@ -261,12 +269,12 @@ function LandingAccess() {
           ))}
         </div>
 
-        <div className="argos-credit-strip" aria-label="Extra voice packs">
+        <div className={styles["argos-credit-strip"]} aria-label="Extra voice packs">
           <div>
             <span>Extra voice packs</span>
             <p>Included minutes are used first. Purchased packs do not expire while subscribed.</p>
           </div>
-          <div className="argos-credit-list">
+          <div className={styles["argos-credit-list"]}>
             {extraVoicePacks.map((pack) => (
               <Link href={getBillingCheckoutHref(pack.planId)} key={pack.label}>
                 {pack.label} <strong>{pack.price}</strong>
@@ -275,9 +283,9 @@ function LandingAccess() {
           </div>
         </div>
 
-        <div className="argos-access-actions">
+        <div className={styles["argos-access-actions"]}>
           <PremiumButton href={getBillingCheckoutHref("team")}>Access platform</PremiumButton>
-          <Link className="argos-secondary-action" href="/login">
+          <Link className={styles["argos-secondary-action"]} href="/login">
             Book a demo
           </Link>
         </div>
@@ -288,14 +296,14 @@ function LandingAccess() {
 
 function LandingFooter() {
   return (
-    <footer className="argos-footer">
-      <div className="argos-footer-inner">
+    <footer className={styles["argos-footer"]}>
+      <div className={styles["argos-footer-inner"]}>
         <div>
-          <div className="argos-footer-brand">ARGOS</div>
+          <div className={styles["argos-footer-brand"]}>ARGOS</div>
           <p>© 2026 Argos Intelligence. All rights reserved.</p>
         </div>
         <LegalFooterLinks className="justify-center" />
-        <a aria-label="Back to top" className="argos-top-link" href="#top">
+        <a aria-label="Back to top" className={styles["argos-top-link"]} href="#top">
           &uarr;
         </a>
       </div>
@@ -305,11 +313,15 @@ function LandingFooter() {
 
 function PremiumButton({ children, href }: { children: ReactNode; href: string }) {
   return (
-    <Link className="argos-primary-action group" href={href}>
+    <Link className={cx(styles["argos-primary-action"], "group")} href={href}>
       <span>{children}</span>
-      <span className="argos-action-disc" aria-hidden="true">
+      <span className={styles["argos-action-disc"]} aria-hidden="true">
         &rarr;
       </span>
     </Link>
   );
+}
+
+function cx(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(" ");
 }

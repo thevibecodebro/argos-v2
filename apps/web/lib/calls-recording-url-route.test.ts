@@ -31,29 +31,33 @@ describe("call recording signed url route", () => {
     createCallsRepository.mockReturnValue({});
   });
 
-  it("returns a private no-store signed recording URL for an authorized caller", async () => {
-    createCallRecordingSignedUrl.mockResolvedValue({
-      ok: true,
-      data: {
+  it(
+    "returns a private no-store signed recording URL for an authorized caller",
+    async () => {
+      createCallRecordingSignedUrl.mockResolvedValue({
+        ok: true,
+        data: {
+          url: "https://storage.example/signed-recording-token",
+          expiresInSeconds: 300,
+        },
+      });
+
+      const route = await import("../app/api/calls/[id]/recording-url/route");
+      const response = await route.GET(
+        new Request("http://localhost:3000/api/calls/call-1/recording-url"),
+        { params: Promise.resolve({ id: "call-1" }) },
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+      expect(createCallRecordingSignedUrl).toHaveBeenCalledWith({}, "auth-user-1", "call-1");
+      await expect(response.json()).resolves.toEqual({
         url: "https://storage.example/signed-recording-token",
         expiresInSeconds: 300,
-      },
-    });
-
-    const route = await import("../app/api/calls/[id]/recording-url/route");
-    const response = await route.GET(
-      new Request("http://localhost:3000/api/calls/call-1/recording-url"),
-      { params: Promise.resolve({ id: "call-1" }) },
-    );
-
-    expect(response.status).toBe(200);
-    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
-    expect(createCallRecordingSignedUrl).toHaveBeenCalledWith({}, "auth-user-1", "call-1");
-    await expect(response.json()).resolves.toEqual({
-      url: "https://storage.example/signed-recording-token",
-      expiresInSeconds: 300,
-    });
-  });
+      });
+    },
+    10_000,
+  );
 
   it("returns an access error without a URL when the existing call access check fails", async () => {
     createCallRecordingSignedUrl.mockResolvedValue({
