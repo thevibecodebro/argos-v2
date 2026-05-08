@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@argos-v2/ui";
 import { ForgeDialog } from "./forge-dialog";
@@ -10,6 +10,11 @@ type FeedbackCategory = "bug" | "feedback" | "question";
 type FeedbackStatus = {
   message: string;
   tone: "success" | "danger";
+};
+
+type FeedbackDialogProps = {
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
 };
 
 const categories: Array<{
@@ -33,17 +38,22 @@ async function readFeedbackResponse(response: Response) {
     : "Feedback could not be sent right now.";
 }
 
-export function FeedbackWidget() {
+export function FeedbackDialog({ onOpenChange, open }: FeedbackDialogProps) {
   const pathname = usePathname();
   const [category, setCategory] = useState<FeedbackCategory>("feedback");
   const [message, setMessage] = useState("");
-  const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<FeedbackStatus | null>(null);
   const [subject, setSubject] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const trimmedMessage = message.trim();
   const canSubmit = trimmedMessage.length >= 10 && !submitting;
+
+  useEffect(() => {
+    if (open) {
+      setStatus(null);
+    }
+  }, [open]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -99,6 +109,116 @@ export function FeedbackWidget() {
   }
 
   return (
+    <ForgeDialog
+      description="Send a bug, product note, or question with your current page attached."
+      footer={
+        <>
+          <ForgeButton
+            onClick={() => onOpenChange(false)}
+            type="button"
+            variant="ghost"
+          >
+            Cancel
+          </ForgeButton>
+          <ForgeButton
+            disabled={!canSubmit}
+            form="feedback-widget-form"
+            icon={submitting ? "progress_activity" : "send"}
+            type="submit"
+            variant="primary"
+          >
+            {submitting ? "Sending" : "Send"}
+          </ForgeButton>
+        </>
+      }
+      onOpenChange={onOpenChange}
+      open={open}
+      title="Send feedback"
+    >
+      <form
+        className="grid gap-5"
+        id="feedback-widget-form"
+        onSubmit={handleSubmit}
+      >
+        <fieldset className="grid gap-2">
+          <legend className="sr-only">Feedback type</legend>
+          <div className="grid grid-cols-3 gap-2">
+            {categories.map((item) => {
+              const selected = category === item.value;
+              return (
+                <button
+                  aria-pressed={selected}
+                  className={cn(
+                    "forge-focus-ring flex min-h-12 items-center justify-center gap-2 rounded-xl border px-3 font-[var(--font-display)] text-xs font-bold uppercase tracking-[0.12em] transition",
+                    selected
+                      ? "border-[rgba(241,191,123,0.42)] bg-[rgba(241,191,123,0.12)] text-[var(--forge-gold)]"
+                      : "border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] text-[var(--forge-muted)] hover:border-[rgba(241,191,123,0.28)] hover:text-[var(--forge-text)]",
+                  )}
+                  key={item.value}
+                  onClick={() => setCategory(item.value)}
+                  type="button"
+                >
+                  <ForgeIcon name={item.icon} size={16} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+
+        <label className="grid gap-2">
+          <span className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-gold)]">
+            Subject
+          </span>
+          <input
+            className="forge-focus-ring min-h-11 rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 text-sm text-[var(--forge-text)] outline-none transition placeholder:text-[var(--forge-faint)] focus:border-[rgba(241,191,123,0.45)]"
+            maxLength={140}
+            onChange={(event) => setSubject(event.target.value)}
+            placeholder="Optional"
+            value={subject}
+          />
+        </label>
+
+        <label className="grid gap-2">
+          <span className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-gold)]">
+            Message
+          </span>
+          <textarea
+            className="forge-focus-ring min-h-36 resize-y rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3 text-sm leading-6 text-[var(--forge-text)] outline-none transition placeholder:text-[var(--forge-faint)] focus:border-[rgba(241,191,123,0.45)]"
+            maxLength={4000}
+            onChange={(event) => setMessage(event.target.value)}
+            placeholder="What happened, what did you expect, or what would make this better?"
+            required
+            value={message}
+          />
+          <span className="text-right text-xs text-[var(--forge-faint)]">
+            {trimmedMessage.length}/4000
+          </span>
+        </label>
+
+        {status ? (
+          <p
+            aria-live={status.tone === "danger" ? "assertive" : "polite"}
+            className={cn(
+              "rounded-xl border px-3 py-2 text-sm",
+              status.tone === "success"
+                ? "border-[rgba(139,215,168,0.3)] bg-[rgba(139,215,168,0.1)] text-[var(--forge-success)]"
+                : "border-[rgba(255,113,108,0.3)] bg-[rgba(255,113,108,0.1)] text-[var(--forge-danger)]",
+            )}
+            role={status.tone === "danger" ? "alert" : "status"}
+          >
+            {status.message}
+          </p>
+        ) : null}
+      </form>
+    </ForgeDialog>
+  );
+}
+
+export function FeedbackWidget() {
+  const [open, setOpen] = useState(false);
+
+  return (
     <>
       <button
         aria-label="Open bugs and feedback form"
@@ -106,7 +226,6 @@ export function FeedbackWidget() {
         data-feedback-widget="true"
         onClick={() => {
           setOpen(true);
-          setStatus(null);
         }}
         type="button"
       >
@@ -116,109 +235,7 @@ export function FeedbackWidget() {
         </span>
       </button>
 
-      <ForgeDialog
-        description="Send a bug, product note, or question with your current page attached."
-        footer={
-          <>
-            <ForgeButton
-              onClick={() => setOpen(false)}
-              type="button"
-              variant="ghost"
-            >
-              Cancel
-            </ForgeButton>
-            <ForgeButton
-              disabled={!canSubmit}
-              form="feedback-widget-form"
-              icon={submitting ? "progress_activity" : "send"}
-              type="submit"
-              variant="primary"
-            >
-              {submitting ? "Sending" : "Send"}
-            </ForgeButton>
-          </>
-        }
-        onOpenChange={setOpen}
-        open={open}
-        title="Send feedback"
-      >
-        <form
-          className="grid gap-5"
-          id="feedback-widget-form"
-          onSubmit={handleSubmit}
-        >
-          <fieldset className="grid gap-2">
-            <legend className="sr-only">Feedback type</legend>
-            <div className="grid grid-cols-3 gap-2">
-              {categories.map((item) => {
-                const selected = category === item.value;
-                return (
-                  <button
-                    aria-pressed={selected}
-                    className={cn(
-                      "forge-focus-ring flex min-h-12 items-center justify-center gap-2 rounded-xl border px-3 font-[var(--font-display)] text-xs font-bold uppercase tracking-[0.12em] transition",
-                      selected
-                        ? "border-[rgba(241,191,123,0.42)] bg-[rgba(241,191,123,0.12)] text-[var(--forge-gold)]"
-                        : "border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] text-[var(--forge-muted)] hover:border-[rgba(241,191,123,0.28)] hover:text-[var(--forge-text)]",
-                    )}
-                    key={item.value}
-                    onClick={() => setCategory(item.value)}
-                    type="button"
-                  >
-                    <ForgeIcon name={item.icon} size={16} />
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </fieldset>
-
-          <label className="grid gap-2">
-            <span className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-gold)]">
-              Subject
-            </span>
-            <input
-              className="forge-focus-ring min-h-11 rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 text-sm text-[var(--forge-text)] outline-none transition placeholder:text-[var(--forge-faint)] focus:border-[rgba(241,191,123,0.45)]"
-              maxLength={140}
-              onChange={(event) => setSubject(event.target.value)}
-              placeholder="Optional"
-              value={subject}
-            />
-          </label>
-
-          <label className="grid gap-2">
-            <span className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-gold)]">
-              Message
-            </span>
-            <textarea
-              className="forge-focus-ring min-h-36 resize-y rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3 text-sm leading-6 text-[var(--forge-text)] outline-none transition placeholder:text-[var(--forge-faint)] focus:border-[rgba(241,191,123,0.45)]"
-              maxLength={4000}
-              onChange={(event) => setMessage(event.target.value)}
-              placeholder="What happened, what did you expect, or what would make this better?"
-              required
-              value={message}
-            />
-            <span className="text-right text-xs text-[var(--forge-faint)]">
-              {trimmedMessage.length}/4000
-            </span>
-          </label>
-
-          {status ? (
-            <p
-              aria-live={status.tone === "danger" ? "assertive" : "polite"}
-              className={cn(
-                "rounded-xl border px-3 py-2 text-sm",
-                status.tone === "success"
-                  ? "border-[rgba(139,215,168,0.3)] bg-[rgba(139,215,168,0.1)] text-[var(--forge-success)]"
-                  : "border-[rgba(255,113,108,0.3)] bg-[rgba(255,113,108,0.1)] text-[var(--forge-danger)]",
-              )}
-              role={status.tone === "danger" ? "alert" : "status"}
-            >
-              {status.message}
-            </p>
-          ) : null}
-        </form>
-      </ForgeDialog>
+      <FeedbackDialog onOpenChange={setOpen} open={open} />
     </>
   );
 }

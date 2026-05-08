@@ -1,7 +1,10 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AuthenticatedAppShell } from "../components/app-shell";
+import {
+  AuthenticatedAppShell,
+  getNavigationPendingState,
+} from "../components/app-shell";
 
 const { usePathnameMock } = vi.hoisted(() => ({
   usePathnameMock: vi.fn(),
@@ -39,10 +42,13 @@ describe("AuthenticatedAppShell", () => {
     expect(html).toContain('href="/training"');
     expect(html).toContain('href="/leaderboard"');
     expect(html).toContain('href="/team"');
-    // Header items
-    expect(html).toContain('href="/upload"');
+    // Header topbar stays visually quiet; these actions live elsewhere.
+    expect(html).not.toContain('href="/upload"');
+    expect(html).not.toContain("Argos Team");
     // Account menu and bottom rail utility items
+    expect(html).toContain('data-account-menu-item="feedback"');
     expect(html).toContain('data-account-menu-item="notifications"');
+    expect(html).not.toContain('data-account-menu-item="settings"');
     expect(html).toContain('href="/notifications"');
     expect(html).toContain('data-primary-rail-footer-link="settings"');
     expect(html).toContain('href="/settings"');
@@ -82,7 +88,7 @@ describe("AuthenticatedAppShell", () => {
     expect(html).toContain("Sign out");
   });
 
-  it("mounts a persistent feedback launcher inside the authenticated shell", () => {
+  it("places the feedback launcher inside the account menu", () => {
     const html = renderToStaticMarkup(
       createElement(AuthenticatedAppShell, {
         user: managerUser,
@@ -90,8 +96,8 @@ describe("AuthenticatedAppShell", () => {
       }),
     );
 
-    expect(html).toContain('data-feedback-widget="true"');
-    expect(html).toContain('aria-label="Open bugs and feedback form"');
+    expect(html).toContain('data-account-menu-item="feedback"');
+    expect(html).not.toContain('data-feedback-widget="true"');
     expect(html).toContain("Bugs and feedback");
   });
 
@@ -122,6 +128,10 @@ describe("AuthenticatedAppShell", () => {
     expect(html).toContain('data-shell-theme="forge"');
     expect(html).toContain("Open navigation");
     expect(html).toContain("Revenue Command");
+    expect(html).toContain('aria-label="Collapse navigation"');
+    expect(html).toContain('data-primary-rail-toggle-icon="collapse"');
+    expect(html).not.toContain('data-forge-icon-name="chevron_left"');
+    expect(html).not.toContain('data-forge-icon-name="insights"');
     expect(html).not.toContain("Sales forge");
     expect(html).not.toContain("#74b1ff");
     expect(html).not.toContain("#6dddff");
@@ -155,6 +165,8 @@ describe("AuthenticatedAppShell", () => {
 
     expect(html).toContain('data-primary-rail-collapsed="true"');
     expect(html).toContain("Expand navigation");
+    expect(html).toContain('data-primary-rail-toggle-icon="expand"');
+    expect(html).not.toContain('data-forge-icon-name="chevron_right"');
     expect(html).toContain('aria-label="Dashboard"');
     expect(html).toContain('data-primary-rail-label="true"');
   });
@@ -195,5 +207,37 @@ describe("AuthenticatedAppShell", () => {
     );
 
     expect(settingsHtml).toContain('data-docked-secondary-rail="true"');
+  });
+
+  it("keeps a clicked menu destination pending until the route catches up", () => {
+    const pending = getNavigationPendingState({
+      currentPath: "/dashboard",
+      destinations: [
+        { href: "/dashboard", label: "Dashboard" },
+        { href: "/calls", label: "Calls" },
+      ],
+      pendingHref: "/calls",
+    });
+
+    expect(pending).toMatchObject({
+      announcement: "Loading Calls",
+      isPending: true,
+      pendingHref: "/calls",
+    });
+
+    const settled = getNavigationPendingState({
+      currentPath: "/calls",
+      destinations: [
+        { href: "/dashboard", label: "Dashboard" },
+        { href: "/calls", label: "Calls" },
+      ],
+      pendingHref: "/calls",
+    });
+
+    expect(settled).toMatchObject({
+      announcement: "",
+      isPending: false,
+      pendingHref: null,
+    });
   });
 });

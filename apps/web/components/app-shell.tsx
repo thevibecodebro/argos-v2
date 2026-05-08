@@ -1,10 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@argos-v2/ui";
-import { FeedbackWidget } from "./feedback-widget";
+import { FeedbackDialog } from "./feedback-widget";
 import { ForgeIcon } from "./forge";
 import type { AppUserRole } from "@/lib/users/roles";
 
@@ -26,6 +31,17 @@ type NavItem = {
   href: string;
   label: string;
   icon: string;
+};
+
+type NavigationDestination = {
+  href: string;
+  label: string;
+};
+
+type NavigationPendingState = {
+  announcement: string;
+  isPending: boolean;
+  pendingHref: string | null;
 };
 
 type NavGroup = {
@@ -71,7 +87,9 @@ export function AuthenticatedAppShell({
 }: AuthenticatedAppShellProps) {
   const currentPath = usePathname();
   const [accountOpen, setAccountOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [primaryRailCollapsed, setPrimaryRailCollapsed] = useState(
     initialPrimaryRailCollapsed,
   );
@@ -88,6 +106,16 @@ export function AuthenticatedAppShell({
     return group.visibleTo.includes(user.role);
   });
   const visibleItems = visibleGroups.flatMap((group) => group.items);
+  const navigationDestinations: NavigationDestination[] = [
+    ...visibleItems.map(({ href, label }) => ({ href, label })),
+    { href: "/notifications", label: "Notifications" },
+    { href: "/settings", label: "Settings" },
+  ];
+  const navigationPendingState = getNavigationPendingState({
+    currentPath,
+    destinations: navigationDestinations,
+    pendingHref,
+  });
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -128,6 +156,24 @@ export function AuthenticatedAppShell({
   }, [currentPath]);
 
   useEffect(() => {
+    setPendingHref((current) =>
+      current && isRouteActive(currentPath, current) ? null : current,
+    );
+  }, [currentPath]);
+
+  useEffect(() => {
+    if (!pendingHref) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setPendingHref((current) => (current === pendingHref ? null : current));
+    }, 10000);
+
+    return () => window.clearTimeout(timeout);
+  }, [pendingHref]);
+
+  useEffect(() => {
     const saved = window.localStorage.getItem("argos.primaryRailCollapsed");
     if (saved === "true" || saved === "false") {
       setPrimaryRailCollapsed(saved === "true");
@@ -142,13 +188,46 @@ export function AuthenticatedAppShell({
     });
   }
 
+  function handleRouteLinkClick(
+    event: ReactMouseEvent<HTMLAnchorElement>,
+    href: string,
+  ) {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey ||
+      isRouteActive(currentPath, href)
+    ) {
+      return;
+    }
+
+    setPendingHref(href);
+  }
+
   return (
     <div
+      aria-busy={navigationPendingState.isPending ? "true" : undefined}
       className="forge-shell min-h-dvh text-[var(--forge-text)]"
       data-docked-secondary-rail={hasDockedSecondaryRail ? "true" : undefined}
+      data-navigation-pending={
+        navigationPendingState.isPending ? "true" : undefined
+      }
+      data-navigation-pending-href={navigationPendingState.pendingHref ?? undefined}
       data-primary-rail-collapsed={primaryRailCollapsed ? "true" : "false"}
       data-shell-theme="forge"
     >
+      <p
+        aria-live="polite"
+        className="sr-only"
+        id="auth-navigation-status"
+        role="status"
+      >
+        {navigationPendingState.announcement}
+      </p>
+
       {mobileNavOpen ? (
         <button
           aria-label="Close navigation"
@@ -188,13 +267,6 @@ export function AuthenticatedAppShell({
                 Revenue Command
               </p>
             </div>
-            {primaryRailCollapsed ? null : (
-              <ForgeIcon
-                className="text-[var(--forge-gold)]"
-                name="insights"
-                size={21}
-              />
-            )}
             <button
               aria-label={
                 primaryRailCollapsed
@@ -210,9 +282,8 @@ export function AuthenticatedAppShell({
               }
               type="button"
             >
-              <ForgeIcon
-                name={primaryRailCollapsed ? "chevron_right" : "chevron_left"}
-                size={20}
+              <PrimaryRailToggleIcon
+                state={primaryRailCollapsed ? "expand" : "collapse"}
               />
             </button>
           </div>
@@ -233,6 +304,8 @@ export function AuthenticatedAppShell({
               icon={item.icon}
               key={item.href}
               label={item.label}
+              onClick={(event) => handleRouteLinkClick(event, item.href)}
+              pending={navigationPendingState.pendingHref === item.href}
             />
           ))}
         </nav>
@@ -247,15 +320,29 @@ export function AuthenticatedAppShell({
             aria-current={
               isRouteActive(currentPath, "/settings") ? "page" : undefined
             }
+            aria-describedby={
+              navigationPendingState.pendingHref === "/settings"
+                ? "auth-navigation-status"
+                : undefined
+            }
             aria-label="Settings"
             className={cn(
               "forge-nav-link flex items-center gap-3 rounded-2xl px-3 py-2.5 font-[var(--font-display)] text-[0.7rem] font-bold uppercase tracking-[0.16em]",
               primaryRailCollapsed && "lg:h-11 lg:justify-center lg:px-0",
               isRouteActive(currentPath, "/settings") &&
                 "forge-nav-link--active",
+              navigationPendingState.pendingHref === "/settings" &&
+                "forge-nav-link--pending",
             )}
+            data-navigation-link="/settings"
+            data-navigation-pending={
+              navigationPendingState.pendingHref === "/settings"
+                ? "true"
+                : undefined
+            }
             data-primary-rail-footer-link="settings"
             href="/settings"
+            onClick={(event) => handleRouteLinkClick(event, "/settings")}
             title={primaryRailCollapsed ? "Settings" : undefined}
           >
             <ForgeIcon name="settings" size={18} />
@@ -296,28 +383,6 @@ export function AuthenticatedAppShell({
           </div>
 
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-            <div className="hidden rounded-2xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-2 text-right sm:block">
-              <p className="max-w-40 truncate text-xs font-semibold text-[var(--forge-text)]">
-                {user.orgName ?? "Argos"}
-              </p>
-              <p className="font-[var(--font-display)] text-[0.58rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
-                {roleLabel}
-              </p>
-            </div>
-
-            <Link
-              className={cn(
-                "forge-button hidden px-3 py-2 text-xs uppercase tracking-[0.18em] sm:inline-flex",
-                isRouteActive(currentPath, "/upload")
-                  ? "forge-button-primary"
-                  : "forge-button-secondary",
-              )}
-              href="/upload"
-            >
-              <ForgeIcon name="cloud_upload" size={16} />
-              Upload call
-            </Link>
-
             <div className="relative" ref={accountRef}>
               <button
                 aria-controls="account-menu"
@@ -357,28 +422,39 @@ export function AuthenticatedAppShell({
                   </p>
                 </div>
 
+                <button
+                  className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-[var(--forge-muted)] transition hover:bg-[rgba(241,191,123,0.07)] hover:text-[var(--forge-text)]"
+                  data-account-menu-item="feedback"
+                  onClick={() => {
+                    setFeedbackOpen(true);
+                    setAccountOpen(false);
+                  }}
+                  role="menuitem"
+                  tabIndex={accountOpen ? 0 : -1}
+                  type="button"
+                >
+                  <ForgeIcon name="chat_bubble" size={17} />
+                  Bugs and feedback
+                </button>
+
                 <Link
                   className="flex items-center gap-3 px-4 py-3 text-sm text-[var(--forge-muted)] transition hover:bg-[rgba(241,191,123,0.07)] hover:text-[var(--forge-text)]"
                   data-account-menu-item="notifications"
+                  data-navigation-pending={
+                    navigationPendingState.pendingHref === "/notifications"
+                      ? "true"
+                      : undefined
+                  }
                   href="/notifications"
-                  onClick={() => setAccountOpen(false)}
+                  onClick={(event) => {
+                    handleRouteLinkClick(event, "/notifications");
+                    setAccountOpen(false);
+                  }}
                   role="menuitem"
                   tabIndex={accountOpen ? 0 : -1}
                 >
                   <ForgeIcon name="notifications" size={17} />
                   Notifications
-                </Link>
-
-                <Link
-                  className="flex items-center gap-3 px-4 py-3 text-sm text-[var(--forge-muted)] transition hover:bg-[rgba(241,191,123,0.07)] hover:text-[var(--forge-text)]"
-                  data-account-menu-item="settings"
-                  href="/settings"
-                  onClick={() => setAccountOpen(false)}
-                  role="menuitem"
-                  tabIndex={accountOpen ? 0 : -1}
-                >
-                  <ForgeIcon name="settings" size={17} />
-                  Settings
                 </Link>
 
                 <div className="border-t border-[var(--forge-border)]">
@@ -399,8 +475,8 @@ export function AuthenticatedAppShell({
           </div>
         </header>
 
+        <FeedbackDialog onOpenChange={setFeedbackOpen} open={feedbackOpen} />
         <main className="min-h-dvh pt-16">{children}</main>
-        <FeedbackWidget />
       </div>
     </div>
   );
@@ -412,23 +488,32 @@ function NavLink({
   icon,
   active,
   collapsed,
+  onClick,
+  pending,
 }: {
   href: string;
   label: string;
   icon: string;
   active: boolean;
   collapsed: boolean;
+  onClick: (event: ReactMouseEvent<HTMLAnchorElement>) => void;
+  pending: boolean;
 }) {
   return (
     <Link
       aria-label={label}
       aria-current={active ? "page" : undefined}
+      aria-describedby={pending ? "auth-navigation-status" : undefined}
       className={cn(
         "forge-nav-link flex items-center gap-3 rounded-2xl px-3 py-2.5 font-[var(--font-display)] text-[0.7rem] font-bold uppercase tracking-[0.16em]",
         collapsed && "lg:h-11 lg:justify-center lg:px-0",
         active && "forge-nav-link--active",
+        pending && "forge-nav-link--pending",
       )}
+      data-navigation-link={href}
+      data-navigation-pending={pending ? "true" : undefined}
       href={href}
+      onClick={onClick}
       title={collapsed ? label : undefined}
     >
       <ForgeIcon name={icon} size={18} />
@@ -442,8 +527,86 @@ function NavLink({
   );
 }
 
+function PrimaryRailToggleIcon({
+  state,
+}: {
+  state: "collapse" | "expand";
+}) {
+  const isCollapse = state === "collapse";
+
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-5 w-5"
+      data-primary-rail-toggle-icon={state}
+      fill="none"
+      focusable="false"
+      viewBox="0 0 20 20"
+    >
+      <rect
+        height="12"
+        rx="2"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        width="13.5"
+        x="3.25"
+        y="4"
+      />
+      <path
+        d="M7.25 4.75v10.5"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.6"
+      />
+      {isCollapse ? (
+        <path
+          d="M13.25 8.25 9.5 12l3.75 3.75M9.75 12h5"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.6"
+        />
+      ) : (
+        <path
+          d="M9 8.25 12.75 12 9 15.75M5.25 12h7.25"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.6"
+        />
+      )}
+    </svg>
+  );
+}
+
 function isRouteActive(currentPath: string, href: string) {
   return currentPath === href || currentPath.startsWith(`${href}/`);
+}
+
+export function getNavigationPendingState({
+  currentPath,
+  destinations,
+  pendingHref,
+}: {
+  currentPath: string;
+  destinations: NavigationDestination[];
+  pendingHref: string | null;
+}): NavigationPendingState {
+  if (!pendingHref || isRouteActive(currentPath, pendingHref)) {
+    return {
+      announcement: "",
+      isPending: false,
+      pendingHref: null,
+    };
+  }
+
+  const destination = destinations.find((item) => item.href === pendingHref);
+
+  return {
+    announcement: `Loading ${destination?.label ?? "page"}`,
+    isPending: true,
+    pendingHref,
+  };
 }
 
 function isDockedSecondaryRailRoute(currentPath: string) {
