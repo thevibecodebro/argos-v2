@@ -25,8 +25,11 @@ type NotificationsPanelProps = ComponentProps<
 type RoleplayPanelProps = ComponentProps<
   (typeof import("./roleplay-panel"))["RoleplayPanel"]
 >;
-type TrainingPanelProps = ComponentProps<
-  (typeof import("./training-panel"))["TrainingPanel"]
+type TrainingCurriculumPanelProps = ComponentProps<
+  (typeof import("./training-panel"))["TrainingCurriculumPanel"]
+>;
+type TrainingLearnerPanelProps = ComponentProps<
+  (typeof import("./training-panel"))["TrainingLearnerPanel"]
 >;
 type CallDetailPanelProps = ComponentProps<
   (typeof import("./call-detail-panel"))["CallDetailPanel"]
@@ -73,8 +76,12 @@ const DynamicRoleplayPanel = dynamic<RoleplayPanelProps>(
   () => import("./roleplay-panel").then((mod) => mod.RoleplayPanel),
   { loading: () => <PanelSkeleton className="min-h-[36rem]" lines={8} /> },
 );
-const DynamicTrainingPanel = dynamic<TrainingPanelProps>(
-  () => import("./training-panel").then((mod) => mod.TrainingPanel),
+const DynamicTrainingCurriculumPanel = dynamic<TrainingCurriculumPanelProps>(
+  () => import("./training-panel").then((mod) => mod.TrainingCurriculumPanel),
+  { loading: () => <PanelSkeleton className="min-h-[40rem]" lines={9} /> },
+);
+const DynamicTrainingLearnerPanel = dynamic<TrainingLearnerPanelProps>(
+  () => import("./training-panel").then((mod) => mod.TrainingLearnerPanel),
   { loading: () => <PanelSkeleton className="min-h-[40rem]" lines={9} /> },
 );
 const DynamicCallDetailPanel = dynamic<CallDetailPanelProps>(
@@ -130,8 +137,12 @@ export function RoleplayPanel(props: RoleplayPanelProps) {
   return <DynamicRoleplayPanel {...props} />;
 }
 
-export function TrainingPanel(props: TrainingPanelProps) {
-  return <DynamicTrainingPanel {...props} />;
+export function TrainingCurriculumPanel(props: TrainingCurriculumPanelProps) {
+  return <DynamicTrainingCurriculumPanel {...props} />;
+}
+
+export function TrainingLearnerPanel(props: TrainingLearnerPanelProps) {
+  return <DynamicTrainingLearnerPanel {...props} />;
 }
 
 export function CallDetailPanel(props: CallDetailPanelProps) {

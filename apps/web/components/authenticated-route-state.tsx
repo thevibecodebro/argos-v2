@@ -59,7 +59,7 @@ export function AuthenticatedRouteLoading({
       >
         <ForgeStatusPanel
           announce="polite"
-          description="Argos is preparing this workspace. Content will appear here when loading finishes."
+          description="Argos is preparing this page. Content will appear here when loading finishes."
           icon="pending"
           title={loadingLabel}
           tone="gold"

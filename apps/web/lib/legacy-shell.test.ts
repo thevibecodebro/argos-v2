@@ -63,7 +63,7 @@ describe("legacy UI shell", () => {
     expect(html).toContain("Turn every sales call into the next practice plan.");
     expect(html).toContain("Sales call review, coaching, and roleplay");
     expect(html).toContain('href="/login"');
-    expect(html).toContain("Coaching Forge");
+    expect(html).toContain("Revenue Command");
   });
 
   it("renders the login page with the Forge auth shell", async () => {

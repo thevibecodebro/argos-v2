@@ -32,7 +32,7 @@ export default async function TrainingTeamPage() {
         <OperationalToolbar
           actions={[
             { href: "/training", icon: "school", label: "My training", variant: "secondary" },
-            { href: "/training/builder", icon: "edit_note", label: "Builder", variant: "secondary" },
+            { href: "/training/builder", icon: "edit_note", label: "Curriculum", variant: "secondary" },
           ]}
           description="Scan team progress, spot stalled assignments, and choose the next coaching follow-up."
           eyebrow="Coach"

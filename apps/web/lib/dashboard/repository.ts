@@ -1,4 +1,13 @@
-import { and, asc, count, desc, eq, gte, inArray, isNotNull } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+} from "drizzle-orm";
 import {
   callScoresTable,
   callsTable,
@@ -30,6 +39,7 @@ export class DrizzleDashboardRepository implements DashboardRepository {
           name: organizationsTable.name,
           slug: organizationsTable.slug,
           plan: organizationsTable.plan,
+          logoUrl: organizationsTable.logoUrl,
         },
       })
       .from(usersTable)
@@ -118,7 +128,9 @@ export class DrizzleDashboardRepository implements DashboardRepository {
         closingScore: callsTable.closingScore,
       })
       .from(callsTable)
-      .where(and(eq(callsTable.repId, repId), eq(callsTable.status, "complete")))
+      .where(
+        and(eq(callsTable.repId, repId), eq(callsTable.status, "complete")),
+      )
       .orderBy(callsTable.createdAt);
 
     return this.attachRubricData(calls);
@@ -143,7 +155,9 @@ export class DrizzleDashboardRepository implements DashboardRepository {
         closingScore: callsTable.closingScore,
       })
       .from(callsTable)
-      .where(and(eq(callsTable.orgId, orgId), eq(callsTable.status, "complete")))
+      .where(
+        and(eq(callsTable.orgId, orgId), eq(callsTable.status, "complete")),
+      )
       .orderBy(callsTable.createdAt);
 
     return this.attachRubricData(calls);
@@ -186,7 +200,12 @@ export class DrizzleDashboardRepository implements DashboardRepository {
         completedAt: trainingProgressTable.completedAt,
       })
       .from(trainingProgressTable)
-      .where(and(eq(trainingProgressTable.repId, repId), eq(trainingProgressTable.status, "passed")))
+      .where(
+        and(
+          eq(trainingProgressTable.repId, repId),
+          eq(trainingProgressTable.status, "passed"),
+        ),
+      )
       .orderBy(trainingProgressTable.completedAt)
       .then((rows) =>
         rows
@@ -201,7 +220,12 @@ export class DrizzleDashboardRepository implements DashboardRepository {
         createdAt: roleplaySessionsTable.createdAt,
       })
       .from(roleplaySessionsTable)
-      .where(and(eq(roleplaySessionsTable.repId, repId), eq(roleplaySessionsTable.status, "complete")))
+      .where(
+        and(
+          eq(roleplaySessionsTable.repId, repId),
+          eq(roleplaySessionsTable.status, "complete"),
+        ),
+      )
       .orderBy(roleplaySessionsTable.createdAt)
       .then((rows) =>
         rows
@@ -214,7 +238,9 @@ export class DrizzleDashboardRepository implements DashboardRepository {
     const [row] = await this.db
       .select({ count: count() })
       .from(callsTable)
-      .where(and(eq(callsTable.orgId, orgId), gte(callsTable.createdAt, since)));
+      .where(
+        and(eq(callsTable.orgId, orgId), gte(callsTable.createdAt, since)),
+      );
 
     return row?.count ?? 0;
   }
@@ -223,7 +249,12 @@ export class DrizzleDashboardRepository implements DashboardRepository {
     const [row] = await this.db
       .select({ count: count() })
       .from(roleplaySessionsTable)
-      .where(and(eq(roleplaySessionsTable.orgId, orgId), eq(roleplaySessionsTable.status, "complete")));
+      .where(
+        and(
+          eq(roleplaySessionsTable.orgId, orgId),
+          eq(roleplaySessionsTable.status, "complete"),
+        ),
+      );
 
     return row?.count ?? 0;
   }
@@ -248,7 +279,10 @@ export class DrizzleDashboardRepository implements DashboardRepository {
       new Set(
         calls
           .map((call) => call.rubricId)
-          .filter((value): value is string => typeof value === "string" && value.length > 0),
+          .filter(
+            (value): value is string =>
+              typeof value === "string" && value.length > 0,
+          ),
       ),
     );
 
@@ -280,7 +314,10 @@ export class DrizzleDashboardRepository implements DashboardRepository {
         })
         .from(rubricCategoriesTable)
         .where(inArray(rubricCategoriesTable.rubricId, rubricIds))
-        .orderBy(asc(rubricCategoriesTable.sortOrder), asc(rubricCategoriesTable.createdAt)),
+        .orderBy(
+          asc(rubricCategoriesTable.sortOrder),
+          asc(rubricCategoriesTable.createdAt),
+        ),
       this.db
         .select({
           callId: callScoresTable.callId,
@@ -303,15 +340,21 @@ export class DrizzleDashboardRepository implements DashboardRepository {
     const scoresByCallId = new Map<string, Map<string, number>>();
 
     for (const score of scores) {
-      const bucket = scoresByCallId.get(score.callId) ?? new Map<string, number>();
+      const bucket =
+        scoresByCallId.get(score.callId) ?? new Map<string, number>();
       bucket.set(score.rubricCategoryId, score.score);
       scoresByCallId.set(score.callId, bucket);
     }
 
     return calls.map((call) => {
-      const rubric = call.rubricId ? rubricById.get(call.rubricId) ?? null : null;
-      const rubricCategories = call.rubricId ? categoriesByRubricId.get(call.rubricId) ?? [] : [];
-      const callScores = scoresByCallId.get(call.id) ?? new Map<string, number>();
+      const rubric = call.rubricId
+        ? (rubricById.get(call.rubricId) ?? null)
+        : null;
+      const rubricCategories = call.rubricId
+        ? (categoriesByRubricId.get(call.rubricId) ?? [])
+        : [];
+      const callScores =
+        scoresByCallId.get(call.id) ?? new Map<string, number>();
 
       return {
         ...call,

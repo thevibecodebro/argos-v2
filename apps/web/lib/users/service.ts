@@ -5,6 +5,7 @@ type OrganizationRecord = {
   name: string;
   slug: string;
   plan: string;
+  logoUrl?: string | null;
   createdAt: Date;
 };
 
@@ -56,6 +57,7 @@ export type CurrentUserDetails = {
     name: string;
     slug: string;
     plan: string;
+    logoUrl: string | null;
     createdAt: string;
   } | null;
 };
@@ -73,14 +75,27 @@ export type OrganizationMember = {
 };
 
 export interface UsersRepository {
-  findCurrentUserByAuthId(authUserId: string): Promise<CurrentUserRecord | null>;
-  findOrganizationMember(userId: string, orgId: string): Promise<OrganizationMemberLookup | null>;
+  findCurrentUserByAuthId(
+    authUserId: string,
+  ): Promise<CurrentUserRecord | null>;
+  findOrganizationMember(
+    userId: string,
+    orgId: string,
+  ): Promise<OrganizationMemberLookup | null>;
   findOrganizationMembers(orgId: string): Promise<OrganizationMemberRecord[]>;
   removeOrganizationMember(userId: string, orgId: string): Promise<boolean>;
   updateCurrentUserProfile(
     userId: string,
-    patch: { displayNameSet: boolean; firstName: string | null; lastName: string | null },
+    patch: {
+      displayNameSet: boolean;
+      firstName: string | null;
+      lastName: string | null;
+    },
   ): Promise<CurrentUserRecord | null>;
+  updateOrganizationLogo(
+    orgId: string,
+    logoUrl: string | null,
+  ): Promise<OrganizationRecord | null>;
   updateOrganizationMemberRole(
     userId: string,
     orgId: string,
@@ -88,7 +103,9 @@ export interface UsersRepository {
   ): Promise<{ id: string; role: AppUserRole } | null>;
 }
 
-function canViewOrganizationMembers(role: AppUserRole | null | undefined): boolean {
+function canViewOrganizationMembers(
+  role: AppUserRole | null | undefined,
+): boolean {
   return role === "admin" || role === "executive";
 }
 
@@ -108,6 +125,7 @@ function serializeCurrentUser(user: CurrentUserRecord): CurrentUserDetails {
           name: user.org.name,
           slug: user.org.slug,
           plan: user.org.plan,
+          logoUrl: user.org.logoUrl ?? null,
           createdAt: user.org.createdAt.toISOString(),
         }
       : null,
@@ -174,6 +192,59 @@ export async function updateCurrentUserProfile(
   return {
     ok: true,
     data: serializeCurrentUser(updated),
+  };
+}
+
+export async function updateOrganizationLogo(
+  repository: UsersRepository,
+  authUserId: string,
+  logoUrl: string | null,
+): Promise<ServiceResult<CurrentUserDetails>> {
+  const user = await repository.findCurrentUserByAuthId(authUserId);
+
+  if (!user) {
+    return {
+      ok: false,
+      status: 404,
+      error: "User not found",
+    };
+  }
+
+  if (!user.orgId) {
+    return {
+      ok: false,
+      status: 400,
+      error: "You are not part of an organization",
+    };
+  }
+
+  if (user.role !== "admin") {
+    return {
+      ok: false,
+      status: 403,
+      error: "Only admins can update organization branding",
+    };
+  }
+
+  const updatedOrg = await repository.updateOrganizationLogo(
+    user.orgId,
+    logoUrl,
+  );
+
+  if (!updatedOrg) {
+    return {
+      ok: false,
+      status: 404,
+      error: "Organization not found",
+    };
+  }
+
+  return {
+    ok: true,
+    data: serializeCurrentUser({
+      ...user,
+      org: updatedOrg,
+    }),
   };
 }
 
@@ -260,7 +331,10 @@ export async function updateOrganizationMemberRole(
     };
   }
 
-  const member = await repository.findOrganizationMember(targetUserId, viewer.orgId);
+  const member = await repository.findOrganizationMember(
+    targetUserId,
+    viewer.orgId,
+  );
 
   if (!member) {
     return {
@@ -329,7 +403,10 @@ export async function removeOrganizationMember(
     };
   }
 
-  const member = await repository.findOrganizationMember(targetUserId, viewer.orgId);
+  const member = await repository.findOrganizationMember(
+    targetUserId,
+    viewer.orgId,
+  );
 
   if (!member) {
     return {

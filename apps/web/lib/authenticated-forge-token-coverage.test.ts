@@ -34,7 +34,6 @@ const authenticatedSurfaceFiles = [
   "apps/web/components/training/training-loading-shell.tsx",
   "apps/web/components/training/training-course-shell.tsx",
   "apps/web/components/training/training-manager-ai-tools.tsx",
-  "apps/web/components/training/training-manager-command-deck.tsx",
   "apps/web/components/training/training-manager-modal.tsx",
   "apps/web/components/training/training-manager-status-band.tsx",
   "apps/web/components/training/training-module-stage.tsx",

@@ -44,7 +44,7 @@ export function AuthShell({ children }: AuthShellProps) {
 
           <div className="relative z-10 w-full max-w-xl p-12">
             <div className="forge-surface rounded-[2rem] p-8">
-              <p className="forge-page-eyebrow">Coaching Forge</p>
+              <p className="forge-page-eyebrow">Revenue Command</p>
               <h2
                 className="mt-5 font-[var(--font-display)] text-5xl font-bold leading-[0.96] tracking-tight text-[var(--forge-text)]"
                 style={{ fontFamily: "var(--font-display, 'Space Grotesk', sans-serif)" }}
@@ -52,7 +52,7 @@ export function AuthShell({ children }: AuthShellProps) {
                 Sales coaching from the calls reps actually run.
               </h2>
               <p className="mt-5 max-w-md text-base leading-7 text-[var(--forge-muted)]">
-                Review calls, score performance, surface highlights, assign training, practice roleplay, and coach the team.
+                Review calls, score performance, save highlights, assign training, practice roleplay, and coach the team.
               </p>
 
               <div className="mt-8 grid grid-cols-2 gap-3">
@@ -197,7 +197,7 @@ export function LegacyAuthShell({ children, note }: LegacyAuthShellProps) {
               Argos
             </h1>
             <p className="mt-4 text-xl text-[var(--forge-muted)] sm:text-[2rem]">
-              Sales Coaching Forge
+              Revenue Command
             </p>
 
             <div className="mt-12 grid w-full gap-4 md:grid-cols-3">

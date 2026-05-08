@@ -3,11 +3,11 @@ import { AuthenticatedRouteLoading } from "@/components/authenticated-route-stat
 export default function Loading() {
   return (
     <AuthenticatedRouteLoading
-      description="Loading the authenticated Argos workspace."
-      eyebrow="Sales forge"
+      description="Loading Argos."
+      eyebrow="Argos"
       lines={5}
       size="wide"
-      title="Workspace"
+      title="Loading"
     />
   );
 }

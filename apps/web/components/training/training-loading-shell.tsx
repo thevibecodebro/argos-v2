@@ -13,7 +13,7 @@ export function TrainingLoadingShell() {
         Loading training
       </div>
       <PageFrame
-        description="Review assigned modules and complete the next lesson without manager tools crowding the page."
+        description="Review assigned modules and complete the next lesson."
         eyebrow="Training"
         title="Loading training"
       >

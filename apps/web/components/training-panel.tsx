@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { TrainingCourseShell } from "./training/training-course-shell";
-import { TrainingManagerCommandDeck } from "./training/training-manager-command-deck";
 import { TrainingManagerModal } from "./training/training-manager-modal";
 import { TrainingModuleStage } from "./training/training-module-stage";
 import { TrainingModuleToc } from "./training/training-module-toc";
@@ -20,7 +19,8 @@ import {
   type TrainingModuleAIDraftResponse,
 } from "./training/training-manager-ai-tools";
 import { TrainingManagerStatusBand } from "./training/training-manager-status-band";
-import { ForgeErrorState, ForgeStatusPanel } from "./forge";
+import { ForgeErrorState, ForgeIcon, ForgeStatusPanel } from "./forge";
+import { SecondaryRailButton, SecondaryRailGroup } from "./secondary-rail";
 import { getTrainingManagerStageMetrics } from "./training/training-manager-stage-metrics";
 import {
   getTrainingStagePrimaryAction,
@@ -68,13 +68,20 @@ const TRAINING_ADMIN_FIELD_CLASS = `w-full rounded-xl border border-[var(--forge
 const TRAINING_ADMIN_TEXTAREA_CLASS = `min-h-28 ${TRAINING_ADMIN_FIELD_CLASS}`;
 const TRAINING_ASSIGN_DATE_FIELD_CLASS = `rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white ${TRAINING_ADMIN_FIELD_FOCUS_CLASS}`;
 
-type TrainingPanelProps = {
-  canManage: boolean;
+export type TrainingLearnerPanelProps = {
+  initialModules: TrainingModuleSummary[];
+};
+
+export type TrainingCurriculumPanelProps = {
   aiAvailable: boolean;
   initialModules: TrainingModuleSummary[];
   initialTeamProgress: TrainingTeamProgressShell;
   initialTeamRows: TrainingTeamProgress[];
   rubricCategories?: Array<{ slug: string; name: string }>;
+};
+
+type TrainingExperiencePanelProps = TrainingCurriculumPanelProps & {
+  canManage: boolean;
 };
 
 type JsonResponse<T> =
@@ -118,6 +125,12 @@ const EMPTY_GENERATE_FORM: GenerateFormState = {
 const EMPTY_MODULE_AI_DRAFT_FORM: ModuleAiDraftFormState = {
   contextNotes: "",
 };
+
+const EMPTY_LEARNER_TEAM_PROGRESS: TrainingTeamProgressShell = {
+  modules: [],
+  repProgress: [],
+};
+const EMPTY_LEARNER_TEAM_ROWS: TrainingTeamProgress[] = [];
 
 function moduleToFormState(module: TrainingModuleSummary): ModuleFormState {
   return {
@@ -261,14 +274,69 @@ export function mergeTeamProgressModule(
   };
 }
 
-export function TrainingPanel({
+type TrainingCurriculumRailActionsProps = {
+  hasSelectedModule: boolean;
+  isBusy: boolean;
+  onAssign: () => void;
+  onCreate: () => void;
+  onEdit: () => void;
+};
+
+function TrainingCurriculumRailActions({
+  hasSelectedModule,
+  isBusy,
+  onAssign,
+  onCreate,
+  onEdit,
+}: TrainingCurriculumRailActionsProps) {
+  return (
+    <div data-training-curriculum-rail-actions="true">
+      <SecondaryRailGroup label="Actions">
+        <SecondaryRailButton icon="add" label="Create module" onClick={onCreate} />
+        <SecondaryRailButton
+          disabled={!hasSelectedModule || isBusy}
+          icon="edit_note"
+          label="Edit selected module"
+          onClick={onEdit}
+        />
+        <SecondaryRailButton
+          disabled={!hasSelectedModule || isBusy}
+          icon="group"
+          label="Assign selected module"
+          onClick={onAssign}
+        />
+      </SecondaryRailGroup>
+    </div>
+  );
+}
+
+export function TrainingLearnerPanel({
+  initialModules,
+}: TrainingLearnerPanelProps) {
+  return (
+    <TrainingExperiencePanel
+      aiAvailable={false}
+      canManage={false}
+      initialModules={initialModules}
+      initialTeamProgress={EMPTY_LEARNER_TEAM_PROGRESS}
+      initialTeamRows={EMPTY_LEARNER_TEAM_ROWS}
+      rubricCategories={[]}
+    />
+  );
+}
+
+export function TrainingCurriculumPanel(props: TrainingCurriculumPanelProps) {
+  return <TrainingExperiencePanel {...props} canManage />;
+}
+
+function TrainingExperiencePanel({
   canManage,
   aiAvailable,
   initialModules,
   initialTeamProgress,
   initialTeamRows,
   rubricCategories = [],
-}: TrainingPanelProps) {
+}: TrainingExperiencePanelProps) {
   const [modules, setModules] = useState(initialModules);
   const [teamRows, setTeamRows] = useState(initialTeamRows);
   const [teamProgress, setTeamProgress] = useState(initialTeamProgress);
@@ -743,39 +811,39 @@ export function TrainingPanel({
     </>
   );
 
-  const hasModules = modules.length > 0;
-
-  const managerEmptyPanel = (
-    <section className="rounded-[1.5rem] border border-dashed border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)]/78 p-5">
-      <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-gold)]">Planning surface</p>
-      <h4 className="mt-2 text-lg font-semibold text-white">Create your first module</h4>
-      <p className="mt-2 max-w-2xl text-sm leading-7 text-[var(--forge-muted)]">
-        Start with a single lesson. Generate a draft sequence with AI when you want a faster starting point. Once
-        modules exist, assignment and editing flows stay available from the compact planning surface below.
-      </p>
-      <div className="mt-4 flex flex-wrap gap-3">
-        <button
-          className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/70 px-4 py-3 text-sm font-semibold text-white transition hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/10"
-          onClick={openCreateModal}
-          type="button"
-        >
-          Create module
-        </button>
-        <button
-          className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-3 text-sm font-semibold text-[#170d07] transition hover:brightness-110 disabled:opacity-50"
-          disabled={!aiAvailable || isManagerBusy}
-          onClick={openGenerateModal}
-          type="button"
-        >
-          Generate with AI
-        </button>
-      </div>
-    </section>
-  );
-
   const activeManagerPanel =
     activeManagerModal === "create" || activeManagerModal === "edit" ? (
       <section className="space-y-4">
+        {activeManagerModal === "create" ? (
+          <div
+            className="rounded-[1.15rem] border border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface-2)]/55 p-4"
+            data-training-create-ai-entry="true"
+          >
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-white">Start from scratch or draft with AI</p>
+                <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">
+                  Generate a draft sequence, then save the modules you want into Curriculum.
+                </p>
+              </div>
+              <button
+                aria-describedby={!aiAvailable ? "training-create-ai-unavailable" : undefined}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-2 text-sm font-semibold text-[#170d07] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={!aiAvailable || isManagerBusy}
+                onClick={openGenerateModal}
+                type="button"
+              >
+                <ForgeIcon name="auto_awesome" size={18} />
+                Generate with AI
+              </button>
+            </div>
+            {!aiAvailable ? (
+              <p id="training-create-ai-unavailable" className="mt-3 text-xs text-[var(--forge-muted)]">
+                AI curriculum generation is unavailable until OpenAI is configured.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
         <div className="space-y-3">
           <input
             aria-label="Module title"
@@ -1033,9 +1101,7 @@ export function TrainingPanel({
           </div>
         </div>
       </section>
-    ) : (
-      managerEmptyPanel
-    );
+    ) : null;
 
   const managerModalMetadata = getTrainingManagerModalMetadata({
     activeManagerModal,
@@ -1096,7 +1162,7 @@ export function TrainingPanel({
     <p className="text-sm text-[var(--forge-muted)]">No modules are available.</p>
   );
 
-  const stage = selectedModule ? (
+  const moduleStage = selectedModule ? (
     <TrainingModuleStage
       canManage={canManage}
       onPrimaryAction={handlePrimaryAction}
@@ -1111,12 +1177,12 @@ export function TrainingPanel({
     />
   ) : canManage ? (
     <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
-      <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[var(--forge-gold)]">Course builder</p>
+      <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[var(--forge-gold)]">Curriculum</p>
       <div className="mt-4 rounded-[1.25rem] border border-dashed border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface-2)]/40 p-5">
         <h2 className="text-2xl font-semibold text-white">Create your first module</h2>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--forge-muted)]">
           Start with a single lesson. Generate a draft sequence with AI when you want a faster starting point. Once
-          modules exist, assignment and editing flows stay available from the builder controls.
+          modules exist, assignment and editing flows stay available from the curriculum toolbar.
         </p>
       </div>
     </section>
@@ -1132,41 +1198,47 @@ export function TrainingPanel({
     </section>
   );
 
-  const tableOfContents = (
-    <TrainingModuleToc modules={modules} onSelectModule={selectModule} selectedModuleId={selectedModuleId} />
+  const stage = canManage ? (
+    <div className="space-y-3">
+      {activeManagerModal ? null : managerFeedback}
+      {moduleStage}
+    </div>
+  ) : (
+    moduleStage
   );
 
-  const commandDeck = canManage
-    ? hasModules
-      ? (
-          <TrainingManagerCommandDeck
-            aiAvailable={aiAvailable}
-            feedback={managerFeedback}
-            hasSelectedModule={Boolean(selectedModule)}
-            isBusy={isManagerBusy}
-            moduleCount={modules.length}
-            onAssign={() => {
-              if (selectedModule) {
-                openAssignModal(selectedModule);
-              }
-            }}
-            onCreate={openCreateModal}
-            onEdit={() => {
-              if (selectedModule) {
-                openEditModal(selectedModule);
-              }
-            }}
-            onGenerate={() => {
-              if (aiAvailable) {
-                openGenerateModal();
-              }
-            }}
-            repCount={teamRows.length}
-            selectedModuleTitle={selectedModule?.title ?? null}
-          />
-        )
-      : managerEmptyPanel
-    : null;
+  const tableOfContents = canManage ? (
+    <>
+      <TrainingCurriculumRailActions
+        hasSelectedModule={Boolean(selectedModule)}
+        isBusy={isManagerBusy}
+        onAssign={() => {
+          if (selectedModule) {
+            openAssignModal(selectedModule);
+          }
+        }}
+        onCreate={openCreateModal}
+        onEdit={() => {
+          if (selectedModule) {
+            openEditModal(selectedModule);
+          }
+        }}
+      />
+      <TrainingModuleToc
+        modules={modules}
+        onSelectModule={selectModule}
+        selectedModuleId={selectedModuleId}
+        variant="rail"
+      />
+    </>
+  ) : (
+    <TrainingModuleToc
+      modules={modules}
+      onSelectModule={selectModule}
+      selectedModuleId={selectedModuleId}
+      variant="panel"
+    />
+  );
 
   const managerModal = (
     <TrainingManagerModal
@@ -1176,6 +1248,7 @@ export function TrainingPanel({
       open={activeManagerModal !== null}
       title={managerModalMetadata?.title ?? ""}
     >
+      {activeManagerModal ? managerFeedback : null}
       {activeManagerPanel}
     </TrainingManagerModal>
   );
@@ -1183,7 +1256,6 @@ export function TrainingPanel({
   return (
     <>
       <TrainingCourseShell
-        adminRail={commandDeck}
         mode={canManage ? "manager" : "learner"}
         stage={stage}
         structureRail={tableOfContents}

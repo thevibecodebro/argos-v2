@@ -29,6 +29,7 @@ export class DrizzleUsersRepository implements UsersRepository {
           name: organizationsTable.name,
           slug: organizationsTable.slug,
           plan: organizationsTable.plan,
+          logoUrl: organizationsTable.logoUrl,
           createdAt: organizationsTable.createdAt,
         },
       })
@@ -56,6 +57,7 @@ export class DrizzleUsersRepository implements UsersRepository {
             name: record.org.name,
             slug: record.org.slug,
             plan: record.org.plan,
+            logoUrl: record.org.logoUrl,
             createdAt: record.org.createdAt,
           }
         : null,
@@ -149,7 +151,11 @@ export class DrizzleUsersRepository implements UsersRepository {
 
   async updateCurrentUserProfile(
     userId: string,
-    patch: { displayNameSet: boolean; firstName: string | null; lastName: string | null },
+    patch: {
+      displayNameSet: boolean;
+      firstName: string | null;
+      lastName: string | null;
+    },
   ) {
     const [updated] = await this.db
       .update(usersTable)
@@ -169,7 +175,30 @@ export class DrizzleUsersRepository implements UsersRepository {
     return this.findCurrentUserByAuthId(updated.id);
   }
 
-  async updateOrganizationMemberRole(userId: string, orgId: string, role: AppUserRole) {
+  async updateOrganizationLogo(orgId: string, logoUrl: string | null) {
+    const [updated] = await this.db
+      .update(organizationsTable)
+      .set({
+        logoUrl,
+      })
+      .where(eq(organizationsTable.id, orgId))
+      .returning({
+        id: organizationsTable.id,
+        name: organizationsTable.name,
+        slug: organizationsTable.slug,
+        plan: organizationsTable.plan,
+        logoUrl: organizationsTable.logoUrl,
+        createdAt: organizationsTable.createdAt,
+      });
+
+    return updated ?? null;
+  }
+
+  async updateOrganizationMemberRole(
+    userId: string,
+    orgId: string,
+    role: AppUserRole,
+  ) {
     const [updated] = await this.db
       .update(usersTable)
       .set({

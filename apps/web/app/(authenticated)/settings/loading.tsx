@@ -13,15 +13,15 @@ export default function Loading() {
           description="Loading account, people, teams, integrations, compliance, and rubric controls."
           eyebrow="Settings"
           status={{ icon: "pending", label: "Loading", tone: "gold" }}
-          title="Control room"
+          title="Settings"
         />
         <section className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-3" data-authenticated-route-skeletons="true">
             <ForgeStatusPanel
               announce="polite"
-              description="Argos is preparing the settings workspace. Controls will appear here when loading finishes."
+              description="Argos is preparing settings. Controls will appear here when loading finishes."
               icon="pending"
-              title="Loading control room"
+              title="Loading settings"
               tone="gold"
             />
             <ForgeSkeleton label="Loading settings controls" lines={4} />
@@ -29,7 +29,7 @@ export default function Loading() {
           <OperationalPreviewDrawer
             description="Status and supporting context will load beside the active settings panel."
             eyebrow="Status drawer"
-            title="Preparing workspace"
+            title="Preparing settings"
           >
             <ForgeSkeleton label="Loading settings supporting panels" lines={3} />
           </OperationalPreviewDrawer>

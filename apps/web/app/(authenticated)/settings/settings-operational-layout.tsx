@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
-import { ForgeChip, ForgeIcon, type ForgeTone } from "@/components/forge";
+import { ForgeChip, type ForgeTone } from "@/components/forge";
 import {
   OperationalPreviewDrawer,
   OperationalToolbar,
   OperationalWorkspace,
 } from "@/components/operational-workspace";
+import { SettingsSecondaryRail } from "@/components/settings/settings-secondary-rail";
 
 type SettingsRoute =
   | "people"
@@ -62,6 +62,13 @@ const SETTINGS_SECTIONS = [
   },
 ] as const;
 
+const SETTINGS_RAIL_ITEMS = SETTINGS_SECTIONS.map((section) => ({
+  href: section.href,
+  icon: section.icon,
+  key: section.key,
+  label: section.label,
+}));
+
 export function SettingsOperationalLayout({
   actions,
   children,
@@ -94,37 +101,11 @@ export function SettingsOperationalLayout({
       <section
         className={
           showPreview
-            ? "grid min-w-0 gap-3 xl:grid-cols-[180px_minmax(0,1fr)_320px]"
-            : "grid min-w-0 gap-3 xl:grid-cols-[180px_minmax(0,1fr)]"
+            ? "grid min-w-0 gap-3 2xl:grid-cols-[minmax(0,1fr)_320px]"
+            : "grid min-w-0 gap-3"
         }
       >
-        <nav
-          aria-label="Settings sections"
-          className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.026)] p-2"
-          data-settings-internal-subnav="true"
-        >
-          <div className="grid gap-1">
-            {SETTINGS_SECTIONS.map((section) => {
-              const active = section.key === route;
-
-              return (
-                <Link
-                  aria-current={active ? "page" : undefined}
-                  className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition ${
-                    active
-                      ? "bg-[rgba(241,191,123,0.12)] text-[var(--forge-gold)]"
-                      : "text-[var(--forge-muted)] hover:bg-[rgba(255,244,230,0.04)] hover:text-[var(--forge-text)]"
-                  }`}
-                  href={section.href}
-                  key={section.href}
-                >
-                  <ForgeIcon name={section.icon} size={16} />
-                  <span className="truncate">{section.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
+        <SettingsSecondaryRail activeKey={route} items={SETTINGS_RAIL_ITEMS} />
 
         <section
           className="min-w-0 rounded-xl border border-[var(--forge-border)] bg-[rgba(8,6,5,0.88)] p-3"

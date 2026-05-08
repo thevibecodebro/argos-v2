@@ -91,7 +91,9 @@ vi.mock("@/components/team/team-views", () => ({
 }));
 
 vi.mock("@/components/training-panel", () => ({
-  TrainingPanel: () => "Training panel marker",
+  TrainingCurriculumPanel: () =>
+    "Training curriculum panel marker Create module Edit selected module Assign selected module",
+  TrainingLearnerPanel: () => "Training learner panel marker",
 }));
 
 vi.mock("@/components/upload-call-panel", () => ({
@@ -107,7 +109,9 @@ vi.mock("@/components/roleplay-panel", () => ({
 }));
 
 vi.mock("@/components/page-panel-loaders", () => ({
-  TrainingPanel: () => "Training panel marker",
+  TrainingCurriculumPanel: () =>
+    "Training curriculum panel marker Create module Edit selected module Assign selected module",
+  TrainingLearnerPanel: () => "Training learner panel marker",
   UploadCallPanel: () => "Upload call panel marker",
   NotificationsPanel: () => "Notifications panel marker",
   RoleplayPanel: () => "Roleplay panel marker",
@@ -526,10 +530,8 @@ describe("primary route hero removal", () => {
     );
 
     expect(trainingHtml).toContain("Open highlights");
-    expect(trainingHtml).toContain("Training panel marker");
-    expect(trainingHtml).toContain(
-      "Review assigned modules and complete the next lesson without manager tools crowding the page.",
-    );
+    expect(trainingHtml).toContain("Training learner panel marker");
+    expect(trainingHtml).toContain("Review assigned modules and complete the next lesson.");
     expect(trainingHtml).toContain(">Training<");
   });
 
@@ -541,7 +543,7 @@ describe("primary route hero removal", () => {
     );
     expect(trainingHtml).toContain("px-4 py-6 sm:px-6 lg:px-8");
     expect(trainingHtml).toContain("max-w-7xl");
-    expect(trainingHtml).toContain("Training panel marker");
+    expect(trainingHtml).toContain("Training learner panel marker");
   });
 
   it("keeps the learner training route from loading manager progress", async () => {
@@ -615,8 +617,8 @@ describe("primary route hero removal", () => {
     ]);
 
     expect(accountHtml).toContain("Account panel marker");
-    expect(accountHtml).toContain(">Control room<");
-    expect(accountHtml).toContain(">Workspace map<");
+    expect(accountHtml).toContain(">Settings<");
+    expect(accountHtml).toContain(">All settings<");
     expect(accountHtml).toContain('href="/settings/people"');
 
     expect(peopleHtml).toContain("People panel marker");
@@ -801,7 +803,8 @@ describe("primary route hero removal", () => {
 
     expect(highlightsHtml).toContain('href="/calls"');
     expect(highlightsHtml).toContain('href="/calls/call-1"');
-    expect(highlightsHtml).not.toContain(">Highlights<");
+    expect(highlightsHtml).toContain(">Highlights<");
+    expect(highlightsHtml).not.toContain(">Coaching evidence<");
   });
 
   it("translates approved Stitch patterns onto the remaining top-level menu routes", async () => {
@@ -848,7 +851,10 @@ describe("primary route hero removal", () => {
     );
     expect(trainingHtml).toContain('data-operational-metric-strip="true"');
     expect(trainingHtml).toContain("My training");
-    expect(trainingHtml).toContain("Training panel marker");
+    expect(trainingHtml).toContain("Training learner panel marker");
+    expect(trainingHtml).not.toContain("Builder controls");
+    expect(trainingHtml).not.toContain("Generate with AI");
+    expect(trainingHtml).not.toContain("Module editor preview");
     expect(trainingHtml).not.toContain("Module library");
     expect(trainingHtml).not.toContain('href="/training#builder"');
 
@@ -874,10 +880,10 @@ describe("primary route hero removal", () => {
     expect(leaderboardHtml).not.toContain(">Top Volume<");
     expect(leaderboardHtml).not.toContain(">Most Improved<");
 
-    expect(settingsHtml).toContain('data-settings-route="control-room"');
+    expect(settingsHtml).toContain('data-settings-route="settings"');
     expect(settingsHtml).toContain('data-operational-preview-drawer="true"');
     expect(settingsHtml).toContain("Personal");
-    expect(settingsHtml).toContain("Visible sections");
+    expect(settingsHtml).toContain("Sections");
 
     expect(notificationsHtml).toContain(
       'data-notifications-route="account-inbox"',
@@ -933,7 +939,10 @@ describe("primary route hero removal", () => {
     );
     expect(trainingHtml).toContain('href="/training/team"');
     expect(trainingHtml).toContain('href="/training/builder"');
-    expect(trainingHtml).toContain("Training panel marker");
+    expect(trainingHtml).toContain("Training learner panel marker");
+    expect(trainingHtml).not.toContain("Builder controls");
+    expect(trainingHtml).not.toContain("Generate with AI");
+    expect(trainingHtml).not.toContain("Module editor preview");
     expect(trainingHtml).not.toContain('href="/training#team-progress"');
     expect(trainingHtml).not.toContain('href="/training#builder"');
 
@@ -946,9 +955,15 @@ describe("primary route hero removal", () => {
     );
 
     expect(builderHtml).toContain('data-training-route="builder"');
-    expect(builderHtml).toContain("Training panel marker");
+    expect(builderHtml).toContain("Training curriculum panel marker");
+    expect(builderHtml).toContain(">Curriculum<");
+    expect(builderHtml).toContain("Create module");
+    expect(builderHtml).toContain("Edit selected module");
+    expect(builderHtml).toContain("Assign selected module");
+    expect(builderHtml).not.toContain("Generate with AI");
     expect(builderHtml).toContain('href="/training/team"');
     expect(builderHtml).toContain('href="/training"');
+    expect(builderHtml).not.toContain("Builder controls");
     expect(builderHtml).not.toContain('data-operational-metric-strip="true"');
   });
 
@@ -1107,9 +1122,15 @@ describe("primary route hero removal", () => {
     ]) {
       expect(html).toContain('data-operational-workspace="true"');
       expect(html).toContain('data-operational-toolbar="true"');
-      expect(html).toContain('data-settings-internal-subnav="true"');
+      expect(html).toContain('data-secondary-rail="settings"');
+      expect(html).not.toContain('data-settings-internal-subnav="true"');
       expect(html).not.toContain('data-page-frame="true"');
     }
+
+    const settingsBundle = `${peopleHtml}${teamsHtml}${teamsManageHtml}${permissionsHtml}${permissionsManageHtml}${integrationsHtml}${rubricHtml}${rubricBuilderHtml}${complianceHtml}`;
+    expect(settingsBundle).not.toContain("Generate with AI");
+    expect(settingsBundle).not.toContain("Edit selected module");
+    expect(settingsBundle).not.toContain("Assign selected module");
 
     for (const html of [
       teamsHtml,

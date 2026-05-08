@@ -466,14 +466,14 @@ function buildTodayQueueItems({
         signal: "0 calls",
         statusLabel: "Setup",
         tone: "gold",
-        typeLabel: "Call intake",
+        typeLabel: "Calls",
       });
     }
 
     if (setupStatus && setupStatus.roleplayCount === 0) {
       items.push({
         actionLabel: "Open roleplay",
-        description: "No completed roleplay sessions are recorded for this workspace.",
+        description: "No completed roleplay sessions are recorded yet.",
         href: "/roleplay",
         icon: "psychology",
         id: "roleplay-not-started",
@@ -521,7 +521,7 @@ function buildTodayQueueItems({
     if (typeof completionRate === "number" && completionRate < 80) {
       items.push({
         actionLabel: "Open training",
-        description: "Training completion is below the target threshold for this workspace.",
+        description: "Training completion is below the target threshold.",
         href: "/training",
         icon: "school",
         id: "training-completion",
@@ -565,7 +565,7 @@ function buildTodayQueueItems({
       signal: "Clear",
       statusLabel: "Stable",
       tone: "success",
-      typeLabel: "Workspace status",
+      typeLabel: "Status",
     });
   }
 

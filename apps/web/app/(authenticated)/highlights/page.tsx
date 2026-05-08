@@ -45,17 +45,17 @@ export default async function HighlightsPage() {
       >
         <OperationalToolbar
           actions={[{ href: "/calls", label: "Back to call library", variant: "secondary" }]}
-          description="Review starred coaching moments, recommendations, and recurring patterns from call reviews."
+          description="Review saved coaching moments and recommendations."
           eyebrow="Review"
-          status={{ icon: "auto_awesome", label: `${highlights.length} evidence rows`, tone: "muted" }}
-          title="Coaching evidence"
+          status={{ icon: "auto_awesome", label: `${highlights.length} items`, tone: "muted" }}
+          title="Highlights"
         />
 
         <OperationalMetricStrip
           metrics={[
             {
               icon: "auto_awesome",
-              label: "Captured moments",
+              label: "Saved moments",
               tone: "gold",
               value: highlights.length,
             },
@@ -67,7 +67,7 @@ export default async function HighlightsPage() {
             },
             {
               icon: "task_alt",
-              label: "Recommendation coverage",
+              label: "With recommendations",
               tone: completeness !== null && completeness >= 80 ? "success" : "gold",
               value: completeness !== null ? `${completeness}%` : "--",
             },
@@ -90,10 +90,10 @@ export default async function HighlightsPage() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
-                    Evidence inbox
+                    Saved moments
                   </p>
                   <p className="mt-1 text-sm text-[var(--forge-muted)]">
-                    Open the source call to inspect transcript context and scorecard notes.
+                    Open the source call for transcript context and scorecard notes.
                   </p>
                 </div>
                 <ForgeChip tone="muted">

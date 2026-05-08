@@ -12,7 +12,7 @@ describe("LandingPage", () => {
     expect(html).toContain("argos-scene-fallback");
     expect(html).toContain("<h1>Argos</h1>");
     expect(html).toContain("Turn every sales call into the next practice plan.");
-    expect(html).toContain("Coaching Forge");
+    expect(html).toContain("Revenue Command");
     expect(html).toContain("The call becomes the coaching plan.");
     expect(html).toContain("Bring calls into one record");
     expect(html).toContain("Zoom");

@@ -4,6 +4,7 @@ import {
   listOrganizationMembers,
   removeOrganizationMember,
   updateCurrentUserProfile,
+  updateOrganizationLogo,
   updateOrganizationMemberRole,
   type UsersRepository,
 } from "./service";
@@ -17,6 +18,7 @@ function createRepository(
     findOrganizationMembers: vi.fn(),
     removeOrganizationMember: vi.fn(),
     updateCurrentUserProfile: vi.fn(),
+    updateOrganizationLogo: vi.fn(),
     updateOrganizationMemberRole: vi.fn(),
     ...overrides,
   };
@@ -36,6 +38,7 @@ const adminUser = {
     name: "Argos",
     slug: "argos",
     plan: "trial",
+    logoUrl: "https://assets.example/argos-logo.png",
     createdAt: new Date("2026-04-03T00:00:00.000Z"),
   },
 };
@@ -64,6 +67,7 @@ describe("getCurrentUserDetails", () => {
           name: "Argos",
           slug: "argos",
           plan: "trial",
+          logoUrl: "https://assets.example/argos-logo.png",
           createdAt: "2026-04-03T00:00:00.000Z",
         },
       },
@@ -103,6 +107,7 @@ describe("updateCurrentUserProfile", () => {
           name: "Argos",
           slug: "argos",
           plan: "trial",
+          logoUrl: "https://assets.example/argos-logo.png",
           createdAt: "2026-04-03T00:00:00.000Z",
         },
       },
@@ -112,6 +117,68 @@ describe("updateCurrentUserProfile", () => {
       firstName: "Jared",
       lastName: "Lane",
     });
+  });
+});
+
+describe("updateOrganizationLogo", () => {
+  it("allows admins to persist the current organization's logo URL", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue(adminUser),
+      updateOrganizationLogo: vi.fn().mockResolvedValue({
+        ...adminUser.org,
+        logoUrl: "https://assets.example/new-logo.png",
+      }),
+    });
+
+    const result = await updateOrganizationLogo(
+      repository,
+      "user-1",
+      "https://assets.example/new-logo.png",
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      data: {
+        id: "user-1",
+        email: "jared@argos.ai",
+        firstName: "Jared",
+        lastName: "Newman",
+        profileImageUrl: null,
+        role: "admin",
+        orgId: "org-1",
+        displayNameSet: true,
+        org: {
+          id: "org-1",
+          name: "Argos",
+          slug: "argos",
+          plan: "trial",
+          logoUrl: "https://assets.example/new-logo.png",
+          createdAt: "2026-04-03T00:00:00.000Z",
+        },
+      },
+    });
+    expect(repository.updateOrganizationLogo).toHaveBeenCalledWith(
+      "org-1",
+      "https://assets.example/new-logo.png",
+    );
+  });
+
+  it("rejects non-admin logo updates", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        ...adminUser,
+        role: "manager",
+      }),
+    });
+
+    const result = await updateOrganizationLogo(repository, "user-1", null);
+
+    expect(result).toEqual({
+      ok: false,
+      status: 403,
+      error: "Only admins can update organization branding",
+    });
+    expect(repository.updateOrganizationLogo).not.toHaveBeenCalled();
   });
 });
 
@@ -207,9 +274,14 @@ describe("updateOrganizationMemberRole", () => {
       }),
     });
 
-    const result = await updateOrganizationMemberRole(repository, "user-1", "user-2", {
-      role: "manager",
-    });
+    const result = await updateOrganizationMemberRole(
+      repository,
+      "user-1",
+      "user-2",
+      {
+        role: "manager",
+      },
+    );
 
     expect(result).toEqual({
       ok: true,
@@ -228,9 +300,14 @@ describe("updateOrganizationMemberRole", () => {
       }),
     });
 
-    const result = await updateOrganizationMemberRole(repository, "user-1", "user-2", {
-      role: "manager",
-    });
+    const result = await updateOrganizationMemberRole(
+      repository,
+      "user-1",
+      "user-2",
+      {
+        role: "manager",
+      },
+    );
 
     expect(result).toEqual({
       ok: false,
@@ -246,7 +323,11 @@ describe("removeOrganizationMember", () => {
       findCurrentUserByAuthId: vi.fn().mockResolvedValue(adminUser),
     });
 
-    const result = await removeOrganizationMember(repository, "user-1", "user-1");
+    const result = await removeOrganizationMember(
+      repository,
+      "user-1",
+      "user-1",
+    );
 
     expect(result).toEqual({
       ok: false,
@@ -266,12 +347,19 @@ describe("removeOrganizationMember", () => {
       removeOrganizationMember: vi.fn().mockResolvedValue(true),
     });
 
-    const result = await removeOrganizationMember(repository, "user-1", "user-2");
+    const result = await removeOrganizationMember(
+      repository,
+      "user-1",
+      "user-2",
+    );
 
     expect(result).toEqual({
       ok: true,
       data: { success: true },
     });
-    expect(repository.removeOrganizationMember).toHaveBeenCalledWith("user-2", "org-1");
+    expect(repository.removeOrganizationMember).toHaveBeenCalledWith(
+      "user-2",
+      "org-1",
+    );
   });
 });

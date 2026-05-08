@@ -6,10 +6,10 @@ import {
   getModuleSelectionPatch,
   getModuleSubmitTarget,
   mergeTeamProgressModule,
-  TrainingPanel,
+  TrainingCurriculumPanel,
+  TrainingLearnerPanel,
 } from "../components/training-panel";
 import { TrainingCourseShell } from "../components/training/training-course-shell";
-import { TrainingManagerCommandDeck } from "../components/training/training-manager-command-deck";
 import { TrainingManagerModal } from "../components/training/training-manager-modal";
 import { TrainingModuleStage } from "../components/training/training-module-stage";
 import { TrainingModuleToc } from "../components/training/training-module-toc";
@@ -188,14 +188,16 @@ function expectOutlineNoneClassesToUseForgeFocus(source: string) {
   expect(classes.every((className) => className.includes("focus-visible:ring-[var(--forge-gold)]/35"))).toBe(true);
 }
 
-function expectCompactManagerDeckAtRest(html: string) {
+function expectCompactCurriculumActionsAtRest(html: string) {
+  expect(html).toContain('data-training-curriculum-rail-actions="true"');
   expect(html).toContain("Create module");
   expect(html).toContain("Edit selected module");
   expect(html).toContain("Assign selected module");
-  expect(html).toContain("Generate with AI");
-  expect(html).toContain("edit_note");
-  expect(html).toContain("group");
-  expect(html).toContain('data-forge-workspace-rail-action="true"');
+  expect(html).not.toContain("Generate with AI");
+  expect(html).not.toContain('data-training-curriculum-actions="true"');
+  expect(html).not.toContain('data-training-admin-drawer=""');
+  expect(html).not.toContain("Builder controls");
+  expect(html).not.toContain("Course builder");
   expect(html).not.toContain("group_add");
   expect(html).not.toContain("add_circle");
   expect(html).not.toContain("edit_square");
@@ -205,7 +207,7 @@ function expectCompactManagerDeckAtRest(html: string) {
   expect(html).not.toContain("Select reps, set an optional due date");
 }
 
-describe("TrainingPanel", () => {
+describe("training panels", () => {
   it("uses visible Forge focus styling on training admin inputs", () => {
     for (const source of trainingAdminSources) {
       expect(source).toContain("data-training-focus-hardened");
@@ -320,12 +322,8 @@ describe("TrainingPanel", () => {
 
   it("does not show Create module to reps", () => {
     const html = renderToStaticMarkup(
-      <TrainingPanel
-        aiAvailable={false}
-        canManage={false}
+      <TrainingLearnerPanel
         initialModules={baseModules}
-        initialTeamProgress={initialTeamProgress}
-        initialTeamRows={initialTeamRows}
       />,
     );
 
@@ -335,101 +333,81 @@ describe("TrainingPanel", () => {
 
   it("shows Create module to managers", () => {
     const html = renderToStaticMarkup(
-      <TrainingPanel
+      <TrainingCurriculumPanel
         aiAvailable
-        canManage
         initialModules={baseModules}
         initialTeamProgress={initialTeamProgress}
         initialTeamRows={initialTeamRows}
       />,
     );
 
-    expectCompactManagerDeckAtRest(html);
-    expect(html).toContain("Builder controls");
-    expect(html).toContain("Course builder");
+    expectCompactCurriculumActionsAtRest(html);
+    expect(html).toContain("Curriculum");
+    expect(html).toContain("Module preview");
     expect(html).toContain("Discovery That Finds the Real Pain");
     expect(html).not.toContain("Assignments");
     expect(html).not.toContain("Team Progress");
     expect(html).not.toContain("AI tools");
   });
 
-  it("shows Generate with AI to managers", () => {
+  it("keeps Generate with AI inside the create module flow", () => {
     const html = renderToStaticMarkup(
-      <TrainingPanel
+      <TrainingCurriculumPanel
         aiAvailable
-        canManage
         initialModules={baseModules}
         initialTeamProgress={initialTeamProgress}
         initialTeamRows={initialTeamRows}
       />,
     );
 
-    expect(html).toContain("Generate with AI");
+    expect(html).not.toContain("Generate with AI");
+    expect(trainingPanelSource).toContain('data-training-create-ai-entry="true"');
+    expect(trainingPanelSource).toContain("Generate with AI");
   });
 
-  it("disables manager deck actions when no module is selected", () => {
+  it("disables curriculum actions when no module is selected", () => {
     const html = renderToStaticMarkup(
-      <TrainingManagerCommandDeck
+      <TrainingCurriculumPanel
         aiAvailable={false}
-        feedback={null}
-        hasSelectedModule={false}
-        isBusy={false}
-        moduleCount={0}
-        onAssign={() => {}}
-        onCreate={() => {}}
-        onEdit={() => {}}
-        onGenerate={() => {}}
-        repCount={0}
-        selectedModuleTitle={null}
+        initialModules={[]}
+        initialTeamProgress={{ modules: [], repProgress: [] }}
+        initialTeamRows={[]}
       />,
     );
 
-    expect(html).toContain("Select a module to open the planning deck");
-    expect(html).toContain("Choose a module to edit or assign it.");
-    expect(html).toContain('aria-label="Training admin controls"');
-    expect(html).toContain('data-settings-nav-theme="forge"');
-    expect(html).toMatch(/<button(?=[^>]*aria-label="Create module")(?![^>]*disabled="")[^>]*>/);
+    expect(html).toContain('data-training-curriculum-rail-actions="true"');
+    expect(html).toContain("Create module");
     expect(html).toMatch(/<button[^>]*aria-label="Edit selected module"[^>]*disabled=""/s);
     expect(html).toMatch(/<button[^>]*aria-label="Assign selected module"[^>]*disabled=""/s);
-    expect(html).toMatch(/<button[^>]*aria-label="Generate with AI"[^>]*aria-describedby="training-ai-unavailable"[^>]*disabled=""/s);
+    expect(html).not.toContain("Generate with AI");
   });
 
-  it("shows unavailable AI copy when generation is disabled", () => {
+  it("keeps unavailable AI copy scoped to the create module flow", () => {
     const html = renderToStaticMarkup(
-      <TrainingPanel
+      <TrainingCurriculumPanel
         aiAvailable={false}
-        canManage
         initialModules={baseModules}
         initialTeamProgress={initialTeamProgress}
         initialTeamRows={initialTeamRows}
       />,
     );
 
-    expect(html).toContain("AI curriculum generation is unavailable until OpenAI is configured.");
-    expect(html).toContain('disabled=""');
-    expect(html).toContain('aria-describedby="training-ai-unavailable"');
-    expect(html).toContain('id="training-ai-unavailable"');
+    expect(html).not.toContain("AI curriculum generation is unavailable until OpenAI is configured.");
+    expect(trainingPanelSource).toContain("AI curriculum generation is unavailable until OpenAI is configured.");
+    expect(trainingPanelSource).toContain('id="training-create-ai-unavailable"');
   });
 
   it("keeps edit and assign enabled when a selected module has an empty title", () => {
     const html = renderToStaticMarkup(
-      <TrainingManagerCommandDeck
+      <TrainingCurriculumPanel
         aiAvailable
-        feedback={null}
-        hasSelectedModule
-        isBusy={false}
-        moduleCount={1}
-        onAssign={() => {}}
-        onCreate={() => {}}
-        onEdit={() => {}}
-        onGenerate={() => {}}
-        repCount={2}
-        selectedModuleTitle=""
+        initialModules={[{ ...baseModules[0], title: "" }]}
+        initialTeamProgress={initialTeamProgress}
+        initialTeamRows={initialTeamRows}
       />,
     );
 
-    expect(html).toContain("Selected module");
-    expect(html).toContain("Focused on the selected module.");
+    expect(html).toContain('data-training-curriculum-rail-actions="true"');
     expect(html).toMatch(/<button(?=[^>]*aria-label="Edit selected module")(?![^>]*disabled="")[^>]*>/);
     expect(html).toMatch(/<button(?=[^>]*aria-label="Assign selected module")(?![^>]*disabled="")[^>]*>/);
   });
@@ -494,18 +472,15 @@ describe("TrainingPanel", () => {
 
   it("renders the rep shell as a course player instead of workspace tabs", () => {
     const html = renderToStaticMarkup(
-      <TrainingPanel
-        aiAvailable={false}
-        canManage={false}
+      <TrainingLearnerPanel
         initialModules={baseModules}
-        initialTeamProgress={initialTeamProgress}
-        initialTeamRows={initialTeamRows}
-        rubricCategories={[]}
       />,
     );
 
     expect(html).toContain('data-training-course-shell="learner"');
-    expect(html).toContain('data-forge-workspace-layout="one-rail"');
+    expect(html).toContain('data-training-course-structure="inline"');
+    expect(html).not.toContain('data-secondary-rail="training-builder"');
+    expect(html).not.toContain('data-forge-workspace-layout="one-rail"');
     expect(html).toContain("Course player");
     expect(html).toContain("Course structure");
     expect(html).toContain("Curriculum map");
@@ -517,11 +492,10 @@ describe("TrainingPanel", () => {
     expect(html).not.toContain("Training workspace quick switcher");
   });
 
-  it("renders the manager course shell as a builder workbench with one control drawer", () => {
+  it("renders the curriculum shell as a docked module workbench without a control drawer", () => {
     const html = renderToStaticMarkup(
-      <TrainingPanel
+      <TrainingCurriculumPanel
         aiAvailable
-        canManage
         initialModules={baseModules}
         initialTeamProgress={initialTeamProgress}
         initialTeamRows={initialTeamRows}
@@ -532,32 +506,30 @@ describe("TrainingPanel", () => {
     const shellIndex = html.indexOf('data-training-course-shell="manager"');
     const workbenchIndex = html.indexOf('data-training-builder-workbench=""');
     const adminDrawerIndex = html.indexOf('data-training-admin-drawer=""');
-    const structureIndex = html.indexOf('data-training-course-structure=""');
+    const structureIndex = html.indexOf('data-training-builder-secondary-rail=""');
     const stageIndex = html.indexOf('data-training-course-stage=""');
     const tocIndex = html.indexOf('aria-label="Curriculum map"');
-    const commandDeckIndex = html.indexOf("Create module");
+    const actionRailIndex = html.indexOf('data-training-curriculum-rail-actions="true"');
 
     expect(shellIndex).toBeGreaterThanOrEqual(0);
     expect(workbenchIndex).toBeGreaterThanOrEqual(0);
+    expect(html).toContain('data-secondary-rail="training-builder"');
     expect(structureIndex).toBeGreaterThan(shellIndex);
     expect(stageIndex).toBeGreaterThan(structureIndex);
     expect(tocIndex).toBeGreaterThanOrEqual(0);
     expect(tocIndex).toBeLessThan(stageIndex);
-    expect(adminDrawerIndex).toBeGreaterThan(stageIndex);
-    expect(commandDeckIndex).toBeGreaterThan(adminDrawerIndex);
+    expect(adminDrawerIndex).toBe(-1);
+    expect(actionRailIndex).toBeGreaterThan(structureIndex);
+    expect(actionRailIndex).toBeLessThan(stageIndex);
+    expect(html).not.toContain("lg:grid-cols-[auto_minmax(0,1fr)]");
     expect(html).not.toContain('data-training-admin-rail=""');
     expect(html).not.toContain('data-forge-workspace-layout="two-rails"');
   });
 
   it("renders curriculum rows as navigation instead of numbered mini-cards", () => {
     const html = renderToStaticMarkup(
-      <TrainingPanel
-        aiAvailable={false}
-        canManage={false}
+      <TrainingLearnerPanel
         initialModules={baseModules}
-        initialTeamProgress={initialTeamProgress}
-        initialTeamRows={initialTeamRows}
-        rubricCategories={[]}
       />,
     );
 
@@ -570,13 +542,8 @@ describe("TrainingPanel", () => {
 
   it("renders a completion CTA for reps when a module has no quiz", () => {
     const html = renderToStaticMarkup(
-      <TrainingPanel
-        aiAvailable={false}
-        canManage={false}
+      <TrainingLearnerPanel
         initialModules={lessonOnlyModules}
-        initialTeamProgress={initialTeamProgress}
-        initialTeamRows={initialTeamRows}
-        rubricCategories={[]}
       />,
     );
 
@@ -584,11 +551,10 @@ describe("TrainingPanel", () => {
     expect(html).not.toContain(">Quiz<");
   });
 
-  it("renders the manager shell with a status band and planning deck instead of section headings", () => {
+  it("renders the curriculum shell with a status band and compact rail actions", () => {
     const html = renderToStaticMarkup(
-      <TrainingPanel
+      <TrainingCurriculumPanel
         aiAvailable
-        canManage
         initialModules={baseModules}
         initialTeamProgress={initialTeamProgress}
         initialTeamRows={initialTeamRows}
@@ -597,12 +563,12 @@ describe("TrainingPanel", () => {
     );
 
     expect(html).toContain("Curriculum map");
-    expect(html).toContain("Course builder");
+    expect(html).toContain("Curriculum");
+    expect(html).toContain("Module preview");
     expect(html).toContain("Lesson");
     expect(html).toContain("Quiz");
     expect(html).toContain("Plan assignments");
-    expect(html).toContain("Builder controls");
-    expectCompactManagerDeckAtRest(html);
+    expectCompactCurriculumActionsAtRest(html);
     expect(html).not.toContain("Assignments");
     expect(html).not.toContain("Team Progress");
     expect(html).not.toContain("AI tools");
@@ -610,11 +576,10 @@ describe("TrainingPanel", () => {
     expect(html).not.toContain("Quick switcher");
   });
 
-  it("keeps the manager deck compact at rest", () => {
+  it("keeps the curriculum rail actions compact at rest", () => {
     const html = renderToStaticMarkup(
-      <TrainingPanel
+      <TrainingCurriculumPanel
         aiAvailable
-        canManage
         initialModules={baseModules}
         initialTeamProgress={initialTeamProgress}
         initialTeamRows={initialTeamRows}
@@ -622,14 +587,13 @@ describe("TrainingPanel", () => {
       />,
     );
 
-    expectCompactManagerDeckAtRest(html);
+    expectCompactCurriculumActionsAtRest(html);
   });
 
   it("renders the manager empty state as planning guidance instead of a studio splash", () => {
     const html = renderToStaticMarkup(
-      <TrainingPanel
+      <TrainingCurriculumPanel
         aiAvailable
-        canManage
         initialModules={[]}
         initialTeamProgress={{ modules: [], repProgress: [] }}
         initialTeamRows={[]}
@@ -640,19 +604,14 @@ describe("TrainingPanel", () => {
     expect(html).toContain("Create your first module");
     expect(html).toContain("Generate a draft sequence with AI");
     expect(html).toContain("Create module");
-    expect(html).toContain("Generate with AI");
+    expect(html).not.toContain("Generate with AI");
     expect(html).not.toContain("Build your curriculum");
   });
 
   it("renders the rep empty state without manager actions", () => {
     const html = renderToStaticMarkup(
-      <TrainingPanel
-        aiAvailable={false}
-        canManage={false}
+      <TrainingLearnerPanel
         initialModules={[]}
-        initialTeamProgress={{ modules: [], repProgress: [] }}
-        initialTeamRows={[]}
-        rubricCategories={[]}
       />,
     );
 
@@ -671,20 +630,17 @@ describe("TrainingPanel", () => {
     expect(html).toContain("Course player");
     expect(html).toContain("Course structure");
     expect(html).toContain("Curriculum map");
-    expect(html).toContain('data-forge-workspace-layout="one-rail"');
-    expect(html).toContain('data-training-course-structure=""');
+    expect(html).toContain('data-training-course-structure="inline"');
+    expect(html).not.toContain('data-forge-workspace-layout="one-rail"');
     expect(html).toContain('data-training-course-stage=""');
     expect(html).not.toContain("Builder controls");
-    expect(html).toContain(
-      "Review assigned modules and complete the next lesson without manager tools crowding the page.",
-    );
+    expect(html).toContain("Review assigned modules and complete the next lesson.");
   });
 
   it("uses dashboard-like spacing rhythm across the training shell surfaces", () => {
     const shellHtml = renderToStaticMarkup(
       <TrainingCourseShell
         mode="manager"
-        adminRail={<div>Command deck</div>}
         stage={<div>Stage</div>}
         structureRail={<div>Curriculum map</div>}
       />,
@@ -709,45 +665,22 @@ describe("TrainingPanel", () => {
         selectedModuleId={baseModules[0]?.id ?? null}
       />,
     );
-    const commandDeckHtml = renderToStaticMarkup(
-      <TrainingManagerCommandDeck
-        aiAvailable
-        hasSelectedModule
-        isBusy={false}
-        moduleCount={3}
-        onAssign={() => {}}
-        onCreate={() => {}}
-        onEdit={() => {}}
-        onGenerate={() => {}}
-        repCount={5}
-        selectedModuleTitle={baseModules[0]?.title ?? null}
-      />,
-    );
-
     expect(shellHtml).toContain('data-training-course-shell="manager"');
     expect(shellHtml).toContain('data-training-builder-workbench=""');
-    expect(shellHtml).toContain('data-training-admin-drawer=""');
-    expect(shellHtml).toContain('data-operational-preview-drawer="true"');
+    expect(shellHtml).not.toContain('data-training-admin-drawer=""');
+    expect(shellHtml).not.toContain('data-operational-preview-drawer="true"');
     expect(shellHtml).not.toContain('data-forge-workspace-layout="two-rails"');
     expect(shellHtml).not.toContain('data-training-admin-rail=""');
     expect(stageHtml).toContain("relative space-y-6");
     expect(stageHtml).toContain("rounded-[1.25rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface-2)]/45 p-6");
     expect(tocHtml).toContain("rounded-[1.5rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6");
-    expect(commandDeckHtml).toContain('data-training-admin-controls="true"');
-    expect(commandDeckHtml).not.toContain("rounded-[1.35rem] border border-[var(--forge-border)] bg-[rgba(5,4,3,0.56)] p-4");
-    expect(commandDeckHtml).toContain('data-settings-nav-theme="forge"');
-    expect(`${stageHtml}${tocHtml}${commandDeckHtml}`).not.toContain("#74b1ff");
+    expect(`${stageHtml}${tocHtml}`).not.toContain("#74b1ff");
   });
 
   it("renders active-state semantics for the curriculum map and stage switcher", () => {
     const html = renderToStaticMarkup(
-      <TrainingPanel
-        aiAvailable={false}
-        canManage={false}
+      <TrainingLearnerPanel
         initialModules={baseModules}
-        initialTeamProgress={initialTeamProgress}
-        initialTeamRows={initialTeamRows}
-        rubricCategories={[]}
       />,
     );
 

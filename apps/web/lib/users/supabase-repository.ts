@@ -1,4 +1,8 @@
-import { findUserWithOrgByAuthId, getSupabaseAdminClient, toDate } from "@/lib/supabase/admin-repository-helpers";
+import {
+  findUserWithOrgByAuthId,
+  getSupabaseAdminClient,
+  toDate,
+} from "@/lib/supabase/admin-repository-helpers";
 import { parseAppUserRole } from "./roles";
 import type { AppUserRole } from "./roles";
 import type { UsersRepository } from "./service";
@@ -40,10 +44,15 @@ export class SupabaseUsersRepository implements UsersRepository {
 
   async findOrganizationMembers(orgId: string) {
     const supabase: any = this.supabase;
-    const [{ data: members, error: memberError }, { data: calls, error: callsError }] = await Promise.all([
+    const [
+      { data: members, error: memberError },
+      { data: calls, error: callsError },
+    ] = await Promise.all([
       supabase
         .from("users")
-        .select("id, email, first_name, last_name, profile_image_url, role, created_at")
+        .select(
+          "id, email, first_name, last_name, profile_image_url, role, created_at",
+        )
         .eq("org_id", orgId),
       supabase.from("calls").select("id, rep_id").eq("org_id", orgId),
     ]);
@@ -58,7 +67,10 @@ export class SupabaseUsersRepository implements UsersRepository {
 
     const callCountByRepId = new Map<string, number>();
     for (const call of calls ?? []) {
-      callCountByRepId.set(call.rep_id, (callCountByRepId.get(call.rep_id) ?? 0) + 1);
+      callCountByRepId.set(
+        call.rep_id,
+        (callCountByRepId.get(call.rep_id) ?? 0) + 1,
+      );
     }
 
     return (members ?? []).map((member: any) => ({
@@ -96,7 +108,11 @@ export class SupabaseUsersRepository implements UsersRepository {
 
   async updateCurrentUserProfile(
     userId: string,
-    patch: { displayNameSet: boolean; firstName: string | null; lastName: string | null },
+    patch: {
+      displayNameSet: boolean;
+      firstName: string | null;
+      lastName: string | null;
+    },
   ) {
     const supabase: any = this.supabase;
     const { data, error } = await supabase
@@ -122,7 +138,38 @@ export class SupabaseUsersRepository implements UsersRepository {
     return this.findCurrentUserByAuthId(data.id);
   }
 
-  async updateOrganizationMemberRole(userId: string, orgId: string, role: AppUserRole) {
+  async updateOrganizationLogo(orgId: string, logoUrl: string | null) {
+    const supabase: any = this.supabase;
+    const { data, error } = await supabase
+      .from("organizations")
+      .update({
+        logo_url: logoUrl,
+      })
+      .eq("id", orgId)
+      .select("id, name, slug, plan, logo_url, created_at")
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data
+      ? {
+          id: data.id,
+          name: data.name,
+          slug: data.slug,
+          plan: data.plan,
+          logoUrl: data.logo_url,
+          createdAt: toDate(data.created_at) ?? new Date(0),
+        }
+      : null;
+  }
+
+  async updateOrganizationMemberRole(
+    userId: string,
+    orgId: string,
+    role: AppUserRole,
+  ) {
     const supabase: any = this.supabase;
     const { data, error } = await supabase
       .from("users")

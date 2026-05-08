@@ -26,7 +26,7 @@ describe("authenticated route states", () => {
     expect(html).toContain('aria-live="polite"');
     expect(html).toContain('role="status"');
     expect(html).toContain('aria-label="Loading call review"');
-    expect(html).toContain("Argos is preparing this workspace.");
+    expect(html).toContain("Argos is preparing this page.");
   });
 
   it("renders route errors and not-found states with next actions", () => {
@@ -34,9 +34,9 @@ describe("authenticated route states", () => {
       createElement(AuthenticatedRouteError, {
         description: "A workspace view failed.",
         error: Object.assign(new Error("boom"), { digest: "digest-1" }),
-        eyebrow: "Sales forge",
+        eyebrow: "Argos",
         reset: () => undefined,
-        title: "Workspace",
+        title: "Page error",
       }),
     );
     const notFoundHtml = renderToStaticMarkup(

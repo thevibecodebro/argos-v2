@@ -35,8 +35,8 @@ export function TrainingModuleStage({
     );
   }
 
-  const workspaceLabel = canManage ? "Course builder" : "Course player";
-  const stageLabel = canManage ? "Module editor preview" : "Lesson workspace";
+  const workspaceLabel = canManage ? "Curriculum" : "Course player";
+  const stageLabel = canManage ? "Module preview" : "Lesson workspace";
 
   return (
     <section className="relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[linear-gradient(180deg,rgba(32,21,15,0.98),rgba(13,9,7,0.96))] p-6 shadow-[0_24px_80px_rgba(5,3,2,0.32)] sm:p-7">
@@ -110,7 +110,7 @@ export function TrainingModuleStage({
               <p className="text-sm leading-7 text-[var(--forge-text)]">{selectedModule.description}</p>
               <p className="text-xs text-[var(--forge-muted)]">
                 {canManage
-                  ? "Managers review the lesson while planning assignments and edits from the command deck."
+                  ? "Managers review this module before editing content, drafting quiz material, or assigning it to reps."
                   : selectedModule.hasQuiz
                     ? "Work through the lesson, then open the quiz when you are ready."
                     : "Work through the lesson, then mark the module complete when you are ready."}

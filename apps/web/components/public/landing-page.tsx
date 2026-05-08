@@ -150,7 +150,7 @@ function LandingHero() {
       </div>
 
       <div className="argos-hero-meter" aria-hidden="true" data-reveal>
-        <span>Coaching Forge</span>
+        <span>Revenue Command</span>
         <strong>call in, next drill out</strong>
       </div>
     </section>

@@ -9,8 +9,7 @@ describe("PageFrame", () => {
     const html = renderToStaticMarkup(
       createElement(PageFrame, {
         title: "Training",
-        description:
-          "Review assigned modules and complete the next lesson without manager tools crowding the page.",
+        description: "Review assigned modules and complete the next lesson.",
         eyebrow: "Training",
         actions: [{ href: "/highlights", label: "Open highlights" }],
         children: createElement("div", null, "Training body"),
@@ -18,9 +17,7 @@ describe("PageFrame", () => {
     );
 
     expect(html).toContain("Training");
-    expect(html).toContain(
-      "Review assigned modules and complete the next lesson without manager tools crowding the page.",
-    );
+    expect(html).toContain("Review assigned modules and complete the next lesson.");
     expect(html).toContain("Open highlights");
     expect(html).toContain("Training body");
   });
@@ -30,7 +27,7 @@ describe("PageFrame", () => {
       createElement(PageFrame, {
         title: "Calls",
         description: "Review scored calls, transcripts, coaching moments, and processing status.",
-        eyebrow: "Call intake",
+        eyebrow: "Calls",
         actions: [{ href: "/upload", label: "Upload call" }],
         children: createElement("div", null, "Calls body"),
       }),
@@ -69,7 +66,7 @@ describe("PageFrame", () => {
       createElement(PageFrame, {
         title: "Training",
         description: "Build, assign, and monitor readiness work.",
-        eyebrow: "Curriculum bench",
+        eyebrow: "Curriculum",
         primaryAction: { href: "/training/new", label: "Create module", icon: "add" },
         secondaryActions: [{ href: "/training/archive", label: "Archive" }],
         statusChips: [

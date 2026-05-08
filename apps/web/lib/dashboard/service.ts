@@ -21,6 +21,7 @@ export type DashboardUserRecord = {
     name: string;
     slug: string;
     plan: string;
+    logoUrl?: string | null;
   } | null;
 };
 
@@ -228,13 +229,27 @@ export type SetupStatus = {
 };
 
 export interface DashboardRepository {
-  findCurrentUserByAuthId(authUserId: string): Promise<DashboardUserRecord | null>;
-  findRecentCallsByRepId(repId: string, limit: number): Promise<DashboardRecentCallRecord[]>;
-  findScoredCallsByRepIdSince(repId: string, since: Date): Promise<DashboardScoredCallRecord[]>;
-  findCompletedCallsByRepId(repId: string): Promise<DashboardScoredCallRecord[]>;
-  findCompletedCallsByOrgId(orgId: string): Promise<DashboardScoredCallRecord[]>;
+  findCurrentUserByAuthId(
+    authUserId: string,
+  ): Promise<DashboardUserRecord | null>;
+  findRecentCallsByRepId(
+    repId: string,
+    limit: number,
+  ): Promise<DashboardRecentCallRecord[]>;
+  findScoredCallsByRepIdSince(
+    repId: string,
+    since: Date,
+  ): Promise<DashboardScoredCallRecord[]>;
+  findCompletedCallsByRepId(
+    repId: string,
+  ): Promise<DashboardScoredCallRecord[]>;
+  findCompletedCallsByOrgId(
+    orgId: string,
+  ): Promise<DashboardScoredCallRecord[]>;
   findOrgUsersByOrgId(orgId: string): Promise<DashboardOrgUserRecord[]>;
-  findTrainingProgressByOrgId(orgId: string): Promise<DashboardTrainingProgressRecord[]>;
+  findTrainingProgressByOrgId(
+    orgId: string,
+  ): Promise<DashboardTrainingProgressRecord[]>;
   findPassedTrainingByRepId(repId: string): Promise<Date[]>;
   findCompletedRoleplaysByRepId(repId: string): Promise<Date[]>;
   findCallCountByOrgIdSince(orgId: string, since: Date): Promise<number>;
@@ -253,10 +268,16 @@ export class DashboardServiceError extends Error {
 
 const MANAGER_ROLES: AppUserRole[] = ["admin", "manager", "executive"];
 const SKILL_CATEGORIES = [
-  { key: "frameControlScore", label: CALL_SCORE_LABELS_BY_FIELD.frameControlScore },
+  {
+    key: "frameControlScore",
+    label: CALL_SCORE_LABELS_BY_FIELD.frameControlScore,
+  },
   { key: "rapportScore", label: CALL_SCORE_LABELS_BY_FIELD.rapportScore },
   { key: "discoveryScore", label: CALL_SCORE_LABELS_BY_FIELD.discoveryScore },
-  { key: "painExpansionScore", label: CALL_SCORE_LABELS_BY_FIELD.painExpansionScore },
+  {
+    key: "painExpansionScore",
+    label: CALL_SCORE_LABELS_BY_FIELD.painExpansionScore,
+  },
   { key: "solutionScore", label: CALL_SCORE_LABELS_BY_FIELD.solutionScore },
   { key: "objectionScore", label: CALL_SCORE_LABELS_BY_FIELD.objectionScore },
   { key: "closingScore", label: CALL_SCORE_LABELS_BY_FIELD.closingScore },
@@ -281,39 +302,51 @@ async function resolveDynamicCategoryAnalytics(
     new Set(
       dynamicCalls
         .map((call) => call.rubricId)
-        .filter((value): value is string => typeof value === "string" && value.length > 0),
+        .filter(
+          (value): value is string =>
+            typeof value === "string" && value.length > 0,
+        ),
     ),
   );
 
   const activeRubricResult = await getActiveRubric(rubricsRepository, orgId);
-  const activeRubricId = activeRubricResult.ok ? activeRubricResult.data.id : null;
+  const activeRubricId = activeRubricResult.ok
+    ? activeRubricResult.data.id
+    : null;
   const mixedVersions = rubricIds.length > 1;
 
   let selectedCalls = dynamicCalls;
   let label: string | null = null;
 
   if (activeRubricId && rubricIds.includes(activeRubricId)) {
-    selectedCalls = dynamicCalls.filter((call) => call.rubricId === activeRubricId);
+    selectedCalls = dynamicCalls.filter(
+      (call) => call.rubricId === activeRubricId,
+    );
     if (mixedVersions) {
       label = "Category analytics filtered to the active rubric version";
     }
   } else if (mixedVersions) {
-    const latestRubricId = [...dynamicCalls]
-      .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())[0]
-      ?.rubricId;
+    const latestRubricId = [...dynamicCalls].sort(
+      (left, right) => right.createdAt.getTime() - left.createdAt.getTime(),
+    )[0]?.rubricId;
 
     if (latestRubricId) {
-      selectedCalls = dynamicCalls.filter((call) => call.rubricId === latestRubricId);
+      selectedCalls = dynamicCalls.filter(
+        (call) => call.rubricId === latestRubricId,
+      );
       label = "Category analytics filtered to a single rubric version";
     }
   }
 
-  const categoryTotals = new Map<string, {
-    total: number;
-    count: number;
-    name: string;
-    sortOrder: number;
-  }>();
+  const categoryTotals = new Map<
+    string,
+    {
+      total: number;
+      count: number;
+      name: string;
+      sortOrder: number;
+    }
+  >();
 
   for (const call of selectedCalls) {
     for (const category of call.categoryScores ?? []) {
@@ -343,7 +376,11 @@ async function resolveDynamicCategoryAnalytics(
       avgScore: Math.round(bucket.total / bucket.count),
       sortOrder: bucket.sortOrder,
     }))
-    .sort((left, right) => left.sortOrder - right.sortOrder || left.category.localeCompare(right.category));
+    .sort(
+      (left, right) =>
+        left.sortOrder - right.sortOrder ||
+        left.category.localeCompare(right.category),
+    );
 
   return {
     averages,
@@ -360,8 +397,13 @@ function hasOrgWideDashboardAccess(role: AppUserRole | null | undefined) {
   return role === "admin" || role === "executive";
 }
 
-function buildFullName(record: Pick<DashboardUserRecord, "email" | "firstName" | "lastName">): string {
-  const fullName = [record.firstName, record.lastName].filter(Boolean).join(" ").trim();
+function buildFullName(
+  record: Pick<DashboardUserRecord, "email" | "firstName" | "lastName">,
+): string {
+  const fullName = [record.firstName, record.lastName]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
   return fullName || record.email;
 }
 
@@ -375,8 +417,13 @@ function serializeProfile(record: DashboardUserRecord): CurrentUserProfile {
   };
 }
 
-function averageScore(values: Array<number | null | undefined>, round = true): number | null {
-  const scores = values.filter((value): value is number => typeof value === "number");
+function averageScore(
+  values: Array<number | null | undefined>,
+  round = true,
+): number | null {
+  const scores = values.filter(
+    (value): value is number => typeof value === "number",
+  );
 
   if (!scores.length) {
     return null;
@@ -388,7 +435,9 @@ function averageScore(values: Array<number | null | undefined>, round = true): n
 
 function buildWeeklyKeys(since: Date, count: number) {
   return Array.from({ length: count }, (_, index) => {
-    const weekStart = new Date(since.getTime() + index * 7 * 24 * 60 * 60 * 1000);
+    const weekStart = new Date(
+      since.getTime() + index * 7 * 24 * 60 * 60 * 1000,
+    );
     return weekStart.toISOString().slice(0, 10);
   });
 }
@@ -446,14 +495,19 @@ async function assertRequestedRepAccessible(
   }
 
   const orgUsers = await repository.findOrgUsersByOrgId(viewer.org!.id);
-  const targetRep = orgUsers.find((member) => member.id === requestedRepId && member.role === "rep");
+  const targetRep = orgUsers.find(
+    (member) => member.id === requestedRepId && member.role === "rep",
+  );
 
   if (!targetRep) {
     throw new DashboardServiceError("Rep not found", 404);
   }
 
   if (!canActorDrillIntoLeaderboardRep(access, requestedRepId)) {
-    throw new DashboardServiceError("Only authorized team managers can view this rep", 403);
+    throw new DashboardServiceError(
+      "Only authorized team managers can view this rep",
+      403,
+    );
   }
 }
 
@@ -514,7 +568,9 @@ export async function getDashboardSummary(
   return {
     user: serializeProfile(userRecord),
     metrics: {
-      rolling30DayAverageScore: averageScore(scoredCalls.map((call) => call.overallScore)),
+      rolling30DayAverageScore: averageScore(
+        scoredCalls.map((call) => call.overallScore),
+      ),
       callsReviewed30Days: scoredCalls.length,
     },
     recentCalls: recentCalls.map((call) => ({
@@ -574,13 +630,17 @@ export async function getRepDashboard(
   );
 
   const weeklyBuckets = new Map(
-    buildWeeklyKeys(twelveWeeksAgo, 12).map((week) => [week, { scores: [] as number[], callCount: 0 }]),
+    buildWeeklyKeys(twelveWeeksAgo, 12).map((week) => [
+      week,
+      { scores: [] as number[], callCount: 0 },
+    ]),
   );
   const weekKeys = buildWeeklyKeys(twelveWeeksAgo, 12);
 
   for (const call of trendCalls) {
     const weekIndex = Math.floor(
-      (call.createdAt.getTime() - twelveWeeksAgo.getTime()) / (7 * 24 * 60 * 60 * 1000),
+      (call.createdAt.getTime() - twelveWeeksAgo.getTime()) /
+        (7 * 24 * 60 * 60 * 1000),
     );
 
     if (weekIndex < 0 || weekIndex >= 12) {
@@ -601,11 +661,13 @@ export async function getRepDashboard(
     bucket.callCount += 1;
   }
 
-  const weeklyTrend = Array.from(weeklyBuckets.entries()).map(([week, bucket]) => ({
-    week,
-    avgScore: averageScore(bucket.scores, false),
-    callCount: bucket.callCount,
-  }));
+  const weeklyTrend = Array.from(weeklyBuckets.entries()).map(
+    ([week, bucket]) => ({
+      week,
+      avgScore: averageScore(bucket.scores, false),
+      callCount: bucket.callCount,
+    }),
+  );
 
   const dynamicCategoryAnalytics = trendCalls.some(hasDynamicCategoryScores)
     ? await resolveDynamicCategoryAnalytics(
@@ -624,12 +686,17 @@ export async function getRepDashboard(
           category: category.category,
           avgScore: category.avgScore,
         }))
-    : SKILL_CATEGORIES
-        .map(({ key, label }) => ({
-          category: label as string,
-          avgScore: averageScore(trendCalls.map((call) => call[key]), false),
-        }))
-        .filter((category): category is { category: string; avgScore: number } => typeof category.avgScore === "number")
+    : SKILL_CATEGORIES.map(({ key, label }) => ({
+        category: label as string,
+        avgScore: averageScore(
+          trendCalls.map((call) => call[key]),
+          false,
+        ),
+      }))
+        .filter(
+          (category): category is { category: string; avgScore: number } =>
+            typeof category.avgScore === "number",
+        )
         .sort((left, right) => left.avgScore - right.avgScore)
         .slice(0, 3)
         .map((category) => ({
@@ -661,7 +728,12 @@ export async function getManagerDashboard(
   assertManager(user);
 
   if (!user.org) {
-    return { reps: [], teamAvgScore: null, totalCallsThisMonth: 0, coachingFlagsCount: 0 };
+    return {
+      reps: [],
+      teamAvgScore: null,
+      totalCallsThisMonth: 0,
+      coachingFlagsCount: 0,
+    };
   }
 
   const access = await resolveAccessContext(accessRepository, authUserId);
@@ -671,9 +743,13 @@ export async function getManagerDashboard(
   }
 
   const monthStart = startOfMonth(now);
-  const thisWeekStart = new Date(now.getTime() - now.getDay() * 24 * 60 * 60 * 1000);
+  const thisWeekStart = new Date(
+    now.getTime() - now.getDay() * 24 * 60 * 60 * 1000,
+  );
   thisWeekStart.setHours(0, 0, 0, 0);
-  const lastWeekStart = new Date(thisWeekStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const lastWeekStart = new Date(
+    thisWeekStart.getTime() - 7 * 24 * 60 * 60 * 1000,
+  );
 
   const [users, allCompletedCalls] = await Promise.all([
     repository.findOrgUsersByOrgId(user.org.id),
@@ -681,7 +757,9 @@ export async function getManagerDashboard(
   ]);
 
   const reps = users.filter(
-    (member) => member.role === "rep" && canActorUsePermissionForRep(access, "view_team_analytics", member.id),
+    (member) =>
+      member.role === "rep" &&
+      canActorUsePermissionForRep(access, "view_team_analytics", member.id),
   );
   const scopedCalls = allCompletedCalls.filter((call) =>
     canActorUsePermissionForRep(access, "view_team_analytics", call.repId),
@@ -690,7 +768,9 @@ export async function getManagerDashboard(
   const repCards = reps
     .map((rep) => {
       const repCalls = scopedCalls.filter((call) => call.repId === rep.id);
-      const compositeScore = averageScore(repCalls.map((call) => call.overallScore));
+      const compositeScore = averageScore(
+        repCalls.map((call) => call.overallScore),
+      );
       const thisWeekAvg = averageScore(
         repCalls
           .filter((call) => call.createdAt >= thisWeekStart)
@@ -699,12 +779,17 @@ export async function getManagerDashboard(
       );
       const lastWeekAvg = averageScore(
         repCalls
-          .filter((call) => call.createdAt >= lastWeekStart && call.createdAt < thisWeekStart)
+          .filter(
+            (call) =>
+              call.createdAt >= lastWeekStart && call.createdAt < thisWeekStart,
+          )
           .map((call) => call.overallScore),
         false,
       );
       const weekOverWeekDelta =
-        thisWeekAvg !== null && lastWeekAvg !== null ? Math.round(thisWeekAvg - lastWeekAvg) : null;
+        thisWeekAvg !== null && lastWeekAvg !== null
+          ? Math.round(thisWeekAvg - lastWeekAvg)
+          : null;
 
       return {
         id: rep.id,
@@ -717,10 +802,17 @@ export async function getManagerDashboard(
         callCount: repCalls.length,
       };
     })
-    .sort((left, right) => (right.compositeScore ?? -1) - (left.compositeScore ?? -1));
+    .sort(
+      (left, right) =>
+        (right.compositeScore ?? -1) - (left.compositeScore ?? -1),
+    );
 
-  const monthScopedCalls = scopedCalls.filter((call) => call.createdAt >= monthStart);
-  const teamAvgScore = averageScore(monthScopedCalls.map((call) => call.overallScore));
+  const monthScopedCalls = scopedCalls.filter(
+    (call) => call.createdAt >= monthStart,
+  );
+  const teamAvgScore = averageScore(
+    monthScopedCalls.map((call) => call.overallScore),
+  );
 
   return {
     reps: repCards,
@@ -758,7 +850,9 @@ export async function getDashboardLeaderboard(
   ]);
 
   const reps = users.filter((member) => member.role === "rep");
-  const monthCalls = completedCalls.filter((call) => call.createdAt >= monthStart);
+  const monthCalls = completedCalls.filter(
+    (call) => call.createdAt >= monthStart,
+  );
   const lastMonthCalls = completedCalls.filter(
     (call) => call.createdAt >= lastMonthStart && call.createdAt < monthStart,
   );
@@ -788,11 +882,22 @@ export async function getDashboardLeaderboard(
   }
 
   return {
-    topQuality: buildLeaderboardEntries(reps, (userId) => averageScore(qualityByRep.get(userId) ?? [])),
-    topVolume: buildLeaderboardEntries(reps, (userId) => volumeByRep.get(userId) ?? null),
+    topQuality: buildLeaderboardEntries(reps, (userId) =>
+      averageScore(qualityByRep.get(userId) ?? []),
+    ),
+    topVolume: buildLeaderboardEntries(
+      reps,
+      (userId) => volumeByRep.get(userId) ?? null,
+    ),
     mostImproved: buildLeaderboardEntries(reps, (userId) => {
-      const thisMonthAverage = averageScore(qualityByRep.get(userId) ?? [], false);
-      const priorMonthAverage = averageScore(lastMonthByRep.get(userId) ?? [], false);
+      const thisMonthAverage = averageScore(
+        qualityByRep.get(userId) ?? [],
+        false,
+      );
+      const priorMonthAverage = averageScore(
+        lastMonthByRep.get(userId) ?? [],
+        false,
+      );
 
       if (thisMonthAverage === null || priorMonthAverage === null) {
         return null;
@@ -828,15 +933,22 @@ export async function getRepBadges(
   await assertRequestedRepAccessible(repository, user, access, requestedRepId);
 
   const targetRepId = requestedRepId ?? user.id;
-  const [completedCalls, passedTraining, completedRoleplays] = await Promise.all([
-    repository.findCompletedCallsByRepId(targetRepId),
-    repository.findPassedTrainingByRepId(targetRepId),
-    repository.findCompletedRoleplaysByRepId(targetRepId),
-  ]);
+  const [completedCalls, passedTraining, completedRoleplays] =
+    await Promise.all([
+      repository.findCompletedCallsByRepId(targetRepId),
+      repository.findPassedTrainingByRepId(targetRepId),
+      repository.findCompletedRoleplaysByRepId(targetRepId),
+    ]);
 
-  const orderedCalls = [...completedCalls].sort((left, right) => left.createdAt.getTime() - right.createdAt.getTime());
-  const orderedPassedTraining = [...passedTraining].sort((left, right) => left.getTime() - right.getTime());
-  const orderedRoleplays = [...completedRoleplays].sort((left, right) => left.getTime() - right.getTime());
+  const orderedCalls = [...completedCalls].sort(
+    (left, right) => left.createdAt.getTime() - right.createdAt.getTime(),
+  );
+  const orderedPassedTraining = [...passedTraining].sort(
+    (left, right) => left.getTime() - right.getTime(),
+  );
+  const orderedRoleplays = [...completedRoleplays].sort(
+    (left, right) => left.getTime() - right.getTime(),
+  );
 
   const badges: Badge[] = [
     {
@@ -868,7 +980,11 @@ export async function getRepBadges(
       name: "Elite Performer",
       description: "Maintain an average overall score of 85 or above.",
       emoji: "⭐",
-      earned: (averageScore(orderedCalls.map((call) => call.overallScore), false) ?? -1) >= 85,
+      earned:
+        (averageScore(
+          orderedCalls.map((call) => call.overallScore),
+          false,
+        ) ?? -1) >= 85,
       earnedAt: null,
     },
     {
@@ -876,7 +992,11 @@ export async function getRepBadges(
       name: "Sharp Closer",
       description: "Achieve an average closing score of 85 or above.",
       emoji: "🔒",
-      earned: (averageScore(orderedCalls.map((call) => call.closingScore), false) ?? -1) >= 85,
+      earned:
+        (averageScore(
+          orderedCalls.map((call) => call.closingScore),
+          false,
+        ) ?? -1) >= 85,
       earnedAt: null,
     },
     {
@@ -884,7 +1004,11 @@ export async function getRepBadges(
       name: "Discovery Pro",
       description: "Achieve an average discovery score of 85 or above.",
       emoji: "🔍",
-      earned: (averageScore(orderedCalls.map((call) => call.discoveryScore), false) ?? -1) >= 85,
+      earned:
+        (averageScore(
+          orderedCalls.map((call) => call.discoveryScore),
+          false,
+        ) ?? -1) >= 85,
       earnedAt: null,
     },
     {
@@ -892,7 +1016,11 @@ export async function getRepBadges(
       name: "Rapport Builder",
       description: "Achieve an average rapport score of 85 or above.",
       emoji: "🤝",
-      earned: (averageScore(orderedCalls.map((call) => call.rapportScore), false) ?? -1) >= 85,
+      earned:
+        (averageScore(
+          orderedCalls.map((call) => call.rapportScore),
+          false,
+        ) ?? -1) >= 85,
       earnedAt: null,
     },
     {
@@ -949,13 +1077,16 @@ export async function getExecutiveDashboard(
   ]);
 
   const reps = users.filter((member) => member.role === "rep");
-  const recentCalls = completedCalls.filter((call) => call.createdAt >= twelveWeeksAgo);
+  const recentCalls = completedCalls.filter(
+    (call) => call.createdAt >= twelveWeeksAgo,
+  );
   const weekKeys = buildWeeklyKeys(twelveWeeksAgo, 12);
   const weeklyBuckets = new Map(weekKeys.map((week) => [week, 0]));
 
   for (const call of recentCalls) {
     const weekIndex = Math.floor(
-      (call.createdAt.getTime() - twelveWeeksAgo.getTime()) / (7 * 24 * 60 * 60 * 1000),
+      (call.createdAt.getTime() - twelveWeeksAgo.getTime()) /
+        (7 * 24 * 60 * 60 * 1000),
     );
 
     if (weekIndex < 0 || weekIndex >= 12) {
@@ -982,7 +1113,9 @@ export async function getExecutiveDashboard(
         category: label,
         avgScore: averageScore(recentCalls.map((call) => call[key])),
       }));
-  const skillColumns = dynamicCategoryAnalytics?.averages.map((category) => category.category) ?? undefined;
+  const skillColumns =
+    dynamicCategoryAnalytics?.averages.map((category) => category.category) ??
+    undefined;
 
   return {
     skillAverages,
@@ -994,11 +1127,15 @@ export async function getExecutiveDashboard(
     })),
     trainingStats: {
       totalAssigned: trainingProgress.length,
-      totalPassed: trainingProgress.filter((progress) => progress.status === "passed").length,
+      totalPassed: trainingProgress.filter(
+        (progress) => progress.status === "passed",
+      ).length,
       completionRate:
         trainingProgress.length > 0
           ? Math.round(
-              (trainingProgress.filter((progress) => progress.status === "passed").length /
+              (trainingProgress.filter(
+                (progress) => progress.status === "passed",
+              ).length /
                 trainingProgress.length) *
                 100,
             )
@@ -1008,7 +1145,9 @@ export async function getExecutiveDashboard(
       .map((rep) => {
         const repCalls = completedCalls.filter((call) => call.repId === rep.id);
         const repCategoryCalls = dynamicCategoryAnalytics
-          ? dynamicCategoryAnalytics.calls.filter((call) => call.repId === rep.id)
+          ? dynamicCategoryAnalytics.calls.filter(
+              (call) => call.repId === rep.id,
+            )
           : repCalls;
 
         return {
@@ -1016,7 +1155,9 @@ export async function getExecutiveDashboard(
           firstName: rep.firstName,
           lastName: rep.lastName,
           profileImageUrl: rep.profileImageUrl,
-          compositeScore: averageScore(repCalls.map((call) => call.overallScore)),
+          compositeScore: averageScore(
+            repCalls.map((call) => call.overallScore),
+          ),
           callCount: repCalls.length,
           skillBreakdown: dynamicCategoryAnalytics
             ? dynamicCategoryAnalytics.averages.map((category) => ({
@@ -1031,17 +1172,28 @@ export async function getExecutiveDashboard(
               }))
             : undefined,
           skills: {
-            frameControl: averageScore(repCalls.map((call) => call.frameControlScore)),
+            frameControl: averageScore(
+              repCalls.map((call) => call.frameControlScore),
+            ),
             rapport: averageScore(repCalls.map((call) => call.rapportScore)),
-            discovery: averageScore(repCalls.map((call) => call.discoveryScore)),
-            painExpansion: averageScore(repCalls.map((call) => call.painExpansionScore)),
+            discovery: averageScore(
+              repCalls.map((call) => call.discoveryScore),
+            ),
+            painExpansion: averageScore(
+              repCalls.map((call) => call.painExpansionScore),
+            ),
             solution: averageScore(repCalls.map((call) => call.solutionScore)),
-            objection: averageScore(repCalls.map((call) => call.objectionScore)),
+            objection: averageScore(
+              repCalls.map((call) => call.objectionScore),
+            ),
             closing: averageScore(repCalls.map((call) => call.closingScore)),
           },
         };
       })
-      .sort((left, right) => (right.compositeScore ?? -1) - (left.compositeScore ?? -1)),
+      .sort(
+        (left, right) =>
+          (right.compositeScore ?? -1) - (left.compositeScore ?? -1),
+      ),
   };
 }
 

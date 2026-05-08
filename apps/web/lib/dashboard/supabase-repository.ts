@@ -36,7 +36,7 @@ export class SupabaseDashboardRepository implements DashboardRepository {
     if (dashboardUser.org_id) {
       const { data: orgRow, error: orgError } = await supabase
         .from("organizations")
-        .select("id, name, slug, plan")
+        .select("id, name, slug, plan, logo_url")
         .eq("id", dashboardUser.org_id)
         .maybeSingle();
 
@@ -44,7 +44,16 @@ export class SupabaseDashboardRepository implements DashboardRepository {
         throw new Error(orgError.message);
       }
 
-      org = orgRow;
+      const orgData = orgRow as any;
+      org = orgData
+        ? {
+            id: orgData.id,
+            name: orgData.name,
+            slug: orgData.slug,
+            plan: orgData.plan,
+            logoUrl: orgData.logo_url,
+          }
+        : null;
     }
 
     return {
@@ -61,7 +70,9 @@ export class SupabaseDashboardRepository implements DashboardRepository {
     const supabase = await this.getSupabase();
     const { data, error } = await supabase
       .from("calls")
-      .select("id, rep_id, call_topic, created_at, overall_score, status, duration_seconds")
+      .select(
+        "id, rep_id, call_topic, created_at, overall_score, status, duration_seconds",
+      )
       .eq("rep_id", repId)
       .order("created_at", { ascending: false })
       .limit(limit);
@@ -117,7 +128,9 @@ export class SupabaseDashboardRepository implements DashboardRepository {
   }
 
   async findTrainingProgressByOrgId(orgId: string) {
-    const repIds = (await this.findOrgUsersByOrgId(orgId)).map((user) => user.id);
+    const repIds = (await this.findOrgUsersByOrgId(orgId)).map(
+      (user) => user.id,
+    );
 
     if (!repIds.length) {
       return [];
@@ -219,7 +232,8 @@ export class SupabaseDashboardRepository implements DashboardRepository {
     const supabase = await this.getSupabase();
     let query = supabase
       .from("calls")
-      .select(`
+      .select(
+        `
         id,
         rep_id,
         rubric_id,
@@ -234,7 +248,8 @@ export class SupabaseDashboardRepository implements DashboardRepository {
         solution_score,
         objection_score,
         closing_score
-      `)
+      `,
+      )
       .eq("status", "complete")
       .order("created_at", { ascending: true });
 
@@ -296,7 +311,10 @@ export class SupabaseDashboardRepository implements DashboardRepository {
       new Set(
         calls
           .map((call) => call.rubricId)
-          .filter((value): value is string => typeof value === "string" && value.length > 0),
+          .filter(
+            (value): value is string =>
+              typeof value === "string" && value.length > 0,
+          ),
       ),
     );
 
@@ -310,23 +328,23 @@ export class SupabaseDashboardRepository implements DashboardRepository {
     }
 
     const supabase = await this.getSupabase();
-    const [{ data: rubrics, error: rubricsError }, { data: categories, error: categoriesError }, { data: scores, error: scoresError }] =
-      await Promise.all([
-        supabase
-          .from("rubrics")
-          .select("id, name, version")
-          .in("id", rubricIds),
-        supabase
-          .from("rubric_categories")
-          .select("id, rubric_id, slug, name, sort_order, created_at")
-          .in("rubric_id", rubricIds)
-          .order("sort_order", { ascending: true })
-          .order("created_at", { ascending: true }),
-        supabase
-          .from("call_scores")
-          .select("call_id, rubric_category_id, score")
-          .in("call_id", callIds),
-      ]);
+    const [
+      { data: rubrics, error: rubricsError },
+      { data: categories, error: categoriesError },
+      { data: scores, error: scoresError },
+    ] = await Promise.all([
+      supabase.from("rubrics").select("id, name, version").in("id", rubricIds),
+      supabase
+        .from("rubric_categories")
+        .select("id, rubric_id, slug, name, sort_order, created_at")
+        .in("rubric_id", rubricIds)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("call_scores")
+        .select("call_id, rubric_category_id, score")
+        .in("call_id", callIds),
+    ]);
 
     if (rubricsError) {
       throw new Error(rubricsError.message);
@@ -340,7 +358,9 @@ export class SupabaseDashboardRepository implements DashboardRepository {
       throw new Error(scoresError.message);
     }
 
-    const rubricById = new Map((rubrics ?? []).map((rubric: any) => [rubric.id, rubric]));
+    const rubricById = new Map(
+      (rubrics ?? []).map((rubric: any) => [rubric.id, rubric]),
+    );
     const categoriesByRubricId = new Map<string, any[]>();
     const categoryRows = (categories ?? []) as any[];
     const scoreRows = (scores ?? []) as any[];
@@ -354,15 +374,21 @@ export class SupabaseDashboardRepository implements DashboardRepository {
     const scoresByCallId = new Map<string, Map<string, number>>();
 
     for (const score of scoreRows) {
-      const bucket = scoresByCallId.get(score.call_id) ?? new Map<string, number>();
+      const bucket =
+        scoresByCallId.get(score.call_id) ?? new Map<string, number>();
       bucket.set(score.rubric_category_id, score.score);
       scoresByCallId.set(score.call_id, bucket);
     }
 
     return calls.map((call) => {
-      const rubric = call.rubricId ? rubricById.get(call.rubricId) ?? null : null;
-      const rubricCategories = call.rubricId ? categoriesByRubricId.get(call.rubricId) ?? [] : [];
-      const callScores = scoresByCallId.get(call.id) ?? new Map<string, number>();
+      const rubric = call.rubricId
+        ? (rubricById.get(call.rubricId) ?? null)
+        : null;
+      const rubricCategories = call.rubricId
+        ? (categoriesByRubricId.get(call.rubricId) ?? [])
+        : [];
+      const callScores =
+        scoresByCallId.get(call.id) ?? new Map<string, number>();
 
       return {
         ...call,

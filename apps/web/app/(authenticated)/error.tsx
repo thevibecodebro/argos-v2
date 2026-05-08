@@ -16,12 +16,12 @@ export default function AuthenticatedError({
 
   return (
     <AuthenticatedRouteError
-      description="The authenticated workspace hit a recoverable rendering error."
+      description="This page hit a recoverable rendering error."
       error={error}
-      eyebrow="Sales forge"
+      eyebrow="Argos"
       reset={reset}
       size="wide"
-      title="Workspace"
+      title="Page error"
     />
   );
 }

@@ -8,6 +8,7 @@ import {
   OperationalWorkspace,
 } from "@/components/operational-workspace";
 import { AccountPanel } from "@/components/page-panel-loaders";
+import { SettingsSecondaryRail } from "@/components/settings/settings-secondary-rail";
 import {
   getCachedAuthenticatedSupabaseUser,
   getCachedCurrentUserDetails,
@@ -102,34 +103,27 @@ export default async function SettingsAccountPage() {
       scope: "Admin",
     })),
   ];
+  const settingsRailItems = [
+    { href: "/settings", icon: "person", key: "account", label: "Account" },
+    ...visibleSections.map((section) => ({
+      href: section.href,
+      icon: section.icon,
+      key: section.label.toLowerCase(),
+      label: section.label,
+    })),
+  ];
 
   return (
-    <OperationalWorkspace data-settings-route="control-room">
+    <OperationalWorkspace data-settings-route="settings">
       <OperationalToolbar
-        description="Control account details, people, teams, integrations, compliance, and the scoring rubric from one workspace."
+        description="Manage account, people, teams, integrations, compliance, and rubrics."
         eyebrow="Settings"
-        status={{ icon: "admin_panel_settings", label: `${result.data.role ?? "member"} scope`, tone: "muted" }}
-        title="Control room"
+        status={{ icon: "admin_panel_settings", label: `${result.data.role ?? "member"} access`, tone: "muted" }}
+        title="Settings"
       />
 
-      <section className="grid min-w-0 gap-3 xl:grid-cols-[180px_minmax(0,1fr)_320px]">
-        <nav
-          aria-label="Settings sections"
-          className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.026)] p-2"
-          data-settings-internal-subnav="true"
-        >
-          <div className="grid gap-1">
-            <SettingsSubnavLink active href="/settings" icon="person" label="Account" />
-            {visibleSections.map((section) => (
-              <SettingsSubnavLink
-                href={section.href}
-                icon={section.icon}
-                key={section.href}
-                label={section.label}
-              />
-            ))}
-          </div>
-        </nav>
+      <section className="grid min-w-0 gap-3 2xl:grid-cols-[minmax(0,1fr)_320px]">
+        <SettingsSecondaryRail activeKey="account" items={settingsRailItems} />
 
         <div className="min-w-0 space-y-3">
           <section
@@ -138,10 +132,10 @@ export default async function SettingsAccountPage() {
           >
             <div className="border-b border-[var(--forge-border)] bg-[rgba(255,244,230,0.024)] px-4 py-3">
               <p className="text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
-                Workspace map
+                All settings
               </p>
               <p className="mt-1 text-sm text-[var(--forge-muted)]">
-                One landing page for grouped controls, clear status, and admin scope.
+                Grouped account and admin controls.
               </p>
             </div>
             <div className="divide-y divide-[var(--forge-border)]">
@@ -195,47 +189,20 @@ export default async function SettingsAccountPage() {
 
         <OperationalPreviewDrawer
           actions={[{ href: "/settings/rubric", label: "Open rubrics", variant: "secondary" }]}
-          description="Workspace-level configuration status and guardrails."
+          description="Organization status and guardrails."
           eyebrow="Organization"
-          title={result.data.org?.name ?? "Argos workspace"}
+          title={result.data.org?.name ?? "Argos organization"}
         >
           <div className="grid gap-2 text-sm">
             <SummaryRow label="Plan" value={result.data.org?.plan ?? "No plan"} />
             <SummaryRow label="Role" value={result.data.role ?? "member"} />
             <SummaryRow label="Email" value={result.data.email} />
             <SummaryRow label="Org slug" value={result.data.org?.slug ?? "Not assigned"} />
-            <SummaryRow label="Visible sections" value={`${workspaceRows.length} visible`} />
+            <SummaryRow label="Sections" value={`${workspaceRows.length} visible`} />
           </div>
         </OperationalPreviewDrawer>
       </section>
     </OperationalWorkspace>
-  );
-}
-
-function SettingsSubnavLink({
-  active = false,
-  href,
-  icon,
-  label,
-}: {
-  active?: boolean;
-  href: string;
-  icon: string;
-  label: string;
-}) {
-  return (
-    <Link
-      aria-current={active ? "page" : undefined}
-      className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition ${
-        active
-          ? "bg-[rgba(241,191,123,0.12)] text-[var(--forge-gold)]"
-          : "text-[var(--forge-muted)] hover:bg-[rgba(255,244,230,0.04)] hover:text-[var(--forge-text)]"
-      }`}
-      href={href}
-    >
-      <ForgeIcon name={icon} size={16} />
-      <span className="truncate">{label}</span>
-    </Link>
   );
 }
 

@@ -10,23 +10,37 @@ import {
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-function makeUser(overrides: Partial<{
-  id: string;
-  email: string;
-  orgId: string | null;
-  role: string | null;
-  org: { id: string; name: string; slug: string; plan: string; createdAt: string } | null;
-  displayNameSet: boolean;
-  firstName: string | null;
-  lastName: string | null;
-  profileImageUrl: string | null;
-}> = {}) {
+function makeUser(
+  overrides: Partial<{
+    id: string;
+    email: string;
+    orgId: string | null;
+    role: string | null;
+    org: {
+      id: string;
+      name: string;
+      slug: string;
+      plan: string;
+      createdAt: string;
+    } | null;
+    displayNameSet: boolean;
+    firstName: string | null;
+    lastName: string | null;
+    profileImageUrl: string | null;
+  }> = {},
+) {
   return {
     id: "user-1",
     email: "admin@acme.com",
     orgId: "org-1",
     role: "admin" as const,
-    org: { id: "org-1", name: "Acme", slug: "acme", plan: "trial", createdAt: new Date().toISOString() },
+    org: {
+      id: "org-1",
+      name: "Acme",
+      slug: "acme",
+      plan: "trial",
+      createdAt: new Date().toISOString(),
+    },
     displayNameSet: true,
     firstName: "Admin",
     lastName: "User",
@@ -50,7 +64,9 @@ function makeInvite(overrides: Partial<InviteRecord> = {}): InviteRecord {
   };
 }
 
-function makeInvitesRepo(overrides: Partial<InvitesRepository> = {}): InvitesRepository {
+function makeInvitesRepo(
+  overrides: Partial<InvitesRepository> = {},
+): InvitesRepository {
   return {
     createInvite: vi.fn().mockResolvedValue(makeInvite()),
     findInviteByToken: vi.fn().mockResolvedValue(null),
@@ -65,19 +81,24 @@ function makeInvitesRepo(overrides: Partial<InvitesRepository> = {}): InvitesRep
   };
 }
 
-function makeUsersRepo(overrides: Partial<UsersRepository> = {}): UsersRepository {
+function makeUsersRepo(
+  overrides: Partial<UsersRepository> = {},
+): UsersRepository {
   return {
     findCurrentUserByAuthId: vi.fn().mockResolvedValue(makeUser()),
     findOrganizationMember: vi.fn().mockResolvedValue(null),
     findOrganizationMembers: vi.fn().mockResolvedValue([]),
     removeOrganizationMember: vi.fn().mockResolvedValue(true),
     updateCurrentUserProfile: vi.fn().mockResolvedValue(null),
+    updateOrganizationLogo: vi.fn().mockResolvedValue(null),
     updateOrganizationMemberRole: vi.fn().mockResolvedValue(null),
     ...overrides,
   };
 }
 
-function makeOnboardingRepo(overrides: Partial<OnboardingRepository> = {}): OnboardingRepository {
+function makeOnboardingRepo(
+  overrides: Partial<OnboardingRepository> = {},
+): OnboardingRepository {
   return {
     assignUserToOrganization: vi.fn().mockResolvedValue(true),
     createBootstrapOrganizationForUserIfNone: vi.fn().mockResolvedValue({
@@ -117,40 +138,70 @@ describe("sendInvite", () => {
 
   it("returns 400 when caller has no orgId", async () => {
     const usersRepo = makeUsersRepo({
-      findCurrentUserByAuthId: vi.fn().mockResolvedValue(makeUser({ orgId: null, org: null })),
+      findCurrentUserByAuthId: vi
+        .fn()
+        .mockResolvedValue(makeUser({ orgId: null, org: null })),
     });
     const result = await sendInvite(makeInvitesRepo(), usersRepo, "user-1", {
       email: "rep@acme.com",
       role: "rep",
     });
-    expect(result).toEqual({ ok: false, status: 400, error: expect.any(String) });
+    expect(result).toEqual({
+      ok: false,
+      status: 400,
+      error: expect.any(String),
+    });
   });
 
   it("returns 403 when caller is not admin", async () => {
     const usersRepo = makeUsersRepo({
-      findCurrentUserByAuthId: vi.fn().mockResolvedValue(makeUser({ role: "manager" })),
+      findCurrentUserByAuthId: vi
+        .fn()
+        .mockResolvedValue(makeUser({ role: "manager" })),
     });
     const result = await sendInvite(makeInvitesRepo(), usersRepo, "user-1", {
       email: "rep@acme.com",
       role: "rep",
     });
-    expect(result).toEqual({ ok: false, status: 403, error: expect.any(String) });
+    expect(result).toEqual({
+      ok: false,
+      status: 403,
+      error: expect.any(String),
+    });
   });
 
   it("returns 400 when email format is invalid", async () => {
-    const result = await sendInvite(makeInvitesRepo(), makeUsersRepo(), "user-1", {
-      email: "not-an-email",
-      role: "rep",
+    const result = await sendInvite(
+      makeInvitesRepo(),
+      makeUsersRepo(),
+      "user-1",
+      {
+        email: "not-an-email",
+        role: "rep",
+      },
+    );
+    expect(result).toEqual({
+      ok: false,
+      status: 400,
+      error: expect.any(String),
     });
-    expect(result).toEqual({ ok: false, status: 400, error: expect.any(String) });
   });
 
   it("returns 400 when role is invalid", async () => {
-    const result = await sendInvite(makeInvitesRepo(), makeUsersRepo(), "user-1", {
-      email: "rep@acme.com",
-      role: "unknown-role" as any,
+    const result = await sendInvite(
+      makeInvitesRepo(),
+      makeUsersRepo(),
+      "user-1",
+      {
+        email: "rep@acme.com",
+        role: "unknown-role" as any,
+      },
+    );
+    expect(result).toEqual({
+      ok: false,
+      status: 400,
+      error: expect.any(String),
     });
-    expect(result).toEqual({ ok: false, status: 400, error: expect.any(String) });
   });
 
   it("persists teamIds as null for executive role even if teamIds supplied", async () => {
@@ -185,7 +236,11 @@ describe("sendInvite", () => {
       email: "rep@acme.com",
       role: "rep",
     });
-    expect(result).toEqual({ ok: false, status: 409, error: expect.any(String) });
+    expect(result).toEqual({
+      ok: false,
+      status: 409,
+      error: expect.any(String),
+    });
   });
 
   it("returns 400 when teamIds contains unknown team", async () => {
@@ -197,7 +252,11 @@ describe("sendInvite", () => {
       role: "rep",
       teamIds: ["nonexistent-team"],
     });
-    expect(result).toEqual({ ok: false, status: 400, error: expect.any(String) });
+    expect(result).toEqual({
+      ok: false,
+      status: 400,
+      error: expect.any(String),
+    });
   });
 
   it("throws when email send fails (invite row already persisted)", async () => {
@@ -215,16 +274,28 @@ describe("sendInvite", () => {
 
 describe("commitInviteAcceptance", () => {
   function makeAcceptArgs(inviteOverrides: Partial<InviteRecord> = {}) {
-    const caller = { id: "user-2", email: "rep@acme.com", orgId: null as string | null };
+    const caller = {
+      id: "user-2",
+      email: "rep@acme.com",
+      orgId: null as string | null,
+    };
     const invite = makeInvite(inviteOverrides);
     return { caller, invite };
   }
 
   it("happy path for rep: assigns org, inserts rep team memberships, marks accepted", async () => {
-    const { caller, invite } = makeAcceptArgs({ role: "rep", teamIds: ["team-1"] });
+    const { caller, invite } = makeAcceptArgs({
+      role: "rep",
+      teamIds: ["team-1"],
+    });
     const repo = makeInvitesRepo();
     const onboardingRepo = makeOnboardingRepo();
-    const result = await commitInviteAcceptance(repo, onboardingRepo, caller, invite);
+    const result = await commitInviteAcceptance(
+      repo,
+      onboardingRepo,
+      caller,
+      invite,
+    );
     expect(result.ok).toBe(true);
     expect(onboardingRepo.assignUserToOrganization).toHaveBeenCalledWith({
       orgId: invite.orgId,
@@ -241,25 +312,38 @@ describe("commitInviteAcceptance", () => {
   });
 
   it("claims the invite before assigning organization membership", async () => {
-    const { caller, invite } = makeAcceptArgs({ role: "rep", teamIds: ["team-1"] });
+    const { caller, invite } = makeAcceptArgs({
+      role: "rep",
+      teamIds: ["team-1"],
+    });
     const repo = makeInvitesRepo();
     const onboardingRepo = makeOnboardingRepo();
 
     await commitInviteAcceptance(repo, onboardingRepo, caller, invite);
 
-    const markOrder = vi.mocked(repo.markInviteAccepted).mock.invocationCallOrder[0];
-    const assignOrder = vi.mocked(onboardingRepo.assignUserToOrganization).mock.invocationCallOrder[0];
+    const markOrder = vi.mocked(repo.markInviteAccepted).mock
+      .invocationCallOrder[0];
+    const assignOrder = vi.mocked(onboardingRepo.assignUserToOrganization).mock
+      .invocationCallOrder[0];
     expect(markOrder).toBeLessThan(assignOrder);
   });
 
   it("returns conflict without assigning membership when another request already claimed the invite", async () => {
-    const { caller, invite } = makeAcceptArgs({ role: "rep", teamIds: ["team-1"] });
+    const { caller, invite } = makeAcceptArgs({
+      role: "rep",
+      teamIds: ["team-1"],
+    });
     const repo = makeInvitesRepo({
       markInviteAccepted: vi.fn().mockResolvedValue(false),
     });
     const onboardingRepo = makeOnboardingRepo();
 
-    const result = await commitInviteAcceptance(repo, onboardingRepo, caller, invite);
+    const result = await commitInviteAcceptance(
+      repo,
+      onboardingRepo,
+      caller,
+      invite,
+    );
 
     expect(result).toEqual({
       ok: false,
@@ -271,7 +355,10 @@ describe("commitInviteAcceptance", () => {
   });
 
   it("throws a rollback conflict when the invite was claimed but the user org claim fails", async () => {
-    const { caller, invite } = makeAcceptArgs({ role: "rep", teamIds: ["team-1"] });
+    const { caller, invite } = makeAcceptArgs({
+      role: "rep",
+      teamIds: ["team-1"],
+    });
     const repo = makeInvitesRepo();
     const onboardingRepo = makeOnboardingRepo({
       assignUserToOrganization: vi.fn().mockResolvedValue(false),
@@ -296,7 +383,10 @@ describe("commitInviteAcceptance", () => {
   });
 
   it("happy path for manager: assigns org with manager team memberships", async () => {
-    const { caller, invite } = makeAcceptArgs({ role: "manager", teamIds: ["team-2"] });
+    const { caller, invite } = makeAcceptArgs({
+      role: "manager",
+      teamIds: ["team-2"],
+    });
     const repo = makeInvitesRepo();
     const onboardingRepo = makeOnboardingRepo();
     await commitInviteAcceptance(repo, onboardingRepo, caller, invite);
@@ -306,7 +396,10 @@ describe("commitInviteAcceptance", () => {
   });
 
   it("happy path for executive: assigns org, no team memberships", async () => {
-    const { caller, invite } = makeAcceptArgs({ role: "executive", teamIds: null });
+    const { caller, invite } = makeAcceptArgs({
+      role: "executive",
+      teamIds: null,
+    });
     const repo = makeInvitesRepo();
     const onboardingRepo = makeOnboardingRepo();
     await commitInviteAcceptance(repo, onboardingRepo, caller, invite);
@@ -334,7 +427,10 @@ describe("commitInviteAcceptance", () => {
 
 describe("listPendingInvites", () => {
   it("returns pending invites for the caller's org", async () => {
-    const pending = [makeInvite(), makeInvite({ id: "invite-2", email: "other@acme.com" })];
+    const pending = [
+      makeInvite(),
+      makeInvite({ id: "invite-2", email: "other@acme.com" }),
+    ];
     const repo = makeInvitesRepo({
       findPendingInvitesByOrg: vi.fn().mockResolvedValue(pending),
     });
@@ -344,17 +440,37 @@ describe("listPendingInvites", () => {
 
   it("returns 400 when caller has no orgId", async () => {
     const usersRepo = makeUsersRepo({
-      findCurrentUserByAuthId: vi.fn().mockResolvedValue(makeUser({ orgId: null, org: null })),
+      findCurrentUserByAuthId: vi
+        .fn()
+        .mockResolvedValue(makeUser({ orgId: null, org: null })),
     });
-    const result = await listPendingInvites(makeInvitesRepo(), usersRepo, "user-1");
-    expect(result).toEqual({ ok: false, status: 400, error: expect.any(String) });
+    const result = await listPendingInvites(
+      makeInvitesRepo(),
+      usersRepo,
+      "user-1",
+    );
+    expect(result).toEqual({
+      ok: false,
+      status: 400,
+      error: expect.any(String),
+    });
   });
 
   it("returns 403 when caller is not admin", async () => {
     const usersRepo = makeUsersRepo({
-      findCurrentUserByAuthId: vi.fn().mockResolvedValue(makeUser({ role: "rep" })),
+      findCurrentUserByAuthId: vi
+        .fn()
+        .mockResolvedValue(makeUser({ role: "rep" })),
     });
-    const result = await listPendingInvites(makeInvitesRepo(), usersRepo, "user-1");
-    expect(result).toEqual({ ok: false, status: 403, error: expect.any(String) });
+    const result = await listPendingInvites(
+      makeInvitesRepo(),
+      usersRepo,
+      "user-1",
+    );
+    expect(result).toEqual({
+      ok: false,
+      status: 403,
+      error: expect.any(String),
+    });
   });
 });

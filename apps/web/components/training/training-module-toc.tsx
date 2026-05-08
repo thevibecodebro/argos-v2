@@ -1,16 +1,43 @@
 "use client";
 
+import { SecondaryRailButton, SecondaryRailGroup } from "@/components/secondary-rail";
 import type { TrainingModuleSummary } from "@/lib/training/service";
 
 export function TrainingModuleToc({
   modules,
   selectedModuleId,
   onSelectModule,
+  variant = "panel",
 }: {
   modules: TrainingModuleSummary[];
   selectedModuleId: string | null;
   onSelectModule: (moduleId: string) => void;
+  variant?: "panel" | "rail";
 }) {
+  if (variant === "rail") {
+    return (
+      <div aria-label="Curriculum map" data-training-module-tree="rail">
+        <SecondaryRailGroup label="Curriculum">
+          {modules.map((module) => (
+            <SecondaryRailButton
+              active={module.id === selectedModuleId}
+              description={`${module.skillCategory} · ${module.progress?.status ?? "assigned"}`}
+              icon={module.hasQuiz ? "task_alt" : "subject"}
+              key={module.id}
+              label={module.title}
+              onClick={() => onSelectModule(module.id)}
+            />
+          ))}
+          {!modules.length ? (
+            <p className="px-3 text-xs leading-5 text-[var(--forge-muted)]">
+              Create a module to populate the builder rail.
+            </p>
+          ) : null}
+        </SecondaryRailGroup>
+      </div>
+    );
+  }
+
   return (
     <section
       aria-label="Curriculum map"

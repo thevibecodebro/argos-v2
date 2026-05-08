@@ -5,11 +5,11 @@ export default function NotFound() {
     <AuthenticatedRouteNotFound
       actionHref="/dashboard"
       actionLabel="Back to dashboard"
-      description="This workspace route does not exist or is not available for your current account."
-      eyebrow="Sales forge"
+      description="This page does not exist or is not available for your account."
+      eyebrow="Argos"
       icon="search"
       size="wide"
-      title="Workspace route"
+      title="Page not found"
     />
   );
 }

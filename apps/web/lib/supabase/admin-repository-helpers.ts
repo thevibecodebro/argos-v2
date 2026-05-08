@@ -18,6 +18,7 @@ type UserOrgRecord = {
     name: string;
     slug: string;
     plan: string;
+    logoUrl: string | null;
     createdAt: Date;
   } | null;
 };
@@ -56,7 +57,7 @@ export async function findUserWithOrgByAuthId(
   if (user.org_id) {
     const { data: orgData, error: orgError } = await supabase
       .from("organizations")
-      .select("id, name, slug, plan, created_at")
+      .select("id, name, slug, plan, logo_url, created_at")
       .eq("id", user.org_id)
       .maybeSingle();
 
@@ -70,6 +71,7 @@ export async function findUserWithOrgByAuthId(
           name: orgData.name,
           slug: orgData.slug,
           plan: orgData.plan,
+          logoUrl: orgData.logo_url,
           createdAt: toDate(orgData.created_at) ?? new Date(0),
         }
       : null;
@@ -110,7 +112,9 @@ export async function findUsersByIds(
   const supabase: any = getSupabaseAdminClient(client);
   const { data, error } = await supabase
     .from("users")
-    .select("id, email, first_name, last_name, profile_image_url, role, created_at")
+    .select(
+      "id, email, first_name, last_name, profile_image_url, role, created_at",
+    )
     .in("id", Array.from(new Set(userIds)));
 
   if (error) {

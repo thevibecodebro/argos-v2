@@ -36,7 +36,7 @@ describe("legacy auth shell", () => {
     expect(html).toContain("Turn every sales call into the next practice plan.");
     expect(html).toContain("Sales call review, coaching, and roleplay");
     expect(html).toContain('href="/login"');
-    expect(html).toContain("Coaching Forge");
+    expect(html).toContain("Revenue Command");
   });
 
   it("renders the login flow inside the Forge auth shell", async () => {
@@ -50,7 +50,7 @@ describe("legacy auth shell", () => {
     expect(html).toContain("Continue with Google");
     expect(html).toContain("Work Email");
     expect(html).toContain('data-auth-shell="forge"');
-    expect(html).toContain("Review calls, score performance, surface highlights, assign training, practice roleplay, and coach the team.");
+    expect(html).toContain("Review calls, score performance, save highlights, assign training, practice roleplay, and coach the team.");
     expect(html).toContain('href="/privacy-policy"');
     expect(html).toContain('href="/terms-of-service"');
     expect(html).toContain('href="/security-policy"');

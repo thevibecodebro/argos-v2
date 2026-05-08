@@ -35,13 +35,13 @@ describe("forge primitives", () => {
       createElement(
         ForgeSurface,
         { as: "article", variant: "panel" },
-        createElement("p", null, "Call intake ledger"),
+        createElement("p", null, "Call ledger"),
       ),
     );
 
     expect(html).toContain('data-forge-surface="panel"');
     expect(html).toContain("forge-surface");
-    expect(html).toContain("Call intake ledger");
+    expect(html).toContain("Call ledger");
     expect(html).not.toContain("#74b1ff");
     expect(html).not.toContain("#6dddff");
   });
@@ -351,15 +351,15 @@ describe("forge primitives", () => {
           {
             action: { href: "/calls", label: "Open ledger" },
             eyebrow: "Dashboard OS",
-            title: "Operating pulse",
+            title: "Dashboard",
           },
           createElement("p", null, "Widget content"),
         ),
         createElement(
           ForgeSettingsGroup,
           {
-            description: "Configure the workspace.",
-            title: "Workspace",
+            description: "Configure the account.",
+            title: "Settings",
           },
           createElement("p", null, "Settings content"),
         ),
@@ -377,8 +377,8 @@ describe("forge primitives", () => {
     expect(html).toContain('data-forge-widget="true"');
     expect(html).toContain('data-forge-settings-group="true"');
     expect(html).toContain('data-forge-side-panel="true"');
-    expect(html).toContain("Operating pulse");
-    expect(html).toContain("Workspace");
+    expect(html).toContain("Dashboard");
+    expect(html).toContain("Settings");
     expect(html).toContain("Edit user");
   });
 

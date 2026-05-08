@@ -3,7 +3,7 @@ name: Argos Operational
 source: Google Stitch
 stitch_project_id: "7663541137437451553"
 stitch_project_title: Argos Authenticated Simplicity Pass
-updated: "2026-05-04"
+updated: "2026-05-06"
 canonical_screens:
   dashboard: "10209ddfa975452484694846cdc0bf8d"
   calls: "fb2bafea181347aeafcd78834642e157"
@@ -90,6 +90,10 @@ The body should not feel like a stack of feature cards. The main work surface is
 - Notifications are not a left-nav item. They live under the top-right account/notification area.
 - Do not duplicate Settings in both the main nav and the bottom system area.
 - Top-right actions should remain short: Upload call, account/team menu, notifications, avatar.
+- Secondary left rails are rare. Use them only for dense workspaces with durable local navigation, currently Curriculum and Settings.
+- Secondary rails dock flush against the right edge of the primary rail on desktop. They are full-height shell rails, not rounded page cards.
+- Secondary rails must be collapsible on desktop and become horizontal local navigation on mobile.
+- Secondary rails are mostly navigation-only. The Curriculum rail may include durable module actions (`Create module`, `Edit selected module`, `Assign selected module`) because they operate on the selected module. Keep forms, filters, upload actions, AI generation, and other heavy controls in the main work area, modal, or right drawer.
 
 ## Page Composition Rules
 
@@ -100,7 +104,7 @@ Use these primitives as the default implementation path:
 - `OperationalMetricStrip` owns the top row of page-level metrics. Do not repeat the same facts below in `MetricCard` grids.
 - Main list pages use a dense table plus right drawer.
 - Detail pages use a 65/35 or table-plus-drawer workbench.
-- Settings detail pages use internal settings subnav plus dense main panel plus status drawer.
+- Settings detail pages use the shared docked settings rail plus dense main panel plus status drawer.
 
 Avoid:
 
@@ -109,8 +113,8 @@ Avoid:
 - Repeated metric grids below a metric strip.
 - Marketing-style page heroes.
 - Page descriptions that explain the whole feature instead of orienting the workflow.
-- Multiple rails competing with the app nav.
-- Two sidebars inside the same work surface.
+- Secondary rails on normal list, detail, inbox, upload, learner, history, team, profile, or leaderboard pages.
+- Two local sidebars inside the same work surface.
 - Unbounded card grids for data that should scan as a table.
 - Segment rows that are just anchors into one huge page.
 - Old `ForgeWidget`, `MetricCard`, or `SurfacePanel` layouts after the route has an operational shell.
@@ -195,11 +199,20 @@ Do not put another full navigation rail, multi-step wizard, or large nested form
 
 The generated Settings People screen is the template for settings detail routes:
 
-- Internal settings subnav on the left.
+- Collapsible settings secondary rail on the left.
 - Dense table or matrix in the middle.
 - Status/readiness drawer on the right.
 
-Each settings page should expose one primary configuration job. Advanced create/edit flows may open an inline drawer or modal, but they should not make the default page feel like a builder.
+Each settings page should expose one primary configuration job. Settings may later hold training defaults, permissions, AI defaults, and notification rules, but it should not become the place where admins author training content. Advanced create/edit flows may open an inline drawer or modal, but they should not make the default page feel like a builder.
+
+### Secondary Rail
+
+Use a secondary rail only when removing it would make the page harder to operate:
+
+- `/training/builder`: visible label `Curriculum`, with module navigation only.
+- `/settings` and `/settings/*`: settings section navigation.
+
+Do not use a secondary rail on `/dashboard`, `/calls`, `/calls/[id]`, `/highlights`, `/training`, `/training/team`, `/roleplay`, `/roleplay/history`, `/team`, `/team/[repId]`, `/leaderboard`, `/upload`, or `/notifications`.
 
 ## Route Targets
 
@@ -267,7 +280,7 @@ Target shape:
 
 ### `/training`
 
-Primary job: complete assigned training.
+Primary job: complete assigned curriculum.
 
 Target shape:
 
@@ -275,7 +288,22 @@ Target shape:
 - Selected module stage.
 - Small progress/status drawer.
 
-Manager work should not overwhelm the learner surface. Team progress and builder should be separate views or deeper pages, not anchor tabs into one giant surface.
+Manager work should not overwhelm the learner surface. Team progress and Curriculum should be separate views or deeper pages, not anchor tabs into one giant surface. Do not render create, edit, generate, assignment, or secondary-rail controls on the learner route.
+
+### `/training/builder`
+
+Visible label: `Curriculum`.
+
+Primary job: author and assign training modules.
+
+Target shape:
+
+- Docked collapsible module rail with `Create module`, `Edit selected module`, and `Assign selected module` above the module list.
+- Module preview as the main work surface.
+- `Generate with AI` lives inside the `Create module` flow, not as a persistent rail or main-page action.
+- Assignment remains a focused modal, not a persistent rail or right drawer.
+
+Do not use learner labels like `Course builder` or `Module editor preview`. Do not use a right-side `Builder controls` drawer.
 
 ### `/roleplay`
 
@@ -424,7 +452,7 @@ Split a page when one route has two different user jobs with different rhythms.
 Worth splitting:
 
 - `/dashboard`: keep as "Today"; move analytics/setup detail into existing pages.
-- `/training`: learner view, team progress, builder should become separate views/routes or true mode pages.
+- `/training`: learner view, team progress, and Curriculum should remain separate views/routes or true mode pages.
 - `/roleplay`: practice and history/results should be separate views or progressive modes.
 - `/settings/rubric`: active overview and rubric builder should be separated.
 - `/settings/permissions`: preset assignment and primary manager assignment should be separated or tabbed into true views.
