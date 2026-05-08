@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@argos-v2/ui";
+import { FeedbackWidget } from "./feedback-widget";
 import { ForgeIcon } from "./forge";
 import type { AppUserRole } from "@/lib/users/roles";
 
@@ -399,6 +400,7 @@ export function AuthenticatedAppShell({
         </header>
 
         <main className="min-h-dvh pt-16">{children}</main>
+        <FeedbackWidget />
       </div>
     </div>
   );

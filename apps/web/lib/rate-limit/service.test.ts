@@ -92,6 +92,28 @@ describe("rate limit service", () => {
     });
   });
 
+  it("sets a conservative user throttle for feedback emails", async () => {
+    const repository = makeRepository(11);
+
+    const result = await checkRateLimitForPolicy(
+      "feedback",
+      { type: "user", id: "auth-user-1" },
+      {
+        now: new Date("2026-04-28T10:15:30.250Z"),
+        repository,
+      },
+    );
+
+    expect(result.allowed).toBe(false);
+    expect(result.limit).toBe(10);
+    expect(result.retryAfterSeconds).toBe(2670);
+    expect(repository.incrementBucket).toHaveBeenCalledWith({
+      bucketKey: expect.stringMatching(/^feedback:user:[a-f0-9]{64}$/),
+      windowSeconds: 60 * 60,
+      windowStart: new Date("2026-04-28T10:00:00.000Z"),
+    });
+  });
+
   it("serializes limited results as 429 JSON with Retry-After", async () => {
     const response = rateLimitExceededResponse({
       allowed: false,

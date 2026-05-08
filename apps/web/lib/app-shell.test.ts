@@ -82,6 +82,19 @@ describe("AuthenticatedAppShell", () => {
     expect(html).toContain("Sign out");
   });
 
+  it("mounts a persistent feedback launcher inside the authenticated shell", () => {
+    const html = renderToStaticMarkup(
+      createElement(AuthenticatedAppShell, {
+        user: managerUser,
+        children: createElement("div", null, "Page body"),
+      }),
+    );
+
+    expect(html).toContain('data-feedback-widget="true"');
+    expect(html).toContain('aria-label="Open bugs and feedback form"');
+    expect(html).toContain("Bugs and feedback");
+  });
+
   it("adds account menu semantics for keyboard users", () => {
     const html = renderToStaticMarkup(
       createElement(AuthenticatedAppShell, {

@@ -4,6 +4,7 @@ import { createRateLimitRepository } from "./create-repository";
 export type RateLimitWindow = "minute" | "hour" | "day";
 
 export type RateLimitPolicyName =
+  | "feedback"
   | "invites"
   | "uploadDirect"
   | "uploadPrepare"
@@ -46,6 +47,7 @@ export type RateLimitResult = {
 };
 
 export const RATE_LIMIT_POLICIES = {
+  feedback: { limit: 10, window: "hour" },
   invites: { limit: 10, window: "hour" },
   uploadDirect: { limit: 20, window: "hour" },
   uploadPrepare: { limit: 20, window: "hour" },
