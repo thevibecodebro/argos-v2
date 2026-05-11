@@ -3,6 +3,7 @@ import { APP_USER_ROLES } from "@/lib/users/roles";
 import type { UsersRepository } from "@/lib/users/service";
 import type { OnboardingRepository } from "@/lib/onboarding/service";
 import type { InvitesRepository, InviteRecord } from "./repository";
+import { generateInviteAuthLink, type GenerateInviteAuthLinkInput } from "./auth-invite";
 import { sendInviteEmail } from "./email";
 
 type InviteServiceResult<T> =
@@ -10,6 +11,7 @@ type InviteServiceResult<T> =
   | { ok: false; status: 400 | 403 | 404 | 409 | 410; error: string };
 
 type InviteSenderRecord = Awaited<ReturnType<UsersRepository["findCurrentUserByAuthId"]>>;
+type GenerateInviteAuthLink = (input: GenerateInviteAuthLinkInput) => Promise<string>;
 
 export class InviteAcceptanceConflictError extends Error {
   readonly result: Extract<InviteServiceResult<never>, { ok: false }>;
@@ -34,7 +36,7 @@ export async function sendInvite(
   usersRepo: UsersRepository,
   authUserId: string,
   input: { email?: unknown; role?: unknown; teamIds?: unknown },
-  options: { caller?: InviteSenderRecord } = {},
+  options: { caller?: InviteSenderRecord; generateAuthInviteLink?: GenerateInviteAuthLink } = {},
 ): Promise<InviteServiceResult<InviteRecord>> {
   const caller =
     options.caller === undefined
@@ -96,12 +98,21 @@ export async function sendInvite(
     expiresAt,
   });
 
-  const inviteUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/invite/${token}`;
+  const inviteUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/invite/${invite.token}`;
+  const authInviteUrl = await (options.generateAuthInviteLink ?? generateInviteAuthLink)({
+    email,
+    redirectTo: inviteUrl,
+    metadata: {
+      argosInviteToken: invite.token,
+      argosOrganizationId: invite.orgId,
+      argosRole: invite.role,
+    },
+  });
 
   // Fetch org name for email (caller.org is available from UsersRepository)
   const orgName = caller.org?.name ?? "your organization";
 
-  await sendInviteEmail(email, inviteUrl, orgName, role);
+  await sendInviteEmail(email, authInviteUrl, orgName, role);
 
   return { ok: true, data: invite };
 }

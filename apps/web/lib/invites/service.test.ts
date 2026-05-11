@@ -112,6 +112,12 @@ function makeOnboardingRepo(
   };
 }
 
+function makeInviteAuthOptions() {
+  return {
+    generateAuthInviteLink: vi.fn().mockResolvedValue("https://auth.example.com/invite-link"),
+  };
+}
+
 const mockSendEmail = vi.fn().mockResolvedValue(undefined);
 vi.mock("./email", () => ({
   sendInviteEmail: (...args: unknown[]) => mockSendEmail(...args),
@@ -127,13 +133,28 @@ describe("sendInvite", () => {
   it("creates invite record and sends email on happy path", async () => {
     const repo = makeInvitesRepo();
     const usersRepo = makeUsersRepo();
+    const generateAuthInviteLink = vi.fn().mockResolvedValue("https://auth.example.com/invite-link");
     const result = await sendInvite(repo, usersRepo, "user-1", {
       email: "rep@acme.com",
       role: "rep",
-    });
+    }, { generateAuthInviteLink } as never);
     expect(result.ok).toBe(true);
     expect(repo.createInvite).toHaveBeenCalled();
-    expect(mockSendEmail).toHaveBeenCalled();
+    expect(generateAuthInviteLink).toHaveBeenCalledWith({
+      email: "rep@acme.com",
+      redirectTo: expect.stringMatching(/^.*\/invite\/test-token$/),
+      metadata: {
+        argosInviteToken: "test-token",
+        argosOrganizationId: "org-1",
+        argosRole: "rep",
+      },
+    });
+    expect(mockSendEmail).toHaveBeenCalledWith(
+      "rep@acme.com",
+      "https://auth.example.com/invite-link",
+      "Acme",
+      "rep",
+    );
   });
 
   it("returns 400 when caller has no orgId", async () => {
@@ -210,7 +231,7 @@ describe("sendInvite", () => {
       email: "exec@acme.com",
       role: "executive",
       teamIds: ["team-1"],
-    });
+    }, makeInviteAuthOptions());
     expect(repo.createInvite).toHaveBeenCalledWith(
       expect.objectContaining({ teamIds: null }),
     );
@@ -222,7 +243,7 @@ describe("sendInvite", () => {
       email: "admin2@acme.com",
       role: "admin",
       teamIds: ["team-1"],
-    });
+    }, makeInviteAuthOptions());
     expect(repo.createInvite).toHaveBeenCalledWith(
       expect.objectContaining({ teamIds: null }),
     );
@@ -265,7 +286,7 @@ describe("sendInvite", () => {
       sendInvite(makeInvitesRepo(), makeUsersRepo(), "user-1", {
         email: "rep@acme.com",
         role: "rep",
-      }),
+      }, makeInviteAuthOptions()),
     ).rejects.toThrow("Resend error");
   });
 });
