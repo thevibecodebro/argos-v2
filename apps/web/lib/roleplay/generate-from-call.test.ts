@@ -41,6 +41,7 @@ const call = {
   improvements: [],
   recommendedDrills: [],
   transcript: [],
+  processingJob: null,
   createdAt: "2026-04-20T14:00:00.000Z",
   repFirstName: "Riley",
   repLastName: "Stone",

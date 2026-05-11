@@ -71,6 +71,19 @@ export type CallAnnotation = {
   authorRole: string | null;
 };
 
+export type CallProcessingJobStatus = "pending" | "running" | "retrying" | "failed" | "complete";
+
+export type CallProcessingJob = {
+  id: string;
+  status: CallProcessingJobStatus;
+  attemptCount: number;
+  maxAttempts: number;
+  nextRunAt: string;
+  lastStage: string | null;
+  lastError: string | null;
+  updatedAt: string;
+};
+
 export type CallDetail = CallSummary & {
   recordingUrl: string | null;
   transcriptUrl: string | null;
@@ -90,6 +103,7 @@ export type CallDetail = CallSummary & {
   recommendedDrills: string[] | null;
   transcript: TranscriptLine[] | null;
   moments: CallMoment[];
+  processingJob: CallProcessingJob | null;
 };
 
 export type CallHighlight = {
@@ -128,13 +142,17 @@ type CallMomentRecord = Omit<CallMoment, "createdAt"> & { createdAt: Date };
 type CallAnnotationRecord = Omit<CallAnnotation, "createdAt"> & { createdAt: Date };
 type CallDetailRecord = Omit<
   CallDetail,
-  "createdAt" | "moments"
+  "createdAt" | "moments" | "processingJob"
 > & { createdAt: Date; orgId: string; moments: CallMomentRecord[] };
 type CallHighlightRecord = Omit<CallHighlight, "createdAt" | "callCreatedAt"> & {
   createdAt: Date;
   callCreatedAt: Date;
 };
 type ScoreTrendRecord = Omit<ScoreTrendPoint, "date"> & { createdAt: Date };
+type CallProcessingJobRecord = Omit<CallProcessingJob, "nextRunAt" | "updatedAt"> & {
+  nextRunAt: Date;
+  updatedAt: Date;
+};
 
 export type CallRecordingStorage = {
   storageBucket: string;
@@ -209,7 +227,7 @@ type UploadCallResult = {
   createdAt: string;
 };
 
-type ServiceErrorCode = "forbidden" | "not_found" | "unprovisioned";
+type ServiceErrorCode = "forbidden" | "invalid_state" | "not_found" | "unprovisioned";
 
 export type ServiceResult<T> =
   | { ok: true; data: T }
@@ -238,6 +256,7 @@ export type CallsRepository = {
   deleteAnnotation(annotationId: string, callId: string): Promise<boolean>;
   findAnnotations(callId: string): Promise<CallAnnotationRecord[]>;
   findCallById(callId: string): Promise<CallDetailRecord | null>;
+  findCallProcessingJobByCallId(callId: string): Promise<CallProcessingJobRecord | null>;
   findCallRecordingReference(callId: string): Promise<CallRecordingReference | null>;
   findCallsByOrgId(
     orgId: string,
@@ -261,6 +280,7 @@ export type CallsRepository = {
     note: string;
     timestampSeconds: number | null;
   }): Promise<CallAnnotationRecord>;
+  retryCallProcessingJob(callId: string): Promise<CallProcessingJobRecord | null>;
   createOrResetCallProcessingJob(input: {
     callId: string;
     rubricId?: string | null;
@@ -327,7 +347,22 @@ function serializeHighlight(highlight: CallHighlightRecord): CallHighlight {
   };
 }
 
-function serializeDetail(call: CallDetailRecord): CallDetail {
+function serializeProcessingJob(job: CallProcessingJobRecord): CallProcessingJob {
+  return {
+    ...job,
+    nextRunAt: job.nextRunAt.toISOString(),
+    updatedAt: job.updatedAt.toISOString(),
+  };
+}
+
+function canViewProcessingJob(role: AppUserRole | null) {
+  return role === "admin";
+}
+
+function serializeDetail(
+  call: CallDetailRecord,
+  processingJob: CallProcessingJobRecord | null = null,
+): CallDetail {
   return {
     ...call,
     createdAt: call.createdAt.toISOString(),
@@ -336,6 +371,7 @@ function serializeDetail(call: CallDetailRecord): CallDetail {
       .map(serializeCategoryScore)),
     transcript: Array.isArray(call.transcript) ? call.transcript : null,
     moments: call.moments.map(serializeMoment),
+    processingJob: processingJob ? serializeProcessingJob(processingJob) : null,
   };
 }
 
@@ -690,9 +726,103 @@ export async function getCallDetail(
     };
   }
 
+  const processingJob = canViewProcessingJob(viewer.role)
+    ? await repository.findCallProcessingJobByCallId(callId)
+    : null;
+
   return {
     ok: true,
-    data: serializeDetail(call),
+    data: serializeDetail(call, processingJob),
+  };
+}
+
+export async function retryCallProcessingJob(
+  repository: CallsRepository,
+  authUserId: string,
+  callId: string,
+  accessRepository: AccessRepository = createAccessRepository(),
+): Promise<ServiceResult<{ processingJob: CallProcessingJob }>> {
+  const viewerResult = await getViewer(repository, authUserId);
+
+  if (!viewerResult.ok) {
+    return viewerResult;
+  }
+
+  const viewer = viewerResult.data;
+  const call = await repository.findCallById(callId);
+
+  if (!call || !viewer.org || call.orgId !== viewer.org.id) {
+    return {
+      ok: false,
+      status: 404,
+      code: "not_found",
+      error: "Call not found",
+    };
+  }
+
+  const access = await resolveAccessContext(accessRepository, authUserId);
+
+  if (!access) {
+    return {
+      ok: false,
+      status: 404,
+      code: "unprovisioned",
+      error: "User is not provisioned in the app database",
+    };
+  }
+
+  if (!canActorViewRep(access, call.repId)) {
+    return {
+      ok: false,
+      status: 403,
+      code: "forbidden",
+      error: "You do not have access to this rep",
+    };
+  }
+
+  if (!canViewProcessingJob(viewer.role)) {
+    return {
+      ok: false,
+      status: 403,
+      code: "forbidden",
+      error: "Only admins can retry call processing jobs",
+    };
+  }
+
+  const existingJob = await repository.findCallProcessingJobByCallId(callId);
+
+  if (!existingJob) {
+    return {
+      ok: false,
+      status: 404,
+      code: "not_found",
+      error: "Processing job not found",
+    };
+  }
+
+  if (existingJob.status !== "failed") {
+    return {
+      ok: false,
+      status: 400,
+      code: "invalid_state",
+      error: "Only failed processing jobs can be retried",
+    };
+  }
+
+  const processingJob = await repository.retryCallProcessingJob(callId);
+
+  if (!processingJob) {
+    return {
+      ok: false,
+      status: 400,
+      code: "invalid_state",
+      error: "Processing job is no longer failed",
+    };
+  }
+
+  return {
+    ok: true,
+    data: { processingJob: serializeProcessingJob(processingJob) },
   };
 }
 

@@ -5,6 +5,7 @@ import {
   deleteAnnotation,
   getCallDetail,
   listCalls,
+  retryCallProcessingJob,
   toggleMomentHighlight,
   type CallsRepository,
 } from "./service";
@@ -18,6 +19,7 @@ function createRepository(
     deleteAnnotation: vi.fn(),
     findAnnotations: vi.fn(),
     findCallById: vi.fn(),
+    findCallProcessingJobByCallId: vi.fn(),
     findCallRecordingReference: vi.fn(),
     findCallsByOrgId: vi.fn(),
     findCallsByRepId: vi.fn(),
@@ -27,6 +29,7 @@ function createRepository(
     findHighlightsByRepId: vi.fn(),
     findScoreTrend: vi.fn(),
     insertAnnotation: vi.fn(),
+    retryCallProcessingJob: vi.fn(),
     setCallEvaluation: vi.fn(),
     updateCallTopic: vi.fn(),
     updateCallRecordingStorage: vi.fn(),
@@ -46,6 +49,109 @@ function createAccessRepository(overrides: Partial<Record<string, unknown>> = {}
     findMembershipsByOrgId: (orgId: string) => Promise<Array<{ orgId: string; teamId: string; userId: string; membershipType: "rep" | "manager" }>>;
     findGrantsByUserId: (userId: string, orgId: string) => Promise<Array<{ orgId: string; teamId: string; userId: string; permissionKey: "view_team_calls" | "coach_team_calls" | "manage_call_highlights" | "view_team_training" | "manage_team_training" | "manage_team_roster" | "view_team_analytics" }>>;
   };
+}
+
+const adminViewer = {
+  id: "admin-1",
+  email: "admin@argos.ai",
+  role: "admin",
+  firstName: "Ada",
+  lastName: "Admin",
+  org: { id: "org-1", name: "Argos", slug: "argos", plan: "team" },
+};
+
+const managerViewer = {
+  id: "manager-1",
+  email: "manager@argos.ai",
+  role: "manager",
+  firstName: "Morgan",
+  lastName: "Lane",
+  org: { id: "org-1", name: "Argos", slug: "argos", plan: "team" },
+};
+
+const repViewer = {
+  id: "rep-1",
+  email: "rep@argos.ai",
+  role: "rep",
+  firstName: "Riley",
+  lastName: "Stone",
+  org: { id: "org-1", name: "Argos", slug: "argos", plan: "team" },
+};
+
+const baseCallRecord = {
+  id: "call-1",
+  repId: "rep-1",
+  orgId: "org-1",
+  status: "complete",
+  recordingUrl: null,
+  transcriptUrl: null,
+  durationSeconds: 1200,
+  callTopic: "ACME discovery",
+  overallScore: 84,
+  frameControlScore: 80,
+  rapportScore: 82,
+  discoveryScore: 79,
+  painExpansionScore: 76,
+  solutionScore: 85,
+  objectionScore: 78,
+  closingScore: 88,
+  confidence: "high",
+  callStageReached: "close",
+  strengths: [],
+  improvements: [],
+  recommendedDrills: [],
+  transcript: [],
+  createdAt: new Date("2026-04-01T00:00:00.000Z"),
+  repFirstName: "Riley",
+  repLastName: "Stone",
+  moments: [],
+  rubric: null,
+  categoryScores: [],
+};
+
+function adminAccessRepository() {
+  return createAccessRepository({
+    findActorByAuthUserId: vi.fn().mockResolvedValue({
+      id: "admin-1",
+      role: "admin",
+      orgId: "org-1",
+    }),
+    findMembershipsByOrgId: vi.fn().mockResolvedValue([
+      { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+    ]),
+    findGrantsByUserId: vi.fn().mockResolvedValue([]),
+  });
+}
+
+function managerAccessRepository() {
+  return createAccessRepository({
+    findActorByAuthUserId: vi.fn().mockResolvedValue({
+      id: "manager-1",
+      role: "manager",
+      orgId: "org-1",
+    }),
+    findMembershipsByOrgId: vi.fn().mockResolvedValue([
+      { orgId: "org-1", teamId: "team-a", userId: "manager-1", membershipType: "manager" },
+      { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+    ]),
+    findGrantsByUserId: vi.fn().mockResolvedValue([
+      { orgId: "org-1", teamId: "team-a", userId: "manager-1", permissionKey: "view_team_calls" },
+    ]),
+  });
+}
+
+function repAccessRepository() {
+  return createAccessRepository({
+    findActorByAuthUserId: vi.fn().mockResolvedValue({
+      id: "rep-1",
+      role: "rep",
+      orgId: "org-1",
+    }),
+    findMembershipsByOrgId: vi.fn().mockResolvedValue([
+      { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+    ]),
+    findGrantsByUserId: vi.fn().mockResolvedValue([]),
+  });
 }
 
 describe("listCalls", () => {
@@ -151,6 +257,147 @@ describe("listCalls", () => {
     expect(result.data.total).toBe(7);
     expect(result.data.calls).toHaveLength(1);
     expect(result.data.calls[0].repId).toBe("rep-1");
+  });
+});
+
+describe("processing job recovery", () => {
+  it.each(["pending", "running", "retrying", "failed", "complete"] as const)(
+    "returns admin-visible %s job state with call status",
+    async (jobStatus) => {
+      const repository = createRepository({
+        findCurrentUserByAuthId: vi.fn().mockResolvedValue(adminViewer),
+        findCallById: vi.fn().mockResolvedValue(baseCallRecord),
+        findCallProcessingJobByCallId: vi.fn().mockResolvedValue({
+          id: "job-1",
+          status: jobStatus,
+          attemptCount: 2,
+          maxAttempts: 3,
+          nextRunAt: new Date("2026-04-03T00:10:00.000Z"),
+          lastStage: "transcribe",
+          lastError: jobStatus === "failed" ? "OpenAI transcription request failed: 429" : null,
+          updatedAt: new Date("2026-04-03T00:05:00.000Z"),
+        }),
+      });
+
+      const result = await getCallDetail(
+        repository,
+        "admin-1",
+        "call-1",
+        adminAccessRepository() as never,
+      );
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error("Expected call detail");
+      expect(result.data.processingJob).toMatchObject({
+        id: "job-1",
+        status: jobStatus,
+        attemptCount: 2,
+        maxAttempts: 3,
+        lastStage: "transcribe",
+      });
+      expect(result.data.processingJob?.nextRunAt).toBe("2026-04-03T00:10:00.000Z");
+      expect(result.data.processingJob?.updatedAt).toBe("2026-04-03T00:05:00.000Z");
+    },
+  );
+
+  it("does not expose processing job failure detail to reps", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue(repViewer),
+      findCallById: vi.fn().mockResolvedValue(baseCallRecord),
+      findCallProcessingJobByCallId: vi.fn().mockRejectedValue(
+        new Error("rep detail must not read operator jobs"),
+      ),
+    });
+
+    const result = await getCallDetail(
+      repository,
+      "rep-1",
+      "call-1",
+      repAccessRepository() as never,
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected call detail");
+    expect(result.data.processingJob).toBeNull();
+    expect(repository.findCallProcessingJobByCallId).not.toHaveBeenCalled();
+  });
+
+  it("lets admins requeue failed processing jobs", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue(adminViewer),
+      findCallById: vi.fn().mockResolvedValue({
+        ...baseCallRecord,
+        status: "failed",
+      }),
+      findCallProcessingJobByCallId: vi.fn().mockResolvedValue({
+        id: "job-1",
+        status: "failed",
+        attemptCount: 3,
+        maxAttempts: 3,
+        nextRunAt: new Date("2026-04-03T00:00:00.000Z"),
+        lastStage: "score",
+        lastError: "Scoring failed",
+        updatedAt: new Date("2026-04-03T00:00:00.000Z"),
+      }),
+      retryCallProcessingJob: vi.fn().mockResolvedValue({
+        id: "job-1",
+        status: "pending",
+        attemptCount: 0,
+        maxAttempts: 3,
+        nextRunAt: new Date("2026-04-03T00:15:00.000Z"),
+        lastStage: null,
+        lastError: null,
+        updatedAt: new Date("2026-04-03T00:15:00.000Z"),
+      }),
+    });
+
+    const result = await retryCallProcessingJob(
+      repository,
+      "admin-1",
+      "call-1",
+      adminAccessRepository() as never,
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected retry result");
+    expect(repository.retryCallProcessingJob).toHaveBeenCalledWith("call-1");
+    expect(result.data.processingJob).toMatchObject({
+      id: "job-1",
+      status: "pending",
+      attemptCount: 0,
+      lastError: null,
+    });
+  });
+
+  it("blocks managers from requeueing processing jobs", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue(managerViewer),
+      findCallById: vi.fn().mockResolvedValue(baseCallRecord),
+      findCallProcessingJobByCallId: vi.fn().mockResolvedValue({
+        id: "job-1",
+        status: "failed",
+        attemptCount: 3,
+        maxAttempts: 3,
+        nextRunAt: new Date("2026-04-03T00:00:00.000Z"),
+        lastStage: "score",
+        lastError: "Scoring failed",
+        updatedAt: new Date("2026-04-03T00:00:00.000Z"),
+      }),
+    });
+
+    const result = await retryCallProcessingJob(
+      repository,
+      "manager-1",
+      "call-1",
+      managerAccessRepository() as never,
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      status: 403,
+      code: "forbidden",
+    });
+    expect(repository.retryCallProcessingJob).not.toHaveBeenCalled();
   });
 });
 

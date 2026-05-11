@@ -105,6 +105,7 @@ export default async function CallDetailPage({
               annotations={annotationsResult.ok ? annotationsResult.data.annotations : []}
               call={call}
               canManage={canManage}
+              canRetryProcessing={profile?.role === "admin"}
             />
           </div>
           <OperationalPreviewDrawer

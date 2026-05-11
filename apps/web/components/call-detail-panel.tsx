@@ -15,7 +15,7 @@ import {
   ForgeSurface,
 } from "@/components/forge";
 import { HighlightNote } from "@/components/highlight-note";
-import type { CallAnnotation, CallDetail, CallMoment } from "@/lib/calls/service";
+import type { CallAnnotation, CallDetail, CallMoment, CallProcessingJob } from "@/lib/calls/service";
 import {
   DEFAULT_GENERATED_ROLEPLAY_BUYER_VOICE,
   GENERATED_ROLEPLAY_BUYER_PERSONAS,
@@ -26,6 +26,7 @@ type CallDetailPanelProps = {
   annotations: CallAnnotation[];
   call: CallDetail;
   canManage: boolean;
+  canRetryProcessing: boolean;
 };
 
 function formatTimestamp(seconds: number | null | undefined) {
@@ -61,6 +62,32 @@ function statusTone(status: string | null | undefined): "danger" | "ember" | "mu
   return "muted";
 }
 
+function processingJobTone(status: string | null | undefined): "danger" | "ember" | "muted" | "success" {
+  if (status === "complete") return "success";
+  if (status === "failed") return "danger";
+  if (status === "pending" || status === "running" || status === "retrying") return "ember";
+  return "muted";
+}
+
+function processingJobDescription(job: CallProcessingJob) {
+  if (job.status === "failed") {
+    return "Worker analysis stopped before completion. Admins can requeue this job after reviewing the failure detail.";
+  }
+
+  if (job.status === "retrying") {
+    return `Worker analysis will retry after ${formatDate(job.nextRunAt)}.`;
+  }
+
+  if (job.status === "running") {
+    return "Worker analysis is currently running.";
+  }
+
+  if (job.status === "pending") {
+    return "Worker analysis is queued and waiting for the next worker pass.";
+  }
+
+  return "Worker analysis completed.";
+}
 
 export function getCallMediaState({
   hasRecording,
@@ -130,6 +157,7 @@ export function CallDetailPanel({
   annotations: initialAnnotations,
   call,
   canManage,
+  canRetryProcessing,
 }: CallDetailPanelProps) {
   const router = useRouter();
   const [annotations, setAnnotations] = useState(initialAnnotations);
@@ -143,6 +171,9 @@ export function CallDetailPanel({
   const [isLoadingGeneratePreview, setIsLoadingGeneratePreview] = useState(false);
   const [isGeneratingRoleplay, setIsGeneratingRoleplay] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
+  const [processingJob, setProcessingJob] = useState(call.processingJob);
+  const [processingRetryError, setProcessingRetryError] = useState<string | null>(null);
+  const [isRetryingProcessing, setIsRetryingProcessing] = useState(false);
   const [generatePreview, setGeneratePreview] = useState<{
     scenarioSummary: string;
     focusOptions: Array<{ slug: string; label: string }>;
@@ -162,6 +193,8 @@ export function CallDetailPanel({
       ? "Preparing roleplay scenario."
       : isGeneratingRoleplay
         ? "Generating roleplay session."
+        : isRetryingProcessing
+          ? "Retrying call processing."
         : noteActionMomentId
           ? "Updating highlight note."
           : highlightActionMomentId
@@ -267,6 +300,39 @@ export function CallDetailPanel({
 
     if (response.ok) {
       setAnnotations((current) => current.filter((item) => item.id !== annotationId));
+    }
+  }
+
+  async function retryProcessing() {
+    if (!processingJob || processingJob.status !== "failed" || !canRetryProcessing) {
+      return;
+    }
+
+    setIsRetryingProcessing(true);
+    setProcessingRetryError(null);
+
+    try {
+      const response = await fetch(`/api/calls/${call.id}/status`, {
+        method: "POST",
+      });
+      const payload = (await response.json().catch(() => null)) as
+        | {
+            processingJob?: CallProcessingJob;
+            error?: string;
+          }
+        | null;
+
+      if (!response.ok || !payload?.processingJob) {
+        setProcessingRetryError(payload?.error ?? "Unable to retry processing.");
+        return;
+      }
+
+      setProcessingJob(payload.processingJob);
+      router.refresh();
+    } catch {
+      setProcessingRetryError("Unable to retry processing.");
+    } finally {
+      setIsRetryingProcessing(false);
     }
   }
 
@@ -417,6 +483,60 @@ export function CallDetailPanel({
                   Coaching Notes
                 </ForgeSegmentedTab>
               </ForgeSegmentedTabs>
+              {processingJob ? (
+                <ForgeSurface
+                  className="p-4"
+                  data-processing-job-panel="true"
+                  variant="inset"
+                >
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0 space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <ForgeChip icon="precision_manufacturing" tone={processingJobTone(processingJob.status)}>
+                          Processing job
+                        </ForgeChip>
+                        <ForgeChip tone={processingJobTone(processingJob.status)}>
+                          {processingJob.status}
+                        </ForgeChip>
+                        {processingJob.lastStage ? (
+                          <ForgeChip tone="muted">{processingJob.lastStage}</ForgeChip>
+                        ) : null}
+                      </div>
+                      <p className="text-sm leading-6 text-[var(--forge-muted)]">
+                        {processingJobDescription(processingJob)}
+                      </p>
+                      <div className="flex flex-wrap gap-3 text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
+                        <span>Attempts {processingJob.attemptCount}/{processingJob.maxAttempts}</span>
+                        <span>Updated {formatDate(processingJob.updatedAt)}</span>
+                      </div>
+                      {processingJob.lastError ? (
+                        <p className="rounded-lg border border-[rgba(239,68,68,0.22)] bg-[rgba(239,68,68,0.08)] px-3 py-2 text-xs leading-5 text-[var(--forge-text)]">
+                          {processingJob.lastError}
+                        </p>
+                      ) : null}
+                      {processingRetryError ? (
+                        <p className="text-xs font-medium text-[var(--forge-danger)]">
+                          {processingRetryError}
+                        </p>
+                      ) : null}
+                    </div>
+                    {canRetryProcessing && processingJob.status === "failed" ? (
+                      <ForgeButton
+                        disabled={isRetryingProcessing}
+                        icon="refresh"
+                        onClick={() => {
+                          void retryProcessing();
+                        }}
+                        size="sm"
+                        type="button"
+                        variant="secondary"
+                      >
+                        {isRetryingProcessing ? "Retrying..." : "Retry processing"}
+                      </ForgeButton>
+                    ) : null}
+                  </div>
+                </ForgeSurface>
+              ) : null}
             </div>
 
             <div className="max-h-[640px] overflow-y-auto p-5 sm:p-6">
