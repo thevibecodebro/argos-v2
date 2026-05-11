@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createAnnotation,
   createCallRecordingSignedUrl,
+  deleteCallData,
   deleteAnnotation,
   getCallDetail,
   listCalls,
@@ -398,6 +399,61 @@ describe("processing job recovery", () => {
       code: "forbidden",
     });
     expect(repository.retryCallProcessingJob).not.toHaveBeenCalled();
+  });
+});
+
+describe("recording and transcript lifecycle", () => {
+  it("lets admins delete call data and remove private recording storage", async () => {
+    const removeStorageObjects = vi.fn().mockResolvedValue(undefined);
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue(adminViewer),
+      findCallById: vi.fn().mockResolvedValue(baseCallRecord),
+      findCallRecordingReference: vi.fn().mockResolvedValue({
+        storageBucket: "call-recordings",
+        storagePath: "recordings/call-1/source/demo.mp3",
+        contentType: "audio/mpeg",
+        fileSizeBytes: 1234,
+        recordingUrl: null,
+      }),
+      deleteCall: vi.fn().mockResolvedValue(undefined),
+    });
+
+    const result = await deleteCallData(repository, "admin-1", "call-1", {
+      accessRepository: adminAccessRepository() as never,
+      removeStorageObjects,
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      data: {
+        deletedStorageObjects: 1,
+        success: true,
+      },
+    });
+    expect(removeStorageObjects).toHaveBeenCalledWith([
+      { bucket: "call-recordings", path: "recordings/call-1/source/demo.mp3" },
+    ]);
+    expect(repository.deleteCall).toHaveBeenCalledWith("call-1");
+  });
+
+  it("blocks managers from deleting call lifecycle data", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue(managerViewer),
+      findCallById: vi.fn().mockResolvedValue(baseCallRecord),
+      deleteCall: vi.fn().mockResolvedValue(undefined),
+    });
+
+    const result = await deleteCallData(repository, "manager-1", "call-1", {
+      accessRepository: managerAccessRepository() as never,
+      removeStorageObjects: vi.fn(),
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      status: 403,
+      code: "forbidden",
+    });
+    expect(repository.deleteCall).not.toHaveBeenCalled();
   });
 });
 

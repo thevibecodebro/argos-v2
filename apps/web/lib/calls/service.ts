@@ -169,6 +169,16 @@ export type CallRecordingReference = {
   recordingUrl: string | null;
 };
 
+type StorageObjectReference = {
+  bucket: string;
+  path: string;
+};
+
+type DeleteCallDataDependencies = {
+  accessRepository?: AccessRepository;
+  removeStorageObjects?: (objects: StorageObjectReference[]) => Promise<void>;
+};
+
 export type CallsFilters = {
   days?: number;
   limit?: number;
@@ -823,6 +833,81 @@ export async function retryCallProcessingJob(
   return {
     ok: true,
     data: { processingJob: serializeProcessingJob(processingJob) },
+  };
+}
+
+export async function deleteCallData(
+  repository: CallsRepository,
+  authUserId: string,
+  callId: string,
+  dependencies: DeleteCallDataDependencies = {},
+): Promise<ServiceResult<{ success: true; deletedStorageObjects: number }>> {
+  const accessRepository = dependencies.accessRepository ?? createAccessRepository();
+  const viewerResult = await getViewer(repository, authUserId);
+
+  if (!viewerResult.ok) {
+    return viewerResult;
+  }
+
+  const viewer = viewerResult.data;
+  const call = await repository.findCallById(callId);
+
+  if (!call || !viewer.org || call.orgId !== viewer.org.id) {
+    return {
+      ok: false,
+      status: 404,
+      code: "not_found",
+      error: "Call not found",
+    };
+  }
+
+  const access = await resolveAccessContext(accessRepository, authUserId);
+
+  if (!access) {
+    return {
+      ok: false,
+      status: 404,
+      code: "unprovisioned",
+      error: "User is not provisioned in the app database",
+    };
+  }
+
+  if (!canActorViewRep(access, call.repId)) {
+    return {
+      ok: false,
+      status: 403,
+      code: "forbidden",
+      error: "You do not have access to this rep",
+    };
+  }
+
+  if (viewer.role !== "admin") {
+    return {
+      ok: false,
+      status: 403,
+      code: "forbidden",
+      error: "Only admins can delete call data",
+    };
+  }
+
+  const recording = await repository.findCallRecordingReference(callId);
+  const storageObjects: StorageObjectReference[] =
+    recording?.storageBucket && recording.storagePath
+      ? [{ bucket: recording.storageBucket, path: recording.storagePath }]
+      : [];
+
+  if (storageObjects.length && dependencies.removeStorageObjects) {
+    await dependencies.removeStorageObjects(storageObjects);
+  }
+
+  await repository.deleteCall(callId);
+
+  return {
+    ok: true,
+    data: {
+      deletedStorageObjects: storageObjects.length,
+      success: true,
+    },
   };
 }
 
