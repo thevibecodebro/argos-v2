@@ -96,6 +96,29 @@ export class SupabaseCallsRepository implements CallsRepository {
     };
   }
 
+  async createAuditEvent(input: {
+    actorId: string;
+    eventType: "call_exported" | "call_deleted";
+    metadata: Record<string, unknown>;
+    orgId: string;
+    resourceId: string;
+    resourceType: "call";
+  }) {
+    const supabase: any = this.supabase;
+    const { error } = await supabase.from("audit_events").insert({
+      actor_id: input.actorId,
+      event_type: input.eventType,
+      metadata: input.metadata,
+      org_id: input.orgId,
+      resource_id: input.resourceId,
+      resource_type: input.resourceType,
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
   async createNotification(input: {
     body: string;
     link: string | null;

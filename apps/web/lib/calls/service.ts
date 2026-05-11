@@ -169,6 +169,15 @@ export type CallRecordingReference = {
   recordingUrl: string | null;
 };
 
+export type CallAuditEventType = "call_exported" | "call_deleted";
+
+export type CallExportPayload = {
+  annotations: CallAnnotation[];
+  call: CallDetail;
+  exportedAt: string;
+  recording: CallRecordingReference | null;
+};
+
 type StorageObjectReference = {
   bucket: string;
   path: string;
@@ -177,6 +186,11 @@ type StorageObjectReference = {
 type DeleteCallDataDependencies = {
   accessRepository?: AccessRepository;
   removeStorageObjects?: (objects: StorageObjectReference[]) => Promise<void>;
+};
+
+type ExportCallDataDependencies = {
+  accessRepository?: AccessRepository;
+  now?: () => Date;
 };
 
 export type CallsFilters = {
@@ -255,6 +269,14 @@ export type CallsRepository = {
     consentConfirmed: boolean;
     status: "uploaded" | "transcribing" | "evaluating" | "complete" | "failed";
   }): Promise<{ id: string; status: string; createdAt: Date }>;
+  createAuditEvent(input: {
+    actorId: string;
+    eventType: CallAuditEventType;
+    metadata: Record<string, unknown>;
+    orgId: string;
+    resourceId: string;
+    resourceType: "call";
+  }): Promise<void>;
   createNotification(input: {
     body: string;
     link: string | null;
@@ -900,6 +922,21 @@ export async function deleteCallData(
     await dependencies.removeStorageObjects(storageObjects);
   }
 
+  await repository.createAuditEvent({
+    actorId: viewer.id,
+    eventType: "call_deleted",
+    metadata: {
+      callId: call.id,
+      callTopic: call.callTopic,
+      deletedAt: new Date().toISOString(),
+      deletedStorageObjects: storageObjects.length,
+      repId: call.repId,
+    },
+    orgId: call.orgId,
+    resourceId: call.id,
+    resourceType: "call",
+  });
+
   await repository.deleteCall(callId);
 
   return {
@@ -908,6 +945,93 @@ export async function deleteCallData(
       deletedStorageObjects: storageObjects.length,
       success: true,
     },
+  };
+}
+
+export async function exportCallData(
+  repository: CallsRepository,
+  authUserId: string,
+  callId: string,
+  dependencies: ExportCallDataDependencies = {},
+): Promise<ServiceResult<CallExportPayload>> {
+  const accessRepository = dependencies.accessRepository ?? createAccessRepository();
+  const viewerResult = await getViewer(repository, authUserId);
+
+  if (!viewerResult.ok) {
+    return viewerResult;
+  }
+
+  const viewer = viewerResult.data;
+  const call = await repository.findCallById(callId);
+
+  if (!call || !viewer.org || call.orgId !== viewer.org.id) {
+    return {
+      ok: false,
+      status: 404,
+      code: "not_found",
+      error: "Call not found",
+    };
+  }
+
+  const access = await resolveAccessContext(accessRepository, authUserId);
+
+  if (!access) {
+    return {
+      ok: false,
+      status: 404,
+      code: "unprovisioned",
+      error: "User is not provisioned in the app database",
+    };
+  }
+
+  if (!canActorViewRep(access, call.repId)) {
+    return {
+      ok: false,
+      status: 403,
+      code: "forbidden",
+      error: "You do not have access to this rep",
+    };
+  }
+
+  if (viewer.role !== "admin") {
+    return {
+      ok: false,
+      status: 403,
+      code: "forbidden",
+      error: "Only admins can export call data",
+    };
+  }
+
+  const [annotations, processingJob, recording] = await Promise.all([
+    repository.findAnnotations(callId),
+    repository.findCallProcessingJobByCallId(callId),
+    repository.findCallRecordingReference(callId),
+  ]);
+  const exportedAt = (dependencies.now?.() ?? new Date()).toISOString();
+  const payload: CallExportPayload = {
+    annotations: annotations.map(serializeAnnotation),
+    call: serializeDetail(call, processingJob),
+    exportedAt,
+    recording,
+  };
+
+  await repository.createAuditEvent({
+    actorId: viewer.id,
+    eventType: "call_exported",
+    metadata: {
+      callId: call.id,
+      callTopic: call.callTopic,
+      exportedAt,
+      repId: call.repId,
+    },
+    orgId: call.orgId,
+    resourceId: call.id,
+    resourceType: "call",
+  });
+
+  return {
+    ok: true,
+    data: payload,
   };
 }
 

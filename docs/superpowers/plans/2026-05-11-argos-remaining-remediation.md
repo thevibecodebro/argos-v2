@@ -129,7 +129,7 @@ npm run typecheck:db
 npm run typecheck:web
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/db/src/schema/roleplay.ts supabase/migrations/202605110002_roleplay_voice_settlement.sql apps/web/lib/roleplay apps/web/app/api/roleplay
@@ -149,7 +149,7 @@ git commit -m "Settle roleplay voice usage on completion"
 - Test: `apps/web/lib/calls/service.test.ts`
 - Test: `apps/web/lib/call-export-route.test.ts`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Add tests proving:
 
@@ -164,7 +164,7 @@ it("blocks reps from exporting another rep's call", async () => {
 });
 ```
 
-- [ ] **Step 2: Run tests and verify red**
+- [x] **Step 2: Run tests and verify red**
 
 Run:
 
@@ -174,7 +174,7 @@ npm run test -w @argos-v2/web -- lib/calls/service.test.ts lib/call-export-route
 
 Expected: fail because no export service/route/audit event exists.
 
-- [ ] **Step 3: Add audit event schema**
+- [x] **Step 3: Add audit event schema**
 
 Create `audit_events` with:
 
@@ -191,7 +191,7 @@ createdAt timestamptz not null default now()
 
 Migration must enable RLS and revoke direct anon/auth access.
 
-- [ ] **Step 4: Implement export service and route**
+- [x] **Step 4: Implement export service and route**
 
 Add `exportCallData(repository, authUserId, callId)` returning JSON-safe data and inserting an audit event:
 
@@ -206,7 +206,7 @@ Add `exportCallData(repository, authUserId, callId)` returning JSON-safe data an
 
 Route `GET /api/calls/[id]/export` returns JSON with `Cache-Control: private, no-store` and `Content-Disposition: attachment; filename="argos-call-<id>.json"`.
 
-- [ ] **Step 5: Verify green**
+- [x] **Step 5: Verify green**
 
 Run:
 
@@ -232,7 +232,7 @@ git commit -m "Add audited call export"
 - Test: `apps/web/lib/calls/service.test.ts`
 - Test: `apps/web/lib/call-delete-route.test.ts`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Add tests proving call deletion inserts an audit event before deletion:
 
@@ -243,7 +243,7 @@ it("audits admin call data deletion before removing the call", async () => {
 });
 ```
 
-- [ ] **Step 2: Run tests and verify red**
+- [x] **Step 2: Run tests and verify red**
 
 Run:
 
@@ -251,7 +251,7 @@ Run:
 npm run test -w @argos-v2/web -- lib/calls/service.test.ts lib/call-delete-route.test.ts
 ```
 
-- [ ] **Step 3: Implement audit insertion**
+- [x] **Step 3: Implement audit insertion**
 
 Extend repository interface:
 
@@ -268,7 +268,7 @@ insertAuditEvent(input: {
 
 Call it before `deleteCall(callId)`.
 
-- [ ] **Step 4: Verify green and commit**
+- [x] **Step 4: Verify green and commit**
 
 ```bash
 npm run test -w @argos-v2/web -- lib/calls/service.test.ts lib/call-delete-route.test.ts

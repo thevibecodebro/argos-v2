@@ -1,5 +1,6 @@
 import { and, asc, count, desc, eq, gte, ilike, inArray, isNotNull, lte, sql } from "drizzle-orm";
 import {
+  auditEventsTable,
   callAnnotationsTable,
   callProcessingJobsTable,
   callScoresTable,
@@ -52,6 +53,17 @@ export class DrizzleCallsRepository implements CallsRepository {
       });
 
     return call;
+  }
+
+  async createAuditEvent(input: {
+    actorId: string;
+    eventType: "call_exported" | "call_deleted";
+    metadata: Record<string, unknown>;
+    orgId: string;
+    resourceId: string;
+    resourceType: "call";
+  }) {
+    await this.db.insert(auditEventsTable).values(input);
   }
 
   async createNotification(input: {

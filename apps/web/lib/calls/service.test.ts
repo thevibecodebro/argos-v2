@@ -4,6 +4,7 @@ import {
   createCallRecordingSignedUrl,
   deleteCallData,
   deleteAnnotation,
+  exportCallData,
   getCallDetail,
   listCalls,
   retryCallProcessingJob,
@@ -16,7 +17,9 @@ function createRepository(
 ): CallsRepository {
   return {
     createCall: vi.fn(),
+    createAuditEvent: vi.fn(),
     createNotification: vi.fn(),
+    deleteCall: vi.fn(),
     deleteAnnotation: vi.fn(),
     findAnnotations: vi.fn(),
     findCallById: vi.fn(),
@@ -403,9 +406,135 @@ describe("processing job recovery", () => {
 });
 
 describe("recording and transcript lifecycle", () => {
+  it("lets admins export call data and records an audit event", async () => {
+    const createAuditEvent = vi.fn().mockResolvedValue(undefined);
+    const repository = createRepository({
+      createAuditEvent,
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue(adminViewer),
+      findCallById: vi.fn().mockResolvedValue({
+        ...baseCallRecord,
+        transcript: [
+          {
+            endSeconds: 4,
+            speaker: "Rep",
+            startSeconds: 0,
+            text: "What problem are you trying to solve this quarter?",
+          },
+        ],
+        moments: [
+          {
+            id: "moment-1",
+            callId: "call-1",
+            timestampSeconds: 30,
+            category: "discovery",
+            observation: "The rep opened with a useful discovery question.",
+            recommendation: "Keep the question tied to business impact.",
+            severity: "strength",
+            isHighlight: true,
+            highlightNote: "Strong opener",
+            createdAt: new Date("2026-04-01T00:03:00.000Z"),
+          },
+        ],
+        rubric: { id: "rubric-1", name: "Revenue Scorecard", version: 2, status: "active" },
+        categoryScores: [
+          {
+            categoryId: "category-1",
+            slug: "discovery",
+            name: "Discovery",
+            description: null,
+            weight: 1,
+            sortOrder: 1,
+            score: 86,
+          },
+        ],
+      }),
+      findAnnotations: vi.fn().mockResolvedValue([
+        {
+          id: "annotation-1",
+          callId: "call-1",
+          authorId: "admin-1",
+          timestampSeconds: 45,
+          note: "Use this as a coaching clip.",
+          createdAt: new Date("2026-04-01T00:04:00.000Z"),
+          authorFirstName: "Ada",
+          authorLastName: "Admin",
+          authorRole: "admin",
+        },
+      ]),
+      findCallRecordingReference: vi.fn().mockResolvedValue({
+        storageBucket: "call-recordings",
+        storagePath: "recordings/call-1/source/demo.mp3",
+        contentType: "audio/mpeg",
+        fileSizeBytes: 1234,
+        recordingUrl: null,
+      }),
+    });
+
+    const result = await exportCallData(repository, "admin-1", "call-1", {
+      accessRepository: adminAccessRepository() as never,
+      now: () => new Date("2026-05-11T21:00:00.000Z"),
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected call export");
+    expect(result.data.exportedAt).toBe("2026-05-11T21:00:00.000Z");
+    expect(result.data.call.id).toBe("call-1");
+    expect(result.data.call.transcript?.[0]?.text).toContain("problem");
+    expect(result.data.call.moments[0]).toMatchObject({
+      id: "moment-1",
+      isHighlight: true,
+    });
+    expect(result.data.annotations[0]).toMatchObject({
+      id: "annotation-1",
+      note: "Use this as a coaching clip.",
+    });
+    expect(result.data.recording).toMatchObject({
+      storageBucket: "call-recordings",
+      storagePath: "recordings/call-1/source/demo.mp3",
+      contentType: "audio/mpeg",
+      fileSizeBytes: 1234,
+    });
+    expect(createAuditEvent).toHaveBeenCalledWith({
+      actorId: "admin-1",
+      eventType: "call_exported",
+      metadata: expect.objectContaining({
+        callId: "call-1",
+        callTopic: "ACME discovery",
+        exportedAt: "2026-05-11T21:00:00.000Z",
+        repId: "rep-1",
+      }),
+      orgId: "org-1",
+      resourceId: "call-1",
+      resourceType: "call",
+    });
+  });
+
+  it("blocks managers from exporting call data", async () => {
+    const repository = createRepository({
+      createAuditEvent: vi.fn(),
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue(managerViewer),
+      findCallById: vi.fn().mockResolvedValue(baseCallRecord),
+      findAnnotations: vi.fn().mockResolvedValue([]),
+      findCallRecordingReference: vi.fn().mockResolvedValue(null),
+    });
+
+    const result = await exportCallData(repository, "manager-1", "call-1", {
+      accessRepository: managerAccessRepository() as never,
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      status: 403,
+      code: "forbidden",
+    });
+    expect(repository.createAuditEvent).not.toHaveBeenCalled();
+  });
+
   it("lets admins delete call data and remove private recording storage", async () => {
     const removeStorageObjects = vi.fn().mockResolvedValue(undefined);
+    const createAuditEvent = vi.fn().mockResolvedValue(undefined);
     const repository = createRepository({
+      createAuditEvent,
       findCurrentUserByAuthId: vi.fn().mockResolvedValue(adminViewer),
       findCallById: vi.fn().mockResolvedValue(baseCallRecord),
       findCallRecordingReference: vi.fn().mockResolvedValue({
@@ -433,6 +562,19 @@ describe("recording and transcript lifecycle", () => {
     expect(removeStorageObjects).toHaveBeenCalledWith([
       { bucket: "call-recordings", path: "recordings/call-1/source/demo.mp3" },
     ]);
+    expect(createAuditEvent).toHaveBeenCalledWith({
+      actorId: "admin-1",
+      eventType: "call_deleted",
+      metadata: expect.objectContaining({
+        callId: "call-1",
+        callTopic: "ACME discovery",
+        deletedStorageObjects: 1,
+        repId: "rep-1",
+      }),
+      orgId: "org-1",
+      resourceId: "call-1",
+      resourceType: "call",
+    });
     expect(repository.deleteCall).toHaveBeenCalledWith("call-1");
   });
 
