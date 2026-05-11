@@ -38,10 +38,10 @@ describe("billing checkout route", () => {
     getAuthenticatedSupabaseUser.mockResolvedValue(null);
 
     const route = await import("../app/billing/checkout/route");
-    const response = await route.GET(new Request("https://argos.ai/billing/checkout?plan=solo"));
+    const response = await route.GET(new Request("https://argos.ai/billing/checkout?plan=team&seats=8"));
 
     expect(response.headers.get("location")).toBe(
-      "https://argos.ai/login?next=%2Fbilling%2Fcheckout%3Fplan%3Dsolo",
+      "https://argos.ai/login?next=%2Fbilling%2Fcheckout%3Fplan%3Dteam%26seats%3D8",
     );
     expect(createStripeCheckoutSession).not.toHaveBeenCalled();
   });
@@ -78,7 +78,7 @@ describe("billing checkout route", () => {
     });
 
     const route = await import("../app/billing/checkout/route");
-    const response = await route.GET(new Request("https://argos.ai/billing/checkout?plan=team"));
+    const response = await route.GET(new Request("https://argos.ai/billing/checkout?plan=team&seats=8"));
 
     expect(response.headers.get("location")).toBe("https://checkout.stripe.com/c/live-session");
     expect(createStripeCheckoutSession).toHaveBeenCalledWith(
@@ -87,6 +87,7 @@ describe("billing checkout route", () => {
         cancelUrl: "https://argos.ai/?checkout=cancelled&plan=team#access",
         customerEmail: "founder@argos.ai",
         plan: expect.objectContaining({ id: "team" }),
+        quantity: 8,
         successUrl: "https://argos.ai/dashboard?checkout=success&plan=team",
       }),
     );

@@ -1,4 +1,4 @@
-import type { BillingPlan } from "./plans";
+import { getBillingPlanQuantity, type BillingPlan } from "./plans";
 
 const STRIPE_API_BASE_URL = "https://api.stripe.com";
 const STRIPE_API_VERSION = "2026-02-25.clover";
@@ -44,6 +44,7 @@ export type CreateStripeCheckoutSessionInput = {
   env?: EnvSource;
   fetcher?: StripeFetch;
   plan: BillingPlan;
+  quantity?: number | null;
   successUrl: string;
 };
 
@@ -54,6 +55,7 @@ export async function createStripeCheckoutSession({
   env = process.env,
   fetcher = fetch,
   plan,
+  quantity: requestedQuantity,
   successUrl,
 }: CreateStripeCheckoutSessionInput) {
   const secretKey = getStripeSecretKey(env);
@@ -63,6 +65,7 @@ export async function createStripeCheckoutSession({
     plan,
     secretKey,
   });
+  const quantity = getBillingPlanQuantity(plan, requestedQuantity);
   const body = new URLSearchParams();
 
   body.set("mode", plan.mode);
@@ -70,7 +73,7 @@ export async function createStripeCheckoutSession({
   body.set("cancel_url", cancelUrl);
   body.set("client_reference_id", authUserId);
   body.set("line_items[0][price]", priceId);
-  body.set("line_items[0][quantity]", String(plan.defaultQuantity));
+  body.set("line_items[0][quantity]", String(quantity));
   body.set("metadata[auth_user_id]", authUserId);
   body.set("metadata[plan]", plan.id);
 

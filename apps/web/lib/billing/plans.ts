@@ -24,6 +24,10 @@ export type BillingPlan = {
   priceIdEnvKey: string;
 };
 
+type BillingCheckoutHrefOptions = {
+  seats?: number;
+};
+
 export const billingPlans: Record<BillingPlanId, BillingPlan> = {
   solo: {
     defaultQuantity: 1,
@@ -133,6 +137,44 @@ export function getBillingPlan(planId: string | null): BillingPlan | null {
   return billingPlans[planId as BillingPlanId];
 }
 
-export function getBillingCheckoutHref(planId: BillingPlanId): string {
-  return `/billing/checkout?plan=${encodeURIComponent(planId)}`;
+export function getBillingPlanQuantity(
+  plan: BillingPlan,
+  requestedQuantity?: number | null,
+): number {
+  if (!plan.adjustableQuantity) {
+    return plan.defaultQuantity;
+  }
+
+  if (!Number.isFinite(requestedQuantity)) {
+    return plan.defaultQuantity;
+  }
+
+  const quantity = Math.floor(Number(requestedQuantity));
+  const minimum = plan.adjustableQuantity.minimum;
+  const maximum = plan.adjustableQuantity.maximum;
+
+  if (quantity < minimum) {
+    return minimum;
+  }
+
+  if (maximum && quantity > maximum) {
+    return maximum;
+  }
+
+  return quantity;
+}
+
+export function getBillingCheckoutHref(
+  planId: BillingPlanId,
+  options: BillingCheckoutHrefOptions = {},
+): string {
+  const params = new URLSearchParams();
+  params.set("plan", planId);
+
+  const plan = getBillingPlan(planId);
+  if (plan?.adjustableQuantity && options.seats !== undefined) {
+    params.set("seats", String(getBillingPlanQuantity(plan, options.seats)));
+  }
+
+  return `/billing/checkout?${params.toString()}`;
 }

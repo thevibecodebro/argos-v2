@@ -21,6 +21,9 @@ describe("billing plans", () => {
 
   it("builds stable public checkout links", () => {
     expect(getBillingCheckoutHref("solo")).toBe("/billing/checkout?plan=solo");
+    expect(getBillingCheckoutHref("team", { seats: 8 })).toBe(
+      "/billing/checkout?plan=team&seats=8",
+    );
     expect(getBillingPlan("extra-500")?.lookupKey).toBe("argos_extra_minutes_500");
     expect(getBillingPlan("unknown")).toBeNull();
   });

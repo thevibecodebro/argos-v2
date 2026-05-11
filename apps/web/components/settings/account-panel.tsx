@@ -368,6 +368,33 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
           </p>
         )}
       </ForgeSurface>
+
+      {currentUser.org ? (
+        <ForgeSurface as="section" className="p-6" variant="panel">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
+                Billing
+              </p>
+              <p className="mt-4 text-2xl font-semibold text-white">
+                Manage subscription
+              </p>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--forge-muted)]">
+                Team subscriptions can adjust paid seat quantity from Stripe billing.
+              </p>
+            </div>
+            <ForgeButton
+              href="/billing/portal"
+              icon="payments"
+              size="sm"
+              trailingIcon="open_in_new"
+              variant="primary"
+            >
+              Manage billing and seats
+            </ForgeButton>
+          </div>
+        </ForgeSurface>
+      ) : null}
     </div>
   );
 }

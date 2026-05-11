@@ -30,6 +30,7 @@ describe("createStripeCheckoutSession", () => {
       },
       fetcher,
       plan: billingPlans.team,
+      quantity: 8,
       successUrl: "https://argos.ai/dashboard?checkout=success",
     });
 
@@ -42,7 +43,7 @@ describe("createStripeCheckoutSession", () => {
     const checkoutBody = fetcher.mock.calls[1]?.[1]?.body as URLSearchParams;
     expect(checkoutBody.get("mode")).toBe("subscription");
     expect(checkoutBody.get("line_items[0][price]")).toBe("price_team_monthly");
-    expect(checkoutBody.get("line_items[0][quantity]")).toBe("3");
+    expect(checkoutBody.get("line_items[0][quantity]")).toBe("8");
     expect(checkoutBody.get("line_items[0][adjustable_quantity][minimum]")).toBe("3");
     expect(checkoutBody.get("customer_email")).toBe("founder@argos.ai");
     expect(checkoutBody.get("subscription_data[metadata][plan]")).toBe("team");

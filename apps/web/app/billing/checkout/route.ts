@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
-import { getBillingPlan } from "@/lib/billing/plans";
+import { getBillingPlan, getBillingPlanQuantity } from "@/lib/billing/plans";
 import {
   createStripeCheckoutSession,
   StripeCheckoutConfigurationError,
@@ -43,6 +43,10 @@ export async function GET(request: Request) {
       cancelUrl: cancelUrl.toString(),
       customerEmail: authUser.email,
       plan,
+      quantity: getBillingPlanQuantity(
+        plan,
+        parseSeatQuantity(requestUrl.searchParams.get("seats")),
+      ),
       successUrl: successUrl.toString(),
     });
 
@@ -62,6 +66,15 @@ export async function GET(request: Request) {
       plan: plan.id,
     });
   }
+}
+
+function parseSeatQuantity(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const quantity = Number(value);
+  return Number.isFinite(quantity) ? quantity : null;
 }
 
 function landingRedirect(origin: string, params: Record<string, string>) {

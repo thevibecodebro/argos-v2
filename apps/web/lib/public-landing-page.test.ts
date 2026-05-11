@@ -59,6 +59,12 @@ describe("LandingPage", () => {
     expect(html).toContain("120 live voice minutes per seat/month");
     expect(html).toContain("3-seat minimum");
     expect(html).toContain("Pooled at the org level");
+    expect(html).toContain('action="/billing/checkout"');
+    expect(html).toContain('name="seats"');
+    expect(html).toContain('min="3"');
+    expect(html).toContain('value="3"');
+    expect(html).toContain('value="team" name="plan"');
+    expect(html).toContain('value="team-annual" name="plan"');
     expect(html).toContain("250 extra minutes");
     expect(html).toContain("$125");
     expect(html).toContain("500 extra minutes");
@@ -69,8 +75,6 @@ describe("LandingPage", () => {
     expect(html).toContain("do not expire while subscribed");
     expect(html).toContain('href="/billing/checkout?plan=solo"');
     expect(html).toContain('href="/billing/checkout?plan=solo-annual"');
-    expect(html).toContain('href="/billing/checkout?plan=team"');
-    expect(html).toContain('href="/billing/checkout?plan=team-annual"');
     expect(html).toContain('href="/billing/checkout?plan=extra-250"');
     expect(html).toContain('href="/billing/checkout?plan=extra-500"');
     expect(html).toContain('href="/billing/checkout?plan=extra-2000"');

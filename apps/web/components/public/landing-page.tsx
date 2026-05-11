@@ -65,6 +65,7 @@ const accessPlans = [
     monthlyPlanId: "team",
     note: "3-seat minimum. Pooled at the org level.",
     annualPlanId: "team-annual",
+    seatMinimum: 3,
   },
 ] satisfies Array<{
   annualPlanId: BillingPlanId;
@@ -74,6 +75,7 @@ const accessPlans = [
   name: string;
   note: string;
   price: string;
+  seatMinimum?: number;
 }>;
 
 const extraVoicePacks = [
@@ -257,14 +259,48 @@ function LandingAccess() {
               <p>{plan.detail}</p>
               <small>{plan.note}</small>
               <small>{plan.body}</small>
-              <div className={styles["argos-plan-actions"]}>
-                <Link className={styles["argos-plan-button"]} href={getBillingCheckoutHref(plan.monthlyPlanId)}>
-                  Monthly checkout
-                </Link>
-                <Link className={styles["argos-plan-secondary"]} href={getBillingCheckoutHref(plan.annualPlanId)}>
-                  Annual checkout
-                </Link>
-              </div>
+              {plan.seatMinimum ? (
+                <form action="/billing/checkout" className={styles["argos-seat-form"]} method="get">
+                  <label className={styles["argos-seat-field"]}>
+                    <span>Seats</span>
+                    <input
+                      aria-label={`${plan.name} seats`}
+                      defaultValue={plan.seatMinimum}
+                      inputMode="numeric"
+                      min={plan.seatMinimum}
+                      name="seats"
+                      type="number"
+                    />
+                  </label>
+                  <div className={styles["argos-plan-actions"]}>
+                    <button
+                      className={styles["argos-plan-button"]}
+                      name="plan"
+                      type="submit"
+                      value={plan.monthlyPlanId}
+                    >
+                      Monthly checkout
+                    </button>
+                    <button
+                      className={styles["argos-plan-secondary"]}
+                      name="plan"
+                      type="submit"
+                      value={plan.annualPlanId}
+                    >
+                      Annual checkout
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className={styles["argos-plan-actions"]}>
+                  <Link className={styles["argos-plan-button"]} href={getBillingCheckoutHref(plan.monthlyPlanId)}>
+                    Monthly checkout
+                  </Link>
+                  <Link className={styles["argos-plan-secondary"]} href={getBillingCheckoutHref(plan.annualPlanId)}>
+                    Annual checkout
+                  </Link>
+                </div>
+              )}
             </article>
           ))}
         </div>

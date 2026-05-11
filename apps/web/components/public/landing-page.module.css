@@ -1081,18 +1081,59 @@ html:has(.argos-3d-page) {
   margin-top: 1.2rem;
 }
 
+.argos-seat-form {
+  margin-top: 1.2rem;
+}
+
+.argos-seat-field {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.argos-seat-field span {
+  color: var(--argos-muted);
+  font-family: var(--font-display, "Space Grotesk", sans-serif);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.argos-seat-field input {
+  min-height: 2.9rem;
+  width: min(11rem, 100%);
+  border: 1px solid rgba(255, 244, 230, 0.14);
+  border-radius: 999px;
+  background: rgba(5, 4, 3, 0.52);
+  color: var(--argos-ivory);
+  font-family: var(--font-display, "Space Grotesk", sans-serif);
+  font-size: 1rem;
+  font-weight: 800;
+  outline: none;
+  padding-inline: 1rem;
+}
+
+.argos-seat-field input:focus {
+  border-color: rgba(255, 244, 230, 0.34);
+  box-shadow: 0 0 0 3px rgba(255, 244, 230, 0.08);
+}
+
 .argos-plan-button,
 .argos-plan-secondary {
+  appearance: none;
   display: inline-flex;
   min-height: 2.75rem;
   align-items: center;
   justify-content: center;
+  border: 0;
   border-radius: 999px;
+  cursor: pointer;
   font-family: var(--font-display, "Space Grotesk", sans-serif);
   font-size: 0.7rem;
   font-weight: 900;
   letter-spacing: 0.12em;
   padding-inline: 1rem;
+  text-decoration: none;
   text-transform: uppercase;
   transition:
     background-color 650ms var(--argos-ease),
