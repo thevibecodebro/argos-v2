@@ -1,4 +1,9 @@
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { DrizzleBillingRepository } from "@/lib/billing/repository";
+import {
+  consumeVoiceMinutes,
+  getVoiceEntitlementStatus,
+} from "@/lib/billing/voice-entitlements";
 import { unauthorizedJson } from "@/lib/http";
 import {
   checkRateLimitForPolicy,
@@ -17,6 +22,20 @@ import { readRequestTextWithLimit } from "@/lib/security/request-body";
 export const dynamic = "force-dynamic";
 
 const MAX_REALTIME_SDP_BODY_BYTES = 64 * 1024;
+
+function serviceErrorResponse(result: {
+  code?: string;
+  error: string;
+  status: number;
+}) {
+  return Response.json(
+    {
+      ...(result.code ? { code: result.code } : {}),
+      error: result.error,
+    },
+    { status: result.status },
+  );
+}
 
 function unavailable() {
   return Response.json(
@@ -88,6 +107,13 @@ export async function POST(
     return unavailable();
   }
 
+  const billingRepository = new DrizzleBillingRepository();
+  const entitlement = await getVoiceEntitlementStatus(billingRepository, authUser.id);
+
+  if (!entitlement.ok) {
+    return serviceErrorResponse(entitlement);
+  }
+
   const offerSdpResult = await readRequestTextWithLimit(request, MAX_REALTIME_SDP_BODY_BYTES);
 
   if (!offerSdpResult.ok) {
@@ -115,6 +141,12 @@ export async function POST(
       instructions: buildRoleplayRealtimeInstructions(sessionResult.data),
       offerSdp,
       voice: getRoleplayRealtimeVoice(sessionResult.data),
+    });
+    await consumeVoiceMinutes(billingRepository, authUser.id, {
+      idempotencyKey: `roleplay-realtime:${id}:${Date.now()}`,
+      minutes: 1,
+      sessionId: id,
+      source: "roleplay_realtime",
     });
 
     return new Response(realtime.answerSdp, {

@@ -5,6 +5,8 @@ const createRoleplayRepository = vi.fn();
 const getRoleplaySession = vi.fn();
 const appendRoleplayTranscriptMessage = vi.fn();
 const checkRateLimitForPolicy = vi.fn();
+const getVoiceEntitlementStatus = vi.fn();
+const consumeVoiceMinutes = vi.fn();
 
 vi.mock("@/lib/auth/get-authenticated-user", () => ({
   getAuthenticatedSupabaseUser,
@@ -35,6 +37,15 @@ vi.mock("@/lib/rate-limit/service", () => ({
     ),
 }));
 
+vi.mock("@/lib/billing/repository", () => ({
+  DrizzleBillingRepository: vi.fn(() => ({ billing: true })),
+}));
+
+vi.mock("@/lib/billing/voice-entitlements", () => ({
+  getVoiceEntitlementStatus,
+  consumeVoiceMinutes,
+}));
+
 describe("roleplay voice routes", () => {
   const originalEnv = {
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
@@ -52,7 +63,18 @@ describe("roleplay voice routes", () => {
     getRoleplaySession.mockReset();
     appendRoleplayTranscriptMessage.mockReset();
     checkRateLimitForPolicy.mockReset();
+    getVoiceEntitlementStatus.mockReset();
+    consumeVoiceMinutes.mockReset();
     createRoleplayRepository.mockReturnValue({});
+    getVoiceEntitlementStatus.mockResolvedValue({
+      ok: true,
+      data: {
+        availableMinutes: 120,
+        orgId: "org-1",
+        userId: "auth-user-1",
+      },
+    });
+    consumeVoiceMinutes.mockResolvedValue({ ok: true, data: { minutesDebited: 1 } });
     getRoleplaySession.mockResolvedValue({
       ok: true,
       data: {
@@ -145,6 +167,44 @@ describe("roleplay voice routes", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0]?.[0]).toBe("https://api.openai.com/v1/realtime/calls");
     expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+    expect(getVoiceEntitlementStatus).toHaveBeenCalledWith({ billing: true }, "auth-user-1");
+    expect(consumeVoiceMinutes).toHaveBeenCalledWith(
+      { billing: true },
+      "auth-user-1",
+      expect.objectContaining({
+        minutes: 1,
+        source: "roleplay_realtime",
+        sessionId: "session-1",
+      }),
+    );
+  });
+
+  it("returns 402 for realtime when the workspace has no voice minutes", async () => {
+    process.env.OPENAI_API_KEY = "test-openai-key";
+    getVoiceEntitlementStatus.mockResolvedValueOnce({
+      ok: false,
+      status: 402,
+      code: "voice_minutes_exhausted",
+      error: "No live voice minutes are available for this workspace.",
+    });
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const route = await import("../app/api/roleplay/sessions/[id]/realtime/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/roleplay/sessions/session-1/realtime", {
+        method: "POST",
+        headers: { "Content-Type": "application/sdp" },
+        body: "v=0\r\na=offer-sdp",
+      }),
+      { params: Promise.resolve({ id: "session-1" }) },
+    );
+
+    expect(response.status).toBe(402);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "voice_minutes_exhausted",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("uses the selected persona voice when creating realtime roleplay calls", async () => {
@@ -361,6 +421,42 @@ describe("roleplay voice routes", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0]?.[0]).toBe("https://api.openai.com/v1/audio/speech");
     expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+    expect(getVoiceEntitlementStatus).toHaveBeenCalledWith({ billing: true }, "auth-user-1");
+    expect(consumeVoiceMinutes).toHaveBeenCalledWith(
+      { billing: true },
+      "auth-user-1",
+      expect.objectContaining({
+        minutes: 1,
+        source: "roleplay_tts",
+      }),
+    );
+  });
+
+  it("returns 402 for TTS when the workspace has no voice minutes", async () => {
+    process.env.OPENAI_API_KEY = "test-openai-key";
+    getVoiceEntitlementStatus.mockResolvedValueOnce({
+      ok: false,
+      status: 402,
+      code: "voice_minutes_exhausted",
+      error: "No live voice minutes are available for this workspace.",
+    });
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const route = await import("../app/api/roleplay/tts/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/roleplay/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: "Listen back to the coaching note." }),
+      }),
+    );
+
+    expect(response.status).toBe(402);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "voice_minutes_exhausted",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("rejects oversized TTS text and instructions before contacting OpenAI", async () => {
