@@ -11,7 +11,9 @@ import {
   getRoleplayPersona,
   getRoleplaySession,
   listRoleplaySessions,
+  markRoleplayVoiceStarted,
   normalizeRoleplaySessionCreateInput,
+  settleRoleplayVoiceUsage,
   type RoleplayRepository,
 } from "./service";
 import { getRoleplaySessionVoice, type RoleplaySession } from "./types";
@@ -29,6 +31,8 @@ function createRepository(
     findSessionById: vi.fn(),
     findSessionsByOrgId: vi.fn().mockResolvedValue([]),
     findSessionsByRepId: vi.fn(),
+    markVoiceStarted: vi.fn(),
+    settleVoiceUsage: vi.fn(),
     updateSession: vi.fn(),
     ...overrides,
   };
@@ -590,6 +594,227 @@ describe("completeRoleplaySession", () => {
       observation: expect.any(String),
       recommendation: expect.any(String),
     });
+  });
+});
+
+describe("roleplay voice usage settlement", () => {
+  it("marks the first successful realtime voice start on the session", async () => {
+    mockAccessRepository({
+      actor: { id: "rep-1", orgId: "org-1", role: "rep" },
+      memberships: [
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ],
+      grants: [],
+    });
+
+    const startedAt = new Date("2026-05-11T20:00:00.000Z");
+    const markVoiceStarted = vi.fn().mockResolvedValue({
+      id: "session-1",
+      repId: "rep-1",
+      orgId: "org-1",
+      persona: "stalling-vp",
+      industry: "SaaS",
+      difficulty: "intermediate",
+      overallScore: null,
+      origin: "manual",
+      sourceCallId: null,
+      rubricId: null,
+      focusMode: "all",
+      focusCategorySlug: null,
+      scenarioSummary: null,
+      scenarioBrief: null,
+      status: "active",
+      transcript: [{ role: "assistant", content: "Timing is tough right now." }],
+      scorecard: null,
+      voiceStartedAt: startedAt,
+      voiceCompletedAt: null,
+      voiceMinutesSettled: 0,
+      voiceSettledAt: null,
+      createdAt: new Date("2026-04-03T00:00:00.000Z"),
+    });
+    const repository = createRepository({
+      findSessionById: vi.fn().mockResolvedValue({
+        id: "session-1",
+        repId: "rep-1",
+        orgId: "org-1",
+        persona: "stalling-vp",
+        industry: "SaaS",
+        difficulty: "intermediate",
+        overallScore: null,
+        origin: "manual",
+        sourceCallId: null,
+        rubricId: null,
+        focusMode: "all",
+        focusCategorySlug: null,
+        scenarioSummary: null,
+        scenarioBrief: null,
+        status: "active",
+        transcript: [{ role: "assistant", content: "Timing is tough right now." }],
+        scorecard: null,
+        voiceStartedAt: null,
+        voiceCompletedAt: null,
+        voiceMinutesSettled: 0,
+        voiceSettledAt: null,
+        createdAt: new Date("2026-04-03T00:00:00.000Z"),
+      }),
+      markVoiceStarted,
+    });
+
+    const result = await markRoleplayVoiceStarted(repository, "rep-1", "session-1", startedAt);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected voice start to be recorded");
+    expect(markVoiceStarted).toHaveBeenCalledWith("session-1", startedAt);
+    expect(result.data.voiceStartedAt).toBe("2026-05-11T20:00:00.000Z");
+    expect(result.data.voiceMinutesSettled).toBe(0);
+  });
+
+  it("settles realtime voice usage once from recorded start time to completion time", async () => {
+    mockAccessRepository({
+      actor: { id: "rep-1", orgId: "org-1", role: "rep" },
+      memberships: [
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ],
+      grants: [],
+    });
+
+    const startedAt = new Date("2026-05-11T20:00:00.000Z");
+    const completedAt = new Date("2026-05-11T20:08:10.000Z");
+    const consumeVoiceMinutes = vi.fn().mockResolvedValue({
+      ok: true,
+      data: { minutesDebited: 9 },
+    });
+    const settleVoiceUsage = vi.fn().mockImplementation(async (_sessionId, input) => ({
+      id: "session-1",
+      repId: "rep-1",
+      orgId: "org-1",
+      persona: "stalling-vp",
+      industry: "SaaS",
+      difficulty: "intermediate",
+      overallScore: 82,
+      origin: "manual",
+      sourceCallId: null,
+      rubricId: null,
+      focusMode: "all",
+      focusCategorySlug: null,
+      scenarioSummary: null,
+      scenarioBrief: null,
+      status: "complete",
+      transcript: [
+        { role: "assistant", content: "Timing is tough right now." },
+        { role: "user", content: "Let's schedule a pilot review next Tuesday." },
+      ],
+      scorecard: null,
+      voiceStartedAt: startedAt,
+      voiceCompletedAt: input.completedAt,
+      voiceMinutesSettled: input.minutesSettled,
+      voiceSettledAt: input.completedAt,
+      createdAt: new Date("2026-04-03T00:00:00.000Z"),
+    }));
+    const repository = createRepository({
+      findSessionById: vi.fn().mockResolvedValue({
+        id: "session-1",
+        repId: "rep-1",
+        orgId: "org-1",
+        persona: "stalling-vp",
+        industry: "SaaS",
+        difficulty: "intermediate",
+        overallScore: 82,
+        origin: "manual",
+        sourceCallId: null,
+        rubricId: null,
+        focusMode: "all",
+        focusCategorySlug: null,
+        scenarioSummary: null,
+        scenarioBrief: null,
+        status: "complete",
+        transcript: [
+          { role: "assistant", content: "Timing is tough right now." },
+          { role: "user", content: "Let's schedule a pilot review next Tuesday." },
+        ],
+        scorecard: null,
+        voiceStartedAt: startedAt,
+        voiceCompletedAt: null,
+        voiceMinutesSettled: 0,
+        voiceSettledAt: null,
+        createdAt: new Date("2026-04-03T00:00:00.000Z"),
+      }),
+      settleVoiceUsage,
+    });
+
+    const result = await settleRoleplayVoiceUsage(repository, "rep-1", "session-1", {
+      consumeVoiceMinutes,
+      now: () => completedAt,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected voice usage to be settled");
+    expect(consumeVoiceMinutes).toHaveBeenCalledWith("rep-1", {
+      idempotencyKey: "roleplay:session-1:complete",
+      minutes: 9,
+      sessionId: "session-1",
+      source: "roleplay_realtime",
+    });
+    expect(settleVoiceUsage).toHaveBeenCalledWith("session-1", {
+      completedAt,
+      minutesSettled: 9,
+    });
+    expect(result.data.voiceMinutesSettled).toBe(9);
+    expect(result.data.voiceCompletedAt).toBe("2026-05-11T20:08:10.000Z");
+  });
+
+  it("does not debit realtime voice minutes again for an already settled session", async () => {
+    mockAccessRepository({
+      actor: { id: "rep-1", orgId: "org-1", role: "rep" },
+      memberships: [
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ],
+      grants: [],
+    });
+
+    const consumeVoiceMinutes = vi.fn();
+    const settleVoiceUsage = vi.fn();
+    const repository = createRepository({
+      findSessionById: vi.fn().mockResolvedValue({
+        id: "session-1",
+        repId: "rep-1",
+        orgId: "org-1",
+        persona: "stalling-vp",
+        industry: "SaaS",
+        difficulty: "intermediate",
+        overallScore: 82,
+        origin: "manual",
+        sourceCallId: null,
+        rubricId: null,
+        focusMode: "all",
+        focusCategorySlug: null,
+        scenarioSummary: null,
+        scenarioBrief: null,
+        status: "complete",
+        transcript: [
+          { role: "assistant", content: "Timing is tough right now." },
+          { role: "user", content: "Let's schedule a pilot review next Tuesday." },
+        ],
+        scorecard: null,
+        voiceStartedAt: new Date("2026-05-11T20:00:00.000Z"),
+        voiceCompletedAt: new Date("2026-05-11T20:08:10.000Z"),
+        voiceMinutesSettled: 9,
+        voiceSettledAt: new Date("2026-05-11T20:08:10.000Z"),
+        createdAt: new Date("2026-04-03T00:00:00.000Z"),
+      }),
+      settleVoiceUsage,
+    });
+
+    const result = await settleRoleplayVoiceUsage(repository, "rep-1", "session-1", {
+      consumeVoiceMinutes,
+      now: () => new Date("2026-05-11T20:20:00.000Z"),
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected settled session");
+    expect(consumeVoiceMinutes).not.toHaveBeenCalled();
+    expect(settleVoiceUsage).not.toHaveBeenCalled();
+    expect(result.data.voiceMinutesSettled).toBe(9);
   });
 });
 

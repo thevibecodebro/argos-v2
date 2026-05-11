@@ -43,6 +43,10 @@ export const roleplaySessionsTable = pgTable(
     })
       .notNull()
       .default("active"),
+    voiceStartedAt: timestamp("voice_started_at", { withTimezone: true }),
+    voiceCompletedAt: timestamp("voice_completed_at", { withTimezone: true }),
+    voiceMinutesSettled: integer("voice_minutes_settled").notNull().default(0),
+    voiceSettledAt: timestamp("voice_settled_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [

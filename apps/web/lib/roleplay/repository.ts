@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import {
   getDb,
   organizationsTable,
@@ -35,6 +35,10 @@ function normalizeSessionRecord(record: {
   transcript: unknown;
   scorecard: unknown;
   status: "active" | "evaluating" | "complete";
+  voiceStartedAt: Date | null;
+  voiceCompletedAt: Date | null;
+  voiceMinutesSettled: number | null;
+  voiceSettledAt: Date | null;
   createdAt: Date;
 }): RoleplaySessionRecord {
   return {
@@ -53,6 +57,10 @@ function normalizeSessionRecord(record: {
       record.scorecard && typeof record.scorecard === "object"
         ? (record.scorecard as RoleplayScorecard)
         : null,
+    voiceStartedAt: record.voiceStartedAt ?? null,
+    voiceCompletedAt: record.voiceCompletedAt ?? null,
+    voiceMinutesSettled: record.voiceMinutesSettled ?? 0,
+    voiceSettledAt: record.voiceSettledAt ?? null,
   };
 }
 
@@ -82,6 +90,10 @@ export class DrizzleRoleplayRepository implements RoleplayRepository {
         transcript: roleplaySessionsTable.transcript,
         scorecard: roleplaySessionsTable.scorecard,
         status: roleplaySessionsTable.status,
+        voiceStartedAt: roleplaySessionsTable.voiceStartedAt,
+        voiceCompletedAt: roleplaySessionsTable.voiceCompletedAt,
+        voiceMinutesSettled: roleplaySessionsTable.voiceMinutesSettled,
+        voiceSettledAt: roleplaySessionsTable.voiceSettledAt,
         createdAt: roleplaySessionsTable.createdAt,
       });
 
@@ -138,6 +150,10 @@ export class DrizzleRoleplayRepository implements RoleplayRepository {
         transcript: roleplaySessionsTable.transcript,
         scorecard: roleplaySessionsTable.scorecard,
         status: roleplaySessionsTable.status,
+        voiceStartedAt: roleplaySessionsTable.voiceStartedAt,
+        voiceCompletedAt: roleplaySessionsTable.voiceCompletedAt,
+        voiceMinutesSettled: roleplaySessionsTable.voiceMinutesSettled,
+        voiceSettledAt: roleplaySessionsTable.voiceSettledAt,
         createdAt: roleplaySessionsTable.createdAt,
       })
       .from(roleplaySessionsTable)
@@ -167,6 +183,10 @@ export class DrizzleRoleplayRepository implements RoleplayRepository {
         transcript: roleplaySessionsTable.transcript,
         scorecard: roleplaySessionsTable.scorecard,
         status: roleplaySessionsTable.status,
+        voiceStartedAt: roleplaySessionsTable.voiceStartedAt,
+        voiceCompletedAt: roleplaySessionsTable.voiceCompletedAt,
+        voiceMinutesSettled: roleplaySessionsTable.voiceMinutesSettled,
+        voiceSettledAt: roleplaySessionsTable.voiceSettledAt,
         createdAt: roleplaySessionsTable.createdAt,
       })
       .from(roleplaySessionsTable)
@@ -196,6 +216,10 @@ export class DrizzleRoleplayRepository implements RoleplayRepository {
         transcript: roleplaySessionsTable.transcript,
         scorecard: roleplaySessionsTable.scorecard,
         status: roleplaySessionsTable.status,
+        voiceStartedAt: roleplaySessionsTable.voiceStartedAt,
+        voiceCompletedAt: roleplaySessionsTable.voiceCompletedAt,
+        voiceMinutesSettled: roleplaySessionsTable.voiceMinutesSettled,
+        voiceSettledAt: roleplaySessionsTable.voiceSettledAt,
         createdAt: roleplaySessionsTable.createdAt,
       })
       .from(roleplaySessionsTable)
@@ -203,6 +227,108 @@ export class DrizzleRoleplayRepository implements RoleplayRepository {
       .orderBy(desc(roleplaySessionsTable.createdAt));
 
     return rows.map(normalizeSessionRecord);
+  }
+
+  async markVoiceStarted(sessionId: string, startedAt: Date) {
+    const [session] = await this.db
+      .update(roleplaySessionsTable)
+      .set({
+        voiceStartedAt: startedAt,
+      })
+      .where(
+        and(eq(roleplaySessionsTable.id, sessionId), isNull(roleplaySessionsTable.voiceStartedAt)),
+      )
+      .returning({
+        id: roleplaySessionsTable.id,
+        repId: roleplaySessionsTable.repId,
+        orgId: roleplaySessionsTable.orgId,
+        persona: roleplaySessionsTable.persona,
+        industry: roleplaySessionsTable.industry,
+        difficulty: roleplaySessionsTable.difficulty,
+        overallScore: roleplaySessionsTable.overallScore,
+        origin: roleplaySessionsTable.origin,
+        sourceCallId: roleplaySessionsTable.sourceCallId,
+        rubricId: roleplaySessionsTable.rubricId,
+        focusMode: roleplaySessionsTable.focusMode,
+        focusCategorySlug: roleplaySessionsTable.focusCategorySlug,
+        scenarioSummary: roleplaySessionsTable.scenarioSummary,
+        scenarioBrief: roleplaySessionsTable.scenarioBrief,
+        transcript: roleplaySessionsTable.transcript,
+        scorecard: roleplaySessionsTable.scorecard,
+        status: roleplaySessionsTable.status,
+        voiceStartedAt: roleplaySessionsTable.voiceStartedAt,
+        voiceCompletedAt: roleplaySessionsTable.voiceCompletedAt,
+        voiceMinutesSettled: roleplaySessionsTable.voiceMinutesSettled,
+        voiceSettledAt: roleplaySessionsTable.voiceSettledAt,
+        createdAt: roleplaySessionsTable.createdAt,
+      });
+
+    if (session) {
+      return normalizeSessionRecord(session);
+    }
+
+    const existing = await this.findSessionById(sessionId);
+
+    if (!existing) {
+      throw new Error("Roleplay session not found");
+    }
+
+    return existing;
+  }
+
+  async settleVoiceUsage(
+    sessionId: string,
+    input: {
+      completedAt: Date;
+      minutesSettled: number;
+    },
+  ) {
+    const [session] = await this.db
+      .update(roleplaySessionsTable)
+      .set({
+        voiceCompletedAt: input.completedAt,
+        voiceMinutesSettled: input.minutesSettled,
+        voiceSettledAt: input.completedAt,
+      })
+      .where(
+        and(eq(roleplaySessionsTable.id, sessionId), isNull(roleplaySessionsTable.voiceSettledAt)),
+      )
+      .returning({
+        id: roleplaySessionsTable.id,
+        repId: roleplaySessionsTable.repId,
+        orgId: roleplaySessionsTable.orgId,
+        persona: roleplaySessionsTable.persona,
+        industry: roleplaySessionsTable.industry,
+        difficulty: roleplaySessionsTable.difficulty,
+        overallScore: roleplaySessionsTable.overallScore,
+        origin: roleplaySessionsTable.origin,
+        sourceCallId: roleplaySessionsTable.sourceCallId,
+        rubricId: roleplaySessionsTable.rubricId,
+        focusMode: roleplaySessionsTable.focusMode,
+        focusCategorySlug: roleplaySessionsTable.focusCategorySlug,
+        scenarioSummary: roleplaySessionsTable.scenarioSummary,
+        scenarioBrief: roleplaySessionsTable.scenarioBrief,
+        transcript: roleplaySessionsTable.transcript,
+        scorecard: roleplaySessionsTable.scorecard,
+        status: roleplaySessionsTable.status,
+        voiceStartedAt: roleplaySessionsTable.voiceStartedAt,
+        voiceCompletedAt: roleplaySessionsTable.voiceCompletedAt,
+        voiceMinutesSettled: roleplaySessionsTable.voiceMinutesSettled,
+        voiceSettledAt: roleplaySessionsTable.voiceSettledAt,
+        createdAt: roleplaySessionsTable.createdAt,
+      });
+
+    if (session) {
+      return normalizeSessionRecord(session);
+    }
+
+    const existing = await this.findSessionById(sessionId);
+
+    if (!existing) {
+      throw new Error("Roleplay session not found");
+    }
+
+    return existing;
   }
 
   async updateSession(
@@ -217,11 +343,11 @@ export class DrizzleRoleplayRepository implements RoleplayRepository {
     const [session] = await this.db
       .update(roleplaySessionsTable)
       .set({
-      overallScore: patch.overallScore,
-      scorecard: patch.scorecard,
-      status: patch.status,
-      transcript: patch.transcript,
-    })
+        overallScore: patch.overallScore,
+        scorecard: patch.scorecard,
+        status: patch.status,
+        transcript: patch.transcript,
+      })
       .where(eq(roleplaySessionsTable.id, sessionId))
       .returning({
         id: roleplaySessionsTable.id,
@@ -241,6 +367,10 @@ export class DrizzleRoleplayRepository implements RoleplayRepository {
         transcript: roleplaySessionsTable.transcript,
         scorecard: roleplaySessionsTable.scorecard,
         status: roleplaySessionsTable.status,
+        voiceStartedAt: roleplaySessionsTable.voiceStartedAt,
+        voiceCompletedAt: roleplaySessionsTable.voiceCompletedAt,
+        voiceMinutesSettled: roleplaySessionsTable.voiceMinutesSettled,
+        voiceSettledAt: roleplaySessionsTable.voiceSettledAt,
         createdAt: roleplaySessionsTable.createdAt,
       });
 

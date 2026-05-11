@@ -12,6 +12,8 @@ function createRepository(overrides: Partial<RoleplayRepository> = {}): Roleplay
     findSessionById: vi.fn(),
     findSessionsByOrgId: vi.fn(),
     findSessionsByRepId: vi.fn(),
+    markVoiceStarted: vi.fn(),
+    settleVoiceUsage: vi.fn(),
     updateSession: vi.fn(),
     ...overrides,
   };

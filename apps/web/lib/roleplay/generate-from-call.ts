@@ -274,6 +274,10 @@ function serializeGeneratedRoleplaySession(
     transcript: Array.isArray(session.transcript) ? session.transcript : [],
     scorecard: session.scorecard,
     status: session.status,
+    voiceStartedAt: session.voiceStartedAt?.toISOString() ?? null,
+    voiceCompletedAt: session.voiceCompletedAt?.toISOString() ?? null,
+    voiceMinutesSettled: session.voiceMinutesSettled ?? 0,
+    voiceSettledAt: session.voiceSettledAt?.toISOString() ?? null,
     createdAt: session.createdAt.toISOString(),
   };
 }

@@ -1,16 +1,13 @@
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { DrizzleBillingRepository } from "@/lib/billing/repository";
-import {
-  consumeVoiceMinutes,
-  getVoiceEntitlementStatus,
-} from "@/lib/billing/voice-entitlements";
+import { getVoiceEntitlementStatus } from "@/lib/billing/voice-entitlements";
 import { unauthorizedJson } from "@/lib/http";
 import {
   checkRateLimitForPolicy,
   rateLimitExceededResponse,
 } from "@/lib/rate-limit/service";
 import { createRoleplayRepository } from "@/lib/roleplay/create-repository";
-import { getRoleplaySession } from "@/lib/roleplay/service";
+import { getRoleplaySession, markRoleplayVoiceStarted } from "@/lib/roleplay/service";
 import {
   buildRoleplayRealtimeInstructions,
   createRealtimeCall,
@@ -59,7 +56,8 @@ export async function GET(
   }
 
   const { id } = await params;
-  const sessionResult = await getRoleplaySession(createRoleplayRepository(), authUser.id, id);
+  const roleplayRepository = createRoleplayRepository();
+  const sessionResult = await getRoleplaySession(roleplayRepository, authUser.id, id);
 
   if (!sessionResult.ok) {
     return Response.json({ error: sessionResult.error }, { status: sessionResult.status });
@@ -130,7 +128,8 @@ export async function POST(
   }
 
   const { id } = await params;
-  const sessionResult = await getRoleplaySession(createRoleplayRepository(), authUser.id, id);
+  const roleplayRepository = createRoleplayRepository();
+  const sessionResult = await getRoleplaySession(roleplayRepository, authUser.id, id);
 
   if (!sessionResult.ok) {
     return Response.json({ error: sessionResult.error }, { status: sessionResult.status });
@@ -142,12 +141,16 @@ export async function POST(
       offerSdp,
       voice: getRoleplayRealtimeVoice(sessionResult.data),
     });
-    await consumeVoiceMinutes(billingRepository, authUser.id, {
-      idempotencyKey: `roleplay-realtime:${id}:${Date.now()}`,
-      minutes: 1,
-      sessionId: id,
-      source: "roleplay_realtime",
-    });
+    const markStartedResult = await markRoleplayVoiceStarted(
+      roleplayRepository,
+      authUser.id,
+      id,
+      new Date(),
+    );
+
+    if (!markStartedResult.ok) {
+      return serviceErrorResponse(markStartedResult);
+    }
 
     return new Response(realtime.answerSdp, {
       status: 200,

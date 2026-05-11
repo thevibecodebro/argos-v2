@@ -164,6 +164,10 @@ export type RoleplaySession = {
   transcript: RoleplayMessage[];
   scorecard: RoleplayScorecard | null;
   status: "active" | "evaluating" | "complete";
+  voiceStartedAt: string | null;
+  voiceCompletedAt: string | null;
+  voiceMinutesSettled: number;
+  voiceSettledAt: string | null;
   createdAt: string;
 };
 
@@ -185,6 +189,10 @@ export type RoleplaySessionRecord = {
   transcript: RoleplayMessage[] | null;
   scorecard: RoleplayScorecard | null;
   status: "active" | "evaluating" | "complete";
+  voiceStartedAt: Date | null;
+  voiceCompletedAt: Date | null;
+  voiceMinutesSettled: number;
+  voiceSettledAt: Date | null;
   createdAt: Date;
 };
 

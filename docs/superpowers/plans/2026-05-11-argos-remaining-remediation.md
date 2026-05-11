@@ -64,7 +64,7 @@
 - Test: `apps/web/lib/roleplay/service.test.ts`
 - Test: `apps/web/lib/roleplay-voice-routes.test.ts`
 
-- [ ] **Step 1: Write failing service tests**
+- [x] **Step 1: Write failing service tests**
 
 Add tests proving:
 
@@ -83,7 +83,7 @@ it("debits elapsed realtime minutes once when the roleplay is completed", async 
 });
 ```
 
-- [ ] **Step 2: Run tests and verify red**
+- [x] **Step 2: Run tests and verify red**
 
 Run:
 
@@ -93,7 +93,7 @@ npm run test -w @argos-v2/web -- lib/roleplay/service.test.ts lib/roleplay-voice
 
 Expected: fail because roleplay sessions do not persist voice start/end/settlement metadata and realtime route still debits immediately.
 
-- [ ] **Step 3: Add DB fields and migration**
+- [x] **Step 3: Add DB fields and migration**
 
 Add nullable columns to `roleplay_sessions`:
 
@@ -105,7 +105,7 @@ alter table roleplay_sessions
   add column if not exists voice_settled_at timestamptz;
 ```
 
-- [ ] **Step 4: Implement minimal service behavior**
+- [x] **Step 4: Implement minimal service behavior**
 
 Add repository methods:
 
@@ -119,7 +119,7 @@ settleVoiceUsage(sessionId: string, input: {
 
 Realtime route only marks start after OpenAI returns success. Complete route calculates minutes from `voiceStartedAt` to completion and calls `consumeVoiceMinutes` once with `idempotencyKey: roleplay:${id}:complete`.
 
-- [ ] **Step 5: Verify green**
+- [x] **Step 5: Verify green**
 
 Run:
 

@@ -4,6 +4,9 @@ const getAuthenticatedSupabaseUser = vi.fn();
 const createRoleplayRepository = vi.fn();
 const getRoleplaySession = vi.fn();
 const appendRoleplayTranscriptMessage = vi.fn();
+const completeRoleplaySession = vi.fn();
+const markRoleplayVoiceStarted = vi.fn();
+const settleRoleplayVoiceUsage = vi.fn();
 const checkRateLimitForPolicy = vi.fn();
 const getVoiceEntitlementStatus = vi.fn();
 const consumeVoiceMinutes = vi.fn();
@@ -19,6 +22,9 @@ vi.mock("@/lib/roleplay/create-repository", () => ({
 vi.mock("@/lib/roleplay/service", () => ({
   getRoleplaySession,
   appendRoleplayTranscriptMessage,
+  completeRoleplaySession,
+  markRoleplayVoiceStarted,
+  settleRoleplayVoiceUsage,
 }));
 
 vi.mock("@/lib/rate-limit/service", () => ({
@@ -62,6 +68,9 @@ describe("roleplay voice routes", () => {
     createRoleplayRepository.mockReset();
     getRoleplaySession.mockReset();
     appendRoleplayTranscriptMessage.mockReset();
+    completeRoleplaySession.mockReset();
+    markRoleplayVoiceStarted.mockReset();
+    settleRoleplayVoiceUsage.mockReset();
     checkRateLimitForPolicy.mockReset();
     getVoiceEntitlementStatus.mockReset();
     consumeVoiceMinutes.mockReset();
@@ -75,6 +84,39 @@ describe("roleplay voice routes", () => {
       },
     });
     consumeVoiceMinutes.mockResolvedValue({ ok: true, data: { minutesDebited: 1 } });
+    markRoleplayVoiceStarted.mockResolvedValue({
+      ok: true,
+      data: {
+        id: "session-1",
+        persona: "skeptical-cfo",
+        voiceStartedAt: "2026-05-11T20:00:00.000Z",
+        voiceCompletedAt: null,
+        voiceMinutesSettled: 0,
+        voiceSettledAt: null,
+      },
+    });
+    completeRoleplaySession.mockResolvedValue({
+      ok: true,
+      data: {
+        id: "session-1",
+        status: "complete",
+        voiceStartedAt: "2026-05-11T20:00:00.000Z",
+        voiceCompletedAt: null,
+        voiceMinutesSettled: 0,
+        voiceSettledAt: null,
+      },
+    });
+    settleRoleplayVoiceUsage.mockResolvedValue({
+      ok: true,
+      data: {
+        id: "session-1",
+        status: "complete",
+        voiceStartedAt: "2026-05-11T20:00:00.000Z",
+        voiceCompletedAt: "2026-05-11T20:08:10.000Z",
+        voiceMinutesSettled: 9,
+        voiceSettledAt: "2026-05-11T20:08:10.000Z",
+      },
+    });
     getRoleplaySession.mockResolvedValue({
       ok: true,
       data: {
@@ -168,13 +210,37 @@ describe("roleplay voice routes", () => {
     expect(fetchMock.mock.calls[0]?.[0]).toBe("https://api.openai.com/v1/realtime/calls");
     expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
     expect(getVoiceEntitlementStatus).toHaveBeenCalledWith({ billing: true }, "auth-user-1");
-    expect(consumeVoiceMinutes).toHaveBeenCalledWith(
-      { billing: true },
+    expect(markRoleplayVoiceStarted).toHaveBeenCalledWith(
+      {},
       "auth-user-1",
+      "session-1",
+      expect.any(Date),
+    );
+    expect(consumeVoiceMinutes).not.toHaveBeenCalled();
+  });
+
+  it("settles realtime voice usage after completing and scoring a roleplay", async () => {
+    const route = await import("../app/api/roleplay/sessions/[id]/complete/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/roleplay/sessions/session-1/complete", {
+        method: "POST",
+      }),
+      { params: Promise.resolve({ id: "session-1" }) },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      id: "session-1",
+      status: "complete",
+      voiceMinutesSettled: 9,
+    });
+    expect(completeRoleplaySession).toHaveBeenCalledWith({}, "auth-user-1", "session-1");
+    expect(settleRoleplayVoiceUsage).toHaveBeenCalledWith(
+      {},
+      "auth-user-1",
+      "session-1",
       expect.objectContaining({
-        minutes: 1,
-        source: "roleplay_realtime",
-        sessionId: "session-1",
+        consumeVoiceMinutes: expect.any(Function),
       }),
     );
   });
