@@ -365,7 +365,7 @@ Only fix observed overlap, unusable controls, missing labels, or broken responsi
 
 No concrete browser-observed layout failures were fixable beyond the render-tested UI polish because protected surfaces were not accessible without auth.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add apps/web
@@ -379,7 +379,7 @@ git commit -m "Verify authenticated browser flows"
 - Modify: `package-lock.json`
 - Create or modify: `docs/audits/dependency-risk-notes-2026-05-11.md`
 
-- [ ] **Step 1: Recheck stable Next/PostCSS state**
+- [x] **Step 1: Recheck stable Next/PostCSS state**
 
 Run:
 
@@ -389,7 +389,7 @@ npm view next@latest dependencies.postcss
 npm audit --omit=dev --audit-level=moderate
 ```
 
-- [ ] **Step 2: If latest stable Next uses `postcss >=8.5.10`, upgrade**
+- [x] **Step 2: If latest stable Next uses `postcss >=8.5.10`, upgrade**
 
 Run:
 
@@ -401,7 +401,9 @@ npm audit --omit=dev --audit-level=moderate
 
 Commit if both pass.
 
-- [ ] **Step 3: If only canary clears the advisory, do not upgrade without explicit approval**
+Skipped during this pass: latest stable `next@16.2.6` still reports `dependencies.postcss` as `8.4.31`, so there is no stable patched Next upgrade to apply.
+
+- [x] **Step 3: If only canary clears the advisory, do not upgrade without explicit approval**
 
 Document:
 
