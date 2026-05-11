@@ -3,8 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ForgeErrorState, ForgeStatusPanel } from "@/components/forge";
+import type { OnboardingAccessMode } from "@/lib/onboarding/service";
 
 type Step = "choose" | "create" | "join" | "invite";
+type OnboardingPanelProps = {
+  accessMode?: OnboardingAccessMode;
+};
 
 export const ONBOARDING_ENDPOINTS = {
   createOrganization: "/api/organizations",
@@ -47,7 +51,7 @@ function roleCanBeAssignedToTeams(role: InviteRole) {
   );
 }
 
-export function OnboardingPanel() {
+export function OnboardingPanel({ accessMode = "invite-only" }: OnboardingPanelProps) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("choose");
   const [name, setName] = useState("");
@@ -112,6 +116,8 @@ export function OnboardingPanel() {
           ? "Sending invite."
           : "Updating onboarding."
     : "";
+  const canCreateOrganization = accessMode === "open" || accessMode === "bootstrap-admin";
+  const canJoinBySlug = accessMode === "open";
 
   return (
     <div className="w-full">
@@ -119,40 +125,65 @@ export function OnboardingPanel() {
         {onboardingStatusMessage}
       </div>
       {step === "choose" ? (
-        <div className="grid gap-4 md:grid-cols-2">
-          <button
-            className={onboardingCardButtonClass}
-            onClick={() => {
-              setError(null);
-              setStep("create");
-            }}
-            type="button"
-          >
-            <p className={onboardingEyebrowClass}>
-              Create
-            </p>
-            <h2 className="mt-4 text-3xl font-semibold text-[var(--forge-text)]">Create Organization</h2>
-            <p className="mt-3 text-lg leading-8 text-[var(--forge-muted)]">
-              Set up a new team and become the admin for your Argos workspace.
-            </p>
-          </button>
-          <button
-            className={onboardingCardButtonClass}
-            onClick={() => {
-              setError(null);
-              setStep("join");
-            }}
-            type="button"
-          >
-            <p className={onboardingEyebrowClass}>
-              Join
-            </p>
-            <h2 className="mt-4 text-3xl font-semibold text-[var(--forge-text)]">Join Organization</h2>
-            <p className="mt-3 text-lg leading-8 text-[var(--forge-muted)]">
-              Enter your org slug to join the existing team as a rep.
-            </p>
-          </button>
-        </div>
+        canCreateOrganization || canJoinBySlug ? (
+          <div className={`grid gap-4 ${canCreateOrganization && canJoinBySlug ? "md:grid-cols-2" : ""}`}>
+            {canCreateOrganization ? (
+              <button
+                className={onboardingCardButtonClass}
+                onClick={() => {
+                  setError(null);
+                  setStep("create");
+                }}
+                type="button"
+              >
+                <p className={onboardingEyebrowClass}>
+                  Create
+                </p>
+                <h2 className="mt-4 text-3xl font-semibold text-[var(--forge-text)]">Create Organization</h2>
+                <p className="mt-3 text-lg leading-8 text-[var(--forge-muted)]">
+                  {accessMode === "bootstrap-admin"
+                    ? "Set up the first Argos workspace for your company."
+                    : "Set up a new team and become the admin for your Argos workspace."}
+                </p>
+              </button>
+            ) : null}
+            {canJoinBySlug ? (
+              <button
+                className={onboardingCardButtonClass}
+                onClick={() => {
+                  setError(null);
+                  setStep("join");
+                }}
+                type="button"
+              >
+                <p className={onboardingEyebrowClass}>
+                  Join
+                </p>
+                <h2 className="mt-4 text-3xl font-semibold text-[var(--forge-text)]">Join Organization</h2>
+                <p className="mt-3 text-lg leading-8 text-[var(--forge-muted)]">
+                  Enter your org slug to join the existing team as a rep.
+                </p>
+              </button>
+            ) : null}
+          </div>
+        ) : (
+          <div className={onboardingPanelClass}>
+            <ForgeStatusPanel
+              announce="polite"
+              className="px-4 py-5"
+              description="Open the invite link your admin sent to join your Argos workspace."
+              icon="mark_email_read"
+              title="Invite required"
+              tone="gold"
+            />
+            <a
+              className={`${onboardingSecondaryButtonClass} mt-6 inline-flex w-full justify-center sm:w-auto`}
+              href="/auth/signout"
+            >
+              Use a different email
+            </a>
+          </div>
+        )
       ) : null}
 
       {step === "create" ? (
@@ -223,7 +254,7 @@ export function OnboardingPanel() {
         </div>
       ) : null}
 
-      {step === "join" ? (
+      {step === "join" && canJoinBySlug ? (
         <div className={onboardingPanelClass}>
           <p className={onboardingEyebrowClass}>
             Join Organization
