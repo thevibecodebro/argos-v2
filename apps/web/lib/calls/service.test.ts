@@ -49,6 +49,49 @@ function createAccessRepository(overrides: Partial<Record<string, unknown>> = {}
 }
 
 describe("listCalls", () => {
+  it("returns an empty list for managers without scoped reps", async () => {
+    const accessRepository = createAccessRepository({
+      findActorByAuthUserId: vi.fn().mockResolvedValue({
+        id: "manager-1",
+        role: "manager",
+        orgId: "org-1",
+      }),
+      findMembershipsByOrgId: vi.fn().mockResolvedValue([
+        { orgId: "org-1", teamId: "team-a", userId: "manager-1", membershipType: "manager" },
+      ]),
+      findGrantsByUserId: vi.fn().mockResolvedValue([
+        { orgId: "org-1", teamId: "team-a", userId: "manager-1", permissionKey: "view_team_calls" },
+      ]),
+    });
+
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "manager-1",
+        email: "manager@argos.ai",
+        role: "manager",
+        firstName: "Morgan",
+        lastName: "Lane",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      findCallsByRepIds: vi.fn().mockRejectedValue(new Error("empty rep scope must not query calls")),
+    });
+
+    const result = await listCalls(
+      repository,
+      "manager-1",
+      { limit: 25, offset: 0 },
+      accessRepository as never,
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected empty scoped calls");
+    expect(result.data.calls).toEqual([]);
+    expect(result.data.total).toBe(0);
+    expect(repository.findCallsByRepIds).not.toHaveBeenCalled();
+    expect(repository.findCallsByOrgId).not.toHaveBeenCalled();
+    expect(repository.findCallsByRepId).not.toHaveBeenCalled();
+  });
+
   it("queries managers through team-scoped rep ids instead of org-wide pagination", async () => {
     const accessRepository = createAccessRepository({
       findActorByAuthUserId: vi.fn().mockResolvedValue({

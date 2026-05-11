@@ -606,12 +606,28 @@ export async function listCalls(
     };
   }
 
+  const isOrgWideViewer = viewer.role === "admin" || viewer.role === "executive";
+  const scopedRepIds = filters.repId || viewer.role === "rep" || isOrgWideViewer
+    ? []
+    : [...getScopedCallRepIds(access)];
+
+  if (!filters.repId && viewer.role !== "rep" && !isOrgWideViewer && !scopedRepIds.length) {
+    return {
+      ok: true,
+      data: {
+        calls: [],
+        total: 0,
+        viewer: { fullName: buildViewerName(viewer), role: viewer.role },
+      },
+    };
+  }
+
   const result =
     filters.repId || viewer.role === "rep"
       ? await repository.findCallsByRepId(filters.repId ?? viewer.id, filters)
-      : viewer.role === "admin" || viewer.role === "executive"
+      : isOrgWideViewer
         ? await repository.findCallsByOrgId(viewer.org.id, filters)
-        : await repository.findCallsByRepIds([...getScopedCallRepIds(access)], filters);
+        : await repository.findCallsByRepIds(scopedRepIds, filters);
 
   const scopedCalls =
     filters.repId || viewer.role === "rep" || viewer.role === "admin" || viewer.role === "executive"
