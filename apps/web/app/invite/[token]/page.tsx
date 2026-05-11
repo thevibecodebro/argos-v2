@@ -1,6 +1,7 @@
 import { LegacyAuthShell } from "@/components/legacy-shell";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createInvitesRepository } from "@/lib/invites/create-repository";
+import { normalizeInviteEmail } from "@/lib/invites/service";
 import { InviteAcceptButton } from "./invite-accept-button";
 
 const inviteHeadingClass = "font-[var(--font-display)] text-3xl font-semibold text-[var(--forge-text)]";
@@ -75,7 +76,7 @@ export default async function InvitePage({
   }
 
   // Email mismatch
-  if (user.email !== invite.email) {
+  if (normalizeInviteEmail(user.email ?? "") !== normalizeInviteEmail(invite.email)) {
     return (
       <LegacyAuthShell note="Wrong account.">
         <div className="text-center">

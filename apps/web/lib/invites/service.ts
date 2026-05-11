@@ -31,6 +31,10 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+export function normalizeInviteEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
 export async function sendInvite(
   repo: InvitesRepository,
   usersRepo: UsersRepository,
@@ -55,7 +59,7 @@ export async function sendInvite(
     return { ok: false, status: 403, error: "Only admins can send invites" };
   }
 
-  const email = typeof input.email === "string" ? input.email.trim() : "";
+  const email = typeof input.email === "string" ? normalizeInviteEmail(input.email) : "";
 
   if (!email || !isValidEmail(email)) {
     return { ok: false, status: 400, error: "A valid email address is required" };

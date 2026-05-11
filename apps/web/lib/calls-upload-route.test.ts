@@ -122,7 +122,7 @@ describe("calls upload route", () => {
       error: "The call upload could not be queued for processing.",
       retryable: true,
       details: {
-        reason: "transcriber unavailable",
+        reason: "Internal server error",
       },
     });
   });

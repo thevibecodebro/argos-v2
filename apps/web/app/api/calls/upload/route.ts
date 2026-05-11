@@ -130,7 +130,7 @@ export async function POST(request: Request) {
         {
           action: "Retry the upload. If it keeps failing, contact support.",
           details: {
-            reason: error instanceof Error ? error.message : "Internal server error",
+            reason: "Internal server error",
           },
         },
       );
@@ -144,7 +144,7 @@ export async function POST(request: Request) {
       500,
       {
         details: {
-          reason: error instanceof Error ? error.message : "Internal server error",
+          reason: "Internal server error",
         },
       },
     );

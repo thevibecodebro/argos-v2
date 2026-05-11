@@ -157,6 +157,30 @@ describe("sendInvite", () => {
     );
   });
 
+  it("normalizes invite email casing before lookup, persistence, auth invite, and email send", async () => {
+    const repo = makeInvitesRepo();
+    const generateAuthInviteLink = vi.fn().mockResolvedValue("https://auth.example.com/invite-link");
+
+    await sendInvite(repo, makeUsersRepo(), "user-1", {
+      email: "  Rep@Acme.COM  ",
+      role: "rep",
+    }, { generateAuthInviteLink } as never);
+
+    expect(repo.findPendingInviteByOrgAndEmail).toHaveBeenCalledWith("org-1", "rep@acme.com");
+    expect(repo.createInvite).toHaveBeenCalledWith(
+      expect.objectContaining({ email: "rep@acme.com" }),
+    );
+    expect(generateAuthInviteLink).toHaveBeenCalledWith(
+      expect.objectContaining({ email: "rep@acme.com" }),
+    );
+    expect(mockSendEmail).toHaveBeenCalledWith(
+      "rep@acme.com",
+      "https://auth.example.com/invite-link",
+      "Acme",
+      "rep",
+    );
+  });
+
   it("returns 400 when caller has no orgId", async () => {
     const usersRepo = makeUsersRepo({
       findCurrentUserByAuthId: vi
