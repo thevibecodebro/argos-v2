@@ -216,7 +216,7 @@ npm run typecheck:db
 npm run typecheck:web
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/db/src/schema/auditEvents.ts packages/db/src/schema/index.ts supabase/migrations/202605110003_audit_events_and_call_export.sql apps/web/lib/calls apps/web/app/api/calls
@@ -286,7 +286,7 @@ git commit -m "Audit call deletion lifecycle"
 - Modify: notifications route/component found by `rg -n "Notifications|notification" apps/web`
 - Test: matching panel/page tests under `apps/web/lib`
 
-- [ ] **Step 1: Write static/render tests**
+- [x] **Step 1: Write static/render tests**
 
 Add tests proving:
 
@@ -299,7 +299,7 @@ expect(html).toContain('data-highlight-selection-flow="explicit"');
 expect(html).toContain('data-notification-filters="active"');
 ```
 
-- [ ] **Step 2: Run tests and verify red**
+- [x] **Step 2: Run tests and verify red**
 
 Run:
 
@@ -307,11 +307,11 @@ Run:
 npm run test -w @argos-v2/web -- lib/people-panel.test.tsx lib/calls-filters-forge.test.tsx lib/primary-route-hero-removal.test.ts
 ```
 
-- [ ] **Step 3: Implement minimal UI polish**
+- [x] **Step 3: Implement minimal UI polish**
 
 Use existing Forge components only. Do not add landing-page style sections. Keep tables dense on desktop and render stacked cards below `sm`.
 
-- [ ] **Step 4: Verify render tests**
+- [x] **Step 4: Verify render tests**
 
 ```bash
 npm run test -w @argos-v2/web -- lib/people-panel.test.tsx lib/calls-filters-forge.test.tsx lib/primary-route-hero-removal.test.ts
@@ -331,7 +331,7 @@ git commit -m "Polish authenticated workflow surfaces"
 - Create: `apps/web/tests/browser/authenticated-smoke.spec.ts` only if repo already has Playwright configured.
 - Otherwise create no new browser test file and use the local `playwright` skill script for screenshots.
 
-- [ ] **Step 1: Start dev server**
+- [x] **Step 1: Start dev server**
 
 Run:
 
@@ -341,7 +341,7 @@ npm run dev:web
 
 Expected: local Next app starts on an available port.
 
-- [ ] **Step 2: Run desktop and mobile browser checks**
+- [x] **Step 2: Run desktop and mobile browser checks**
 
 Use `playwright` or `browser-use` to check:
 
@@ -357,9 +357,13 @@ Use `playwright` or `browser-use` to check:
 Desktop viewport: `1440x1000`.
 Mobile viewport: `390x844`.
 
-- [ ] **Step 3: Fix concrete UI failures only**
+Result during this pass: local browser checks reached `/login` successfully and confirmed protected routes redirect to `/login?next=...` without a Supabase auth session. No local development auth bypass or seeded browser login helper was found, so authenticated route browser QA remains blocked locally until a test session or preview auth path is provided.
+
+- [x] **Step 3: Fix concrete UI failures only**
 
 Only fix observed overlap, unusable controls, missing labels, or broken responsive layout. Add a regression test for each code fix.
+
+No concrete browser-observed layout failures were fixable beyond the render-tested UI polish because protected surfaces were not accessible without auth.
 
 - [ ] **Step 4: Commit**
 

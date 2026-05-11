@@ -154,6 +154,7 @@ export default async function CallsPage({
                     return (
                       <Link
                         className="block rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] p-4 transition hover:border-[rgba(241,191,123,0.3)] hover:bg-[rgba(241,191,123,0.055)]"
+                        data-mobile-call-card="true"
                         href={`/calls/${call.id}`}
                         key={call.id}
                       >

@@ -793,6 +793,7 @@ describe("primary route hero removal", () => {
     expect(callsHtml).toContain('href="/calls/call-1"');
     expect(callsHtml).toContain('data-calls-surface="forge-ledger"');
     expect(callsHtml).toContain('data-calls-layout="operational-list"');
+    expect(callsHtml).toContain('data-mobile-call-card="true"');
     expect(callsHtml).toContain('data-operational-toolbar="true"');
     expect(callsHtml).toContain('data-operational-metric-strip="true"');
     expect(callsHtml).toContain('data-operational-preview-drawer="true"');
@@ -876,6 +877,7 @@ describe("primary route hero removal", () => {
     }
 
     expect(highlightsHtml).toContain('data-highlights-layout="evidence-inbox"');
+    expect(highlightsHtml).toContain('data-highlight-selection-flow="explicit"');
     expect(highlightsHtml).toContain('data-operational-metric-strip="true"');
     expect(highlightsHtml).toContain('data-operational-preview-drawer="true"');
     expect(highlightsHtml).toContain('data-forge-table="true"');
