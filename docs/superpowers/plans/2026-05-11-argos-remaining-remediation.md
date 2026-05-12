@@ -457,7 +457,7 @@ Record:
 - storage bucket access for `call-recordings`
 - RLS/service-only table posture for billing, voice, processing jobs, audit events
 
-Result: hosted project is healthy, but the new 202605 migrations are not applied; billing, voice entitlement, and audit event tables are missing in production.
+Result: hosted project is healthy. The previously missing 202605 migrations were applied through Supabase MCP on May 12, 2026, and billing, voice entitlement, and audit event tables now exist with RLS enabled and no direct `anon`/`authenticated` grants.
 
 - [x] **Step 3: Verify Stripe**
 
@@ -470,7 +470,7 @@ Record:
 - extra voice pack checkout grants minutes
 - failed payment maps to inactive or blocked voice availability
 
-Result: Stripe test-mode product/price exist, but live mode has no products, prices, or webhook endpoints, and Vercel is missing Stripe secrets.
+Result: Stripe test-mode product/price exist, but live mode has no products, prices, or webhook endpoints, and Vercel is missing Stripe secrets. Product creation was attempted with the active Stripe CLI key and blocked because the live key is restricted and lacks product endpoint permissions.
 
 - [x] **Step 4: Verify OpenAI voice behavior**
 

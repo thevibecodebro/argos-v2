@@ -6,7 +6,7 @@ Executed on May 12, 2026 from branch `codex/argos-remediation-sweep`.
 
 Production is not ready to mark remediated.
 
-The local remediation branch is ahead of production, hosted Supabase has not applied the new remediation migrations, and Stripe live billing is not configured in Vercel or Stripe.
+The local remediation branch is ahead of production and Stripe live billing is not configured in Vercel or Stripe. Hosted Supabase migrations were applied in the May 12 follow-up pass.
 
 ## Vercel
 
@@ -19,7 +19,8 @@ The local remediation branch is ahead of production, hosted Supabase has not app
 - Deployment created: May 11, 2026 13:03:48 CDT
 - Production aliases: `argos-v2-nine.vercel.app`, `argos-v2-thevibecodebro.vercel.app`, `argos-v2-neon-titan-thevibecodebro.vercel.app`
 - Deployed Git commit: `82df89debe7ef4851bfc0ca21f723e9a8acdd2c8`
-- Current local branch commit at verification time: `f81e92cecbf47bda66bd8f0b8a5044c1dee12c2e`
+- Current local branch commit at first verification time: `f81e92cecbf47bda66bd8f0b8a5044c1dee12c2e`
+- Draft PR branch after follow-up: `codex/argos-remediation-sweep`, PR #15.
 - Production build metadata reports `gitDirty=1`, source `cli`, actor `codex`.
 
 Production env names present:
@@ -68,29 +69,36 @@ HTTP smoke:
 - Region: `us-west-2`
 - Postgres version: `17.6.1.063`
 
-Hosted migration history currently ends at:
+Initial hosted migration history ended at:
 
 - `202604280001_rate_limit_buckets`
 - `202604280002_private_call_recordings`
 - `202604280003_rls_policy_hardening`
 
-Local migrations not yet applied to hosted Supabase:
+Local migrations applied to hosted Supabase in the May 12 follow-up pass:
 
 - `20260508012329_restore_org_assets_bucket.sql`
 - `202605110001_billing_entitlements.sql`
 - `202605110002_roleplay_voice_settlement.sql`
 - `202605110003_audit_events_and_call_export.sql`
 
+Hosted migration history now includes:
+
+- `20260512154003_restore_org_assets_bucket`
+- `20260512154233_billing_entitlements`
+- `20260512155053_roleplay_voice_settlement`
+- `20260512155141_audit_events_and_call_export`
+
 Hosted table/RLS check:
 
+- `audit_events`: exists, RLS enabled, no direct `anon` or `authenticated` grants.
+- `billing_customers`: exists, RLS enabled, no direct `anon` or `authenticated` grants.
+- `billing_subscriptions`: exists, RLS enabled, no direct `anon` or `authenticated` grants.
 - `call_processing_jobs`: exists, RLS enabled, no direct `anon` or `authenticated` grants.
 - `rate_limit_buckets`: exists, RLS enabled, no direct `anon` or `authenticated` grants.
-- `billing_customers`: missing from hosted DB.
-- `billing_subscriptions`: missing from hosted DB.
-- `stripe_webhook_events`: missing from hosted DB.
-- `voice_credit_grants`: missing from hosted DB.
-- `voice_usage_events`: missing from hosted DB.
-- `audit_events`: missing from hosted DB.
+- `stripe_webhook_events`: exists, RLS enabled, no direct `anon` or `authenticated` grants.
+- `voice_credit_grants`: exists, RLS enabled, no direct `anon` or `authenticated` grants.
+- `voice_usage_events`: exists, RLS enabled, no direct `anon` or `authenticated` grants.
 
 Storage check:
 
@@ -98,6 +106,10 @@ Storage check:
 - `call-recordings.public` is `false`.
 - `file_size_limit` is `null`.
 - `allowed_mime_types` is `null`.
+- `org-assets` bucket exists after follow-up migration.
+- `org-assets.public` is `true`.
+- `org-assets.file_size_limit` is `2097152`.
+- `org-assets.allowed_mime_types` is `image/png`, `image/jpeg`, and `image/webp`.
 
 Auth/provider checks not executed:
 
@@ -118,12 +130,18 @@ Stripe live-mode resources:
 - `stripe prices list --live --limit 20`: no prices.
 - `stripe webhook_endpoints list --live --limit 10`: no webhook endpoints.
 
+Stripe live setup attempt:
+
+- Creating live products/prices was attempted with the currently authenticated Stripe CLI key.
+- Stripe rejected product creation because the active live key is a restricted `rk_live...` key without permission for the products endpoint.
+- Live Stripe setup requires a full-permission live secret key or dashboard access with product, price, and webhook endpoint creation rights.
+
 Production billing blockers:
 
 - Vercel Production is missing `STRIPE_SECRET_KEY`.
 - Vercel Production is missing `STRIPE_WEBHOOK_SECRET`.
 - Stripe live mode has no product, no price, and no webhook endpoint.
-- Hosted Supabase is missing billing and voice entitlement tables.
+- Hosted Supabase now has billing, voice entitlement, and audit tables.
 
 ## OpenAI Voice
 
@@ -158,8 +176,7 @@ GHL:
 
 ## Required Before Production Signoff
 
-1. Apply the missing Supabase migrations to hosted Supabase.
-2. Configure Stripe live product, price, webhook endpoint, and Vercel Production `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET`.
-3. Redeploy the remediation branch or merge it to the production branch and deploy.
-4. Run live smoke tests for blocked public signup, invite acceptance, Google OAuth, checkout/webhook entitlement update, roleplay end-and-score voice shutdown, and voice quota enforcement.
-5. Verify Zoom OAuth/webhook delivery and worker processing against the deployed remediation commit.
+1. Configure Stripe live products, prices, webhook endpoint, and Vercel Production `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` using a Stripe key with sufficient live permissions.
+2. Redeploy the remediation branch or merge it to the production branch and deploy.
+3. Run live smoke tests for blocked public signup, invite acceptance, Google OAuth, checkout/webhook entitlement update, roleplay end-and-score voice shutdown, and voice quota enforcement.
+4. Verify Zoom OAuth/webhook delivery and worker processing against the deployed remediation commit.
