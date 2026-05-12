@@ -428,7 +428,7 @@ git commit -m "Record dependency audit decision"
 **Files:**
 - Create: `docs/audits/production-verification-2026-05-11.md`
 
-- [ ] **Step 1: Verify Vercel env/deployment**
+- [x] **Step 1: Verify Vercel env/deployment**
 
 Use `vercel:env-vars`, `vercel:deployments-cicd`, and `vercel:observability`.
 Record:
@@ -443,7 +443,9 @@ Record:
 - GHL disabled/enabled flag
 - worker deployment target
 
-- [ ] **Step 2: Verify hosted Supabase**
+Result: production deployment and env key inventory were recorded in `docs/audits/production-verification-2026-05-11.md`. Production is not on this branch, and Stripe production env keys are missing.
+
+- [x] **Step 2: Verify hosted Supabase**
 
 Use `supabase:supabase`.
 Record:
@@ -455,7 +457,9 @@ Record:
 - storage bucket access for `call-recordings`
 - RLS/service-only table posture for billing, voice, processing jobs, audit events
 
-- [ ] **Step 3: Verify Stripe**
+Result: hosted project is healthy, but the new 202605 migrations are not applied; billing, voice entitlement, and audit event tables are missing in production.
+
+- [x] **Step 3: Verify Stripe**
 
 Use `build-web-apps:stripe-best-practices`.
 Record:
@@ -466,7 +470,9 @@ Record:
 - extra voice pack checkout grants minutes
 - failed payment maps to inactive or blocked voice availability
 
-- [ ] **Step 4: Verify OpenAI voice behavior**
+Result: Stripe test-mode product/price exist, but live mode has no products, prices, or webhook endpoints, and Vercel is missing Stripe secrets.
+
+- [x] **Step 4: Verify OpenAI voice behavior**
 
 Use `openai-docs` before changing behavior if docs have shifted.
 Record:
@@ -476,13 +482,17 @@ Record:
 - completion settles one usage event
 - quota exhausted blocks realtime/TTS before provider call
 
-- [ ] **Step 5: Verify Zoom/GHL**
+Result: env presence was verified; live realtime/TTS was not invoked because the remediation branch is not deployed and no authenticated production session was available.
+
+- [x] **Step 5: Verify Zoom/GHL**
 
 Record:
 
 - Zoom OAuth callback configured
 - Zoom webhook cap and generic errors still work
 - GHL remains hidden/disabled unless `ARGOS_GHL_ENABLED=true` and required secrets exist
+
+Result: Zoom env names are present. GHL remains unavailable because required GHL OAuth credentials are missing.
 
 - [ ] **Step 6: Commit production verification artifact**
 
