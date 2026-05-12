@@ -34,7 +34,7 @@ type LegacyRoleplayScorecard = {
 
 type ServiceResult<T> =
   | { ok: true; data: T }
-  | { ok: false; status: 400 | 403 | 404 | 409; error: string };
+  | { ok: false; status: number; error: string; code?: string };
 
 export type RoleplayRepository = {
   createSession(input: RoleplaySessionCreateInput): Promise<RoleplaySessionRecord>;
@@ -42,6 +42,14 @@ export type RoleplayRepository = {
   findSessionById(sessionId: string): Promise<RoleplaySessionRecord | null>;
   findSessionsByOrgId(orgId: string): Promise<RoleplaySessionRecord[]>;
   findSessionsByRepId(repId: string): Promise<RoleplaySessionRecord[]>;
+  markVoiceStarted(sessionId: string, startedAt: Date): Promise<RoleplaySessionRecord>;
+  settleVoiceUsage(
+    sessionId: string,
+    input: {
+      completedAt: Date;
+      minutesSettled: number;
+    },
+  ): Promise<RoleplaySessionRecord>;
   updateSession(
     sessionId: string,
     patch: Partial<{
@@ -164,6 +172,10 @@ function serializeSession(session: RoleplaySessionRecord): RoleplaySession {
     transcript: Array.isArray(session.transcript) ? session.transcript : [],
     scorecard: normalizeScorecard(session.scorecard),
     status: session.status,
+    voiceStartedAt: session.voiceStartedAt?.toISOString() ?? null,
+    voiceCompletedAt: session.voiceCompletedAt?.toISOString() ?? null,
+    voiceMinutesSettled: session.voiceMinutesSettled ?? 0,
+    voiceSettledAt: session.voiceSettledAt?.toISOString() ?? null,
     createdAt: session.createdAt.toISOString(),
   };
 }
@@ -878,6 +890,116 @@ export async function appendRoleplayTranscriptMessage(
         content,
       },
     ],
+  });
+
+  return {
+    ok: true,
+    data: serializeSession(updated),
+  };
+}
+
+export async function markRoleplayVoiceStarted(
+  repository: RoleplayRepository,
+  authUserId: string,
+  sessionId: string,
+  startedAt: Date = new Date(),
+): Promise<ServiceResult<RoleplaySession>> {
+  const sessionResult = await getAuthorizedSession(repository, authUserId, sessionId);
+
+  if (!sessionResult.ok) {
+    return sessionResult;
+  }
+
+  if (sessionResult.data.status !== "active") {
+    return {
+      ok: false,
+      status: 409,
+      error: "Roleplay session is already complete",
+    };
+  }
+
+  if (sessionResult.data.voiceStartedAt) {
+    return {
+      ok: true,
+      data: serializeSession(sessionResult.data),
+    };
+  }
+
+  const updated = await repository.markVoiceStarted(sessionId, startedAt);
+
+  return {
+    ok: true,
+    data: serializeSession(updated),
+  };
+}
+
+type RoleplayVoiceUsageConsumer = (
+  authUserId: string,
+  input: {
+    idempotencyKey: string;
+    minutes: number;
+    sessionId: string;
+    source: "roleplay_realtime";
+  },
+) => Promise<
+  | { ok: true; data: { minutesDebited: number } }
+  | { ok: false; status: number; error: string; code?: string }
+>;
+
+export async function settleRoleplayVoiceUsage(
+  repository: RoleplayRepository,
+  authUserId: string,
+  sessionId: string,
+  input: {
+    consumeVoiceMinutes: RoleplayVoiceUsageConsumer;
+    now?: () => Date;
+  },
+): Promise<ServiceResult<RoleplaySession>> {
+  const sessionResult = await getAuthorizedSession(repository, authUserId, sessionId);
+
+  if (!sessionResult.ok) {
+    return sessionResult;
+  }
+
+  const session = sessionResult.data;
+
+  if (!session.voiceStartedAt || session.voiceSettledAt) {
+    return {
+      ok: true,
+      data: serializeSession(session),
+    };
+  }
+
+  if (session.status !== "complete") {
+    return {
+      ok: false,
+      status: 409,
+      error: "Roleplay session must be complete before voice usage can be settled",
+    };
+  }
+
+  const completedAt = input.now?.() ?? new Date();
+  const elapsedMs = completedAt.getTime() - session.voiceStartedAt.getTime();
+  const minutesSettled = Math.max(1, Math.ceil(elapsedMs / 60_000));
+  const consumption = await input.consumeVoiceMinutes(authUserId, {
+    idempotencyKey: `roleplay:${sessionId}:complete`,
+    minutes: minutesSettled,
+    sessionId,
+    source: "roleplay_realtime",
+  });
+
+  if (!consumption.ok) {
+    return {
+      ok: false,
+      status: consumption.status,
+      code: consumption.code,
+      error: consumption.error,
+    };
+  }
+
+  const updated = await repository.settleVoiceUsage(sessionId, {
+    completedAt,
+    minutesSettled: consumption.data.minutesDebited,
   });
 
   return {

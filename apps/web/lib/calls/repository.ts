@@ -1,5 +1,6 @@
 import { and, asc, count, desc, eq, gte, ilike, inArray, isNotNull, lte, sql } from "drizzle-orm";
 import {
+  auditEventsTable,
   callAnnotationsTable,
   callProcessingJobsTable,
   callScoresTable,
@@ -16,6 +17,17 @@ import {
 import { parseAppUserRole } from "@/lib/users/roles";
 import type { CallsFilters, CallsRepository } from "./service";
 import type { CallEvaluation } from "./types";
+
+const callProcessingJobSelection = {
+  id: callProcessingJobsTable.id,
+  status: callProcessingJobsTable.status,
+  attemptCount: callProcessingJobsTable.attemptCount,
+  maxAttempts: callProcessingJobsTable.maxAttempts,
+  nextRunAt: callProcessingJobsTable.nextRunAt,
+  lastStage: callProcessingJobsTable.lastStage,
+  lastError: callProcessingJobsTable.lastError,
+  updatedAt: callProcessingJobsTable.updatedAt,
+};
 
 export class DrizzleCallsRepository implements CallsRepository {
   constructor(private readonly db: ArgosDb = getDb()) {}
@@ -41,6 +53,17 @@ export class DrizzleCallsRepository implements CallsRepository {
       });
 
     return call;
+  }
+
+  async createAuditEvent(input: {
+    actorId: string;
+    eventType: "call_exported" | "call_deleted";
+    metadata: Record<string, unknown>;
+    orgId: string;
+    resourceId: string;
+    resourceType: "call";
+  }) {
+    await this.db.insert(auditEventsTable).values(input);
   }
 
   async createNotification(input: {
@@ -97,6 +120,48 @@ export class DrizzleCallsRepository implements CallsRepository {
           updatedAt: new Date(),
         },
       });
+  }
+
+  async findCallProcessingJobByCallId(callId: string) {
+    const [job] = await this.db
+      .select(callProcessingJobSelection)
+      .from(callProcessingJobsTable)
+      .where(eq(callProcessingJobsTable.callId, callId))
+      .limit(1);
+
+    return job ?? null;
+  }
+
+  async retryCallProcessingJob(callId: string) {
+    const now = new Date();
+
+    return this.db.transaction(async (tx) => {
+      const [job] = await tx
+        .update(callProcessingJobsTable)
+        .set({
+          status: "pending",
+          attemptCount: 0,
+          nextRunAt: now,
+          lockedAt: null,
+          lockExpiresAt: null,
+          lastStage: null,
+          lastError: null,
+          updatedAt: now,
+        })
+        .where(and(eq(callProcessingJobsTable.callId, callId), eq(callProcessingJobsTable.status, "failed")))
+        .returning(callProcessingJobSelection);
+
+      if (!job) {
+        return null;
+      }
+
+      await tx
+        .update(callsTable)
+        .set({ status: "uploaded" })
+        .where(eq(callsTable.id, callId));
+
+      return job;
+    });
   }
 
   async deleteAnnotation(annotationId: string, callId: string) {

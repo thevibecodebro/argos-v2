@@ -38,11 +38,24 @@ export function NotificationsPanel({
   const [notifications, setNotifications] = useState(initialNotifications);
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
   const [isMutating, setIsMutating] = useState(false);
+  const [filter, setFilter] = useState<"all" | "unread" | "read">("all");
+
+  const filteredNotifications = useMemo(() => {
+    if (filter === "unread") {
+      return notifications.filter((notification) => !notification.read);
+    }
+
+    if (filter === "read") {
+      return notifications.filter((notification) => notification.read);
+    }
+
+    return notifications;
+  }, [filter, notifications]);
 
   const grouped = useMemo(() => {
     const groups = new Map<string, NotificationItem[]>();
 
-    for (const notification of notifications) {
+    for (const notification of filteredNotifications) {
       const date = new Date(notification.createdAt);
       const key = date.toISOString().slice(0, 10);
       const current = groups.get(key) ?? [];
@@ -51,7 +64,7 @@ export function NotificationsPanel({
     }
 
     return [...groups.entries()];
-  }, [notifications]);
+  }, [filteredNotifications]);
 
   async function markOne(notification: NotificationItem) {
     if (!notification.read) {
@@ -117,43 +130,75 @@ export function NotificationsPanel({
         </ForgeButton>
       </div>
 
-      <div className="space-y-6">
-        {grouped.map(([day, items]) => (
-          <div key={day}>
-            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
-              {new Intl.DateTimeFormat("en-US", { dateStyle: "full" }).format(new Date(day))}
-            </p>
-            <div className="mt-3 space-y-3">
-              {items.map((notification) => (
-                <button
-                  className={`w-full rounded-xl border px-4 py-4 text-left transition ${
-                    notification.read
-                      ? "border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50"
-                      : "border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/5"
-                  }`}
-                  key={notification.id}
-                  onClick={() => {
-                    void markOne(notification);
-                  }}
-                  type="button"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-semibold text-[var(--forge-text)]">{notification.title}</p>
-                        {!notification.read ? <ForgeChip tone="gold">Unread</ForgeChip> : null}
-                      </div>
-                      <p className="mt-2 text-sm leading-7 text-[var(--forge-muted)]">{notification.body}</p>
-                    </div>
-                    <span className="shrink-0 text-xs uppercase tracking-[0.22em] text-[var(--forge-muted)]">
-                      {timeAgo(notification.createdAt)}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
+      <div
+        className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--forge-border)] bg-[rgba(8,6,5,0.45)] p-2"
+        data-notification-filters="active"
+      >
+        {[
+          { label: "All", value: "all" as const },
+          { label: "Unread", value: "unread" as const },
+          { label: "Read", value: "read" as const },
+        ].map((option) => (
+          <button
+            className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
+              filter === option.value
+                ? "bg-[rgba(241,191,123,0.14)] text-[var(--forge-gold)]"
+                : "text-[var(--forge-muted)] hover:bg-[rgba(255,244,230,0.04)] hover:text-[var(--forge-text)]"
+            }`}
+            key={option.value}
+            onClick={() => setFilter(option.value)}
+            type="button"
+          >
+            {option.label}
+          </button>
         ))}
+      </div>
+
+      <div className="space-y-6">
+        {grouped.length ? (
+          grouped.map(([day, items]) => (
+            <div key={day}>
+              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
+                {new Intl.DateTimeFormat("en-US", { dateStyle: "full" }).format(new Date(day))}
+              </p>
+              <div className="mt-3 space-y-3">
+                {items.map((notification) => (
+                  <button
+                    className={`w-full rounded-xl border px-4 py-4 text-left transition ${
+                      notification.read
+                        ? "border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50"
+                        : "border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/5"
+                    }`}
+                    key={notification.id}
+                    onClick={() => {
+                      void markOne(notification);
+                    }}
+                    type="button"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-semibold text-[var(--forge-text)]">{notification.title}</p>
+                          {!notification.read ? <ForgeChip tone="gold">Unread</ForgeChip> : null}
+                        </div>
+                        <p className="mt-2 text-sm leading-7 text-[var(--forge-muted)]">{notification.body}</p>
+                      </div>
+                      <span className="shrink-0 text-xs uppercase tracking-[0.22em] text-[var(--forge-muted)]">
+                        {timeAgo(notification.createdAt)}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))
+        ) : (
+          <ForgeEmptyState
+            description="No notifications match the selected filter."
+            icon="notifications"
+            title="No matching notifications"
+          />
+        )}
       </div>
     </ForgeSurface>
   );

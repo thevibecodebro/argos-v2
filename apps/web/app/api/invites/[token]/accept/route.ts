@@ -6,6 +6,7 @@ import { DrizzleOnboardingRepository } from "@/lib/onboarding/repository";
 import {
   InviteAcceptanceConflictError,
   commitInviteAcceptance,
+  normalizeInviteEmail,
 } from "@/lib/invites/service";
 import { createInvitesRepository } from "@/lib/invites/create-repository";
 import { createOnboardingRepository } from "@/lib/onboarding/create-repository";
@@ -52,7 +53,7 @@ export async function POST(
     return fromServiceResult({ ok: false, status: 409, error: "Invite has already been accepted" });
   }
 
-  if (caller.email !== invite.email) {
+  if (normalizeInviteEmail(caller.email) !== normalizeInviteEmail(invite.email)) {
     return fromServiceResult({ ok: false, status: 403, error: "This invite was sent to a different email address" });
   }
 

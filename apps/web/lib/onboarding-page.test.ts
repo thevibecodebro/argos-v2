@@ -1,13 +1,29 @@
 import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import OnboardingPage from "../app/onboarding/page";
 import * as onboardingPanelModule from "../components/onboarding-panel";
 
 const onboardingPanelSource = readFileSync(new URL("../components/onboarding-panel.tsx", import.meta.url), "utf8");
 const loginFormSource = readFileSync(new URL("../components/auth/login-form.tsx", import.meta.url), "utf8");
 
+const {
+  getCachedAuthenticatedSupabaseUser,
+  getCachedCurrentUserProfile,
+  redirect,
+} = vi.hoisted(() => ({
+  getCachedAuthenticatedSupabaseUser: vi.fn(),
+  getCachedCurrentUserProfile: vi.fn(),
+  redirect: vi.fn(),
+}));
+
+vi.mock("@/lib/auth/request-user", () => ({
+  getCachedAuthenticatedSupabaseUser,
+  getCachedCurrentUserProfile,
+}));
+
 vi.mock("next/navigation", () => ({
+  redirect,
   useRouter: () => ({
     push: vi.fn(),
     refresh: vi.fn(),
@@ -23,17 +39,61 @@ vi.mock("next/font/google", () => ({
 }));
 
 describe("OnboardingPage", () => {
-  it("renders the create-or-join organization flow in the Forge auth shell", async () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getCachedAuthenticatedSupabaseUser.mockResolvedValue({ id: "auth-user-1" });
+    getCachedCurrentUserProfile.mockResolvedValue({
+      id: "user-1",
+      email: "rep@example.com",
+      role: null,
+      fullName: "Rep User",
+      org: null,
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("renders an invite-required state for ordinary orgless users in invite-only mode", async () => {
     const html = renderToStaticMarkup(await OnboardingPage());
 
     expect(html).toContain("Welcome to Argos");
-    expect(html).toContain("Create Organization");
-    expect(html).toContain("Join Organization");
+    expect(html).toContain("Invite required");
+    expect(html).toContain("Open the invite link your admin sent to join your Argos workspace.");
+    expect(html).not.toContain("Create Organization");
+    expect(html).not.toContain("Join Organization");
     expect(html).toContain('data-auth-shell="forge"');
     expect(html).toContain("forge-surface");
     expect(html).toContain("forge-focus-ring");
     expect(html).not.toContain("#74b1ff");
     expect(html).not.toContain("#6dddff");
+  });
+
+  it("shows the create flow only for bootstrap admins in invite-only mode", async () => {
+    vi.stubEnv("ARGOS_BOOTSTRAP_ADMIN_EMAILS", "owner@example.com");
+    getCachedCurrentUserProfile.mockResolvedValueOnce({
+      id: "user-1",
+      email: "owner@example.com",
+      role: null,
+      fullName: "Owner User",
+      org: null,
+    });
+
+    const html = renderToStaticMarkup(await OnboardingPage());
+
+    expect(html).toContain("Create Organization");
+    expect(html).not.toContain("Join Organization");
+    expect(html).toContain("Set up the first Argos workspace for your company.");
+  });
+
+  it("keeps create and join available only when invite-only mode is explicitly disabled", async () => {
+    vi.stubEnv("ARGOS_INVITE_ONLY", "false");
+
+    const html = renderToStaticMarkup(await OnboardingPage());
+
+    expect(html).toContain("Create Organization");
+    expect(html).toContain("Join Organization");
   });
 
   it("announces auth and onboarding async feedback", () => {

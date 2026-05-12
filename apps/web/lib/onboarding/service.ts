@@ -14,6 +14,7 @@ type OnboardingResult<T> =
   | { ok: false; status: 400 | 403 | 404 | 409; error: string };
 
 type AccessEnvSource = Partial<Record<string, string | undefined>>;
+export type OnboardingAccessMode = "invite-only" | "bootstrap-admin" | "open";
 
 type BootstrapOrganizationCreationResult =
   | { status: "created"; organization: OrganizationRecord }
@@ -80,7 +81,7 @@ function validateSlug(slug: string): string | null {
   return null;
 }
 
-function isInviteOnlyAccessEnabled(env: AccessEnvSource = process.env): boolean {
+export function isInviteOnlyAccessEnabled(env: AccessEnvSource = process.env): boolean {
   return env.ARGOS_INVITE_ONLY !== "false";
 }
 
@@ -88,7 +89,7 @@ function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
-function isBootstrapAdminEmail(
+export function isBootstrapAdminEmail(
   email: string,
   env: AccessEnvSource = process.env,
 ): boolean {
@@ -99,6 +100,17 @@ function isBootstrapAdminEmail(
     .map(normalizeEmail)
     .filter(Boolean)
     .includes(normalizeEmail(email));
+}
+
+export function getOnboardingAccessModeForEmail(
+  email: string,
+  env: AccessEnvSource = process.env,
+): OnboardingAccessMode {
+  if (!isInviteOnlyAccessEnabled(env)) {
+    return "open";
+  }
+
+  return isBootstrapAdminEmail(email, env) ? "bootstrap-admin" : "invite-only";
 }
 
 function validateOrganizationInput(input: { name?: string; slug?: string }):

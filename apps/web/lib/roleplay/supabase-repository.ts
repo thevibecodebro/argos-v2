@@ -28,6 +28,10 @@ function normalizeSessionRecord(record: any): RoleplaySessionRecord {
     transcript: Array.isArray(record.transcript) ? record.transcript : null,
     scorecard: record.scorecard && typeof record.scorecard === "object" ? record.scorecard : null,
     status: record.status,
+    voiceStartedAt: toDate(record.voice_started_at),
+    voiceCompletedAt: toDate(record.voice_completed_at),
+    voiceMinutesSettled: record.voice_minutes_settled ?? 0,
+    voiceSettledAt: toDate(record.voice_settled_at),
     createdAt: toDate(record.created_at) ?? new Date(0),
   };
 }
@@ -134,6 +138,70 @@ export class SupabaseRoleplayRepository implements RoleplayRepository {
     }
 
     return (data ?? []).map(normalizeSessionRecord);
+  }
+
+  async markVoiceStarted(sessionId: string, startedAt: Date) {
+    const supabase: any = this.supabase;
+    const { data, error } = await supabase
+      .from("roleplay_sessions")
+      .update({ voice_started_at: startedAt.toISOString() })
+      .eq("id", sessionId)
+      .is("voice_started_at", null)
+      .select("*")
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (data) {
+      return normalizeSessionRecord(data);
+    }
+
+    const existing = await this.findSessionById(sessionId);
+
+    if (!existing) {
+      throw new Error("Roleplay session not found");
+    }
+
+    return existing;
+  }
+
+  async settleVoiceUsage(
+    sessionId: string,
+    input: {
+      completedAt: Date;
+      minutesSettled: number;
+    },
+  ) {
+    const supabase: any = this.supabase;
+    const { data, error } = await supabase
+      .from("roleplay_sessions")
+      .update({
+        voice_completed_at: input.completedAt.toISOString(),
+        voice_minutes_settled: input.minutesSettled,
+        voice_settled_at: input.completedAt.toISOString(),
+      })
+      .eq("id", sessionId)
+      .is("voice_settled_at", null)
+      .select("*")
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (data) {
+      return normalizeSessionRecord(data);
+    }
+
+    const existing = await this.findSessionById(sessionId);
+
+    if (!existing) {
+      throw new Error("Roleplay session not found");
+    }
+
+    return existing;
   }
 
   async updateSession(

@@ -66,7 +66,10 @@ describe("PeoplePanel", () => {
     expect(html).toContain("Search members");
     expect(html).toContain("Role filter");
     expect(html).toContain("Member management");
-    expect(html).toContain("Invite member");
+    expect(html).toContain("Invite rep");
+    expect(html).toContain("Invite manager");
+    expect(html).not.toContain("Invite member");
+    expect(html).not.toContain("Send invite");
     expect(html).toContain("Pending invites");
     expect(html).toContain("rep@example.com");
     expect(html).toContain("Riley Stone");

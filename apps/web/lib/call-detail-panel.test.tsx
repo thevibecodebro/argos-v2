@@ -22,9 +22,11 @@ afterEach(() => {
 async function renderCallDetailPanel({
   call = baseCall,
   canManage = true,
+  canRetryProcessing = true,
 }: {
   call?: typeof baseCall;
   canManage?: boolean;
+  canRetryProcessing?: boolean;
 } = {}) {
   const { CallDetailPanel } = await import("../components/call-detail-panel");
 
@@ -33,6 +35,7 @@ async function renderCallDetailPanel({
       annotations: [],
       call,
       canManage,
+      canRetryProcessing,
     }),
   );
 }
@@ -120,6 +123,7 @@ const baseCall: CallDetail = {
       createdAt: "2026-04-03T00:02:12.000Z",
     },
   ],
+  processingJob: null,
 };
 
 describe("CallDetailPanel", () => {
@@ -198,6 +202,56 @@ describe("CallDetailPanel", () => {
     expect(html).toContain("Add a plain-text coaching note for this call.");
     expect(html).not.toContain('aria-label="Attach file"');
     expect(html).not.toContain('aria-label="Mention teammate"');
+  });
+
+  it("renders operator processing job detail and retry action for failed jobs", async () => {
+    const html = await renderCallDetailPanel({
+      call: {
+        ...baseCall,
+        status: "failed",
+        processingJob: {
+          id: "job-1",
+          status: "failed",
+          attemptCount: 3,
+          maxAttempts: 3,
+          nextRunAt: "2026-04-03T00:15:00.000Z",
+          lastStage: "transcribe",
+          lastError: "OpenAI transcription request failed: 429",
+          updatedAt: "2026-04-03T00:10:00.000Z",
+        },
+      },
+      canRetryProcessing: true,
+    });
+
+    expect(html).toContain('data-processing-job-panel="true"');
+    expect(html).toContain("Processing job");
+    expect(html).toContain("failed");
+    expect(html).toContain("transcribe");
+    expect(html).toContain("OpenAI transcription request failed: 429");
+    expect(html).toContain("Retry processing");
+  });
+
+  it("hides the processing retry action from non-operators", async () => {
+    const html = await renderCallDetailPanel({
+      call: {
+        ...baseCall,
+        status: "failed",
+        processingJob: {
+          id: "job-1",
+          status: "failed",
+          attemptCount: 3,
+          maxAttempts: 3,
+          nextRunAt: "2026-04-03T00:15:00.000Z",
+          lastStage: "score",
+          lastError: "Scoring failed",
+          updatedAt: "2026-04-03T00:10:00.000Z",
+        },
+      },
+      canRetryProcessing: false,
+    });
+
+    expect(html).toContain('data-processing-job-panel="true"');
+    expect(html).not.toContain("Retry processing");
   });
 
   it("uses the forge review bench treatment instead of the old blue glass style", async () => {
@@ -288,6 +342,7 @@ describe("CallDetailPanel", () => {
         annotations: [],
         call: baseCall,
         canManage: true,
+        canRetryProcessing: true,
       }),
     );
 

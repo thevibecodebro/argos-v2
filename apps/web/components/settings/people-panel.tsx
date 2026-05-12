@@ -198,6 +198,12 @@ export function PeoplePanel({
     setRevokingId(null);
   }
 
+  function openInviteForm(role: "rep" | "manager") {
+    setInviteRole(role);
+    setInviteTeamIds([]);
+    setShowInviteForm(true);
+  }
+
   const inviteControls = (
     <SettingsEditorDrawer data-people-invite-drawer="">
       <div className="space-y-5">
@@ -217,13 +223,22 @@ export function PeoplePanel({
             </span>
           </div>
           {!showInviteForm ? (
-            <SettingsDrawerButton
-              icon="person"
-              onClick={() => setShowInviteForm(true)}
-              type="button"
-            >
-              Invite member
-            </SettingsDrawerButton>
+            <div className="grid gap-2" data-people-invite-actions="role-specific">
+              <SettingsDrawerButton
+                icon="person_add"
+                onClick={() => openInviteForm("rep")}
+                type="button"
+              >
+                Invite rep
+              </SettingsDrawerButton>
+              <SettingsDrawerButton
+                icon="supervisor_account"
+                onClick={() => openInviteForm("manager")}
+                type="button"
+              >
+                Invite manager
+              </SettingsDrawerButton>
+            </div>
           ) : null}
         </div>
 
@@ -307,7 +322,7 @@ export function PeoplePanel({
                 type="button"
                 variant="primary"
               >
-                {inviteSending ? "Sending..." : "Send invite"}
+                {inviteSending ? "Sending..." : `Invite ${inviteRole}`}
               </ForgeButton>
               <ForgeButton
                 disabled={inviteSending}

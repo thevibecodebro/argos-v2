@@ -16,3 +16,5 @@ export * from "./ghlIntegrations";
 export * from "./invites";
 export * from "./callProcessingJobs";
 export * from "./rateLimitBuckets";
+export * from "./billing";
+export * from "./auditEvents";

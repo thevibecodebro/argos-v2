@@ -12,6 +12,8 @@ function createRepository(overrides: Partial<RoleplayRepository> = {}): Roleplay
     findSessionById: vi.fn(),
     findSessionsByOrgId: vi.fn(),
     findSessionsByRepId: vi.fn(),
+    markVoiceStarted: vi.fn(),
+    settleVoiceUsage: vi.fn(),
     updateSession: vi.fn(),
     ...overrides,
   };
@@ -41,6 +43,7 @@ const call = {
   improvements: [],
   recommendedDrills: [],
   transcript: [],
+  processingJob: null,
   createdAt: "2026-04-20T14:00:00.000Z",
   repFirstName: "Riley",
   repLastName: "Stone",

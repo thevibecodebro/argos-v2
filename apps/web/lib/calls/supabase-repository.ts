@@ -41,6 +41,19 @@ function normalizeTranscript(value: unknown) {
   return Array.isArray(value) ? value : null;
 }
 
+function mapProcessingJob(row: any) {
+  return {
+    id: row.id,
+    status: row.status,
+    attemptCount: row.attempt_count,
+    maxAttempts: row.max_attempts,
+    nextRunAt: toDate(row.next_run_at) ?? new Date(0),
+    lastStage: row.last_stage,
+    lastError: row.last_error,
+    updatedAt: toDate(row.updated_at) ?? new Date(0),
+  };
+}
+
 export class SupabaseCallsRepository implements CallsRepository {
   constructor(private readonly supabase = getSupabaseAdminClient()) {}
 
@@ -81,6 +94,29 @@ export class SupabaseCallsRepository implements CallsRepository {
       status: data.status,
       createdAt: toDate(data.created_at) ?? new Date(),
     };
+  }
+
+  async createAuditEvent(input: {
+    actorId: string;
+    eventType: "call_exported" | "call_deleted";
+    metadata: Record<string, unknown>;
+    orgId: string;
+    resourceId: string;
+    resourceType: "call";
+  }) {
+    const supabase: any = this.supabase;
+    const { error } = await supabase.from("audit_events").insert({
+      actor_id: input.actorId,
+      event_type: input.eventType,
+      metadata: input.metadata,
+      org_id: input.orgId,
+      resource_id: input.resourceId,
+      resource_type: input.resourceType,
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
   }
 
   async createNotification(input: {
@@ -149,6 +185,61 @@ export class SupabaseCallsRepository implements CallsRepository {
     if (error) {
       throw new Error(error.message);
     }
+  }
+
+  async findCallProcessingJobByCallId(callId: string) {
+    const supabase: any = this.supabase;
+    const { data, error } = await supabase
+      .from("call_processing_jobs")
+      .select("id, status, attempt_count, max_attempts, next_run_at, last_stage, last_error, updated_at")
+      .eq("call_id", callId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data ? mapProcessingJob(data) : null;
+  }
+
+  async retryCallProcessingJob(callId: string) {
+    const supabase: any = this.supabase;
+    const now = new Date().toISOString();
+    const { data, error } = await supabase
+      .from("call_processing_jobs")
+      .update({
+        status: "pending",
+        attempt_count: 0,
+        next_run_at: now,
+        locked_at: null,
+        lock_expires_at: null,
+        last_stage: null,
+        last_error: null,
+        updated_at: now,
+      })
+      .eq("call_id", callId)
+      .eq("status", "failed")
+      .select("id, status, attempt_count, max_attempts, next_run_at, last_stage, last_error, updated_at")
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (!data) {
+      return null;
+    }
+
+    const { error: callError } = await supabase
+      .from("calls")
+      .update({ status: "uploaded" })
+      .eq("id", callId);
+
+    if (callError) {
+      throw new Error(callError.message);
+    }
+
+    return mapProcessingJob(data);
   }
 
   async deleteAnnotation(annotationId: string, callId: string) {

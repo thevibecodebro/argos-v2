@@ -54,6 +54,24 @@ describe("RoleplayPanel", () => {
     ).toBe(false);
   });
 
+  it("stops active roleplay audio and flushes queued voice transcript turns before scoring", () => {
+    const completeSessionStart = roleplayPanelSource.indexOf("async function completeSession()");
+    const completeSessionEnd = roleplayPanelSource.indexOf("const selectedPersona", completeSessionStart);
+    const completeSessionSource = roleplayPanelSource.slice(completeSessionStart, completeSessionEnd);
+    const stopAudioIndex = completeSessionSource.indexOf("stopActiveRoleplayAudio({ announce: false });");
+    const flushTranscriptIndex = completeSessionSource.indexOf("await flushPendingVoiceTranscriptPersistence();");
+    const completeFetchIndex = completeSessionSource.indexOf("fetch(`/api/roleplay/sessions/${sessionId}/complete`");
+
+    expect(completeSessionStart).toBeGreaterThanOrEqual(0);
+    expect(stopAudioIndex).toBeGreaterThanOrEqual(0);
+    expect(flushTranscriptIndex).toBeGreaterThanOrEqual(0);
+    expect(completeFetchIndex).toBeGreaterThanOrEqual(0);
+    expect(stopAudioIndex).toBeLessThan(completeFetchIndex);
+    expect(flushTranscriptIndex).toBeLessThan(completeFetchIndex);
+    expect(roleplayPanelSource).toContain("activeTranscriptAudioRef");
+    expect(roleplayPanelSource).toContain("activeTranscriptAudioRef.current?.pause()");
+  });
+
   it("renders the practice workbench without embedding session history", () => {
     const html = renderToStaticMarkup(
       createElement(RoleplayPanel, {
@@ -129,6 +147,10 @@ describe("RoleplayPanel", () => {
               ],
             },
             status: "complete",
+            voiceStartedAt: null,
+            voiceCompletedAt: null,
+            voiceMinutesSettled: 0,
+            voiceSettledAt: null,
             createdAt: "2026-04-03T00:00:00.000Z",
           },
         ],
@@ -284,6 +306,10 @@ describe("RoleplayPanel", () => {
             ],
             scorecard: null,
             status: "active",
+            voiceStartedAt: null,
+            voiceCompletedAt: null,
+            voiceMinutesSettled: 0,
+            voiceSettledAt: null,
             createdAt: "2026-04-03T00:00:00.000Z",
           },
           {
@@ -312,6 +338,10 @@ describe("RoleplayPanel", () => {
             ],
             scorecard: null,
             status: "active",
+            voiceStartedAt: null,
+            voiceCompletedAt: null,
+            voiceMinutesSettled: 0,
+            voiceSettledAt: null,
             createdAt: "2026-04-04T00:00:00.000Z",
           },
         ],

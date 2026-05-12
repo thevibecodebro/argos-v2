@@ -5,8 +5,11 @@ import {
   checkRateLimitForPolicy,
   rateLimitExceededResponse,
 } from "@/lib/rate-limit/service";
+import { readRequestTextWithLimit } from "@/lib/security/request-body";
 
 export const dynamic = "force-dynamic";
+
+const MAX_ZOOM_WEBHOOK_BODY_BYTES = 128 * 1024;
 
 function getWebhookClientIp(request: Request) {
   const vercelForwardedFor = request.headers.get("x-vercel-forwarded-for");
@@ -43,13 +46,21 @@ export async function POST(request: Request) {
       return rateLimitExceededResponse(rateLimit);
     }
 
-    const rawBody = await request.text();
+    const rawBodyResult = await readRequestTextWithLimit(request, MAX_ZOOM_WEBHOOK_BODY_BYTES);
+
+    if (!rawBodyResult.ok) {
+      return NextResponse.json(
+        { error: "Zoom webhook payload is too large." },
+        { status: 413 },
+      );
+    }
+
     const result = await processZoomWebhookRequest(createZoomWebhookRepository(), {
       headers: {
         signature: request.headers.get("x-zm-signature"),
         timestamp: request.headers.get("x-zm-request-timestamp"),
       },
-      rawBody,
+      rawBody: rawBodyResult.text,
     });
 
     return NextResponse.json(result.body, {
@@ -60,7 +71,7 @@ export async function POST(request: Request) {
     console.error("Failed to process Zoom webhook", error);
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Internal server error" },
+      { error: "Internal server error" },
       { status: 500 },
     );
   }

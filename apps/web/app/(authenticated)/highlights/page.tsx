@@ -80,7 +80,10 @@ export default async function HighlightsPage() {
           ]}
         />
 
-        <section className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <section
+          className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_320px]"
+          data-highlight-selection-flow="explicit"
+        >
           <div
             className="min-w-0 overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[rgba(8,6,5,0.88)] shadow-[inset_0_1px_0_rgba(255,244,230,0.04)]"
             data-forge-table="true"

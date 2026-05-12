@@ -1,4 +1,9 @@
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { DrizzleBillingRepository } from "@/lib/billing/repository";
+import {
+  consumeVoiceMinutes,
+  getVoiceEntitlementStatus,
+} from "@/lib/billing/voice-entitlements";
 import { unauthorizedJson } from "@/lib/http";
 import {
   checkRateLimitForPolicy,
@@ -12,6 +17,20 @@ export const dynamic = "force-dynamic";
 const MAX_TTS_TEXT_LENGTH = 4_096;
 const MAX_TTS_INSTRUCTIONS_LENGTH = 2_000;
 const MAX_TTS_REQUEST_BODY_BYTES = 8 * 1024;
+
+function serviceErrorResponse(result: {
+  code?: string;
+  error: string;
+  status: number;
+}) {
+  return Response.json(
+    {
+      ...(result.code ? { code: result.code } : {}),
+      error: result.error,
+    },
+    { status: result.status },
+  );
+}
 
 export async function POST(request: Request) {
   const bodyText = await readRequestTextWithLimit(request, MAX_TTS_REQUEST_BODY_BYTES);
@@ -39,6 +58,13 @@ export async function POST(request: Request) {
 
   if (configurationError) {
     return Response.json({ error: configurationError }, { status: 503 });
+  }
+
+  const billingRepository = new DrizzleBillingRepository();
+  const entitlement = await getVoiceEntitlementStatus(billingRepository, authUser.id);
+
+  if (!entitlement.ok) {
+    return serviceErrorResponse(entitlement);
   }
 
   const body = (safeParseJson(bodyText.text)) as
@@ -70,6 +96,12 @@ export async function POST(request: Request) {
       instructions,
       text,
       voice: body?.voice?.trim() || undefined,
+    });
+    await consumeVoiceMinutes(billingRepository, authUser.id, {
+      idempotencyKey: `roleplay-tts:${authUser.id}:${Date.now()}`,
+      minutes: 1,
+      sessionId: null,
+      source: "roleplay_tts",
     });
 
     return new Response(audio.arrayBuffer, {

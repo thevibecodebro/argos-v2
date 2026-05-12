@@ -161,6 +161,7 @@ export function RoleplayPanel({
 }: RoleplayPanelProps) {
   const router = useRouter();
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
+  const activeTranscriptAudioRef = useRef<HTMLAudioElement | null>(null);
   const activeAudioUrlRef = useRef<string | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -217,16 +218,40 @@ export function RoleplayPanel({
     void loadSession(requestedSessionId);
   }, [activeSession?.id, initialSessionId, sessions]);
 
-  function cleanupVoiceSession() {
+  function stopTranscriptAudioPlayback() {
+    activeTranscriptAudioRef.current?.pause();
+    activeTranscriptAudioRef.current = null;
+
+    if (activeAudioUrlRef.current) {
+      URL.revokeObjectURL(activeAudioUrlRef.current);
+      activeAudioUrlRef.current = null;
+    }
+
+    setSpeakingLine(null);
+  }
+
+  function stopActiveRoleplayAudio({ announce = true }: { announce?: boolean } = {}) {
     dataChannelRef.current?.close();
     dataChannelRef.current = null;
     peerConnectionRef.current?.close();
     peerConnectionRef.current = null;
     mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
     mediaStreamRef.current = null;
+    remoteAudioRef.current?.pause();
     if (remoteAudioRef.current) remoteAudioRef.current.srcObject = null;
+    stopTranscriptAudioPlayback();
     setIsVoiceActive(false);
     setIsStartingVoice(false);
+
+    if (announce) {
+      setVoiceStatus("Voice practice stopped.");
+    } else {
+      setVoiceStatus(null);
+    }
+  }
+
+  function cleanupVoiceSession() {
+    stopActiveRoleplayAudio({ announce: false });
   }
 
   function commitSession(session: RoleplaySession) {
@@ -374,12 +399,16 @@ export function RoleplayPanel({
   }
 
   function stopVoicePractice() {
-    cleanupVoiceSession();
-    setVoiceStatus("Voice practice stopped.");
+    stopActiveRoleplayAudio();
+  }
+
+  async function flushPendingVoiceTranscriptPersistence() {
+    await voicePersistenceQueueRef.current.catch(() => undefined);
   }
 
   async function playTranscriptLine(text: string) {
     if (!text.trim()) return;
+    stopTranscriptAudioPlayback();
     setError(null);
     setSpeakingLine(text);
     try {
@@ -401,9 +430,13 @@ export function RoleplayPanel({
       const url = URL.createObjectURL(blob);
       activeAudioUrlRef.current = url;
       const audio = new Audio(url);
+      activeTranscriptAudioRef.current = audio;
       await audio.play();
       audio.addEventListener("ended", () => {
-        if (activeAudioUrlRef.current) { URL.revokeObjectURL(activeAudioUrlRef.current); activeAudioUrlRef.current = null; }
+        if (activeTranscriptAudioRef.current === audio) {
+          activeTranscriptAudioRef.current = null;
+        }
+        if (activeAudioUrlRef.current === url) { URL.revokeObjectURL(activeAudioUrlRef.current); activeAudioUrlRef.current = null; }
         setSpeakingLine(null);
       }, { once: true });
     } catch (err) {
@@ -461,9 +494,12 @@ export function RoleplayPanel({
 
   async function completeSession() {
     if (!activeSession) return;
+    const sessionId = activeSession.id;
     setError(null);
     setIsMutating(true);
-    const res = await fetch(`/api/roleplay/sessions/${activeSession.id}/complete`, { method: "POST" });
+    stopActiveRoleplayAudio({ announce: false });
+    await flushPendingVoiceTranscriptPersistence();
+    const res = await fetch(`/api/roleplay/sessions/${sessionId}/complete`, { method: "POST" });
     const payload = (await res.json()) as RoleplaySession & { error?: string };
     if (!res.ok) { setError(payload.error ?? "Unable to score session."); setIsMutating(false); return; }
     commitSession(payload);

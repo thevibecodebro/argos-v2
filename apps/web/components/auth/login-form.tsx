@@ -52,6 +52,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
         email,
         options: {
           emailRedirectTo: redirectTo,
+          shouldCreateUser: false,
         },
       });
 

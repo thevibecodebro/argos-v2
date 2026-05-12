@@ -141,4 +141,47 @@ describe("Zoom webhook route", () => {
       retryAfterSeconds: 12,
     });
   });
+
+  it("rejects oversized bodies before reading or processing the Zoom webhook", async () => {
+    const route = await import("../app/api/webhooks/zoom/route");
+    const request = new Request("http://localhost:3100/api/webhooks/zoom", {
+      method: "POST",
+      headers: {
+        "Content-Length": "200000",
+        "Content-Type": "application/json",
+        "x-real-ip": "198.51.100.9",
+      },
+      body: JSON.stringify({ event: "recording.completed" }),
+    });
+    const textSpy = vi.spyOn(request, "text");
+    const response = await route.POST(request);
+
+    expect(response.status).toBe(413);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "Zoom webhook payload is too large.",
+    });
+    expect(textSpy).not.toHaveBeenCalled();
+    expect(processZoomWebhookRequest).not.toHaveBeenCalled();
+  });
+
+  it("returns a generic 500 when Zoom webhook processing throws", async () => {
+    processZoomWebhookRequest.mockRejectedValueOnce(new Error("zoom secret leaked"));
+
+    const route = await import("../app/api/webhooks/zoom/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/webhooks/zoom", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-real-ip": "198.51.100.9",
+        },
+        body: JSON.stringify({ event: "recording.completed" }),
+      }),
+    );
+
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toEqual({
+      error: "Internal server error",
+    });
+  });
 });
