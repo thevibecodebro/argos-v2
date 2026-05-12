@@ -506,7 +506,7 @@ git commit -m "Document production verification"
 **Files:**
 - No new files unless verification output changes docs.
 
-- [ ] **Step 1: Run local gates**
+- [x] **Step 1: Run local gates**
 
 ```bash
 npm run verify
@@ -515,9 +515,13 @@ npm audit --omit=dev --audit-level=moderate
 
 Expected: `npm run verify` passes. Audit either passes or has the documented Next/PostCSS exception from Task 6.
 
-- [ ] **Step 2: Run browser smoke**
+Result: `npm run verify` passed. `npm audit --omit=dev --audit-level=moderate` still fails on the documented Next/PostCSS advisory and suggests the unacceptable `next@9.3.3` downgrade.
+
+- [x] **Step 2: Run browser smoke**
 
 Run the browser QA checklist from Task 5 on the final local or preview deployment.
+
+Result: local browser smoke reached `/login` and confirmed protected routes redirect to login without an auth session. Authenticated route browser QA remains blocked locally until a test auth session is available. Production smoke evidence is recorded in `docs/audits/production-verification-2026-05-11.md`.
 
 - [ ] **Step 3: Confirm git state**
 
