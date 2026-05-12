@@ -1,27 +1,26 @@
 # Production Verification - 2026-05-11
 
-Executed on May 12, 2026 from branch `codex/argos-remediation-sweep`.
+Executed on May 12, 2026 from branch `codex/argos-remediation-sweep`; updated after PR #15 was merged to `main` and deployed to production.
 
 ## Verdict
 
-Production is not ready to mark remediated.
+Production has the remediation sweep deployed and safe unauthenticated smoke checks passed.
 
-The local remediation branch is ahead of production and still needs live smoke verification after deploy. Hosted Supabase migrations, Stripe live catalog/webhook setup, and Vercel production Stripe secrets were completed in the May 12 follow-up pass.
+Full operational signoff still needs an authenticated live test account/invite path to exercise invite acceptance, checkout completion/webhook entitlement update, roleplay end-and-score voice shutdown, and voice quota exhaustion without using a real customer account.
 
 ## Vercel
 
 - Project: `argos-v2`
 - Linked project id: `prj_xKrubkV2SZSMffxrhGoDagymbvzs`
 - Root directory: `apps/web`
-- Current production deployment: `https://argos-v2-3beppxl8u-thevibecodebro.vercel.app`
-- Deployment id: `dpl_DmCUmJs9Umzw6a72W5HsZqeMD3cY`
+- Current production deployment: `https://argos-v2-gjm15ic6r-thevibecodebro.vercel.app`
+- Deployment id: `dpl_4J1EF3WQv9vvWR19Z49XwvJzgtvA`
 - Deployment status: Ready
-- Deployment created: May 11, 2026 13:03:48 CDT
-- Production aliases: `argos-v2-nine.vercel.app`, `argos-v2-thevibecodebro.vercel.app`, `argos-v2-neon-titan-thevibecodebro.vercel.app`
-- Deployed Git commit: `82df89debe7ef4851bfc0ca21f723e9a8acdd2c8`
+- Deployment created: May 12, 2026 14:18:29 CDT
+- Production aliases: `argos-v2-nine.vercel.app`, `argos-v2-thevibecodebro.vercel.app`, `argos-v2-git-main-thevibecodebro.vercel.app`
+- Deployed Git commit: `3d3587e410300e62fbfc20313a74b466fe4b86b3`
 - Current local branch commit at first verification time: `f81e92cecbf47bda66bd8f0b8a5044c1dee12c2e`
-- Draft PR branch after follow-up: `codex/argos-remediation-sweep`, PR #15.
-- Production build metadata reports `gitDirty=1`, source `cli`, actor `codex`.
+- PR #15 was squash-merged into `main`.
 
 Production env names present:
 
@@ -64,7 +63,12 @@ HTTP smoke:
 
 - `/login` returned `200`.
 - `/settings/people` returned `307` with `location: /login?next=%2Fsettings%2Fpeople`.
-- `vercel logs --environment production --since 1h --level error --limit 20 --no-branch --json` returned no error log entries.
+- `/onboarding` returned `307` with `location: /login?next=%2Fonboarding`.
+- `/billing/checkout?plan=team&seats=3` returned `307` with `location: /login?next=%2Fbilling%2Fcheckout%3Fplan%3Dteam%26seats%3D3`.
+- `POST /api/webhooks/stripe` with an invalid signature returned `400` and `{"error":"Invalid Stripe signature."}`, confirming the production webhook secret is configured at runtime.
+- `/api/health` returned `{"ok":true,"service":"@argos-v2/web"}`.
+- The rendered `/login` HTML had no `sign up`, `signup`, `create account`, `create an account`, `join as`, or `create organization` text.
+- `vercel logs --environment production --since 10m --level error --limit 20 --no-branch --json` returned no error log entries.
 
 ## Supabase
 
@@ -166,7 +170,7 @@ Production billing blockers:
 
 - Vercel Production has `OPENAI_API_KEY` and the realtime/TTS model and voice env names.
 - Worker secrets include `OPENAI_API_KEY`, `OPENAI_CALL_SCORING_MODEL`, and `OPENAI_CALL_TRANSCRIPTION_MODEL`.
-- Live realtime/TTS roleplay was not invoked because authenticated production browser QA was not available in this pass and this branch is not deployed.
+- Live realtime/TTS roleplay was not invoked because authenticated production browser QA was not available in this pass.
 - Local route/service tests cover quota checks, realtime session start, completion settlement, and idempotent voice usage debiting.
 
 ## Zoom And GHL
@@ -193,8 +197,10 @@ GHL:
 - Worker secrets present: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`, `OPENAI_CALL_SCORING_MODEL`, `OPENAI_CALL_TRANSCRIPTION_MODEL`, `CALL_PROCESSING_ENABLED`, and processing tuning secrets.
 - Direct `curl https://argos-v2-worker-jared.fly.dev/health` could not resolve the host from this environment, so Fly status/checks are the verification source for worker health in this pass.
 
-## Required Before Production Signoff
+## Remaining Authenticated Smoke
 
-1. Redeploy the remediation branch or merge it to the production branch and deploy so the new production Stripe env values are attached to the live runtime.
-2. Run live smoke tests for blocked public signup, invite acceptance, checkout/webhook entitlement update, roleplay end-and-score voice shutdown, and voice quota enforcement.
-3. Verify Zoom OAuth/webhook delivery and worker processing against the deployed remediation commit.
+1. Exercise invite acceptance with a live test invite or controlled test account.
+2. Complete a live/test-mode checkout path appropriate for the production Stripe account and verify webhook entitlement updates.
+3. Run roleplay end-and-score with audio and verify browser voice shutdown plus usage settlement.
+4. Force or seed a quota-exhausted test state and verify realtime/TTS is blocked before provider calls.
+5. Verify Zoom OAuth/webhook delivery and worker processing against the deployed remediation commit.
