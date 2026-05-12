@@ -443,7 +443,7 @@ Record:
 - GHL disabled/enabled flag
 - worker deployment target
 
-Result: production deployment and env key inventory were recorded in `docs/audits/production-verification-2026-05-11.md`. Production is not on this branch, and Stripe production env keys are missing.
+Result: production deployment and env key inventory were recorded in `docs/audits/production-verification-2026-05-11.md`. Production is not on this branch. Stripe production env keys were missing during the initial pass, then `STRIPE_WEBHOOK_SECRET` and `STRIPE_SECRET_KEY` were added in the May 12 follow-up.
 
 - [x] **Step 2: Verify hosted Supabase**
 
@@ -470,7 +470,7 @@ Record:
 - extra voice pack checkout grants minutes
 - failed payment maps to inactive or blocked voice availability
 
-Result: Stripe live products, prices, and webhook endpoint now exist. Vercel Production has `STRIPE_WEBHOOK_SECRET`. Vercel is still missing `STRIPE_SECRET_KEY`; it must come from a durable live restricted key rather than the expiring Stripe CLI key.
+Result: Stripe live products, prices, and webhook endpoint now exist. Vercel Production has `STRIPE_WEBHOOK_SECRET` and sensitive `STRIPE_SECRET_KEY`. The Stripe CLI key was not used as the runtime key because Stripe CLI keys expire.
 
 - [x] **Step 4: Verify OpenAI voice behavior**
 

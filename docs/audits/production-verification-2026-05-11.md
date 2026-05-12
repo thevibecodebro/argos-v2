@@ -6,7 +6,7 @@ Executed on May 12, 2026 from branch `codex/argos-remediation-sweep`.
 
 Production is not ready to mark remediated.
 
-The local remediation branch is ahead of production and Vercel still needs a durable Stripe runtime secret. Hosted Supabase migrations and Stripe live catalog/webhook setup were completed in the May 12 follow-up pass.
+The local remediation branch is ahead of production and still needs live smoke verification after deploy. Hosted Supabase migrations, Stripe live catalog/webhook setup, and Vercel production Stripe secrets were completed in the May 12 follow-up pass.
 
 ## Vercel
 
@@ -46,16 +46,18 @@ Production env names present:
 - `ARGOS_RATE_LIMIT_HASH_SECRET`
 - `ARGOS_BOOTSTRAP_ADMIN_EMAILS`
 - `ARGOS_GHL_ENABLED`
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
 
 Production env names missing for completed billing:
 
-- `STRIPE_SECRET_KEY`
 - `GHL_CLIENT_ID`
 - `GHL_CLIENT_SECRET`
 - `GHL_REDIRECT_URI`
 
 Production Stripe env names added in follow-up:
 
+- `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
 
 HTTP smoke:
@@ -151,11 +153,11 @@ Stripe live setup attempt:
 
 - Initial live setup was blocked because the active live key was restricted and lacked product endpoint permissions.
 - After Stripe CLI permission updates, live products, prices, and webhook endpoint creation succeeded.
-- The Stripe CLI key is still not suitable for Vercel Production runtime because Stripe CLI keys expire; Vercel needs a durable live restricted key for `STRIPE_SECRET_KEY`.
+- Vercel Production now has a durable live Stripe runtime key stored as sensitive `STRIPE_SECRET_KEY`.
 
 Production billing blockers:
 
-- Vercel Production is missing `STRIPE_SECRET_KEY`.
+- Vercel Production has `STRIPE_SECRET_KEY`.
 - Vercel Production has `STRIPE_WEBHOOK_SECRET`.
 - Stripe live products, prices, and webhook endpoint now exist.
 - Hosted Supabase now has billing, voice entitlement, and audit tables.
@@ -193,7 +195,6 @@ GHL:
 
 ## Required Before Production Signoff
 
-1. Add Vercel Production `STRIPE_SECRET_KEY` from a durable live restricted key with checkout, price, customer, and billing portal permissions.
-2. Redeploy the remediation branch or merge it to the production branch and deploy.
-3. Run live smoke tests for blocked public signup, invite acceptance, checkout/webhook entitlement update, roleplay end-and-score voice shutdown, and voice quota enforcement.
-4. Verify Zoom OAuth/webhook delivery and worker processing against the deployed remediation commit.
+1. Redeploy the remediation branch or merge it to the production branch and deploy so the new production Stripe env values are attached to the live runtime.
+2. Run live smoke tests for blocked public signup, invite acceptance, checkout/webhook entitlement update, roleplay end-and-score voice shutdown, and voice quota enforcement.
+3. Verify Zoom OAuth/webhook delivery and worker processing against the deployed remediation commit.
