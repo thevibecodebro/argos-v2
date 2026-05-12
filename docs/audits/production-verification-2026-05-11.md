@@ -6,7 +6,7 @@ Executed on May 12, 2026 from branch `codex/argos-remediation-sweep`.
 
 Production is not ready to mark remediated.
 
-The local remediation branch is ahead of production and Stripe live billing is not configured in Vercel or Stripe. Hosted Supabase migrations were applied in the May 12 follow-up pass.
+The local remediation branch is ahead of production and Vercel still needs a durable Stripe runtime secret. Hosted Supabase migrations and Stripe live catalog/webhook setup were completed in the May 12 follow-up pass.
 
 ## Vercel
 
@@ -50,10 +50,13 @@ Production env names present:
 Production env names missing for completed billing:
 
 - `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
 - `GHL_CLIENT_ID`
 - `GHL_CLIENT_SECRET`
 - `GHL_REDIRECT_URI`
+
+Production Stripe env names added in follow-up:
+
+- `STRIPE_WEBHOOK_SECRET`
 
 HTTP smoke:
 
@@ -126,21 +129,35 @@ Stripe CLI default test-mode resources:
 
 Stripe live-mode resources:
 
-- `stripe products list --live --limit 10`: no products.
-- `stripe prices list --live --limit 20`: no prices.
-- `stripe webhook_endpoints list --live --limit 10`: no webhook endpoints.
+- Products:
+  - `prod_argos_solo`
+  - `prod_argos_team`
+  - `prod_argos_extra_voice_minutes`
+- Prices:
+  - `argos_solo_monthly`: `price_1TWJVlHQQsl005RT8PUT4K2M`, `$79.00/month`
+  - `argos_solo_annual`: `price_1TWJVlHQQsl005RTdZ2NpBmw`, `$853.20/year`
+  - `argos_paid_seat_monthly`: `price_1TWJVlHQQsl005RTlgw5MlDy`, `$50.00/seat/month`
+  - `argos_paid_seat_annual`: `price_1TWJVlHQQsl005RToMCjmJct`, `$540.00/seat/year`
+  - `argos_extra_minutes_250`: `price_1TWJW2HQQsl005RTf6ybYHHg`, `$125.00`
+  - `argos_extra_minutes_500`: `price_1TWJW2HQQsl005RTX19VEP6n`, `$175.00`
+  - `argos_extra_minutes_2000`: `price_1TWJW2HQQsl005RTmmElUZRd`, `$600.00`
+- Webhook endpoint:
+  - `we_1TWJWQHQQsl005RT9NfxzKZP`
+  - URL: `https://argos-v2-thevibecodebro.vercel.app/api/webhooks/stripe`
+  - API version: `2026-02-25.clover`
+  - Enabled events: `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`
 
 Stripe live setup attempt:
 
-- Creating live products/prices was attempted with the currently authenticated Stripe CLI key.
-- Stripe rejected product creation because the active live key is a restricted `rk_live...` key without permission for the products endpoint.
-- Live Stripe setup requires a full-permission live secret key or dashboard access with product, price, and webhook endpoint creation rights.
+- Initial live setup was blocked because the active live key was restricted and lacked product endpoint permissions.
+- After Stripe CLI permission updates, live products, prices, and webhook endpoint creation succeeded.
+- The Stripe CLI key is still not suitable for Vercel Production runtime because Stripe CLI keys expire; Vercel needs a durable live restricted key for `STRIPE_SECRET_KEY`.
 
 Production billing blockers:
 
 - Vercel Production is missing `STRIPE_SECRET_KEY`.
-- Vercel Production is missing `STRIPE_WEBHOOK_SECRET`.
-- Stripe live mode has no product, no price, and no webhook endpoint.
+- Vercel Production has `STRIPE_WEBHOOK_SECRET`.
+- Stripe live products, prices, and webhook endpoint now exist.
 - Hosted Supabase now has billing, voice entitlement, and audit tables.
 
 ## OpenAI Voice
@@ -176,7 +193,7 @@ GHL:
 
 ## Required Before Production Signoff
 
-1. Configure Stripe live products, prices, webhook endpoint, and Vercel Production `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` using a Stripe key with sufficient live permissions.
+1. Add Vercel Production `STRIPE_SECRET_KEY` from a durable live restricted key with checkout, price, customer, and billing portal permissions.
 2. Redeploy the remediation branch or merge it to the production branch and deploy.
-3. Run live smoke tests for blocked public signup, invite acceptance, Google OAuth, checkout/webhook entitlement update, roleplay end-and-score voice shutdown, and voice quota enforcement.
+3. Run live smoke tests for blocked public signup, invite acceptance, checkout/webhook entitlement update, roleplay end-and-score voice shutdown, and voice quota enforcement.
 4. Verify Zoom OAuth/webhook delivery and worker processing against the deployed remediation commit.

@@ -470,7 +470,7 @@ Record:
 - extra voice pack checkout grants minutes
 - failed payment maps to inactive or blocked voice availability
 
-Result: Stripe test-mode product/price exist, but live mode has no products, prices, or webhook endpoints, and Vercel is missing Stripe secrets. Product creation was attempted with the active Stripe CLI key and blocked because the live key is restricted and lacks product endpoint permissions.
+Result: Stripe live products, prices, and webhook endpoint now exist. Vercel Production has `STRIPE_WEBHOOK_SECRET`. Vercel is still missing `STRIPE_SECRET_KEY`; it must come from a durable live restricted key rather than the expiring Stripe CLI key.
 
 - [x] **Step 4: Verify OpenAI voice behavior**
 
