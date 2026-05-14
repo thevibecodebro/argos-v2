@@ -151,6 +151,7 @@ describe("legacy auth shell", () => {
     expect(html).toContain("No invite yet? Ask your admin or start an organization by signing up.");
     expect(html).toContain("Rep access");
     expect(html).toContain("argos-wordmark");
+    expect(html).toContain("2026 Argos Revenue Command. All rights reserved.");
     expect(html).toContain('href="/#access"');
     expect(html).toContain('href="/login?next=%2Finvite%2Finvite-token"');
     expect(html).toContain("Sign in to accept");

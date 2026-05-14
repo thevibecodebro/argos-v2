@@ -129,7 +129,7 @@ export function InviteAccessShell({
         <div className={styles.inviteFooterInner}>
           <div>
             <div className={landingStyles["argos-footer-brand"]}>ARGOS</div>
-            <p>© 2026 Argos Intelligence. All rights reserved.</p>
+            <p>2026 Argos Revenue Command. All rights reserved.</p>
           </div>
           <LegalFooterLinks className="justify-center text-[10px] tracking-[0.12em] text-[var(--forge-faint)]" />
         </div>
