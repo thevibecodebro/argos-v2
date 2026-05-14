@@ -72,11 +72,12 @@ describe("public landing styles", () => {
     );
 
     expect(moduleCss).toContain(".argos-wordmark-image");
-    expect(moduleCss).toContain("width: min(78rem, 100%);");
-    expect(moduleCss).toContain("grid-template-columns: 1fr auto 1fr;");
+    expect(moduleCss).toContain("object-fit: contain;");
+    expect(moduleCss).toContain("width: min(76rem, calc(100% - clamp(1rem, 4vw, 2.5rem)));");
+    expect(moduleCss).toContain("grid-template-columns: minmax(11rem, 1fr) auto minmax(11rem, 1fr);");
     expect(moduleCss).toContain(".argos-nav-links {");
-    expect(moduleCss).toContain("border: 1px solid rgba(255, 244, 230, 0.08);");
-    expect(moduleCss).toContain("border-radius: 999px;");
+    expect(moduleCss).toContain(".argos-nav-links a::after");
+    expect(moduleCss).toContain("border-color: transparent;");
     expect(moduleCss).toContain("@media (max-width: 700px)");
     expect(moduleCss).toContain("grid-template-columns: minmax(0, 1fr) auto;");
     expect(moduleCss).toContain("overflow-x: auto;");
