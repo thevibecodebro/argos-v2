@@ -10,7 +10,11 @@ describe("LandingPage", () => {
     expect(html).toContain("argos-3d-page");
     expect(html).toContain("text-[var(--forge-text)]");
     expect(html).toContain("argos-scene-fallback");
-    expect(html).toContain("<h1>Argos</h1>");
+    expect(html).toContain("Argos");
+    expect(html).toContain('data-argos-logo="homepage-nav"');
+    expect(html).toContain('data-argos-logo="homepage-hero"');
+    expect(html).toContain('data-argos-logo="homepage-footer"');
+    expect(html.match(/src="\/argos_logo_background\.png"/g)).toHaveLength(3);
     expect(html).toContain("Turn every sales call into the next practice plan.");
     expect(html).toContain("Revenue Command");
     expect(html).toContain("The call becomes the coaching plan.");

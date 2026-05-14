@@ -128,6 +128,8 @@ describe("AuthenticatedAppShell", () => {
     expect(html).toContain('data-shell-theme="forge"');
     expect(html).toContain("Open navigation");
     expect(html).toContain("Revenue Command");
+    expect(html).toContain('data-argos-logo="primary-rail"');
+    expect(html).toContain('src="/argos_logo_background.png"');
     expect(html).toContain('aria-label="Collapse navigation"');
     expect(html).toContain('data-primary-rail-toggle-icon="collapse"');
     expect(html).not.toContain('data-forge-icon-name="chevron_left"');

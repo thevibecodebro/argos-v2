@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArgosLogo } from "@/components/argos-logo";
 import { LegalFooterLinks } from "@/components/public/legal-links";
 
 type AuthShellProps = {
@@ -24,11 +25,16 @@ export function AuthShell({ children }: AuthShellProps) {
     >
       <header className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-8 py-6">
         <Link
-          className="forge-focus-ring rounded-lg font-[var(--font-display)] text-2xl font-bold tracking-tight text-[var(--forge-text)]"
+          aria-label="Argos homepage"
+          className="forge-focus-ring block w-28 rounded-lg sm:w-32"
           href="/"
-          style={{ fontFamily: "var(--font-display, 'Space Grotesk', sans-serif)" }}
         >
-          Argos
+          <ArgosLogo
+            className="block"
+            decorative
+            imageClassName="block h-auto w-full"
+            placement="auth-header"
+          />
         </Link>
         <div className="flex items-center space-x-4">
           <LanguageIcon />
@@ -44,6 +50,12 @@ export function AuthShell({ children }: AuthShellProps) {
 
           <div className="relative z-10 w-full max-w-xl p-12">
             <div className="forge-surface rounded-[2rem] p-8">
+              <ArgosLogo
+                className="mb-8 block w-32"
+                decorative
+                imageClassName="block h-auto w-full"
+                placement="auth-panel"
+              />
               <p className="forge-page-eyebrow">Revenue Command</p>
               <h2
                 className="mt-5 font-[var(--font-display)] text-5xl font-bold leading-[0.96] tracking-tight text-[var(--forge-text)]"
@@ -191,12 +203,17 @@ export function LegacyAuthShell({ children, note }: LegacyAuthShellProps) {
       <div className="forge-surface mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-[1500px] items-center justify-center rounded-[2rem] border border-[var(--forge-border)] bg-[var(--forge-surface)] shadow-[inset_0_1px_0_rgba(255,244,230,0.06)] sm:min-h-[calc(100vh-4rem)]">
         <div className="w-full max-w-4xl px-6 py-12 sm:px-10 md:px-16 md:py-16">
           <div className="flex flex-col items-center text-center">
-            <BrandMark className="h-16 w-16 sm:h-[4.5rem] sm:w-[4.5rem]" />
+            <ArgosLogo
+              className="block w-44 sm:w-56"
+              decorative
+              imageClassName="block h-auto w-full"
+              placement="legacy-auth-hero"
+            />
 
-            <h1 className="mt-10 font-[var(--font-display)] text-5xl font-semibold tracking-tight text-[var(--forge-text)] sm:text-7xl">
+            <h1 className="sr-only">
               Argos
             </h1>
-            <p className="mt-4 text-xl text-[var(--forge-muted)] sm:text-[2rem]">
+            <p className="mt-6 text-xl text-[var(--forge-muted)] sm:text-[2rem]">
               Revenue Command
             </p>
 
@@ -237,38 +254,6 @@ export function LegacyPrimaryLink({
     >
       {children}
     </Link>
-  );
-}
-
-function BrandMark({ className }: { className?: string }) {
-  return (
-    <div className={className}>
-      <svg aria-hidden="true" className="h-full w-full" fill="none" viewBox="0 0 72 72">
-        <rect
-          fill="var(--forge-surface-3)"
-          height="72"
-          rx="18"
-          width="72"
-        />
-        <rect
-          height="70"
-          rx="17"
-          stroke="var(--forge-border-strong)"
-          strokeWidth="2"
-          width="70"
-          x="1"
-          y="1"
-        />
-        <circle cx="36" cy="36" r="14" stroke="var(--forge-gold)" strokeWidth="3" />
-        <circle cx="36" cy="36" fill="var(--forge-gold)" r="4.5" />
-        <path
-          d="M36 12v6M36 54v6M60 36h-6M18 36h-6"
-          stroke="var(--forge-ember)"
-          strokeLinecap="round"
-          strokeWidth="3"
-        />
-      </svg>
-    </div>
   );
 }
 

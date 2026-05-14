@@ -43,10 +43,17 @@
 }
 
 .inviteNavLogo {
+  display: block;
   width: 7.4rem;
+  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.32));
+  line-height: 0;
+}
+
+.inviteLogoImage {
+  display: block;
+  width: 100%;
   height: auto;
   object-fit: contain;
-  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.32));
 }
 
 .inviteNavActions {
@@ -108,10 +115,10 @@
 }
 
 .inviteLogo {
+  display: block;
   width: min(18.5rem, 64vw);
-  height: auto;
-  object-fit: contain;
   filter: drop-shadow(0 18px 36px rgba(0, 0, 0, 0.44));
+  line-height: 0;
 }
 
 .inviteHero .inviteHeading {

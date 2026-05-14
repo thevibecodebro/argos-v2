@@ -1,5 +1,5 @@
-import Image from "next/image";
 import Link from "next/link";
+import { ArgosLogo } from "@/components/argos-logo";
 import { LegalFooterLinks } from "@/components/public/legal-links";
 import { ArgosSceneLoader } from "@/components/public/argos-scene-loader";
 import landingStyles from "@/components/public/landing-page.module.css";
@@ -20,13 +20,6 @@ type InviteActionPanelProps = {
   title: string;
   tone?: "gold" | "danger" | "muted";
 };
-
-const argosWordmark = {
-  alt: "Argos",
-  height: 147,
-  src: "/brand/argos-wordmark.png",
-  width: 818,
-} as const;
 
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -59,14 +52,11 @@ export function InviteAccessShell({
       <header className={styles.inviteHeader} aria-label="Invite access navigation">
         <nav className={styles.inviteNav}>
           <Link aria-label="Argos homepage" className={styles.inviteNavBrand} href="/">
-            <Image
-              alt=""
-              aria-hidden="true"
+            <ArgosLogo
               className={styles.inviteNavLogo}
-              height={argosWordmark.height}
-              priority
-              src={argosWordmark.src}
-              width={argosWordmark.width}
+              decorative
+              imageClassName={styles.inviteLogoImage}
+              placement="invite-nav"
             />
           </Link>
 
@@ -92,13 +82,10 @@ export function InviteAccessShell({
           <div className={cx(landingStyles["argos-hero-copy"], styles.inviteCopy)} data-reveal>
             <p className={landingStyles["argos-eyebrow"]}>Workspace invitation</p>
             <div className={styles.inviteLogoLockup}>
-              <Image
-                alt={argosWordmark.alt}
+              <ArgosLogo
                 className={styles.inviteLogo}
-                height={argosWordmark.height}
-                priority
-                src={argosWordmark.src}
-                width={argosWordmark.width}
+                imageClassName={styles.inviteLogoImage}
+                placement="invite-hero"
               />
             </div>
             <h1 className={styles.inviteHeading}>{heading}</h1>
@@ -128,7 +115,14 @@ export function InviteAccessShell({
       <footer className={landingStyles["argos-footer"]}>
         <div className={styles.inviteFooterInner}>
           <div>
-            <div className={landingStyles["argos-footer-brand"]}>ARGOS</div>
+            <div aria-label="Argos" className={landingStyles["argos-footer-brand"]}>
+              <ArgosLogo
+                className={cx(landingStyles["argos-wordmark"], landingStyles["argos-footer-wordmark"])}
+                decorative
+                imageClassName={landingStyles["argos-wordmark-image"]}
+                placement="invite-footer"
+              />
+            </div>
             <p>2026 Argos Revenue Command. All rights reserved.</p>
           </div>
           <LegalFooterLinks className="justify-center text-[10px] tracking-[0.12em] text-[var(--forge-faint)]" />

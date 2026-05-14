@@ -12,6 +12,8 @@ describe("legal pages", () => {
     expect(html).toContain("Privacy Policy");
     expect(html).toContain("Last updated April 22, 2026");
     expect(html).toContain("What we collect");
+    expect(html).toContain('data-argos-logo="legal-header"');
+    expect(html).toContain('src="/argos_logo_background.png"');
     expect(html).toContain("forge-shell");
     expect(html).toContain("2026 Argos Revenue Command. All rights reserved.");
     expect(html).toContain('href="/terms-of-service"');

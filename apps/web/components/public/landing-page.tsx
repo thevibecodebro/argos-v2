@@ -1,13 +1,11 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { ArgosLogo } from "@/components/argos-logo";
 import { getBillingCheckoutHref, type BillingPlanId } from "@/lib/billing/plans";
 import { ArgosSceneLoader } from "./argos-scene-loader";
 import { LegalFooterLinks } from "./legal-links";
 import { LandingMotionController } from "./landing-motion-controller";
 import styles from "./landing-page.module.css";
-
-const ARGOS_WORDMARK_SRC = "/brand/argos-main-logo.jpg";
 
 const navLinks = [
   { label: "Calls", href: "#features" },
@@ -127,7 +125,12 @@ function LandingHeader() {
     <header className={styles["argos-nav-shell"]} aria-label="Primary navigation">
       <nav className={styles["argos-nav"]}>
         <Link aria-label="Argos homepage" className={styles["argos-brand"]} href="/">
-          <ArgosWordmark priority />
+          <ArgosLogo
+            className={styles["argos-wordmark"]}
+            decorative
+            imageClassName={styles["argos-wordmark-image"]}
+            placement="homepage-nav"
+          />
         </Link>
 
         <div
@@ -160,7 +163,15 @@ function LandingHero() {
     <section className={styles["argos-hero"]} id="platform">
       <div className={styles["argos-hero-copy"]} data-reveal>
         <p className={styles["argos-eyebrow"]}>Sales call review, coaching, and roleplay</p>
-        <h1>Argos</h1>
+        <h1 className={styles["argos-hero-logo-heading"]}>
+          <span className="sr-only">Argos</span>
+          <ArgosLogo
+            className={cx(styles["argos-wordmark"], styles["argos-hero-wordmark"])}
+            decorative
+            imageClassName={styles["argos-wordmark-image"]}
+            placement="homepage-hero"
+          />
+        </h1>
         <p className={styles["argos-hero-line"]}>Turn every sales call into the next practice plan.</p>
         <p className={styles["argos-hero-body"]}>
           Argos pulls in a call from Zoom or a manual upload, transcribes the conversation, scores
@@ -353,7 +364,12 @@ function LandingFooter() {
       <div className={styles["argos-footer-inner"]}>
         <div>
           <div aria-label="Argos" className={styles["argos-footer-brand"]}>
-            <ArgosWordmark className={styles["argos-footer-wordmark"]} />
+            <ArgosLogo
+              className={cx(styles["argos-wordmark"], styles["argos-footer-wordmark"])}
+              decorative
+              imageClassName={styles["argos-wordmark-image"]}
+              placement="homepage-footer"
+            />
           </div>
           <p>2026 Argos Revenue Command. All rights reserved.</p>
         </div>
@@ -383,22 +399,6 @@ function BillingIntervalFields({ plan }: { plan: (typeof accessPlans)[number] })
         <small>Billed yearly</small>
       </label>
     </fieldset>
-  );
-}
-
-function ArgosWordmark({ className, priority = false }: { className?: string; priority?: boolean }) {
-  return (
-    <span aria-hidden="true" className={cx(styles["argos-wordmark"], className)}>
-      <Image
-        alt=""
-        className={styles["argos-wordmark-image"]}
-        height={540}
-        priority={priority}
-        sizes="(max-width: 700px) 8rem, 11rem"
-        src={ARGOS_WORDMARK_SRC}
-        width={960}
-      />
-    </span>
   );
 }
 

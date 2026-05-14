@@ -17,7 +17,8 @@ describe("HomePage", () => {
     const html = renderToStaticMarkup(await HomePage());
 
     expect(redirectMock).not.toHaveBeenCalled();
-    expect(html).toContain("<h1>Argos</h1>");
+    expect(html).toContain('data-argos-logo="homepage-hero"');
+    expect(html).toContain('src="/argos_logo_background.png"');
     expect(html).toContain("Turn every sales call into the next practice plan.");
     expect(html).toContain("The call becomes the coaching plan.");
     expect(html).toContain('href="/login"');

@@ -9,6 +9,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@argos-v2/ui";
+import { ArgosLogo } from "./argos-logo";
 import { FeedbackDialogLoader } from "./feedback-dialog-loader";
 import { ForgeIcon } from "./forge";
 import type { AppUserRole } from "@/lib/users/roles";
@@ -262,9 +263,12 @@ export function AuthenticatedAppShell({
                   width={144}
                 />
               ) : (
-                <h1 className="font-[var(--font-display)] text-2xl font-bold tracking-[-0.04em] text-[var(--forge-text)]">
-                  Argos
-                </h1>
+                <ArgosLogo
+                  className="block w-28"
+                  decorative
+                  imageClassName="block h-auto w-full"
+                  placement="primary-rail"
+                />
               )}
               <p className="mt-0.5 font-[var(--font-display)] text-[0.62rem] font-bold uppercase tracking-[0.24em] text-[var(--forge-gold)]">
                 Revenue Command

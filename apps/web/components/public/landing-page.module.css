@@ -561,23 +561,17 @@ html:has(.argos-3d-page) {
   position: relative;
   display: inline-flex;
   width: clamp(8.75rem, 11vw, 10rem);
-  aspect-ratio: 6 / 1;
+  aspect-ratio: 830 / 151;
   flex: 0 0 auto;
   align-items: center;
-  overflow: hidden;
   line-height: 0;
 }
 
 .argos-wordmark-image {
-  position: absolute;
-  top: 50%;
-  left: 50%;
   width: 100%;
   height: auto;
   filter: drop-shadow(0 10px 24px rgba(255, 244, 230, 0.08));
   object-fit: contain;
-  transform: translate(-50%, -50%) scale(1.03);
-  transform-origin: center;
 }
 
 .argos-nav-links {
@@ -753,14 +747,15 @@ html:has(.argos-3d-page) {
   background: linear-gradient(90deg, transparent, var(--argos-ember));
 }
 
-.argos-hero h1 {
-  color: var(--argos-ivory);
-  font-family: var(--font-display, "Space Grotesk", sans-serif);
-  font-size: clamp(5.2rem, 16vw, 15.5rem);
-  font-weight: 800;
-  letter-spacing: 0;
-  line-height: 0.82;
-  text-transform: uppercase;
+.argos-hero-logo-heading {
+  width: min(43rem, 100%);
+  margin: 0;
+  line-height: 1;
+}
+
+.argos-hero-wordmark {
+  width: 100%;
+  filter: drop-shadow(0 24px 70px rgba(255, 244, 230, 0.1));
 }
 
 .argos-hero-line {
@@ -1795,7 +1790,6 @@ html:has(.argos-3d-page) {
 
   .argos-wordmark {
     width: clamp(7.05rem, 31vw, 8.3rem);
-    height: 1.82rem;
   }
 
   .argos-login-link {
@@ -1843,9 +1837,8 @@ html:has(.argos-3d-page) {
     scroll-margin-top: 0;
   }
 
-  .argos-hero h1 {
-    font-size: clamp(3.75rem, 24vw, 6.2rem);
-    line-height: 0.9;
+  .argos-hero-logo-heading {
+    width: min(26rem, 100%);
   }
 
   .argos-hero-line {
@@ -1935,7 +1928,6 @@ html:has(.argos-3d-page) {
 
   .argos-wordmark {
     width: clamp(6.25rem, 30vw, 7.35rem);
-    height: 1.66rem;
   }
 
   .argos-login-link,
@@ -1968,8 +1960,8 @@ html:has(.argos-3d-page) {
     padding-inline: 1rem;
   }
 
-  .argos-hero h1 {
-    font-size: clamp(3.35rem, 22vw, 4.8rem);
+  .argos-hero-logo-heading {
+    width: min(20rem, 100%);
   }
 
   .argos-hero-body,

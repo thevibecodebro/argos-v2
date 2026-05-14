@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArgosLogo } from "@/components/argos-logo";
 import { LegalFooterLinks } from "./legal-links";
 
 type LegalPageSection = {
@@ -24,11 +25,16 @@ export function LegalPage({ eyebrow, intro, lastUpdated, sections, title }: Lega
       <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-6 py-8 sm:px-8 lg:px-10">
         <header className="flex items-center justify-between gap-4 py-4">
           <Link
-            className="forge-focus-ring rounded-lg font-[var(--font-display)] text-2xl font-bold tracking-tight text-[var(--forge-text)]"
+            aria-label="Argos homepage"
+            className="forge-focus-ring block w-28 rounded-lg sm:w-32"
             href="/"
-            style={{ fontFamily: "var(--font-display, 'Space Grotesk', sans-serif)" }}
           >
-            Argos
+            <ArgosLogo
+              className="block"
+              decorative
+              imageClassName="block h-auto w-full"
+              placement="legal-header"
+            />
           </Link>
           <Link className="forge-focus-ring rounded-lg text-sm text-[var(--forge-muted)] transition-colors duration-150 hover:text-[var(--forge-text)]" href="/">
             Back to homepage

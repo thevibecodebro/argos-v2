@@ -92,6 +92,9 @@ describe("legacy auth shell", () => {
     expect(html).toContain("Continue with Google");
     expect(html).toContain("Work Email");
     expect(html).toContain('data-auth-shell="forge"');
+    expect(html).toContain('data-argos-logo="auth-header"');
+    expect(html).toContain('data-argos-logo="auth-panel"');
+    expect(html).toContain('src="/argos_logo_background.png"');
     expect(html).toContain("Review calls, score performance, save highlights, assign training, practice roleplay, and coach the team.");
     expect(html).toContain('href="/privacy-policy"');
     expect(html).toContain('href="/terms-of-service"');
@@ -151,6 +154,9 @@ describe("legacy auth shell", () => {
     expect(html).toContain("No invite yet? Ask your admin or start an organization by signing up.");
     expect(html).toContain("Rep access");
     expect(html).toContain("argos-wordmark");
+    expect(html).toContain('data-argos-logo="invite-nav"');
+    expect(html).toContain('data-argos-logo="invite-hero"');
+    expect(html).toContain('data-argos-logo="invite-footer"');
     expect(html).toContain("2026 Argos Revenue Command. All rights reserved.");
     expect(html).toContain('href="/#access"');
     expect(html).toContain('href="/login?next=%2Finvite%2Finvite-token"');
