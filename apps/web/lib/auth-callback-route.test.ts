@@ -102,4 +102,68 @@ describe("auth callback route", () => {
 
     expect(response.headers.get("location")).toBe("https://app.argos.ai/dashboard");
   });
+
+  it("sends newly provisioned users without an organization to onboarding for protected destinations", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://app.argos.ai");
+
+    createSupabaseServerClient.mockResolvedValue({
+      auth: {
+        exchangeCodeForSession: vi.fn().mockResolvedValue({ error: null }),
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              email: "new-rep@argos.ai",
+              id: "auth-user-2",
+            },
+          },
+          error: null,
+        }),
+      },
+    });
+    ensureUserProvisioned.mockResolvedValue({
+      created: true,
+      orgId: null,
+      userId: "auth-user-2",
+    });
+
+    const route = await import("../app/auth/callback/route");
+    const response = await route.GET(
+      new Request("https://app.argos.ai/auth/callback?code=auth-code&next=/dashboard"),
+    );
+
+    expect(response.headers.get("location")).toBe("https://app.argos.ai/onboarding");
+  });
+
+  it("keeps non-protected invite destinations for users without an organization", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://app.argos.ai");
+
+    createSupabaseServerClient.mockResolvedValue({
+      auth: {
+        exchangeCodeForSession: vi.fn().mockResolvedValue({ error: null }),
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              email: "invited-rep@argos.ai",
+              id: "auth-user-3",
+            },
+          },
+          error: null,
+        }),
+      },
+    });
+    ensureUserProvisioned.mockResolvedValue({
+      created: true,
+      orgId: null,
+      userId: "auth-user-3",
+    });
+
+    const route = await import("../app/auth/callback/route");
+    const response = await route.GET(
+      new Request("https://app.argos.ai/auth/callback?code=auth-code&next=/invite/invite-token"),
+    );
+
+    expect(response.headers.get("location")).toBe("https://app.argos.ai/invite/invite-token");
+  });
 });
