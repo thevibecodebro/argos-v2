@@ -59,10 +59,16 @@ describe("OnboardingPage", () => {
     const html = renderToStaticMarkup(await OnboardingPage());
 
     expect(html).toContain("Welcome to Argos");
+    expect(html).toContain("Workspace readiness");
+    expect(html).toContain("Identity verified");
+    expect(html).toContain("Workspace access");
+    expect(html).toContain("Team launch");
+    expect(html).toContain("Account verified");
     expect(html).toContain("Invite required");
     expect(html).toContain("Open the invite link your admin sent to join your Argos workspace.");
     expect(html).not.toContain("Create Organization");
     expect(html).not.toContain("Join Organization");
+    expect(html).not.toContain("Revenue Command");
     expect(html).toContain('data-auth-shell="forge"');
     expect(html).toContain("forge-surface");
     expect(html).toContain("forge-focus-ring");
@@ -83,6 +89,8 @@ describe("OnboardingPage", () => {
     const html = renderToStaticMarkup(await OnboardingPage());
 
     expect(html).toContain("Create Organization");
+    expect(html).toContain("Create workspace");
+    expect(html).toContain("Organization Slug");
     expect(html).not.toContain("Join Organization");
     expect(html).toContain("Set up the first Argos workspace for your company.");
   });
