@@ -37,7 +37,7 @@ describe("public landing styles", () => {
     expect(moduleCss).not.toContain(".landing-page");
     expect(moduleCss).not.toContain("#74b1ff");
     expect(moduleCss).not.toContain("#6dddff");
-    expect(moduleCss).toContain("scroll-padding-top: 7.5rem;");
+    expect(moduleCss).toContain("scroll-padding-top: 6.75rem;");
     expect(moduleCss).toContain(".argos-footer nav[aria-label=\"Legal\"] a");
     expect(moduleCss).toContain("min-height: 2.75rem;");
     expect(moduleCss).not.toContain("mix-blend-mode: screen");
@@ -63,5 +63,22 @@ describe("public landing styles", () => {
     expect(scene).not.toContain("pointermove");
     expect(scene).toContain('root.style.setProperty("--forge-pointer-x", "0")');
     expect(scene).toContain('root.style.setProperty("--forge-pointer-y", "0")');
+  });
+
+  it("keeps the public nav restrained and compact across viewports", () => {
+    const moduleCss = readFileSync(
+      new URL("../components/public/landing-page.module.css", import.meta.url),
+      "utf8",
+    );
+
+    expect(moduleCss).toContain("--argos-nav-height: 4.25rem;");
+    expect(moduleCss).toContain("grid-template-columns: auto minmax(0, 1fr) auto;");
+    expect(moduleCss).toContain(".argos-nav-links {");
+    expect(moduleCss).not.toContain(".argos-nav-links {\n  gap: 0.35rem;\n  justify-content: center;\n  border:");
+    expect(moduleCss).toContain("border-radius: 1.15rem;");
+    expect(moduleCss).toContain("@media (max-width: 760px)");
+    expect(moduleCss).toContain(".argos-nav-links {\n    display: none;");
+    expect(moduleCss).toContain("min-height: 2.75rem;");
+    expect(moduleCss).toContain("scroll-padding-top: 6.75rem;");
   });
 });
