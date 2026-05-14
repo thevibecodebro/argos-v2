@@ -29,9 +29,15 @@ describe("LandingPage", () => {
     expect(html).toContain("Coach from what happened, not from memory.");
     expect(html).toContain("GoHighLevel workflow automation");
     expect(html).toContain("recording consent");
-    expect(html).toContain("Start with one rep. Add the team later.");
-    expect(html).toContain("Access platform");
-    expect(html).toContain("Book a demo");
+    expect(html).toContain("Choose a plan, then invite your team.");
+    expect(html).toContain("Team plans belong to the organization.");
+    expect(html).toContain("View plans");
+    expect(html).toContain("Start Team checkout");
+    expect(html).toContain(">Sign in</a>");
+    expect(html).not.toContain(">Login</a>");
+    expect(html).not.toContain(">Access</a>");
+    expect(html).not.toContain("Access platform");
+    expect(html).not.toContain("Book a demo");
     expect(html).toContain("Privacy Policy");
     expect(html).toContain('href="#features"');
     expect(html).toContain(">Calls</a>");

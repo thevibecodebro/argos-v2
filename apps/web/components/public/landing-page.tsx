@@ -128,10 +128,10 @@ function LandingHeader() {
 
         <div className={styles["argos-nav-actions"]}>
           <Link className={styles["argos-login-link"]} href="/login">
-            Login
+            Sign in
           </Link>
-          <Link className={styles["argos-mini-cta"]} href="/login">
-            Access
+          <Link className={styles["argos-mini-cta"]} href="#access">
+            View plans
           </Link>
         </div>
       </nav>
@@ -152,7 +152,7 @@ function LandingHero() {
           training, launch roleplay, and see where the team needs work.
         </p>
         <div className={styles["argos-hero-actions"]}>
-          <PremiumButton href="/login">Access platform</PremiumButton>
+          <PremiumButton href="#access">View plans</PremiumButton>
           <a className={styles["argos-secondary-action"]} href="#features">
             See the call flow
           </a>
@@ -243,11 +243,11 @@ function LandingAccess() {
     <section className={cx(styles["argos-section"], styles["argos-access-section"])} id="access">
       <div className={styles["argos-access-panel"]} data-reveal>
         <div>
-          <p className={styles["argos-eyebrow"]}>Access model</p>
-          <h2>Start with one rep. Add the team later.</h2>
+          <p className={styles["argos-eyebrow"]}>Plans</p>
+          <h2>Choose a plan, then invite your team.</h2>
           <p>
-            Solo gives one seller a private practice loop. Team gives managers shared visibility,
-            pooled minutes, leaderboards, admin controls, and training workflows for the whole org.
+            Solo gives one seller a private practice loop. Team plans belong to the organization.
+            After checkout, admins invite reps and managers into the workspace.
           </p>
         </div>
 
@@ -320,9 +320,9 @@ function LandingAccess() {
         </div>
 
         <div className={styles["argos-access-actions"]}>
-          <PremiumButton href={getBillingCheckoutHref("team")}>Access platform</PremiumButton>
+          <PremiumButton href={getBillingCheckoutHref("team")}>Start Team checkout</PremiumButton>
           <Link className={styles["argos-secondary-action"]} href="/login">
-            Book a demo
+            Sign in
           </Link>
         </div>
       </div>

@@ -21,11 +21,12 @@ describe("HomePage", () => {
     expect(html).toContain("Turn every sales call into the next practice plan.");
     expect(html).toContain("The call becomes the coaching plan.");
     expect(html).toContain('href="/login"');
-    expect(html).toContain("Access platform");
+    expect(html).toContain("View plans");
+    expect(html).toContain("Start Team checkout");
     expect(html).toContain('id="platform"');
     expect(html).toContain('href="#access"');
     expect(html).toContain("Solo");
     expect(html).toContain("Team");
-    expect(html).toContain("Start with one rep. Add the team later.");
+    expect(html).toContain("Choose a plan, then invite your team.");
   });
 });
