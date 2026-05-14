@@ -14,7 +14,6 @@ type CookieToSet = {
 export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isAuthSurface =
-    pathname === "/" ||
     pathname === "/login" ||
     isProtectedPath(pathname);
 
@@ -75,7 +74,7 @@ export async function updateSession(request: NextRequest) {
 
   response.headers.set("Cache-Control", "private, no-store");
 
-  if (user && (pathname === "/" || pathname === "/login")) {
+  if (user && pathname === "/login") {
     const redirectResponse = NextResponse.redirect(
       new URL(getAuthenticatedEntryHref(true), request.url),
     );

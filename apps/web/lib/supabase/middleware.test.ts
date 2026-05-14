@@ -73,4 +73,19 @@ describe("updateSession", () => {
     expect(response.headers.get("location")).toBeNull();
     expect(getUserMock).not.toHaveBeenCalled();
   });
+
+  it("keeps the public homepage available for authenticated users", async () => {
+    getUserMock.mockResolvedValue({
+      data: { user: { id: "auth-user-1" } },
+      error: null,
+    });
+
+    const request = new NextRequest("http://localhost:3000/");
+
+    const response = await updateSession(request);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("location")).toBeNull();
+    expect(getUserMock).not.toHaveBeenCalled();
+  });
 });
