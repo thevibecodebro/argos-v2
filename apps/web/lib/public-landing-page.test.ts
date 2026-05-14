@@ -54,7 +54,7 @@ describe("LandingPage", () => {
     expect(html).toContain('href="/privacy-policy"');
     expect(html).toContain('href="/terms-of-service"');
     expect(html).toContain('href="/security-policy"');
-    expect(html).toContain("© 2026 Argos Intelligence. All rights reserved.");
+    expect(html).toContain("2026 Argos Revenue Command. All rights reserved.");
     expect(html).toContain("Solo");
     expect(html).toContain("$79/month");
     expect(html).toContain("120 live voice minutes/month");

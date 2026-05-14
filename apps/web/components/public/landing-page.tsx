@@ -355,7 +355,7 @@ function LandingFooter() {
           <div aria-label="Argos" className={styles["argos-footer-brand"]}>
             <ArgosWordmark className={styles["argos-footer-wordmark"]} />
           </div>
-          <p>© 2026 Argos Intelligence. All rights reserved.</p>
+          <p>2026 Argos Revenue Command. All rights reserved.</p>
         </div>
         <LegalFooterLinks className="justify-center" />
         <a aria-label="Back to top" className={styles["argos-top-link"]} href="#top">

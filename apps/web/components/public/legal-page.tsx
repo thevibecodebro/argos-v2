@@ -75,7 +75,7 @@ export function LegalPage({ eyebrow, intro, lastUpdated, sections, title }: Lega
 
         <footer className="mt-auto flex flex-col gap-5 py-8 text-[var(--forge-muted)]">
           <LegalFooterLinks />
-          <p className="text-xs uppercase tracking-[0.2em]">© 2026 Argos Intelligence. All rights reserved.</p>
+          <p className="text-xs uppercase tracking-[0.2em]">2026 Argos Revenue Command. All rights reserved.</p>
         </footer>
       </div>
     </main>
