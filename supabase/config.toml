@@ -37,7 +37,7 @@ additional_redirect_urls = [
   "https://**.vercel.app/**"
 ]
 jwt_expiry = 3600
-enable_signup = false
+enable_signup = true
 
 [auth.email]
 enable_signup = false

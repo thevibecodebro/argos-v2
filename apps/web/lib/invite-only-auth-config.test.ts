@@ -11,12 +11,12 @@ const loginFormSource = readFileSync(
 );
 
 describe("invite-only auth configuration", () => {
-  it("keeps local Supabase signup disabled", () => {
-    expect(supabaseConfigSource).toMatch(/\[auth\][\s\S]*?enable_signup = false/);
-    expect(supabaseConfigSource).toMatch(/\[auth\.email\][\s\S]*?enable_signup = false/);
+  it("allows OAuth auth users so orgless Google accounts can reach onboarding", () => {
+    expect(supabaseConfigSource).toMatch(/\[auth\][\s\S]*?enable_signup = true/);
   });
 
-  it("prevents browser magic links from creating new auth users", () => {
+  it("keeps email magic links from creating new auth users", () => {
+    expect(supabaseConfigSource).toMatch(/\[auth\.email\][\s\S]*?enable_signup = false/);
     expect(loginFormSource).toContain("shouldCreateUser: false");
   });
 });

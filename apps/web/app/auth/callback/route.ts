@@ -5,6 +5,7 @@ import { isRetryableSupabaseAuthError } from "@/lib/supabase/auth-errors";
 import { logAuthTransportFailure } from "@/lib/supabase/auth-observability";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSafeRequestOrigin } from "@/lib/security/trusted-origins";
+import { getAuthenticatedEntryHref, isProtectedPath } from "@/lib/auth-routing";
 
 function getSafeNextPath(value: string | null) {
   if (!value?.startsWith("/") || value.startsWith("//")) {
@@ -66,7 +67,14 @@ export async function GET(request: Request) {
       }
 
       if (user) {
-        await ensureUserProvisioned(new SupabaseProvisioningRepository(), user);
+        const provisionedUser = await ensureUserProvisioned(
+          new SupabaseProvisioningRepository(),
+          user,
+        );
+
+        if (provisionedUser?.orgId === null && isProtectedPath(next)) {
+          return NextResponse.redirect(`${origin}${getAuthenticatedEntryHref(false)}`);
+        }
       }
 
       return NextResponse.redirect(`${origin}${next}`);
