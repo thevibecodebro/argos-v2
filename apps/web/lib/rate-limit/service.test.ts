@@ -114,6 +114,55 @@ describe("rate limit service", () => {
     });
   });
 
+  it.each([
+    ["billingCheckout", 10, 60 * 60],
+    ["organizationCreate", 5, 60 * 60],
+    ["organizationJoin", 10, 60 * 60],
+    ["inviteAccept", 20, 60 * 60],
+  ] as const)("sets a conservative user throttle for %s", async (policy, limit, windowSeconds) => {
+    const repository = makeRepository(limit + 1);
+
+    const result = await checkRateLimitForPolicy(
+      policy,
+      { type: "user", id: "auth-user-1" },
+      {
+        now: new Date("2026-04-28T10:15:30.250Z"),
+        repository,
+      },
+    );
+
+    expect(result.allowed).toBe(false);
+    expect(result.limit).toBe(limit);
+    expect(result.retryAfterSeconds).toBe(2670);
+    expect(repository.incrementBucket).toHaveBeenCalledWith({
+      bucketKey: expect.stringMatching(new RegExp(`^${policy}:user:[a-f0-9]{64}$`)),
+      windowSeconds,
+      windowStart: new Date("2026-04-28T10:00:00.000Z"),
+    });
+  });
+
+  it("sets a conservative IP throttle for invite lookups", async () => {
+    const repository = makeRepository(61);
+
+    const result = await checkRateLimitForPolicy(
+      "inviteLookup",
+      { type: "ip", id: "198.51.100.10" },
+      {
+        now: new Date("2026-04-28T10:15:30.250Z"),
+        repository,
+      },
+    );
+
+    expect(result.allowed).toBe(false);
+    expect(result.limit).toBe(60);
+    expect(result.retryAfterSeconds).toBe(2670);
+    expect(repository.incrementBucket).toHaveBeenCalledWith({
+      bucketKey: expect.stringMatching(/^inviteLookup:ip:[a-f0-9]{64}$/),
+      windowSeconds: 60 * 60,
+      windowStart: new Date("2026-04-28T10:00:00.000Z"),
+    });
+  });
+
   it("serializes limited results as 429 JSON with Retry-After", async () => {
     const response = rateLimitExceededResponse({
       allowed: false,

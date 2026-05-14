@@ -6,6 +6,10 @@ import {
   StripeCheckoutConfigurationError,
 } from "@/lib/billing/stripe-checkout";
 import { getRequestOrigin } from "@/lib/integrations/oauth";
+import {
+  checkRateLimitForPolicy,
+  rateLimitExceededResponse,
+} from "@/lib/rate-limit/service";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +31,15 @@ export async function GET(request: Request) {
       const loginUrl = new URL("/login", origin);
       loginUrl.searchParams.set("next", `${requestUrl.pathname}${requestUrl.search}`);
       return NextResponse.redirect(loginUrl);
+    }
+
+    const rateLimit = await checkRateLimitForPolicy("billingCheckout", {
+      type: "user",
+      id: authUser.id,
+    });
+
+    if (!rateLimit.allowed) {
+      return rateLimitExceededResponse(rateLimit);
     }
 
     const successUrl = new URL("/dashboard", origin);

@@ -4,8 +4,13 @@ import { createRateLimitRepository } from "./create-repository";
 export type RateLimitWindow = "minute" | "hour" | "day";
 
 export type RateLimitPolicyName =
+  | "billingCheckout"
   | "feedback"
+  | "inviteAccept"
+  | "inviteLookup"
   | "invites"
+  | "organizationCreate"
+  | "organizationJoin"
   | "uploadDirect"
   | "uploadPrepare"
   | "uploadComplete"
@@ -47,8 +52,13 @@ export type RateLimitResult = {
 };
 
 export const RATE_LIMIT_POLICIES = {
+  billingCheckout: { limit: 10, window: "hour" },
   feedback: { limit: 10, window: "hour" },
+  inviteAccept: { limit: 20, window: "hour" },
+  inviteLookup: { limit: 60, window: "hour" },
   invites: { limit: 10, window: "hour" },
+  organizationCreate: { limit: 5, window: "hour" },
+  organizationJoin: { limit: 10, window: "hour" },
   uploadDirect: { limit: 20, window: "hour" },
   uploadPrepare: { limit: 20, window: "hour" },
   uploadComplete: { limit: 20, window: "hour" },

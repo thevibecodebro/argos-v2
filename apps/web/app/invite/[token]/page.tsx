@@ -1,12 +1,39 @@
 import { LegacyAuthShell } from "@/components/legacy-shell";
+import { headers } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createInvitesRepository } from "@/lib/invites/create-repository";
 import { normalizeInviteEmail } from "@/lib/invites/service";
+import { checkRateLimitForPolicy } from "@/lib/rate-limit/service";
 import { InviteAcceptButton } from "./invite-accept-button";
 
 const inviteHeadingClass = "font-[var(--font-display)] text-3xl font-semibold text-[var(--forge-text)]";
 const inviteBodyClass = "mt-4 text-[var(--forge-muted)]";
 const inviteLinkClass = "forge-button forge-button-primary forge-focus-ring mt-6 inline-flex px-6 py-3 text-sm";
+
+async function getInviteLookupClientIp() {
+  const requestHeaders = await headers();
+  const vercelForwardedFor = requestHeaders.get("x-vercel-forwarded-for");
+  const vercelIp = vercelForwardedFor?.split(",")[0]?.trim();
+
+  if (vercelIp) {
+    return vercelIp;
+  }
+
+  const realIp = requestHeaders.get("x-real-ip")?.trim();
+
+  if (realIp) {
+    return realIp;
+  }
+
+  const forwardedFor = requestHeaders.get("x-forwarded-for");
+  const forwardedIp = forwardedFor?.split(",")[0]?.trim();
+
+  if (forwardedIp) {
+    return forwardedIp;
+  }
+
+  return "unknown";
+}
 
 export default async function InvitePage({
   params,
@@ -14,6 +41,22 @@ export default async function InvitePage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
+  const rateLimit = await checkRateLimitForPolicy("inviteLookup", {
+    type: "ip",
+    id: await getInviteLookupClientIp(),
+  });
+
+  if (!rateLimit.allowed) {
+    return (
+      <LegacyAuthShell note="Too many invite checks.">
+        <div className="text-center">
+          <h1 className={inviteHeadingClass}>Invite Temporarily Unavailable</h1>
+          <p className={inviteBodyClass}>Try this invite link again later.</p>
+        </div>
+      </LegacyAuthShell>
+    );
+  }
+
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },

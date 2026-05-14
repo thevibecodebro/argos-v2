@@ -9,6 +9,10 @@ import {
 import { parseAppUserRole } from "@/lib/users/roles";
 import type { InvitesRepository, InviteRecord, TeamRecord } from "./repository";
 
+export function normalizeInviteRepositoryEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
 function mapInvite(row: typeof invitesTable.$inferSelect): InviteRecord {
   return {
     id: row.id,
@@ -38,7 +42,7 @@ export class DrizzleInvitesRepository implements InvitesRepository {
       .insert(invitesTable)
       .values({
         orgId: input.orgId,
-        email: input.email,
+        email: normalizeInviteRepositoryEmail(input.email),
         role: input.role as "rep" | "manager" | "executive" | "admin",
         token: input.token,
         teamIds: input.teamIds ?? undefined,
@@ -62,13 +66,14 @@ export class DrizzleInvitesRepository implements InvitesRepository {
     email: string,
   ): Promise<InviteRecord | null> {
     const now = new Date();
+    const normalizedEmail = normalizeInviteRepositoryEmail(email);
     const [row] = await this.db
       .select()
       .from(invitesTable)
       .where(
         and(
           eq(invitesTable.orgId, orgId),
-          eq(invitesTable.email, email),
+          eq(invitesTable.email, normalizedEmail),
           isNull(invitesTable.acceptedAt),
           gt(invitesTable.expiresAt, now),
         ),

@@ -6,6 +6,8 @@ const { createStripeCheckoutSession, getAuthenticatedSupabaseUser } = vi.hoisted
   getAuthenticatedSupabaseUser: vi.fn(),
 }));
 
+const checkRateLimitForPolicy = vi.fn();
+
 vi.mock("@/lib/auth/get-authenticated-user", () => ({
   getAuthenticatedSupabaseUser,
 }));
@@ -21,6 +23,22 @@ vi.mock("@/lib/billing/stripe-checkout", async () => {
   };
 });
 
+vi.mock("@/lib/rate-limit/service", () => ({
+  checkRateLimitForPolicy,
+  rateLimitExceededResponse: (result: { retryAfterSeconds: number }) =>
+    Response.json(
+      {
+        code: "rate_limit_exceeded",
+        error: "Too many requests. Try again later.",
+        retryAfterSeconds: result.retryAfterSeconds,
+      },
+      {
+        status: 429,
+        headers: { "Retry-After": String(result.retryAfterSeconds) },
+      },
+    ),
+}));
+
 describe("billing checkout route", () => {
   beforeEach(() => {
     vi.resetModules();
@@ -28,6 +46,16 @@ describe("billing checkout route", () => {
     vi.unstubAllEnvs();
     getAuthenticatedSupabaseUser.mockReset();
     createStripeCheckoutSession.mockReset();
+    checkRateLimitForPolicy.mockReset();
+    checkRateLimitForPolicy.mockResolvedValue({
+      allowed: true,
+      bucketKey: "billingCheckout:user:hash",
+      limit: 10,
+      remaining: 9,
+      requestCount: 1,
+      resetAt: new Date("2026-04-28T11:00:00.000Z"),
+      retryAfterSeconds: 3600,
+    });
   });
 
   afterEach(() => {
@@ -91,6 +119,33 @@ describe("billing checkout route", () => {
         successUrl: "https://argos.ai/dashboard?checkout=success&plan=team",
       }),
     );
+  });
+
+  it("rate limits checkout session creation per authenticated user before calling Stripe", async () => {
+    getAuthenticatedSupabaseUser.mockResolvedValue({
+      email: "founder@argos.ai",
+      id: "auth-user-1",
+    });
+    checkRateLimitForPolicy.mockResolvedValueOnce({
+      allowed: false,
+      bucketKey: "billingCheckout:user:hash",
+      limit: 10,
+      remaining: 0,
+      requestCount: 11,
+      resetAt: new Date("2026-04-28T11:00:00.000Z"),
+      retryAfterSeconds: 321,
+    });
+
+    const route = await import("../app/billing/checkout/route");
+    const response = await route.GET(new Request("https://argos.ai/billing/checkout?plan=team&seats=8"));
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("321");
+    expect(checkRateLimitForPolicy).toHaveBeenCalledWith("billingCheckout", {
+      type: "user",
+      id: "auth-user-1",
+    });
+    expect(createStripeCheckoutSession).not.toHaveBeenCalled();
   });
 
   it("returns users to pricing when the plan is invalid", async () => {

@@ -52,6 +52,28 @@ describe("Stripe webhook route", () => {
     expect(processStripeWebhookEvent).not.toHaveBeenCalled();
   });
 
+  it("rejects oversized bodies before signature verification or processing", async () => {
+    const route = await import("../app/api/webhooks/stripe/route");
+    const request = new Request("https://argos.ai/api/webhooks/stripe", {
+      method: "POST",
+      headers: {
+        "Content-Length": "200000",
+        "Content-Type": "application/json",
+        "stripe-signature": "t=1770000000,v1=bad",
+      },
+      body: JSON.stringify({ id: "evt_1", type: "checkout.session.completed" }),
+    });
+    const textSpy = vi.spyOn(request, "text");
+    const response = await route.POST(request);
+
+    expect(response.status).toBe(413);
+    await expect(response.json()).resolves.toEqual({
+      error: "Request body too large.",
+    });
+    expect(textSpy).not.toHaveBeenCalled();
+    expect(processStripeWebhookEvent).not.toHaveBeenCalled();
+  });
+
   it("processes valid Stripe webhook events", async () => {
     const payload = JSON.stringify({ id: "evt_1", type: "checkout.session.completed", data: { object: {} } });
     const timestamp = "1770000000";

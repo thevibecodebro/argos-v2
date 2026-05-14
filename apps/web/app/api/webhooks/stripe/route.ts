@@ -5,9 +5,12 @@ import {
   verifyStripeWebhookSignature,
   type StripeWebhookEvent,
 } from "@/lib/billing/webhook-service";
+import { readRequestTextWithLimit } from "@/lib/security/request-body";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+const MAX_STRIPE_WEBHOOK_BODY_BYTES = 128 * 1024;
 
 export async function POST(request: Request) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -19,7 +22,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const payload = await request.text();
+  const payloadResult = await readRequestTextWithLimit(request, MAX_STRIPE_WEBHOOK_BODY_BYTES);
+
+  if (!payloadResult.ok) {
+    return NextResponse.json({ error: "Request body too large." }, { status: 413 });
+  }
+
+  const payload = payloadResult.text;
   const signature = request.headers.get("stripe-signature");
 
   if (!verifyStripeWebhookSignature(payload, signature, webhookSecret)) {

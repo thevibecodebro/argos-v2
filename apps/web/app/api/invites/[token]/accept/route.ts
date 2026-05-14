@@ -10,6 +10,10 @@ import {
 } from "@/lib/invites/service";
 import { createInvitesRepository } from "@/lib/invites/create-repository";
 import { createOnboardingRepository } from "@/lib/onboarding/create-repository";
+import {
+  checkRateLimitForPolicy,
+  rateLimitExceededResponse,
+} from "@/lib/rate-limit/service";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +25,15 @@ export async function POST(
 
   if (!authUser) {
     return unauthorizedJson();
+  }
+
+  const rateLimit = await checkRateLimitForPolicy("inviteAccept", {
+    type: "user",
+    id: authUser.id,
+  });
+
+  if (!rateLimit.allowed) {
+    return rateLimitExceededResponse(rateLimit);
   }
 
   const { token } = await params;
