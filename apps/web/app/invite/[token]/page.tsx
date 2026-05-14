@@ -1,14 +1,15 @@
-import { LegacyAuthShell } from "@/components/legacy-shell";
 import { headers } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createInvitesRepository } from "@/lib/invites/create-repository";
 import { normalizeInviteEmail } from "@/lib/invites/service";
 import { checkRateLimitForPolicy } from "@/lib/rate-limit/service";
+import {
+  InviteAccessShell,
+  InviteActionPanel,
+  InvitePrimaryLink,
+  InviteSecondaryLink,
+} from "@/components/invite/invite-access-shell";
 import { InviteAcceptButton } from "./invite-accept-button";
-
-const inviteHeadingClass = "font-[var(--font-display)] text-3xl font-semibold text-[var(--forge-text)]";
-const inviteBodyClass = "mt-4 text-[var(--forge-muted)]";
-const inviteLinkClass = "forge-button forge-button-primary forge-focus-ring mt-6 inline-flex px-6 py-3 text-sm";
 
 async function getInviteLookupClientIp() {
   const requestHeaders = await headers();
@@ -48,12 +49,18 @@ export default async function InvitePage({
 
   if (!rateLimit.allowed) {
     return (
-      <LegacyAuthShell note="Too many invite checks.">
-        <div className="text-center">
-          <h1 className={inviteHeadingClass}>Invite Temporarily Unavailable</h1>
-          <p className={inviteBodyClass}>Try this invite link again later.</p>
-        </div>
-      </LegacyAuthShell>
+      <InviteAccessShell
+        description="We paused this invite lookup to protect the workspace."
+        heading="Invite temporarily unavailable"
+        note="Try this invite link again later."
+        showInviteChips={false}
+      >
+        <InviteActionPanel
+          description="Too many invite checks were made from this network. Wait a few minutes, then reopen the invite link."
+          title="Invite lookup paused"
+          tone="muted"
+        />
+      </InviteAccessShell>
     );
   }
 
@@ -68,34 +75,54 @@ export default async function InvitePage({
   // Invalid / expired / accepted states
   if (!invite) {
     return (
-      <LegacyAuthShell note="This invite is no longer valid.">
-        <div className="text-center">
-          <h1 className={inviteHeadingClass}>Invite Not Found</h1>
-          <p className={inviteBodyClass}>This invite link is invalid or has already been used.</p>
-        </div>
-      </LegacyAuthShell>
+      <InviteAccessShell
+        description="This invite link is invalid or has already been used."
+        heading="Invite not found"
+        note="Ask your admin to send a new invite."
+        showInviteChips={false}
+      >
+        <InviteActionPanel
+          description="We could not match this link to an active Argos workspace invitation."
+          title="Invite no longer valid"
+          tone="danger"
+        />
+      </InviteAccessShell>
     );
   }
 
   if (invite.expiresAt < new Date()) {
     return (
-      <LegacyAuthShell note="This invite has expired.">
-        <div className="text-center">
-          <h1 className={inviteHeadingClass}>Invite Expired</h1>
-          <p className={inviteBodyClass}>Ask your admin to send a new invite.</p>
-        </div>
-      </LegacyAuthShell>
+      <InviteAccessShell
+        description="This invite is past its expiration window."
+        heading="Invite expired"
+        note="Ask your admin to send a new invite."
+        role={invite.role}
+      >
+        <InviteActionPanel
+          description="For workspace security, expired invite links cannot be accepted."
+          title="Invite expired"
+          tone="danger"
+        />
+      </InviteAccessShell>
     );
   }
 
   if (invite.acceptedAt) {
     return (
-      <LegacyAuthShell note="This invite has already been accepted.">
-        <div className="text-center">
-          <h1 className={inviteHeadingClass}>Already Accepted</h1>
-          <p className={inviteBodyClass}>This invite has already been used.</p>
-        </div>
-      </LegacyAuthShell>
+      <InviteAccessShell
+        description="This invite has already been used."
+        heading="Already accepted"
+        note="Sign in with the accepted account to continue."
+        role={invite.role}
+      >
+        <InviteActionPanel
+          description="The invite token is closed. Use the account that accepted this invitation, or ask your admin for a fresh link."
+          title="Invite already accepted"
+          tone="muted"
+        >
+          <InvitePrimaryLink href="/login">Go to login</InvitePrimaryLink>
+        </InviteActionPanel>
+      </InviteAccessShell>
     );
   }
 
@@ -103,47 +130,59 @@ export default async function InvitePage({
   if (!user) {
     const next = encodeURIComponent(`/invite/${token}`);
     return (
-      <LegacyAuthShell note={`You've been invited to join as a ${invite.role}.`}>
-        <div className="text-center">
-          <h1 className={inviteHeadingClass}>You&apos;re Invited</h1>
-          <p className={inviteBodyClass}>Sign in to accept your invite.</p>
-          <a
-            className={inviteLinkClass}
-            href={`/login?next=${next}`}
-          >
-            Sign In to Accept
-          </a>
-        </div>
-      </LegacyAuthShell>
+      <InviteAccessShell
+        description="Use the work email your admin invited. If you're setting up Argos for your organization, choose a plan instead."
+        heading="Sign in to accept this invite"
+        note="No invite yet? Ask your admin or start an organization by signing up."
+        role={invite.role}
+      >
+        <InviteActionPanel
+          description="Use the email your admin invited. We'll return you to this invite after authentication."
+          title="Accept your invite"
+        >
+          <InvitePrimaryLink href={`/login?next=${next}`}>Sign in to accept</InvitePrimaryLink>
+          <InviteSecondaryLink href="/login">Use a different email</InviteSecondaryLink>
+        </InviteActionPanel>
+      </InviteAccessShell>
     );
   }
 
   // Email mismatch
   if (normalizeInviteEmail(user.email ?? "") !== normalizeInviteEmail(invite.email)) {
     return (
-      <LegacyAuthShell note="Wrong account.">
-        <div className="text-center">
-          <h1 className={inviteHeadingClass}>Wrong Account</h1>
-          <p className={inviteBodyClass}>
-            This invite was sent to a different email address.
-          </p>
-        </div>
-      </LegacyAuthShell>
+      <InviteAccessShell
+        description="This invite was sent to a different email address."
+        heading="Wrong account"
+        note="Sign out, then use the email address your admin invited."
+        role={invite.role}
+      >
+        <InviteActionPanel
+          description="The current signed-in email does not match this invite. Use the invited email to protect workspace access."
+          title="Email does not match"
+          tone="danger"
+        >
+          <InvitePrimaryLink href="/auth/signout">Use a different email</InvitePrimaryLink>
+        </InviteActionPanel>
+      </InviteAccessShell>
     );
   }
 
   // Ready to accept
   return (
-    <LegacyAuthShell note={`You've been invited to join as a ${invite.role}.`}>
-      <div className="text-center">
-        <h1 className={inviteHeadingClass}>You&apos;re Invited</h1>
-        <p className={inviteBodyClass}>
-          Accept your invite to join as a <strong className="text-[var(--forge-text)]">{invite.role}</strong>.
-        </p>
-        <div className="mt-6">
-          <InviteAcceptButton token={token} />
+    <InviteAccessShell
+      description="We found a matching invitation for your signed-in email."
+      heading="Joining your workspace"
+      note="Redirecting to the dashboard."
+      role={invite.role}
+    >
+      <InviteActionPanel
+        description={`Accepting your ${invite.role} invite now.`}
+        title="Invite confirmed"
+      >
+        <div className="flex justify-center">
+          <InviteAcceptButton autoAccept token={token} />
         </div>
-      </div>
-    </LegacyAuthShell>
+      </InviteActionPanel>
+    </InviteAccessShell>
   );
 }

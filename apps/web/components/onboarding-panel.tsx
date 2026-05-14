@@ -129,7 +129,7 @@ export function OnboardingPanel({
   const isInviteOnly = !canCreateOrganization && !canJoinBySlug;
   const introCopy =
     accessMode === "invite-only"
-      ? "Use your invitation to enter the workspace your admin created."
+      ? "Existing workspace access starts with an admin invite. Organization owners can choose a plan to create a workspace."
       : accessMode === "bootstrap-admin"
         ? "Set up the first Argos workspace for your company."
         : (note ?? "Create a new team or join your existing one to unlock the Argos workspace.");
@@ -178,7 +178,7 @@ export function OnboardingPanel({
           )}
 
           {isInviteOnly ? (
-            <InviteRequiredPanel />
+            <InviteRequiredPanel userEmail={userEmail} />
           ) : step === "join" && canJoinBySlug ? (
             <JoinPanel
               error={error}
@@ -637,23 +637,58 @@ function InvitePanel({
   );
 }
 
-function InviteRequiredPanel() {
+function InviteRequiredPanel({ userEmail }: { userEmail?: string | null }) {
+  const inviteEmailText = userEmail
+    ? `Ask your admin to send an invite to ${userEmail}.`
+    : "Ask your admin to send an invite to your work email.";
+
   return (
     <div className={panelClass}>
       <ForgeStatusPanel
         announce="polite"
         className="px-4 py-4"
-        description="Open the invite link your admin sent to join your Argos workspace."
+        description={inviteEmailText}
         icon="mark_email_read"
-        title="Invite required"
+        title="Joining an existing workspace?"
         tone="gold"
       />
-      <a
-        className={`${secondaryButtonClass} mt-4 inline-flex w-full sm:w-auto`}
-        href="/auth/signout"
-      >
-        Use a different email
-      </a>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-lg border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-4 py-4">
+          <p className={labelClass}>Joining a team</p>
+          <h2 className="mt-2 text-base font-semibold text-[var(--forge-text)]">
+            Wait for the admin invite
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-[var(--forge-muted)]">
+            Reps and managers join through the invite link their workspace admin sends.
+          </p>
+        </div>
+        <div className="rounded-lg border border-[rgba(241,191,123,0.24)] bg-[rgba(241,191,123,0.07)] px-4 py-4">
+          <p className={labelClass}>Setting up Argos</p>
+          <h2 className="mt-2 text-base font-semibold text-[var(--forge-text)]">
+            Start an organization
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-[var(--forge-muted)]">
+            If you own the rollout, choose a plan to create a workspace for your team.
+          </p>
+          <a
+            className={`${primaryButtonClass} mt-4 inline-flex w-full sm:w-auto`}
+            href="/#access"
+          >
+            View plans
+          </a>
+        </div>
+      </div>
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <a
+          className={`${secondaryButtonClass} inline-flex w-full sm:w-auto`}
+          href="/auth/signout"
+        >
+          Use a different email
+        </a>
+        <p className="text-sm leading-6 text-[var(--forge-muted)]">
+          Already have an invite? Open the link from your email to continue.
+        </p>
+      </div>
     </div>
   );
 }

@@ -1,0 +1,400 @@
+.invitePage::after {
+  background:
+    linear-gradient(90deg, rgba(5, 4, 3, 0.94), rgba(5, 4, 3, 0.64) 44%, rgba(5, 4, 3, 0.58) 72%, rgba(5, 4, 3, 0.9)),
+    linear-gradient(180deg, rgba(5, 4, 3, 0.68), transparent 36%, rgba(5, 4, 3, 0.92) 100%);
+}
+
+.invitePage :global(.argos-scene-canvas),
+.invitePage :global(.argos-scene-fallback) {
+  opacity: 0.34;
+  filter: saturate(0.72) brightness(0.64);
+}
+
+.inviteHero {
+  grid-template-columns: minmax(0, 0.86fr) minmax(20rem, 0.54fr);
+  gap: clamp(2.25rem, 6vw, 5.5rem);
+  min-height: 100svh;
+  align-items: center;
+}
+
+.inviteHeader {
+  position: fixed;
+  inset-inline: 0;
+  top: 0;
+  z-index: 10;
+  padding: 1.35rem clamp(1.25rem, 5vw, 4rem);
+  pointer-events: none;
+}
+
+.inviteNav {
+  display: flex;
+  width: min(72rem, 100%);
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  margin: 0 auto;
+  pointer-events: auto;
+}
+
+.inviteNavBrand {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+}
+
+.inviteNavLogo {
+  width: 7.4rem;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.32));
+}
+
+.inviteNavActions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.inviteNavLink,
+.inviteNavCta {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-family: var(--font-display, "Space Grotesk", sans-serif);
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  padding: 0.78rem 1rem;
+  text-transform: uppercase;
+  transition:
+    background-color 220ms ease,
+    border-color 220ms ease,
+    color 220ms ease,
+    transform 220ms ease;
+}
+
+.inviteNavLink {
+  color: rgba(255, 244, 230, 0.68);
+}
+
+.inviteNavLink:hover {
+  color: var(--forge-text);
+  background: rgba(255, 244, 230, 0.055);
+}
+
+.inviteNavCta {
+  border: 1px solid rgba(255, 244, 230, 0.16);
+  background: rgba(255, 244, 230, 0.055);
+  color: var(--forge-text);
+}
+
+.inviteNavCta:hover {
+  border-color: rgba(255, 244, 230, 0.28);
+  background: rgba(255, 244, 230, 0.09);
+  transform: translateY(-1px);
+}
+
+.inviteCopy {
+  width: min(45rem, 100%);
+}
+
+.inviteLogoLockup {
+  display: grid;
+  gap: 0.95rem;
+  margin-top: 0.35rem;
+  width: min(18.5rem, 64vw);
+}
+
+.inviteLogo {
+  width: min(18.5rem, 64vw);
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 18px 36px rgba(0, 0, 0, 0.44));
+}
+
+.inviteHero .inviteHeading {
+  margin-top: clamp(1.85rem, 3vw, 2.7rem);
+  max-width: 12ch;
+  color: var(--forge-text);
+  font-family: var(--font-display, "Space Grotesk", sans-serif);
+  font-size: clamp(3.4rem, 6.2vw, 6.65rem);
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 0.88;
+  text-transform: none;
+  text-wrap: balance;
+}
+
+.inviteChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1.55rem;
+}
+
+.inviteChip {
+  display: inline-flex;
+  min-height: 2.35rem;
+  align-items: center;
+  border: 1px solid rgba(255, 244, 230, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 244, 230, 0.045);
+  color: rgba(255, 244, 230, 0.72);
+  font-family: var(--font-display, "Space Grotesk", sans-serif);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  padding-inline: 0.9rem;
+  text-transform: uppercase;
+}
+
+.inviteActionSlot {
+  margin-top: clamp(1.7rem, 3vw, 2.5rem);
+  width: min(38rem, 100%);
+}
+
+.inviteNote {
+  margin-top: 1rem;
+  color: rgba(255, 244, 230, 0.58);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.inviteStack {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  align-content: center;
+  gap: 0.85rem;
+  width: min(30rem, 100%);
+  justify-self: end;
+}
+
+.invitePanel {
+  border: 1px solid rgba(255, 244, 230, 0.11);
+  border-radius: 1.55rem;
+  background:
+    linear-gradient(180deg, rgba(20, 13, 10, 0.76), rgba(7, 6, 6, 0.9)),
+    rgba(255, 244, 230, 0.035);
+  padding: clamp(1rem, 3vw, 1.25rem);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 244, 230, 0.1),
+    0 24px 70px rgba(0, 0, 0, 0.24);
+}
+
+.invitePanelInner {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 1rem;
+}
+
+.inviteIcon {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  place-items: center;
+  border: 1px solid rgba(255, 244, 230, 0.14);
+  border-radius: 1rem;
+  background: rgba(255, 244, 230, 0.045);
+  color: var(--forge-gold);
+}
+
+.inviteIcon[data-tone="danger"] {
+  border-color: rgba(255, 113, 108, 0.28);
+  background: rgba(255, 113, 108, 0.08);
+  color: var(--forge-danger);
+}
+
+.inviteIcon[data-tone="muted"] {
+  color: rgba(255, 244, 230, 0.62);
+}
+
+.invitePanel h2 {
+  color: var(--forge-text);
+  font-family: var(--font-display, "Space Grotesk", sans-serif);
+  font-size: clamp(1.35rem, 2vw, 1.85rem);
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.05;
+}
+
+.invitePanel p {
+  margin-top: 0.75rem;
+  color: var(--forge-muted);
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.inviteActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.2rem;
+}
+
+.inviteAudiencePanel {
+  border: 1px solid rgba(255, 244, 230, 0.11);
+  border-radius: 1.45rem;
+  background:
+    linear-gradient(180deg, rgba(20, 13, 10, 0.7), rgba(7, 6, 6, 0.86)),
+    rgba(255, 244, 230, 0.035);
+  padding: clamp(1rem, 2.6vw, 1.35rem);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 244, 230, 0.08),
+    0 28px 80px rgba(0, 0, 0, 0.28);
+}
+
+.inviteAudienceKicker {
+  color: var(--forge-gold);
+  font-family: var(--font-display, "Space Grotesk", sans-serif);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.inviteAudienceRows {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.inviteAudienceRow {
+  border: 1px solid rgba(255, 244, 230, 0.1);
+  border-radius: 1rem;
+  background: rgba(255, 244, 230, 0.034);
+  padding: 1rem;
+  box-shadow: inset 0 1px 0 rgba(255, 244, 230, 0.07);
+}
+
+.inviteAudienceRow[data-state="primary"] {
+  border-color: rgba(241, 191, 123, 0.28);
+  background: rgba(241, 191, 123, 0.08);
+}
+
+.inviteAudienceRow span {
+  color: var(--forge-gold);
+  font-family: var(--font-display, "Space Grotesk", sans-serif);
+  font-size: 0.66rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.inviteAudienceRow h2 {
+  margin-top: 0.6rem;
+  color: var(--forge-text);
+  font-family: var(--font-display, "Space Grotesk", sans-serif);
+  font-size: 1.14rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.1;
+}
+
+.inviteAudienceRow p {
+  margin-top: 0.35rem;
+  color: var(--forge-muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.inviteAudienceLink {
+  display: inline-flex;
+  min-height: 2.65rem;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.85rem;
+  border: 1px solid rgba(255, 244, 230, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 244, 230, 0.05);
+  color: var(--forge-text);
+  font-family: var(--font-display, "Space Grotesk", sans-serif);
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  padding: 0.68rem 1rem;
+  text-transform: uppercase;
+  transition:
+    border-color 220ms ease,
+    background-color 220ms ease,
+    transform 220ms ease;
+}
+
+.inviteAudienceLink:hover {
+  border-color: rgba(255, 244, 230, 0.28);
+  background: rgba(255, 244, 230, 0.085);
+  transform: translateY(-1px);
+}
+
+.inviteFooterInner {
+  display: flex;
+  width: min(92rem, 100%);
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin: 0 auto;
+  padding: 1.35rem clamp(1.25rem, 5vw, 5rem);
+}
+
+@media (max-width: 1024px) {
+  .inviteHero {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .inviteStack {
+    justify-self: start;
+    width: min(44rem, 100%);
+  }
+
+  .inviteStack {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 700px) {
+  .inviteHero {
+    min-height: auto;
+    padding-top: 12.75rem;
+  }
+
+  .inviteHeader {
+    padding: 1rem 1.1rem;
+  }
+
+  .inviteNavLogo {
+    width: 6.25rem;
+  }
+
+  .inviteNavActions {
+    gap: 0.35rem;
+  }
+
+  .inviteNavLink,
+  .inviteNavCta {
+    min-height: 2.45rem;
+    font-size: 0.66rem;
+    padding: 0.62rem 0.72rem;
+  }
+
+  .invitePanelInner {
+    grid-template-columns: 1fr;
+  }
+
+  .inviteActions {
+    flex-direction: column;
+  }
+
+  .inviteHero .inviteHeading {
+    font-size: clamp(3rem, 14vw, 4.65rem);
+  }
+
+  .inviteFooterInner {
+    flex-direction: column;
+    text-align: center;
+  }
+}

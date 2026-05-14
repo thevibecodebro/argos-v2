@@ -34,6 +34,13 @@ vi.mock("next/headers", () => ({
   headers: headersMock,
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    refresh: vi.fn(),
+  }),
+}));
+
 vi.mock("@/lib/invites/create-repository", () => ({
   createInvitesRepository: () => ({
     findInviteByToken: findInviteByTokenMock,
@@ -117,7 +124,7 @@ describe("legacy auth shell", () => {
     }
   });
 
-  it("preserves invite sign-in redirect inside the Forge auth shell", async () => {
+  it("renders the invited no-account sign-in bridge inside the Forge auth shell", async () => {
     createSupabaseServerClientMock.mockResolvedValue({
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -138,14 +145,59 @@ describe("legacy auth shell", () => {
       }),
     );
 
-    expect(html).toContain("You&#x27;re Invited");
+    expect(html).toContain("Sign in to accept this invite");
+    expect(html).toContain("Use the work email your admin invited. If you&#x27;re setting up Argos for your organization, choose a plan instead.");
+    expect(html).toContain("Accept your invite");
+    expect(html).toContain("No invite yet? Ask your admin or start an organization by signing up.");
+    expect(html).toContain("Rep access");
+    expect(html).toContain("argos-wordmark");
+    expect(html).toContain('href="/#access"');
     expect(html).toContain('href="/login?next=%2Finvite%2Finvite-token"');
+    expect(html).toContain("Sign in to accept");
+    expect(html).toContain("Use a different email");
+    expect(html).not.toContain('href="/#features"');
+    expect(html).not.toContain('href="/#detail"');
+    expect(html).not.toContain('href="/#trust"');
     expect(html).toContain('data-auth-shell="forge"');
     expect(html).toContain("forge-focus-ring");
     expect(checkRateLimitForPolicyMock).toHaveBeenCalledWith("inviteLookup", {
       type: "ip",
       id: "198.51.100.22",
     });
+  });
+
+  it("auto-accepts a matching authenticated invite instead of making invited users stop on the page", async () => {
+    createSupabaseServerClientMock.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              email: "rep@example.com",
+              id: "auth-user-1",
+            },
+          },
+        }),
+      },
+    });
+    findInviteByTokenMock.mockResolvedValue({
+      acceptedAt: null,
+      email: "rep@example.com",
+      expiresAt: new Date("2099-01-01T00:00:00.000Z"),
+      role: "rep",
+    });
+
+    const html = renderToStaticMarkup(
+      await InvitePage({
+        params: Promise.resolve({ token: "invite-token" }),
+      }),
+    );
+
+    expect(html).toContain("Joining your workspace");
+    expect(html).toContain("We found a matching invitation for your signed-in email.");
+    expect(html).toContain("Invite confirmed");
+    expect(html).toContain("Joining your workspace...");
+    expect(html).toContain('data-auto-accept="true"');
+    expect(html).not.toContain("Accept invite");
   });
 
   it("rate limits invite lookup before auth and repository access", async () => {
@@ -165,7 +217,8 @@ describe("legacy auth shell", () => {
       }),
     );
 
-    expect(html).toContain("Invite Temporarily Unavailable");
+    expect(html).toContain("Invite temporarily unavailable");
+    expect(html).toContain("Invite lookup paused");
     expect(html).toContain("Try this invite link again later.");
     expect(checkRateLimitForPolicyMock).toHaveBeenCalledWith("inviteLookup", {
       type: "ip",

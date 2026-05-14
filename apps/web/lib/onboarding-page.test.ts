@@ -64,8 +64,12 @@ describe("OnboardingPage", () => {
     expect(html).toContain("Workspace access");
     expect(html).toContain("Team launch");
     expect(html).toContain("Account verified");
-    expect(html).toContain("Invite required");
-    expect(html).toContain("Open the invite link your admin sent to join your Argos workspace.");
+    expect(html).toContain("Joining an existing workspace?");
+    expect(html).toContain("Ask your admin to send an invite to rep@example.com.");
+    expect(html).toContain("Joining a team");
+    expect(html).toContain("Start an organization");
+    expect(html).toContain("View plans");
+    expect(html).toContain('href="/#access"');
     expect(html).not.toContain("Create Organization");
     expect(html).not.toContain("Join Organization");
     expect(html).not.toContain("Revenue Command");
