@@ -51,12 +51,14 @@ export default async function OnboardingPage() {
             Workspace access
           </span>
         </div>
-        <a
-          className="forge-focus-ring rounded-md px-2 py-2 text-sm font-medium text-[var(--forge-muted)] transition hover:text-[var(--forge-text)]"
-          href="/auth/signout"
-        >
-          Sign out
-        </a>
+        <form action="/auth/signout" method="post">
+          <button
+            className="forge-focus-ring rounded-md px-2 py-2 text-sm font-medium text-[var(--forge-muted)] transition hover:text-[var(--forge-text)]"
+            type="submit"
+          >
+            Sign out
+          </button>
+        </form>
       </header>
 
       <OnboardingPanel
