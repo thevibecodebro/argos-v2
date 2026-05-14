@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { LegacyAuthShell } from "@/components/legacy-shell";
+import Link from "next/link";
 import { OnboardingPanel } from "@/components/onboarding-panel";
 import {
   getCachedAuthenticatedSupabaseUser,
@@ -31,20 +31,39 @@ export default async function OnboardingPage() {
       : "Create a new team or join your existing one to unlock the Argos workspace.";
 
   return (
-    <LegacyAuthShell note={note}>
-      <div className="text-center">
-        <h1 className="font-[var(--font-display)] text-4xl font-semibold text-[var(--forge-text)] sm:text-5xl">
-          Welcome to Argos
-        </h1>
-        <p className="mt-4 text-lg leading-8 text-[var(--forge-muted)]">
-          {accessMode === "invite-only"
-            ? "Use your invitation to enter the workspace your admin created."
-            : "Set up your organization to start coaching your sales team."}
-        </p>
-      </div>
-      <div className="mt-10">
-        <OnboardingPanel accessMode={accessMode} />
-      </div>
-    </LegacyAuthShell>
+    <main
+      className="forge-shell min-h-dvh text-[var(--forge-text)] selection:bg-[rgba(241,191,123,0.24)] selection:text-[var(--forge-text)]"
+      data-auth-shell="forge"
+      data-shell-theme="forge"
+      style={{ fontFamily: "var(--font-body, 'Source Sans 3', sans-serif)" }}
+    >
+      <header className="flex min-h-14 items-center justify-between border-b border-[var(--forge-border)] bg-[rgba(16,9,7,0.92)] px-4 sm:px-6">
+        <div className="flex min-w-0 items-center gap-3">
+          <Link
+            className="forge-focus-ring rounded-md font-[var(--font-display)] text-sm font-black uppercase text-[var(--forge-gold)]"
+            href="/"
+          >
+            Argos
+          </Link>
+          <span className="hidden h-4 w-px bg-[var(--forge-border)] sm:block" />
+          <span className="inline-flex min-h-8 items-center gap-2 rounded-md border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-2.5 text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--forge-success)]" />
+            Workspace access
+          </span>
+        </div>
+        <a
+          className="forge-focus-ring rounded-md px-2 py-2 text-sm font-medium text-[var(--forge-muted)] transition hover:text-[var(--forge-text)]"
+          href="/auth/signout"
+        >
+          Sign out
+        </a>
+      </header>
+
+      <OnboardingPanel
+        accessMode={accessMode}
+        note={note}
+        userEmail={currentUser.email}
+      />
+    </main>
   );
 }
