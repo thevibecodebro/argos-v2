@@ -66,7 +66,7 @@ html:has(.argos-3d-page) {
   position: fixed;
   inset: 0;
   z-index: 0;
-  opacity: 0.84;
+  opacity: 0.78;
   pointer-events: none;
 }
 
@@ -106,9 +106,7 @@ html:has(.argos-3d-page) {
   filter: contrast(1.02) saturate(0.9) brightness(0.9);
   opacity: 0;
   transform: scale(1.02);
-  transition:
-    opacity 1100ms var(--argos-ease),
-    transform 1100ms var(--argos-ease);
+  transition: opacity 420ms var(--argos-ease);
   will-change: opacity, transform;
 }
 
@@ -155,9 +153,7 @@ html:has(.argos-3d-page) {
   mix-blend-mode: normal;
   opacity: 0;
   transform: scale(1.08);
-  transition:
-    opacity 1100ms var(--argos-ease),
-    transform 1100ms var(--argos-ease);
+  transition: opacity 420ms var(--argos-ease);
   will-change: opacity, transform;
   mask-image: radial-gradient(ellipse at 76% 50%, black 0%, black 22%, transparent 54%);
 }
@@ -270,9 +266,7 @@ html:has(.argos-3d-page) {
   background: linear-gradient(105deg, transparent 34%, rgba(255, 244, 230, 0.13) 47%, rgba(255, 179, 107, 0.08) 51%, transparent 64%);
   mix-blend-mode: normal;
   transform: translate3d(calc(-28vw + var(--forge-stage) * 58vw), calc(10vh - var(--forge-stage) * 18vh), 0) rotate(-8deg);
-  transition:
-    opacity 900ms var(--argos-ease),
-    transform 900ms var(--argos-ease);
+  transition: opacity 420ms var(--argos-ease);
 }
 
 .argos-forge-signal-path {
@@ -510,12 +504,25 @@ html:has(.argos-3d-page) {
   top: 0;
   z-index: 10;
   display: flex;
+  isolation: isolate;
   justify-content: center;
   pointer-events: none;
   padding: 1rem clamp(1rem, 3vw, 2rem);
 }
 
+.argos-nav-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 0;
+  height: calc(100% + 1rem);
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(5, 4, 3, 0.96), rgba(5, 4, 3, 0.78) 72%, transparent);
+}
+
 .argos-nav {
+  position: relative;
+  z-index: 1;
   pointer-events: auto;
   display: grid;
   width: min(76rem, calc(100% - clamp(1rem, 4vw, 2.5rem)));
@@ -693,7 +700,7 @@ html:has(.argos-3d-page) {
 
 .argos-hero,
 .argos-section {
-  scroll-margin-top: 7.5rem;
+  scroll-margin-top: 0;
 }
 
 .argos-hero {
@@ -908,8 +915,8 @@ html:has(.argos-3d-page) {
 }
 
 .argos-section {
-  min-height: 100svh;
-  padding: clamp(7rem, 12vw, 11rem) clamp(1.25rem, 5vw, 5rem);
+  min-height: auto;
+  padding: clamp(5.75rem, 7vw, 7rem) clamp(1.25rem, 5vw, 5rem) clamp(5.25rem, 7vw, 7rem);
   isolation: isolate;
 }
 
@@ -923,7 +930,7 @@ html:has(.argos-3d-page) {
 .argos-access-panel h2 {
   color: var(--argos-ivory);
   font-family: var(--argos-serif);
-  font-size: clamp(3rem, 7vw, 7rem);
+  font-size: clamp(2.8rem, 6vw, 5.5rem);
   font-weight: 400;
   letter-spacing: 0;
   line-height: 0.96;
@@ -939,7 +946,7 @@ html:has(.argos-3d-page) {
 .argos-feature-section {
   display: grid;
   grid-template-columns: minmax(0, 0.76fr) minmax(24rem, 0.84fr);
-  align-items: center;
+  align-items: start;
   gap: clamp(3rem, 8vw, 8rem);
 }
 
@@ -966,7 +973,7 @@ html:has(.argos-3d-page) {
 }
 
 .argos-feature-card {
-  min-height: 18rem;
+  min-height: 16rem;
   border-radius: calc(2rem - 0.45rem);
   background: linear-gradient(180deg, rgba(20, 13, 10, 0.72), rgba(7, 6, 6, 0.9));
   padding: 1.5rem;
@@ -1005,7 +1012,7 @@ html:has(.argos-3d-page) {
 .argos-detail-section {
   display: grid;
   grid-template-columns: minmax(22rem, 0.65fr) minmax(0, 1fr);
-  align-items: center;
+  align-items: start;
   gap: clamp(3rem, 8vw, 8rem);
 }
 
@@ -1041,7 +1048,7 @@ html:has(.argos-3d-page) {
 .argos-trust-section {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.68fr);
-  align-items: center;
+  align-items: start;
   gap: clamp(3rem, 8vw, 8rem);
 }
 
@@ -1108,7 +1115,7 @@ html:has(.argos-3d-page) {
   align-items: start;
   justify-items: center;
   overflow: hidden;
-  padding-block: clamp(2rem, 4vw, 4.25rem);
+  padding-block: clamp(5.75rem, 7vw, 7rem) clamp(4.5rem, 6vw, 6rem);
   scroll-margin-top: 0;
 }
 
@@ -1686,11 +1693,11 @@ html:has(.argos-3d-page) {
 
 .argos-reveal-ready [data-reveal] {
   opacity: 0;
-  transform: translate3d(0, 1.4rem, 0);
+  transform: translate3d(0, 0.65rem, 0);
   transition:
-    opacity 720ms var(--argos-ease),
-    transform 720ms var(--argos-ease);
-  transition-delay: calc(var(--reveal-index, 0) * 35ms);
+    opacity 420ms var(--argos-ease),
+    transform 420ms var(--argos-ease);
+  transition-delay: calc(var(--reveal-index, 0) * 24ms);
 }
 
 .argos-reveal-ready [data-reveal].is-visible {
@@ -1833,7 +1840,7 @@ html:has(.argos-3d-page) {
     min-height: 94svh;
     padding-top: 12.75rem;
     padding-bottom: 4.5rem;
-    scroll-margin-top: 9.75rem;
+    scroll-margin-top: 0;
   }
 
   .argos-hero h1 {
@@ -1885,7 +1892,7 @@ html:has(.argos-3d-page) {
 
   .argos-section {
     padding-block: 6rem;
-    scroll-margin-top: 9.75rem;
+    scroll-margin-top: 0;
   }
 
   .argos-section-copy h2,
@@ -1896,7 +1903,7 @@ html:has(.argos-3d-page) {
   }
 
   .argos-access-section {
-    padding-block: 4.5rem;
+    padding-block: 6rem 4.75rem;
     scroll-margin-top: 0;
   }
 

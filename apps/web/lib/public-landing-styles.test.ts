@@ -84,4 +84,32 @@ describe("public landing styles", () => {
     expect(moduleCss).toContain("min-height: 2.75rem;");
     expect(moduleCss).toContain("scroll-padding-top: 7.5rem;");
   });
+
+  it("keeps production homepage sections stable while scrolling", () => {
+    const moduleCss = readFileSync(
+      new URL("../components/public/landing-page.module.css", import.meta.url),
+      "utf8",
+    );
+    const controller = readFileSync(
+      new URL("../components/public/landing-motion-controller.tsx", import.meta.url),
+      "utf8",
+    );
+
+    expect(moduleCss).not.toContain("min-height: 100svh;");
+    expect(moduleCss).not.toContain("transform 1100ms var(--argos-ease)");
+    expect(moduleCss).toMatch(/\.argos-section\s*\{\s*min-height: auto;/);
+    expect(moduleCss).toMatch(/\.argos-feature-section\s*\{[\s\S]*?align-items: start;/);
+    expect(moduleCss).toMatch(/\.argos-detail-section\s*\{[\s\S]*?align-items: start;/);
+    expect(moduleCss).toMatch(/\.argos-trust-section\s*\{[\s\S]*?align-items: start;/);
+    expect(moduleCss).toMatch(/\.argos-hero,\n\.argos-section\s*\{[\s\S]*?scroll-margin-top: 0;/);
+    expect(moduleCss).toMatch(/\.argos-access-section\s*\{[\s\S]*?scroll-margin-top: 0;/);
+    expect(moduleCss).not.toContain("scroll-margin-top: 9.75rem;");
+    expect(moduleCss).toContain(".argos-nav-shell::before");
+    expect(moduleCss).toContain("height: calc(100% + 1rem);");
+    expect(moduleCss).toContain("font-size: clamp(2.8rem, 6vw, 5.5rem);");
+    expect(moduleCss).toContain("transform: translate3d(0, 0.65rem, 0);");
+    expect(moduleCss).toContain("opacity 420ms var(--argos-ease)");
+    expect(controller).toContain('rootMargin: "0px 0px -4% 0px"');
+    expect(controller).toContain("threshold: 0.24");
+  });
 });
