@@ -70,6 +70,9 @@ describe("OnboardingPage", () => {
     expect(html).toContain("Start an organization");
     expect(html).toContain("View plans");
     expect(html).toContain('href="/#access"');
+    expect(html).toContain('action="/auth/signout"');
+    expect(html).toContain('method="post"');
+    expect(html).not.toContain('href="/auth/signout"');
     expect(html).not.toContain("Create Organization");
     expect(html).not.toContain("Join Organization");
     expect(html).not.toContain("Revenue Command");

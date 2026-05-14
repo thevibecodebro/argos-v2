@@ -7,6 +7,7 @@ import {
   InviteAccessShell,
   InviteActionPanel,
   InvitePrimaryLink,
+  InvitePrimarySignOutButton,
   InviteSecondaryLink,
 } from "@/components/invite/invite-access-shell";
 import { InviteAcceptButton } from "./invite-accept-button";
@@ -161,7 +162,7 @@ export default async function InvitePage({
           title="Email does not match"
           tone="danger"
         >
-          <InvitePrimaryLink href="/auth/signout">Use a different email</InvitePrimaryLink>
+          <InvitePrimarySignOutButton>Use a different email</InvitePrimarySignOutButton>
         </InviteActionPanel>
       </InviteAccessShell>
     );

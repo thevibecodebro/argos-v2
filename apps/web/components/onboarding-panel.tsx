@@ -438,12 +438,14 @@ function CreatePanel({
         >
           {isMutating ? "Creating..." : "Create Organization"}
         </button>
-        <a
-          className="forge-focus-ring inline-flex min-h-11 items-center justify-center rounded-lg px-3 text-sm font-medium text-[var(--forge-muted)] transition hover:text-[var(--forge-gold)]"
-          href="/auth/signout"
-        >
-          Use a different email
-        </a>
+        <form action="/auth/signout" method="post">
+          <button
+            className="forge-focus-ring inline-flex min-h-11 items-center justify-center rounded-lg px-3 text-sm font-medium text-[var(--forge-muted)] transition hover:text-[var(--forge-gold)]"
+            type="submit"
+          >
+            Use a different email
+          </button>
+        </form>
       </div>
     </div>
   );
@@ -679,12 +681,14 @@ function InviteRequiredPanel({ userEmail }: { userEmail?: string | null }) {
         </div>
       </div>
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <a
-          className={`${secondaryButtonClass} inline-flex w-full sm:w-auto`}
-          href="/auth/signout"
-        >
-          Use a different email
-        </a>
+        <form action="/auth/signout" method="post">
+          <button
+            className={`${secondaryButtonClass} inline-flex w-full sm:w-auto`}
+            type="submit"
+          >
+            Use a different email
+          </button>
+        </form>
         <p className="text-sm leading-6 text-[var(--forge-muted)]">
           Already have an invite? Open the link from your email to continue.
         </p>

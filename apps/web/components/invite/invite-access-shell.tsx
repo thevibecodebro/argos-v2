@@ -203,6 +203,22 @@ export function InvitePrimaryLink({
   );
 }
 
+export function InvitePrimarySignOutButton({ children }: { children: React.ReactNode }) {
+  return (
+    <form action="/auth/signout" method="post">
+      <button
+        className={cx(landingStyles["argos-primary-action"], "forge-focus-ring cursor-pointer")}
+        type="submit"
+      >
+        <span>{children}</span>
+        <span className={landingStyles["argos-action-disc"]} aria-hidden="true">
+          →
+        </span>
+      </button>
+    </form>
+  );
+}
+
 export function InviteSecondaryLink({
   children,
   href,

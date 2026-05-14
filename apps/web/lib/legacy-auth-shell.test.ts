@@ -201,6 +201,39 @@ describe("legacy auth shell", () => {
     expect(html).not.toContain("Accept invite");
   });
 
+  it("uses a post signout action when an authenticated invite is opened with the wrong account", async () => {
+    createSupabaseServerClientMock.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              email: "other@example.com",
+              id: "auth-user-1",
+            },
+          },
+        }),
+      },
+    });
+    findInviteByTokenMock.mockResolvedValue({
+      acceptedAt: null,
+      email: "rep@example.com",
+      expiresAt: new Date("2099-01-01T00:00:00.000Z"),
+      role: "rep",
+    });
+
+    const html = renderToStaticMarkup(
+      await InvitePage({
+        params: Promise.resolve({ token: "invite-token" }),
+      }),
+    );
+
+    expect(html).toContain("Wrong account");
+    expect(html).toContain("Use a different email");
+    expect(html).toContain('action="/auth/signout"');
+    expect(html).toContain('method="post"');
+    expect(html).not.toContain('href="/auth/signout"');
+  });
+
   it("rate limits invite lookup before auth and repository access", async () => {
     checkRateLimitForPolicyMock.mockResolvedValueOnce({
       allowed: false,
