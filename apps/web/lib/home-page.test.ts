@@ -22,6 +22,8 @@ describe("HomePage", () => {
     expect(html).toContain("The call becomes the coaching plan.");
     expect(html).toContain('href="/login"');
     expect(html).toContain("Access platform");
+    expect(html).toContain(">Login</a>");
+    expect(html).toContain(">Access</a>");
     expect(html).toContain('id="platform"');
     expect(html).toContain('href="#access"');
     expect(html).toContain("Solo");

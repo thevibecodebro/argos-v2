@@ -504,6 +504,92 @@ describe("appendRoleplayTranscriptMessage", () => {
 });
 
 describe("completeRoleplaySession", () => {
+  it("scores a short off-topic exchange as low confidence instead of passing it as mediocre", async () => {
+    mockAccessRepository({
+      actor: { id: "rep-1", orgId: "org-1", role: "rep" },
+      memberships: [
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ],
+      grants: [],
+    });
+
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "rep-1",
+        email: "rep@argos.ai",
+        role: "rep",
+        firstName: "Riley",
+        lastName: "Stone",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      findSessionById: vi.fn().mockResolvedValue({
+        id: "session-1",
+        repId: "rep-1",
+        orgId: "org-1",
+        persona: "price-sensitive-smb",
+        industry: "Professional Services",
+        difficulty: "beginner",
+        overallScore: null,
+        origin: "manual",
+        sourceCallId: null,
+        rubricId: null,
+        focusMode: "all",
+        focusCategorySlug: null,
+        scenarioSummary: null,
+        scenarioBrief: null,
+        status: "active",
+        transcript: [
+          {
+            role: "assistant",
+            content: "Thanks for making time. We're watching spend carefully this quarter, so keep it straightforward for me.",
+          },
+          {
+            role: "user",
+            content: "I only joined for a minute. This is not about sales, I was just checking the microphone.",
+          },
+        ],
+        scorecard: null,
+        createdAt: new Date("2026-04-03T00:00:00.000Z"),
+      }),
+      updateSession: vi.fn().mockImplementation(async (_sessionId, patch) => ({
+        id: "session-1",
+        repId: "rep-1",
+        orgId: "org-1",
+        persona: "price-sensitive-smb",
+        industry: "Professional Services",
+        difficulty: "beginner",
+        overallScore: patch.overallScore ?? null,
+        origin: "manual",
+        sourceCallId: null,
+        rubricId: null,
+        focusMode: "all",
+        focusCategorySlug: null,
+        scenarioSummary: null,
+        scenarioBrief: null,
+        status: patch.status ?? "complete",
+        transcript: patch.transcript ?? [],
+        scorecard: patch.scorecard ?? null,
+        createdAt: new Date("2026-04-03T00:00:00.000Z"),
+      })),
+    });
+
+    const result = await completeRoleplaySession(
+      repository,
+      "rep-1",
+      "session-1",
+      createRubricsRepositoryStub() as never,
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected completed roleplay");
+    expect(result.data.status).toBe("complete");
+    expect(result.data.overallScore).not.toBeNull();
+    expect(result.data.overallScore).toBeLessThanOrEqual(35);
+    expect(result.data.scorecard?.confidence).toBe("low");
+    expect(result.data.scorecard?.callStageReached).toBe("opening");
+    expect(result.data.scorecard?.summary).toContain("not enough relevant sales execution");
+  });
+
   it("marks the session complete and produces a scorecard from the transcript", async () => {
     mockAccessRepository({
       actor: { id: "rep-1", orgId: "org-1", role: "rep" },

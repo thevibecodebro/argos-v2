@@ -64,4 +64,23 @@ describe("public landing styles", () => {
     expect(scene).toContain('root.style.setProperty("--forge-pointer-x", "0")');
     expect(scene).toContain('root.style.setProperty("--forge-pointer-y", "0")');
   });
+
+  it("keeps the public nav restrained and compact across viewports", () => {
+    const moduleCss = readFileSync(
+      new URL("../components/public/landing-page.module.css", import.meta.url),
+      "utf8",
+    );
+
+    expect(moduleCss).toContain(".argos-wordmark-image");
+    expect(moduleCss).toContain("width: min(78rem, 100%);");
+    expect(moduleCss).toContain("grid-template-columns: 1fr auto 1fr;");
+    expect(moduleCss).toContain(".argos-nav-links {");
+    expect(moduleCss).toContain("border: 1px solid rgba(255, 244, 230, 0.08);");
+    expect(moduleCss).toContain("border-radius: 999px;");
+    expect(moduleCss).toContain("@media (max-width: 700px)");
+    expect(moduleCss).toContain("grid-template-columns: minmax(0, 1fr) auto;");
+    expect(moduleCss).toContain("overflow-x: auto;");
+    expect(moduleCss).toContain("min-height: 2.75rem;");
+    expect(moduleCss).toContain("scroll-padding-top: 7.5rem;");
+  });
 });

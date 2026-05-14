@@ -30,8 +30,13 @@ describe("LandingPage", () => {
     expect(html).toContain("GoHighLevel workflow automation");
     expect(html).toContain("recording consent");
     expect(html).toContain("Start with one rep. Add the team later.");
+    expect(html).toContain("Team gives managers shared visibility");
     expect(html).toContain("Access platform");
     expect(html).toContain("Book a demo");
+    expect(html).toContain(">Login</a>");
+    expect(html).toContain('aria-label="Access Argos"');
+    expect(html).toContain(">Access</a>");
+    expect(html).not.toContain(">Sign in</a>");
     expect(html).toContain("Privacy Policy");
     expect(html).toContain('href="#features"');
     expect(html).toContain(">Calls</a>");

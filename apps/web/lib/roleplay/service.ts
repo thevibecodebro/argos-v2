@@ -284,13 +284,37 @@ function buildReply(persona: RoleplayPersona, userMessage: string): string {
   }
 }
 
-function scoreLegacyRoleplayCategories(input: {
+type RoleplayEvidenceProfile = {
   hasDiscovery: boolean;
   hasImplementation: boolean;
   hasNextStep: boolean;
   hasNumericProof: boolean;
+  hasRoleplayContext: boolean;
   hasTechnical: boolean;
-}) {
+  isOffTopic: boolean;
+  signalCount: number;
+  userLineCount: number;
+  userWordCount: number;
+};
+
+function scoreLegacyRoleplayCategories(input: RoleplayEvidenceProfile) {
+  const lowEvidence =
+    input.isOffTopic ||
+    (!input.hasRoleplayContext && input.signalCount === 0) ||
+    input.userWordCount < 12;
+
+  if (lowEvidence) {
+    return {
+      frame_control: 28,
+      rapport: 30,
+      discovery: 24,
+      pain_expansion: 24,
+      solution: 25,
+      objection_handling: 24,
+      closing: 22,
+    } as const;
+  }
+
   return {
     frame_control: input.hasNextStep ? 84 : 66,
     rapport: input.hasDiscovery ? 76 : 63,
@@ -353,6 +377,75 @@ function buildRoleplayRubricCategoryScores(
   return categoryScores;
 }
 
+function countWords(lines: string[]) {
+  return lines.reduce(
+    (count, line) => count + (line.match(/[a-z0-9]+(?:[-'][a-z0-9]+)?/gi) ?? []).length,
+    0,
+  );
+}
+
+function hasRoleplayContext(lines: string[]) {
+  return lines.some((line) =>
+    /\b(buyer|budget|calendar|call|coach|coaching|commit|contract|cost|cro|customer|decision|demo|follow[- ]?up|implementation|integration|margin|meeting|next step|objection|outcome|owner|pain|pilot|pipeline|pricing|problem|process|proposal|prospect|revenue|review|roi|rollout|security|solution|stakeholder|team|timeline|trial|value|workflow)\b/.test(line),
+  );
+}
+
+function isExplicitlyOffTopic(lines: string[]) {
+  return lines.some((line) =>
+    /\b(not about sales|not a sales call|checking (the )?(mic|microphone)|mic check|microphone check|test audio|testing audio|favorite movie|weather|random question)\b/.test(line),
+  );
+}
+
+function buildRoleplayEvidenceProfile(userLines: string[]): RoleplayEvidenceProfile {
+  const hasNumericProof = userLines.some((line) => /%|\d/.test(line));
+  const hasDiscovery = userLines.some((line) => /\?|pain|today|process|team|problem/.test(line));
+  const hasNextStep = userLines.some((line) => /next[- ]step|calendar|pilot|review|tuesday|thursday|monday|friday/.test(line));
+  const hasImplementation = userLines.some((line) => /implement|onboard|rollout|owner|week|timeline/.test(line));
+  const hasTechnical = userLines.some((line) => /api|security|soc 2|integration|data|architecture/.test(line));
+  const signalCount = [
+    hasDiscovery,
+    hasImplementation,
+    hasNextStep,
+    hasNumericProof,
+    hasTechnical,
+  ].filter(Boolean).length;
+
+  return {
+    hasDiscovery,
+    hasImplementation,
+    hasNextStep,
+    hasNumericProof,
+    hasRoleplayContext: hasRoleplayContext(userLines),
+    hasTechnical,
+    isOffTopic: isExplicitlyOffTopic(userLines),
+    signalCount,
+    userLineCount: userLines.length,
+    userWordCount: countWords(userLines),
+  };
+}
+
+function scoreRoleplayEvidence(profile: RoleplayEvidenceProfile) {
+  let score = 42;
+
+  if (profile.hasRoleplayContext) score += 6;
+  if (profile.hasNumericProof) score += 12;
+  if (profile.hasDiscovery) score += 12;
+  if (profile.hasNextStep) score += 20;
+  if (profile.hasImplementation) score += 7;
+  if (profile.hasTechnical) score += 7;
+  if (profile.userLineCount >= 2) score += 4;
+  if (profile.userWordCount >= 40) score += 4;
+  if (profile.userWordCount >= 90) score += 3;
+
+  if (!profile.hasRoleplayContext && profile.signalCount === 0) score -= 12;
+  if (profile.userWordCount < 20) score -= 10;
+  else if (profile.userWordCount < 35 && profile.signalCount < 2) score -= 5;
+  if (profile.userLineCount <= 1) score -= 5;
+  if (profile.isOffTopic) score = Math.min(score - 10, 28);
+
+  return Math.max(20, Math.min(95, score));
+}
+
 function buildScorecard(
   transcript: RoleplayMessage[],
   rubric: RoleplayRubric = DEFAULT_ROLEPLAY_RUBRIC,
@@ -364,47 +457,32 @@ function buildScorecard(
     .filter((item) => item.role === "user")
     .map((item) => item.content.toLowerCase());
 
-  const hasNumericProof = userLines.some((line) => /%|\d/.test(line));
-  const hasDiscovery = userLines.some((line) => /\?|pain|today|process|team|problem/.test(line));
-  const hasNextStep = userLines.some((line) => /next step|calendar|pilot|review|tuesday|thursday|monday|friday/.test(line));
-  const hasImplementation = userLines.some((line) => /implement|onboard|rollout|owner|week|timeline/.test(line));
-  const hasTechnical = userLines.some((line) => /api|security|soc 2|integration|data|architecture/.test(line));
-
-  let score = 58;
-  if (hasNumericProof) score += 10;
-  if (hasDiscovery) score += 8;
-  if (hasNextStep) score += 14;
-  if (hasImplementation) score += 6;
-  if (hasTechnical) score += 6;
-  if (userLines.length >= 2) score += 4;
-
-  score = Math.max(42, Math.min(95, score));
+  const evidence = buildRoleplayEvidenceProfile(userLines);
+  const score = scoreRoleplayEvidence(evidence);
+  const lowEvidence =
+    evidence.isOffTopic ||
+    (!evidence.hasRoleplayContext && evidence.signalCount === 0) ||
+    evidence.userWordCount < 12;
 
   const strengths: string[] = [];
   const improvements: string[] = [];
   const recommendedDrills: string[] = [];
   const moments: RoleplayScorecard["moments"] = [];
-  const legacyScores = scoreLegacyRoleplayCategories({
-    hasDiscovery,
-    hasImplementation,
-    hasNextStep,
-    hasNumericProof,
-    hasTechnical,
-  });
+  const legacyScores = scoreLegacyRoleplayCategories(evidence);
   const categoryScores = buildRoleplayRubricCategoryScores(rubric, legacyScores, score);
   const categoryLabels = createCategoryLabels(rubric.categories);
 
   const confidence: RoleplayScorecard["confidence"] =
     score >= 82 ? "high" : score >= 68 ? "medium" : "low";
-  const callStageReached: RoleplayScorecard["callStageReached"] = hasNextStep
+  const callStageReached: RoleplayScorecard["callStageReached"] = evidence.hasNextStep
     ? "commitment"
-    : hasNumericProof
+    : evidence.hasNumericProof
       ? "solution"
-      : hasDiscovery
+      : evidence.hasDiscovery
         ? "discovery"
         : "opening";
 
-  if (hasNumericProof) {
+  if (evidence.hasNumericProof) {
     strengths.push("Used quantified business impact instead of generic value statements.");
     moments.push({
       category: resolveMomentCategory("solution", rubric.categories),
@@ -423,7 +501,7 @@ function buildScorecard(
     });
   }
 
-  if (hasNextStep) {
+  if (evidence.hasNextStep) {
     strengths.push("Closed toward a specific next step instead of ending vaguely.");
     moments.push({
       category: resolveMomentCategory("closing", rubric.categories),
@@ -442,7 +520,7 @@ function buildScorecard(
     });
   }
 
-  if (hasDiscovery) {
+  if (evidence.hasDiscovery) {
     strengths.push("Connected the pitch to the buyer's operational pain.");
     moments.push({
       category: resolveMomentCategory("discovery", rubric.categories),
@@ -461,7 +539,7 @@ function buildScorecard(
     });
   }
 
-  if (!hasImplementation) {
+  if (!evidence.hasImplementation) {
     recommendedDrills.push("Implementation objection handling");
     moments.push({
       category: resolveMomentCategory("objection_handling", rubric.categories),
@@ -471,6 +549,11 @@ function buildScorecard(
     });
   } else {
     strengths.push("Handled implementation questions with a more concrete rollout answer.");
+  }
+
+  if (lowEvidence) {
+    improvements.unshift("Stay in the sales roleplay and give enough relevant rep execution to evaluate.");
+    recommendedDrills.unshift("Opening a roleplay with buyer context");
   }
 
   if (recommendedDrills.length === 0) {
@@ -488,9 +571,11 @@ function buildScorecard(
       categoryLabels,
       confidence,
       summary:
-        score >= 80
-          ? "Strong roleplay. The rep handled the conversation with clear proof and forward momentum."
-          : "Solid foundation, but the rep still needs tighter proof points and a firmer close.",
+        lowEvidence
+          ? "There is not enough relevant sales execution in this roleplay to score it as a meaningful practice attempt."
+          : score >= 80
+            ? "Strong roleplay. The rep handled the conversation with clear proof and forward momentum."
+            : "Solid foundation, but the rep still needs tighter proof points and a firmer close.",
       strengths,
       improvements,
       recommendedDrills: [...new Set(recommendedDrills)],
