@@ -8,6 +8,16 @@ export type BillingPlanId =
   | "extra-2000";
 
 type BillingMode = "payment" | "subscription";
+type BillingInterval = "month" | "year";
+
+type BillingPlanPrice = {
+  currency: "usd";
+  recurring?: {
+    interval: BillingInterval;
+    intervalCount: number;
+  };
+  unitAmountCents: number;
+};
 
 export type BillingPlan = {
   adjustableQuantity?: {
@@ -21,6 +31,7 @@ export type BillingPlan = {
   metadata: Record<string, string>;
   mode: BillingMode;
   name: string;
+  price: BillingPlanPrice;
   priceIdEnvKey: string;
 };
 
@@ -39,6 +50,14 @@ export const billingPlans: Record<BillingPlanId, BillingPlan> = {
     },
     mode: "subscription",
     name: "Argos Solo",
+    price: {
+      currency: "usd",
+      recurring: {
+        interval: "month",
+        intervalCount: 1,
+      },
+      unitAmountCents: 7900,
+    },
     priceIdEnvKey: "STRIPE_ARGOS_SOLO_MONTHLY_PRICE_ID",
   },
   "solo-annual": {
@@ -52,6 +71,14 @@ export const billingPlans: Record<BillingPlanId, BillingPlan> = {
     },
     mode: "subscription",
     name: "Argos Solo Annual",
+    price: {
+      currency: "usd",
+      recurring: {
+        interval: "year",
+        intervalCount: 1,
+      },
+      unitAmountCents: 85320,
+    },
     priceIdEnvKey: "STRIPE_ARGOS_SOLO_ANNUAL_PRICE_ID",
   },
   team: {
@@ -70,6 +97,14 @@ export const billingPlans: Record<BillingPlanId, BillingPlan> = {
     },
     mode: "subscription",
     name: "Argos Team",
+    price: {
+      currency: "usd",
+      recurring: {
+        interval: "month",
+        intervalCount: 1,
+      },
+      unitAmountCents: 5000,
+    },
     priceIdEnvKey: "STRIPE_ARGOS_TEAM_MONTHLY_PRICE_ID",
   },
   "team-annual": {
@@ -89,6 +124,14 @@ export const billingPlans: Record<BillingPlanId, BillingPlan> = {
     },
     mode: "subscription",
     name: "Argos Team Annual",
+    price: {
+      currency: "usd",
+      recurring: {
+        interval: "year",
+        intervalCount: 1,
+      },
+      unitAmountCents: 54000,
+    },
     priceIdEnvKey: "STRIPE_ARGOS_TEAM_ANNUAL_PRICE_ID",
   },
   "extra-250": {
@@ -101,6 +144,10 @@ export const billingPlans: Record<BillingPlanId, BillingPlan> = {
     },
     mode: "payment",
     name: "250 extra Argos live voice minutes",
+    price: {
+      currency: "usd",
+      unitAmountCents: 12500,
+    },
     priceIdEnvKey: "STRIPE_ARGOS_EXTRA_250_PRICE_ID",
   },
   "extra-500": {
@@ -113,6 +160,10 @@ export const billingPlans: Record<BillingPlanId, BillingPlan> = {
     },
     mode: "payment",
     name: "500 extra Argos live voice minutes",
+    price: {
+      currency: "usd",
+      unitAmountCents: 17500,
+    },
     priceIdEnvKey: "STRIPE_ARGOS_EXTRA_500_PRICE_ID",
   },
   "extra-2000": {
@@ -125,6 +176,10 @@ export const billingPlans: Record<BillingPlanId, BillingPlan> = {
     },
     mode: "payment",
     name: "2,000 extra Argos live voice minutes",
+    price: {
+      currency: "usd",
+      unitAmountCents: 60000,
+    },
     priceIdEnvKey: "STRIPE_ARGOS_EXTRA_2000_PRICE_ID",
   },
 };

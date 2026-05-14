@@ -13,9 +13,18 @@ type StripeErrorPayload = {
 };
 
 type StripePriceListPayload = StripeErrorPayload & {
-  data?: Array<{
-    id?: string;
-  }>;
+  data?: StripePricePayload[];
+};
+
+type StripePricePayload = StripeErrorPayload & {
+  active?: boolean;
+  currency?: string;
+  id?: string;
+  recurring?: {
+    interval?: string;
+    interval_count?: number;
+  } | null;
+  unit_amount?: number | null;
 };
 
 type StripeCheckoutSessionPayload = StripeErrorPayload & {
@@ -59,7 +68,7 @@ export async function createStripeCheckoutSession({
   successUrl,
 }: CreateStripeCheckoutSessionInput) {
   const secretKey = getStripeSecretKey(env);
-  const priceId = await resolveStripePriceId({
+  const price = await resolveStripePrice({
     env,
     fetcher,
     plan,
@@ -72,7 +81,7 @@ export async function createStripeCheckoutSession({
   body.set("success_url", successUrl);
   body.set("cancel_url", cancelUrl);
   body.set("client_reference_id", authUserId);
-  body.set("line_items[0][price]", priceId);
+  body.set("line_items[0][price]", price.id);
   body.set("line_items[0][quantity]", String(quantity));
   body.set("metadata[auth_user_id]", authUserId);
   body.set("metadata[plan]", plan.id);
@@ -130,7 +139,7 @@ function getStripeSecretKey(env: EnvSource) {
   return secretKey;
 }
 
-async function resolveStripePriceId({
+async function resolveStripePrice({
   env,
   fetcher,
   plan,
@@ -144,7 +153,15 @@ async function resolveStripePriceId({
   const configuredPriceId = env[plan.priceIdEnvKey];
 
   if (configuredPriceId) {
-    return configuredPriceId;
+    const price = await stripeRequest<StripePricePayload>({
+      fetcher,
+      method: "GET",
+      path: `/v1/prices/${encodeURIComponent(configuredPriceId)}`,
+      secretKey,
+    });
+
+    assertStripePriceMatchesPlan(price, plan);
+    return price;
   }
 
   const query = new URLSearchParams();
@@ -158,15 +175,66 @@ async function resolveStripePriceId({
     path: `/v1/prices?${query.toString()}`,
     secretKey,
   });
-  const priceId = payload.data?.[0]?.id;
+  const price = payload.data?.[0];
 
-  if (!priceId) {
+  if (!price?.id) {
     throw new StripeCheckoutConfigurationError(
       `No active Stripe price found for lookup key: ${plan.lookupKey}`,
     );
   }
 
-  return priceId;
+  assertStripePriceMatchesPlan(price, plan);
+  return price;
+}
+
+function assertStripePriceMatchesPlan(price: StripePricePayload, plan: BillingPlan): asserts price is StripePricePayload & { id: string } {
+  if (!price.id) {
+    throw new StripeCheckoutConfigurationError(`Stripe price for ${plan.id} is missing an id.`);
+  }
+
+  if (price.active !== true) {
+    throw new StripeCheckoutConfigurationError(`Stripe price ${price.id} for ${plan.id} is not active.`);
+  }
+
+  if (price.currency !== plan.price.currency) {
+    throw new StripeCheckoutConfigurationError(
+      `Stripe price ${price.id} for ${plan.id} must use ${plan.price.currency}.`,
+    );
+  }
+
+  if (price.unit_amount !== plan.price.unitAmountCents) {
+    throw new StripeCheckoutConfigurationError(
+      `Stripe price ${price.id} for ${plan.id} must be ${plan.price.unitAmountCents} cents.`,
+    );
+  }
+
+  const expectedRecurring = plan.price.recurring;
+
+  if (!expectedRecurring) {
+    if (price.recurring) {
+      throw new StripeCheckoutConfigurationError(
+        `Stripe price ${price.id} for ${plan.id} must be one-time, not recurring.`,
+      );
+    }
+
+    return;
+  }
+
+  if (!price.recurring) {
+    throw new StripeCheckoutConfigurationError(`Stripe price ${price.id} for ${plan.id} must be recurring.`);
+  }
+
+  if (price.recurring.interval !== expectedRecurring.interval) {
+    throw new StripeCheckoutConfigurationError(
+      `Stripe price ${price.id} for ${plan.id} must recur every ${expectedRecurring.interval}.`,
+    );
+  }
+
+  if ((price.recurring.interval_count ?? 1) !== expectedRecurring.intervalCount) {
+    throw new StripeCheckoutConfigurationError(
+      `Stripe price ${price.id} for ${plan.id} must have interval count ${expectedRecurring.intervalCount}.`,
+    );
+  }
 }
 
 async function stripeRequest<TPayload extends StripeErrorPayload>({

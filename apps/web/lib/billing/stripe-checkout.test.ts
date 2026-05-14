@@ -11,7 +11,15 @@ describe("createStripeCheckoutSession", () => {
       .fn()
       .mockResolvedValueOnce(
         jsonResponse({
-          data: [{ id: "price_team_monthly" }],
+          data: [
+            {
+              active: true,
+              currency: "usd",
+              id: "price_team_monthly",
+              recurring: { interval: "month", interval_count: 1 },
+              unit_amount: 5000,
+            },
+          ],
         }),
       )
       .mockResolvedValueOnce(
@@ -50,12 +58,23 @@ describe("createStripeCheckoutSession", () => {
   });
 
   it("uses an explicit configured price id before lookup keys", async () => {
-    const fetcher = vi.fn().mockResolvedValueOnce(
-      jsonResponse({
-        id: "cs_test",
-        url: "https://checkout.stripe.com/c/solo",
-      }),
-    );
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse({
+          active: true,
+          currency: "usd",
+          id: "price_live_solo",
+          recurring: { interval: "month", interval_count: 1 },
+          unit_amount: 7900,
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          id: "cs_test",
+          url: "https://checkout.stripe.com/c/solo",
+        }),
+      );
 
     await createStripeCheckoutSession({
       authUserId: "auth-user-1",
@@ -69,9 +88,43 @@ describe("createStripeCheckoutSession", () => {
       successUrl: "https://argos.ai/dashboard",
     });
 
-    expect(fetcher).toHaveBeenCalledTimes(1);
-    const checkoutBody = fetcher.mock.calls[0]?.[1]?.body as URLSearchParams;
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(fetcher.mock.calls[0]?.[0]).toBe("https://api.stripe.com/v1/prices/price_live_solo");
+
+    const checkoutBody = fetcher.mock.calls[1]?.[1]?.body as URLSearchParams;
     expect(checkoutBody.get("line_items[0][price]")).toBe("price_live_solo");
+  });
+
+  it("rejects annual Stripe prices that are not configured as the 10% yearly discount", async () => {
+    const fetcher = vi.fn().mockResolvedValueOnce(
+      jsonResponse({
+        data: [
+          {
+            active: true,
+            currency: "usd",
+            id: "price_wrong_team_annual",
+            recurring: { interval: "month", interval_count: 1 },
+            unit_amount: 5000,
+          },
+        ],
+      }),
+    );
+
+    await expect(
+      createStripeCheckoutSession({
+        authUserId: "auth-user-1",
+        cancelUrl: "https://argos.ai/#access",
+        env: {
+          STRIPE_SECRET_KEY: "sk_live_test",
+        },
+        fetcher,
+        plan: billingPlans["team-annual"],
+        quantity: 8,
+        successUrl: "https://argos.ai/dashboard",
+      }),
+    ).rejects.toBeInstanceOf(StripeCheckoutConfigurationError);
+
+    expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
   it("throws a configuration error when Stripe is not configured", async () => {

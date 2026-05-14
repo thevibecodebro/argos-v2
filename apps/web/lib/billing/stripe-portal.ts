@@ -21,6 +21,17 @@ type StripeBillingPortalSessionPayload = StripeErrorPayload & {
   url?: string;
 };
 
+type StripeBillingPortalConfigurationPayload = StripeErrorPayload & {
+  features?: {
+    subscription_update?: {
+      default_allowed_updates?: string[];
+      enabled?: boolean;
+      proration_behavior?: string;
+    };
+  };
+  id?: string;
+};
+
 export class StripeBillingPortalConfigurationError extends Error {
   constructor(message: string) {
     super(message);
@@ -49,19 +60,24 @@ export async function createStripeBillingPortalSession({
   returnUrl,
 }: CreateStripeBillingPortalSessionInput) {
   const secretKey = getStripeSecretKey(env);
+  const configurationId = getStripePortalConfigurationId(env);
   const customerId = await resolveStripeCustomerId({
     customerEmail,
     fetcher,
     secretKey,
   });
+
+  await assertStripePortalConfigurationIsSafe({
+    configurationId,
+    fetcher,
+    secretKey,
+  });
+
   const body = new URLSearchParams();
 
   body.set("customer", customerId);
   body.set("return_url", returnUrl);
-
-  if (env.STRIPE_CUSTOMER_PORTAL_CONFIGURATION_ID) {
-    body.set("configuration", env.STRIPE_CUSTOMER_PORTAL_CONFIGURATION_ID);
-  }
+  body.set("configuration", configurationId);
 
   const payload = await stripeRequest<StripeBillingPortalSessionPayload>({
     body,
@@ -89,6 +105,55 @@ function getStripeSecretKey(env: EnvSource) {
   }
 
   return secretKey;
+}
+
+function getStripePortalConfigurationId(env: EnvSource) {
+  const configurationId = env.STRIPE_CUSTOMER_PORTAL_CONFIGURATION_ID;
+
+  if (!configurationId) {
+    throw new StripeBillingPortalConfigurationError(
+      "Missing required environment variable: STRIPE_CUSTOMER_PORTAL_CONFIGURATION_ID",
+    );
+  }
+
+  return configurationId;
+}
+
+async function assertStripePortalConfigurationIsSafe({
+  configurationId,
+  fetcher,
+  secretKey,
+}: {
+  configurationId: string;
+  fetcher: StripeFetch;
+  secretKey: string;
+}) {
+  const payload = await stripeRequest<StripeBillingPortalConfigurationPayload>({
+    fetcher,
+    method: "GET",
+    path: `/v1/billing_portal/configurations/${encodeURIComponent(configurationId)}`,
+    secretKey,
+  });
+  const subscriptionUpdate = payload.features?.subscription_update;
+  const allowedUpdates = new Set(subscriptionUpdate?.default_allowed_updates ?? []);
+
+  if (subscriptionUpdate?.enabled !== true) {
+    throw new StripeBillingPortalConfigurationError(
+      `Stripe customer portal configuration ${configurationId} must enable subscription updates.`,
+    );
+  }
+
+  if (!allowedUpdates.has("price") || !allowedUpdates.has("quantity")) {
+    throw new StripeBillingPortalConfigurationError(
+      `Stripe customer portal configuration ${configurationId} must allow price and quantity updates.`,
+    );
+  }
+
+  if (subscriptionUpdate.proration_behavior !== "always_invoice") {
+    throw new StripeBillingPortalConfigurationError(
+      `Stripe customer portal configuration ${configurationId} must invoice prorated subscription updates.`,
+    );
+  }
 }
 
 async function resolveStripeCustomerId({

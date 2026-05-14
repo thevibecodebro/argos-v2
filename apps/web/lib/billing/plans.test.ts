@@ -19,6 +19,29 @@ describe("billing plans", () => {
     expect(billingPlans["team-annual"].adjustableQuantity?.minimum).toBe(3);
   });
 
+  it("documents the expected Stripe price amounts and intervals", () => {
+    expect(billingPlans.solo.price).toEqual({
+      currency: "usd",
+      recurring: { interval: "month", intervalCount: 1 },
+      unitAmountCents: 7900,
+    });
+    expect(billingPlans["solo-annual"].price).toEqual({
+      currency: "usd",
+      recurring: { interval: "year", intervalCount: 1 },
+      unitAmountCents: 85320,
+    });
+    expect(billingPlans.team.price).toEqual({
+      currency: "usd",
+      recurring: { interval: "month", intervalCount: 1 },
+      unitAmountCents: 5000,
+    });
+    expect(billingPlans["team-annual"].price).toEqual({
+      currency: "usd",
+      recurring: { interval: "year", intervalCount: 1 },
+      unitAmountCents: 54000,
+    });
+  });
+
   it("builds stable public checkout links", () => {
     expect(getBillingCheckoutHref("solo")).toBe("/billing/checkout?plan=solo");
     expect(getBillingCheckoutHref("team", { seats: 8 })).toBe(
