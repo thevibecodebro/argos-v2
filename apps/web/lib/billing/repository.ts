@@ -3,6 +3,7 @@ import {
   billingCustomersTable,
   billingSubscriptionsTable,
   getDb,
+  organizationsTable,
   stripeWebhookEventsTable,
   usersTable,
   voiceCreditGrantsTable,
@@ -12,20 +13,39 @@ import {
 import type { BillingWebhookRepository, StripeWebhookEvent } from "./webhook-service";
 import type { VoiceEntitlementsRepository } from "./voice-entitlements";
 
+function buildFullName(firstName: string | null, lastName: string | null, email: string) {
+  return [firstName, lastName].filter(Boolean).join(" ").trim() || email;
+}
+
 export class DrizzleBillingRepository implements BillingWebhookRepository, VoiceEntitlementsRepository {
   constructor(private readonly db: ArgosDb = getDb()) {}
 
   async findUserBillingScope(authUserId: string) {
     const [user] = await this.db
       .select({
+        email: usersTable.email,
+        firstName: usersTable.firstName,
+        lastName: usersTable.lastName,
+        orgName: organizationsTable.name,
         orgId: usersTable.orgId,
         userId: usersTable.id,
       })
       .from(usersTable)
+      .leftJoin(organizationsTable, eq(usersTable.orgId, organizationsTable.id))
       .where(eq(usersTable.id, authUserId))
       .limit(1);
 
-    return user ?? null;
+    if (!user) {
+      return null;
+    }
+
+    return {
+      email: user.email,
+      fullName: buildFullName(user.firstName, user.lastName, user.email),
+      orgName: user.orgName,
+      orgId: user.orgId,
+      userId: user.userId,
+    };
   }
 
   async insertStripeWebhookEvent(input: {
