@@ -1,169 +1,78 @@
 import Link from "next/link";
 import { ArgosLogo } from "@/components/argos-logo";
 import { LegalFooterLinks } from "@/components/public/legal-links";
+import styles from "@/components/public/landing-page.module.css";
 
 type AuthShellProps = {
   children: React.ReactNode;
 };
 
-const workflowHighlights = [
-  "Call review",
-  "Scorecards",
-  "Highlights",
-  "Training",
-  "Roleplay",
-  "Team coaching",
+const homepageNavLinks = [
+  { label: "Calls", href: "/#features" },
+  { label: "Coaching", href: "/#detail" },
+  { label: "Team", href: "/#trust" },
+  { label: "Pricing", href: "/#access" },
 ] as const;
 
 export function AuthShell({ children }: AuthShellProps) {
   return (
     <div
-      className="forge-shell min-h-screen overflow-hidden text-[var(--forge-text)] selection:bg-[rgba(241,191,123,0.24)] selection:text-[var(--forge-text)]"
+      className={cx(
+        styles["argos-3d-page"],
+        "min-h-screen overflow-x-hidden text-[var(--forge-text)] selection:bg-[rgba(241,191,123,0.24)] selection:text-[var(--forge-text)]",
+      )}
       data-auth-shell="forge"
       data-shell-theme="forge"
       style={{ fontFamily: "var(--font-body, 'Source Sans 3', sans-serif)" }}
     >
-      <header className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-8 py-6">
-        <Link
-          aria-label="Argos homepage"
-          className="forge-focus-ring block w-28 rounded-lg sm:w-32"
-          href="/"
-        >
-          <ArgosLogo
-            className="block"
-            decorative
-            imageClassName="block h-auto w-full"
-            placement="auth-header"
-          />
-        </Link>
-        <div className="flex items-center space-x-4">
-          <LanguageIcon />
-          <HelpIcon />
-        </div>
+      <header className={styles["argos-nav-shell"]} aria-label="Login navigation">
+        <nav className={styles["argos-nav"]}>
+          <Link aria-label="Argos homepage" className={styles["argos-brand"]} href="/">
+            <ArgosLogo
+              className={styles["argos-wordmark"]}
+              decorative
+              imageClassName={styles["argos-wordmark-image"]}
+              placement="auth-header"
+            />
+          </Link>
+
+          <div className={styles["argos-nav-links"]} aria-label="Homepage sections">
+            {homepageNavLinks.map((link) => (
+              <Link href={link.href} key={link.href}>
+                {link.label}
+              </Link>
+            ))}
+          </div>
+
+          <div className={styles["argos-nav-actions"]}>
+            <Link className={styles["argos-login-link"]} href="/">
+              Home
+            </Link>
+            <Link className={styles["argos-mini-cta"]} href="/#access">
+              View plans
+            </Link>
+          </div>
+        </nav>
       </header>
 
-      <main className="flex min-h-screen">
-        <section className="relative hidden items-center justify-center overflow-hidden border-r border-[var(--forge-border)] bg-[linear-gradient(135deg,rgba(16,9,7,0.92),rgba(5,4,3,0.98))] lg:flex lg:w-1/2">
-          <div className="absolute inset-0 opacity-80">
-            <AuthShellIllustration />
-          </div>
+      <main className="relative z-[2] flex min-h-screen items-center justify-center px-5 pb-16 pt-52 sm:px-8 sm:pt-48 md:pb-24 lg:px-14 lg:pt-36 xl:px-20">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+          <div className="absolute left-1/2 top-1/2 h-[34rem] w-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[rgba(241,191,123,0.055)] blur-3xl" />
+          <div className="absolute inset-x-[12%] top-[18%] h-px bg-[linear-gradient(90deg,transparent,rgba(255,244,230,0.13),transparent)]" />
+          <div className="absolute inset-x-[18%] bottom-[20%] h-px bg-[linear-gradient(90deg,transparent,rgba(255,244,230,0.08),transparent)]" />
+        </div>
 
-          <div className="relative z-10 w-full max-w-xl p-12">
-            <div className="forge-surface rounded-[2rem] p-8">
-              <ArgosLogo
-                className="mb-8 block w-32"
-                decorative
-                imageClassName="block h-auto w-full"
-                placement="auth-panel"
-              />
-              <p className="forge-page-eyebrow">Revenue Command</p>
-              <h2
-                className="mt-5 font-[var(--font-display)] text-5xl font-bold leading-[0.96] tracking-tight text-[var(--forge-text)]"
-                style={{ fontFamily: "var(--font-display, 'Space Grotesk', sans-serif)" }}
-              >
-                Sales coaching from the calls reps actually run.
-              </h2>
-              <p className="mt-5 max-w-md text-base leading-7 text-[var(--forge-muted)]">
-                Review calls, score performance, save highlights, assign training, practice roleplay, and coach the team.
-              </p>
-
-              <div className="mt-8 grid grid-cols-2 gap-3">
-                {workflowHighlights.map((item) => (
-                  <div
-                    className="rounded-2xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-4 py-3 text-sm font-semibold text-[var(--forge-text)]"
-                    key={item}
-                  >
-                    {item}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="flex w-full items-center justify-center px-6 py-28 md:px-12 lg:w-1/2">
-          <div className="w-full max-w-md space-y-10 rounded-[1.75rem] border border-[var(--forge-border)] bg-[rgba(16,9,7,0.72)] p-6 shadow-[0_24px_80px_rgba(5,3,2,0.34)] sm:p-8">
+        <section className="flex w-full items-center justify-center">
+          <div className="w-full max-w-[32rem] space-y-10 rounded-[1.65rem] border border-[rgba(255,244,230,0.12)] bg-[rgba(5,4,3,0.76)] p-6 shadow-[inset_0_1px_0_rgba(255,244,230,0.08),0_30px_90px_rgba(0,0,0,0.34)] backdrop-blur-md sm:p-8">
             {children}
           </div>
         </section>
       </main>
 
-      <footer className="fixed bottom-0 right-0 flex w-full justify-center px-6 py-6 lg:w-1/2">
+      <footer className="relative z-[3] flex w-full justify-center px-6 pb-6 md:fixed md:bottom-0 md:left-0 md:right-0 md:py-6">
         <LegalFooterLinks className="justify-center text-[10px] text-[var(--forge-faint)]" />
       </footer>
     </div>
-  );
-}
-
-function LanguageIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      className="h-6 w-6 text-[var(--forge-muted)]"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={1.5}
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="12" r="10" />
-      <ellipse cx="12" cy="12" rx="4" ry="10" />
-      <path d="M2 12h20" />
-      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-    </svg>
-  );
-}
-
-function HelpIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      className="h-6 w-6 text-[var(--forge-muted)]"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={1.5}
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="12" r="10" />
-      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-      <path d="M12 17h.01" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function AuthShellIllustration() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="h-full w-full"
-      fill="none"
-      viewBox="0 0 720 960"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <rect fill="url(#auth-bg)" height="960" width="720" />
-      <circle cx="522" cy="264" fill="var(--forge-gold)" opacity="0.16" r="182" />
-      <circle cx="282" cy="612" fill="var(--forge-ember)" opacity="0.11" r="214" />
-      <path d="M132 650c89-149 204-225 346-229 90 74 145 165 164 272-60 113-164 179-310 198-101-28-168-109-200-241Z" stroke="var(--forge-gold)" strokeOpacity="0.28" strokeWidth="18" />
-      <path d="M176 697c71-103 156-155 256-155 104 0 187 52 249 155" stroke="var(--forge-ember)" strokeLinecap="round" strokeOpacity="0.22" strokeWidth="14" />
-      <path d="M200 302c82 63 172 95 272 95 100 0 191-32 272-95" stroke="var(--forge-gold)" strokeLinecap="round" strokeOpacity="0.22" strokeWidth="14" />
-      <path d="M357 192v533" stroke="url(#auth-axis)" strokeLinecap="round" strokeOpacity="0.55" strokeWidth="12" />
-      <circle cx="287" cy="332" fill="var(--forge-ember)" opacity="0.72" r="16" />
-      <circle cx="470" cy="332" fill="var(--forge-gold)" opacity="0.82" r="18" />
-      <circle cx="532" cy="524" fill="var(--forge-ember)" opacity="0.58" r="13" />
-      <circle cx="240" cy="572" fill="var(--forge-gold)" opacity="0.52" r="11" />
-      <defs>
-        <linearGradient id="auth-bg" x1="360" x2="360" y1="0" y2="960" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#20150f" />
-          <stop offset="0.55" stopColor="#100907" />
-          <stop offset="1" stopColor="#050403" />
-        </linearGradient>
-        <linearGradient id="auth-axis" x1="357" x2="357" y1="192" y2="725" gradientUnits="userSpaceOnUse">
-          <stop stopColor="var(--forge-gold)" />
-          <stop offset="1" stopColor="var(--forge-ember)" stopOpacity="0.18" />
-        </linearGradient>
-      </defs>
-    </svg>
   );
 }
 
@@ -268,4 +177,8 @@ function HighlightIcon({ className }: { className?: string }) {
       />
     </svg>
   );
+}
+
+function cx(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(" ");
 }

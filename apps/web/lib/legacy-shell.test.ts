@@ -77,9 +77,12 @@ describe("legacy UI shell", () => {
     expect(html).toContain("Continue with Google");
     expect(html).toContain("Work Email");
     expect(html).toContain('data-auth-shell="forge"');
-    expect(html).toContain("Call review");
-    expect(html).toContain("Scorecards");
-    expect(html).toContain("Roleplay");
+    expect(html).toContain('data-argos-logo="auth-header"');
+    expect(html).toContain("View plans");
+    expect(html).toContain("Continue to call review, scorecards, training, and roleplay.");
+    expect(html).not.toContain('data-argos-logo="auth-panel"');
+    expect(html).not.toContain("Call review");
+    expect(html).not.toContain("Turn every sales call into the next practice plan.");
     expect(html).toContain('href="/privacy-policy"');
     expect(html).toContain('href="/terms-of-service"');
     expect(html).toContain('href="/security-policy"');

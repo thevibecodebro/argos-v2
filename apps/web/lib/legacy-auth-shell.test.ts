@@ -93,9 +93,11 @@ describe("legacy auth shell", () => {
     expect(html).toContain("Work Email");
     expect(html).toContain('data-auth-shell="forge"');
     expect(html).toContain('data-argos-logo="auth-header"');
-    expect(html).toContain('data-argos-logo="auth-panel"');
     expect(html).toContain('src="/argos_logo_background.png"');
-    expect(html).toContain("Review calls, score performance, save highlights, assign training, practice roleplay, and coach the team.");
+    expect(html).toContain("View plans");
+    expect(html).not.toContain('data-argos-logo="auth-panel"');
+    expect(html).not.toContain("Turn every sales call into the next practice plan.");
+    expect(html).not.toContain("Review calls, score performance, save highlights, assign training, practice roleplay, and coach the team.");
     expect(html).toContain('href="/privacy-policy"');
     expect(html).toContain('href="/terms-of-service"');
     expect(html).toContain('href="/security-policy"');
