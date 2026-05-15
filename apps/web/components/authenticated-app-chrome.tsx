@@ -5,6 +5,7 @@ type AuthenticatedAppChromeProps = {
   user: {
     email: string;
     fullName: string;
+    id: string;
     orgLogoUrl?: string | null;
     orgName?: string | null;
     role: "rep" | "manager" | "executive" | "admin" | null;

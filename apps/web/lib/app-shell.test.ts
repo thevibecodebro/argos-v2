@@ -17,8 +17,15 @@ vi.mock("next/navigation", () => ({
 const managerUser = {
   email: "jared@example.com",
   fullName: "Jared Newman",
+  id: "user-manager-1",
   orgName: "Argos Team",
   role: "manager" as const,
+};
+
+const adminUser = {
+  ...managerUser,
+  id: "user-admin-1",
+  role: "admin" as const,
 };
 
 describe("AuthenticatedAppShell", () => {
@@ -43,7 +50,7 @@ describe("AuthenticatedAppShell", () => {
     expect(html).toContain('href="/leaderboard"');
     expect(html).toContain('href="/team"');
     // Header topbar stays visually quiet; these actions live elsewhere.
-    expect(html).not.toContain('href="/upload"');
+    expect(html).not.toContain('data-navigation-link="/upload"');
     expect(html).not.toContain("Argos Team");
     // Account menu and bottom rail utility items
     expect(html).toContain('data-account-menu-item="feedback"');
@@ -53,7 +60,6 @@ describe("AuthenticatedAppShell", () => {
     expect(html).toContain('data-primary-rail-footer-link="settings"');
     expect(html).toContain('href="/settings"');
     expect(html).not.toContain('data-primary-rail-section-label="true"');
-    expect(html).not.toContain("Review");
     expect(html).not.toContain("Coach");
     expect(html).not.toContain("People");
     expect(html).not.toContain("System");
@@ -99,6 +105,40 @@ describe("AuthenticatedAppShell", () => {
     expect(html).toContain('data-account-menu-item="feedback"');
     expect(html).not.toContain('data-feedback-widget="true"');
     expect(html).toContain("Bugs and feedback");
+  });
+
+  it("renders a role-aware workspace launch guide for admins", () => {
+    const html = renderToStaticMarkup(
+      createElement(AuthenticatedAppShell, {
+        user: adminUser,
+        children: createElement("div", null, "Page body"),
+      }),
+    );
+
+    expect(html).toContain('data-role-onboarding-guide="workspace-launch"');
+    expect(html).toContain("Workspace launch guide");
+    expect(html).toContain("Invite teammates");
+    expect(html).toContain("Configure your rubric");
+    expect(html).toContain("Product guide");
+  });
+
+  it("renders rep-specific first-run guidance without admin setup copy", () => {
+    const html = renderToStaticMarkup(
+      createElement(AuthenticatedAppShell, {
+        user: {
+          ...managerUser,
+          id: "user-rep-1",
+          role: "rep" as const,
+        },
+        children: createElement("div", null, "Page body"),
+      }),
+    );
+
+    expect(html).toContain('data-role-onboarding-guide="rep-start"');
+    expect(html).toContain("Your sales practice guide");
+    expect(html).toContain("Review your calls");
+    expect(html).toContain("Open assigned training");
+    expect(html).not.toContain("Invite teammates");
   });
 
   it("adds account menu semantics for keyboard users", () => {

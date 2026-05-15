@@ -32,6 +32,7 @@ export default async function AuthenticatedLayout({
       user={{
         email: currentUser.email,
         fullName: currentUser.fullName,
+        id: currentUser.id,
         orgLogoUrl: currentUser.org?.logoUrl ?? null,
         orgName: currentUser.org?.name,
         role: currentUser.role,
