@@ -12,11 +12,13 @@ import { cn } from "@argos-v2/ui";
 import { ArgosLogo } from "./argos-logo";
 import { FeedbackDialogLoader } from "./feedback-dialog-loader";
 import { ForgeIcon } from "./forge";
+import { RoleOnboardingGuide } from "./role-onboarding-guide";
 import type { AppUserRole } from "@/lib/users/roles";
 
 type ShellUser = {
   email: string;
   fullName: string;
+  id: string;
   orgLogoUrl?: string | null;
   orgName?: string | null;
   role: AppUserRole | null;
@@ -89,6 +91,7 @@ export function AuthenticatedAppShell({
   const currentPath = usePathname();
   const [accountOpen, setAccountOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [guideReplaySignal, setGuideReplaySignal] = useState(0);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [primaryRailCollapsed, setPrimaryRailCollapsed] = useState(
@@ -444,6 +447,21 @@ export function AuthenticatedAppShell({
                   Bugs and feedback
                 </button>
 
+                <button
+                  className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-[var(--forge-muted)] transition hover:bg-[rgba(241,191,123,0.07)] hover:text-[var(--forge-text)]"
+                  data-account-menu-item="product-guide"
+                  onClick={() => {
+                    setGuideReplaySignal((value) => value + 1);
+                    setAccountOpen(false);
+                  }}
+                  role="menuitem"
+                  tabIndex={accountOpen ? 0 : -1}
+                  type="button"
+                >
+                  <ForgeIcon name="lightbulb" size={17} />
+                  Product guide
+                </button>
+
                 <Link
                   className="flex items-center gap-3 px-4 py-3 text-sm text-[var(--forge-muted)] transition hover:bg-[rgba(241,191,123,0.07)] hover:text-[var(--forge-text)]"
                   data-account-menu-item="notifications"
@@ -488,7 +506,15 @@ export function AuthenticatedAppShell({
             open={feedbackOpen}
           />
         ) : null}
-        <main className="min-h-dvh pt-16">{children}</main>
+        <main className="min-h-dvh pt-16">
+          <RoleOnboardingGuide
+            currentPath={currentPath}
+            replaySignal={guideReplaySignal}
+            role={user.role}
+            userId={user.id}
+          />
+          {children}
+        </main>
       </div>
     </div>
   );
