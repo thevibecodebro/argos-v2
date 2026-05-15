@@ -11,6 +11,9 @@ function makeRepository(overrides: Partial<BillingWebhookRepository> = {}): Bill
   return {
     createVoiceCreditGrant: vi.fn().mockResolvedValue(undefined),
     findUserBillingScope: vi.fn().mockResolvedValue({
+      email: "owner@acme.com",
+      fullName: "Ada Owner",
+      orgName: "Acme Revenue",
       orgId: "org-1",
       userId: "auth-user-1",
     }),
@@ -116,8 +119,87 @@ describe("processStripeWebhookEvent", () => {
     );
   });
 
+  it("sends onboarding email to the billing owner after subscription checkout completes", async () => {
+    const repository = makeRepository();
+    const sendOnboardingEmail = vi.fn().mockResolvedValue({ id: "email-1" });
+    const event: StripeWebhookEvent = {
+      id: "evt_checkout_subscription",
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          id: "cs_1",
+          customer: "cus_1",
+          client_reference_id: "auth-user-1",
+          mode: "subscription",
+          metadata: { auth_user_id: "auth-user-1", plan: "team" },
+          subscription: "sub_1",
+        },
+      },
+    };
+
+    await expect(
+      processStripeWebhookEvent(repository, event, { sendOnboardingEmail }),
+    ).resolves.toEqual({
+      action: "processed",
+    });
+
+    expect(repository.upsertBillingCustomer).toHaveBeenCalledWith({
+      orgId: "org-1",
+      stripeCustomerId: "cus_1",
+      userId: "auth-user-1",
+    });
+    expect(sendOnboardingEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        checkoutSessionId: "cs_1",
+        email: "owner@acme.com",
+        fullName: "Ada Owner",
+        orgName: "Acme Revenue",
+        plan: billingPlans.team,
+        stripeCustomerId: "cus_1",
+        stripeSubscriptionId: "sub_1",
+      }),
+    );
+  });
+
+  it("does not fail paid access when onboarding email delivery fails", async () => {
+    const repository = makeRepository();
+    const sendOnboardingEmail = vi.fn().mockRejectedValue(new Error("Resend is unavailable"));
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const event: StripeWebhookEvent = {
+      id: "evt_checkout_email_failure",
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          id: "cs_1",
+          customer: "cus_1",
+          client_reference_id: "auth-user-1",
+          mode: "subscription",
+          metadata: { auth_user_id: "auth-user-1", plan: "solo" },
+          subscription: "sub_1",
+        },
+      },
+    };
+
+    try {
+      await expect(
+        processStripeWebhookEvent(repository, event, { sendOnboardingEmail }),
+      ).resolves.toEqual({
+        action: "processed",
+      });
+
+      expect(repository.upsertBillingCustomer).toHaveBeenCalled();
+      expect(errorSpy).toHaveBeenCalledWith(
+        "Failed to send billing onboarding email",
+        expect.any(Error),
+      );
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
   it("grants one-time extra voice packs from checkout completion", async () => {
     const repository = makeRepository();
+    const sendOnboardingEmail = vi.fn();
     const event: StripeWebhookEvent = {
       id: "evt_extra_pack",
       type: "checkout.session.completed",
@@ -133,7 +215,7 @@ describe("processStripeWebhookEvent", () => {
       },
     };
 
-    await processStripeWebhookEvent(repository, event);
+    await processStripeWebhookEvent(repository, event, { sendOnboardingEmail });
 
     expect(repository.createVoiceCreditGrant).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -143,5 +225,6 @@ describe("processStripeWebhookEvent", () => {
         sourceType: "extra_pack",
       }),
     );
+    expect(sendOnboardingEmail).not.toHaveBeenCalled();
   });
 });

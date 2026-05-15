@@ -1,4 +1,8 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import {
+  sendBillingOnboardingEmail,
+  type SendBillingOnboardingEmailInput,
+} from "./onboarding-email";
 import { billingPlans, getBillingPlan, type BillingPlanId } from "./plans";
 
 type StripeMetadata = Record<string, string | undefined>;
@@ -12,8 +16,19 @@ export type StripeWebhookEvent = {
 };
 
 export type BillingScope = {
+  email: string;
+  fullName: string | null;
+  orgName: string | null;
   orgId: string | null;
   userId: string;
+};
+
+type BillingOnboardingEmailSender = (
+  input: SendBillingOnboardingEmailInput,
+) => Promise<unknown>;
+
+type ProcessStripeWebhookEventOptions = {
+  sendOnboardingEmail?: BillingOnboardingEmailSender;
 };
 
 export type BillingWebhookRepository = {
@@ -97,7 +112,9 @@ export const verifyStripeWebhookSignature = Object.assign(
 export async function processStripeWebhookEvent(
   repository: BillingWebhookRepository,
   event: StripeWebhookEvent,
+  options: ProcessStripeWebhookEventOptions = {},
 ) {
+  const sendOnboardingEmail = options.sendOnboardingEmail ?? sendBillingOnboardingEmail;
   const inserted = await repository.insertStripeWebhookEvent({
     eventId: event.id,
     eventType: event.type,
@@ -119,7 +136,7 @@ export async function processStripeWebhookEvent(
   }
 
   if (event.type === "checkout.session.completed") {
-    await processCheckoutCompletedEvent(repository, event.data.object);
+    await processCheckoutCompletedEvent(repository, event.data.object, { sendOnboardingEmail });
     return { action: "processed" as const };
   }
 
@@ -192,6 +209,7 @@ async function processSubscriptionEvent(
 async function processCheckoutCompletedEvent(
   repository: BillingWebhookRepository,
   object: Record<string, unknown>,
+  options: { sendOnboardingEmail: BillingOnboardingEmailSender },
 ) {
   const metadata = getMetadata(object);
   const authUserId = metadata.auth_user_id ?? getString(object.client_reference_id);
@@ -214,6 +232,17 @@ async function processCheckoutCompletedEvent(
     userId: scope.userId,
   });
 
+  if (plan.mode === "subscription") {
+    await sendSubscriptionOnboardingEmail({
+      object,
+      plan,
+      scope,
+      sendOnboardingEmail: options.sendOnboardingEmail,
+      stripeCustomerId,
+    });
+    return;
+  }
+
   if (plan.mode !== "payment") {
     return;
   }
@@ -235,6 +264,34 @@ async function processCheckoutCompletedEvent(
     sourceType: "extra_pack",
     userId: scope.userId,
   });
+}
+
+async function sendSubscriptionOnboardingEmail({
+  object,
+  plan,
+  scope,
+  sendOnboardingEmail,
+  stripeCustomerId,
+}: {
+  object: Record<string, unknown>;
+  plan: Exclude<ReturnType<typeof getBillingPlan>, null>;
+  scope: BillingScope;
+  sendOnboardingEmail: BillingOnboardingEmailSender;
+  stripeCustomerId: string;
+}) {
+  try {
+    await sendOnboardingEmail({
+      checkoutSessionId: getString(object.id),
+      email: scope.email,
+      fullName: scope.fullName,
+      orgName: scope.orgName,
+      plan,
+      stripeCustomerId,
+      stripeSubscriptionId: getString(object.subscription),
+    });
+  } catch (error) {
+    console.error("Failed to send billing onboarding email", error);
+  }
 }
 
 function getIncludedVoiceMinutes(planId: BillingPlanId, seatCount: number) {
