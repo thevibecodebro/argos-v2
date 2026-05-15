@@ -29,14 +29,14 @@ describe("billing onboarding email", () => {
       {
         client,
         env: {
-          ARGOS_ONBOARDING_FROM: "Argos Revenue Command <onboarding@argosrevenuecommand.com>",
+          ARGOS_ONBOARDING_FROM: "Argos Revenue Command <onboarding@hello.argosrevenuecommand.com>",
         },
       },
     );
 
     expect(client.emails.send).toHaveBeenCalledWith(
       expect.objectContaining({
-        from: "Argos Revenue Command <onboarding@argosrevenuecommand.com>",
+        from: "Argos Revenue Command <onboarding@hello.argosrevenuecommand.com>",
         subject: "Your Argos Revenue Command workspace is ready",
         to: "owner@acme.com",
         text: expect.stringContaining("Hi Ada"),
@@ -84,7 +84,7 @@ describe("billing onboarding email", () => {
       {
         client,
         env: {
-          ARGOS_ONBOARDING_FROM: "Argos Revenue Command <onboarding@argosrevenuecommand.com>",
+          ARGOS_ONBOARDING_FROM: "Argos Revenue Command <onboarding@hello.argosrevenuecommand.com>",
         },
       },
     );

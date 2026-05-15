@@ -110,5 +110,6 @@ Set these Vercel environment variables for `apps/web`:
 Recommended environment scoping:
 
 - Production: set `NEXT_PUBLIC_SITE_URL` to the exact production URL, `https://argosrevenuecommand.com`
+- Production: set `ARGOS_ONBOARDING_FROM` to `Argos Revenue Command <onboarding@hello.argosrevenuecommand.com>` after the `hello.argosrevenuecommand.com` sending domain is verified in Resend
 - Preview: leave `NEXT_PUBLIC_SITE_URL` unset and let the login flow use the current deployment origin
 - Development: set `NEXT_PUBLIC_SITE_URL=http://localhost:3000`
