@@ -38,8 +38,9 @@ describe("LandingPage", () => {
     expect(html).toContain("Access platform");
     expect(html).toContain("Book a demo");
     expect(html).toContain(">Login</a>");
-    expect(html).toContain('aria-label="Access Argos"');
-    expect(html).toContain(">Access</a>");
+    expect(html).toContain('aria-label="View Argos plans"');
+    expect(html).toContain(">View plans</a>");
+    expect(html).not.toContain(">Access</a>");
     expect(html).not.toContain(">Sign in</a>");
     expect(html).toContain("Privacy Policy");
     expect(html).toContain('href="#features"');

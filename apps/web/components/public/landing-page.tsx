@@ -149,8 +149,8 @@ function LandingHeader() {
           <Link className={styles["argos-login-link"]} href="/login">
             Login
           </Link>
-          <Link aria-label="Access Argos" className={styles["argos-mini-cta"]} href="/login">
-            Access
+          <Link aria-label="View Argos plans" className={styles["argos-mini-cta"]} href="#access">
+            View plans
           </Link>
         </div>
       </nav>
