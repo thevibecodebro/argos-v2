@@ -104,6 +104,27 @@
   opacity: 0.22;
 }
 
+.forge-shell[data-navigation-pending="true"]::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 70;
+  height: 2px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--forge-gold), var(--forge-cyan), transparent);
+  transform-origin: left center;
+  animation: forge-route-progress 820ms cubic-bezier(0.23, 1, 0.32, 1) infinite;
+  opacity: 0.82;
+}
+
+@media (min-width: 64rem) {
+  .forge-shell[data-navigation-pending="true"]::after {
+    left: var(--forge-docked-primary-width);
+  }
+}
+
 .forge-sidebar {
   border-right: 1px solid var(--forge-border);
   background:
@@ -176,14 +197,11 @@
 
 .forge-nav-link--pending {
   color: var(--forge-text);
-  border-color: rgba(241, 191, 123, 0.4);
-  background:
-    linear-gradient(135deg, rgba(241, 191, 123, 0.16), rgba(139, 215, 168, 0.08)),
-    rgba(23, 16, 12, 0.9);
+  border-color: rgba(241, 191, 123, 0.26);
+  background: rgba(241, 191, 123, 0.08);
   box-shadow:
-    inset 0 1px 0 rgba(255, 244, 230, 0.08),
-    0 0 0 1px rgba(241, 191, 123, 0.08),
-    0 14px 34px rgba(5, 3, 2, 0.22);
+    inset 0 1px 0 rgba(255, 244, 230, 0.055),
+    0 0 0 1px rgba(241, 191, 123, 0.05);
 }
 
 .forge-icon {
@@ -321,6 +339,13 @@
   color: var(--forge-gold);
   font-size: 0.68rem;
   font-weight: 700;
+}
+
+[data-calls-filter-bar="operational"][data-filter-pending="true"] {
+  border-color: rgba(241, 191, 123, 0.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 244, 230, 0.05),
+    0 0 0 1px rgba(241, 191, 123, 0.04);
 }
 
 .secondary-rail-collapse-control {
@@ -1059,7 +1084,21 @@
   inset: 0;
   transform: translateX(-100%);
   background: linear-gradient(90deg, transparent, rgba(255, 244, 230, 0.075), transparent);
-  animation: forge-skeleton-sheen 1500ms cubic-bezier(0.23, 1, 0.32, 1) infinite;
+  animation: forge-skeleton-sheen 900ms cubic-bezier(0.23, 1, 0.32, 1) infinite;
+}
+
+@keyframes forge-route-progress {
+  0% {
+    transform: translateX(-42%) scaleX(0.18);
+  }
+
+  62% {
+    transform: translateX(38%) scaleX(0.55);
+  }
+
+  100% {
+    transform: translateX(105%) scaleX(0.22);
+  }
 }
 
 @keyframes forge-skeleton-sheen {
@@ -1074,6 +1113,10 @@
   .forge-icon-button,
   .forge-surface--interactive {
     transition-duration: 1ms;
+  }
+
+  .forge-shell[data-navigation-pending="true"]::after {
+    animation: none;
   }
 
   .forge-skeleton-line::after {

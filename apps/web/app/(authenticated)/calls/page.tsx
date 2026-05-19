@@ -296,8 +296,17 @@ export default async function CallsPage({
                                 >
                                   {topic}
                                 </Link>
-                                <p className="mt-1 text-xs text-[var(--forge-muted)]">
-                                  {call.id}
+                                <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[var(--forge-muted)]">
+                                  <span>{formatTimestamp(call.createdAt)}</span>
+                                  {duration ? (
+                                    <>
+                                      <span
+                                        aria-hidden="true"
+                                        className="h-1 w-1 rounded-full bg-[rgba(255,244,230,0.24)]"
+                                      />
+                                      <span>{duration}</span>
+                                    </>
+                                  ) : null}
                                 </p>
                               </div>
                             </div>

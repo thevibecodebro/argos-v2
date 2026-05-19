@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ForgeButton, ForgeIcon } from "@/components/forge";
 
@@ -26,6 +26,7 @@ export function CallsFilters({ initialSearch }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [search, setSearch] = useState(initialSearch);
+  const [isPending, startTransition] = useTransition();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFirstRender = useRef(true);
 
@@ -64,6 +65,15 @@ export function CallsFilters({ initialSearch }: Props) {
     [searchParams],
   );
 
+  const replaceUrl = useCallback(
+    (href: string) => {
+      startTransition(() => {
+        router.replace(href, { scroll: false });
+      });
+    },
+    [router],
+  );
+
   // Debounced search — skip firing on initial mount
   useEffect(() => {
     if (isFirstRender.current) {
@@ -72,8 +82,8 @@ export function CallsFilters({ initialSearch }: Props) {
     }
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      router.replace(buildUrl({ search }));
-    }, 400);
+      replaceUrl(buildUrl({ search }));
+    }, 180);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
@@ -85,7 +95,7 @@ export function CallsFilters({ initialSearch }: Props) {
     if (newMin && currentMaxScore && Number(newMin) > Number(currentMaxScore)) {
       patch.maxScore = "";
     }
-    router.replace(buildUrl(patch));
+    replaceUrl(buildUrl(patch));
   }
 
   function handleMaxScoreChange(newMax: string) {
@@ -94,7 +104,7 @@ export function CallsFilters({ initialSearch }: Props) {
     if (newMax && currentMinScore && Number(currentMinScore) > Number(newMax)) {
       patch.minScore = "";
     }
-    router.replace(buildUrl(patch));
+    replaceUrl(buildUrl(patch));
   }
 
   function clearFilters() {
@@ -104,14 +114,18 @@ export function CallsFilters({ initialSearch }: Props) {
     }
     isFirstRender.current = true;
     setSearch("");
-    router.replace("/calls");
+    replaceUrl("/calls");
   }
 
   return (
     <div
       className="grid items-stretch gap-2 rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.024)] p-2 shadow-[inset_0_1px_0_rgba(255,244,230,0.035)] lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.62fr)_minmax(0,0.72fr)_auto]"
       data-calls-filter-bar="operational"
+      data-filter-pending={isPending ? "true" : undefined}
     >
+      <span aria-live="polite" className="sr-only" role="status">
+        {isPending ? "Updating calls" : ""}
+      </span>
       <div className="group flex min-h-11 items-center rounded-lg border border-[var(--forge-border)] bg-[rgba(8,6,5,0.5)] px-3 transition focus-within:border-[rgba(136,218,247,0.35)] focus-within:bg-[rgba(136,218,247,0.045)]">
         <ForgeIcon className="mr-2 text-[var(--forge-cyan)]" name="search" size={17} />
         <label className="sr-only" htmlFor="search">
@@ -137,7 +151,7 @@ export function CallsFilters({ initialSearch }: Props) {
         <select
           className="w-full border-none bg-transparent px-0 py-0 text-sm font-semibold text-[var(--forge-text)] outline-none focus:ring-0"
           id="status"
-          onChange={(e) => router.replace(buildUrl({ status: e.target.value }))}
+          onChange={(e) => replaceUrl(buildUrl({ status: e.target.value }))}
           value={currentStatus}
         >
           {STATUS_OPTIONS.map((option) => (
@@ -158,7 +172,7 @@ export function CallsFilters({ initialSearch }: Props) {
         <select
           className="w-full border-none bg-transparent px-0 py-0 text-sm font-semibold text-[var(--forge-text)] outline-none focus:ring-0"
           id="sort"
-          onChange={(e) => router.replace(buildUrl({ sort: e.target.value }))}
+          onChange={(e) => replaceUrl(buildUrl({ sort: e.target.value }))}
           value={currentSort}
         >
           {SORT_OPTIONS.map((option) => (

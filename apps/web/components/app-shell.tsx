@@ -172,7 +172,7 @@ export function AuthenticatedAppShell({
 
     const timeout = window.setTimeout(() => {
       setPendingHref((current) => (current === pendingHref ? null : current));
-    }, 10000);
+    }, 3500);
 
     return () => window.clearTimeout(timeout);
   }, [pendingHref]);
@@ -641,7 +641,7 @@ export function getNavigationPendingState({
   const destination = destinations.find((item) => item.href === pendingHref);
 
   return {
-    announcement: `Loading ${destination?.label ?? "page"}`,
+    announcement: `Opening ${destination?.label ?? "page"}`,
     isPending: true,
     pendingHref,
   };

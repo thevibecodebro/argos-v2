@@ -26,7 +26,9 @@ describe("authenticated route states", () => {
     expect(html).toContain('aria-live="polite"');
     expect(html).toContain('role="status"');
     expect(html).toContain('aria-label="Loading call review"');
-    expect(html).toContain("Argos is preparing this page.");
+    expect(html).toContain('data-authenticated-route-loading-header="true"');
+    expect(html).toContain('data-authenticated-route-skeletons="compact"');
+    expect(html).toContain("Loading call review state.");
   });
 
   it("renders route errors and not-found states with next actions", () => {

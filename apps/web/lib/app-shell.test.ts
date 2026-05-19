@@ -262,7 +262,7 @@ describe("AuthenticatedAppShell", () => {
     });
 
     expect(pending).toMatchObject({
-      announcement: "Loading Calls",
+      announcement: "Opening Calls",
       isPending: true,
       pendingHref: "/calls",
     });
