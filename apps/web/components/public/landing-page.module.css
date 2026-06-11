@@ -1162,7 +1162,7 @@ html:has(.argos-3d-page) {
 
 .argos-plan-row {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
   margin-top: clamp(1.5rem, 3vw, 2.4rem);
 }
@@ -1294,6 +1294,11 @@ html:has(.argos-3d-page) {
   white-space: nowrap;
 }
 
+.argos-plan-custom-price span:first-child,
+.argos-plan-custom-price span:last-child {
+  font-size: clamp(2.45rem, 3.5vw, 3.75rem);
+}
+
 .argos-plan-detail {
   margin-top: 0.9rem;
   color: var(--argos-cyan);
@@ -1339,7 +1344,8 @@ html:has(.argos-3d-page) {
   transform: translateY(-50%);
 }
 
-.argos-plan-checkout-form {
+.argos-plan-checkout-form,
+.argos-plan-booking {
   display: grid;
   gap: 1.15rem;
   margin-top: auto;

@@ -69,6 +69,13 @@ describe("LandingPage", () => {
     expect(html).toContain("120 live voice minutes per seat/month");
     expect(html).toContain("3-seat minimum");
     expect(html).toContain("Pooled at the org level");
+    expect(html).toContain("Enterprise");
+    expect(html).toContain("Custom rollout");
+    expect(html).toContain("Unlimited seats");
+    expect(html).toContain("Unlimited live voice minutes");
+    expect(html).toContain("Comprehensive sales team coaching");
+    expect(html).toContain('href="#book-a-call"');
+    expect(html).toContain(">Book a call</a>");
     expect(html).toContain('action="/billing/checkout"');
     expect(html).toContain('name="seats"');
     expect(html).toContain('min="3"');

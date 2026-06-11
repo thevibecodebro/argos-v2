@@ -93,6 +93,18 @@ const accessPlans = [
   seatMinimum?: number;
 }>;
 
+const enterprisePlan = {
+  name: "Enterprise",
+  label: "Custom rollout",
+  price: "Custom pricing",
+  rate: "Custom",
+  body: "For revenue organizations that want Argos rolled out across every seller with hands-on coaching support.",
+  detail: "Unlimited seats and unlimited live voice minutes",
+  highlights: ["Unlimited seats", "Unlimited live voice minutes", "Comprehensive sales team coaching"],
+  note: "Built for sales teams that need full rollout support.",
+  bookCallHref: "#book-a-call",
+} as const;
+
 const extraVoicePacks = [
   { label: "250 extra minutes", planId: "extra-250", price: "$125" },
   { label: "500 extra minutes", planId: "extra-500", price: "$175" },
@@ -279,6 +291,7 @@ function LandingAccess() {
           <p>
             Solo gives one seller a private practice loop. Team gives managers shared visibility,
             pooled minutes, leaderboards, admin controls, and training workflows for the whole org.
+            Enterprise adds unlimited usage and comprehensive coaching for the full sales team.
           </p>
         </div>
 
@@ -331,6 +344,32 @@ function LandingAccess() {
               </form>
             </article>
           ))}
+          <article className={styles["argos-plan"]} data-reveal id="book-a-call">
+            <div className={styles["argos-plan-topline"]}>
+              <div>
+                <span>{enterprisePlan.name}</span>
+                <em>{enterprisePlan.label}</em>
+              </div>
+            </div>
+            <strong aria-label={enterprisePlan.price} className={styles["argos-plan-custom-price"]}>
+              <span>{enterprisePlan.rate}</span>
+            </strong>
+            <p className={styles["argos-plan-detail"]}>{enterprisePlan.detail}</p>
+            <small>{enterprisePlan.note}</small>
+            <ul className={styles["argos-plan-list"]}>
+              {enterprisePlan.highlights.map((highlight) => (
+                <li key={highlight}>{highlight}</li>
+              ))}
+            </ul>
+            <small>{enterprisePlan.body}</small>
+            <div className={styles["argos-plan-booking"]}>
+              <div className={styles["argos-plan-actions"]}>
+                <Link className={styles["argos-plan-button"]} href={enterprisePlan.bookCallHref}>
+                  Book a call
+                </Link>
+              </div>
+            </div>
+          </article>
         </div>
 
         <div className={styles["argos-credit-strip"]} aria-label="Extra voice packs" data-reveal>
