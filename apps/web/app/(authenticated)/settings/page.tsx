@@ -127,17 +127,10 @@ export default async function SettingsAccountPage() {
 
         <div className="min-w-0 space-y-3">
           <section
+            aria-label="Settings sections"
             className="overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[rgba(8,6,5,0.88)]"
             data-settings-workspace-map="true"
           >
-            <div className="border-b border-[var(--forge-border)] bg-[rgba(255,244,230,0.024)] px-4 py-3">
-              <p className="text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
-                All settings
-              </p>
-              <p className="mt-1 text-sm text-[var(--forge-muted)]">
-                Grouped account and admin controls.
-              </p>
-            </div>
             <div className="divide-y divide-[var(--forge-border)]">
               {workspaceRows.map((section) => (
                 <Link

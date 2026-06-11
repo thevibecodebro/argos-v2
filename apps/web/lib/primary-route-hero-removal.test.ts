@@ -654,7 +654,8 @@ describe("primary route hero removal", () => {
 
     expect(accountHtml).toContain("Account panel marker");
     expect(accountHtml).toContain(">Settings<");
-    expect(accountHtml).toContain(">All settings<");
+    expect(accountHtml).not.toContain(">All settings<");
+    expect(accountHtml).not.toContain("Grouped account and admin controls.");
     expect(accountHtml).toContain('href="/settings/people"');
 
     expect(peopleHtml).toContain("People panel marker");
