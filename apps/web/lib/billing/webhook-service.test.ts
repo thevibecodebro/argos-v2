@@ -25,7 +25,7 @@ describe("verifyStripeWebhookSignature", () => {
   it("accepts a valid Stripe HMAC signature", () => {
     const payload = JSON.stringify({ id: "evt_1", type: "checkout.session.completed" });
     const secret = "whsec_test_secret";
-    const timestamp = "1770000000";
+    const timestamp = Math.floor(Date.now() / 1000).toString();
     const signature = verifyStripeWebhookSignature.createTestSignature({
       payload,
       secret,
@@ -33,6 +33,19 @@ describe("verifyStripeWebhookSignature", () => {
     });
 
     expect(verifyStripeWebhookSignature(payload, `t=${timestamp},v1=${signature}`, secret)).toBe(true);
+  });
+
+  it("rejects a valid Stripe HMAC signature with a stale timestamp", () => {
+    const payload = JSON.stringify({ id: "evt_1", type: "checkout.session.completed" });
+    const secret = "whsec_test_secret";
+    const timestamp = "1700000000";
+    const signature = verifyStripeWebhookSignature.createTestSignature({
+      payload,
+      secret,
+      timestamp,
+    });
+
+    expect(verifyStripeWebhookSignature(payload, `t=${timestamp},v1=${signature}`, secret)).toBe(false);
   });
 
   it("rejects an invalid Stripe HMAC signature", () => {

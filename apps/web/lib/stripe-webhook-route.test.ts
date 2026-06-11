@@ -76,7 +76,7 @@ describe("Stripe webhook route", () => {
 
   it("processes valid Stripe webhook events", async () => {
     const payload = JSON.stringify({ id: "evt_1", type: "checkout.session.completed", data: { object: {} } });
-    const timestamp = "1770000000";
+    const timestamp = Math.floor(Date.now() / 1000).toString();
     const signature = verifyStripeWebhookSignature.createTestSignature({
       payload,
       secret: "whsec_test_secret",

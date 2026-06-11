@@ -2,6 +2,10 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { billingPlans, getBillingPlan, type BillingPlanId } from "./plans";
 
 type StripeMetadata = Record<string, string | undefined>;
+type StripeSignatureVerificationOptions = {
+  now?: Date | number;
+  toleranceSeconds?: number;
+};
 
 export type StripeWebhookEvent = {
   id: string;
@@ -53,6 +57,8 @@ export type BillingWebhookRepository = {
   }): Promise<void>;
 };
 
+const STRIPE_WEBHOOK_SIGNATURE_TOLERANCE_SECONDS = 5 * 60;
+
 function createStripeSignature(payload: string, timestamp: string, secret: string) {
   return createHmac("sha256", secret)
     .update(`${timestamp}.${payload}`, "utf8")
@@ -60,7 +66,12 @@ function createStripeSignature(payload: string, timestamp: string, secret: strin
 }
 
 export const verifyStripeWebhookSignature = Object.assign(
-  function verifyStripeWebhookSignature(payload: string, signatureHeader: string | null, secret: string) {
+  function verifyStripeWebhookSignature(
+    payload: string,
+    signatureHeader: string | null,
+    secret: string,
+    options: StripeSignatureVerificationOptions = {},
+  ) {
     if (!signatureHeader || !secret) {
       return false;
     }
@@ -75,6 +86,22 @@ export const verifyStripeWebhookSignature = Object.assign(
     const signature = parts.get("v1");
 
     if (!timestamp || !signature) {
+      return false;
+    }
+
+    const timestampSeconds = Number(timestamp);
+    const nowSeconds =
+      options.now instanceof Date
+        ? options.now.getTime() / 1000
+        : typeof options.now === "number"
+          ? options.now / 1000
+          : Date.now() / 1000;
+    const toleranceSeconds = options.toleranceSeconds ?? STRIPE_WEBHOOK_SIGNATURE_TOLERANCE_SECONDS;
+
+    if (
+      !Number.isFinite(timestampSeconds) ||
+      Math.abs(nowSeconds - timestampSeconds) > toleranceSeconds
+    ) {
       return false;
     }
 

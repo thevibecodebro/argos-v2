@@ -5,6 +5,7 @@ import {
   decodeIntegrationOAuthState,
   deleteZoomWebhook,
   encodeIntegrationOAuthState,
+  exchangeGhlCode,
   exchangeZoomCode,
   refreshZoomToken,
   registerZoomWebhook,
@@ -124,6 +125,42 @@ describe("integration oauth helpers", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
     expect(fetchMock.mock.calls[1]?.[0]).toBe("https://api.zoom.us/v2/users/me");
+    expect(fetchMock.mock.calls[1]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("uses timeout signals for GHL token exchange and location lookup fetches", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            access_token: "ghl-access",
+            refresh_token: "ghl-refresh",
+            expires_in: 3600,
+            locationId: "loc-1",
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            location: { name: "Acme Sales" },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await exchangeGhlCode("code-1", "https://app.argos.ai/api/integrations/ghl/callback", {
+      GHL_CLIENT_ID: "ghl-client",
+      GHL_CLIENT_SECRET: "ghl-secret",
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("https://services.leadconnectorhq.com/oauth/token");
+    expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("https://services.leadconnectorhq.com/locations/loc-1");
     expect(fetchMock.mock.calls[1]?.[1]?.signal).toBeInstanceOf(AbortSignal);
   });
 

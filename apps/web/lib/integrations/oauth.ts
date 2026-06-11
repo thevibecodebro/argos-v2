@@ -19,6 +19,8 @@ export const integrationOAuthCookieNames: Record<IntegrationOAuthProvider, strin
 
 const ZOOM_OAUTH_FETCH_TIMEOUT_MS = 30_000;
 const ZOOM_API_FETCH_TIMEOUT_MS = 30_000;
+const GHL_OAUTH_FETCH_TIMEOUT_MS = 30_000;
+const GHL_API_FETCH_TIMEOUT_MS = 30_000;
 
 export function buildZoomOAuthUrl(input: {
   clientId: string;
@@ -202,19 +204,40 @@ export async function exchangeGhlCode(
     user_type: "Location",
   });
 
-  const tokenResponse = await fetch("https://services.leadconnectorhq.com/oauth/token", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
+  const { response: tokenResponse, body: tokenBody } = await fetchWithTimeout<
+    | {
+        access_token: string;
+        refresh_token: string;
+        expires_in: number;
+        locationId?: string;
+      }
+    | null
+  >(
+    "https://services.leadconnectorhq.com/oauth/token",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: body.toString(),
     },
-    body: body.toString(),
-  });
+    GHL_OAUTH_FETCH_TIMEOUT_MS,
+    (response) =>
+      response.ok
+        ? (response.json() as Promise<{
+            access_token: string;
+            refresh_token: string;
+            expires_in: number;
+            locationId?: string;
+          }>)
+        : Promise.resolve(null),
+  );
 
   if (!tokenResponse.ok) {
     throw new Error(`GHL token exchange failed: ${tokenResponse.status}`);
   }
 
-  const tokenPayload = (await tokenResponse.json()) as {
+  const tokenPayload = tokenBody as {
     access_token: string;
     refresh_token: string;
     expires_in: number;
@@ -224,7 +247,9 @@ export async function exchangeGhlCode(
   let locationName: string | null = null;
 
   if (tokenPayload.locationId) {
-    const locationResponse = await fetch(
+    const locationResult = await fetchWithTimeout<{
+      location?: { name?: string };
+    } | null>(
       `https://services.leadconnectorhq.com/locations/${tokenPayload.locationId}`,
       {
         headers: {
@@ -232,13 +257,15 @@ export async function exchangeGhlCode(
           Version: "2021-07-28",
         },
       },
+      GHL_API_FETCH_TIMEOUT_MS,
+      (response) =>
+        response.ok
+          ? (response.json() as Promise<{ location?: { name?: string } }>)
+          : Promise.resolve(null),
     ).catch(() => null);
 
-    if (locationResponse?.ok) {
-      const locationPayload = (await locationResponse.json()) as {
-        location?: { name?: string };
-      };
-      locationName = locationPayload.location?.name ?? null;
+    if (locationResult?.response.ok) {
+      locationName = locationResult.body?.location?.name ?? null;
     }
   }
 
