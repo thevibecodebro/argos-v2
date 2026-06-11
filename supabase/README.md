@@ -25,7 +25,8 @@ Hosted project notes:
 
 - remote schema has already been pushed to the linked Supabase project
 - Google auth is backed by a dedicated Google Cloud project and OAuth client
-- `config.toml` currently allows localhost callbacks plus a temporary `https://**.vercel.app/**`
-  wildcard so preview deployments can complete auth before a stable production URL exists
-- once the first stable Vercel production URL exists, replace `auth.site_url` with that exact URL
-  and tighten the wildcard redirect allow-list if you want stricter redirect policy
+- hosted Auth `site_url` should stay on the canonical production domain:
+  `https://argosrevenuecommand.com`
+- hosted Auth redirect allow-list must include localhost development callbacks, the canonical
+  production domains, and Vercel preview/alias callbacks so OAuth and magic-link flows can return
+  to `/auth/callback?next=...` instead of falling back to the site root

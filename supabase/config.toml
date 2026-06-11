@@ -29,11 +29,14 @@ file_size_limit = "50MiB"
 
 [auth]
 enabled = true
-# Replace this with your exact production Vercel URL after the first deploy.
-site_url = "http://127.0.0.1:3000"
+# Canonical hosted Auth site URL. Local app flows pass an explicit redirect URL,
+# and localhost remains allowed below for development callbacks.
+site_url = "https://argosrevenuecommand.com"
 additional_redirect_urls = [
   "http://127.0.0.1:3000/**",
   "http://localhost:3000/**",
+  "https://argosrevenuecommand.com/**",
+  "https://www.argosrevenuecommand.com/**",
   "https://**.vercel.app/**"
 ]
 jwt_expiry = 3600
