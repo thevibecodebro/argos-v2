@@ -21,6 +21,9 @@ describe("isProtectedPath", () => {
       "/settings",
       "/notifications",
       "/onboarding",
+      "/platform",
+      "/platform/mfa/setup",
+      "/platform/mfa/verify",
     ];
 
     for (const route of protectedRoutes) {
@@ -49,5 +52,10 @@ describe("getAuthenticatedEntryHref", () => {
   it("sends authenticated users without an organization to onboarding first", () => {
     expect(getAuthenticatedEntryHref(false)).toBe("/onboarding");
     expect(getAuthenticatedEntryHref(true)).toBe("/dashboard");
+  });
+
+  it("sends active platform staff without an organization to the platform entry point", () => {
+    expect(getAuthenticatedEntryHref(false, { isActivePlatformStaff: true })).toBe("/platform");
+    expect(getAuthenticatedEntryHref(false, { isActivePlatformStaff: false })).toBe("/onboarding");
   });
 });

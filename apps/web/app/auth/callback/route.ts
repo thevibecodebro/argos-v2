@@ -6,6 +6,8 @@ import { logAuthTransportFailure } from "@/lib/supabase/auth-observability";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSafeRequestOrigin } from "@/lib/security/trusted-origins";
 import { getAuthenticatedEntryHref, isProtectedPath } from "@/lib/auth-routing";
+import { getPlatformStaffAfterProvisioning } from "@/lib/platform/auth";
+import { createPlatformRepository } from "@/lib/platform/create-repository";
 
 function getSafeNextPath(value: string | null) {
   if (!value?.startsWith("/") || value.startsWith("//")) {
@@ -71,9 +73,20 @@ export async function GET(request: Request) {
           new SupabaseProvisioningRepository(),
           user,
         );
+        let isActivePlatformStaff = false;
+
+        if (provisionedUser?.orgId === null) {
+          const platformStaff = await getPlatformStaffAfterProvisioning(
+            createPlatformRepository(),
+            user,
+          );
+          isActivePlatformStaff = platformStaff?.status === "active";
+        }
 
         if (provisionedUser?.orgId === null && isProtectedPath(next)) {
-          return NextResponse.redirect(`${origin}${getAuthenticatedEntryHref(false)}`);
+          return NextResponse.redirect(
+            `${origin}${getAuthenticatedEntryHref(false, { isActivePlatformStaff })}`,
+          );
         }
       }
 

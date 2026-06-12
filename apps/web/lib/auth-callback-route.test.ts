@@ -5,6 +5,8 @@ const ensureUserProvisioned = vi.fn();
 const SupabaseProvisioningRepository = vi.fn();
 const isRetryableSupabaseAuthError = vi.fn();
 const logAuthTransportFailure = vi.fn();
+const createPlatformRepository = vi.fn();
+const getPlatformStaffAfterProvisioning = vi.fn();
 
 vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient,
@@ -26,6 +28,14 @@ vi.mock("@/lib/supabase/auth-observability", () => ({
   logAuthTransportFailure,
 }));
 
+vi.mock("@/lib/platform/create-repository", () => ({
+  createPlatformRepository,
+}));
+
+vi.mock("@/lib/platform/auth", () => ({
+  getPlatformStaffAfterProvisioning,
+}));
+
 describe("auth callback route", () => {
   beforeEach(() => {
     vi.resetModules();
@@ -36,6 +46,13 @@ describe("auth callback route", () => {
     SupabaseProvisioningRepository.mockReset();
     isRetryableSupabaseAuthError.mockReset();
     logAuthTransportFailure.mockReset();
+    createPlatformRepository.mockReset();
+    getPlatformStaffAfterProvisioning.mockReset();
+    createPlatformRepository.mockReturnValue({
+      findStaffByUserId: vi.fn(),
+      upsertStaff: vi.fn(),
+    });
+    getPlatformStaffAfterProvisioning.mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -133,6 +150,109 @@ describe("auth callback route", () => {
     );
 
     expect(response.headers.get("location")).toBe("https://app.argos.ai/onboarding");
+  });
+
+  it("sends orgless active platform staff to the platform entry point after provisioning", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://app.argos.ai");
+
+    const authUser = {
+      email: "owner@argos.ai",
+      id: "auth-user-4",
+    };
+    const platformRepository = {
+      findStaffByUserId: vi.fn(),
+      upsertStaff: vi.fn(),
+    };
+
+    createPlatformRepository.mockReturnValue(platformRepository);
+    createSupabaseServerClient.mockResolvedValue({
+      auth: {
+        exchangeCodeForSession: vi.fn().mockResolvedValue({ error: null }),
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: authUser,
+          },
+          error: null,
+        }),
+      },
+    });
+    ensureUserProvisioned.mockResolvedValue({
+      created: false,
+      orgId: null,
+      userId: "auth-user-4",
+    });
+    getPlatformStaffAfterProvisioning.mockResolvedValue({
+      userId: "auth-user-4",
+      role: "owner",
+      status: "active",
+      createdBy: null,
+      revokedBy: null,
+      createdAt: new Date("2026-06-11T10:00:00.000Z"),
+      updatedAt: new Date("2026-06-11T10:00:00.000Z"),
+      revokedAt: null,
+    });
+
+    const route = await import("../app/auth/callback/route");
+    const response = await route.GET(
+      new Request("https://app.argos.ai/auth/callback?code=auth-code&next=/dashboard"),
+    );
+
+    expect(response.headers.get("location")).toBe("https://app.argos.ai/platform");
+    expect(getPlatformStaffAfterProvisioning).toHaveBeenCalledWith(platformRepository, authUser);
+    expect(ensureUserProvisioned.mock.invocationCallOrder[0]).toBeLessThan(
+      getPlatformStaffAfterProvisioning.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("sends orgless revoked platform staff to onboarding after provisioning", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://app.argos.ai");
+
+    const authUser = {
+      email: "owner@argos.ai",
+      id: "auth-user-5",
+    };
+    const platformRepository = {
+      findStaffByUserId: vi.fn(),
+      upsertStaff: vi.fn(),
+    };
+
+    createPlatformRepository.mockReturnValue(platformRepository);
+    createSupabaseServerClient.mockResolvedValue({
+      auth: {
+        exchangeCodeForSession: vi.fn().mockResolvedValue({ error: null }),
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: authUser,
+          },
+          error: null,
+        }),
+      },
+    });
+    ensureUserProvisioned.mockResolvedValue({
+      created: false,
+      orgId: null,
+      userId: "auth-user-5",
+    });
+    getPlatformStaffAfterProvisioning.mockResolvedValue({
+      userId: "auth-user-5",
+      role: "owner",
+      status: "revoked",
+      createdBy: null,
+      revokedBy: "auth-user-0",
+      createdAt: new Date("2026-06-11T10:00:00.000Z"),
+      updatedAt: new Date("2026-06-11T10:30:00.000Z"),
+      revokedAt: new Date("2026-06-11T10:30:00.000Z"),
+    });
+
+    const route = await import("../app/auth/callback/route");
+    const response = await route.GET(
+      new Request("https://app.argos.ai/auth/callback?code=auth-code&next=/platform"),
+    );
+
+    expect(response.headers.get("location")).toBe("https://app.argos.ai/onboarding");
+    expect(getPlatformStaffAfterProvisioning).toHaveBeenCalledWith(platformRepository, authUser);
   });
 
   it("keeps non-protected invite destinations for users without an organization", async () => {

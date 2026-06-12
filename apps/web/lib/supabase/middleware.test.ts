@@ -59,6 +59,28 @@ describe("updateSession", () => {
     );
   });
 
+  it("redirects anonymous platform routes to login", async () => {
+    getUserMock.mockResolvedValue({
+      data: { user: null },
+      error: null,
+    });
+
+    const request = new NextRequest("http://localhost:3000/platform");
+
+    const response = await updateSession(request);
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "http://localhost:3000/login?next=%2Fplatform",
+    );
+  });
+
+  it("matches platform routes in Next middleware", async () => {
+    const { config } = await import("../../middleware");
+
+    expect(config.matcher).toContain("/platform/:path*");
+  });
+
   it("skips Supabase auth work for routes outside the auth surface", async () => {
     getUserMock.mockResolvedValue({
       data: { user: null },

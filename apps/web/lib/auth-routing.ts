@@ -10,6 +10,7 @@ const PROTECTED_PATH_PREFIXES = [
   "/settings",
   "/notifications",
   "/onboarding",
+  "/platform",
 ] as const;
 
 export function isProtectedPath(pathname: string): boolean {
@@ -25,6 +26,13 @@ export function getLoginHref(pathname: string, search = ""): string {
   return `/login?${params.toString()}`;
 }
 
-export function getAuthenticatedEntryHref(hasOrganization: boolean): string {
+export function getAuthenticatedEntryHref(
+  hasOrganization: boolean,
+  options: { isActivePlatformStaff?: boolean } = {},
+): string {
+  if (!hasOrganization && options.isActivePlatformStaff) {
+    return "/platform";
+  }
+
   return hasOrganization ? "/dashboard" : "/onboarding";
 }
