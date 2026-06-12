@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ArgosLogo } from "@/components/argos-logo";
-import { billingPlans, getBillingCheckoutHref, type BillingPlanId } from "@/lib/billing/plans";
 import { LegalFooterLinks } from "./legal-links";
 import styles from "./landing-page.module.css";
 
@@ -9,7 +8,7 @@ const navLinks = [
   { label: "Loop", href: "#coaching-loop" },
   { label: "Command", href: "#argos-command" },
   { label: "Practice", href: "#next-call" },
-  { label: "Pricing", href: "#access" },
+  { label: "Demo", href: "#access" },
 ] as const;
 
 const salesEvolutionHero = {
@@ -72,85 +71,13 @@ const commandRoomNotes = [
   },
 ] as const;
 
-type PlanPriceDisplay = {
-  ariaLabel: string;
-  cadence: string;
-  rate: string;
-};
+const demoBookingHref = "https://calendar.app.google/RSBtSGHYRSxmcs717";
 
-function getPlanPriceDisplay(planId: BillingPlanId, cadence: string): PlanPriceDisplay {
-  const unitAmountCents = billingPlans[planId].price.unitAmountCents;
-  const dollars = unitAmountCents / 100;
-  const formattedDollars =
-    unitAmountCents % 100 === 0 ? dollars.toFixed(0) : dollars.toFixed(2);
-  const rate = `$${formattedDollars}`;
-
-  return {
-    ariaLabel: `${rate}${cadence}`,
-    cadence,
-    rate,
-  };
-}
-
-const accessPlans = [
-  {
-    name: "Solo",
-    label: "Individual practice",
-    monthlyPrice: getPlanPriceDisplay("solo", "/month"),
-    annualPrice: getPlanPriceDisplay("solo-annual", "/year"),
-    body: "For individual reps and founders practicing on their own.",
-    detail: "120 live voice minutes/month",
-    highlights: ["Private practice loop", "Call review workspace", "Annual savings available"],
-    monthlyPlanId: "solo",
-    note: "Save 10% annually",
-    annualPlanId: "solo-annual",
-  },
-  {
-    name: "Team",
-    label: "Manager workspace",
-    monthlyPrice: getPlanPriceDisplay("team", "/seat/month"),
-    annualPrice: getPlanPriceDisplay("team-annual", "/seat/year"),
-    body: "For sales teams that need shared call review, coaching visibility, and pooled voice usage.",
-    detail: "120 live voice minutes per seat/month",
-    featured: true,
-    highlights: ["Shared coaching visibility", "Pooled org-level minutes", "Leaderboards and admin controls"],
-    monthlyPlanId: "team",
-    note: "3-seat minimum. Pooled at the org level.",
-    annualPlanId: "team-annual",
-    seatMinimum: 3,
-  },
-] satisfies Array<{
-  annualPlanId: BillingPlanId;
-  body: string;
-  detail: string;
-  featured?: boolean;
-  highlights: string[];
-  label: string;
-  monthlyPlanId: BillingPlanId;
-  annualPrice: PlanPriceDisplay;
-  monthlyPrice: PlanPriceDisplay;
-  name: string;
-  note: string;
-  seatMinimum?: number;
-}>;
-
-const enterprisePlan = {
-  name: "Enterprise",
-  label: "Custom rollout",
-  price: "Custom pricing",
-  rate: "Custom",
-  body: "For revenue organizations that want Argos rolled out across every seller with hands-on coaching support.",
-  detail: "Unlimited seats and unlimited live voice minutes",
-  highlights: ["Unlimited seats", "Unlimited live voice minutes", "Comprehensive sales team coaching"],
-  note: "Built for sales teams that need full rollout support.",
-  bookCallHref: "https://calendar.app.google/RSBtSGHYRSxmcs717",
-} as const;
-
-const extraVoicePacks = [
-  { label: "250 extra minutes", planId: "extra-250", price: "$125" },
-  { label: "500 extra minutes", planId: "extra-500", price: "$175" },
-  { label: "2,000 extra minutes", planId: "extra-2000", price: "$600" },
-] satisfies Array<{ label: string; planId: BillingPlanId; price: string }>;
+const demoProofPoints = [
+  "Call review",
+  "Scorecard",
+  "Roleplay drill",
+] as const;
 
 export function LandingPage() {
   return (
@@ -211,7 +138,7 @@ function LandingHeader() {
           <Link className={styles["argos-login-link"]} href="/login">
             Log in
           </Link>
-          <Link aria-label="View Argos plans" className={styles["argos-mini-cta"]} href="#access">
+          <Link aria-label="Book an Argos demo" className={styles["argos-mini-cta"]} href="#access">
             Book demo
           </Link>
         </div>
@@ -346,130 +273,46 @@ function LandingCommandRoom() {
 function LandingAccess() {
   return (
     <section
-      aria-labelledby="argos-pricing-heading"
+      aria-labelledby="argos-demo-heading"
       className={cx(styles["argos-section"], styles["argos-access-section"])}
       id="access"
     >
       <div className={styles["argos-access-panel"]}>
-        <div className={styles["argos-pricing-head"]}>
-          <p className={styles["argos-eyebrow"]}>Pricing</p>
-          <h2 id="argos-pricing-heading">Choose the coaching layer.</h2>
+        <div className={styles["argos-demo-head"]}>
+          <p className={styles["argos-eyebrow"]}>Product demo</p>
+          <h2 id="argos-demo-heading">See Argos in action.</h2>
           <p>
-            Solo gives one seller a private practice loop. Team gives managers shared visibility,
-            pooled minutes, leaderboards, admin controls, and training workflows for the whole org.
+            Watch a real call move from review to scorecard to roleplay, then book a guided
+            walkthrough for your team.
           </p>
         </div>
 
-        <div className={styles["argos-plan-row"]} aria-label="Argos pricing options">
-          {accessPlans.map((plan) => (
-            <article
-              className={cx(styles["argos-plan"], plan.featured && styles["argos-plan-featured"])}
-              key={plan.name}
-            >
-              <div className={styles["argos-plan-topline"]}>
-                <div>
-                  <span>{plan.name}</span>
-                  <em>{plan.label}</em>
-                </div>
-                {plan.featured ? <mark>Recommended deployment</mark> : null}
+        <div className={styles["argos-demo-grid"]}>
+          <div
+            aria-label="Argos product demo video placeholder"
+            className={styles["argos-demo-video"]}
+            data-demo-video-placeholder="true"
+          >
+            <div className={styles["argos-demo-video-frame"]}>
+              <span className={styles["argos-demo-label"]}>Demo video</span>
+              <div className={styles["argos-demo-play"]} aria-hidden="true">
+                <span />
               </div>
-              <div aria-live="polite" className={styles["argos-plan-price-wrap"]}>
-                <strong
-                  aria-label={plan.monthlyPrice.ariaLabel}
-                  className={cx(styles["argos-plan-price"], styles["argos-plan-price-monthly"])}
-                >
-                  <span>{plan.monthlyPrice.rate}</span>
-                  <span>{plan.monthlyPrice.cadence}</span>
-                </strong>
-                <strong
-                  aria-label={plan.annualPrice.ariaLabel}
-                  className={cx(styles["argos-plan-price"], styles["argos-plan-price-annual"])}
-                >
-                  <span>{plan.annualPrice.rate}</span>
-                  <span>{plan.annualPrice.cadence}</span>
-                </strong>
-              </div>
-              <p className={styles["argos-plan-detail"]}>{plan.detail}</p>
-              <small className={styles["argos-muted-copy"]}>{plan.note}</small>
-              <ul className={styles["argos-plan-list"]}>
-                {plan.highlights.map((highlight) => (
-                  <li key={highlight}>{highlight}</li>
-                ))}
-              </ul>
-              <small className={styles["argos-muted-copy"]}>{plan.body}</small>
-              <form action="/billing/checkout" className={styles["argos-plan-checkout-form"]} method="get">
-                <BillingIntervalFields plan={plan} />
-                {plan.seatMinimum ? (
-                  <label className={styles["argos-seat-field"]}>
-                    <span>Seats</span>
-                    <input
-                      aria-label={`${plan.name} seats`}
-                      defaultValue={plan.seatMinimum}
-                      inputMode="numeric"
-                      min={plan.seatMinimum}
-                      name="seats"
-                      type="number"
-                    />
-                  </label>
-                ) : null}
-                <div className={styles["argos-plan-actions"]}>
-                  <button className={styles["argos-plan-button"]} type="submit">
-                    Continue to checkout
-                  </button>
-                </div>
-              </form>
-            </article>
-          ))}
-          <article className={styles["argos-plan"]} id="book-a-call">
-            <div className={styles["argos-plan-topline"]}>
-              <div>
-                <span>{enterprisePlan.name}</span>
-                <em>{enterprisePlan.label}</em>
-              </div>
+              <p>Video placeholder</p>
             </div>
-            <strong
-              aria-label={enterprisePlan.price}
-              className={cx(styles["argos-plan-price"], styles["argos-plan-custom-price"])}
-            >
-              <span>{enterprisePlan.rate}</span>
-            </strong>
-            <p className={styles["argos-plan-detail"]}>{enterprisePlan.detail}</p>
-            <small className={styles["argos-muted-copy"]}>{enterprisePlan.note}</small>
-            <ul className={styles["argos-plan-list"]}>
-              {enterprisePlan.highlights.map((highlight) => (
-                <li key={highlight}>{highlight}</li>
+          </div>
+
+          <aside className={styles["argos-demo-proof"]}>
+            <span>What the walkthrough covers</span>
+            <ul>
+              {demoProofPoints.map((point) => (
+                <li key={point}>{point}</li>
               ))}
             </ul>
-            <small className={styles["argos-muted-copy"]}>{enterprisePlan.body}</small>
-            <div className={styles["argos-plan-booking"]}>
-              <div className={styles["argos-plan-actions"]}>
-                <Link className={styles["argos-plan-button"]} href={enterprisePlan.bookCallHref}>
-                  Book a call
-                </Link>
-              </div>
-            </div>
-          </article>
-        </div>
-
-        <div className={styles["argos-credit-strip"]} aria-label="Extra voice packs">
-          <div>
-            <span>Extra voice packs</span>
-            <p>Included minutes are used first. Purchased packs do not expire while subscribed.</p>
-          </div>
-          <div className={styles["argos-credit-list"]}>
-            {extraVoicePacks.map((pack) => (
-              <Link href={getBillingCheckoutHref(pack.planId)} key={pack.label}>
-                {pack.label} <strong>{pack.price}</strong>
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        <div className={styles["argos-access-actions"]}>
-          <PremiumButton href={getBillingCheckoutHref("team")}>Start team checkout</PremiumButton>
-          <Link className={styles["argos-secondary-action"]} href="/login">
-            Book a demo
-          </Link>
+            <Link className={styles["argos-demo-button"]} href={demoBookingHref}>
+              Book A Demo
+            </Link>
+          </aside>
         </div>
       </div>
     </section>
@@ -492,33 +335,6 @@ function LandingFooter() {
         </a>
       </div>
     </footer>
-  );
-}
-
-function BillingIntervalFields({ plan }: { plan: (typeof accessPlans)[number] }) {
-  const planSlug = plan.name.toLowerCase();
-  const legendId = `${planSlug}-billing-interval`;
-  const monthlyId = `${planSlug}-billing-monthly`;
-  const annualId = `${planSlug}-billing-annual`;
-
-  return (
-    <fieldset aria-labelledby={legendId} className={styles["argos-billing-toggle"]}>
-      <legend id={legendId}>Billing cadence</legend>
-      <div className={styles["argos-billing-segments"]}>
-        <label className={styles["argos-billing-option"]} htmlFor={monthlyId}>
-          <input defaultChecked id={monthlyId} name="plan" type="radio" value={plan.monthlyPlanId} />
-          <span>Monthly</span>
-          <small>Pay month to month</small>
-        </label>
-        <label className={styles["argos-billing-option"]} htmlFor={annualId}>
-          <input id={annualId} name="plan" type="radio" value={plan.annualPlanId} />
-          <span>
-            Annual <em>Save 10%</em>
-          </span>
-          <small>Billed yearly</small>
-        </label>
-      </div>
-    </fieldset>
   );
 }
 

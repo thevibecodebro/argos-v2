@@ -261,7 +261,7 @@ html:has(.argos-3d-page) {
 .argos-hero-copy h1,
 .argos-section-copy h2,
 .argos-infrastructure-copy h2,
-.argos-pricing-head h2 {
+.argos-demo-head h2 {
   margin: 0;
   color: var(--argos-text);
   font-family: var(--argos-font-display);
@@ -279,7 +279,7 @@ html:has(.argos-3d-page) {
 .argos-hero-body,
 .argos-section-copy p,
 .argos-infrastructure-copy p,
-.argos-pricing-head p {
+.argos-demo-head p {
   max-width: 44rem;
   color: var(--argos-muted);
   font-size: clamp(1rem, 1.45vw, 1.15rem);
@@ -292,8 +292,7 @@ html:has(.argos-3d-page) {
   margin: 2rem 0 0;
 }
 
-.argos-hero-actions,
-.argos-access-actions {
+.argos-hero-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
@@ -301,8 +300,7 @@ html:has(.argos-3d-page) {
 }
 
 .argos-primary-action,
-.argos-secondary-action,
-.argos-plan-button {
+.argos-secondary-action {
   display: inline-flex;
   min-height: 3.75rem;
   align-items: center;
@@ -325,8 +323,7 @@ html:has(.argos-3d-page) {
     box-shadow 160ms steps(2);
 }
 
-.argos-primary-action,
-.argos-plan-button {
+.argos-primary-action {
   background: var(--argos-amber);
   color: #000;
 }
@@ -338,14 +335,12 @@ html:has(.argos-3d-page) {
 }
 
 .argos-primary-action:hover,
-.argos-plan-button:hover,
 .argos-secondary-action:hover {
   transform: translate(-4px, -4px);
   box-shadow: 4px 4px 0 var(--argos-amber);
 }
 
-.argos-primary-action:hover,
-.argos-plan-button:hover {
+.argos-primary-action:hover {
   background: #000;
   color: var(--argos-amber);
 }
@@ -369,8 +364,7 @@ html:has(.argos-3d-page) {
 .argos-hero-terminal span,
 .argos-score-panel span,
 .argos-metric-card span,
-.argos-snippet-panel article span,
-.argos-credit-strip span {
+.argos-snippet-panel article span {
   color: var(--argos-amber);
   font-size: 0.68rem;
   font-weight: 900;
@@ -623,14 +617,12 @@ html:has(.argos-3d-page) {
 }
 
 .argos-section-copy h2,
-.argos-infrastructure-copy h2,
-.argos-pricing-head h2 {
+.argos-infrastructure-copy h2 {
   font-size: clamp(3rem, 7vw, 6.5rem);
 }
 
 .argos-section-copy p,
-.argos-infrastructure-copy > p,
-.argos-pricing-head p {
+.argos-infrastructure-copy > p {
   margin-top: 1.5rem;
 }
 
@@ -785,408 +777,195 @@ html:has(.argos-3d-page) {
   margin: 0 auto;
 }
 
-.argos-pricing-head {
-  max-width: 64rem;
-  margin-bottom: clamp(2.5rem, 6vw, 5rem);
+.argos-demo-head {
+  max-width: 52rem;
+  margin-bottom: clamp(1.5rem, 4vw, 3rem);
 }
 
-.argos-plan-row {
+.argos-demo-head h2 {
+  max-width: 12ch;
+  font-size: clamp(2.35rem, 5vw, 4.6rem);
+  line-height: 0.94;
+}
+
+.argos-demo-head p {
+  max-width: 48rem;
+  margin-top: 1.1rem;
+}
+
+.argos-demo-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr) minmax(17rem, 23rem);
+  align-items: stretch;
+  overflow: hidden;
   border: 2px solid var(--argos-line);
+  background: #050403;
 }
 
-.argos-plan {
-  display: flex;
-  min-height: 100%;
-  flex-direction: column;
-  border-right: 2px solid var(--argos-line);
-  background: #000;
-  padding: clamp(1.4rem, 3vw, 2.4rem);
-}
-
-.argos-plan:last-child {
-  border-right: 0;
-}
-
-.argos-plan-featured {
-  background: var(--argos-amber);
-  color: #000;
-}
-
-.argos-plan-topline {
-  display: flex;
-  min-height: 3.5rem;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.argos-plan-topline > div {
-  display: grid;
-  gap: 0.45rem;
-}
-
-.argos-plan-topline span {
-  color: var(--argos-amber);
-  font-size: 0.78rem;
-  font-weight: 900;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-.argos-plan-featured .argos-plan-topline span,
-.argos-plan-featured .argos-plan-detail,
-.argos-plan-featured .argos-plan-list li,
-.argos-plan-featured small,
-.argos-plan-featured em {
-  color: #000;
-}
-
-.argos-plan-topline em {
-  color: var(--argos-muted);
-  font-size: 0.82rem;
-  font-style: normal;
-  font-weight: 700;
-  line-height: 1.35;
-  text-transform: uppercase;
-}
-
-.argos-plan-featured .argos-plan-topline em {
-  color: var(--argos-featured-muted);
-}
-
-.argos-plan-topline mark {
-  position: absolute;
-  inset: 0 0 auto;
-  display: block;
-  background: #000;
-  color: var(--argos-amber);
-  font-size: 0.62rem;
-  font-weight: 900;
-  letter-spacing: 0.16em;
-  padding: 0.55rem;
-  text-align: center;
-  text-transform: uppercase;
-}
-
-.argos-plan-featured .argos-plan-topline {
-  padding-top: 1.25rem;
-}
-
-.argos-plan-price-wrap {
-  display: grid;
-}
-
-.argos-plan-price {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.2rem;
-  margin-top: 2rem;
-  color: var(--argos-text);
-  font-family: var(--argos-font-display);
-  font-weight: 900;
-  line-height: 0.9;
-  text-transform: uppercase;
-}
-
-.argos-plan-featured .argos-plan-price {
-  color: #000;
-}
-
-.argos-plan-price-annual {
-  display: none;
-}
-
-.argos-plan:has(input[value$="-annual"]:checked) .argos-plan-price-monthly {
-  display: none;
-}
-
-.argos-plan:has(input[value$="-annual"]:checked) .argos-plan-price-annual {
-  display: flex;
-}
-
-.argos-plan-price span:first-child {
-  font-size: clamp(3.2rem, 5vw, 5rem);
-}
-
-.argos-plan-price span:last-child {
-  font-size: clamp(1rem, 1.8vw, 1.45rem);
-}
-
-.argos-plan-custom-price span:first-child {
-  font-size: clamp(2.4rem, 4vw, 3.8rem);
-}
-
-.argos-plan-detail {
-  color: var(--argos-amber);
-  font-size: 0.92rem;
-  font-weight: 900;
-  line-height: 1.45;
-  margin: 1.3rem 0 0;
-  text-transform: uppercase;
-}
-
-.argos-plan small {
-  color: var(--argos-muted);
-  display: block;
-  font-size: 0.84rem;
-  font-weight: 700;
-  line-height: 1.5;
-  margin-top: 0.8rem;
-  text-transform: uppercase;
-}
-
-.argos-muted-copy {
-  color: var(--argos-muted);
-}
-
-.argos-plan-featured .argos-muted-copy {
-  color: var(--argos-featured-muted);
-}
-
-.argos-plan-list {
-  display: grid;
-  gap: 0.8rem;
-  list-style: none;
-  margin: 1.5rem 0 0;
-  padding: 1.2rem 0 0;
-  border-top: 2px solid var(--argos-line);
-}
-
-.argos-plan-featured .argos-plan-list {
-  border-color: #000;
-}
-
-.argos-plan-list li {
+.argos-demo-video {
   position: relative;
-  color: var(--argos-text);
-  font-size: 0.82rem;
-  font-weight: 900;
-  line-height: 1.45;
-  padding-left: 1.25rem;
-  text-transform: uppercase;
+  display: grid;
+  min-height: 0;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  background:
+    linear-gradient(135deg, rgba(241, 191, 123, 0.14), transparent 38%),
+    repeating-linear-gradient(0deg, rgba(241, 191, 123, 0.08) 0 1px, transparent 1px 18px),
+    #050403;
 }
 
-.argos-plan-list li::before {
+.argos-demo-video::before,
+.argos-demo-video::after {
   content: "";
   position: absolute;
-  top: 0.55em;
-  left: 0;
-  width: 0.55rem;
-  height: 0.55rem;
-  background: var(--argos-amber);
-}
-
-.argos-plan-featured .argos-plan-list li::before {
-  background: #000;
-}
-
-.argos-plan-checkout-form,
-.argos-plan-booking {
-  display: grid;
-  gap: 1rem;
-  margin-top: auto;
-  padding-top: 2.5rem;
-}
-
-.argos-billing-toggle {
-  display: grid;
-  gap: 0.55rem;
-  border: 0;
-  margin: 0;
-  padding: 0;
-}
-
-.argos-billing-toggle legend,
-.argos-seat-field span {
-  grid-column: 1 / -1;
-  color: inherit;
-  font-size: 0.68rem;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  margin-bottom: 0.4rem;
-  padding: 0;
-  text-transform: uppercase;
-}
-
-.argos-billing-segments {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.25rem;
-  border: 2px solid currentColor;
-  padding: 0.25rem;
-}
-
-.argos-billing-option {
-  position: relative;
-  display: grid;
-  align-content: center;
-  gap: 0.28rem;
-  min-height: 4rem;
-  border: 1px solid transparent;
-  cursor: pointer;
-  padding: 0.65rem 0.75rem;
-  transition:
-    background-color 160ms steps(2),
-    border-color 160ms steps(2),
-    color 160ms steps(2);
-}
-
-.argos-billing-option input {
-  position: absolute;
-  inset: 0;
-  cursor: pointer;
-  margin: 0;
-  opacity: 0;
-}
-
-.argos-billing-option span,
-.argos-billing-option small {
-  position: relative;
-  z-index: 1;
-  margin: 0;
   pointer-events: none;
 }
 
-.argos-billing-option span {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.45rem;
-  font-size: 0.68rem;
+.argos-demo-video::before {
+  inset: clamp(0.85rem, 2vw, 1.25rem);
+  border: 2px solid var(--argos-line);
+}
+
+.argos-demo-video::after {
+  right: 9%;
+  bottom: 12%;
+  width: min(11rem, 34%);
+  aspect-ratio: 1;
+  border: 2px solid rgba(241, 191, 123, 0.32);
+  transform: rotate(18deg);
+}
+
+.argos-demo-video-frame {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  height: 100%;
+  place-items: center;
+  padding: clamp(1rem, 3vw, 2rem);
+  text-align: center;
+}
+
+.argos-demo-label {
+  position: absolute;
+  top: clamp(1.25rem, 2.5vw, 1.75rem);
+  left: clamp(1.25rem, 2.5vw, 1.75rem);
+  color: var(--argos-amber);
+  font-size: 0.7rem;
   font-weight: 900;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
 }
 
-.argos-billing-option em {
-  border: 1px solid currentColor;
-  font-size: 0.58rem;
-  font-style: normal;
-  line-height: 1;
-  padding: 0.2rem 0.32rem;
-}
-
-.argos-billing-option small {
-  font-size: 0.72rem;
-}
-
-.argos-plan-featured .argos-billing-option:not(:has(input:checked)) small,
-.argos-plan-featured .argos-billing-option:not(:has(input:checked)) em {
-  color: var(--argos-featured-muted);
-}
-
-.argos-billing-option:hover {
-  border-color: currentColor;
-}
-
-.argos-billing-option:has(input:focus-visible) {
-  outline: 2px solid currentColor;
-  outline-offset: 3px;
-}
-
-.argos-billing-option:has(input:checked) {
-  border-color: var(--argos-amber);
+.argos-demo-play {
+  display: grid;
+  width: clamp(4.75rem, 7vw, 6.25rem);
+  aspect-ratio: 1;
+  place-items: center;
+  border: 2px solid var(--argos-amber);
   background: var(--argos-amber);
   color: #000;
+  box-shadow: 6px 6px 0 #000;
 }
 
-.argos-plan-featured .argos-billing-option:has(input:checked) {
-  border-color: #000;
-  background: #000;
-  color: var(--argos-amber);
+.argos-demo-play span {
+  width: 0;
+  height: 0;
+  margin-left: 0.35rem;
+  border-block: 0.82rem solid transparent;
+  border-left: 1.22rem solid currentColor;
 }
 
-.argos-billing-option:has(input:checked) em {
-  background: currentColor;
-  color: var(--argos-amber);
-}
-
-.argos-plan-featured .argos-billing-option:has(input:checked) em {
-  color: #000;
-}
-
-.argos-seat-field {
-  display: grid;
-  gap: 0.6rem;
-}
-
-.argos-seat-field input {
-  min-height: 3rem;
-  width: min(11rem, 100%);
-  border: 2px solid currentColor;
-  background: transparent;
-  color: inherit;
-  font: inherit;
+.argos-demo-video p {
+  position: absolute;
+  right: clamp(1.25rem, 2.5vw, 1.75rem);
+  bottom: clamp(1.25rem, 2.5vw, 1.75rem);
+  max-width: 9rem;
+  color: var(--argos-text);
+  font-family: var(--argos-font-display);
+  font-size: clamp(0.82rem, 1.35vw, 1.05rem);
   font-weight: 900;
-  padding-inline: 0.8rem;
+  letter-spacing: 0.04em;
+  line-height: 1.08;
+  margin: 0;
+  text-align: right;
+  text-transform: uppercase;
 }
 
-.argos-plan-actions {
+.argos-demo-proof {
+  display: flex;
+  flex-direction: column;
+  border-left: 2px solid var(--argos-line);
+  background: var(--argos-amber);
+  color: #000;
+  min-width: 0;
+  padding: clamp(1.25rem, 2.4vw, 2rem);
+}
+
+.argos-demo-proof > span {
+  display: block;
+  border-bottom: 2px solid #000;
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  padding-bottom: 0.85rem;
+  text-transform: uppercase;
+}
+
+.argos-demo-proof ul {
   display: grid;
+  gap: 0.8rem;
+  list-style: none;
+  margin: clamp(1.4rem, 3vw, 2rem) 0;
+  padding: 0;
 }
 
-.argos-plan-featured .argos-plan-button {
-  border-color: #000;
+.argos-demo-proof li {
+  position: relative;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.24);
+  font-size: clamp(1rem, 1.4vw, 1.25rem);
+  font-weight: 900;
+  line-height: 1.15;
+  padding: 0 0 0.85rem 1.35rem;
+  text-transform: uppercase;
+}
+
+.argos-demo-proof li::before {
+  content: "";
+  position: absolute;
+  top: 0.35em;
+  left: 0;
+  width: 0.55rem;
+  height: 0.55rem;
+  background: #000;
+}
+
+.argos-demo-button {
+  display: inline-flex;
+  min-height: 3.35rem;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #000;
   background: #000;
   color: var(--argos-amber);
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  margin-top: auto;
+  padding: 0.85rem 1.1rem;
+  text-align: center;
+  text-decoration: none;
+  text-transform: uppercase;
 }
 
-.argos-plan-featured .argos-plan-button:hover {
+.argos-demo-button:hover {
   background: var(--argos-amber);
   color: #000;
   box-shadow: 4px 4px 0 #000;
 }
 
-.argos-credit-strip {
-  display: grid;
-  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
-  gap: 1.5rem;
-  border: 2px solid var(--argos-line);
-  border-top: 0;
-  background: #080808;
-  padding: 1.4rem;
-}
-
-.argos-credit-strip p {
-  color: var(--argos-muted);
-  font-size: 0.82rem;
-  font-weight: 700;
-  line-height: 1.5;
-  margin: 0.65rem 0 0;
-  text-transform: uppercase;
-}
-
-.argos-credit-list {
-  display: grid;
-  gap: 0.55rem;
-}
-
-.argos-credit-list a {
-  display: flex;
-  min-height: 3rem;
-  align-items: center;
-  justify-content: space-between;
-  border: 2px solid var(--argos-line);
-  color: var(--argos-text);
-  font-size: 0.78rem;
-  font-weight: 900;
-  gap: 1rem;
-  padding: 0.7rem 0.9rem;
-  text-decoration: none;
-  text-transform: uppercase;
-}
-
-.argos-credit-list a:hover {
-  border-color: var(--argos-amber);
-  color: var(--argos-amber);
-}
-
-.argos-access-actions {
-  justify-content: center;
-  margin-top: 2rem;
+.argos-demo-button:focus-visible {
+  outline: 2px solid #000;
+  outline-offset: 4px;
 }
 
 .argos-footer {
@@ -1239,24 +1018,26 @@ html:has(.argos-3d-page) {
   .argos-hero-frame,
   .argos-console-grid,
   .argos-infrastructure-inner,
-  .argos-credit-strip {
+  .argos-demo-grid {
     grid-template-columns: 1fr;
   }
 
-  .argos-feature-grid,
-  .argos-plan-row {
+  .argos-feature-grid {
     grid-template-columns: 1fr;
   }
 
-  .argos-feature-card,
-  .argos-plan {
+  .argos-feature-card {
     border-right: 0;
     border-bottom: 2px solid var(--argos-line);
   }
 
-  .argos-feature-card:last-child,
-  .argos-plan:last-child {
+  .argos-feature-card:last-child {
     border-bottom: 0;
+  }
+
+  .argos-demo-proof {
+    border-top: 2px solid var(--argos-line);
+    border-left: 0;
   }
 
   .argos-bg-rig {
@@ -1321,19 +1102,18 @@ html:has(.argos-3d-page) {
   .argos-hero-copy h1,
   .argos-section-copy h2,
   .argos-infrastructure-copy h2,
-  .argos-pricing-head h2 {
+  .argos-demo-head h2 {
     font-size: clamp(2.9rem, 14vw, 4.4rem);
     line-height: 0.95;
   }
 
-  .argos-hero-actions,
-  .argos-access-actions {
+  .argos-hero-actions {
     flex-direction: column;
   }
 
   .argos-primary-action,
   .argos-secondary-action,
-  .argos-plan-button {
+  .argos-demo-button {
     width: 100%;
   }
 
@@ -1344,8 +1124,7 @@ html:has(.argos-3d-page) {
     padding-block: 0.8rem;
   }
 
-  .argos-metric-row,
-  .argos-billing-toggle {
+  .argos-metric-row {
     grid-template-columns: 1fr;
   }
 
@@ -1378,8 +1157,8 @@ html:has(.argos-3d-page) {
   .argos-hero-terminal,
   .argos-console-grid,
   .argos-feature-card,
-  .argos-plan,
-  .argos-credit-strip {
+  .argos-demo-video-frame,
+  .argos-demo-proof {
     padding: 1rem;
   }
 
@@ -1397,7 +1176,7 @@ html:has(.argos-3d-page) {
 
   .argos-primary-action,
   .argos-secondary-action,
-  .argos-plan-button,
+  .argos-demo-button,
   .argos-feature-card {
     transition: none;
   }

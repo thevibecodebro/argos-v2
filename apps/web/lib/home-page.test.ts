@@ -39,8 +39,12 @@ describe("HomePage", () => {
     expect(html).toContain('id="platform"');
     expect(html).toContain('id="coaching-loop"');
     expect(html).toContain('href="#access"');
-    expect(html).toContain("Solo");
-    expect(html).toContain("Team");
-    expect(html).toContain("Enterprise");
+    expect(html).toContain("See Argos in action.");
+    expect(html).toContain("Demo video");
+    expect(html).toContain("Book A Demo");
+    expect(html).not.toContain("Solo");
+    expect(html).not.toContain("$79/month");
+    expect(html).not.toContain("Enterprise");
+    expect(html).not.toContain('action="/billing/checkout"');
   });
 });
