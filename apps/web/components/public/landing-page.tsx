@@ -6,9 +6,9 @@ import { LegalFooterLinks } from "./legal-links";
 import styles from "./landing-page.module.css";
 
 const navLinks = [
-  { label: "Evolution", href: "#sales-evolution-memory" },
-  { label: "Command", href: "#sales-evolution-command" },
-  { label: "Practice", href: "#sales-evolution-next-call" },
+  { label: "Loop", href: "#coaching-loop" },
+  { label: "Command", href: "#argos-command" },
+  { label: "Practice", href: "#next-call" },
   { label: "Pricing", href: "#access" },
 ] as const;
 
@@ -16,50 +16,43 @@ const salesEvolutionHero = {
   body: "Argos turns real sales calls into scored evidence, focused coaching, and roleplay practice for the next conversation.",
   headline: "Sales teams changed. Coaching should have too.",
   primaryCta: { href: "/login", label: "Launch platform" },
-  secondaryCta: { href: "#sales-evolution-memory", label: "See the evolution" },
+  secondaryCta: { href: "#coaching-loop", label: "See the loop" },
 } as const;
 
-const salesEvolutionChapters = [
+const coachingLoopSteps = [
   {
-    body: "Early sales floors were physical and immediate: phones, paper call sheets, handwritten notes, and feedback shaped by whoever happened to be listening.",
-    eyebrow: "Coaching by memory",
-    heading: "The manager could only coach what they heard.",
-    id: "sales-evolution-memory",
-    sceneKey: "memory",
+    body: "Upload a Zoom call or recording. Argos keeps the transcript, speaker labels, notes, and key moments in one review workspace.",
+    eyebrow: "Call review",
+    heading: "Bring the real conversation into one record.",
+    id: "coaching-loop",
+    sceneKey: "call-review",
   },
   {
-    body: "CRMs organized accounts, pipeline, activity, and tasks, but call quality still lived in notes, memory, and manager interpretation.",
-    eyebrow: "Pipeline goes digital",
-    heading: "Sales systems moved online. Conversations stayed hard to coach.",
-    id: "sales-evolution-crm",
-    sceneKey: "crm",
+    body: "Score the conversation against the team's rubric so feedback starts from evidence, not memory or loose interpretation.",
+    eyebrow: "Scored evidence",
+    heading: "Make the coaching standard repeatable.",
+    id: "scored-evidence",
+    sceneKey: "scored-evidence",
   },
   {
-    body: "Recorded calls created a new problem: too much audio, too many moments, and too little manager bandwidth to turn it into consistent coaching.",
-    eyebrow: "Recording overload",
-    heading: "Now teams capture everything and review too little.",
-    id: "sales-evolution-recording",
-    sceneKey: "recording",
+    body: "Managers see the timestamp, category, observation, and recommended action without replaying an hour of audio.",
+    eyebrow: "Coaching moment",
+    heading: "Find the few moments worth coaching.",
+    id: "coaching-moment",
+    sceneKey: "coaching-moment",
   },
   {
-    body: "Transcripts, snippets, dashboards, and chat notes make calls easier to inspect, but behavior changes only when evidence, ownership, and practice connect.",
-    eyebrow: "AI tool sprawl",
-    heading: "Summaries help. Fragmented coaching still breaks.",
-    id: "sales-evolution-sprawl",
-    sceneKey: "sprawl",
+    body: "Turn the gap into a focused practice drill tied to the actual call, not a generic training prompt.",
+    eyebrow: "Roleplay drill",
+    heading: "Practice the exact behavior that needs to change.",
+    id: "roleplay-drill",
+    sceneKey: "roleplay-drill",
   },
   {
-    body: "The scattered pieces resolve into one workspace: call, transcript, scorecard, coachable moment, assignment, and roleplay tied to the next conversation.",
-    eyebrow: "Argos Revenue Command",
-    heading: "Argos turns calls into coaching evidence and practice.",
-    id: "sales-evolution-command",
-    sceneKey: "command",
-  },
-  {
-    body: "The rep does not just receive another note. They rehearse the specific moment before the next call.",
-    eyebrow: "The next conversation",
-    heading: "Better coaching is a loop from evidence to rehearsal.",
-    id: "sales-evolution-next-call",
+    body: "The rep rehearses the fix before the next conversation, then the next real call starts the loop again.",
+    eyebrow: "Next call",
+    heading: "Coaching becomes behavior before it matters.",
+    id: "next-call",
     sceneKey: "next-call",
   },
 ] as const;
@@ -169,7 +162,7 @@ export function LandingPage() {
       <LandingHeader />
       <main>
         <LandingHero />
-        <LandingSalesEvolutionStory />
+        <LandingCoachingLoop />
         <SignalStrip />
         <LandingCommandRoom />
         <LandingAccess />
@@ -247,8 +240,8 @@ function LandingHero() {
 
         <div className={styles["argos-hero-terminal"]} aria-hidden="true">
           <div>
-            <span>ARGOS_COMMAND // SALES_EVOLUTION</span>
-            <strong>calls become practice</strong>
+            <span>ARGOS_COMMAND // COACHING_LOOP</span>
+            <strong>call in, drill out</strong>
           </div>
           <dl>
             <div>
@@ -270,32 +263,32 @@ function LandingHero() {
   );
 }
 
-function LandingSalesEvolutionStory() {
+function LandingCoachingLoop() {
   return (
-    <section className={styles["argos-section"]} aria-label="Sales coaching evolution">
+    <section className={styles["argos-section"]} aria-label="Argos coaching loop">
       <div className={styles["argos-section-copy"]}>
-        <p className={styles["argos-eyebrow"]}>Sales coaching evolution</p>
-        <h2>Sales systems evolved. Coaching stayed fragmented.</h2>
+        <p className={styles["argos-eyebrow"]}>The coaching loop</p>
+        <h2>One real call should create the next useful coaching rep.</h2>
         <p>
-          Argos is the point where recorded calls, scorecards, coaching moments, assignments, and
-          roleplay finally become one operating system.
+          Keep the opener broad, then make the product obvious: call review, scored evidence,
+          coaching moment, roleplay drill, next call.
         </p>
       </div>
 
       <div className={styles["argos-feature-grid"]}>
-        {salesEvolutionChapters.map((chapter, index) => (
+        {coachingLoopSteps.map((step, index) => (
           <article
             className={styles["argos-feature-card"]}
-            data-scene-key={chapter.sceneKey}
-            id={chapter.id}
-            key={chapter.id}
+            data-scene-key={step.sceneKey}
+            id={step.id}
+            key={step.id}
           >
             <span>{String(index + 1).padStart(2, "0")}</span>
-            <h3>{chapter.eyebrow}</h3>
+            <h3>{step.eyebrow}</h3>
             <p>
-              <strong>{chapter.heading}</strong>
+              <strong>{step.heading}</strong>
               <br />
-              {chapter.body}
+              {step.body}
             </p>
           </article>
         ))}
@@ -308,8 +301,8 @@ function SignalStrip() {
   return (
     <section className={styles["argos-signal-strip"]} aria-label="Argos workflow">
       <div>
-        <span>COACHING BY MEMORY // PIPELINE GOES DIGITAL // RECORDING OVERLOAD // AI TOOL SPRAWL // ARGOS REVENUE COMMAND // THE NEXT CONVERSATION</span>
-        <span>COACHING BY MEMORY // PIPELINE GOES DIGITAL // RECORDING OVERLOAD // AI TOOL SPRAWL // ARGOS REVENUE COMMAND // THE NEXT CONVERSATION</span>
+        <span>CALL REVIEW // SCORED EVIDENCE // COACHING MOMENT // ROLEPLAY DRILL // NEXT CALL</span>
+        <span>CALL REVIEW // SCORED EVIDENCE // COACHING MOMENT // ROLEPLAY DRILL // NEXT CALL</span>
       </div>
     </section>
   );
@@ -317,7 +310,7 @@ function SignalStrip() {
 
 function LandingCommandRoom() {
   return (
-    <section className={styles["argos-infrastructure-section"]}>
+    <section className={styles["argos-infrastructure-section"]} id="argos-command">
       <div className={styles["argos-infrastructure-inner"]}>
         <div className={styles["argos-infrastructure-copy"]}>
           <p className={styles["argos-eyebrow"]}>Argos Revenue Command</p>
