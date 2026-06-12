@@ -1,60 +1,110 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ArgosLogo } from "@/components/argos-logo";
-import { getBillingCheckoutHref, type BillingPlanId } from "@/lib/billing/plans";
-import { ArgosSceneLoader } from "./argos-scene-loader";
+import { billingPlans, getBillingCheckoutHref, type BillingPlanId } from "@/lib/billing/plans";
 import { LegalFooterLinks } from "./legal-links";
-import { LandingMotionController } from "./landing-motion-controller";
 import styles from "./landing-page.module.css";
 
 const navLinks = [
-  { label: "Calls", href: "#features" },
-  { label: "Coaching", href: "#detail" },
-  { label: "Team", href: "#trust" },
+  { label: "Evolution", href: "#sales-evolution-memory" },
+  { label: "Command", href: "#sales-evolution-command" },
+  { label: "Practice", href: "#sales-evolution-next-call" },
   { label: "Pricing", href: "#access" },
 ] as const;
 
-const valueProps = [
+const salesEvolutionHero = {
+  body: "Argos turns real sales calls into scored evidence, focused coaching, and roleplay practice for the next conversation.",
+  headline: "Sales teams changed. Coaching should have too.",
+  primaryCta: { href: "/login", label: "Launch platform" },
+  secondaryCta: { href: "#sales-evolution-memory", label: "See the evolution" },
+} as const;
+
+const salesEvolutionChapters = [
   {
-    title: "Bring calls into one record",
-    body: "Upload a recording or connect Zoom. Argos keeps the transcript, speaker labels, scorecard, moments, notes, and follow-up work attached to the call.",
+    body: "Early sales floors were physical and immediate: phones, paper call sheets, handwritten notes, and feedback shaped by whoever happened to be listening.",
+    eyebrow: "Coaching by memory",
+    heading: "The manager could only coach what they heard.",
+    id: "sales-evolution-memory",
+    sceneKey: "memory",
   },
   {
-    title: "Score the way your team sells",
-    body: "Use the active rubric your managers set: category weights, scoring criteria, call stage, confidence, strengths, gaps, and recommended drills.",
+    body: "CRMs organized accounts, pipeline, activity, and tasks, but call quality still lived in notes, memory, and manager interpretation.",
+    eyebrow: "Pipeline goes digital",
+    heading: "Sales systems moved online. Conversations stayed hard to coach.",
+    id: "sales-evolution-crm",
+    sceneKey: "crm",
   },
   {
-    title: "Show the moments worth coaching",
-    body: "Argos marks the timestamp, category, severity, observation, and recommendation so managers can review the exact part of the call that matters.",
+    body: "Recorded calls created a new problem: too much audio, too many moments, and too little manager bandwidth to turn it into consistent coaching.",
+    eyebrow: "Recording overload",
+    heading: "Now teams capture everything and review too little.",
+    id: "sales-evolution-recording",
+    sceneKey: "recording",
   },
   {
-    title: "Turn gaps into practice",
-    body: "Generate roleplay from a real call, pick the focus area, and give the rep a practice session tied back to what actually happened.",
+    body: "Transcripts, snippets, dashboards, and chat notes make calls easier to inspect, but behavior changes only when evidence, ownership, and practice connect.",
+    eyebrow: "AI tool sprawl",
+    heading: "Summaries help. Fragmented coaching still breaks.",
+    id: "sales-evolution-sprawl",
+    sceneKey: "sprawl",
+  },
+  {
+    body: "The scattered pieces resolve into one workspace: call, transcript, scorecard, coachable moment, assignment, and roleplay tied to the next conversation.",
+    eyebrow: "Argos Revenue Command",
+    heading: "Argos turns calls into coaching evidence and practice.",
+    id: "sales-evolution-command",
+    sceneKey: "command",
+  },
+  {
+    body: "The rep does not just receive another note. They rehearse the specific moment before the next call.",
+    eyebrow: "The next conversation",
+    heading: "Better coaching is a loop from evidence to rehearsal.",
+    id: "sales-evolution-next-call",
+    sceneKey: "next-call",
   },
 ] as const;
 
-const signalSteps = [
-  "Call source",
-  "Transcript",
-  "Scorecard",
-  "Highlights",
-  "Training",
-  "Roleplay",
+const commandRoomNotes = [
+  {
+    title: "Transcript",
+    body: "The call record stays connected to speaker labels, scorecard evidence, coaching notes, and the exact moment worth reviewing.",
+  },
+  {
+    title: "Assignment",
+    body: "Managers can turn a real gap into a clear coaching action instead of another loose comment in a scattered tool.",
+  },
+  {
+    title: "Roleplay",
+    body: "Practice is tied to the moment that created it, so the next conversation has a better behavior behind it.",
+  },
 ] as const;
 
-const trustPoints = [
-  "Team views and leaderboards show call volume, average score, coaching flags, focus areas, and recent call history by rep.",
-  "Admins can manage rubrics, team access, roles, recording consent, Zoom ingest, and GoHighLevel workflow automation from the workspace.",
-  "Every score, note, training assignment, and roleplay session points back to the original call so feedback stays specific.",
-] as const;
+type PlanPriceDisplay = {
+  ariaLabel: string;
+  cadence: string;
+  rate: string;
+};
+
+function getPlanPriceDisplay(planId: BillingPlanId, cadence: string): PlanPriceDisplay {
+  const unitAmountCents = billingPlans[planId].price.unitAmountCents;
+  const dollars = unitAmountCents / 100;
+  const formattedDollars =
+    unitAmountCents % 100 === 0 ? dollars.toFixed(0) : dollars.toFixed(2);
+  const rate = `$${formattedDollars}`;
+
+  return {
+    ariaLabel: `${rate}${cadence}`,
+    cadence,
+    rate,
+  };
+}
 
 const accessPlans = [
   {
     name: "Solo",
     label: "Individual practice",
-    price: "$79/month",
-    rate: "$79",
-    cadence: "/month",
+    monthlyPrice: getPlanPriceDisplay("solo", "/month"),
+    annualPrice: getPlanPriceDisplay("solo-annual", "/year"),
     body: "For individual reps and founders practicing on their own.",
     detail: "120 live voice minutes/month",
     highlights: ["Private practice loop", "Call review workspace", "Annual savings available"],
@@ -65,9 +115,8 @@ const accessPlans = [
   {
     name: "Team",
     label: "Manager workspace",
-    price: "$50/seat/month",
-    rate: "$50",
-    cadence: "/seat/month",
+    monthlyPrice: getPlanPriceDisplay("team", "/seat/month"),
+    annualPrice: getPlanPriceDisplay("team-annual", "/seat/year"),
     body: "For sales teams that need shared call review, coaching visibility, and pooled voice usage.",
     detail: "120 live voice minutes per seat/month",
     featured: true,
@@ -85,11 +134,10 @@ const accessPlans = [
   highlights: string[];
   label: string;
   monthlyPlanId: BillingPlanId;
-  cadence: string;
+  annualPrice: PlanPriceDisplay;
+  monthlyPrice: PlanPriceDisplay;
   name: string;
   note: string;
-  price: string;
-  rate: string;
   seatMinimum?: number;
 }>;
 
@@ -102,7 +150,7 @@ const enterprisePlan = {
   detail: "Unlimited seats and unlimited live voice minutes",
   highlights: ["Unlimited seats", "Unlimited live voice minutes", "Comprehensive sales team coaching"],
   note: "Built for sales teams that need full rollout support.",
-  bookCallHref: "#book-a-call",
+  bookCallHref: "https://calendar.app.google/RSBtSGHYRSxmcs717",
 } as const;
 
 const extraVoicePacks = [
@@ -117,17 +165,26 @@ export function LandingPage() {
       className={cx(styles["argos-3d-page"], "min-h-screen overflow-x-hidden text-[var(--forge-text)]")}
       id="top"
     >
-      <ArgosSceneLoader />
-      <LandingMotionController />
+      <BackgroundRig />
       <LandingHeader />
       <main>
         <LandingHero />
-        <LandingFeatures />
-        <LandingProductDetail />
-        <LandingTrust />
+        <LandingSalesEvolutionStory />
+        <SignalStrip />
+        <LandingCommandRoom />
         <LandingAccess />
       </main>
       <LandingFooter />
+    </div>
+  );
+}
+
+function BackgroundRig() {
+  return (
+    <div className={styles["argos-bg-rig"]} aria-hidden="true">
+      <span />
+      <span />
+      <span />
     </div>
   );
 }
@@ -159,10 +216,10 @@ function LandingHeader() {
 
         <div className={styles["argos-nav-actions"]}>
           <Link className={styles["argos-login-link"]} href="/login">
-            Login
+            Log in
           </Link>
           <Link aria-label="View Argos plans" className={styles["argos-mini-cta"]} href="#access">
-            View plans
+            Book demo
           </Link>
         </div>
       </nav>
@@ -172,106 +229,122 @@ function LandingHeader() {
 
 function LandingHero() {
   return (
-    <section className={styles["argos-hero"]} id="platform">
-      <div className={styles["argos-hero-copy"]} data-reveal>
-        <p className={styles["argos-eyebrow"]}>Sales call review, coaching, and roleplay</p>
-        <h1 className={styles["argos-hero-logo-heading"]}>
-          <span className="sr-only">Argos</span>
-          <ArgosLogo
-            className={cx(styles["argos-wordmark"], styles["argos-hero-wordmark"])}
-            decorative
-            imageClassName={styles["argos-wordmark-image"]}
-            placement="homepage-hero"
-          />
-        </h1>
-        <p className={styles["argos-hero-line"]}>Turn every sales call into the next practice plan.</p>
-        <p className={styles["argos-hero-body"]}>
-          Argos pulls in a call from Zoom or a manual upload, transcribes the conversation, scores
-          it against your rubric, and shows the few moments worth coaching. Managers can assign
-          training, launch roleplay, and see where the team needs work.
-        </p>
-        <div className={styles["argos-hero-actions"]}>
-          <PremiumButton href="/login">Access platform</PremiumButton>
-          <a className={styles["argos-secondary-action"]} href="#features">
-            See the call flow
-          </a>
+    <section className={styles["argos-hero"]} id="platform" aria-labelledby="hero-copy-heading">
+      <div className={styles["argos-hero-frame"]}>
+        <div className={styles["argos-hero-copy"]}>
+          <p className={styles["argos-eyebrow"]}>Argos Revenue Command</p>
+          <h1 id="hero-copy-heading">{salesEvolutionHero.headline}</h1>
+          <p className={styles["argos-hero-body"]}>{salesEvolutionHero.body}</p>
+          <div className={styles["argos-hero-actions"]}>
+            <PremiumButton href={salesEvolutionHero.primaryCta.href}>
+              {salesEvolutionHero.primaryCta.label}
+            </PremiumButton>
+            <Link className={styles["argos-secondary-action"]} href={salesEvolutionHero.secondaryCta.href}>
+              {salesEvolutionHero.secondaryCta.label}
+            </Link>
+          </div>
         </div>
-      </div>
 
-      <div className={styles["argos-hero-meter"]} aria-hidden="true" data-reveal>
-        <span>Revenue Command</span>
-        <strong>call in, next drill out</strong>
+        <div className={styles["argos-hero-terminal"]} aria-hidden="true">
+          <div>
+            <span>ARGOS_COMMAND // SALES_EVOLUTION</span>
+            <strong>calls become practice</strong>
+          </div>
+          <dl>
+            <div>
+              <dt>Evidence</dt>
+              <dd>Scored</dd>
+            </div>
+            <div>
+              <dt>Coaching</dt>
+              <dd>Assigned</dd>
+            </div>
+            <div>
+              <dt>Roleplay</dt>
+              <dd>Ready</dd>
+            </div>
+          </dl>
+        </div>
       </div>
     </section>
   );
 }
 
-function LandingFeatures() {
+function LandingSalesEvolutionStory() {
   return (
-    <section className={cx(styles["argos-section"], styles["argos-feature-section"])} id="features">
-      <div className={styles["argos-section-copy"]} data-reveal>
-        <p className={styles["argos-eyebrow"]}>How Argos works</p>
-        <h2>The call becomes the coaching plan.</h2>
+    <section className={styles["argos-section"]} aria-label="Sales coaching evolution">
+      <div className={styles["argos-section-copy"]}>
+        <p className={styles["argos-eyebrow"]}>Sales coaching evolution</p>
+        <h2>Sales systems evolved. Coaching stayed fragmented.</h2>
         <p>
-          A manager should not have to replay an hour of audio to find one teachable moment. Argos
-          keeps the call, score, notes, training, and roleplay loop in one place.
+          Argos is the point where recorded calls, scorecards, coaching moments, assignments, and
+          roleplay finally become one operating system.
         </p>
       </div>
 
       <div className={styles["argos-feature-grid"]}>
-        {valueProps.map((item, index) => (
-          <article className={styles["argos-feature-shell"]} data-reveal key={item.title}>
-            <div className={styles["argos-feature-card"]}>
-              <span>{String(index + 1).padStart(2, "0")}</span>
-              <h3>{item.title}</h3>
-              <p>{item.body}</p>
-            </div>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function LandingProductDetail() {
-  return (
-    <section className={cx(styles["argos-section"], styles["argos-detail-section"])} id="detail">
-      <div className={styles["argos-detail-copy"]} data-reveal>
-        <p className={styles["argos-eyebrow"]}>Product detail</p>
-        <h2>One thread from call review to practice.</h2>
-        <p>
-          A recorded call becomes a transcript, a rubric score, a short list of coaching moments,
-          and the next action. Managers can save highlights, add notes, assign modules, or generate
-          roleplay from the exact gap they want the rep to practice.
-        </p>
-      </div>
-
-      <div className={styles["argos-signal-track"]} data-reveal>
-        {signalSteps.map((step, index) => (
-          <div className={styles["argos-signal-step"]} key={step}>
+        {salesEvolutionChapters.map((chapter, index) => (
+          <article
+            className={styles["argos-feature-card"]}
+            data-scene-key={chapter.sceneKey}
+            id={chapter.id}
+            key={chapter.id}
+          >
             <span>{String(index + 1).padStart(2, "0")}</span>
-            <strong>{step}</strong>
-          </div>
+            <h3>{chapter.eyebrow}</h3>
+            <p>
+              <strong>{chapter.heading}</strong>
+              <br />
+              {chapter.body}
+            </p>
+          </article>
         ))}
       </div>
     </section>
   );
 }
 
-function LandingTrust() {
+function SignalStrip() {
   return (
-    <section className={cx(styles["argos-section"], styles["argos-trust-section"])} id="trust">
-      <div className={cx(styles["argos-section-copy"], styles["argos-trust-copy"])} data-reveal>
-        <p className={styles["argos-eyebrow"]}>For managers</p>
-        <h2>Coach from what happened, not from memory.</h2>
+    <section className={styles["argos-signal-strip"]} aria-label="Argos workflow">
+      <div>
+        <span>COACHING BY MEMORY // PIPELINE GOES DIGITAL // RECORDING OVERLOAD // AI TOOL SPRAWL // ARGOS REVENUE COMMAND // THE NEXT CONVERSATION</span>
+        <span>COACHING BY MEMORY // PIPELINE GOES DIGITAL // RECORDING OVERLOAD // AI TOOL SPRAWL // ARGOS REVENUE COMMAND // THE NEXT CONVERSATION</span>
       </div>
+    </section>
+  );
+}
 
-      <div className={styles["argos-trust-list"]}>
-        {trustPoints.map((point) => (
-          <article className={styles["argos-trust-item"]} data-reveal key={point}>
-            <p>{point}</p>
-          </article>
-        ))}
+function LandingCommandRoom() {
+  return (
+    <section className={styles["argos-infrastructure-section"]}>
+      <div className={styles["argos-infrastructure-inner"]}>
+        <div className={styles["argos-infrastructure-copy"]}>
+          <p className={styles["argos-eyebrow"]}>Argos Revenue Command</p>
+          <h2>Calls become coaching evidence. Coaching becomes rehearsal.</h2>
+          <p>
+            The modern sales floor does not need more disconnected notes. It needs one loop from
+            the conversation to the behavior that should change before the next one.
+          </p>
+          <div className={styles["argos-infrastructure-list"]}>
+            {commandRoomNotes.map((item) => (
+              <article key={item.title}>
+                <h3>{item.title}</h3>
+                <p>{item.body}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+
+        <div className={styles["argos-intel-card"]}>
+          <div className={styles["argos-intel-screen"]}>
+            <span>Argos Command // v1</span>
+            <p>
+              A scored call becomes evidence. Evidence becomes coaching. Coaching becomes a
+              practice rep before the next conversation.
+            </p>
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -284,14 +357,13 @@ function LandingAccess() {
       className={cx(styles["argos-section"], styles["argos-access-section"])}
       id="access"
     >
-      <div className={styles["argos-access-panel"]} data-reveal>
+      <div className={styles["argos-access-panel"]}>
         <div className={styles["argos-pricing-head"]}>
           <p className={styles["argos-eyebrow"]}>Pricing</p>
-          <h2 id="argos-pricing-heading">Start with one rep. Add the team later.</h2>
+          <h2 id="argos-pricing-heading">Choose the coaching layer.</h2>
           <p>
             Solo gives one seller a private practice loop. Team gives managers shared visibility,
             pooled minutes, leaderboards, admin controls, and training workflows for the whole org.
-            Enterprise adds unlimited usage and comprehensive coaching for the full sales team.
           </p>
         </div>
 
@@ -299,7 +371,6 @@ function LandingAccess() {
           {accessPlans.map((plan) => (
             <article
               className={cx(styles["argos-plan"], plan.featured && styles["argos-plan-featured"])}
-              data-reveal
               key={plan.name}
             >
               <div className={styles["argos-plan-topline"]}>
@@ -307,20 +378,32 @@ function LandingAccess() {
                   <span>{plan.name}</span>
                   <em>{plan.label}</em>
                 </div>
-                {plan.featured ? <mark>Team scale</mark> : null}
+                {plan.featured ? <mark>Recommended deployment</mark> : null}
               </div>
-              <strong aria-label={plan.price}>
-                <span>{plan.rate}</span>
-                <span>{plan.cadence}</span>
-              </strong>
+              <div aria-live="polite" className={styles["argos-plan-price-wrap"]}>
+                <strong
+                  aria-label={plan.monthlyPrice.ariaLabel}
+                  className={cx(styles["argos-plan-price"], styles["argos-plan-price-monthly"])}
+                >
+                  <span>{plan.monthlyPrice.rate}</span>
+                  <span>{plan.monthlyPrice.cadence}</span>
+                </strong>
+                <strong
+                  aria-label={plan.annualPrice.ariaLabel}
+                  className={cx(styles["argos-plan-price"], styles["argos-plan-price-annual"])}
+                >
+                  <span>{plan.annualPrice.rate}</span>
+                  <span>{plan.annualPrice.cadence}</span>
+                </strong>
+              </div>
               <p className={styles["argos-plan-detail"]}>{plan.detail}</p>
-              <small>{plan.note}</small>
+              <small className={styles["argos-muted-copy"]}>{plan.note}</small>
               <ul className={styles["argos-plan-list"]}>
                 {plan.highlights.map((highlight) => (
                   <li key={highlight}>{highlight}</li>
                 ))}
               </ul>
-              <small>{plan.body}</small>
+              <small className={styles["argos-muted-copy"]}>{plan.body}</small>
               <form action="/billing/checkout" className={styles["argos-plan-checkout-form"]} method="get">
                 <BillingIntervalFields plan={plan} />
                 {plan.seatMinimum ? (
@@ -344,24 +427,27 @@ function LandingAccess() {
               </form>
             </article>
           ))}
-          <article className={styles["argos-plan"]} data-reveal id="book-a-call">
+          <article className={styles["argos-plan"]} id="book-a-call">
             <div className={styles["argos-plan-topline"]}>
               <div>
                 <span>{enterprisePlan.name}</span>
                 <em>{enterprisePlan.label}</em>
               </div>
             </div>
-            <strong aria-label={enterprisePlan.price} className={styles["argos-plan-custom-price"]}>
+            <strong
+              aria-label={enterprisePlan.price}
+              className={cx(styles["argos-plan-price"], styles["argos-plan-custom-price"])}
+            >
               <span>{enterprisePlan.rate}</span>
             </strong>
             <p className={styles["argos-plan-detail"]}>{enterprisePlan.detail}</p>
-            <small>{enterprisePlan.note}</small>
+            <small className={styles["argos-muted-copy"]}>{enterprisePlan.note}</small>
             <ul className={styles["argos-plan-list"]}>
               {enterprisePlan.highlights.map((highlight) => (
                 <li key={highlight}>{highlight}</li>
               ))}
             </ul>
-            <small>{enterprisePlan.body}</small>
+            <small className={styles["argos-muted-copy"]}>{enterprisePlan.body}</small>
             <div className={styles["argos-plan-booking"]}>
               <div className={styles["argos-plan-actions"]}>
                 <Link className={styles["argos-plan-button"]} href={enterprisePlan.bookCallHref}>
@@ -372,7 +458,7 @@ function LandingAccess() {
           </article>
         </div>
 
-        <div className={styles["argos-credit-strip"]} aria-label="Extra voice packs" data-reveal>
+        <div className={styles["argos-credit-strip"]} aria-label="Extra voice packs">
           <div>
             <span>Extra voice packs</span>
             <p>Included minutes are used first. Purchased packs do not expire while subscribed.</p>
@@ -387,7 +473,7 @@ function LandingAccess() {
         </div>
 
         <div className={styles["argos-access-actions"]}>
-          <PremiumButton href={getBillingCheckoutHref("team")}>Access platform</PremiumButton>
+          <PremiumButton href={getBillingCheckoutHref("team")}>Start team checkout</PremiumButton>
           <Link className={styles["argos-secondary-action"]} href="/login">
             Book a demo
           </Link>
@@ -403,12 +489,7 @@ function LandingFooter() {
       <div className={styles["argos-footer-inner"]}>
         <div>
           <div aria-label="Argos" className={styles["argos-footer-brand"]}>
-            <ArgosLogo
-              className={cx(styles["argos-wordmark"], styles["argos-footer-wordmark"])}
-              decorative
-              imageClassName={styles["argos-wordmark-image"]}
-              placement="homepage-footer"
-            />
+            ARGOS
           </div>
           <p>2026 Argos Revenue Command. All rights reserved.</p>
         </div>
@@ -422,21 +503,28 @@ function LandingFooter() {
 }
 
 function BillingIntervalFields({ plan }: { plan: (typeof accessPlans)[number] }) {
-  const legendId = `${plan.name.toLowerCase()}-billing-interval`;
+  const planSlug = plan.name.toLowerCase();
+  const legendId = `${planSlug}-billing-interval`;
+  const monthlyId = `${planSlug}-billing-monthly`;
+  const annualId = `${planSlug}-billing-annual`;
 
   return (
     <fieldset aria-labelledby={legendId} className={styles["argos-billing-toggle"]}>
-      <legend id={legendId}>Billing</legend>
-      <label className={styles["argos-billing-option"]}>
-        <input defaultChecked name="plan" type="radio" value={plan.monthlyPlanId} />
-        <span>Start monthly</span>
-        <small>{plan.price}</small>
-      </label>
-      <label className={styles["argos-billing-option"]}>
-        <input name="plan" type="radio" value={plan.annualPlanId} />
-        <span>Save 10% annually</span>
-        <small>Billed yearly</small>
-      </label>
+      <legend id={legendId}>Billing cadence</legend>
+      <div className={styles["argos-billing-segments"]}>
+        <label className={styles["argos-billing-option"]} htmlFor={monthlyId}>
+          <input defaultChecked id={monthlyId} name="plan" type="radio" value={plan.monthlyPlanId} />
+          <span>Monthly</span>
+          <small>Pay month to month</small>
+        </label>
+        <label className={styles["argos-billing-option"]} htmlFor={annualId}>
+          <input id={annualId} name="plan" type="radio" value={plan.annualPlanId} />
+          <span>
+            Annual <em>Save 10%</em>
+          </span>
+          <small>Billed yearly</small>
+        </label>
+      </div>
     </fieldset>
   );
 }

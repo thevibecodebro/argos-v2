@@ -1,28 +1,30 @@
-/* Argos 3D Listening Engine homepage */
+/* Argos brutalist sales intelligence homepage */
 html:has(.argos-3d-page) {
   scroll-behavior: smooth;
-  scroll-padding-top: 7.5rem;
+  scroll-padding-top: 6rem;
 }
 
 .argos-3d-page {
-  --argos-black: var(--forge-bg);
-  --argos-depth: var(--forge-depth);
-  --argos-ivory: var(--forge-text);
-  --argos-muted: var(--forge-muted);
-  --argos-soft: var(--forge-faint);
-  --argos-ember: var(--forge-ember);
-  --argos-gold: var(--forge-gold);
-  --argos-cyan: var(--forge-cyan);
-  --argos-line: var(--forge-border);
-  --argos-serif: var(--font-display, "Space Grotesk", sans-serif);
-  --argos-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --argos-black: #000;
+  --argos-surface: #111;
+  --argos-surface-2: #17130f;
+  --argos-amber: #f1bf7b;
+  --argos-amber-2: #d58b3f;
+  --argos-text: #e9e4dd;
+  --argos-muted: #d6cab9;
+  --argos-featured-muted: #28190d;
+  --argos-line: #4f4539;
+  --argos-line-soft: rgba(241, 191, 123, 0.18);
+  --argos-font-display: var(--font-display, "Space Grotesk", sans-serif);
+  --argos-font-body: "Space Mono", var(--font-body, monospace);
+  --argos-ease: cubic-bezier(0.25, 1, 0.5, 1);
   position: relative;
   isolation: isolate;
-  background:
-    linear-gradient(180deg, rgba(5, 4, 3, 0.24), rgba(5, 4, 3, 0.98) 82%),
-    linear-gradient(112deg, var(--forge-bg) 0%, var(--forge-surface) 42%, var(--forge-depth) 74%, var(--forge-bg) 100%);
-  color: var(--forge-text);
-  font-family: var(--font-body, "Source Sans 3", sans-serif);
+  min-height: 100svh;
+  overflow-x: hidden;
+  background: #000;
+  color: var(--argos-text);
+  font-family: var(--argos-font-body);
 }
 
 .argos-3d-page,
@@ -31,470 +33,93 @@ html:has(.argos-3d-page) {
 }
 
 .argos-3d-page :focus-visible {
-  outline: 2px solid var(--forge-gold);
-  outline-offset: 3px;
-  box-shadow: 0 0 0 5px color-mix(in srgb, var(--forge-gold) 16%, transparent);
+  outline: 2px solid var(--argos-amber);
+  outline-offset: 4px;
 }
 
 .argos-3d-page::before {
   content: "";
   position: fixed;
   inset: 0;
-  z-index: 1;
+  z-index: -3;
   pointer-events: none;
-  opacity: 0.1;
   background-image:
-    linear-gradient(rgba(255, 244, 230, 0.024) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 244, 230, 0.018) 1px, transparent 1px);
-  background-size: 96px 96px;
-  mask-image: linear-gradient(180deg, transparent 0%, black 12%, black 86%, transparent 100%);
+    linear-gradient(to right, rgba(241, 191, 123, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(241, 191, 123, 0.07) 1px, transparent 1px);
+  background-size: 40px 40px;
 }
 
 .argos-3d-page::after {
   content: "";
   position: fixed;
   inset: 0;
-  z-index: 1;
+  z-index: -2;
   pointer-events: none;
   background:
-    linear-gradient(90deg, rgba(5, 4, 3, 0.88), rgba(5, 4, 3, 0.22) 36%, rgba(5, 4, 3, 0.2) 66%, rgba(5, 4, 3, 0.86)),
-    linear-gradient(180deg, rgba(5, 4, 3, 0.46), transparent 32%, rgba(5, 4, 3, 0.86) 100%);
+    radial-gradient(circle at 76% 18%, rgba(241, 191, 123, 0.14), transparent 26rem),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.98), rgba(0, 0, 0, 0.84) 45%, rgba(0, 0, 0, 0.42)),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.55), #000 82%);
+}
+
+.argos-bg-rig {
+  position: fixed;
+  top: 14vh;
+  right: -10vw;
+  z-index: -1;
+  width: min(46vw, 42rem);
+  aspect-ratio: 1;
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+.argos-bg-rig span {
+  position: absolute;
+  inset: 10%;
+  border: 2px solid rgba(241, 191, 123, 0.42);
+  transform: rotate(18deg);
+  animation: argos-rig-turn 22s linear infinite;
+}
+
+.argos-bg-rig span:nth-child(2) {
+  inset: 24%;
+  border-color: rgba(241, 191, 123, 0.22);
+  animation-duration: 16s;
+  animation-direction: reverse;
+}
+
+.argos-bg-rig span:nth-child(3) {
+  inset: 38%;
+  background: rgba(241, 191, 123, 0.08);
+  box-shadow: 0 0 90px rgba(241, 191, 123, 0.25);
+  animation-duration: 11s;
 }
 
 .argos-scene-canvas,
 .argos-scene-fallback {
   position: fixed;
   inset: 0;
-  z-index: 0;
-  opacity: 0.78;
+  z-index: -1;
   pointer-events: none;
+  opacity: 0.3;
 }
 
-.argos-scene-canvas canvas {
-  pointer-events: none !important;
-}
-
-.argos-scene-fallback {
-  background:
-    linear-gradient(90deg, rgba(5, 4, 3, 0.95) 0%, rgba(5, 4, 3, 0.74) 38%, rgba(5, 4, 3, 0.2) 100%),
-    image-set(url("/argos-forge/listening-furnace.webp") type("image/webp"), url("/argos-forge/listening-furnace.png") type("image/png")) 72% center / cover no-repeat,
-    var(--forge-bg);
-}
-
-.argos-forge-film {
-  --forge-progress: 0;
-  --forge-stage: 0;
-  --forge-scan: 0;
-  --forge-temper: 0;
-  --forge-cast: 0;
-  --forge-furnace: 1;
-  --forge-anvil: 0;
-  --forge-velocity: 0;
-  --forge-pointer-x: 0;
-  --forge-pointer-y: 0;
-  overflow: hidden;
-  background: var(--forge-bg);
-}
-
-.argos-forge-frame {
-  position: absolute;
-  inset: -4vh -4vw;
-  z-index: 1;
-  background-position: 72% center;
-  background-repeat: no-repeat;
-  background-size: cover;
-  filter: contrast(1.02) saturate(0.9) brightness(0.9);
-  opacity: 0;
-  transform: scale(1.02);
-  transition: opacity 420ms var(--argos-ease);
-  will-change: opacity, transform;
-}
-
-.argos-forge-frame:first-child {
-  opacity: 1;
-}
-
-.argos-forge-frame[data-frame="anvil"] {
-  background-position: 72% 52%;
-}
-
-.argos-forge-frame[data-frame="tempering"] {
-  background-position: 70% 50%;
-}
-
-.argos-forge-frame[data-frame="casting"] {
-  background-position: 74% 51%;
-}
-
-.argos-forge-frame span {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
-
-.argos-forge-depth-stack {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.argos-forge-depth-layer {
-  position: absolute;
-  inset: -9vh -9vw;
-  background-position: 72% center;
-  background-repeat: no-repeat;
-  background-size: cover;
-  filter: contrast(1.06) saturate(0.92) brightness(0.92);
-  mix-blend-mode: normal;
-  opacity: 0;
-  transform: scale(1.08);
-  transition: opacity 420ms var(--argos-ease);
-  will-change: opacity, transform;
-  mask-image: radial-gradient(ellipse at 76% 50%, black 0%, black 22%, transparent 54%);
-}
-
-.argos-forge-depth-layer[data-depth="anvil"] {
-  background-position: 72% 52%;
-  filter: contrast(1.04) saturate(0.86) brightness(0.9);
-  mask-image: radial-gradient(ellipse at 71% 50%, black 0%, black 24%, transparent 58%);
-}
-
-.argos-forge-depth-layer[data-depth="tempering"] {
-  background-position: 70% 50%;
-  filter: contrast(1.08) saturate(0.92) brightness(0.94);
-  mask-image: radial-gradient(ellipse at 66% 48%, black 0%, black 20%, transparent 56%);
-}
-
-.argos-forge-depth-layer[data-depth="casting"] {
-  background-position: 74% 51%;
-  filter: contrast(1.08) saturate(0.92) brightness(0.94);
-  mask-image: radial-gradient(ellipse at 74% 52%, black 0%, black 25%, transparent 58%);
-}
-
-.argos-forge-depth-layer span {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
-
-.argos-forge-film::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 5;
-  pointer-events: none;
-  opacity: 0.58;
-  background:
-    radial-gradient(circle at 74% 48%, rgba(255, 177, 102, 0.12), transparent 28%),
-    linear-gradient(90deg, rgba(5, 4, 3, 0.98) 0%, rgba(5, 4, 3, 0.9) 36%, rgba(5, 4, 3, 0.32) 68%, rgba(5, 4, 3, 0.7) 100%);
-}
-
-.argos-forge-heat-field {
-  position: absolute;
-  inset: -14%;
-  z-index: 3;
-  pointer-events: none;
-  opacity: calc(0.05 + var(--forge-furnace) * 0.08 + var(--forge-temper) * 0.12 + var(--forge-velocity) * 0.08);
-  background:
-    repeating-linear-gradient(
-      104deg,
-      transparent 0 28px,
-      rgba(255, 157, 91, 0.04) 29px 31px,
-      transparent 34px 72px
-    ),
-    radial-gradient(circle at calc(72% + var(--forge-pointer-x) * 4%) calc(52% + var(--forge-pointer-y) * 3%), rgba(255, 166, 96, 0.22), transparent 30%),
-    radial-gradient(circle at 58% 56%, rgba(136, 218, 247, 0.07), transparent 34%);
-  filter: blur(8px);
-  mix-blend-mode: normal;
-  transform:
-    translate3d(calc(var(--forge-pointer-x) * 1.8vw), calc(var(--forge-pointer-y) * 1.2vh), 0)
-    rotate(calc(-3deg + var(--forge-stage) * 6deg));
-  animation: argos-forge-heat-shimmer 12s ease-in-out infinite alternate;
-}
-
-.argos-forge-aperture {
-  position: absolute;
-  inset: -8%;
-  z-index: 4;
-  pointer-events: none;
-  opacity: calc(0.08 + var(--forge-cast) * 0.13 + var(--forge-scan) * 0.04);
-  background:
-    radial-gradient(ellipse at calc(76% + var(--forge-pointer-x) * 2%) calc(50% + var(--forge-pointer-y) * 2%), transparent 0%, transparent 17%, rgba(255, 244, 230, 0.08) 17.5%, transparent 18.5%, transparent 31%, rgba(136, 218, 247, 0.06) 31.5%, transparent 33%),
-    linear-gradient(116deg, transparent 42%, rgba(255, 244, 230, 0.08), transparent 58%);
-  mix-blend-mode: normal;
-  transform: translate3d(calc(var(--forge-pointer-x) * -1.2vw), calc(var(--forge-pointer-y) * -1vh), 0);
-}
-
-.argos-forge-film::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 7;
-  pointer-events: none;
-  opacity: 0.07;
-  background-image:
-    linear-gradient(rgba(255, 244, 230, 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 244, 230, 0.055) 1px, transparent 1px);
-  background-size: 120px 120px;
-  transform: translate3d(calc(var(--forge-progress) * -14px), calc(var(--forge-progress) * -10px), 0);
-}
-
+.argos-forge-frame,
+.argos-forge-depth-layer,
+.argos-forge-heat-field,
+.argos-forge-aperture,
+.argos-forge-signal-path,
+.argos-forge-light-sweep,
+.argos-forge-ribbons,
+.argos-forge-sparks,
 .argos-forge-vignette {
   position: absolute;
   inset: 0;
-  z-index: 8;
   pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(5, 4, 3, 0.54) 0%, transparent 28%, rgba(5, 4, 3, 0.78) 100%),
-    radial-gradient(circle at 50% 48%, transparent 0%, transparent 45%, rgba(5, 4, 3, 0.76) 100%);
 }
 
-.argos-forge-light-sweep {
-  position: absolute;
-  inset: -20% -18%;
-  z-index: 6;
-  pointer-events: none;
-  opacity: calc(0.04 + var(--forge-scan) * 0.12);
-  background: linear-gradient(105deg, transparent 34%, rgba(255, 244, 230, 0.13) 47%, rgba(255, 179, 107, 0.08) 51%, transparent 64%);
-  mix-blend-mode: normal;
-  transform: translate3d(calc(-28vw + var(--forge-stage) * 58vw), calc(10vh - var(--forge-stage) * 18vh), 0) rotate(-8deg);
-  transition: opacity 420ms var(--argos-ease);
-}
-
-.argos-forge-signal-path {
-  position: absolute;
-  inset: 0;
-  z-index: 6;
-  pointer-events: none;
-  opacity: calc(0.18 + var(--forge-scan) * 0.1 + var(--forge-temper) * 0.12);
-  transform: translate3d(calc(var(--forge-pointer-x) * 1.4vw), calc(var(--forge-pointer-y) * 1vh), 0);
-}
-
-.argos-forge-signal-path span {
-  position: absolute;
-  left: calc(44% + var(--forge-stage) * 12%);
-  top: 48%;
-  width: clamp(5rem, 16vw, 18rem);
-  height: 1px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, transparent, rgba(136, 218, 247, 0.78), rgba(255, 244, 230, 0.9), transparent);
-  box-shadow:
-    0 0 16px rgba(136, 218, 247, 0.28),
-    0 0 28px rgba(255, 181, 104, 0.22);
-  transform-origin: left center;
-  animation: argos-forge-signal-travel 8.5s ease-in-out infinite;
-}
-
-.argos-forge-signal-path span:nth-child(1) {
-  transform: rotate(-18deg);
-}
-
-.argos-forge-signal-path span:nth-child(2) {
-  top: 42%;
-  animation-delay: -0.9s;
-  opacity: 0.64;
-  transform: rotate(8deg);
-}
-
-.argos-forge-signal-path span:nth-child(3) {
-  top: 58%;
-  animation-delay: -1.8s;
-  opacity: 0.72;
-  transform: rotate(24deg);
-}
-
-.argos-forge-signal-path span:nth-child(4) {
-  left: calc(48% + var(--forge-stage) * 9%);
-  top: 52%;
-  animation-delay: -2.7s;
-  opacity: 0.42;
-  transform: rotate(-36deg);
-}
-
-.argos-forge-signal-path span:nth-child(5) {
-  left: calc(52% + var(--forge-stage) * 7%);
-  top: 36%;
-  animation-delay: -3.5s;
-  opacity: 0.52;
-  transform: rotate(42deg);
-}
-
-.argos-forge-signal-path span:nth-child(6) {
-  left: calc(50% + var(--forge-stage) * 8%);
-  top: 64%;
-  animation-delay: -4.2s;
-  opacity: 0.38;
-  transform: rotate(-4deg);
-}
-
-.argos-forge-ribbons {
-  position: absolute;
-  inset: 0;
-  z-index: 6;
-  pointer-events: none;
-  opacity: 0.36;
-  transform: translate3d(calc(var(--forge-progress) * 6vw), calc(var(--forge-progress) * -1.6vh), 0);
-}
-
-.argos-forge-ribbons span {
-  position: absolute;
-  left: -14vw;
-  width: 76vw;
-  height: 1px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, transparent, rgba(132, 221, 255, 0.14), rgba(255, 204, 137, 0.82), rgba(255, 244, 230, 0.7), transparent);
-  box-shadow:
-    0 0 18px rgba(255, 176, 100, 0.32),
-    0 0 28px rgba(132, 221, 255, 0.16);
-  transform-origin: center;
-  animation: argos-forge-ribbon-flow 10s var(--argos-ease) infinite alternate;
-}
-
-.argos-forge-ribbons span:nth-child(1) {
-  top: 53%;
-  transform: rotate(-2deg);
-}
-
-.argos-forge-ribbons span:nth-child(2) {
-  top: 58%;
-  animation-delay: -2.6s;
-  opacity: 0.58;
-  transform: rotate(3deg);
-}
-
-.argos-forge-ribbons span:nth-child(3) {
-  top: 47%;
-  animation-delay: -4.5s;
-  opacity: 0.42;
-  transform: rotate(-6deg);
-}
-
-.argos-forge-sparks {
-  position: absolute;
-  inset: 0;
-  z-index: 6;
-  pointer-events: none;
-  opacity: calc(0.08 + var(--forge-temper) * 0.18);
-}
-
-.argos-forge-sparks span {
-  position: absolute;
-  right: calc(12vw + var(--forge-temper) * 20vw);
-  bottom: calc(26vh + var(--forge-scan) * 22vh);
-  width: 4px;
-  height: 4px;
-  border-radius: 999px;
-  background: rgba(255, 193, 123, 0.8);
-  box-shadow: 0 0 14px rgba(255, 161, 91, 0.38);
-  animation: argos-forge-spark-rise 8.5s var(--argos-ease) infinite;
-}
-
-.argos-forge-sparks span:nth-child(2) {
-  width: 2px;
-  height: 2px;
-  animation-delay: -1.2s;
-  transform: translate3d(-8vw, 6vh, 0);
-}
-
-.argos-forge-sparks span:nth-child(3) {
-  animation-delay: -2.5s;
-  transform: translate3d(4vw, 10vh, 0);
-}
-
-.argos-forge-sparks span:nth-child(4) {
-  width: 2px;
-  height: 2px;
-  animation-delay: -3.4s;
-  transform: translate3d(-14vw, -2vh, 0);
-}
-
-.argos-forge-sparks span:nth-child(5) {
-  animation-delay: -4s;
-  transform: translate3d(9vw, 2vh, 0);
-}
-
-@keyframes argos-forge-ribbon-flow {
-  from {
-    translate: 0 0;
-    scale: 0.94 1;
-  }
-
+@keyframes argos-rig-turn {
   to {
-    translate: 16vw -1.2vh;
-    scale: 1.08 1;
-  }
-}
-
-@keyframes argos-forge-depth-breathe {
-  from {
-    filter: contrast(1.12) saturate(0.92) brightness(0.96);
-  }
-
-  to {
-    filter: contrast(1.28) saturate(1.08) brightness(1.1);
-  }
-}
-
-@keyframes argos-forge-heat-shimmer {
-  from {
-    translate: -1.4vw 0;
-    scale: 1;
-  }
-
-  to {
-    translate: 1.8vw -1.2vh;
-    scale: 1.04;
-  }
-}
-
-@keyframes argos-forge-aperture-turn {
-  from {
-    rotate: 0deg;
-  }
-
-  to {
-    rotate: 360deg;
-  }
-}
-
-@keyframes argos-forge-signal-travel {
-  0% {
-    opacity: 0;
-    scale: 0.12 1;
-  }
-
-  32% {
-    opacity: 0.72;
-    scale: 1 1;
-  }
-
-  100% {
-    opacity: 0;
-    scale: 1.12 1;
-  }
-}
-
-@keyframes argos-forge-spark-rise {
-  0% {
-    opacity: 0;
-    translate: 0 0;
-  }
-
-  18% {
-    opacity: 1;
-  }
-
-  100% {
-    opacity: 0;
-    translate: -4vw -16vh;
+    transform: rotate(378deg);
   }
 }
 
@@ -502,67 +127,43 @@ html:has(.argos-3d-page) {
   position: fixed;
   inset-inline: 0;
   top: 0;
-  z-index: 10;
-  display: flex;
-  isolation: isolate;
-  justify-content: center;
-  pointer-events: none;
-  padding: 1rem clamp(1rem, 3vw, 2rem);
-}
-
-.argos-nav-shell::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  z-index: 0;
-  height: calc(100% + 1rem);
-  pointer-events: none;
-  background: linear-gradient(180deg, rgba(5, 4, 3, 0.96), rgba(5, 4, 3, 0.78) 72%, transparent);
+  z-index: 20;
+  border-bottom: 2px solid var(--argos-amber);
+  background: rgba(0, 0, 0, 0.94);
 }
 
 .argos-nav {
-  position: relative;
-  z-index: 1;
-  pointer-events: auto;
-  display: grid;
-  width: min(76rem, calc(100% - clamp(1rem, 4vw, 2.5rem)));
-  grid-template-columns: minmax(11rem, 1fr) auto minmax(11rem, 1fr);
+  display: flex;
+  width: min(80rem, 100%);
+  height: 5rem;
   align-items: center;
-  gap: clamp(0.75rem, 2vw, 1.4rem);
-  border: 1px solid rgba(255, 244, 230, 0.13);
-  border-radius: 1.35rem;
-  background:
-    linear-gradient(180deg, rgba(255, 244, 230, 0.08), rgba(255, 244, 230, 0.025)),
-    rgba(7, 5, 4, 0.76);
-  padding: 0.42rem 0.5rem 0.42rem 0.58rem;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 244, 230, 0.12),
-    0 18px 54px rgba(5, 4, 3, 0.38);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  justify-content: space-between;
+  gap: 2rem;
+  margin: 0 auto;
+  padding-inline: clamp(1rem, 4vw, 2rem);
 }
 
 .argos-brand,
-.argos-nav-links,
-.argos-nav-actions {
-  display: flex;
-  align-items: center;
-}
-
-.argos-brand {
-  width: max-content;
-  min-height: 2.75rem;
-  border-radius: 1rem;
-  padding-inline: 0.12rem 0.4rem;
+.argos-footer-brand {
+  color: var(--argos-amber);
+  font-family: var(--argos-font-display);
+  font-size: clamp(1.6rem, 3vw, 2rem);
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1;
   text-decoration: none;
 }
 
-.argos-wordmark {
-  position: relative;
+.argos-brand {
   display: inline-flex;
-  width: clamp(8.75rem, 11vw, 10rem);
+  min-height: 2.75rem;
+  align-items: center;
+}
+
+.argos-wordmark {
+  display: inline-flex;
+  width: clamp(7.6rem, 10vw, 9.2rem);
   aspect-ratio: 830 / 151;
-  flex: 0 0 auto;
   align-items: center;
   line-height: 0;
 }
@@ -570,664 +171,652 @@ html:has(.argos-3d-page) {
 .argos-wordmark-image {
   width: 100%;
   height: auto;
-  filter: drop-shadow(0 10px 24px rgba(255, 244, 230, 0.08));
+  filter: drop-shadow(0 8px 20px rgba(241, 191, 123, 0.16));
   object-fit: contain;
 }
 
-.argos-nav-links {
-  gap: clamp(0.65rem, 2vw, 1.25rem);
-  justify-content: center;
-  min-height: 2.75rem;
-  padding-inline: 0.4rem;
-}
-
-.argos-nav-links a {
-  position: relative;
-  display: inline-flex;
-  min-height: 2.75rem;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0.7rem;
-  padding: 0.48rem 0.08rem 0.58rem;
-  color: rgba(255, 244, 230, 0.66);
-  font-family: var(--font-display, "Space Grotesk", sans-serif);
-  font-size: 0.69rem;
-  font-weight: 800;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  text-decoration: none;
-  transition:
-    color 650ms var(--argos-ease);
-}
-
-.argos-nav-links a::after {
-  content: "";
-  position: absolute;
-  right: calc(0.08rem + 0.15em);
-  bottom: 0.54rem;
-  left: 0.08rem;
-  height: 1px;
-  border-radius: 999px;
-  background: currentColor;
-  opacity: 0;
-  transform: scaleX(0.42);
-  transform-origin: center;
-  transition:
-    opacity 650ms var(--argos-ease),
-    transform 650ms var(--argos-ease);
-}
-
-.argos-nav-links a:hover {
-  color: var(--argos-ivory);
-}
-
-.argos-nav-links a.is-active {
-  color: var(--argos-gold);
-}
-
-.argos-nav-links a:hover::after,
-.argos-nav-links a.is-active::after {
-  opacity: 0.54;
-  transform: scaleX(1);
-}
-
+.argos-nav-links,
 .argos-nav-actions {
-  justify-content: flex-end;
-  gap: 0.4rem;
+  display: flex;
+  align-items: center;
+  gap: clamp(0.75rem, 2vw, 2rem);
 }
 
+.argos-nav-links a,
 .argos-login-link,
 .argos-mini-cta {
   display: inline-flex;
   min-height: 2.75rem;
   align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  font-family: var(--font-display, "Space Grotesk", sans-serif);
-  font-size: 0.69rem;
-  font-weight: 900;
-  letter-spacing: 0.11em;
-  line-height: 1;
+  color: var(--argos-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-decoration: none;
   text-transform: uppercase;
-  transition:
-    transform 700ms var(--argos-ease),
-    border-color 700ms var(--argos-ease),
-    background-color 700ms var(--argos-ease),
-    box-shadow 700ms var(--argos-ease),
-    color 700ms var(--argos-ease);
 }
 
-.argos-login-link {
-  border: 1px solid transparent;
-  background: transparent;
-  color: rgba(255, 244, 230, 0.7);
-  padding: 0.72rem 0.76rem;
-}
-
+.argos-nav-links a:hover,
 .argos-login-link:hover {
-  transform: translate3d(0, -1px, 0);
-  border-color: transparent;
-  background: rgba(255, 244, 230, 0.055);
-  color: var(--argos-ivory);
+  color: var(--argos-amber);
 }
 
 .argos-mini-cta {
-  border: 1px solid rgba(255, 244, 230, 0.24);
-  background: var(--argos-ivory);
-  padding: 0.72rem 1rem;
-  color: #100b08;
+  border: 2px solid var(--argos-amber);
+  background: var(--argos-amber);
+  color: #000;
+  padding-inline: 1.1rem;
+  transition:
+    background-color 160ms steps(2),
+    color 160ms steps(2);
 }
 
 .argos-mini-cta:hover {
-  transform: translate3d(0, -1px, 0);
-  background: #fff8ed;
-  box-shadow: 0 18px 50px rgba(255, 244, 230, 0.14);
+  background: #000;
+  color: var(--argos-amber);
 }
 
 .argos-hero,
+.argos-product-preview,
 .argos-section,
+.argos-infrastructure-section,
 .argos-footer {
   position: relative;
-  z-index: 2;
-}
-
-.argos-hero,
-.argos-section {
-  scroll-margin-top: 0;
+  z-index: 1;
 }
 
 .argos-hero {
-  display: grid;
-  min-height: 96svh;
+  min-height: 100svh;
+  display: flex;
   align-items: center;
-  padding: clamp(8rem, 14vw, 11rem) clamp(1.25rem, 5vw, 5rem) 7rem;
-  isolation: isolate;
+  padding: 7.5rem clamp(1rem, 4vw, 2rem) 4rem;
 }
 
-.argos-hero::before,
-.argos-section::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background: linear-gradient(
-    90deg,
-    rgba(5, 4, 3, 0.98) 0%,
-    rgba(5, 4, 3, 0.96) 40%,
-    rgba(5, 4, 3, 0.74) 56%,
-    transparent 78%
-  );
-}
-
-.argos-hero-copy {
-  width: min(44rem, 100%);
+.argos-hero-frame {
+  display: grid;
+  width: min(80rem, 100%);
+  min-height: 78svh;
+  grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.42fr);
+  align-items: end;
+  gap: clamp(2rem, 6vw, 5rem);
+  margin: 0 auto;
+  border-inline: 2px solid rgba(79, 69, 57, 0.72);
+  background: rgba(0, 0, 0, 0.44);
+  padding: clamp(2rem, 5vw, 4rem);
 }
 
 .argos-eyebrow {
   display: inline-flex;
   width: fit-content;
-  align-items: center;
-  gap: 0.7rem;
-  margin-bottom: 1.4rem;
-  color: var(--argos-gold);
-  font-family: var(--font-display, "Space Grotesk", sans-serif);
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.24em;
+  border: 2px solid var(--argos-amber);
+  color: var(--argos-amber);
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  margin: 0 0 2rem;
+  padding: 0.38rem 0.8rem;
   text-transform: uppercase;
 }
 
-.argos-eyebrow::before {
-  content: "";
-  display: block;
-  width: 2rem;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--argos-ember));
-}
-
-.argos-hero-logo-heading {
-  width: min(43rem, 100%);
+.argos-hero-copy h1,
+.argos-section-copy h2,
+.argos-infrastructure-copy h2,
+.argos-pricing-head h2 {
   margin: 0;
-  line-height: 1;
-}
-
-.argos-hero-wordmark {
-  width: 100%;
-  filter: drop-shadow(0 24px 70px rgba(255, 244, 230, 0.1));
-}
-
-.argos-hero-line {
-  margin-top: 2.25rem;
-  max-width: 15ch;
-  color: var(--argos-ivory);
-  font-family: var(--argos-serif);
-  font-size: clamp(2.4rem, 4.8vw, 5.25rem);
+  color: var(--argos-text);
+  font-family: var(--argos-font-display);
+  font-weight: 900;
   letter-spacing: 0;
-  line-height: 0.98;
+  line-height: 0.9;
+  text-transform: uppercase;
+}
+
+.argos-hero-copy h1 {
+  max-width: 14ch;
+  font-size: clamp(4rem, 9vw, 8.4rem);
 }
 
 .argos-hero-body,
 .argos-section-copy p,
-.argos-detail-copy p,
-.argos-access-panel > div > p {
-  max-width: 39rem;
+.argos-infrastructure-copy p,
+.argos-pricing-head p {
+  max-width: 44rem;
   color: var(--argos-muted);
-  font-size: clamp(1.05rem, 1.45vw, 1.32rem);
-  line-height: 1.72;
+  font-size: clamp(1rem, 1.45vw, 1.15rem);
+  font-weight: 700;
+  line-height: 1.65;
+  text-transform: uppercase;
 }
 
 .argos-hero-body {
-  margin-top: 1.8rem;
+  margin: 2rem 0 0;
 }
 
 .argos-hero-actions,
 .argos-access-actions {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
   gap: 1rem;
-  margin-top: 2.5rem;
+  margin-top: 2rem;
 }
 
 .argos-primary-action,
-.argos-secondary-action {
+.argos-secondary-action,
+.argos-plan-button {
   display: inline-flex;
-  min-height: 3.65rem;
+  min-height: 3.75rem;
   align-items: center;
   justify-content: center;
-  border-radius: 999px;
-  font-family: var(--font-display, "Space Grotesk", sans-serif);
-  font-size: 0.86rem;
+  gap: 0.75rem;
+  border: 2px solid var(--argos-amber);
+  cursor: pointer;
+  font-family: var(--argos-font-body);
+  font-size: 0.9rem;
   font-weight: 900;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.06em;
+  padding: 0.95rem 1.35rem;
+  text-align: center;
+  text-decoration: none;
   text-transform: uppercase;
   transition:
-    transform 750ms var(--argos-ease),
-    border-color 750ms var(--argos-ease),
-    background-color 750ms var(--argos-ease),
-    color 750ms var(--argos-ease);
+    background-color 160ms steps(2),
+    color 160ms steps(2),
+    transform 160ms steps(2),
+    box-shadow 160ms steps(2);
 }
 
-.argos-primary-action {
-  position: relative;
-  gap: 0.85rem;
-  overflow: hidden;
-  border: 1px solid rgba(255, 244, 230, 0.22);
-  background: var(--argos-ivory);
-  padding: 0.45rem 0.46rem 0.45rem 1.35rem;
-  color: #100b08;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.42),
-    0 24px 70px rgba(255, 244, 230, 0.12);
+.argos-primary-action,
+.argos-plan-button {
+  background: var(--argos-amber);
+  color: #000;
 }
 
-.argos-primary-action::before {
-  content: "";
-  position: absolute;
-  inset: -50% auto -50% -35%;
-  width: 34%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.66), transparent);
-  opacity: 0;
-  transform: rotate(18deg);
-  transition:
-    opacity 700ms var(--argos-ease),
-    translate 900ms var(--argos-ease);
+.argos-secondary-action {
+  border-color: var(--argos-text);
+  background: transparent;
+  color: var(--argos-text);
 }
 
-.argos-primary-action:hover {
-  background: #fff8ed;
-  transform: translate3d(0, -2px, 0);
+.argos-primary-action:hover,
+.argos-plan-button:hover,
+.argos-secondary-action:hover {
+  transform: translate(-4px, -4px);
+  box-shadow: 4px 4px 0 var(--argos-amber);
 }
 
-.argos-primary-action:hover::before {
-  opacity: 0.7;
-  translate: 25rem 0;
+.argos-primary-action:hover,
+.argos-plan-button:hover {
+  background: #000;
+  color: var(--argos-amber);
 }
 
 .argos-action-disc {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  width: 2.75rem;
-  height: 2.75rem;
-  place-items: center;
-  border: 1px solid rgba(16, 11, 8, 0.16);
-  border-radius: 999px;
-  background: rgba(16, 11, 8, 0.08);
-  transition:
-    transform 750ms var(--argos-ease),
-    background-color 750ms var(--argos-ease);
+  font-size: 1.1rem;
 }
 
-.argos-primary-action:hover .argos-action-disc {
-  transform: translate3d(3px, -1px, 0);
-  background: rgba(16, 11, 8, 0.14);
+.argos-hero-terminal {
+  border: 2px solid var(--argos-line);
+  background: #080808;
+  padding: 1.25rem;
 }
 
-.argos-secondary-action {
-  border: 1px solid rgba(255, 244, 230, 0.15);
-  background: rgba(255, 244, 230, 0.035);
-  padding: 0.95rem 1.5rem;
-  color: var(--argos-ivory);
+.argos-hero-terminal > div {
+  border-left: 4px solid var(--argos-amber);
+  background: rgba(241, 191, 123, 0.06);
+  padding: 1rem;
 }
 
-.argos-secondary-action:hover {
-  border-color: rgba(255, 244, 230, 0.28);
-  background: rgba(255, 244, 230, 0.075);
-  transform: translate3d(0, -2px, 0);
-}
-
-.argos-hero-meter {
-  position: absolute;
-  right: clamp(1.25rem, 5vw, 5rem);
-  bottom: 3.25rem;
-  width: min(21rem, calc(100% - 2.5rem));
-  border-top: 1px solid rgba(255, 244, 230, 0.16);
-  padding-top: 1.1rem;
-  text-align: right;
-}
-
-.argos-hero-meter span {
-  display: block;
-  color: var(--argos-soft);
-  font-family: var(--font-display, "Space Grotesk", sans-serif);
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.2em;
+.argos-hero-terminal span,
+.argos-score-panel span,
+.argos-metric-card span,
+.argos-snippet-panel article span,
+.argos-credit-strip span {
+  color: var(--argos-amber);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
-.argos-hero-meter strong {
+.argos-hero-terminal strong {
   display: block;
-  margin-top: 0.4rem;
-  color: var(--argos-ivory);
-  font-family: var(--argos-serif);
-  font-size: 1.65rem;
-  font-weight: 400;
-  letter-spacing: 0;
+  margin-top: 0.8rem;
+  color: var(--argos-text);
+  font-family: var(--argos-font-display);
+  font-size: clamp(1.9rem, 3vw, 3rem);
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+.argos-hero-terminal dl {
+  display: grid;
+  gap: 0.6rem;
+  margin: 1.2rem 0 0;
+}
+
+.argos-hero-terminal div div {
+  display: flex;
+  justify-content: space-between;
+}
+
+.argos-hero-terminal dt,
+.argos-hero-terminal dd {
+  margin: 0;
+  color: var(--argos-muted);
+  font-size: 0.74rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.argos-product-preview {
+  padding: 0 clamp(1rem, 4vw, 2rem) clamp(5rem, 9vw, 8rem);
+}
+
+.argos-console-shell {
+  width: min(80rem, 100%);
+  margin: 0 auto;
+  border: 2px solid var(--argos-amber);
+  background: #000;
+  padding: 0.35rem;
+}
+
+.argos-console-topbar {
+  display: flex;
+  min-height: 2.7rem;
+  align-items: center;
+  justify-content: space-between;
+  border: 2px solid var(--argos-line);
+  border-bottom: 0;
+  background: rgba(79, 69, 57, 0.18);
+  padding-inline: 1rem;
+}
+
+.argos-console-topbar > div {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.argos-console-topbar span {
+  width: 0.75rem;
+  height: 0.75rem;
+  background: var(--argos-amber);
+}
+
+.argos-console-topbar span:nth-child(2) {
+  opacity: 0.52;
+}
+
+.argos-console-topbar span:nth-child(3) {
+  opacity: 0.28;
+}
+
+.argos-console-topbar p {
+  color: var(--argos-amber);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.argos-console-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.42fr);
+  gap: 1.5rem;
+  border: 2px solid var(--argos-line);
+  padding: clamp(1rem, 3vw, 2rem);
+}
+
+.argos-console-main,
+.argos-snippet-panel,
+.argos-score-panel,
+.argos-metric-card {
+  background: #050505;
+}
+
+.argos-console-main {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.argos-score-panel {
+  position: relative;
+  min-height: 20rem;
+  border: 2px solid var(--argos-line);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  padding: 2rem;
+}
+
+.argos-score-panel::before {
+  content: "";
+  position: absolute;
+  inset: 16% 10% auto auto;
+  width: 12rem;
+  aspect-ratio: 1;
+  border: 2px solid rgba(241, 191, 123, 0.34);
+  transform: rotate(18deg);
+}
+
+.argos-score-panel strong {
+  color: var(--argos-amber);
+  font-family: var(--argos-font-display);
+  font-size: clamp(3.6rem, 7vw, 6rem);
+  line-height: 0.9;
+}
+
+.argos-score-panel p {
+  max-width: 34rem;
+  color: var(--argos-muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.55;
+  text-transform: uppercase;
+}
+
+.argos-metric-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+.argos-metric-card,
+.argos-snippet-panel {
+  border: 2px solid var(--argos-line);
+  padding: 1.25rem;
+}
+
+.argos-metric-card strong {
+  display: block;
+  margin-top: 1rem;
+  color: var(--argos-text);
+  font-family: var(--argos-font-display);
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  line-height: 0.95;
+}
+
+.argos-metric-card small {
+  color: var(--argos-muted);
+  font-family: var(--argos-font-body);
+  font-size: 0.72rem;
+  margin-left: 0.35rem;
+  text-transform: uppercase;
+}
+
+.argos-snippet-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.argos-snippet-panel h2 {
+  color: var(--argos-amber);
+  font-family: var(--argos-font-display);
+  font-size: 1.6rem;
+  line-height: 1;
+  margin: 0 0 0.4rem;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.35rem;
+  text-transform: uppercase;
+}
+
+.argos-snippet-panel article {
+  border-left: 4px solid var(--argos-amber);
+  background: rgba(79, 69, 57, 0.18);
+  padding: 1rem;
+}
+
+.argos-snippet-panel p {
+  color: var(--argos-text);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.6;
+  margin: 0.6rem 0 0;
+  text-transform: uppercase;
+}
+
+.argos-signal-strip {
+  overflow: hidden;
+  border-block: 2px solid var(--argos-amber);
+  background: var(--argos-amber);
+  color: #000;
+  padding: 1.25rem 0;
+}
+
+.argos-signal-strip div {
+  display: flex;
+  width: max-content;
+  gap: 5rem;
+  animation: argos-marquee 24s linear infinite;
+}
+
+.argos-signal-strip span {
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+@keyframes argos-marquee {
+  to {
+    transform: translateX(calc(-50% - 2.5rem));
+  }
+}
+
+.argos-section,
+.argos-infrastructure-section {
+  padding: clamp(5rem, 9vw, 8rem) clamp(1rem, 4vw, 2rem);
 }
 
 .argos-section {
-  min-height: auto;
-  padding: clamp(5.75rem, 7vw, 7rem) clamp(1.25rem, 5vw, 5rem) clamp(5.25rem, 7vw, 7rem);
-  isolation: isolate;
+  width: min(80rem, 100%);
+  margin: 0 auto;
 }
 
-.argos-section-copy,
-.argos-detail-copy {
-  max-width: 52rem;
+.argos-section-copy {
+  max-width: 58rem;
+  margin-bottom: clamp(2.5rem, 6vw, 5rem);
 }
 
 .argos-section-copy h2,
-.argos-detail-copy h2,
-.argos-access-panel h2 {
-  color: var(--argos-ivory);
-  font-family: var(--argos-serif);
-  font-size: clamp(2.8rem, 6vw, 5.5rem);
-  font-weight: 400;
-  letter-spacing: 0;
-  line-height: 0.96;
-  text-wrap: balance;
+.argos-infrastructure-copy h2,
+.argos-pricing-head h2 {
+  font-size: clamp(3rem, 7vw, 6.5rem);
 }
 
 .argos-section-copy p,
-.argos-detail-copy p,
-.argos-access-panel > div > p {
+.argos-infrastructure-copy > p,
+.argos-pricing-head p {
   margin-top: 1.5rem;
-}
-
-.argos-feature-section {
-  display: grid;
-  grid-template-columns: minmax(0, 0.76fr) minmax(24rem, 0.84fr);
-  align-items: start;
-  gap: clamp(3rem, 8vw, 8rem);
 }
 
 .argos-feature-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
-}
-
-.argos-feature-shell {
-  border: 1px solid rgba(255, 244, 230, 0.1);
-  border-radius: 2rem;
-  background: rgba(255, 244, 230, 0.035);
-  padding: 0.45rem;
-  box-shadow: inset 0 1px 0 rgba(255, 244, 230, 0.08);
-  transition:
-    border-color 700ms var(--argos-ease),
-    background-color 700ms var(--argos-ease);
-}
-
-.argos-feature-shell:hover {
-  border-color: rgba(241, 191, 123, 0.28);
-  background: rgba(241, 191, 123, 0.055);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 2px solid var(--argos-line);
 }
 
 .argos-feature-card {
-  min-height: 16rem;
-  border-radius: calc(2rem - 0.45rem);
-  background: linear-gradient(180deg, rgba(20, 13, 10, 0.72), rgba(7, 6, 6, 0.9));
-  padding: 1.5rem;
-  box-shadow: inset 0 1px 0 rgba(255, 244, 230, 0.1);
+  min-height: 22rem;
+  border-right: 2px solid var(--argos-line);
+  background: #111;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  transition:
+    border-color 160ms steps(2),
+    box-shadow 160ms steps(2),
+    transform 160ms steps(2);
 }
 
-.argos-feature-card span,
-.argos-signal-step span,
-.argos-plan span {
-  color: var(--argos-gold);
-  font-family: var(--font-display, "Space Grotesk", sans-serif);
-  font-size: 0.68rem;
+.argos-feature-card:last-child {
+  border-right: 0;
+}
+
+.argos-feature-card:hover {
+  border-color: var(--argos-amber);
+  box-shadow: 6px 6px 0 var(--argos-amber);
+  transform: translate(-6px, -6px);
+}
+
+.argos-feature-card > span {
+  display: grid;
+  width: 3.5rem;
+  height: 3.5rem;
+  place-items: center;
+  border: 2px solid var(--argos-amber);
+  color: var(--argos-amber);
   font-weight: 900;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
 }
 
 .argos-feature-card h3 {
-  margin-top: 2.2rem;
-  color: var(--argos-ivory);
-  font-family: var(--argos-serif);
-  font-size: clamp(1.75rem, 2.35vw, 2.55rem);
-  font-weight: 400;
-  letter-spacing: 0;
-  line-height: 1.04;
-  text-wrap: balance;
+  color: var(--argos-text);
+  font-family: var(--argos-font-display);
+  font-size: clamp(2rem, 4vw, 3rem);
+  margin: 2.5rem 0 1rem;
+  text-transform: uppercase;
 }
 
 .argos-feature-card p {
-  margin-top: 1.2rem;
   color: var(--argos-muted);
-  font-size: 1rem;
-  line-height: 1.65;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.7;
+  text-transform: uppercase;
 }
 
-.argos-detail-section {
-  display: grid;
-  grid-template-columns: minmax(22rem, 0.65fr) minmax(0, 1fr);
-  align-items: start;
-  gap: clamp(3rem, 8vw, 8rem);
+.argos-infrastructure-section {
+  border-block: 2px solid var(--argos-line);
+  background: #111;
 }
 
-.argos-signal-track {
-  position: relative;
-  z-index: 2;
+.argos-infrastructure-inner {
   display: grid;
-  gap: 0.75rem;
-  margin-left: auto;
-  width: min(42rem, 100%);
-}
-
-.argos-signal-step {
-  display: grid;
-  grid-template-columns: 4rem 1fr;
+  width: min(80rem, 100%);
+  grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.82fr);
   align-items: center;
-  min-width: 0;
-  border: 1px solid rgba(255, 244, 230, 0.1);
-  border-radius: 999px;
-  background: rgba(5, 4, 3, 0.64);
-  padding: 0.9rem 1.2rem;
-  box-shadow: inset 0 1px 0 rgba(255, 244, 230, 0.08);
+  gap: clamp(2rem, 6vw, 5rem);
+  margin: 0 auto;
 }
 
-.argos-signal-step strong {
-  color: var(--argos-ivory);
-  font-family: var(--font-display, "Space Grotesk", sans-serif);
-  font-size: clamp(1rem, 1.6vw, 1.4rem);
-  letter-spacing: 0;
-  overflow-wrap: anywhere;
-}
-
-.argos-trust-section {
+.argos-infrastructure-list {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.68fr);
-  align-items: start;
-  gap: clamp(3rem, 8vw, 8rem);
+  gap: 2rem;
+  margin-top: 3rem;
 }
 
-.argos-trust-copy {
-  max-width: 62rem;
+.argos-infrastructure-list article {
+  border-left: 4px solid var(--argos-amber);
+  padding-left: 1.5rem;
 }
 
-.argos-trust-list {
-  display: grid;
-  gap: 1rem;
+.argos-infrastructure-list h3 {
+  color: var(--argos-amber);
+  font-family: var(--argos-font-display);
+  font-size: 1.35rem;
+  margin: 0 0 0.7rem;
+  text-transform: uppercase;
 }
 
-.argos-trust-item {
-  border: 1px solid rgba(255, 244, 230, 0.1);
-  border-radius: 1.35rem;
-  background: rgba(16, 9, 7, 0.5);
-  padding: 1.2rem 1.35rem;
-  box-shadow: inset 0 1px 0 rgba(255, 244, 230, 0.07);
+.argos-infrastructure-list p {
+  color: var(--argos-muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.7;
+  margin: 0;
+  text-transform: uppercase;
 }
 
-.argos-trust-item p {
-  color: rgba(255, 244, 230, 0.78);
-  font-size: clamp(1.05rem, 1.6vw, 1.35rem);
-  line-height: 1.65;
+.argos-intel-card {
+  position: relative;
+  min-height: 28rem;
+  border: 2px solid var(--argos-amber);
+  background:
+    linear-gradient(135deg, rgba(241, 191, 123, 0.14), transparent 44%),
+    repeating-linear-gradient(0deg, rgba(241, 191, 123, 0.08) 0 1px, transparent 1px 18px),
+    #000;
+  padding: 0.5rem;
 }
 
-@keyframes argos-pricing-sweep {
-  0% {
-    transform: translate3d(-38%, 0, 0);
-    opacity: 0;
-  }
-
-  18% {
-    opacity: 0.52;
-  }
-
-  70% {
-    opacity: 0.28;
-  }
-
-  100% {
-    transform: translate3d(38%, 0, 0);
-    opacity: 0;
-  }
+.argos-intel-card::before {
+  content: "";
+  position: absolute;
+  inset: 12% 10% auto auto;
+  width: 45%;
+  aspect-ratio: 1;
+  border: 2px solid rgba(241, 191, 123, 0.38);
+  transform: rotate(24deg);
 }
 
-@keyframes argos-pricing-pulse {
-  0%,
-  100% {
-    opacity: 0.32;
-    transform: scaleX(0.72);
-  }
+.argos-intel-screen {
+  position: absolute;
+  bottom: -1.2rem;
+  left: -1.2rem;
+  max-width: 21rem;
+  border: 2px solid #000;
+  background: var(--argos-amber);
+  color: #000;
+  padding: 1.5rem;
+  box-shadow: 8px 8px 0 #000;
+}
 
-  50% {
-    opacity: 0.76;
-    transform: scaleX(1);
-  }
+.argos-intel-screen span {
+  display: block;
+  border-bottom: 2px solid #000;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  padding-bottom: 0.45rem;
+  text-transform: uppercase;
+}
+
+.argos-intel-screen p {
+  font-size: 0.86rem;
+  font-weight: 900;
+  line-height: 1.45;
+  margin: 1rem 0 0;
+  text-transform: uppercase;
 }
 
 .argos-access-section {
-  position: relative;
-  display: grid;
-  min-height: auto;
-  align-items: start;
-  justify-items: center;
-  overflow: hidden;
-  padding-block: clamp(5.75rem, 7vw, 7rem) clamp(4.5rem, 6vw, 6rem);
-  scroll-margin-top: 0;
-}
-
-.argos-access-section::before {
-  content: "";
-  position: absolute;
-  inset: clamp(1rem, 4vw, 3rem) clamp(1rem, 5vw, 5rem);
-  z-index: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(90deg, transparent, rgba(255, 244, 230, 0.06), transparent),
-    repeating-linear-gradient(90deg, transparent 0 5.75rem, rgba(255, 244, 230, 0.03) 5.8rem 5.86rem);
-  opacity: 0.34;
-  transform: translate3d(-38%, 0, 0);
-  animation: argos-pricing-sweep 10s var(--argos-ease) infinite;
-}
-
-.argos-access-panel {
-  position: relative;
-  z-index: 1;
-  width: min(78rem, 100%);
-  max-width: 100%;
-  overflow: visible;
+  width: min(80rem, 100%);
+  margin: 0 auto;
 }
 
 .argos-pricing-head {
-  display: grid;
-  grid-template-columns: minmax(0, 0.8fr) minmax(18rem, 0.55fr);
-  align-items: end;
-  gap: clamp(1.4rem, 5vw, 5rem);
-  border-block: 1px solid rgba(255, 244, 230, 0.1);
-  padding-block: clamp(1.2rem, 2.6vw, 1.8rem);
-}
-
-.argos-pricing-head .argos-eyebrow {
-  grid-column: 1 / -1;
-  margin-bottom: 0;
-}
-
-.argos-pricing-head > p:not(.argos-eyebrow) {
-  align-self: end;
-  margin-top: 0;
-}
-
-.argos-pricing-head h2 {
-  font-size: clamp(2.35rem, 4vw, 3.8rem);
-  line-height: 1.02;
+  max-width: 64rem;
+  margin-bottom: clamp(2.5rem, 6vw, 5rem);
 }
 
 .argos-plan-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem;
-  margin-top: clamp(1.5rem, 3vw, 2.4rem);
+  border: 2px solid var(--argos-line);
 }
 
 .argos-plan {
-  position: relative;
   display: flex;
   min-height: 100%;
   flex-direction: column;
-  overflow: hidden;
-  border: 1px solid rgba(255, 244, 230, 0.11);
-  border-radius: 1.6rem;
-  background:
-    linear-gradient(180deg, rgba(255, 244, 230, 0.07), rgba(255, 244, 230, 0.025)),
-    rgba(5, 4, 3, 0.58);
-  padding: clamp(1rem, 2.4vw, 1.55rem);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 244, 230, 0.1),
-    0 22px 70px rgba(0, 0, 0, 0.18);
-  transition:
-    border-color 750ms var(--argos-ease),
-    background-color 750ms var(--argos-ease),
-    box-shadow 750ms var(--argos-ease),
-    transform 750ms var(--argos-ease);
+  border-right: 2px solid var(--argos-line);
+  background: #000;
+  padding: clamp(1.4rem, 3vw, 2.4rem);
 }
 
-.argos-plan::before {
-  content: "";
-  position: absolute;
-  inset: auto 1.2rem 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(241, 191, 123, 0.65), transparent);
-  opacity: 0;
-  transform-origin: center;
-  animation: argos-pricing-pulse 4.8s var(--argos-ease) infinite;
-}
-
-.argos-plan:hover {
-  border-color: rgba(241, 191, 123, 0.3);
-  background-color: rgba(255, 244, 230, 0.055);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 244, 230, 0.14),
-    0 28px 80px rgba(0, 0, 0, 0.24);
-  transform: translate3d(0, -3px, 0);
-}
-
-.argos-plan:hover::before,
-.argos-plan-featured::before {
-  opacity: 1;
+.argos-plan:last-child {
+  border-right: 0;
 }
 
 .argos-plan-featured {
-  border-color: rgba(241, 191, 123, 0.32);
-  background:
-    linear-gradient(180deg, rgba(241, 191, 123, 0.16), rgba(255, 244, 230, 0.04) 38%, rgba(5, 4, 3, 0.62)),
-    rgba(5, 4, 3, 0.68);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 244, 230, 0.14),
-    0 30px 90px rgba(255, 159, 95, 0.12),
-    0 40px 120px rgba(0, 0, 0, 0.32);
+  background: var(--argos-amber);
+  color: #000;
 }
 
 .argos-plan-topline {
   display: flex;
-  min-height: 3rem;
+  min-height: 3.5rem;
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
@@ -1235,436 +824,392 @@ html:has(.argos-3d-page) {
 
 .argos-plan-topline > div {
   display: grid;
-  gap: 0.35rem;
+  gap: 0.45rem;
 }
 
 .argos-plan-topline span {
-  color: var(--argos-gold);
-  font-family: var(--font-display, "Space Grotesk", sans-serif);
-  font-size: 0.68rem;
+  color: var(--argos-amber);
+  font-size: 0.78rem;
   font-weight: 900;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
+}
+
+.argos-plan-featured .argos-plan-topline span,
+.argos-plan-featured .argos-plan-detail,
+.argos-plan-featured .argos-plan-list li,
+.argos-plan-featured small,
+.argos-plan-featured em {
+  color: #000;
 }
 
 .argos-plan-topline em {
-  color: rgba(255, 244, 230, 0.58);
-  font-size: 0.92rem;
+  color: var(--argos-muted);
+  font-size: 0.82rem;
   font-style: normal;
+  font-weight: 700;
   line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.argos-plan-featured .argos-plan-topline em {
+  color: var(--argos-featured-muted);
 }
 
 .argos-plan-topline mark {
-  display: inline-flex;
-  min-height: 2.4rem;
-  align-items: center;
-  border: 1px solid rgba(241, 191, 123, 0.24);
-  border-radius: 999px;
-  background: rgba(241, 191, 123, 0.11);
-  color: var(--argos-gold);
-  font-family: var(--font-display, "Space Grotesk", sans-serif);
-  font-size: 0.64rem;
+  position: absolute;
+  inset: 0 0 auto;
+  display: block;
+  background: #000;
+  color: var(--argos-amber);
+  font-size: 0.62rem;
   font-weight: 900;
-  letter-spacing: 0.12em;
-  padding: 0.35rem 0.72rem;
+  letter-spacing: 0.16em;
+  padding: 0.55rem;
+  text-align: center;
   text-transform: uppercase;
-  white-space: nowrap;
 }
 
-.argos-plan strong {
+.argos-plan-featured .argos-plan-topline {
+  padding-top: 1.25rem;
+}
+
+.argos-plan-price-wrap {
+  display: grid;
+}
+
+.argos-plan-price {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0.04em;
-  margin-top: 1.15rem;
-  color: var(--argos-ivory);
-  font-family: var(--argos-serif);
-  font-weight: 400;
-  letter-spacing: 0;
+  gap: 0.2rem;
+  margin-top: 2rem;
+  color: var(--argos-text);
+  font-family: var(--argos-font-display);
+  font-weight: 900;
   line-height: 0.9;
+  text-transform: uppercase;
 }
 
-.argos-plan strong span:first-child {
+.argos-plan-featured .argos-plan-price {
+  color: #000;
+}
+
+.argos-plan-price-annual {
+  display: none;
+}
+
+.argos-plan:has(input[value$="-annual"]:checked) .argos-plan-price-monthly {
+  display: none;
+}
+
+.argos-plan:has(input[value$="-annual"]:checked) .argos-plan-price-annual {
+  display: flex;
+}
+
+.argos-plan-price span:first-child {
   font-size: clamp(3.2rem, 5vw, 5rem);
 }
 
-.argos-plan strong span:last-child {
-  font-size: clamp(1.65rem, 2.6vw, 2.95rem);
-  line-height: 1;
-  white-space: nowrap;
+.argos-plan-price span:last-child {
+  font-size: clamp(1rem, 1.8vw, 1.45rem);
 }
 
-.argos-plan-custom-price span:first-child,
-.argos-plan-custom-price span:last-child {
-  font-size: clamp(2.45rem, 3.5vw, 3.75rem);
+.argos-plan-custom-price span:first-child {
+  font-size: clamp(2.4rem, 4vw, 3.8rem);
 }
 
 .argos-plan-detail {
-  margin-top: 0.9rem;
-  color: var(--argos-cyan);
-  font-weight: 800;
-  line-height: 1.35;
+  color: var(--argos-amber);
+  font-size: 0.92rem;
+  font-weight: 900;
+  line-height: 1.45;
+  margin: 1.3rem 0 0;
+  text-transform: uppercase;
 }
 
 .argos-plan small {
-  display: block;
-  margin-top: 0.82rem;
   color: var(--argos-muted);
-  font-size: 0.95rem;
+  display: block;
+  font-size: 0.84rem;
+  font-weight: 700;
   line-height: 1.5;
+  margin-top: 0.8rem;
+  text-transform: uppercase;
+}
+
+.argos-muted-copy {
+  color: var(--argos-muted);
+}
+
+.argos-plan-featured .argos-muted-copy {
+  color: var(--argos-featured-muted);
 }
 
 .argos-plan-list {
   display: grid;
-  gap: 0.55rem;
-  margin: 1.25rem 0 0;
-  padding: 1rem 0 0;
-  border-top: 1px solid rgba(255, 244, 230, 0.1);
+  gap: 0.8rem;
   list-style: none;
+  margin: 1.5rem 0 0;
+  padding: 1.2rem 0 0;
+  border-top: 2px solid var(--argos-line);
+}
+
+.argos-plan-featured .argos-plan-list {
+  border-color: #000;
 }
 
 .argos-plan-list li {
   position: relative;
-  color: rgba(255, 244, 230, 0.82);
-  font-size: 0.98rem;
+  color: var(--argos-text);
+  font-size: 0.82rem;
+  font-weight: 900;
   line-height: 1.45;
-  padding-left: 1.35rem;
+  padding-left: 1.25rem;
+  text-transform: uppercase;
 }
 
 .argos-plan-list li::before {
   content: "";
   position: absolute;
-  top: 0.68em;
+  top: 0.55em;
   left: 0;
-  width: 0.46rem;
-  height: 0.46rem;
-  border-radius: 999px;
-  background: var(--argos-gold);
-  box-shadow: 0 0 18px rgba(241, 191, 123, 0.38);
-  transform: translateY(-50%);
+  width: 0.55rem;
+  height: 0.55rem;
+  background: var(--argos-amber);
+}
+
+.argos-plan-featured .argos-plan-list li::before {
+  background: #000;
 }
 
 .argos-plan-checkout-form,
 .argos-plan-booking {
   display: grid;
-  gap: 1.15rem;
+  gap: 1rem;
   margin-top: auto;
-  padding-top: clamp(2.35rem, 4vw, 3rem);
+  padding-top: 2.5rem;
 }
 
 .argos-billing-toggle {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: 0.5rem;
-  row-gap: 1rem;
-  min-width: 0;
+  gap: 0.55rem;
   border: 0;
   margin: 0;
   padding: 0;
 }
 
-.argos-billing-toggle legend {
-  display: block;
+.argos-billing-toggle legend,
+.argos-seat-field span {
   grid-column: 1 / -1;
-  color: var(--argos-muted);
-  font-family: var(--font-display, "Space Grotesk", sans-serif);
+  color: inherit;
   font-size: 0.68rem;
   font-weight: 900;
-  letter-spacing: 0.14em;
-  line-height: 1.35;
-  margin-bottom: 1.25rem;
+  letter-spacing: 0.12em;
+  margin-bottom: 0.4rem;
   padding: 0;
   text-transform: uppercase;
+}
+
+.argos-billing-segments {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.25rem;
+  border: 2px solid currentColor;
+  padding: 0.25rem;
 }
 
 .argos-billing-option {
   position: relative;
   display: grid;
-  min-height: 3.65rem;
   align-content: center;
-  gap: 0.25rem;
-  overflow: hidden;
-  border: 1px solid rgba(255, 244, 230, 0.12);
-  border-radius: 1rem;
-  background: rgba(255, 244, 230, 0.035);
-  color: rgba(255, 244, 230, 0.8);
+  gap: 0.28rem;
+  min-height: 4rem;
+  border: 1px solid transparent;
   cursor: pointer;
-  padding: 0.72rem 0.8rem;
+  padding: 0.65rem 0.75rem;
   transition:
-    border-color 650ms var(--argos-ease),
-    background-color 650ms var(--argos-ease),
-    box-shadow 650ms var(--argos-ease),
-    color 650ms var(--argos-ease),
-    transform 650ms var(--argos-ease);
+    background-color 160ms steps(2),
+    border-color 160ms steps(2),
+    color 160ms steps(2);
 }
 
 .argos-billing-option input {
   position: absolute;
   inset: 0;
-  margin: 0;
   cursor: pointer;
+  margin: 0;
   opacity: 0;
 }
 
 .argos-billing-option span,
 .argos-billing-option small {
   position: relative;
+  z-index: 1;
+  margin: 0;
   pointer-events: none;
 }
 
 .argos-billing-option span {
-  font-family: var(--font-display, "Space Grotesk", sans-serif);
-  font-size: 0.7rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  font-size: 0.68rem;
   font-weight: 900;
-  letter-spacing: 0.1em;
-  line-height: 1.15;
   text-transform: uppercase;
 }
 
+.argos-billing-option em {
+  border: 1px solid currentColor;
+  font-size: 0.58rem;
+  font-style: normal;
+  line-height: 1;
+  padding: 0.2rem 0.32rem;
+}
+
 .argos-billing-option small {
-  margin-top: 0;
-  color: rgba(255, 244, 230, 0.52);
-  font-size: 0.82rem;
-  line-height: 1.15;
+  font-size: 0.72rem;
+}
+
+.argos-plan-featured .argos-billing-option:not(:has(input:checked)) small,
+.argos-plan-featured .argos-billing-option:not(:has(input:checked)) em {
+  color: var(--argos-featured-muted);
 }
 
 .argos-billing-option:hover {
-  border-color: rgba(255, 244, 230, 0.22);
-  background: rgba(255, 244, 230, 0.06);
-  color: var(--argos-ivory);
-  transform: translate3d(0, -1px, 0);
-}
-
-.argos-billing-option:has(input:checked) {
-  border-color: rgba(241, 191, 123, 0.7);
-  background:
-    linear-gradient(180deg, rgba(42, 30, 20, 0.98), rgba(14, 10, 8, 0.96)),
-    rgba(5, 4, 3, 0.92);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 244, 230, 0.16),
-    inset 0 -1px 0 rgba(241, 191, 123, 0.24),
-    0 16px 38px rgba(241, 191, 123, 0.14);
-  color: var(--argos-ivory);
-}
-
-.argos-billing-option:has(input:checked) span {
-  color: var(--argos-ivory);
-}
-
-.argos-billing-option:has(input:checked) small {
-  color: rgba(255, 244, 230, 0.72);
+  border-color: currentColor;
 }
 
 .argos-billing-option:has(input:focus-visible) {
-  outline: 2px solid var(--forge-gold);
+  outline: 2px solid currentColor;
   outline-offset: 3px;
-  box-shadow:
-    0 0 0 5px color-mix(in srgb, var(--forge-gold) 16%, transparent),
-    0 16px 38px rgba(241, 191, 123, 0.13);
 }
 
-.argos-plan-actions {
-  display: grid;
-  gap: 0.65rem;
+.argos-billing-option:has(input:checked) {
+  border-color: var(--argos-amber);
+  background: var(--argos-amber);
+  color: #000;
+}
+
+.argos-plan-featured .argos-billing-option:has(input:checked) {
+  border-color: #000;
+  background: #000;
+  color: var(--argos-amber);
+}
+
+.argos-billing-option:has(input:checked) em {
+  background: currentColor;
+  color: var(--argos-amber);
+}
+
+.argos-plan-featured .argos-billing-option:has(input:checked) em {
+  color: #000;
 }
 
 .argos-seat-field {
   display: grid;
-  gap: 0.85rem;
-}
-
-.argos-seat-field span {
-  color: var(--argos-muted);
-  font-family: var(--font-display, "Space Grotesk", sans-serif);
-  font-size: 0.68rem;
-  font-weight: 900;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  gap: 0.6rem;
 }
 
 .argos-seat-field input {
-  min-height: 2.9rem;
+  min-height: 3rem;
   width: min(11rem, 100%);
-  border: 1px solid rgba(255, 244, 230, 0.14);
-  border-radius: 999px;
-  background: rgba(5, 4, 3, 0.62);
-  color: var(--argos-ivory);
-  font-family: var(--font-display, "Space Grotesk", sans-serif);
-  font-size: 1rem;
-  font-weight: 800;
-  outline: none;
-  padding-inline: 1rem;
-}
-
-.argos-seat-field input:focus {
-  border-color: rgba(255, 244, 230, 0.34);
-  box-shadow: 0 0 0 3px rgba(255, 244, 230, 0.08);
-}
-
-.argos-plan-button,
-.argos-plan-secondary {
-  appearance: none;
-  display: inline-flex;
-  min-height: 2.75rem;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  border-radius: 999px;
-  cursor: pointer;
-  font-family: var(--font-display, "Space Grotesk", sans-serif);
-  font-size: 0.7rem;
+  border: 2px solid currentColor;
+  background: transparent;
+  color: inherit;
+  font: inherit;
   font-weight: 900;
-  letter-spacing: 0.12em;
-  padding-inline: 1rem;
-  text-align: center;
-  text-decoration: none;
-  text-transform: uppercase;
-  transition:
-    background-color 650ms var(--argos-ease),
-    border-color 650ms var(--argos-ease),
-    color 650ms var(--argos-ease),
-    transform 650ms var(--argos-ease);
+  padding-inline: 0.8rem;
 }
 
-.argos-plan-button {
-  background: var(--argos-ivory);
-  color: #100b08;
+.argos-plan-actions {
+  display: grid;
 }
 
-.argos-plan-secondary {
-  border: 1px solid rgba(255, 244, 230, 0.13);
-  color: var(--argos-ivory);
+.argos-plan-featured .argos-plan-button {
+  border-color: #000;
+  background: #000;
+  color: var(--argos-amber);
 }
 
-.argos-plan-button:hover,
-.argos-plan-secondary:hover {
-  transform: translate3d(0, -1px, 0);
-}
-
-.argos-plan-button:hover {
-  background: #fff8ed;
-}
-
-.argos-plan-secondary:hover {
-  border-color: rgba(255, 244, 230, 0.25);
-  background: rgba(255, 244, 230, 0.06);
+.argos-plan-featured .argos-plan-button:hover {
+  background: var(--argos-amber);
+  color: #000;
+  box-shadow: 4px 4px 0 #000;
 }
 
 .argos-credit-strip {
-  position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr);
-  gap: 1.25rem;
-  margin-top: 1rem;
-  overflow: hidden;
-  border: 1px solid rgba(255, 244, 230, 0.1);
-  border-radius: 1.5rem;
-  background:
-    linear-gradient(90deg, rgba(136, 218, 247, 0.08), transparent 42%),
-    rgba(5, 4, 3, 0.55);
-  padding: 1.15rem;
-}
-
-.argos-credit-strip::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(90deg, transparent, rgba(136, 218, 247, 0.08), transparent);
-  opacity: 0.52;
-  transform: translate3d(-65%, 0, 0);
-  animation: argos-pricing-sweep 11s var(--argos-ease) infinite 1.2s;
-}
-
-.argos-credit-strip span {
-  color: var(--argos-gold);
-  font-family: var(--font-display, "Space Grotesk", sans-serif);
-  font-size: 0.68rem;
-  font-weight: 900;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 1.5rem;
+  border: 2px solid var(--argos-line);
+  border-top: 0;
+  background: #080808;
+  padding: 1.4rem;
 }
 
 .argos-credit-strip p {
-  margin-top: 0.65rem;
   color: var(--argos-muted);
-  font-size: 0.95rem;
-  line-height: 1.55;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.5;
+  margin: 0.65rem 0 0;
+  text-transform: uppercase;
 }
 
 .argos-credit-list {
-  position: relative;
   display: grid;
-  align-content: center;
   gap: 0.55rem;
 }
 
 .argos-credit-list a {
   display: flex;
-  min-height: 2.9rem;
+  min-height: 3rem;
   align-items: center;
   justify-content: space-between;
+  border: 2px solid var(--argos-line);
+  color: var(--argos-text);
+  font-size: 0.78rem;
+  font-weight: 900;
   gap: 1rem;
-  border: 1px solid rgba(255, 244, 230, 0.09);
-  border-radius: 999px;
-  background: rgba(255, 244, 230, 0.035);
-  color: rgba(255, 244, 230, 0.8);
-  letter-spacing: 0.08em;
-  line-height: 1.25;
-  padding: 0.65rem 0.85rem 0.65rem 1rem;
-  transition:
-    border-color 650ms var(--argos-ease),
-    background-color 650ms var(--argos-ease),
-    color 650ms var(--argos-ease),
-    transform 650ms var(--argos-ease);
+  padding: 0.7rem 0.9rem;
+  text-decoration: none;
+  text-transform: uppercase;
 }
 
 .argos-credit-list a:hover {
-  border-color: rgba(136, 218, 247, 0.26);
-  background: rgba(136, 218, 247, 0.07);
-  color: var(--argos-ivory);
-  transform: translate3d(0.25rem, 0, 0);
+  border-color: var(--argos-amber);
+  color: var(--argos-amber);
 }
 
-.argos-credit-list strong {
-  color: var(--argos-ivory);
-  white-space: nowrap;
-}
-
-.argos-reveal-ready .argos-plan.is-visible:hover {
-  transform: translate3d(0, -3px, 0);
+.argos-access-actions {
+  justify-content: center;
+  margin-top: 2rem;
 }
 
 .argos-footer {
-  border-top: 1px solid rgba(255, 244, 230, 0.1);
-  background: var(--forge-bg);
+  border-top: 4px solid var(--argos-amber);
+  background: #000;
 }
 
 .argos-footer-inner {
   display: flex;
-  width: min(92rem, 100%);
+  width: min(80rem, 100%);
   align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
   margin: 0 auto;
-  padding: 2.25rem clamp(1.25rem, 5vw, 5rem);
-}
-
-.argos-footer-brand {
-  display: inline-flex;
-  align-items: center;
-}
-
-.argos-footer-wordmark {
-  width: clamp(9.5rem, 14vw, 12.25rem);
-  height: 2.32rem;
+  padding: 2.5rem clamp(1rem, 4vw, 2rem);
 }
 
 .argos-footer p {
-  margin-top: 0.35rem;
-  color: var(--argos-soft);
-  font-size: 0.78rem;
-  letter-spacing: 0.14em;
+  color: rgba(185, 170, 152, 0.68);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  margin: 0.7rem 0 0;
   text-transform: uppercase;
 }
 
@@ -1676,152 +1221,71 @@ html:has(.argos-3d-page) {
 
 .argos-top-link {
   display: grid;
-  width: 2.75rem;
-  height: 2.75rem;
+  width: 3rem;
+  height: 3rem;
   place-items: center;
-  border: 1px solid rgba(255, 244, 230, 0.13);
-  border-radius: 999px;
-  color: var(--argos-gold);
-  transition:
-    transform 650ms var(--argos-ease),
-    background-color 650ms var(--argos-ease);
+  border: 2px solid var(--argos-amber);
+  color: var(--argos-amber);
+  font-weight: 900;
+  text-decoration: none;
 }
 
 .argos-top-link:hover {
-  transform: translate3d(0, -2px, 0);
-  background: rgba(255, 244, 230, 0.06);
-}
-
-.argos-reveal-ready [data-reveal] {
-  opacity: 0;
-  transform: translate3d(0, 0.65rem, 0);
-  transition:
-    opacity 420ms var(--argos-ease),
-    transform 420ms var(--argos-ease);
-  transition-delay: calc(var(--reveal-index, 0) * 24ms);
-}
-
-.argos-reveal-ready [data-reveal].is-visible {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
+  background: var(--argos-amber);
+  color: #000;
 }
 
 @media (max-width: 1024px) {
-  .argos-feature-section,
-  .argos-detail-section,
-  .argos-trust-section {
+  .argos-hero-frame,
+  .argos-console-grid,
+  .argos-infrastructure-inner,
+  .argos-credit-strip {
     grid-template-columns: 1fr;
   }
 
-  .argos-section {
-    min-height: auto;
+  .argos-feature-grid,
+  .argos-plan-row {
+    grid-template-columns: 1fr;
+  }
+
+  .argos-feature-card,
+  .argos-plan {
+    border-right: 0;
+    border-bottom: 2px solid var(--argos-line);
+  }
+
+  .argos-feature-card:last-child,
+  .argos-plan:last-child {
+    border-bottom: 0;
+  }
+
+  .argos-bg-rig {
+    right: -28vw;
+    width: 70vw;
   }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 760px) {
   html:has(.argos-3d-page) {
-    scroll-padding-top: 9.75rem;
-  }
-
-  .argos-3d-page::after {
-    background:
-      linear-gradient(90deg, rgba(5, 4, 3, 0.96), rgba(5, 4, 3, 0.76) 46%, rgba(5, 4, 3, 0.42) 100%),
-      linear-gradient(180deg, rgba(5, 4, 3, 0.52), transparent 30%, rgba(5, 4, 3, 0.9) 100%);
-  }
-
-  .argos-scene-canvas,
-  .argos-scene-fallback {
-    opacity: 0.62;
-  }
-
-  .argos-forge-frame {
-    background-position: 73% center;
-  }
-
-  .argos-forge-frame[data-frame="anvil"] {
-    background-position: 72% 50%;
-  }
-
-  .argos-forge-frame[data-frame="tempering"] {
-    background-position: 71% center;
-  }
-
-  .argos-forge-frame[data-frame="casting"] {
-    background-position: 70% center;
-  }
-
-  .argos-forge-depth-layer {
-    background-position: 72% center;
-    mask-image: radial-gradient(ellipse at 76% 48%, black 0%, black 18%, transparent 48%);
-  }
-
-  .argos-forge-film::before {
-    background:
-      linear-gradient(90deg, rgba(5, 4, 3, 0.99) 0%, rgba(5, 4, 3, 0.9) 60%, rgba(5, 4, 3, 0.52) 100%),
-      linear-gradient(180deg, rgba(5, 4, 3, 0.24), rgba(5, 4, 3, 0.78));
-  }
-
-  .argos-forge-heat-field,
-  .argos-forge-aperture {
-    inset: -22%;
-  }
-
-  .argos-forge-signal-path span {
-    left: calc(30% + var(--forge-stage) * 18%);
-    width: 54vw;
-  }
-
-  .argos-forge-ribbons span {
-    left: -32vw;
-    width: 104vw;
-  }
-
-  .argos-nav-shell {
-    padding: 0.9rem 0.85rem;
+    scroll-padding-top: 8.5rem;
   }
 
   .argos-nav {
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 0.48rem;
-    border-radius: 1.35rem;
-    padding: 0.55rem;
+    height: auto;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding-block: 0.8rem;
   }
 
   .argos-brand {
-    grid-row: 1;
-    grid-column: 1;
-    min-width: 0;
-    padding-inline: 0;
-  }
-
-  .argos-wordmark {
-    width: clamp(7.05rem, 31vw, 8.3rem);
-  }
-
-  .argos-login-link {
-    padding-inline: 0.72rem;
-    font-size: 0.66rem;
-    letter-spacing: 0.09em;
-  }
-
-  .argos-mini-cta {
-    padding-inline: 0.82rem;
-    font-size: 0.66rem;
-    letter-spacing: 0.08em;
-  }
-
-  .argos-nav-actions {
-    grid-row: 1;
-    grid-column: 2;
+    flex: 1 1 auto;
   }
 
   .argos-nav-links {
-    grid-row: 2;
-    grid-column: 1 / -1;
-    gap: 0.2rem;
-    justify-content: flex-start;
+    order: 3;
+    width: 100%;
     overflow-x: auto;
-    overscroll-behavior-x: contain;
+    padding-bottom: 0.15rem;
     scrollbar-width: none;
   }
 
@@ -1831,221 +1295,110 @@ html:has(.argos-3d-page) {
 
   .argos-nav-links a {
     flex: 0 0 auto;
-    padding-inline: 0.68rem;
-    font-size: 0.62rem;
-    letter-spacing: 0.1em;
   }
 
-  .argos-hero {
-    min-height: 94svh;
-    padding-top: 12.75rem;
-    padding-bottom: 4.5rem;
-    scroll-margin-top: 0;
-  }
-
-  .argos-hero-logo-heading {
-    width: min(26rem, 100%);
-  }
-
-  .argos-hero-line {
-    max-width: 13ch;
-    font-size: clamp(2.1rem, 10vw, 3.15rem);
-    line-height: 1.04;
-  }
-
-  .argos-hero-actions,
-  .argos-access-actions {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .argos-plan-row,
-  .argos-feature-grid,
-  .argos-credit-strip {
-    grid-template-columns: 1fr;
-  }
-
-  .argos-pricing-head {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  .argos-pricing-head > p:not(.argos-eyebrow) {
-    margin-top: 0.35rem;
-  }
-
-  .argos-primary-action,
-  .argos-secondary-action,
-  .argos-plan-button,
-  .argos-plan-secondary {
-    width: 100%;
-  }
-
-  .argos-hero-meter {
-    position: relative;
-    right: auto;
-    bottom: auto;
-    margin-top: 3rem;
-    text-align: left;
-  }
-
-  .argos-section {
-    padding-block: 6rem;
-    scroll-margin-top: 0;
-  }
-
-  .argos-section-copy h2,
-  .argos-detail-copy h2,
-  .argos-access-panel h2 {
-    font-size: clamp(2.75rem, 12.5vw, 3.4rem);
-    line-height: 1.02;
-  }
-
-  .argos-access-section {
-    padding-block: 6rem 4.75rem;
-    scroll-margin-top: 0;
-  }
-
-  .argos-pricing-head h2 {
-    font-size: clamp(2.15rem, 9vw, 2.9rem);
-    line-height: 1.05;
-  }
-
-  .argos-signal-step {
-    grid-template-columns: 1fr;
-    border-radius: 1.25rem;
-    gap: 0.55rem;
-  }
-
-  .argos-footer-inner {
-    flex-direction: column;
-    text-align: center;
-  }
-}
-
-@media (max-width: 420px) {
-  .argos-nav-shell {
-    padding-inline: 0.65rem;
-  }
-
-  .argos-brand {
-    min-height: 2.75rem;
-  }
-
-  .argos-wordmark {
-    width: clamp(6.25rem, 30vw, 7.35rem);
+  .argos-nav-actions {
+    gap: 0.6rem;
   }
 
   .argos-login-link,
   .argos-mini-cta,
   .argos-nav-links a {
-    min-height: 2.75rem;
+    font-size: 0.66rem;
   }
 
-  .argos-nav-links a {
-    padding-inline: 0.55rem;
-    font-size: 0.58rem;
-    letter-spacing: 0.08em;
+  .argos-hero {
+    padding-top: 10.5rem;
   }
 
-  .argos-login-link {
-    padding-inline: 0.58rem;
-    font-size: 0.6rem;
-    letter-spacing: 0.06em;
+  .argos-hero-frame {
+    min-height: auto;
+    border-inline: 0;
+    border-block: 2px solid var(--argos-line);
+    padding-inline: 0;
   }
 
-  .argos-mini-cta {
-    padding-inline: 0.66rem;
-    font-size: 0.6rem;
-    letter-spacing: 0.06em;
+  .argos-hero-copy h1,
+  .argos-section-copy h2,
+  .argos-infrastructure-copy h2,
+  .argos-pricing-head h2 {
+    font-size: clamp(2.9rem, 14vw, 4.4rem);
+    line-height: 0.95;
   }
 
+  .argos-hero-actions,
+  .argos-access-actions {
+    flex-direction: column;
+  }
+
+  .argos-primary-action,
+  .argos-secondary-action,
+  .argos-plan-button {
+    width: 100%;
+  }
+
+  .argos-console-topbar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.7rem;
+    padding-block: 0.8rem;
+  }
+
+  .argos-metric-row,
+  .argos-billing-toggle {
+    grid-template-columns: 1fr;
+  }
+
+  .argos-intel-card {
+    min-height: 22rem;
+  }
+
+  .argos-intel-screen {
+    right: 1rem;
+    bottom: -1rem;
+    left: 1rem;
+    max-width: none;
+  }
+
+  .argos-footer-inner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 420px) {
   .argos-hero,
+  .argos-product-preview,
   .argos-section,
+  .argos-infrastructure-section,
   .argos-footer-inner {
     padding-inline: 1rem;
   }
 
-  .argos-hero-logo-heading {
-    width: min(20rem, 100%);
-  }
-
-  .argos-hero-body,
-  .argos-section-copy p,
-  .argos-detail-copy p,
-  .argos-access-panel > div > p {
-    font-size: 1rem;
-    line-height: 1.68;
-  }
-
+  .argos-hero-terminal,
+  .argos-console-grid,
   .argos-feature-card,
   .argos-plan,
   .argos-credit-strip {
     padding: 1rem;
   }
 
-  .argos-plan-topline {
-    display: grid;
-  }
-
-  .argos-plan-actions {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
-
-  .argos-credit-list a {
-    flex-wrap: wrap;
-    gap: 0.35rem 0.75rem;
-    letter-spacing: 0.06em;
+  .argos-signal-strip span {
+    font-size: 0.68rem;
+    letter-spacing: 0.2em;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .argos-scene-canvas {
-    opacity: 0.82;
+  .argos-bg-rig span,
+  .argos-signal-strip div {
+    animation: none;
   }
 
   .argos-primary-action,
   .argos-secondary-action,
   .argos-plan-button,
-  .argos-plan-secondary,
-  .argos-plan,
-  .argos-credit-list a,
-  .argos-mini-cta,
-  .argos-action-disc,
-  .argos-top-link,
-  .argos-forge-frame,
-  .argos-forge-depth-layer,
-  .argos-forge-heat-field,
-  .argos-forge-aperture,
-  .argos-forge-signal-path,
-  .argos-forge-light-sweep,
-  .argos-reveal-ready [data-reveal] {
+  .argos-feature-card {
     transition: none;
-  }
-
-  .argos-forge-ribbons span,
-  .argos-forge-sparks span,
-  .argos-forge-depth-layer,
-  .argos-forge-heat-field,
-  .argos-forge-aperture,
-  .argos-forge-signal-path span,
-  .argos-access-section::before,
-  .argos-plan::before,
-  .argos-credit-strip::before {
-    animation: none;
-  }
-
-  .argos-forge-ribbons,
-  .argos-forge-sparks,
-  .argos-forge-signal-path {
-    opacity: 0.35;
-  }
-
-  .argos-reveal-ready [data-reveal] {
-    opacity: 1;
-    transform: none;
-    filter: none;
-    transition-delay: 0ms;
   }
 }
