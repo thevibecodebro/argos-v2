@@ -11,6 +11,7 @@ describe("LandingPage", () => {
     expect(html).toContain("text-[var(--forge-text)]");
     expect(html).toContain("Argos");
     expect(html).toContain('data-argos-logo="homepage-nav"');
+    expect(html).toContain('data-argos-logo="homepage-footer"');
     expect(html).toContain('src="/argos_logo_background.png"');
     expect(html).toContain("Argos Revenue Command");
     expect(html).toContain("Sales teams changed. Coaching should have too.");

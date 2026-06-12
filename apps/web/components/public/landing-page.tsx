@@ -325,7 +325,12 @@ function LandingFooter() {
       <div className={styles["argos-footer-inner"]}>
         <div>
           <div aria-label="Argos" className={styles["argos-footer-brand"]}>
-            ARGOS
+            <ArgosLogo
+              className={cx(styles["argos-wordmark"], styles["argos-footer-wordmark"])}
+              decorative
+              imageClassName={styles["argos-wordmark-image"]}
+              placement="homepage-footer"
+            />
           </div>
           <p>2026 Argos Revenue Command. All rights reserved.</p>
         </div>

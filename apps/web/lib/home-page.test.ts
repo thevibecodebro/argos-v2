@@ -18,6 +18,7 @@ describe("HomePage", () => {
 
     expect(redirectMock).not.toHaveBeenCalled();
     expect(html).toContain('data-argos-logo="homepage-nav"');
+    expect(html).toContain('data-argos-logo="homepage-footer"');
     expect(html).toContain('src="/argos_logo_background.png"');
     expect(html).toContain("Sales teams changed. Coaching should have too.");
     expect(html).toContain("Argos Revenue Command");

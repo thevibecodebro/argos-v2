@@ -5,6 +5,16 @@ function readPublicFile(path: string) {
   return readFileSync(new URL(path, import.meta.url), "utf8");
 }
 
+function expectCssRule(moduleCss: string, selector: string, declarations: string[]) {
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = new RegExp(`${escapedSelector}\\s*\\{(?<body>[\\s\\S]*?)\\}`).exec(moduleCss);
+  expect(match?.groups?.body).toBeDefined();
+
+  for (const declaration of declarations) {
+    expect(match?.groups?.body).toContain(declaration);
+  }
+}
+
 describe("public landing styles", () => {
   it("keeps the public landing page visible without a client reveal gate", () => {
     const moduleCss = readPublicFile("../components/public/landing-page.module.css");
@@ -30,6 +40,7 @@ describe("public landing styles", () => {
     expect(moduleCss).toContain(".argos-hero-frame");
     expect(moduleCss).toContain(".argos-wordmark");
     expect(moduleCss).toContain(".argos-wordmark-image");
+    expect(moduleCss).toContain(".argos-footer-wordmark");
     expect(moduleCss).toContain(".argos-console-shell");
     expect(moduleCss).toContain(".argos-feature-grid");
     expect(moduleCss).toContain(".argos-demo-grid");
@@ -54,5 +65,27 @@ describe("public landing styles", () => {
     expect(moduleCss).toContain(".argos-demo-button:focus-visible");
     expect(moduleCss).toMatch(/@media \(max-width: 1024px\)[\s\S]*?\.argos-demo-grid\s*\{[\s\S]*?grid-template-columns: 1fr;/);
     expect(moduleCss).toMatch(/@media \(max-width: 760px\)[\s\S]*?\.argos-primary-action,[\s\S]*?\.argos-demo-button\s*\{[\s\S]*?width: 100%;/);
+  });
+
+  it("keeps the hero framed inside the first viewport without a bordered hero label", () => {
+    const moduleCss = readPublicFile("../components/public/landing-page.module.css");
+
+    expectCssRule(moduleCss, ".argos-hero-copy .argos-eyebrow", [
+      "border: 0;",
+      "margin: 0 0 1.25rem;",
+      "padding: 0;",
+    ]);
+    expectCssRule(moduleCss, ".argos-hero", [
+      "min-height: 100svh;",
+      "padding: 5.75rem clamp(1rem, 4vw, 2rem) 1.25rem;",
+    ]);
+    expectCssRule(moduleCss, ".argos-hero-frame", [
+      "min-height: min(42rem, calc(100svh - 7rem));",
+      "padding: clamp(1.25rem, 3svh, 2.5rem) clamp(1.25rem, 4vw, 3rem);",
+    ]);
+    expectCssRule(moduleCss, ".argos-hero-copy h1", [
+      "font-size: clamp(3.5rem, 11.5svh, 6rem);",
+    ]);
+    expect(moduleCss).toMatch(/@media \(max-width: 1024px\)[\s\S]*?\.argos-hero-terminal\s*\{[\s\S]*?display: none;/);
   });
 });

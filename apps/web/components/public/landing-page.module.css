@@ -175,6 +175,10 @@ html:has(.argos-3d-page) {
   object-fit: contain;
 }
 
+.argos-footer-wordmark {
+  width: clamp(8.25rem, 12vw, 10.5rem);
+}
+
 .argos-nav-links,
 .argos-nav-actions {
   display: flex;
@@ -229,20 +233,20 @@ html:has(.argos-3d-page) {
   min-height: 100svh;
   display: flex;
   align-items: center;
-  padding: 7.5rem clamp(1rem, 4vw, 2rem) 4rem;
+  padding: 5.75rem clamp(1rem, 4vw, 2rem) 1.25rem;
 }
 
 .argos-hero-frame {
   display: grid;
   width: min(80rem, 100%);
-  min-height: 78svh;
+  min-height: min(42rem, calc(100svh - 7rem));
   grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.42fr);
   align-items: end;
-  gap: clamp(2rem, 6vw, 5rem);
+  gap: clamp(1.25rem, 4vw, 3rem);
   margin: 0 auto;
   border-inline: 2px solid rgba(79, 69, 57, 0.72);
   background: rgba(0, 0, 0, 0.44);
-  padding: clamp(2rem, 5vw, 4rem);
+  padding: clamp(1.25rem, 3svh, 2.5rem) clamp(1.25rem, 4vw, 3rem);
 }
 
 .argos-eyebrow {
@@ -256,6 +260,12 @@ html:has(.argos-3d-page) {
   margin: 0 0 2rem;
   padding: 0.38rem 0.8rem;
   text-transform: uppercase;
+}
+
+.argos-hero-copy .argos-eyebrow {
+  border: 0;
+  margin: 0 0 1.25rem;
+  padding: 0;
 }
 
 .argos-hero-copy h1,
@@ -272,8 +282,8 @@ html:has(.argos-3d-page) {
 }
 
 .argos-hero-copy h1 {
-  max-width: 14ch;
-  font-size: clamp(4rem, 9vw, 8.4rem);
+  max-width: 16ch;
+  font-size: clamp(3.5rem, 11.5svh, 6rem);
 }
 
 .argos-hero-body,
@@ -289,14 +299,17 @@ html:has(.argos-3d-page) {
 }
 
 .argos-hero-body {
-  margin: 2rem 0 0;
+  max-width: 36rem;
+  margin: 1.25rem 0 0;
+  font-size: 1rem;
+  line-height: 1.45;
 }
 
 .argos-hero-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
-  margin-top: 2rem;
+  margin-top: 1.25rem;
 }
 
 .argos-primary-action,
@@ -1044,6 +1057,14 @@ html:has(.argos-3d-page) {
     right: -28vw;
     width: 70vw;
   }
+
+  .argos-hero-frame {
+    min-height: auto;
+  }
+
+  .argos-hero-terminal {
+    display: none;
+  }
 }
 
 @media (max-width: 760px) {
@@ -1089,7 +1110,7 @@ html:has(.argos-3d-page) {
   }
 
   .argos-hero {
-    padding-top: 10.5rem;
+    padding-top: 8.75rem;
   }
 
   .argos-hero-frame {
@@ -1103,7 +1124,7 @@ html:has(.argos-3d-page) {
   .argos-section-copy h2,
   .argos-infrastructure-copy h2,
   .argos-demo-head h2 {
-    font-size: clamp(2.9rem, 14vw, 4.4rem);
+    font-size: clamp(2.35rem, 8svh, 3.05rem);
     line-height: 0.95;
   }
 
