@@ -28,6 +28,8 @@ describe("HomePage", () => {
     expect(html).toContain("Coaching moment");
     expect(html).toContain("Roleplay drill");
     expect(html).toContain("Next call");
+    expect(html).toContain("Progress signal");
+    expect(html).toContain("See whether the coaching changed the next call.");
     expect(html).toContain('href="/login"');
     expect(html).toContain("Launch platform");
     expect(html).toContain(">Log in</a>");
@@ -39,6 +41,7 @@ describe("HomePage", () => {
     expect(html).not.toContain("Turn every sales call into the next coaching loop.");
     expect(html).toContain('id="platform"');
     expect(html).toContain('id="coaching-loop"');
+    expect(html).toContain('id="progress-signal"');
     expect(html).toContain('href="#access"');
     expect(html).toContain("See Argos in action.");
     expect(html).toContain("Demo video");

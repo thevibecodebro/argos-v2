@@ -54,6 +54,13 @@ const coachingLoopSteps = [
     id: "next-call",
     sceneKey: "next-call",
   },
+  {
+    body: "Argos carries the last focus area forward so managers can compare the next conversation against the behavior the rep practiced.",
+    eyebrow: "Progress signal",
+    heading: "See whether the coaching changed the next call.",
+    id: "progress-signal",
+    sceneKey: "progress-signal",
+  },
 ] as const;
 
 const commandRoomNotes = [
@@ -198,7 +205,7 @@ function LandingCoachingLoop() {
         <h2>One real call should create the next useful coaching rep.</h2>
         <p>
           Keep the opener broad, then make the product obvious: call review, scored evidence,
-          coaching moment, roleplay drill, next call.
+          coaching moment, roleplay drill, next call, progress signal.
         </p>
       </div>
 
@@ -228,8 +235,8 @@ function SignalStrip() {
   return (
     <section className={styles["argos-signal-strip"]} aria-label="Argos workflow">
       <div>
-        <span>CALL REVIEW // SCORED EVIDENCE // COACHING MOMENT // ROLEPLAY DRILL // NEXT CALL</span>
-        <span>CALL REVIEW // SCORED EVIDENCE // COACHING MOMENT // ROLEPLAY DRILL // NEXT CALL</span>
+        <span>CALL REVIEW // SCORED EVIDENCE // COACHING MOMENT // ROLEPLAY DRILL // NEXT CALL // PROGRESS SIGNAL</span>
+        <span>CALL REVIEW // SCORED EVIDENCE // COACHING MOMENT // ROLEPLAY DRILL // NEXT CALL // PROGRESS SIGNAL</span>
       </div>
     </section>
   );

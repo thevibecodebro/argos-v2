@@ -12,9 +12,9 @@ Keep the strong opener:
 
 Then move immediately into the product loop:
 
-> call review -> scored evidence -> coaching moment -> roleplay drill -> next call
+> call review -> scored evidence -> coaching moment -> roleplay drill -> next call -> progress signal
 
-The homepage should feel direct and useful, not like a history essay or an abstract metaphor. The visitor should understand that Argos turns a real sales conversation into scored evidence, a specific coaching action, and a practice rep before the next call.
+The homepage should feel direct and useful, not like a history essay or an abstract metaphor. The visitor should understand that Argos turns a real sales conversation into scored evidence, a specific coaching action, a practice rep before the next call, and a visible signal that the behavior changed.
 
 ## Canonical Flow
 
@@ -29,7 +29,7 @@ The homepage should feel direct and useful, not like a history essay or an abstr
 - Hero body: real sales calls become scored evidence, focused coaching, and roleplay practice.
 - CTA: `Launch platform`
 - Secondary CTA: `See the loop`
-- Product loop labels: `Call review`, `Scored evidence`, `Coaching moment`, `Roleplay drill`, `Next call`
+- Product loop labels: `Call review`, `Scored evidence`, `Coaching moment`, `Roleplay drill`, `Next call`, `Progress signal`
 - Pricing behavior: annual selection shows yearly price.
 - Enterprise booking link: `https://calendar.app.google/RSBtSGHYRSxmcs717`
 
@@ -44,4 +44,4 @@ The homepage should feel direct and useful, not like a history essay or an abstr
 
 ## Design Notes
 
-Use the warm Argos command aesthetic, but keep the copy product-led. The page can still feel premium, dark, technical, and distinctive, but the structure must stay concrete: call in, evidence scored, coaching moment selected, drill assigned, next call improved.
+Use the warm Argos command aesthetic, but keep the copy product-led. The page can still feel premium, dark, technical, and distinctive, but the structure must stay concrete: call in, evidence scored, coaching moment selected, drill assigned, next call improved, progress visible.

@@ -25,8 +25,11 @@ describe("LandingPage", () => {
     expect(html).toContain("Coaching moment");
     expect(html).toContain("Roleplay drill");
     expect(html).toContain("Next call");
+    expect(html).toContain("Progress signal");
     expect(html).toContain("Score the conversation against the team");
     expect(html).toContain("Turn the gap into a focused practice drill");
+    expect(html).toContain("See whether the coaching changed the next call.");
+    expect(html).toContain("Argos carries the last focus area forward");
     expect(html).toContain("Transcript");
     expect(html).toContain("Roleplay");
     expect(html).toContain("See Argos in action.");
@@ -64,6 +67,7 @@ describe("LandingPage", () => {
     expect(html).toContain('id="coaching-loop"');
     expect(html).toContain('id="argos-command"');
     expect(html).toContain('id="next-call"');
+    expect(html).toContain('id="progress-signal"');
     expect(html).toContain('id="access"');
     expect(html).toContain('href="/privacy-policy"');
     expect(html).toContain('href="/terms-of-service"');

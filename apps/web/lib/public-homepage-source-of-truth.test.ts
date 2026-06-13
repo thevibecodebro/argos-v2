@@ -11,7 +11,9 @@ describe("public homepage source of truth", () => {
 
     expect(source).toContain("Canonical public homepage direction");
     expect(source).toContain("Sales teams changed. Coaching should have too.");
-    expect(source).toContain("call review -> scored evidence -> coaching moment -> roleplay drill -> next call");
+    expect(source).toContain(
+      "call review -> scored evidence -> coaching moment -> roleplay drill -> next call -> progress signal",
+    );
     expect(source).toContain("Do not resurrect");
     expect(source).toContain("Coaching Flywheel");
     expect(source).toContain("Sales Evolution era-history");
