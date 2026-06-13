@@ -19,5 +19,6 @@ export const config = {
     "/settings/:path*",
     "/notifications/:path*",
     "/onboarding/:path*",
+    "/platform/:path*",
   ],
 };

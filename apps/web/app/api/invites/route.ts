@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { unauthorizedJson, fromServiceResult } from "@/lib/http";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { createInvitesRepository } from "@/lib/invites/create-repository";
+import { createPlatformRepository } from "@/lib/platform/create-repository";
+import {
+  auditPlatformWorkspaceMutation,
+  getPlatformMutationAuditContext,
+} from "@/lib/platform/audit";
 import { createUsersRepository } from "@/lib/users/create-repository";
 import { sendInvite, listPendingInvites } from "@/lib/invites/service";
 import {
@@ -19,7 +25,31 @@ export async function POST(request: Request) {
   }
 
   const usersRepository = createUsersRepository();
-  const caller = await usersRepository.findCurrentUserByAuthId(authUser.id);
+  const platformRepository = createPlatformRepository();
+  const platformAuditContext = await getPlatformMutationAuditContext(platformRepository, {
+    authUserId: authUser.id,
+    cookies: await cookies(),
+  });
+  const caller = platformAuditContext
+    ? {
+        id: authUser.id,
+        email: platformAuditContext.staffEmailSnapshot ?? `platform:${authUser.id}`,
+        firstName: null,
+        lastName: null,
+        profileImageUrl: null,
+        role: "admin" as const,
+        orgId: platformAuditContext.targetOrgId,
+        displayNameSet: true,
+        org: {
+          id: platformAuditContext.targetOrgId,
+          name: platformAuditContext.targetOrgNameSnapshot ?? "Customer organization",
+          slug: platformAuditContext.targetOrgSlugSnapshot ?? platformAuditContext.targetOrgId,
+          plan: "trial",
+          logoUrl: null,
+          createdAt: new Date(),
+        },
+      }
+    : await usersRepository.findCurrentUserByAuthId(authUser.id);
 
   if (!caller) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -62,6 +92,18 @@ export async function POST(request: Request) {
       payload,
       { caller },
     );
+    if (result.ok) {
+      await auditPlatformWorkspaceMutation(platformRepository, platformAuditContext, {
+        action: "platform.workspace.invite.create",
+        resourceType: "invite",
+        resourceId: result.data.id,
+        metadata: {
+          email: result.data.email,
+          role: result.data.role,
+          route: "/api/invites",
+        },
+      });
+    }
     return fromServiceResult(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

@@ -18,3 +18,4 @@ export * from "./callProcessingJobs";
 export * from "./rateLimitBuckets";
 export * from "./billing";
 export * from "./auditEvents";
+export * from "./platform";
