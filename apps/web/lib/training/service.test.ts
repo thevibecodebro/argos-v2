@@ -763,10 +763,20 @@ describe("updateTrainingModule", () => {
 describe("getTrainingAiStatus", () => {
   it("reports AI as unavailable when the API key env is missing", () => {
     vi.stubEnv("OPENAI_API_KEY", "");
+    vi.stubEnv("OPENAI_TRAINING_API_KEY", "");
 
     const result = getTrainingAiStatus();
 
     expect(result.available).toBe(false);
+  });
+
+  it("reports AI as available when the scoped training key is configured", () => {
+    vi.stubEnv("OPENAI_API_KEY", "");
+    vi.stubEnv("OPENAI_TRAINING_API_KEY", "training-openai-key");
+
+    const result = getTrainingAiStatus();
+
+    expect(result.available).toBe(true);
   });
 });
 
@@ -802,7 +812,8 @@ describe("generateTrainingModules", () => {
         },
       ],
     });
-    vi.stubEnv("OPENAI_API_KEY", "test-openai-key");
+    vi.stubEnv("OPENAI_API_KEY", "legacy-openai-key");
+    vi.stubEnv("OPENAI_TRAINING_API_KEY", "training-openai-key");
 
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
@@ -848,6 +859,9 @@ describe("generateTrainingModules", () => {
     if (!result.ok) throw new Error("Expected generated modules");
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+    expect(fetchMock.mock.calls[0]?.[1]?.headers).toMatchObject({
+      Authorization: "Bearer training-openai-key",
+    });
     const requestBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
     expect(requestBody.model).toBe("gpt-5-mini");
     expect(requestBody.messages[0].content).toContain("untrusted user-provided inputs");
@@ -965,7 +979,8 @@ describe("generateTrainingModuleDraft", () => {
         },
       ],
     });
-    vi.stubEnv("OPENAI_API_KEY", "test-openai-key");
+    vi.stubEnv("OPENAI_API_KEY", "legacy-openai-key");
+    vi.stubEnv("OPENAI_TRAINING_API_KEY", "training-openai-key");
 
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
@@ -1018,6 +1033,9 @@ describe("generateTrainingModuleDraft", () => {
     if (!result.ok) throw new Error("Expected generated quiz draft");
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+    expect(fetchMock.mock.calls[0]?.[1]?.headers).toMatchObject({
+      Authorization: "Bearer training-openai-key",
+    });
     const requestBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
     expect(requestBody.model).toBe("gpt-5-mini");
     expect(requestBody.messages[0].content).toContain("untrusted user-provided context");

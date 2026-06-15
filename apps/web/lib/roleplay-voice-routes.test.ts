@@ -55,6 +55,7 @@ vi.mock("@/lib/billing/voice-entitlements", () => ({
 describe("roleplay voice routes", () => {
   const originalEnv = {
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    OPENAI_ROLEPLAY_API_KEY: process.env.OPENAI_ROLEPLAY_API_KEY,
     OPENAI_REALTIME_MODEL: process.env.OPENAI_REALTIME_MODEL,
     OPENAI_REALTIME_VOICE: process.env.OPENAI_REALTIME_VOICE,
     OPENAI_TTS_MODEL: process.env.OPENAI_TTS_MODEL,
@@ -151,6 +152,7 @@ describe("roleplay voice routes", () => {
       bucketKey: "roleplayTts:user:hash",
     });
     delete process.env.OPENAI_API_KEY;
+    delete process.env.OPENAI_ROLEPLAY_API_KEY;
     delete process.env.OPENAI_REALTIME_MODEL;
     delete process.env.OPENAI_REALTIME_VOICE;
     delete process.env.OPENAI_TTS_MODEL;
@@ -159,6 +161,7 @@ describe("roleplay voice routes", () => {
 
   afterEach(() => {
     process.env.OPENAI_API_KEY = originalEnv.OPENAI_API_KEY;
+    process.env.OPENAI_ROLEPLAY_API_KEY = originalEnv.OPENAI_ROLEPLAY_API_KEY;
     process.env.OPENAI_REALTIME_MODEL = originalEnv.OPENAI_REALTIME_MODEL;
     process.env.OPENAI_REALTIME_VOICE = originalEnv.OPENAI_REALTIME_VOICE;
     process.env.OPENAI_TTS_MODEL = originalEnv.OPENAI_TTS_MODEL;
@@ -183,7 +186,8 @@ describe("roleplay voice routes", () => {
   });
 
   it("proxies a WebRTC offer to OpenAI and returns an answer SDP payload", async () => {
-    process.env.OPENAI_API_KEY = "test-openai-key";
+    process.env.OPENAI_API_KEY = "legacy-openai-key";
+    process.env.OPENAI_ROLEPLAY_API_KEY = "roleplay-openai-key";
 
     const fetchMock = vi.fn().mockResolvedValue(
       new Response("v=0\r\na=answer-sdp", {
@@ -209,6 +213,9 @@ describe("roleplay voice routes", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0]?.[0]).toBe("https://api.openai.com/v1/realtime/calls");
     expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+    expect(fetchMock.mock.calls[0]?.[1]?.headers).toMatchObject({
+      Authorization: "Bearer roleplay-openai-key",
+    });
     expect(getVoiceEntitlementStatus).toHaveBeenCalledWith({ billing: true }, "auth-user-1");
     expect(markRoleplayVoiceStarted).toHaveBeenCalledWith(
       {},
@@ -461,7 +468,8 @@ describe("roleplay voice routes", () => {
   });
 
   it("returns OpenAI speech audio as mp3", async () => {
-    process.env.OPENAI_API_KEY = "test-openai-key";
+    process.env.OPENAI_API_KEY = "legacy-openai-key";
+    process.env.OPENAI_ROLEPLAY_API_KEY = "roleplay-openai-key";
 
     const audioBytes = new Uint8Array([1, 2, 3, 4]);
     const fetchMock = vi.fn().mockResolvedValue(
@@ -487,6 +495,9 @@ describe("roleplay voice routes", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0]?.[0]).toBe("https://api.openai.com/v1/audio/speech");
     expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+    expect(fetchMock.mock.calls[0]?.[1]?.headers).toMatchObject({
+      Authorization: "Bearer roleplay-openai-key",
+    });
     expect(getVoiceEntitlementStatus).toHaveBeenCalledWith({ billing: true }, "auth-user-1");
     expect(consumeVoiceMinutes).toHaveBeenCalledWith(
       { billing: true },

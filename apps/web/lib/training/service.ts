@@ -122,6 +122,10 @@ export type TrainingAiStatus = {
   reason: string | null;
 };
 
+function getTrainingOpenAiApiKey(env: NodeJS.ProcessEnv = process.env) {
+  return env.OPENAI_TRAINING_API_KEY?.trim() || env.OPENAI_API_KEY?.trim() || null;
+}
+
 type ServiceResult<T> =
   | { ok: true; data: T }
   | {
@@ -880,7 +884,7 @@ export async function generateTrainingModuleDraft(
     };
   }
 
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  const apiKey = getTrainingOpenAiApiKey();
   const model = process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-5-mini";
 
   try {
@@ -1324,12 +1328,12 @@ export async function updateTrainingModule(
 }
 
 export function getTrainingAiStatus(): TrainingAiStatus {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  const apiKey = getTrainingOpenAiApiKey();
 
   if (!apiKey) {
     return {
       available: false,
-      reason: "OPENAI_API_KEY is missing",
+      reason: "OPENAI_TRAINING_API_KEY or OPENAI_API_KEY is missing",
     };
   }
 
@@ -1396,7 +1400,7 @@ export async function generateTrainingModules(
     };
   }
 
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  const apiKey = getTrainingOpenAiApiKey();
   const model = process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-5-mini";
 
   try {

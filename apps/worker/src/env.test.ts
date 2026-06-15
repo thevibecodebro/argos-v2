@@ -110,4 +110,15 @@ describe("getWorkerEnv", () => {
       transcribeConcurrency: 2,
     });
   });
+
+  it("prefers the call-processing OpenAI key over the legacy shared key", () => {
+    expect(getWorkerEnv({
+      CALL_PROCESSING_ENABLED: "true",
+      DATABASE_URL: callProcessingEnv.DATABASE_URL,
+      OPENAI_API_KEY: callProcessingEnv.OPENAI_API_KEY,
+      OPENAI_CALL_PROCESSING_API_KEY: "call-processing-openai-key",
+      SUPABASE_SERVICE_ROLE_KEY: callProcessingEnv.SUPABASE_SERVICE_ROLE_KEY,
+      SUPABASE_URL: callProcessingEnv.SUPABASE_URL,
+    }).openaiApiKey).toBe("call-processing-openai-key");
+  });
 });

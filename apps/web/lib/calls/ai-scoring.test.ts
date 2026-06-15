@@ -4,6 +4,7 @@ import {
   computeWeightedOverallScore,
   mergeTranscriptLines,
   normalizeTranscriptionPayload,
+  resolveCallScoringConfig,
   type ScoringRubric,
 } from "@argos-v2/call-processing";
 import { scoreCallRecording, scoreTranscriptFromLines } from "./ai-scoring";
@@ -153,6 +154,13 @@ describe("scoreCallRecording", () => {
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
     fetchMock.mockReset();
+  });
+
+  it("prefers the call-processing OpenAI key over the legacy shared key", () => {
+    vi.stubEnv("OPENAI_API_KEY", "legacy-openai-key");
+    vi.stubEnv("OPENAI_CALL_PROCESSING_API_KEY", "call-processing-openai-key");
+
+    expect(resolveCallScoringConfig().apiKey).toBe("call-processing-openai-key");
   });
 
   it("transcribes audio with diarization and scores the call against the rubric", async () => {

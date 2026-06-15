@@ -71,10 +71,15 @@ type TranscriptGroup =
 export function resolveCallScoringConfig(
   config: CallScoringConfig = {},
 ): Required<CallScoringConfig> {
-  const apiKey = config.apiKey?.trim() || process.env.OPENAI_API_KEY?.trim();
+  const apiKey =
+    config.apiKey?.trim() ||
+    process.env.OPENAI_CALL_PROCESSING_API_KEY?.trim() ||
+    process.env.OPENAI_API_KEY?.trim();
 
   if (!apiKey) {
-    throw new Error("Missing required environment variable: OPENAI_API_KEY");
+    throw new Error(
+      "Missing required environment variable: OPENAI_CALL_PROCESSING_API_KEY or OPENAI_API_KEY",
+    );
   }
 
   const baseUrl = (
