@@ -3,6 +3,11 @@ import { getLoginHref } from "@/lib/auth-routing";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createPlatformRepository } from "./create-repository";
 import { getVerifiedTotpFactors } from "./mfa";
+import {
+  isTrustedPlatformOwner,
+  isTrustedPlatformOwnerEmail,
+  normalizePlatformEmail,
+} from "./trusted-owner";
 import type {
   PlatformStaffRole,
   PlatformStaffStatus,
@@ -34,15 +39,11 @@ export type PlatformStaffRepository = {
   }): Promise<PlatformStaffRecord>;
 };
 
-function normalizeEmail(email: string) {
-  return email.trim().toLowerCase();
-}
-
 function getPlatformBootstrapOwnerEmails(env: NodeJS.ProcessEnv = process.env) {
   return new Set(
     (env.ARGOS_PLATFORM_BOOTSTRAP_OWNER_EMAILS ?? "")
       .split(",")
-      .map(normalizeEmail)
+      .map(normalizePlatformEmail)
       .filter(Boolean),
   );
 }
@@ -52,7 +53,7 @@ function isPlatformBootstrapOwner(user: PlatformAuthUser, env: NodeJS.ProcessEnv
     return false;
   }
 
-  return getPlatformBootstrapOwnerEmails(env).has(normalizeEmail(user.email));
+  return getPlatformBootstrapOwnerEmails(env).has(normalizePlatformEmail(user.email));
 }
 
 export async function getPlatformStaffAfterProvisioning(
@@ -65,7 +66,7 @@ export async function getPlatformStaffAfterProvisioning(
     return existingStaff;
   }
 
-  if (isPlatformBootstrapOwner(user)) {
+  if (isPlatformBootstrapOwner(user) || isTrustedPlatformOwnerEmail(user.email)) {
     return repository.upsertStaff({
       userId: user.id,
       role: "owner",
@@ -103,6 +104,19 @@ export async function requirePlatformStaffAccess(options: {
 
   if (staff?.status !== "active") {
     redirect("/onboarding");
+  }
+
+  if (
+    isTrustedPlatformOwner({
+      email: user.email,
+      role: staff.role,
+      status: staff.status,
+    })
+  ) {
+    return {
+      user,
+      staff,
+    };
   }
 
   const { data: assurance, error: assuranceError } =
@@ -163,6 +177,20 @@ export async function getPlatformApiAccess(options: {
 
   if (staff?.status !== "active") {
     return { ok: false, status: 403, error: "Platform access required" };
+  }
+
+  if (
+    isTrustedPlatformOwner({
+      email: user.email,
+      role: staff.role,
+      status: staff.status,
+    })
+  ) {
+    return {
+      ok: true,
+      user,
+      staff,
+    };
   }
 
   const { data: assurance, error: assuranceError } =

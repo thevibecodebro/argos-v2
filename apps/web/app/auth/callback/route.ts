@@ -20,6 +20,18 @@ function getOrglessProtectedDestination(
   return getAuthenticatedEntryHref(false, { isActivePlatformStaff });
 }
 
+function getPlatformStaffDestination(next: string) {
+  if (next === "/platform") {
+    return "/platform/dashboard";
+  }
+
+  if (next.startsWith("/platform/")) {
+    return next;
+  }
+
+  return "/platform/dashboard";
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const origin = getSafeRequestOrigin(request);
@@ -77,13 +89,18 @@ export async function GET(request: Request) {
           user,
         );
         let isActivePlatformStaff = false;
+        const platformRepository = createPlatformRepository();
+        const platformStaff = await getPlatformStaffAfterProvisioning(
+          platformRepository,
+          user,
+        );
 
-        if (provisionedUser?.orgId === null) {
-          const platformStaff = await getPlatformStaffAfterProvisioning(
-            createPlatformRepository(),
-            user,
+        isActivePlatformStaff = platformStaff?.status === "active";
+
+        if (isActivePlatformStaff && isProtectedPath(next)) {
+          return NextResponse.redirect(
+            `${origin}${getPlatformStaffDestination(next)}`,
           );
-          isActivePlatformStaff = platformStaff?.status === "active";
         }
 
         if (provisionedUser?.orgId === null && isProtectedPath(next)) {

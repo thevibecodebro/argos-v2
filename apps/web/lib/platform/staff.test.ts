@@ -107,6 +107,79 @@ describe("platform staff management service", () => {
     expect(repository.createAuditEvent).not.toHaveBeenCalled();
   });
 
+  it("allows trusted owner grants for users already attached to test organizations", async () => {
+    vi.stubEnv(
+      "ARGOS_PLATFORM_TRUSTED_OWNER_EMAILS",
+      "jaredalannewman@gmail.com,email@jasonbrentking.com",
+    );
+    const repository = createRepository();
+    const createdAt = new Date("2026-06-11T12:00:00.000Z");
+    repository.findUserByEmail.mockResolvedValue({
+      email: "jaredalannewman@gmail.com",
+      id: "user-1",
+      orgId: "test-org-1",
+    });
+    repository.upsertStaff.mockResolvedValue({
+      createdAt,
+      createdBy: "owner-1",
+      revokedAt: null,
+      revokedBy: null,
+      role: "owner",
+      status: "active",
+      updatedAt: createdAt,
+      userId: "user-1",
+    });
+
+    await expect(
+      grantPlatformStaffAccess(repository, owner, {
+        email: "JaredAlanNewman@gmail.com",
+        reason: "Trusted internal owner access",
+        role: "owner",
+      }),
+    ).resolves.toMatchObject({
+      ok: true,
+      data: {
+        auditEvent: { id: "audit-1" },
+        staff: {
+          email: "jaredalannewman@gmail.com",
+          role: "owner",
+          status: "active",
+          userId: "user-1",
+        },
+      },
+    });
+    expect(repository.upsertStaff).toHaveBeenCalledWith({
+      createdBy: "owner-1",
+      role: "owner",
+      status: "active",
+      userId: "user-1",
+    });
+  });
+
+  it("does not allow trusted organization-attached users to be granted operator access", async () => {
+    vi.stubEnv("ARGOS_PLATFORM_TRUSTED_OWNER_EMAILS", "jaredalannewman@gmail.com");
+    const repository = createRepository();
+    repository.findUserByEmail.mockResolvedValue({
+      email: "jaredalannewman@gmail.com",
+      id: "user-1",
+      orgId: "test-org-1",
+    });
+
+    await expect(
+      grantPlatformStaffAccess(repository, owner, {
+        email: "jaredalannewman@gmail.com",
+        reason: "Trusted internal owner access",
+        role: "operator",
+      }),
+    ).resolves.toEqual({
+      ok: false,
+      status: 409,
+      error: "Platform staff users must not belong to an organization",
+    });
+    expect(repository.upsertStaff).not.toHaveBeenCalled();
+    expect(repository.createAuditEvent).not.toHaveBeenCalled();
+  });
+
   it("requires owner role and reason for staff grants", async () => {
     const repository = createRepository();
 

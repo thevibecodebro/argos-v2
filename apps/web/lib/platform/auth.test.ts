@@ -16,6 +16,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 import {
+  getPlatformApiAccess,
   getPlatformStaffAfterProvisioning,
   requirePlatformStaffAccess,
 } from "./auth";
@@ -37,7 +38,18 @@ const revokedStaff = {
   revokedAt: new Date("2026-06-11T11:00:00.000Z"),
 } as const;
 
-function createRepository(staff: typeof activeStaff | typeof revokedStaff | null = activeStaff) {
+const activeOperatorStaff = {
+  ...activeStaff,
+  role: "operator",
+} as const;
+
+function createRepository(
+  staff:
+    | typeof activeStaff
+    | typeof activeOperatorStaff
+    | typeof revokedStaff
+    | null = activeStaff,
+) {
   return {
     findStaffByUserId: vi.fn().mockResolvedValue(staff),
     upsertStaff: vi.fn().mockResolvedValue(activeStaff),
@@ -138,6 +150,28 @@ describe("getPlatformStaffAfterProvisioning", () => {
     expect(repository.upsertStaff).not.toHaveBeenCalled();
     expect(repository.findStaffByUserId).toHaveBeenCalledWith("auth-user-1");
   });
+
+  it("upserts a platform owner when the provisioned user matches the trusted owner env", async () => {
+    vi.stubEnv(
+      "ARGOS_PLATFORM_TRUSTED_OWNER_EMAILS",
+      " jaredalannewman@gmail.com, email@jasonbrentking.com ",
+    );
+    const repository = createRepository(null);
+
+    await expect(
+      getPlatformStaffAfterProvisioning(repository, {
+        id: "auth-user-1",
+        email: "JaredAlanNewman@gmail.com",
+      }),
+    ).resolves.toEqual(activeStaff);
+
+    expect(repository.upsertStaff).toHaveBeenCalledWith({
+      userId: "auth-user-1",
+      role: "owner",
+      status: "active",
+      createdBy: null,
+    });
+  });
 });
 
 describe("requirePlatformStaffAccess", () => {
@@ -198,6 +232,47 @@ describe("requirePlatformStaffAccess", () => {
     expect(redirect).toHaveBeenCalledWith("/platform/mfa/setup");
   });
 
+  it("allows trusted active platform owners through without AAL2", async () => {
+    vi.stubEnv(
+      "ARGOS_PLATFORM_TRUSTED_OWNER_EMAILS",
+      "jaredalannewman@gmail.com,email@jasonbrentking.com",
+    );
+    const user = { id: "auth-user-1", email: "jaredalannewman@gmail.com" };
+    const mfa = mockSupabaseSession({
+      user,
+      currentLevel: "aal1",
+      totpFactors: [{ id: "factor-unverified", status: "unverified" }],
+    });
+    const repository = createRepository(activeStaff);
+
+    await expect(
+      requirePlatformStaffAccess({ repository, pathname: "/platform" }),
+    ).resolves.toEqual({
+      user,
+      staff: activeStaff,
+    });
+
+    expect(mfa.getAuthenticatorAssuranceLevel).not.toHaveBeenCalled();
+    expect(mfa.listFactors).not.toHaveBeenCalled();
+    expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it("does not bypass MFA for trusted emails unless the staff role is owner", async () => {
+    vi.stubEnv("ARGOS_PLATFORM_TRUSTED_OWNER_EMAILS", "jaredalannewman@gmail.com");
+    mockSupabaseSession({
+      user: { id: "auth-user-1", email: "jaredalannewman@gmail.com" },
+      currentLevel: "aal1",
+      totpFactors: [{ id: "factor-verified", status: "verified" }],
+    });
+    const repository = createRepository(activeOperatorStaff);
+
+    await expect(
+      requirePlatformStaffAccess({ repository, pathname: "/platform" }),
+    ).rejects.toThrow("NEXT_REDIRECT:/platform/mfa/verify");
+
+    expect(redirect).toHaveBeenCalledWith("/platform/mfa/verify");
+  });
+
   it("redirects active staff without AAL2 and with a verified TOTP factor to MFA verify", async () => {
     mockSupabaseSession({
       user: { id: "auth-user-1", email: "owner@argos.ai" },
@@ -227,5 +302,20 @@ describe("requirePlatformStaffAccess", () => {
 
     expect(mfa.listFactors).not.toHaveBeenCalled();
     expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it("allows trusted active platform owners to call platform APIs without AAL2", async () => {
+    vi.stubEnv("ARGOS_PLATFORM_TRUSTED_OWNER_EMAILS", "email@jasonbrentking.com");
+    const user = { id: "auth-user-1", email: "email@jasonbrentking.com" };
+    const mfa = mockSupabaseSession({ user, currentLevel: "aal1" });
+    const repository = createRepository(activeStaff);
+
+    await expect(getPlatformApiAccess({ repository })).resolves.toEqual({
+      ok: true,
+      user,
+      staff: activeStaff,
+    });
+
+    expect(mfa.getAuthenticatorAssuranceLevel).not.toHaveBeenCalled();
   });
 });

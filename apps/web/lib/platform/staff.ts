@@ -1,4 +1,5 @@
 import type { PlatformStaffRole } from "./repository";
+import { isTrustedPlatformOwnerEmail } from "./trusted-owner";
 
 type PlatformStaffRecord = {
   createdAt: Date;
@@ -129,7 +130,10 @@ export async function grantPlatformStaffAccess(
     return { ok: false, status: 404, error: "User must sign in before platform access can be granted" };
   }
 
-  if (targetUser.orgId) {
+  const trustedOrganizationAttachedOwner =
+    role === "owner" && isTrustedPlatformOwnerEmail(targetUser.email);
+
+  if (targetUser.orgId && !trustedOrganizationAttachedOwner) {
     return { ok: false, status: 409, error: "Platform staff users must not belong to an organization" };
   }
 
