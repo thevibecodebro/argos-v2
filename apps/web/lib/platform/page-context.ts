@@ -19,7 +19,7 @@ export async function getPlatformPageContext({ pathname }: { pathname: string })
     : null;
 
   return {
-    activeSession: activeSession ? serializeActiveSession(activeSession) : null,
+    activeSession: activeSession ? serializeActivePlatformSession(activeSession) : null,
     currentUserEmail: user.email ?? user.id,
     repository,
     staff,
@@ -117,7 +117,7 @@ function normalizeRecentSessionStatus(
   return session.status;
 }
 
-function serializeActiveSession(activeSession: {
+export function serializeActivePlatformSession(activeSession: {
   expiresAt: Date;
   id: string;
   reason: string;

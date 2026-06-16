@@ -49,6 +49,7 @@ const shellProps = {
   activeSession: null,
   currentUserEmail: "operator@argos.test",
   organizationCount: organizations.length,
+  organizations,
   staffRole: "owner" as const,
   staffStatus: "active" as const,
 };
@@ -93,6 +94,28 @@ describe("PlatformShell", () => {
     expect(disabledHtml).toContain('data-platform-organization-view-link="disabled"');
     expect(activeHtml).toContain('data-platform-organization-view-link="active"');
     expect(activeHtml).toContain('href="/dashboard"');
+  });
+
+  it("provides a persistent GoHighLevel-style organization switcher in the platform shell", () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        PlatformShell,
+        { ...shellProps, activeSession },
+        "Platform content",
+      ),
+    );
+
+    expect(html).toContain('data-platform-organization-switcher="true"');
+    expect(html).toContain('data-platform-organization-switcher-search="true"');
+    expect(html).toContain('data-platform-organization-option="org-1"');
+    expect(html).toContain('data-platform-session-endpoint="/api/platform/sessions"');
+    expect(html).toContain("Switch organization");
+    expect(html).toContain("Acme Health");
+    expect(html).toContain("Current organization");
+    expect(html).not.toContain("Sub-account");
+    expect(html).not.toContain("sub-account");
+    expect(html).not.toContain("Subaccount");
+    expect(html).not.toContain("subaccount");
   });
 });
 

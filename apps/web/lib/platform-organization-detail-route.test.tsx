@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getOrganizationDetailSnapshot = vi.fn();
 const getPlatformPageContext = vi.fn();
+const listOrganizations = vi.fn();
 const notFound = vi.fn(() => {
   throw new Error("NEXT_NOT_FOUND");
 });
@@ -13,6 +14,19 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/lib/platform/page-context", () => ({
   getPlatformPageContext,
+  serializeOrganization: (organization: {
+    createdAt: Date | string;
+    id: string;
+    name: string;
+    plan: string;
+    slug: string;
+  }) => ({
+    ...organization,
+    createdAt:
+      organization.createdAt instanceof Date
+        ? organization.createdAt.toISOString()
+        : organization.createdAt,
+  }),
 }));
 
 describe("Platform organization detail route", () => {
@@ -20,6 +34,7 @@ describe("Platform organization detail route", () => {
     vi.resetModules();
     getOrganizationDetailSnapshot.mockReset();
     getPlatformPageContext.mockReset();
+    listOrganizations.mockReset();
     notFound.mockClear();
 
     getPlatformPageContext.mockResolvedValue({
@@ -27,6 +42,7 @@ describe("Platform organization detail route", () => {
       currentUserEmail: "operator@argos.test",
       repository: {
         getOrganizationDetailSnapshot,
+        listOrganizations,
       },
       staff: { role: "owner", status: "active", userId: "staff-1" },
     });
@@ -76,6 +92,15 @@ describe("Platform organization detail route", () => {
         totalTrainingAssignments: 0,
       },
     });
+    listOrganizations.mockResolvedValue([
+      {
+        createdAt: new Date("2026-06-01T15:00:00.000Z"),
+        id: "org-1",
+        name: "Acme Health",
+        plan: "trial",
+        slug: "acme-health",
+      },
+    ]);
   });
 
   it("renders one organization as a support workspace", async () => {
@@ -90,6 +115,7 @@ describe("Platform organization detail route", () => {
       pathname: "/platform/organizations/acme-health",
     });
     expect(getOrganizationDetailSnapshot).toHaveBeenCalledWith("acme-health");
+    expect(listOrganizations).toHaveBeenCalledWith({ limit: 100 });
     expect(html).toContain('data-platform-organization-detail-page="true"');
     expect(html).toContain("Acme Health");
     expect(html).toContain("No active admin");

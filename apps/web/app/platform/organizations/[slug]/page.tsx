@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
 import { PlatformOrganizationDetailPage } from "@/components/platform/platform-organization-detail-page";
 import { PlatformShell } from "@/components/platform/platform-shell";
-import { getPlatformPageContext } from "@/lib/platform/page-context";
+import {
+  getPlatformPageContext,
+  serializeOrganization,
+} from "@/lib/platform/page-context";
 
 type PlatformOrganizationDetailRouteProps = {
   params: Promise<{
@@ -17,18 +20,23 @@ export default async function PlatformOrganizationDetailRoute({
   const context = await getPlatformPageContext({
     pathname,
   });
-  const organization = await context.repository.getOrganizationDetailSnapshot(slug);
+  const [organization, organizations] = await Promise.all([
+    context.repository.getOrganizationDetailSnapshot(slug),
+    context.repository.listOrganizations({ limit: 100 }),
+  ]);
 
   if (!organization) {
     notFound();
   }
+  const serializedOrganizations = organizations.map(serializeOrganization);
 
   return (
     <PlatformShell
       activePath="/platform/organizations"
       activeSession={context.activeSession}
       currentUserEmail={context.currentUserEmail}
-      organizationCount={1}
+      organizationCount={serializedOrganizations.length}
+      organizations={serializedOrganizations}
       staffRole={context.staff.role}
       staffStatus={context.staff.status}
     >

@@ -61,6 +61,18 @@ describe("platform route pages", () => {
     expect(source).toContain("pathname");
   });
 
+  it("passes platform organization switching context into tenant pages during support sessions", () => {
+    const source = readAppSource("(authenticated)/layout.tsx");
+
+    expect(source).toContain("loadPlatformOrganizationSwitcher");
+    expect(source).toContain("getPlatformSessionCookieValue");
+    expect(source).toContain("findActiveAccessSession");
+    expect(source).toContain("listOrganizations");
+    expect(source).toContain("platformSwitcher={platformSwitcher");
+    expect(source).not.toContain("subaccount");
+    expect(source).not.toContain("Sub-account");
+  });
+
   it("provides a minimal MFA setup page with TOTP enrollment", () => {
     const source = readAppSource("platform/mfa/setup/page.tsx");
 

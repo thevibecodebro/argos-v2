@@ -12,8 +12,13 @@ import { cn } from "@argos-v2/ui";
 import { ArgosLogo } from "./argos-logo";
 import { FeedbackDialogLoader } from "./feedback-dialog-loader";
 import { ForgeIcon } from "./forge";
+import { PlatformOrganizationSwitcher } from "./platform/platform-organization-switcher";
 import { RoleOnboardingGuide } from "./role-onboarding-guide";
 import type { AppUserRole } from "@/lib/users/roles";
+import type {
+  PlatformConsoleActiveSession,
+  PlatformConsoleOrganization,
+} from "./platform/platform-types";
 
 type ShellUser = {
   email: string;
@@ -27,6 +32,10 @@ type ShellUser = {
 type AuthenticatedAppShellProps = {
   children: React.ReactNode;
   initialPrimaryRailCollapsed?: boolean;
+  platformSwitcher?: {
+    activeSession: PlatformConsoleActiveSession | null;
+    organizations: PlatformConsoleOrganization[];
+  };
   user: ShellUser;
 };
 
@@ -86,6 +95,7 @@ const navGroups: NavGroup[] = [
 export function AuthenticatedAppShell({
   children,
   initialPrimaryRailCollapsed = false,
+  platformSwitcher,
   user,
 }: AuthenticatedAppShellProps) {
   const currentPath = usePathname();
@@ -298,6 +308,14 @@ export function AuthenticatedAppShell({
             </button>
           </div>
         </div>
+
+        {platformSwitcher ? (
+          <PlatformOrganizationSwitcher
+            activeSession={platformSwitcher.activeSession}
+            collapsed={primaryRailCollapsed}
+            organizations={platformSwitcher.organizations}
+          />
+        ) : null}
 
         <nav
           className={cn(

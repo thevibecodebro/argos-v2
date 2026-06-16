@@ -2,6 +2,7 @@ import { PlatformStaffPage } from "@/components/platform/platform-staff-page";
 import { PlatformShell } from "@/components/platform/platform-shell";
 import {
   getPlatformPageContext,
+  serializeOrganization,
   serializeStaffMember,
 } from "@/lib/platform/page-context";
 
@@ -13,13 +14,15 @@ export default async function PlatformStaffRoute() {
     context.repository.listOrganizations({ limit: 100 }),
     context.repository.listStaff(),
   ]);
+  const serializedOrganizations = organizations.map(serializeOrganization);
 
   return (
     <PlatformShell
       activePath="/platform/staff"
       activeSession={context.activeSession}
       currentUserEmail={context.currentUserEmail}
-      organizationCount={organizations.length}
+      organizationCount={serializedOrganizations.length}
+      organizations={serializedOrganizations}
       staffRole={context.staff.role}
       staffStatus={context.staff.status}
     >

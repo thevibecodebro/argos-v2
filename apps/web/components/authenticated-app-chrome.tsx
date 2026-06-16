@@ -1,7 +1,15 @@
 import { AuthenticatedAppShell } from "./app-shell";
+import type {
+  PlatformConsoleActiveSession,
+  PlatformConsoleOrganization,
+} from "./platform/platform-types";
 
 type AuthenticatedAppChromeProps = {
   children: React.ReactNode;
+  platformSwitcher?: {
+    activeSession: PlatformConsoleActiveSession | null;
+    organizations: PlatformConsoleOrganization[];
+  };
   user: {
     email: string;
     fullName: string;
@@ -14,7 +22,12 @@ type AuthenticatedAppChromeProps = {
 
 export function AuthenticatedAppChrome({
   children,
+  platformSwitcher,
   user,
 }: AuthenticatedAppChromeProps) {
-  return <AuthenticatedAppShell user={user}>{children}</AuthenticatedAppShell>;
+  return (
+    <AuthenticatedAppShell platformSwitcher={platformSwitcher} user={user}>
+      {children}
+    </AuthenticatedAppShell>
+  );
 }

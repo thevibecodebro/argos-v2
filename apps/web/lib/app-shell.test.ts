@@ -28,6 +28,26 @@ const adminUser = {
   role: "admin" as const,
 };
 
+const platformSwitcher = {
+  activeSession: {
+    expiresAt: "2026-06-11T16:30:00.000Z",
+    id: "session-1",
+    reason: "Support escalation",
+    targetOrgId: "org-1",
+    targetOrgName: "Acme Health",
+    targetOrgSlug: "acme-health",
+  },
+  organizations: [
+    {
+      createdAt: "2026-06-11T15:30:00.000Z",
+      id: "org-1",
+      name: "Acme Health",
+      plan: "trial",
+      slug: "acme-health",
+    },
+  ],
+};
+
 describe("AuthenticatedAppShell", () => {
   beforeEach(() => {
     usePathnameMock.mockReturnValue("/dashboard");
@@ -72,9 +92,32 @@ describe("AuthenticatedAppShell", () => {
     expect(html).not.toContain("Active scope");
     expect(html).not.toContain('href="/platform"');
     expect(html).not.toContain('data-navigation-link="/platform"');
+    expect(html).not.toContain('data-platform-organization-switcher="true"');
     expect(html).not.toContain("Sub-accounts");
     expect(html).not.toContain("Platform staff");
     expect(html).toContain("Manager");
+  });
+
+  it("shows the platform organization switcher inside tenant pages during a platform session", () => {
+    const html = renderToStaticMarkup(
+      createElement(AuthenticatedAppShell, {
+        user: adminUser,
+        platformSwitcher,
+        children: createElement("div", null, "Page body"),
+      }),
+    );
+
+    expect(html).toContain('data-platform-organization-switcher="true"');
+    expect(html).toContain('data-platform-organization-switcher-search="true"');
+    expect(html).toContain('data-platform-organization-option="org-1"');
+    expect(html).toContain('data-platform-session-endpoint="/api/platform/sessions"');
+    expect(html).toContain("Switch organization");
+    expect(html).toContain("Current organization");
+    expect(html).toContain("Acme Health");
+    expect(html).not.toContain("Sub-account");
+    expect(html).not.toContain("sub-account");
+    expect(html).not.toContain("Subaccount");
+    expect(html).not.toContain("subaccount");
   });
 
   it("hides the team navigation item for reps", () => {

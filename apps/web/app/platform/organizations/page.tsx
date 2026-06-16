@@ -35,6 +35,7 @@ export default async function PlatformOrganizationsRoute({
       activeSession={context.activeSession}
       currentUserEmail={context.currentUserEmail}
       organizationCount={serializedOrganizations.length}
+      organizations={serializedOrganizations}
       staffRole={context.staff.role}
       staffStatus={context.staff.status}
     >

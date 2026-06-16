@@ -4,8 +4,10 @@ import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@argos-v2/ui";
 import { ArgosLogo } from "@/components/argos-logo";
 import { ForgeChip, ForgeIcon } from "@/components/forge";
+import { PlatformOrganizationSwitcher } from "./platform-organization-switcher";
 import type {
   PlatformConsoleActiveSession,
+  PlatformConsoleOrganization,
   PlatformRole,
   PlatformStaffStatus,
 } from "./platform-types";
@@ -16,6 +18,7 @@ type PlatformShellProps = {
   children?: ReactNode;
   currentUserEmail: string;
   organizationCount: number;
+  organizations: PlatformConsoleOrganization[];
   staffRole: PlatformRole;
   staffStatus: PlatformStaffStatus;
 };
@@ -33,6 +36,7 @@ export function PlatformShell({
   children,
   currentUserEmail,
   organizationCount,
+  organizations,
   staffRole,
   staffStatus,
 }: PlatformShellProps) {
@@ -105,22 +109,12 @@ export function PlatformShell({
           </div>
         </div>
 
-        <div
-          className={cn(
-            "mb-4 rounded-2xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3",
-            primaryRailCollapsed && "lg:sr-only",
-          )}
-        >
-          <p className="font-[var(--font-display)] text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-gold)]">
-            Platform
-          </p>
-          <p className="mt-1 truncate text-sm font-semibold text-[var(--forge-text)]">
-            Argos organizations
-          </p>
-          <p className="mt-0.5 truncate text-xs text-[var(--forge-muted)]">
-            {organizationCount} organizations
-          </p>
-        </div>
+        <PlatformOrganizationSwitcher
+          activeSession={activeSession}
+          collapsed={primaryRailCollapsed}
+          organizationCount={organizationCount}
+          organizations={organizations}
+        />
 
         <nav
           aria-label="Platform navigation"
@@ -211,7 +205,7 @@ export function PlatformShell({
             </ForgeChip>
             {activeSession ? (
               <ForgeChip icon="input" tone="cyan">
-                Session active
+                {activeSession.targetOrgName}
               </ForgeChip>
             ) : null}
             {staffStatus !== "active" ? (
