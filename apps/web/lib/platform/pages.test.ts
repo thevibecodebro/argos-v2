@@ -16,6 +16,10 @@ describe("platform route pages", () => {
     expect(source).toContain("repository.listOrganizations");
     expect(source).toContain("repository.listStaff");
     expect(source).toContain("<PlatformConsole");
+    expect(source).not.toContain("AuthenticatedAppChrome");
+    expect(source).not.toContain("AuthenticatedAppShell");
+    expect(source).not.toContain("@/components/app-shell");
+    expect(source).not.toContain("getCachedCurrentUserProfile");
   });
 
   it("provides a minimal MFA setup page with TOTP enrollment", () => {

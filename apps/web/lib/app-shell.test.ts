@@ -70,6 +70,10 @@ describe("AuthenticatedAppShell", () => {
     expect(html).not.toContain("System");
     expect(html).not.toContain("Workspace scope");
     expect(html).not.toContain("Active scope");
+    expect(html).not.toContain('href="/platform"');
+    expect(html).not.toContain('data-navigation-link="/platform"');
+    expect(html).not.toContain("Sub-accounts");
+    expect(html).not.toContain("Platform staff");
     expect(html).toContain("Manager");
   });
 

@@ -61,6 +61,7 @@ describe("platform console actions", () => {
           reason: "Customer onboarding",
           slug: "acme-health",
         }),
+        headers: { "Content-Type": "application/json" },
         method: "POST",
       }),
     );
@@ -81,6 +82,7 @@ describe("platform console actions", () => {
       PLATFORM_SESSION_ENDPOINT,
       expect.objectContaining({
         body: JSON.stringify({ orgId: "org-1", reason: "Support" }),
+        headers: { "Content-Type": "application/json" },
         method: "POST",
       }),
     );
@@ -128,12 +130,27 @@ describe("platform console actions", () => {
     expect(fetcher).toHaveBeenNthCalledWith(
       1,
       PLATFORM_STAFF_ENDPOINT,
-      expect.objectContaining({ method: "POST" }),
+      expect.objectContaining({
+        body: JSON.stringify({
+          email: "Operator@Example.com",
+          reason: "SOC coverage",
+          role: "operator",
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      }),
     );
     expect(fetcher).toHaveBeenNthCalledWith(
       2,
       PLATFORM_STAFF_ENDPOINT,
-      expect.objectContaining({ method: "DELETE" }),
+      expect.objectContaining({
+        body: JSON.stringify({
+          reason: "Offboarded",
+          userId: "staff-2",
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "DELETE",
+      }),
     );
   });
 

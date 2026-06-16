@@ -1,18 +1,16 @@
 "use client";
 
 import { useMemo, useState, type FormEvent } from "react";
+import { cn } from "@argos-v2/ui";
 import {
   ForgeButton,
   ForgeChip,
   ForgeEmptyState,
   ForgeManagementTable,
   ForgeMobileTableCards,
-  ForgeMetric,
-  ForgeStatCard,
   ForgeSurface,
 } from "@/components/forge";
 import {
-  OperationalMetricStrip,
   OperationalToolbar,
   OperationalWorkspace,
 } from "@/components/operational-workspace";
@@ -72,6 +70,10 @@ function formatDate(value: string) {
   return value ? value.slice(0, 10) : "unknown";
 }
 
+function formatPlan(value: string) {
+  return value ? value.replace(/-/g, " ") : "unassigned";
+}
+
 export function PlatformConsole({
   activeSession,
   currentUserEmail,
@@ -101,6 +103,12 @@ export function PlatformConsole({
     [staffMembers],
   );
   const selectedOrganization = organizations.find((org) => org.id === selectedOrgId) ?? organizations[0] ?? null;
+  const summaryMetrics = [
+    { label: "Organizations", value: organizations.length, tone: "text-[var(--forge-gold)]" },
+    { label: "Active staff", value: activeStaffCount, tone: "text-[var(--forge-cyan)]" },
+    { label: "Your role", value: staffRole, tone: staffRole === "owner" ? "text-[var(--forge-success)]" : "text-[var(--forge-gold)]" },
+    { label: "Session", value: session ? session.targetOrgSlug : "none", tone: session ? "text-[var(--forge-success)]" : "text-[var(--forge-muted)]" },
+  ];
 
   async function handleCreateOrganization(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -216,12 +224,18 @@ export function PlatformConsole({
     <OperationalWorkspace
       className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8"
       data-platform-console="true"
+      data-platform-layout="agency-control-plane"
     >
       <OperationalToolbar
-        description="Create organizations, enter customer workspaces, and monitor platform staff from one restricted console."
+        actions={[
+          { href: "#platform-organizations", icon: "business", label: "Organizations", variant: "secondary" },
+          { href: "#platform-session", icon: "input", label: "Switch organization", variant: "secondary" },
+          { href: "#platform-create", icon: "add_business", label: "Create", variant: "primary" },
+        ]}
+        description="Manage organizations, audited workspace switches, and staff access from one restricted platform view."
         eyebrow="Argos platform"
         status={{ icon: "verified_user", label: staffStatus, tone: staffStatus === "active" ? "success" : "danger" }}
-        title="Platform operations"
+        title="Agency workspace"
       >
         <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--forge-muted)]">
           <ForgeChip icon="admin_panel_settings" tone="gold">
@@ -233,13 +247,13 @@ export function PlatformConsole({
 
       {session ? (
         <ForgeSurface
-          className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1fr)_auto]"
+          className="grid gap-3 border-[rgba(136,218,247,0.28)] bg-[rgba(136,218,247,0.06)] px-4 py-3 md:grid-cols-[minmax(0,1fr)_auto]"
           data-platform-active-session="true"
           variant="interactive"
         >
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <ForgeChip icon="login" tone="cyan">Active org session</ForgeChip>
+              <ForgeChip icon="input" tone="cyan">Active organization session</ForgeChip>
               <span className="truncate text-sm font-semibold text-[var(--forge-text)]">
                 {session.targetOrgName}
               </span>
@@ -260,7 +274,7 @@ export function PlatformConsole({
               type="button"
               variant="secondary"
             >
-              {isEndingSession ? "Ending" : "End session"}
+              {isEndingSession ? "Ending" : "Back to agency view"}
             </ForgeButton>
           </div>
         </ForgeSurface>
@@ -269,28 +283,28 @@ export function PlatformConsole({
           <div className="flex flex-wrap items-center gap-2">
             <ForgeChip icon="lock" tone="muted">No active platform session</ForgeChip>
             <span className="text-sm text-[var(--forge-muted)]">
-              Choose an organization and enter a reason before switching context.
+              Pick an organization, record a reason, then switch into the workspace.
             </span>
           </div>
         </ForgeSurface>
       )}
 
-      <OperationalMetricStrip
-        metrics={[
-          { icon: "business", label: "Organizations", tone: "gold", value: organizations.length },
-          { icon: "group", label: "Active staff", tone: "cyan", value: activeStaffCount },
-          { icon: "verified_user", label: "Your role", tone: staffRole === "owner" ? "success" : "gold", value: staffRole },
-          { icon: "login", label: "Session", tone: session ? "success" : "muted", value: session ? session.targetOrgSlug : "none" },
-        ]}
-      />
-
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_390px]">
-        <section className="space-y-3">
-          <ForgeSurface className="p-4" variant="panel">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <section className="min-w-0 space-y-4">
+          <ForgeSurface
+            className="p-4"
+            data-platform-primary-table="organizations"
+            data-platform-selected-organization={selectedOrganization?.id ?? "none"}
+            id="platform-organizations"
+            variant="panel"
+          >
             <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <p className="forge-page-eyebrow">Organizations</p>
-                <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">Customer accounts</h2>
+                <p className="forge-page-eyebrow">Agency view</p>
+                <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">Organizations</h2>
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--forge-muted)]">
+                  Scan customer workspaces, select the organization that needs attention, then use the switch panel for audited access.
+                </p>
               </div>
               <form action="/platform" className="flex min-w-0 flex-col gap-2 sm:flex-row" method="get">
                 <label className="sr-only" htmlFor="platform-org-search">Search organizations</label>
@@ -307,29 +321,43 @@ export function PlatformConsole({
               </form>
             </div>
 
+            <dl className="mt-4 grid gap-px overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[var(--forge-border)] sm:grid-cols-2 lg:grid-cols-4">
+              {summaryMetrics.map((metric) => (
+                <div className="min-h-14 bg-[rgba(12,9,7,0.92)] px-3 py-2" key={metric.label}>
+                  <dt className="truncate text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
+                    {metric.label}
+                  </dt>
+                  <dd className={cn("mt-1 truncate text-sm font-semibold tabular-nums capitalize", metric.tone)}>
+                    {metric.value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+
             {organizations.length ? (
               <ForgeManagementTable
                 className="mt-4"
                 mobileCards={
                   <ForgeMobileTableCards>
                     {organizations.map((org) => (
-                      <div
-                        className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4"
+                      <button
+                        className={cn(
+                          "w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4 text-left transition hover:border-[rgba(241,191,123,0.32)]",
+                          selectedOrgId === org.id && "border-[rgba(241,191,123,0.44)] bg-[rgba(241,191,123,0.07)]",
+                        )}
                         key={`${org.id}:mobile`}
+                        onClick={() => setSelectedOrgId(org.id)}
+                        type="button"
                       >
                         <p className="truncate text-sm font-semibold text-[var(--forge-text)]">{org.name}</p>
                         <p className="mt-1 truncate text-sm text-[var(--forge-muted)]">{org.slug}</p>
                         <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                          <ForgeChip tone="gold">{org.plan}</ForgeChip>
-                          <button
-                            className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--forge-cyan)]"
-                            onClick={() => setSelectedOrgId(org.id)}
-                            type="button"
-                          >
-                            Select
-                          </button>
+                          <ForgeChip tone="gold">{formatPlan(org.plan)}</ForgeChip>
+                          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--forge-cyan)]">
+                            {selectedOrgId === org.id ? "Selected" : "Select"}
+                          </span>
                         </div>
-                      </div>
+                      </button>
                     ))}
                   </ForgeMobileTableCards>
                 }
@@ -345,13 +373,19 @@ export function PlatformConsole({
                   </thead>
                   <tbody className="divide-y divide-[var(--forge-border-strong)]/10">
                     {organizations.map((org) => (
-                      <tr key={org.id}>
+                      <tr
+                        className={cn(
+                          "transition-colors",
+                          selectedOrgId === org.id && "bg-[rgba(241,191,123,0.055)]",
+                        )}
+                        key={org.id}
+                      >
                         <td className="px-4 py-3">
                           <p className="truncate font-semibold text-[var(--forge-text)]">{org.name}</p>
                           <p className="mt-1 truncate text-xs text-[var(--forge-muted)]">{org.slug}</p>
                         </td>
                         <td className="px-4 py-3">
-                          <ForgeChip tone="gold">{org.plan}</ForgeChip>
+                          <ForgeChip tone="gold">{formatPlan(org.plan)}</ForgeChip>
                         </td>
                         <td className="px-4 py-3 text-xs uppercase tracking-[0.14em] text-[var(--forge-muted)]">
                           {formatDate(org.createdAt)}
@@ -377,7 +411,7 @@ export function PlatformConsole({
                 description={
                   query
                     ? `No organizations found for "${query}".`
-                    : "Create the first customer organization from the platform console."
+                    : "Create the first customer organization from the agency workspace."
                 }
                 icon="business"
                 title="No organizations found"
@@ -385,11 +419,14 @@ export function PlatformConsole({
             )}
           </ForgeSurface>
 
-          <ForgeSurface className="p-4" variant="panel">
+          <ForgeSurface className="p-4" id="platform-staff" variant="panel">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="forge-page-eyebrow">Platform staff</p>
                 <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">Staff controls</h2>
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--forge-muted)]">
+                  Staff access stays separate from customer organization roles.
+                </p>
               </div>
               <ForgeChip tone={staffRole === "owner" ? "success" : "muted"}>
                 {staffRole === "owner" ? "Owner controls" : "Operator controls"}
@@ -398,28 +435,28 @@ export function PlatformConsole({
 
             {staffRole === "owner" ? (
               <>
-                <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                  <ForgeStatCard
-                    icon="admin_panel_settings"
-                    label="Owner access"
-                    tone="success"
-                    value="Enabled"
-                    valueSize="compact"
-                  />
-                  <ForgeStatCard
-                    icon="group"
-                    label="Active operators"
-                    tone="cyan"
-                    value={activeStaffCount}
-                  />
-                  <ForgeStatCard
-                    icon="history"
-                    label="Audit mode"
-                    tone="gold"
-                    value="Required"
-                    valueSize="compact"
-                  />
-                </div>
+                <dl className="mt-4 grid gap-px overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[var(--forge-border)] sm:grid-cols-3">
+                  <div className="bg-[rgba(12,9,7,0.92)] px-3 py-2">
+                    <dt className="text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
+                      Owner access
+                    </dt>
+                    <dd className="mt-1 text-sm font-semibold text-[var(--forge-success)]">Enabled</dd>
+                  </div>
+                  <div className="bg-[rgba(12,9,7,0.92)] px-3 py-2">
+                    <dt className="text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
+                      Active staff
+                    </dt>
+                    <dd className="mt-1 text-sm font-semibold tabular-nums text-[var(--forge-cyan)]">
+                      {activeStaffCount}
+                    </dd>
+                  </div>
+                  <div className="bg-[rgba(12,9,7,0.92)] px-3 py-2">
+                    <dt className="text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
+                      Audit mode
+                    </dt>
+                    <dd className="mt-1 text-sm font-semibold text-[var(--forge-gold)]">Required</dd>
+                  </div>
+                </dl>
                 <form
                   className="mt-4 grid gap-3 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/45 p-3 lg:grid-cols-[minmax(0,1fr)_160px_minmax(0,1fr)_auto]"
                   data-platform-staff-endpoint={PLATFORM_STAFF_ENDPOINT}
@@ -456,7 +493,7 @@ export function PlatformConsole({
                   <ForgeButton
                     className="self-end"
                     disabled={isGrantingStaff}
-                    icon="person_add"
+                    icon="group_add"
                     size="sm"
                     type="submit"
                     variant="primary"
@@ -538,75 +575,31 @@ export function PlatformConsole({
           </ForgeSurface>
         </section>
 
-        <aside className="space-y-3">
-          <ForgeSurface className="p-4" variant="panel">
-            <p className="forge-page-eyebrow">Create organization</p>
-            <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">New customer account</h2>
-            <form
-              className="mt-4 grid gap-3"
-              data-platform-create-endpoint={CREATE_ORGANIZATION_ENDPOINT}
-              onSubmit={handleCreateOrganization}
-            >
-              <label className="grid gap-2 text-sm text-[var(--forge-muted)]">
-                Organization name
-                <input
-                  className="min-h-10 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
-                  name="name"
-                  required
-                />
-              </label>
-              <label className="grid gap-2 text-sm text-[var(--forge-muted)]">
-                Slug
-                <input
-                  className="min-h-10 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
-                  name="slug"
-                  pattern="[a-z0-9-]+"
-                  required
-                />
-              </label>
-              <label className="grid gap-2 text-sm text-[var(--forge-muted)]">
-                Initial admin email
-                <input
-                  className="min-h-10 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
-                  name="adminEmail"
-                  required
-                  type="email"
-                />
-              </label>
-              <label className="grid gap-2 text-sm text-[var(--forge-muted)]">
-                Plan
-                <select
-                  className="min-h-10 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
-                  defaultValue="trial"
-                  name="plan"
-                >
-                  <option value="trial">Trial</option>
-                  <option value="pro">Pro</option>
-                  <option value="enterprise">Enterprise</option>
-                </select>
-              </label>
-              <label className="grid gap-2 text-sm text-[var(--forge-muted)]">
-                Reason
-                <textarea
-                  className="min-h-24 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
-                  name="reason"
-                  required
-                />
-              </label>
-              {createStatus ? (
-                <p className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-muted)]">
-                  {createStatus}
-                </p>
-              ) : null}
-              <ForgeButton disabled={isCreating} icon="add_business" type="submit" variant="primary">
-                {isCreating ? "Creating" : "Create organization"}
-              </ForgeButton>
-            </form>
-          </ForgeSurface>
-
-          <ForgeSurface className="p-4" variant="panel">
-            <p className="forge-page-eyebrow">Org switch</p>
-            <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">Enter customer workspace</h2>
+        <aside
+          className="space-y-4 xl:sticky xl:top-5 xl:self-start"
+          data-platform-action-panel="true"
+        >
+          <ForgeSurface className="p-4" id="platform-session" variant="panel">
+            <p className="forge-page-eyebrow">Audited switch</p>
+            <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">Switch organization</h2>
+            <p className="mt-1 text-sm leading-6 text-[var(--forge-muted)]">
+              Select an organization and record why you need access before entering the customer workspace.
+            </p>
+            {selectedOrganization ? (
+              <div className="mt-4 rounded-xl border border-[rgba(136,218,247,0.2)] bg-[rgba(136,218,247,0.06)] px-3 py-2">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-[var(--forge-text)]">
+                      {selectedOrganization.name}
+                    </p>
+                    <p className="mt-1 truncate text-xs text-[var(--forge-muted)]">
+                      {selectedOrganization.slug}
+                    </p>
+                  </div>
+                  <ForgeChip tone="cyan">{formatPlan(selectedOrganization.plan)}</ForgeChip>
+                </div>
+              </div>
+            ) : null}
             <form
               className="mt-4 grid gap-3"
               data-platform-session-endpoint={PLATFORM_SESSION_ENDPOINT}
@@ -636,13 +629,6 @@ export function PlatformConsole({
                   required
                 />
               </label>
-              {selectedOrganization ? (
-                <ForgeMetric
-                  label="Selected org"
-                  tone="cyan"
-                  value={selectedOrganization.slug}
-                />
-              ) : null}
               {sessionStatus ? (
                 <p className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-muted)]">
                   {sessionStatus}
@@ -650,11 +636,79 @@ export function PlatformConsole({
               ) : null}
               <ForgeButton
                 disabled={isSwitching || !organizations.length}
-                icon="login"
+                icon="input"
                 type="submit"
                 variant="primary"
               >
                 {isSwitching ? "Starting session" : "Start session"}
+              </ForgeButton>
+            </form>
+          </ForgeSurface>
+
+          <ForgeSurface className="p-4" id="platform-create" variant="panel">
+            <p className="forge-page-eyebrow">Create organization</p>
+            <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">New customer organization</h2>
+            <p className="mt-1 text-sm leading-6 text-[var(--forge-muted)]">
+              Create the workspace and prepare the first admin invite without exposing the invite token.
+            </p>
+            <form
+              className="mt-4 grid gap-3"
+              data-platform-create-endpoint={CREATE_ORGANIZATION_ENDPOINT}
+              onSubmit={handleCreateOrganization}
+            >
+              <label className="grid gap-2 text-sm text-[var(--forge-muted)]">
+                Organization name
+                <input
+                  className="min-h-10 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
+                  name="name"
+                  required
+                />
+              </label>
+              <label className="grid gap-2 text-sm text-[var(--forge-muted)]">
+                Slug
+                <input
+                  className="min-h-10 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
+                  name="slug"
+                  pattern="[a-z0-9-]+"
+                  required
+                />
+              </label>
+              <label className="grid gap-2 text-sm text-[var(--forge-muted)]">
+                Plan
+                <select
+                  className="min-h-10 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
+                  defaultValue="trial"
+                  name="plan"
+                >
+                  <option value="trial">Trial</option>
+                  <option value="pro">Pro</option>
+                  <option value="enterprise">Enterprise</option>
+                </select>
+              </label>
+              <label className="grid gap-2 text-sm text-[var(--forge-muted)]">
+                Initial admin email
+                <input
+                  className="min-h-10 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
+                  name="adminEmail"
+                  required
+                  type="email"
+                />
+              </label>
+              <label className="grid gap-2 text-sm text-[var(--forge-muted)]">
+                Reason
+                <textarea
+                  className="min-h-24 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
+                  name="reason"
+                  required
+                />
+              </label>
+              {createStatus ? (
+                <p className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-muted)]">
+                  {createStatus}
+                </p>
+              ) : null}
+              <ForgeButton disabled={isCreating} icon="add_business" type="submit" variant="primary">
+                {isCreating ? "Creating" : "Create organization"}
               </ForgeButton>
             </form>
           </ForgeSurface>
