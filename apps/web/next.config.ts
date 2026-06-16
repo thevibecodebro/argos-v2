@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  devIndicators: false,
   transpilePackages: ["@argos-v2/db", "@argos-v2/ui"],
   serverExternalPackages: ["pg", "pg-connection-string"],
 };

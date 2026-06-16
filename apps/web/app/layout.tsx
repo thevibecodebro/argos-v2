@@ -17,8 +17,9 @@ const materialSymbolsFont = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Argos",
-  description: "Revenue Command Platform",
+  title: "Argos | Sales Standard Installation Platform",
+  description:
+    "Sales coaching backed by Argos scorecards, call reviews, training assignments, roleplay practice, and manager dashboards.",
 };
 
 export default function RootLayout({
