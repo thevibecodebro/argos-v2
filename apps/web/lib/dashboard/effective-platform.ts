@@ -10,6 +10,17 @@ type CurrentUserLookupRepository<TUser> = {
   findCurrentUserByAuthId(authUserId: string): Promise<TUser | null>;
 };
 
+function createRepositoryAdapter<TRepository extends object, TOverrides extends object>(
+  repository: TRepository,
+  overrides: TOverrides,
+) {
+  return Object.assign(
+    Object.create(Object.getPrototypeOf(repository)) as TRepository,
+    repository,
+    overrides,
+  ) as TRepository & TOverrides;
+}
+
 export function createEffectiveCurrentUserRepository<
   TUser,
   TRepository extends CurrentUserLookupRepository<TUser>,
@@ -18,16 +29,15 @@ export function createEffectiveCurrentUserRepository<
   effectiveUser: TUser,
   authUserId: string,
 ): TRepository {
-  return {
-    ...repository,
-    findCurrentUserByAuthId(userId) {
+  return createRepositoryAdapter(repository, {
+    findCurrentUserByAuthId(userId: string) {
       if (userId === authUserId) {
         return Promise.resolve(effectiveUser);
       }
 
       return repository.findCurrentUserByAuthId(userId);
     },
-  };
+  });
 }
 
 export function createEffectiveDashboardRepository(
@@ -47,9 +57,8 @@ export function createEffectiveAccessRepository(
   profile: CurrentUserProfile,
   authUserId: string,
 ): AccessRepository {
-  return {
-    ...repository,
-    findActorByAuthUserId(userId) {
+  return createRepositoryAdapter(repository, {
+    findActorByAuthUserId(userId: string) {
       if (userId === authUserId) {
         return Promise.resolve({
           id: profile.id,
@@ -60,7 +69,7 @@ export function createEffectiveAccessRepository(
 
       return repository.findActorByAuthUserId(userId);
     },
-  };
+  });
 }
 
 export function toEffectiveDashboardUserRecord(profile: CurrentUserProfile): DashboardUserRecord {

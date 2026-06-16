@@ -23,6 +23,36 @@ const effectiveProfile: CurrentUserProfile = {
 };
 
 describe("effective platform dashboard adapters", () => {
+  it("preserves class prototype repository methods when wrapping the current user", async () => {
+    class PrototypeRepository {
+      async findCurrentUserByAuthId(_authUserId: string) {
+        return null;
+      }
+
+      async findOrgUsersByOrgId(orgId: string) {
+        return [{ id: "rep-1", orgId }];
+      }
+    }
+
+    const repository = new PrototypeRepository();
+    const effectiveRepository = createEffectiveCurrentUserRepository(
+      repository,
+      toEffectiveDashboardUserRecord(effectiveProfile),
+      "staff-user",
+    );
+
+    await expect(effectiveRepository.findCurrentUserByAuthId("staff-user")).resolves.toMatchObject({
+      id: "staff-user",
+      org: {
+        id: "org-1",
+      },
+    });
+    await expect(effectiveRepository.findOrgUsersByOrgId("org-1")).resolves.toEqual([
+      { id: "rep-1", orgId: "org-1" },
+    ]);
+    expect(effectiveRepository).toBeInstanceOf(PrototypeRepository);
+  });
+
   it("wraps any tenant repository that resolves the current user by auth id", async () => {
     const repository = {
       findCurrentUserByAuthId: vi.fn().mockResolvedValue(null),
