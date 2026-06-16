@@ -49,6 +49,11 @@ describe("AuthenticatedAppShell", () => {
     expect(html).toContain('href="/training"');
     expect(html).toContain('href="/leaderboard"');
     expect(html).toContain('href="/team"');
+    expect(html).toContain('aria-label="Dashboard"');
+    expect(html).toContain('aria-label="Highlights"');
+    expect(html).toContain('aria-label="Training"');
+    expect(html).toContain('aria-label="Roleplay"');
+    expect(html).toContain('aria-label="Leaderboard"');
     // Header topbar stays visually quiet; these actions live elsewhere.
     expect(html).not.toContain('data-navigation-link="/upload"');
     expect(html).not.toContain("Argos Team");

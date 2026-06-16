@@ -47,6 +47,9 @@ type OperationalPreviewDrawerProps = HTMLAttributes<HTMLElement> & {
   title: string;
 };
 
+const operationalEyebrowClass =
+  "mb-1 text-xs font-medium text-[var(--forge-muted)]";
+
 export function OperationalWorkspace({
   children,
   className,
@@ -80,15 +83,12 @@ export function OperationalToolbar({
         className,
       )}
       data-operational-toolbar="true"
+      data-operational-toolbar-density="compact"
       {...props}
     >
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
-          {eyebrow ? (
-            <p className="mb-1 text-[0.66rem] font-semibold uppercase tracking-[0.1em] text-[var(--forge-gold)]">
-              {eyebrow}
-            </p>
-          ) : null}
+          {eyebrow ? <p className={operationalEyebrowClass}>{eyebrow}</p> : null}
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="truncate text-xl font-semibold tracking-normal text-[var(--forge-text)]">
               {title}
@@ -189,13 +189,10 @@ export function OperationalPreviewDrawer({
         className,
       )}
       data-operational-preview-drawer="true"
+      data-operational-preview-drawer-purpose="selected-object"
       {...props}
     >
-      {eyebrow ? (
-        <p className="text-[0.66rem] font-semibold uppercase tracking-[0.1em] text-[var(--forge-muted)]">
-          {eyebrow}
-        </p>
-      ) : null}
+      {eyebrow ? <p className={operationalEyebrowClass}>{eyebrow}</p> : null}
       <h2 className="mt-1 text-base font-semibold text-[var(--forge-text)]">
         {title}
       </h2>

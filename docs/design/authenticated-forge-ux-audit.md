@@ -1,5 +1,9 @@
 # Argos Authenticated Forge UX Audit
 
+> Superseded on 2026-06-15 by `docs/design/authenticated-readability-audit-2026-06-15.md`, root `PRODUCT.md`, and root `DESIGN.md`. Do not use this document as the current authenticated UI direction. It remains only as historical context for why the app moved away from the earlier Forge command aesthetic.
+>
+> Implementation verification for the readability pass lives in `docs/design/authenticated-page-readability-verification-2026-06-15.md`.
+
 Date: 2026-04-27
 
 Scope: `/dashboard`, `/calls`, `/calls/[id]`, `/highlights`, `/upload`, `/roleplay`, `/training`, `/team`, `/team/[repId]`, `/leaderboard`, `/notifications`, `/settings`, `/settings/people`, `/settings/teams`, `/settings/permissions`, `/settings/compliance`, `/settings/integrations`, `/settings/rubric`.
@@ -64,13 +68,13 @@ Usage rules:
 
 ### 3. Typography
 
-Use `Space Grotesk` for navigation, labels, tabs, compact UI, and controls. Keep body copy readable with the existing body face unless a full font decision is made. Avoid display-serif inside authenticated product UI except maybe a single executive summary title on `/dashboard`, and only if it does not spread to labels or tables.
+Use Geist as the single authenticated product UI font. Keep `--font-display` and `--font-body` as compatibility aliases to `--font-ui`, not separate visual voices. Avoid display-serif or decorative display sans usage inside authenticated product UI.
 
 Rules:
 
-- Labels: 10 to 11px uppercase, 0.18 to 0.24em tracking.
-- Page titles: 28 to 36px desktop, 24 to 28px mobile.
-- Panel titles: 16 to 20px.
+- Labels: 11 to 12px, medium or semibold, uppercase only when it improves scan speed.
+- Page titles: 20 to 24px, 600 weight.
+- Panel titles: 16 to 18px, 600 weight.
 - Table body: 13 to 14px.
 - Numbers: use tabular figures, and use a mono or `font-variant-numeric: tabular-nums`.
 

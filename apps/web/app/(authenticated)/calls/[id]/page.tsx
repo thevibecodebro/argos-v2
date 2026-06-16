@@ -3,8 +3,6 @@ import { notFound } from "next/navigation";
 import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
 import { CallDetailPanel } from "@/components/panel-loaders/call-detail-panel-loader";
 import {
-  OperationalMetricStrip,
-  OperationalPreviewDrawer,
   OperationalToolbar,
   OperationalWorkspace,
 } from "@/components/operational-workspace";
@@ -39,7 +37,6 @@ export default async function CallDetailPage({
 
   const call = detailResult.data;
   const topic = call.callTopic ?? "Untitled call";
-  const repName = formatRepName(call);
   const canManage =
     profile?.role === "admin" ||
     profile?.role === "manager" ||
@@ -70,80 +67,15 @@ export default async function CallDetailPage({
           </nav>
         </OperationalToolbar>
 
-        <OperationalMetricStrip
-          metrics={[
-            {
-              icon: "person",
-              label: "Rep",
-              tone: "muted",
-              value: repName,
-            },
-            {
-              icon: "timer",
-              label: "Duration",
-              tone: "cyan",
-              value: formatDuration(call.durationSeconds),
-            },
-            {
-              icon: "monitoring",
-              label: "Overall score",
-              tone: scoreTone(call.overallScore),
-              value: call.overallScore ?? "--",
-            },
-            {
-              icon: "fact_check",
-              label: "Analysis status",
-              tone: statusTone(call.status),
-              value: call.status,
-            },
-          ]}
+        <CallDetailPanel
+          annotations={annotationsResult.ok ? annotationsResult.data.annotations : []}
+          call={call}
+          canManage={canManage}
+          canRetryProcessing={profile?.role === "admin"}
         />
-
-        <section className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="min-w-0">
-            <CallDetailPanel
-              annotations={annotationsResult.ok ? annotationsResult.data.annotations : []}
-              call={call}
-              canManage={canManage}
-              canRetryProcessing={profile?.role === "admin"}
-            />
-          </div>
-          <OperationalPreviewDrawer
-            actions={[{ href: "/highlights", icon: "insights", label: "Open Highlights", variant: "secondary" }]}
-            description="Score, status, and review readiness for this call."
-            eyebrow="Insight drawer"
-            title="Call summary"
-          >
-            <div className="grid gap-2 text-sm">
-              <SummaryRow label="Score" value={call.overallScore ?? "--"} />
-              <SummaryRow label="Status" value={call.status} />
-              <SummaryRow label="Duration" value={formatDuration(call.durationSeconds)} />
-              <SummaryRow label="Can manage" value={canManage ? "Yes" : "No"} />
-            </div>
-          </OperationalPreviewDrawer>
-        </section>
       </OperationalWorkspace>
     </AuthenticatedPageContainer>
   );
-}
-
-function formatRepName(call: { repFirstName?: string | null; repLastName?: string | null }) {
-  return [call.repFirstName, call.repLastName].filter(Boolean).join(" ") || "Scoped viewer";
-}
-
-function formatDuration(seconds: number | null | undefined) {
-  if (typeof seconds !== "number") return "--";
-  const minutes = Math.floor(seconds / 60);
-  const remainder = seconds % 60;
-  return `${minutes}:${remainder.toString().padStart(2, "0")}`;
-}
-
-function scoreTone(value: number | null | undefined) {
-  if (typeof value !== "number") return "muted";
-  if (value >= 85) return "success";
-  if (value >= 70) return "gold";
-  if (value >= 60) return "ember";
-  return "danger";
 }
 
 function statusTone(status: string | null | undefined) {
@@ -154,19 +86,4 @@ function statusTone(status: string | null | undefined) {
     return "ember";
   }
   return "muted";
-}
-
-function SummaryRow({
-  label,
-  value,
-}: {
-  label: string;
-  value: number | string;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3 border-b border-[var(--forge-border)] py-2 last:border-b-0">
-      <span className="text-[var(--forge-muted)]">{label}</span>
-      <span className="font-semibold text-[var(--forge-text)]">{value}</span>
-    </div>
-  );
 }

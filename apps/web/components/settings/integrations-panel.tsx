@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ForgeButton, ForgeChip, ForgeSurface } from "@/components/forge";
+import { ForgeButton, ForgeSurface } from "@/components/forge";
+import { SettingsStatus } from "./settings-readability";
 
 export type IntegrationsPanelProps = {
   zoom: {
@@ -36,10 +37,11 @@ function formatConnectedAt(value: string | null | undefined) {
 }
 
 type IntegrationService = "zoom" | "ghl";
-type DisconnectFetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
-type DisconnectResult =
-  | { ok: true }
-  | { error: string; ok: false };
+type DisconnectFetcher = (
+  input: RequestInfo | URL,
+  init?: RequestInit,
+) => Promise<Response>;
+type DisconnectResult = { ok: true } | { error: string; ok: false };
 
 const disconnectFallbacks: Record<IntegrationService, string> = {
   zoom: "Unable to disconnect Zoom. Try again.",
@@ -52,16 +54,25 @@ export function getDisconnectConfirmationCopy(service: IntegrationService) {
     : "Disconnect Go High Level from this workspace?";
 }
 
-export async function getDisconnectErrorMessage(service: IntegrationService, response: Response) {
+export async function getDisconnectErrorMessage(
+  service: IntegrationService,
+  response: Response,
+) {
   const fallback = disconnectFallbacks[service];
 
   try {
-    const payload = await response.json() as { error?: unknown; message?: unknown; detail?: unknown };
-    const message = [payload.message, payload.error, payload.detail].find((value) => (
-      typeof value === "string" && value.trim().length > 0
-    ));
+    const payload = (await response.json()) as {
+      error?: unknown;
+      message?: unknown;
+      detail?: unknown;
+    };
+    const message = [payload.message, payload.error, payload.detail].find(
+      (value) => typeof value === "string" && value.trim().length > 0,
+    );
 
-    return typeof message === "string" && isReadableDisconnectMessage(message) ? message : fallback;
+    return typeof message === "string" && isReadableDisconnectMessage(message)
+      ? message
+      : fallback;
   } catch {
     return fallback;
   }
@@ -127,7 +138,10 @@ function ZoomCard({
     setIsMutating(true);
 
     try {
-      const result = await disconnectIntegrationFromBrowser("zoom", disconnectPath);
+      const result = await disconnectIntegrationFromBrowser(
+        "zoom",
+        disconnectPath,
+      );
       if (result.ok) {
         setIsConnected(false);
         setConnectedAtState(null);
@@ -149,21 +163,22 @@ function ZoomCard({
     <ForgeSurface as="section" className="p-6" variant="panel">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
-            Zoom
+          <p className="text-xs font-medium text-[var(--forge-muted)]">Zoom</p>
+          <p className="mt-2 text-xl font-semibold text-white">
+            Call Recording Ingest
           </p>
-          <p className="mt-2 text-xl font-semibold text-white">Call Recording Ingest</p>
         </div>
 
         {isConnected ? (
-          <ForgeChip tone="success">Connected</ForgeChip>
+          <SettingsStatus label="Connected" tone="success" />
         ) : (
-          <ForgeChip tone="ember">Not connected</ForgeChip>
+          <SettingsStatus label="Not connected" tone="ember" />
         )}
       </div>
 
       <p className="mt-3 text-sm leading-7 text-[var(--forge-muted)]">
-        Connect your Zoom account to automatically import call recordings and transcripts.
+        Connect your Zoom account to automatically import call recordings and
+        transcripts.
       </p>
 
       {isConnected ? (
@@ -171,7 +186,9 @@ function ZoomCard({
           {zoomUserIdState ? (
             <p className="text-sm text-[var(--forge-muted)]">
               <span className="text-[var(--forge-muted)]">User ID:</span>{" "}
-              <span className="font-medium text-[var(--forge-text)]">{zoomUserIdState}</span>
+              <span className="font-medium text-[var(--forge-text)]">
+                {zoomUserIdState}
+              </span>
             </p>
           ) : null}
           {connectedAtState ? (
@@ -189,7 +206,10 @@ function ZoomCard({
       ) : null}
 
       {disconnectError ? (
-        <p className="mt-3 text-sm font-medium text-[var(--forge-danger)]" role="alert">
+        <p
+          className="mt-3 text-sm font-medium text-[var(--forge-danger)]"
+          role="alert"
+        >
           {disconnectError}
         </p>
       ) : null}
@@ -198,7 +218,9 @@ function ZoomCard({
         {isConnected ? (
           confirmDisconnect ? (
             <>
-              <p className="text-sm text-[var(--forge-muted)]">{getDisconnectConfirmationCopy("zoom")}</p>
+              <p className="text-sm text-[var(--forge-muted)]">
+                {getDisconnectConfirmationCopy("zoom")}
+              </p>
               <ForgeButton
                 disabled={isMutating}
                 onClick={() => {
@@ -282,7 +304,10 @@ function GhlCard({
     setIsMutating(true);
 
     try {
-      const result = await disconnectIntegrationFromBrowser("ghl", disconnectPath);
+      const result = await disconnectIntegrationFromBrowser(
+        "ghl",
+        disconnectPath,
+      );
       if (result.ok) {
         setIsConnected(false);
         setConnectedAtState(null);
@@ -303,16 +328,18 @@ function GhlCard({
     <ForgeSurface as="section" className="p-6" variant="panel">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
+          <p className="text-xs font-medium text-[var(--forge-muted)]">
             Go High Level
           </p>
-          <p className="mt-2 text-xl font-semibold text-white">CRM &amp; Workflow Automation</p>
+          <p className="mt-2 text-xl font-semibold text-white">
+            CRM &amp; Workflow Automation
+          </p>
         </div>
 
         {isConnected ? (
-          <ForgeChip tone="success">Connected</ForgeChip>
+          <SettingsStatus label="Connected" tone="success" />
         ) : (
-          <ForgeChip tone="ember">Not connected</ForgeChip>
+          <SettingsStatus label="Not connected" tone="ember" />
         )}
       </div>
 
@@ -325,7 +352,9 @@ function GhlCard({
           {locationNameState ? (
             <p className="text-sm text-[var(--forge-muted)]">
               <span className="text-[var(--forge-muted)]">Location:</span>{" "}
-              <span className="font-medium text-[var(--forge-text)]">{locationNameState}</span>
+              <span className="font-medium text-[var(--forge-text)]">
+                {locationNameState}
+              </span>
             </p>
           ) : null}
           {connectedAtState ? (
@@ -338,12 +367,16 @@ function GhlCard({
 
       {!available && !isConnected ? (
         <p className="mt-3 text-sm text-[rgba(255,159,95,0.82)]">
-          Go High Level is disabled until ARGOS_GHL_ENABLED is true and OAuth credentials are configured.
+          Go High Level is disabled until ARGOS_GHL_ENABLED is true and OAuth
+          credentials are configured.
         </p>
       ) : null}
 
       {disconnectError ? (
-        <p className="mt-3 text-sm font-medium text-[var(--forge-danger)]" role="alert">
+        <p
+          className="mt-3 text-sm font-medium text-[var(--forge-danger)]"
+          role="alert"
+        >
           {disconnectError}
         </p>
       ) : null}
@@ -352,7 +385,9 @@ function GhlCard({
         {isConnected ? (
           confirmDisconnect ? (
             <>
-              <p className="text-sm text-[var(--forge-muted)]">{getDisconnectConfirmationCopy("ghl")}</p>
+              <p className="text-sm text-[var(--forge-muted)]">
+                {getDisconnectConfirmationCopy("ghl")}
+              </p>
               <ForgeButton
                 disabled={isMutating}
                 onClick={() => {

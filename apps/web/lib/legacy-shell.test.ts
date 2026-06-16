@@ -60,8 +60,10 @@ describe("legacy UI shell", () => {
   it("renders the landing page ahead of the login flow", async () => {
     const html = renderToStaticMarkup(await HomePage());
 
-    expect(html).toContain("Turn every sales call into the next practice plan.");
-    expect(html).toContain("Sales call review, coaching, and roleplay");
+    expect(html).toContain("Sales teams changed. Coaching should have too.");
+    expect(html).toContain("Argos turns real sales calls into scored evidence");
+    expect(html).toContain("See Argos in action.");
+    expect(html).toContain("Book A Demo");
     expect(html).toContain('href="/login"');
     expect(html).toContain("Revenue Command");
   });
@@ -165,12 +167,14 @@ describe("legacy UI shell", () => {
 
     const html = renderToStaticMarkup(await DashboardPage());
 
-    expect(html).toContain('data-dashboard-route="operational-pulse"');
+    expect(html).toContain('data-dashboard-route="dashboard"');
     expect(html).toContain('data-operational-toolbar="true"');
     expect(html).toContain('data-dashboard-today-queue="true"');
+    expect(html).toContain(">Dashboard<");
     expect(html).toContain("Open team");
     expect(html).toContain("Upload call");
-    expect(html).toContain("Review queue");
+    expect(html).toContain("Needs attention");
+    expect(html).not.toContain("Review queue");
     expect(html).not.toContain("Rep Skill Matrix");
     expect(html).not.toContain('data-rep-skill-matrix-table="true"');
     expect(html).not.toContain('href="/team/rep-1"');

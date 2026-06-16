@@ -3,7 +3,7 @@ import { AuthenticatedRouteLoading } from "@/components/authenticated-route-stat
 export default function Loading() {
   return (
     <AuthenticatedRouteLoading
-      description="Loading performance, coaching focus, and training progress."
+      description="Loading dashboard attention queue."
       eyebrow="Dashboard"
       lines={5}
       size="standard"

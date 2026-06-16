@@ -44,7 +44,7 @@ export function SettingsEditorPanel({
   return (
     <section
       className={cn(
-        "rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.026)] p-3 sm:p-4",
+        "rounded-lg border border-[var(--forge-border)] bg-[rgba(255,244,230,0.026)] p-3 sm:p-4",
         className,
       )}
       {...props}
@@ -62,7 +62,7 @@ export function SettingsEditorDrawer({
   return (
     <aside
       className={cn(
-        "rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.026)] p-3 xl:sticky xl:top-3 xl:self-start",
+        "rounded-lg border border-[var(--forge-border)] bg-[rgba(255,244,230,0.026)] p-3 xl:sticky xl:top-3 xl:self-start",
         className,
       )}
       {...props}
@@ -86,9 +86,7 @@ export function SettingsDrawerGroup({
       className={cn("space-y-2", className)}
       data-settings-drawer-group={label}
     >
-      <p className="text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
-        {label}
-      </p>
+      <p className="text-xs font-medium text-[var(--forge-muted)]">{label}</p>
       <div className="space-y-1">{children}</div>
     </section>
   );

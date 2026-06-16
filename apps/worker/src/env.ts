@@ -79,7 +79,7 @@ export function getWorkerEnv(env: WorkerEnvSource = process.env): WorkerEnv {
   const callProcessingEnabled = parseBoolean(env.CALL_PROCESSING_ENABLED, false);
   const databaseUrl = readEnv(env, "DATABASE_URL");
   const ffmpegBinary = readEnv(env, "FFMPEG_BINARY", "CALL_PROCESSING_FFMPEG_BINARY");
-  const openaiApiKey = readEnv(env, "OPENAI_API_KEY");
+  const openaiApiKey = readEnv(env, "OPENAI_CALL_PROCESSING_API_KEY", "OPENAI_API_KEY");
   const supabaseServiceRoleKey = readEnv(env, "SUPABASE_SERVICE_ROLE_KEY");
   const supabaseUrl = readEnv(env, "SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL");
   const maxSourceBytes = parseInteger(
@@ -112,7 +112,9 @@ export function getWorkerEnv(env: WorkerEnvSource = process.env): WorkerEnv {
     }
 
     if (!openaiApiKey) {
-      throw new Error("Missing required environment variable: OPENAI_API_KEY");
+      throw new Error(
+        "Missing required environment variable: OPENAI_CALL_PROCESSING_API_KEY or OPENAI_API_KEY",
+      );
     }
   }
 

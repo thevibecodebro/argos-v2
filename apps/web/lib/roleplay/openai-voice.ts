@@ -15,11 +15,15 @@ export type OpenAiVoiceEnv = {
   ttsVoice: string;
 };
 
+function getOpenAiVoiceApiKey(env: OpenAiVoiceEnvSource) {
+  return env.OPENAI_ROLEPLAY_API_KEY?.trim() || env.OPENAI_API_KEY?.trim() || null;
+}
+
 export function getOpenAiVoiceConfigurationError(
   env: OpenAiVoiceEnvSource = process.env,
 ) {
-  if (!env.OPENAI_API_KEY) {
-    return "Voice features are not configured. Missing: OPENAI_API_KEY.";
+  if (!getOpenAiVoiceApiKey(env)) {
+    return "Voice features are not configured. Missing: OPENAI_ROLEPLAY_API_KEY or OPENAI_API_KEY.";
   }
 
   return null;
@@ -28,10 +32,12 @@ export function getOpenAiVoiceConfigurationError(
 export function getOpenAiVoiceEnv(
   env: OpenAiVoiceEnvSource = process.env,
 ): OpenAiVoiceEnv {
-  const apiKey = env.OPENAI_API_KEY;
+  const apiKey = getOpenAiVoiceApiKey(env);
 
   if (!apiKey) {
-    throw new Error("Missing required environment variable: OPENAI_API_KEY");
+    throw new Error(
+      "Missing required environment variable: OPENAI_ROLEPLAY_API_KEY or OPENAI_API_KEY",
+    );
   }
 
   return {

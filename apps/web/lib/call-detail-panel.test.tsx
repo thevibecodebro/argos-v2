@@ -191,8 +191,6 @@ describe("CallDetailPanel", () => {
     const html = await renderCallDetailPanel();
 
     expect(html).toContain("Manager note");
-    expect(html).toContain("Workbench");
-    expect(html).toContain("Key Moments");
     expect(html).toContain("Save note");
     expect(html).toContain("Remove note");
     expect(html).toContain("Remove highlight");
@@ -227,6 +225,7 @@ describe("CallDetailPanel", () => {
     expect(html).toContain("Processing job");
     expect(html).toContain("failed");
     expect(html).toContain("transcribe");
+    expect(html).toContain("Updated Apr 3, 2026, 12:10 AM");
     expect(html).toContain("OpenAI transcription request failed: 429");
     expect(html).toContain("Retry processing");
   });
@@ -258,14 +257,17 @@ describe("CallDetailPanel", () => {
     const html = await renderCallDetailPanel();
 
     expect(html).toContain('data-call-detail-panel="forge-review-bench"');
-    expect(html).toContain('data-forge-surface="panel"');
+    expect(html).toContain('data-call-detail-workbench="transcript-evidence"');
+    expect(html).toContain('data-call-transcript-primary="true"');
+    expect(html).toContain('data-call-evidence-panel="true"');
+    expect(html).toContain('data-call-coaching-pane="true"');
     expect(html).toContain('data-forge-chip="cyan"');
-    expect(html).toContain("Workbench");
-    expect(html).toContain('data-forge-segmented-tabs="true"');
     expect(html).toContain("Transcript");
-    expect(html).toContain("Key Moments");
-    expect(html).toContain("Call Summary");
-    expect(html).toContain("Coaching Notes");
+    expect(html).toContain("Evidence");
+    expect(html).toContain("Coaching action");
+    expect(html).not.toContain('aria-label="Workbench"');
+    expect(html).not.toContain(">Summary</span>");
+    expect(html).not.toContain(">Notes</span>");
     expect(html).not.toContain("#74b1ff");
     expect(html).not.toContain("#6dddff");
     expect(html).not.toContain("backdrop-blur-md");

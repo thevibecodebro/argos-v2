@@ -75,8 +75,10 @@ describe("legacy auth shell", () => {
   it("renders the landing page ahead of the login flow", async () => {
     const html = renderToStaticMarkup(await HomePage());
 
-    expect(html).toContain("Turn every sales call into the next practice plan.");
-    expect(html).toContain("Sales call review, coaching, and roleplay");
+    expect(html).toContain("Sales teams changed. Coaching should have too.");
+    expect(html).toContain("Argos turns real sales calls into scored evidence");
+    expect(html).toContain("See Argos in action.");
+    expect(html).toContain("Book A Demo");
     expect(html).toContain('href="/login"');
     expect(html).toContain("Revenue Command");
   });

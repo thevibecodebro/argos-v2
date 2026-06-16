@@ -1,6 +1,5 @@
 import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
 import {
-  OperationalMetricStrip,
   OperationalToolbar,
   OperationalWorkspace,
 } from "@/components/operational-workspace";
@@ -9,9 +8,7 @@ import { loadTrainingPageData } from "./training-page-data";
 
 export default async function TrainingPage() {
   const {
-    assignedCount,
     canManage,
-    completedCount,
     modules,
   } = await loadTrainingPageData();
   const actions = canManage
@@ -34,29 +31,6 @@ export default async function TrainingPage() {
             tone: "muted",
           }}
           title="Training"
-        />
-
-        <OperationalMetricStrip
-          metrics={[
-            {
-              icon: "assignment",
-              label: "Assigned",
-              tone: assignedCount > 0 ? "gold" : "muted",
-              value: assignedCount,
-            },
-            {
-              icon: "task_alt",
-              label: "Completed",
-              tone: completedCount > 0 ? "success" : "muted",
-              value: completedCount,
-            },
-            {
-              icon: "library_books",
-              label: "Modules",
-              tone: modules.length > 0 ? "cyan" : "muted",
-              value: modules.length,
-            },
-          ]}
         />
 
         <section
