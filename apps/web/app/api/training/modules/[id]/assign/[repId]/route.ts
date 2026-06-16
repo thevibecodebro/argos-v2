@@ -1,5 +1,6 @@
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 import { createTrainingRepository } from "@/lib/training/create-repository";
 import { unassignTrainingModule } from "@/lib/training/service";
 
@@ -16,7 +17,8 @@ export async function DELETE(
   }
 
   const { id, repId } = await params;
-  const result = await unassignTrainingModule(createTrainingRepository(), authUser.id, id, repId);
+  const repository = await createEffectiveTenantRepository(createTrainingRepository(), authUser.id);
+  const result = await unassignTrainingModule(repository, authUser.id, id, repId);
 
   return fromServiceResult(result);
 }

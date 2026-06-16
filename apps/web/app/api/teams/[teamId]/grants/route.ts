@@ -1,5 +1,6 @@
 import { unauthorizedJson, fromServiceResult } from "@/lib/http";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { createEffectiveTenantTeamAccessRepository } from "@/lib/platform/effective-request";
 import { createTeamAccessRepository } from "@/lib/team-access/create-repository";
 import { setManagerPermissionPreset } from "@/lib/team-access/service";
 
@@ -18,9 +19,13 @@ export async function POST(request: Request, context: RouteContext) {
 
   const { teamId } = await context.params;
   const payload = (await request.json()) as { managerId?: unknown; preset?: unknown };
+  const repository = await createEffectiveTenantTeamAccessRepository(
+    createTeamAccessRepository(),
+    authUser.id,
+  );
 
   return fromServiceResult(
-    await setManagerPermissionPreset(createTeamAccessRepository(), authUser.id, {
+    await setManagerPermissionPreset(repository, authUser.id, {
       teamId,
       managerId: payload.managerId,
       preset: payload.preset,

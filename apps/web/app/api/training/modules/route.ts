@@ -1,5 +1,6 @@
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 import { createTrainingRepository } from "@/lib/training/create-repository";
 import { createTrainingModule, getTrainingModules, type TrainingModuleRecord } from "@/lib/training/service";
 
@@ -88,7 +89,8 @@ export async function GET() {
     return unauthorizedJson();
   }
 
-  const result = await getTrainingModules(createTrainingRepository(), authUser.id);
+  const repository = await createEffectiveTenantRepository(createTrainingRepository(), authUser.id);
+  const result = await getTrainingModules(repository, authUser.id);
   return fromServiceResult(result);
 }
 
@@ -111,7 +113,8 @@ export async function POST(request: Request) {
     return Response.json({ error: "title and skillCategory are required" }, { status: 400 });
   }
 
-  const result = await createTrainingModule(createTrainingRepository(), authUser.id, {
+  const repository = await createEffectiveTenantRepository(createTrainingRepository(), authUser.id);
+  const result = await createTrainingModule(repository, authUser.id, {
     title: payload.title,
     skillCategory: payload.skillCategory,
     description: payload.description,

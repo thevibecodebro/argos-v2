@@ -2,6 +2,7 @@ import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user"
 import { DrizzleBillingRepository } from "@/lib/billing/repository";
 import { consumeVoiceMinutes } from "@/lib/billing/voice-entitlements";
 import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 import { createRoleplayRepository } from "@/lib/roleplay/create-repository";
 import { completeRoleplaySession, settleRoleplayVoiceUsage } from "@/lib/roleplay/service";
 
@@ -18,7 +19,7 @@ export async function POST(
   }
 
   const { id } = await params;
-  const roleplayRepository = createRoleplayRepository();
+  const roleplayRepository = await createEffectiveTenantRepository(createRoleplayRepository(), authUser.id);
   const result = await completeRoleplaySession(roleplayRepository, authUser.id, id);
 
   if (!result.ok) {

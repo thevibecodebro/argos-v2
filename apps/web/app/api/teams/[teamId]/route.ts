@@ -1,5 +1,6 @@
 import { unauthorizedJson, fromServiceResult } from "@/lib/http";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { createEffectiveTenantTeamAccessRepository } from "@/lib/platform/effective-request";
 import { createTeamAccessRepository } from "@/lib/team-access/create-repository";
 import { updateTeamMetadata } from "@/lib/team-access/service";
 
@@ -22,9 +23,13 @@ export async function PATCH(request: Request, context: RouteContext) {
     name?: unknown;
     status?: unknown;
   };
+  const repository = await createEffectiveTenantTeamAccessRepository(
+    createTeamAccessRepository(),
+    authUser.id,
+  );
 
   return fromServiceResult(
-    await updateTeamMetadata(createTeamAccessRepository(), authUser.id, {
+    await updateTeamMetadata(repository, authUser.id, {
       teamId,
       name: payload.name,
       description: payload.description,

@@ -3,6 +3,7 @@ import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user"
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { listCalls } from "@/lib/calls/service";
 import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,8 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get("limit");
     const offset = searchParams.get("offset");
 
-    const result = await listCalls(createCallsRepository(), authUser.id, {
+    const repository = await createEffectiveTenantRepository(createCallsRepository(), authUser.id);
+    const result = await listCalls(repository, authUser.id, {
       repId: searchParams.get("repId") ?? undefined,
       search: searchParams.get("search") ?? undefined,
       status: searchParams.get("status") ?? undefined,

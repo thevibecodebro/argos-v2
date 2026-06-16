@@ -2,6 +2,7 @@ import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user"
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { getCallDetail } from "@/lib/calls/service";
 import { unauthorizedJson } from "@/lib/http";
+import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 import { createRoleplayRepository } from "@/lib/roleplay/create-repository";
 import {
   buildGeneratedRoleplayPreview,
@@ -14,13 +15,14 @@ import { loadActiveRubric } from "@/lib/rubrics/service";
 export const dynamic = "force-dynamic";
 
 async function loadGenerateRoleplayContext(authUserId: string, callId: string) {
-  const detailResult = await getCallDetail(createCallsRepository(), authUserId, callId);
+  const callsRepository = await createEffectiveTenantRepository(createCallsRepository(), authUserId);
+  const detailResult = await getCallDetail(callsRepository, authUserId, callId);
 
   if (!detailResult.ok) {
     return detailResult;
   }
 
-  const roleplayRepository = createRoleplayRepository();
+  const roleplayRepository = await createEffectiveTenantRepository(createRoleplayRepository(), authUserId);
   const viewer = await roleplayRepository.findCurrentUserByAuthId(authUserId);
   const activeRubric = viewer?.org?.id
     ? await loadActiveRubric(createRubricsRepository(), viewer.org.id)

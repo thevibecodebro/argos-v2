@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { unauthorizedJson } from "@/lib/http";
+import { createEffectiveTenantUsersRepository } from "@/lib/platform/effective-request";
 import { createRubricsRepository } from "@/lib/rubrics/create-repository";
 import { publishRubric } from "@/lib/rubrics/service";
 import { createUsersRepository } from "@/lib/users/create-repository";
@@ -18,7 +19,11 @@ async function requireAdminContext(): Promise<AdminContext> {
     return { ok: false, response: unauthorizedJson() };
   }
 
-  const caller = await createUsersRepository().findCurrentUserByAuthId(authUser.id);
+  const usersRepository = await createEffectiveTenantUsersRepository(
+    createUsersRepository(),
+    authUser.id,
+  );
+  const caller = await usersRepository.findCurrentUserByAuthId(authUser.id);
 
   if (!caller?.orgId || caller.role !== "admin") {
     return {

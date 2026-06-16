@@ -12,6 +12,7 @@ import {
 } from "@/lib/auth/request-user";
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { getCallDetail, listAnnotations } from "@/lib/calls/service";
+import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 
 export default async function CallDetailPage({
   params,
@@ -25,10 +26,11 @@ export default async function CallDetailPage({
     notFound();
   }
 
+  const repository = await createEffectiveTenantRepository(createCallsRepository(), authUser.id);
   const [profile, detailResult, annotationsResult] = await Promise.all([
     getCachedCurrentUserProfile(authUser.id),
-    getCallDetail(createCallsRepository(), authUser.id, id),
-    listAnnotations(createCallsRepository(), authUser.id, id),
+    getCallDetail(repository, authUser.id, id),
+    listAnnotations(repository, authUser.id, id),
   ]);
 
   if (!detailResult.ok) {

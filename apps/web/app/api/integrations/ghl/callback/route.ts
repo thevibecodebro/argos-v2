@@ -11,6 +11,7 @@ import {
   timingSafeNonceMatch,
 } from "@/lib/integrations/oauth";
 import { isGhlIntegrationConfigured } from "@/lib/integrations/service";
+import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +57,10 @@ export async function GET(request: Request) {
     return settingsRedirect(request, "ghl_error", "no_session");
   }
 
-  const repository = createIntegrationsRepository();
+  const repository = await createEffectiveTenantRepository(
+    createIntegrationsRepository(),
+    authUser.id,
+  );
   const viewer = await repository.findCurrentUserByAuthId(authUser.id);
 
   if (!viewer?.org) {

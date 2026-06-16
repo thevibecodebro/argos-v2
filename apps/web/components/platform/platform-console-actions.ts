@@ -76,11 +76,9 @@ export function buildCreateOrganizationPayload(formData: FormData) {
 
 export function buildSessionPayload(formData: FormData, fallbackOrgId: string | null) {
   const orgId = String(formData.get("orgId") ?? "").trim() || (fallbackOrgId ?? "");
+  const reason = String(formData.get("reason") ?? "").trim();
 
-  return {
-    orgId,
-    reason: String(formData.get("reason") ?? "").trim(),
-  };
+  return reason ? { orgId, reason } : { orgId };
 }
 
 export function buildGrantStaffPayload(formData: FormData) {

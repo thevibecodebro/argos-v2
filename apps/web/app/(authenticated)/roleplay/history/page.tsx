@@ -15,6 +15,7 @@ import {
   OperationalWorkspace,
 } from "@/components/operational-workspace";
 import { getCachedAuthenticatedSupabaseUser } from "@/lib/auth/request-user";
+import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 import { createRoleplayRepository } from "@/lib/roleplay/create-repository";
 import { listRoleplaySessions } from "@/lib/roleplay/service";
 import type { RoleplaySession } from "@/lib/roleplay/types";
@@ -26,7 +27,8 @@ export default async function RoleplayHistoryPage() {
     notFound();
   }
 
-  const result = await listRoleplaySessions(createRoleplayRepository(), authUser.id);
+  const repository = await createEffectiveTenantRepository(createRoleplayRepository(), authUser.id);
+  const result = await listRoleplaySessions(repository, authUser.id);
 
   if (!result.ok) {
     return (

@@ -1,5 +1,6 @@
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 import { createTrainingRepository } from "@/lib/training/create-repository";
 import {
   getTrainingModules,
@@ -96,7 +97,8 @@ export async function GET(
   }
 
   const { id } = await params;
-  const result = await getTrainingModules(createTrainingRepository(), authUser.id);
+  const repository = await createEffectiveTenantRepository(createTrainingRepository(), authUser.id);
+  const result = await getTrainingModules(repository, authUser.id);
 
   if (!result.ok) {
     return Response.json({ error: result.error }, { status: result.status });
@@ -136,7 +138,8 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const result = await updateTrainingModule(createTrainingRepository(), authUser.id, id, {
+  const repository = await createEffectiveTenantRepository(createTrainingRepository(), authUser.id);
+  const result = await updateTrainingModule(repository, authUser.id, id, {
     title: payload.title,
     skillCategory: payload.skillCategory,
     description: payload.description,

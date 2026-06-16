@@ -1,5 +1,6 @@
 import { unauthorizedJson, fromServiceResult } from "@/lib/http";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { createEffectiveTenantTeamAccessRepository } from "@/lib/platform/effective-request";
 import { createTeamAccessRepository } from "@/lib/team-access/create-repository";
 import { assignPrimaryManager } from "@/lib/team-access/service";
 
@@ -18,9 +19,13 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   const { userId } = await context.params;
   const payload = (await request.json()) as { managerId?: unknown };
+  const repository = await createEffectiveTenantTeamAccessRepository(
+    createTeamAccessRepository(),
+    authUser.id,
+  );
 
   return fromServiceResult(
-    await assignPrimaryManager(createTeamAccessRepository(), authUser.id, {
+    await assignPrimaryManager(repository, authUser.id, {
       repId: userId,
       managerId: payload.managerId,
     }),

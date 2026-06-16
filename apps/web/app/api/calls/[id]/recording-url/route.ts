@@ -1,6 +1,7 @@
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { createCallRecordingSignedUrl } from "@/lib/calls/service";
+import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 
 export const dynamic = "force-dynamic";
 
@@ -21,8 +22,9 @@ export async function GET(
     }
 
     const { id } = await params;
+    const repository = await createEffectiveTenantRepository(createCallsRepository(), authUser.id);
     const result = await createCallRecordingSignedUrl(
-      createCallsRepository(),
+      repository,
       authUser.id,
       id,
     );

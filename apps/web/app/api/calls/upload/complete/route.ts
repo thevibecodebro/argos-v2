@@ -14,6 +14,7 @@ import {
   checkRateLimitForPolicy,
   rateLimitExceededResponse,
 } from "@/lib/rate-limit/service";
+import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -99,7 +100,8 @@ export async function POST(request: Request) {
       return storageVerification;
     }
 
-    const result = await completeUploadedCall(createCallsRepository(), authUser.id, {
+    const repository = await createEffectiveTenantRepository(createCallsRepository(), authUser.id);
+    const result = await completeUploadedCall(repository, authUser.id, {
       callTopic: typeof body.callTopic === "string" ? body.callTopic : null,
       fileName: body.fileName,
       fileSizeBytes: body.fileSizeBytes,

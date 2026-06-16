@@ -192,6 +192,13 @@ vi.mock("@/lib/auth/request-user", () => ({
   getCachedCurrentUserProfile: getCachedCurrentUserProfileMock,
 }));
 
+vi.mock("@/lib/platform/effective-request", () => ({
+  createEffectiveTenantAccessRepository: vi.fn(async (repository) => repository),
+  createEffectiveTenantRepository: vi.fn(async (repository) => repository),
+  createEffectiveTenantTeamAccessRepository: vi.fn(async (repository) => repository),
+  createEffectiveTenantUsersRepository: vi.fn(async (repository) => repository),
+}));
+
 vi.mock("@/lib/dashboard/create-repository", () => ({
   createDashboardRepository: createDashboardRepositoryMock,
 }));

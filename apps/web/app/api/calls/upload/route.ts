@@ -12,6 +12,7 @@ import {
 } from "@/lib/calls/upload-errors";
 import { uploadCall } from "@/lib/calls/service";
 import { unauthorizedJson } from "@/lib/http";
+import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 import {
   checkRateLimitForPolicy,
   rateLimitExceededResponse,
@@ -97,7 +98,8 @@ export async function POST(request: Request) {
 
     try {
       const recordingBytes = Buffer.from(await recording.arrayBuffer());
-      const result = await uploadCall(createCallsRepository(), authUser.id, {
+      const repository = await createEffectiveTenantRepository(createCallsRepository(), authUser.id);
+      const result = await uploadCall(repository, authUser.id, {
         callTopic: typeof callTopic === "string" ? callTopic : null,
         fileName: recording.name,
         fileSizeBytes: recording.size,

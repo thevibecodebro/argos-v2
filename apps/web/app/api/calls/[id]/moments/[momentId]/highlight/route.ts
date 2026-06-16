@@ -2,6 +2,7 @@ import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user"
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { toggleMomentHighlight } from "@/lib/calls/service";
 import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,8 @@ export async function PATCH(
   }
 
   const { id, momentId } = await params;
-  const result = await toggleMomentHighlight(createCallsRepository(), authUser.id, id, momentId, {
+  const repository = await createEffectiveTenantRepository(createCallsRepository(), authUser.id);
+  const result = await toggleMomentHighlight(repository, authUser.id, id, momentId, {
     isHighlight: body.isHighlight,
     highlightNote: typeof body.highlightNote === "string" ? body.highlightNote : null,
   });

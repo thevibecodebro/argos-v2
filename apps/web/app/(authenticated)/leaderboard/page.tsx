@@ -13,11 +13,15 @@ import {
 import { getCachedAuthenticatedSupabaseUser } from "@/lib/auth/request-user";
 import { createDashboardRepository } from "@/lib/dashboard/create-repository";
 import { getDashboardLeaderboard } from "@/lib/dashboard/service";
+import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 
 export default async function LeaderboardPage() {
   const authUser = await getCachedAuthenticatedSupabaseUser();
+  const repository = authUser
+    ? await createEffectiveTenantRepository(createDashboardRepository(), authUser.id)
+    : null;
   const leaderboard = authUser
-    ? await getDashboardLeaderboard(createDashboardRepository(), authUser.id)
+    ? await getDashboardLeaderboard(repository ?? createDashboardRepository(), authUser.id)
     : null;
 
   const qualityRows = leaderboard?.topQuality ?? [];

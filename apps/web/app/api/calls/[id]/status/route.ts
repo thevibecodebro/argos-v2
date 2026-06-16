@@ -2,6 +2,7 @@ import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user"
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { getCallStatus, retryCallProcessingJob } from "@/lib/calls/service";
 import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,8 @@ export async function GET(
   }
 
   const { id } = await params;
-  const result = await getCallStatus(createCallsRepository(), authUser.id, id);
+  const repository = await createEffectiveTenantRepository(createCallsRepository(), authUser.id);
+  const result = await getCallStatus(repository, authUser.id, id);
   return fromServiceResult(result);
 }
 
@@ -31,6 +33,7 @@ export async function POST(
   }
 
   const { id } = await params;
-  const result = await retryCallProcessingJob(createCallsRepository(), authUser.id, id);
+  const repository = await createEffectiveTenantRepository(createCallsRepository(), authUser.id);
+  const result = await retryCallProcessingJob(repository, authUser.id, id);
   return fromServiceResult(result);
 }

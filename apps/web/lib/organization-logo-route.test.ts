@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getAuthenticatedSupabaseUser = vi.fn();
 const createUsersRepository = vi.fn();
+const createEffectiveTenantUsersRepository = vi.fn();
 const getCurrentUserDetails = vi.fn();
 const updateOrganizationLogo = vi.fn();
 const createSupabaseAdminClient = vi.fn();
@@ -12,6 +13,10 @@ vi.mock("@/lib/auth/get-authenticated-user", () => ({
 
 vi.mock("@/lib/users/create-repository", () => ({
   createUsersRepository,
+}));
+
+vi.mock("@/lib/platform/effective-request", () => ({
+  createEffectiveTenantUsersRepository,
 }));
 
 vi.mock("@/lib/users/service", () => ({
@@ -50,12 +55,14 @@ describe("organization logo route", () => {
     vi.restoreAllMocks();
     getAuthenticatedSupabaseUser.mockReset();
     createUsersRepository.mockReset();
+    createEffectiveTenantUsersRepository.mockReset();
     getCurrentUserDetails.mockReset();
     updateOrganizationLogo.mockReset();
     createSupabaseAdminClient.mockReset();
 
     getAuthenticatedSupabaseUser.mockResolvedValue({ id: "auth-user-1" });
     createUsersRepository.mockReturnValue({ repository: true });
+    createEffectiveTenantUsersRepository.mockResolvedValue({ repository: "effective" });
     getCurrentUserDetails.mockResolvedValue({ ok: true, data: currentUser() });
   });
 
@@ -103,7 +110,7 @@ describe("organization logo route", () => {
       }),
     );
     expect(updateOrganizationLogo).toHaveBeenCalledWith(
-      { repository: true },
+      { repository: "effective" },
       "auth-user-1",
       "https://assets.example/org-logos/org-1.png",
     );
@@ -161,7 +168,7 @@ describe("organization logo route", () => {
     });
     expect(remove).toHaveBeenCalledWith(["org-logos/org-1.png"]);
     expect(updateOrganizationLogo).toHaveBeenCalledWith(
-      { repository: true },
+      { repository: "effective" },
       "auth-user-1",
       null,
     );

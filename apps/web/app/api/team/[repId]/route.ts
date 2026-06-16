@@ -8,6 +8,10 @@ import {
   getRepBadges,
   getRepDashboard,
 } from "@/lib/dashboard/service";
+import {
+  createEffectiveTenantAccessRepository,
+  createEffectiveTenantRepository,
+} from "@/lib/platform/effective-request";
 
 export const dynamic = "force-dynamic";
 
@@ -23,8 +27,10 @@ export async function GET(
     }
 
     const { repId } = await context.params;
-    const repository = createDashboardRepository();
-    const accessRepository = createAccessRepository();
+    const [repository, accessRepository] = await Promise.all([
+      createEffectiveTenantRepository(createDashboardRepository(), authUser.id),
+      createEffectiveTenantAccessRepository(createAccessRepository(), authUser.id),
+    ]);
     const [managerDashboard, repDashboard, badges] = await Promise.all([
       getManagerDashboard(repository, authUser.id, new Date(), accessRepository),
       getRepDashboard(repository, authUser.id, repId, new Date(), accessRepository),

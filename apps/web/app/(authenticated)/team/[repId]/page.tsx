@@ -16,6 +16,7 @@ import {
   getRepBadges,
   getRepDashboard,
 } from "@/lib/dashboard/service";
+import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 
 export default async function RepProfilePage({
   params,
@@ -24,8 +25,10 @@ export default async function RepProfilePage({
 }) {
   const { repId } = await params;
   const authUser = await getCachedAuthenticatedSupabaseUser();
-  const repository = createDashboardRepository();
   const profile = authUser ? await getCachedCurrentUserProfile(authUser.id) : null;
+  const repository = authUser
+    ? await createEffectiveTenantRepository(createDashboardRepository(), authUser.id)
+    : createDashboardRepository();
 
   if (profile?.role === "rep") {
     redirect("/dashboard");

@@ -6,21 +6,40 @@ import type {
   DashboardUserRecord,
 } from "./service";
 
-export function createEffectiveDashboardRepository(
-  repository: DashboardRepository,
-  profile: CurrentUserProfile,
+type CurrentUserLookupRepository<TUser> = {
+  findCurrentUserByAuthId(authUserId: string): Promise<TUser | null>;
+};
+
+export function createEffectiveCurrentUserRepository<
+  TUser,
+  TRepository extends CurrentUserLookupRepository<TUser>,
+>(
+  repository: TRepository,
+  effectiveUser: TUser,
   authUserId: string,
-): DashboardRepository {
+): TRepository {
   return {
     ...repository,
     findCurrentUserByAuthId(userId) {
       if (userId === authUserId) {
-        return Promise.resolve(toDashboardUserRecord(profile));
+        return Promise.resolve(effectiveUser);
       }
 
       return repository.findCurrentUserByAuthId(userId);
     },
   };
+}
+
+export function createEffectiveDashboardRepository(
+  repository: DashboardRepository,
+  profile: CurrentUserProfile,
+  authUserId: string,
+): DashboardRepository {
+  return createEffectiveCurrentUserRepository(
+    repository,
+    toEffectiveDashboardUserRecord(profile),
+    authUserId,
+  );
 }
 
 export function createEffectiveAccessRepository(
@@ -44,7 +63,7 @@ export function createEffectiveAccessRepository(
   };
 }
 
-function toDashboardUserRecord(profile: CurrentUserProfile): DashboardUserRecord {
+export function toEffectiveDashboardUserRecord(profile: CurrentUserProfile): DashboardUserRecord {
   return {
     email: profile.email,
     firstName: null,

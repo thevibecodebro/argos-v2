@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { getCachedCurrentUserDetails } from "@/lib/auth/request-user";
 import { fromServiceResult, unauthorizedJson } from "@/lib/http";
 import { createUsersRepository } from "@/lib/users/create-repository";
-import { getCurrentUserDetails, updateCurrentUserProfile } from "@/lib/users/service";
+import { updateCurrentUserProfile } from "@/lib/users/service";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ export async function GET() {
       return unauthorizedJson();
     }
 
-    return fromServiceResult(await getCurrentUserDetails(createUsersRepository(), authUser.id));
+    return fromServiceResult(await getCachedCurrentUserDetails(authUser.id));
   } catch (error) {
     console.error("Failed to load current user profile", error);
 

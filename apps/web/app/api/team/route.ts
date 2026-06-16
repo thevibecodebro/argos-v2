@@ -3,6 +3,10 @@ import { createAccessRepository } from "@/lib/access/create-repository";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { createDashboardRepository } from "@/lib/dashboard/create-repository";
 import { DashboardServiceError, getManagerDashboard } from "@/lib/dashboard/service";
+import {
+  createEffectiveTenantAccessRepository,
+  createEffectiveTenantRepository,
+} from "@/lib/platform/effective-request";
 
 export const dynamic = "force-dynamic";
 
@@ -14,12 +18,11 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const dashboard = await getManagerDashboard(
-      createDashboardRepository(),
-      authUser.id,
-      new Date(),
-      createAccessRepository(),
-    );
+    const [repository, accessRepository] = await Promise.all([
+      createEffectiveTenantRepository(createDashboardRepository(), authUser.id),
+      createEffectiveTenantAccessRepository(createAccessRepository(), authUser.id),
+    ]);
+    const dashboard = await getManagerDashboard(repository, authUser.id, new Date(), accessRepository);
 
     if (!dashboard) {
       return NextResponse.json({ error: "User is not provisioned in the app database" }, { status: 404 });

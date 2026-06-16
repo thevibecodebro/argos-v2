@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { normalizeFeedbackPayload, sendFeedbackEmail } from "@/lib/feedback/service";
 import { unauthorizedJson } from "@/lib/http";
+import { createEffectiveTenantUsersRepository } from "@/lib/platform/effective-request";
 import {
   checkRateLimitForPolicy,
   rateLimitExceededResponse,
@@ -41,7 +42,10 @@ export async function POST(request: Request) {
     return rateLimitExceededResponse(rateLimit);
   }
 
-  const usersRepository = createUsersRepository();
+  const usersRepository = await createEffectiveTenantUsersRepository(
+    createUsersRepository(),
+    authUser.id,
+  );
   const caller = await usersRepository.findCurrentUserByAuthId(authUser.id);
 
   if (!caller) {

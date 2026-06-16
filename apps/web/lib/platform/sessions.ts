@@ -87,23 +87,25 @@ export async function createPlatformSwitchSession(
   }
 
   const reason = getTrimmedString(input.reason);
-
-  if (!reason) {
-    return { ok: false, status: 400, error: "reason is required" };
-  }
+  const auditReason = reason || `Platform organization launch by ${actor.userId}`;
 
   const now = dependencies.now?.() ?? new Date();
   const expiresAt = new Date(now.getTime() + 60 * 60 * 1000);
   const data = await repository.createAccessSessionWithAuditEvent({
     staffUserId: actor.userId,
     targetOrgId: orgId,
-    reason,
+    reason: auditReason,
     expiresAt,
     audit: {
       action: "platform.session.create",
       resourceType: "organization",
       resourceId: orgId,
-      metadata: {},
+      metadata: reason
+        ? {}
+        : {
+            automaticReason: true,
+            source: "platform.organization.launch",
+          },
     },
   });
 

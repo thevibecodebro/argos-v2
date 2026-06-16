@@ -2,6 +2,7 @@ import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user"
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { exportCallData } from "@/lib/calls/service";
 import { unauthorizedJson } from "@/lib/http";
+import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,8 @@ export async function GET(
     }
 
     const { id } = await params;
-    const result = await exportCallData(createCallsRepository(), authUser.id, id);
+    const repository = await createEffectiveTenantRepository(createCallsRepository(), authUser.id);
+    const result = await exportCallData(repository, authUser.id, id);
 
     if (!result.ok) {
       return Response.json(
@@ -48,4 +50,3 @@ export async function GET(
     );
   }
 }
-

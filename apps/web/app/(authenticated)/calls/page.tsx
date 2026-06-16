@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getCachedAuthenticatedSupabaseUser } from "@/lib/auth/request-user";
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { listCalls, type CallSummary } from "@/lib/calls/service";
+import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 import {
   ForgeChip,
   ForgeEmptyState,
@@ -29,8 +30,11 @@ export default async function CallsPage({
   const authUser = await getCachedAuthenticatedSupabaseUser();
   const filters = parseFilters(resolvedSearchParams);
 
-  const result = authUser
-    ? await listCalls(createCallsRepository(), authUser.id, filters)
+  const repository = authUser
+    ? await createEffectiveTenantRepository(createCallsRepository(), authUser.id)
+    : null;
+  const result = authUser && repository
+    ? await listCalls(repository, authUser.id, filters)
     : null;
 
   const calls = result?.ok ? result.data.calls : [];

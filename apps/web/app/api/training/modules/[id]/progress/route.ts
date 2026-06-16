@@ -1,5 +1,6 @@
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 import { createTrainingRepository } from "@/lib/training/create-repository";
 import { submitTrainingProgress } from "@/lib/training/service";
 
@@ -28,8 +29,9 @@ export async function POST(
   }
 
   const { id } = await params;
+  const repository = await createEffectiveTenantRepository(createTrainingRepository(), authUser.id);
   const result = await submitTrainingProgress(
-    createTrainingRepository(),
+    repository,
     authUser.id,
     id,
     Array.isArray(body.quizAnswers) ? body.quizAnswers : undefined,

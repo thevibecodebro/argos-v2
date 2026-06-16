@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { createDashboardRepository } from "@/lib/dashboard/create-repository";
 import { DashboardServiceError, getExecutiveDashboard } from "@/lib/dashboard/service";
+import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,8 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const dashboard = await getExecutiveDashboard(createDashboardRepository(), authUser.id);
+    const repository = await createEffectiveTenantRepository(createDashboardRepository(), authUser.id);
+    const dashboard = await getExecutiveDashboard(repository, authUser.id);
 
     if (!dashboard) {
       return NextResponse.json({ error: "User is not provisioned in the app database" }, { status: 404 });

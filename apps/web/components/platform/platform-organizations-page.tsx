@@ -55,7 +55,8 @@ export function PlatformOrganizationsPage({
     try {
       const data = await submitCreateSession(fetch, formData, selectedOrganization?.id ?? null);
       setSession(toActiveSession(data, organizations));
-      setSessionStatus("Session active. Open the workspace to operate as org admin.");
+      setSessionStatus("Opening organization workspace.");
+      window.location.assign("/dashboard");
     } catch (error) {
       setSessionStatus(error instanceof Error ? error.message : "Unable to start platform session");
     } finally {
@@ -268,7 +269,7 @@ export function PlatformOrganizationsPage({
             <p className="forge-page-eyebrow">Audited access</p>
             <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">Start session</h2>
             <p className="mt-1 text-sm leading-6 text-[var(--forge-muted)]">
-              Record why you need access before entering the organization workspace.
+              Launch the selected organization. Audit history is recorded automatically.
             </p>
             {session ? (
               <div
@@ -322,14 +323,6 @@ export function PlatformOrganizationsPage({
                   ))}
                 </select>
               </label>
-              <label className="grid gap-2 text-sm text-[var(--forge-muted)]">
-                Reason
-                <textarea
-                  className="min-h-24 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
-                  name="reason"
-                  required
-                />
-              </label>
               {sessionStatus ? (
                 <p className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-muted)]">
                   {sessionStatus}
@@ -341,7 +334,7 @@ export function PlatformOrganizationsPage({
                 type="submit"
                 variant="primary"
               >
-                {isSwitching ? "Starting session" : "Start session"}
+                {isSwitching ? "Opening organization" : "Launch organization"}
               </ForgeButton>
             </form>
           </ForgeSurface>

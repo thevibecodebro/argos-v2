@@ -13,11 +13,15 @@ import {
 import { getCachedAuthenticatedSupabaseUser } from "@/lib/auth/request-user";
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { listHighlights } from "@/lib/calls/service";
+import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 
 export default async function HighlightsPage() {
   const authUser = await getCachedAuthenticatedSupabaseUser();
+  const repository = authUser
+    ? await createEffectiveTenantRepository(createCallsRepository(), authUser.id)
+    : null;
   const result = authUser
-    ? await listHighlights(createCallsRepository(), authUser.id)
+    ? await listHighlights(repository ?? createCallsRepository(), authUser.id)
     : null;
   const highlights = result?.ok ? result.data.highlights : [];
 

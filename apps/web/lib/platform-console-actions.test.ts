@@ -67,21 +67,20 @@ describe("platform console actions", () => {
     );
   });
 
-  it("posts platform session requests and surfaces API errors", async () => {
-    const formData = createFormData({ reason: " Support ", orgId: "" });
+  it("posts platform session requests without requiring a manual audit reason", async () => {
+    const formData = createFormData({ orgId: "" });
     const fetcher = vi.fn().mockResolvedValue(
       Response.json({ error: "reason is required" }, { status: 400 }),
     );
 
     expect(buildSessionPayload(formData, "org-1")).toEqual({
       orgId: "org-1",
-      reason: "Support",
     });
     await expect(submitCreateSession(fetcher, formData, "org-1")).rejects.toThrow("reason is required");
     expect(fetcher).toHaveBeenCalledWith(
       PLATFORM_SESSION_ENDPOINT,
       expect.objectContaining({
-        body: JSON.stringify({ orgId: "org-1", reason: "Support" }),
+        body: JSON.stringify({ orgId: "org-1" }),
         headers: { "Content-Type": "application/json" },
         method: "POST",
       }),

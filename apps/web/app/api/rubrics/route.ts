@@ -10,6 +10,7 @@ import {
   loadRubricHistory,
   validateRubricInput,
 } from "@/lib/rubrics/service";
+import { createEffectiveTenantUsersRepository } from "@/lib/platform/effective-request";
 import { createUsersRepository } from "@/lib/users/create-repository";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +26,11 @@ async function requireAdminContext(): Promise<AdminContext> {
     return { ok: false, response: unauthorizedJson() };
   }
 
-  const caller = await createUsersRepository().findCurrentUserByAuthId(authUser.id);
+  const usersRepository = await createEffectiveTenantUsersRepository(
+    createUsersRepository(),
+    authUser.id,
+  );
+  const caller = await usersRepository.findCurrentUserByAuthId(authUser.id);
 
   if (!caller?.orgId || caller.role !== "admin") {
     return {

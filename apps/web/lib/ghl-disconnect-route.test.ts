@@ -12,6 +12,10 @@ vi.mock("@/lib/integrations/create-repository", () => ({
   createIntegrationsRepository,
 }));
 
+vi.mock("@/lib/platform/effective-request", () => ({
+  createEffectiveTenantRepository: vi.fn(async (repository) => repository),
+}));
+
 vi.mock("@/lib/integrations/service", async () => {
   const actual = await vi.importActual<typeof import("@/lib/integrations/service")>(
     "@/lib/integrations/service",

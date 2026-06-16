@@ -2,6 +2,7 @@ import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user"
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { deleteCallData, getCallDetail, renameCall } from "@/lib/calls/service";
 import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +19,8 @@ export async function GET(
     }
 
     const { id } = await params;
-    const result = await getCallDetail(createCallsRepository(), authUser.id, id);
+    const repository = await createEffectiveTenantRepository(createCallsRepository(), authUser.id);
+    const result = await getCallDetail(repository, authUser.id, id);
     return fromServiceResult(result);
   } catch (error) {
     console.error("Failed to load call detail", error);
@@ -44,8 +46,9 @@ export async function PATCH(
     }
 
     const { id } = await params;
+    const repository = await createEffectiveTenantRepository(createCallsRepository(), authUser.id);
     const result = await renameCall(
-      createCallsRepository(),
+      repository,
       authUser.id,
       id,
       typeof body.callTopic === "string" ? body.callTopic : null,
@@ -70,7 +73,8 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    const result = await deleteCallData(createCallsRepository(), authUser.id, id, {
+    const repository = await createEffectiveTenantRepository(createCallsRepository(), authUser.id);
+    const result = await deleteCallData(repository, authUser.id, id, {
       removeStorageObjects: removeCallStorageObjects,
     });
 

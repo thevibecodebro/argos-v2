@@ -11,6 +11,10 @@ vi.mock("@/lib/integrations/create-repository", () => ({
   createIntegrationsRepository,
 }));
 
+vi.mock("@/lib/platform/effective-request", () => ({
+  createEffectiveTenantRepository: vi.fn(async (repository) => repository),
+}));
+
 describe("integration connect routes", () => {
   beforeEach(() => {
     vi.resetModules();

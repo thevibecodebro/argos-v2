@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   createEffectiveAccessRepository,
+  createEffectiveCurrentUserRepository,
   createEffectiveDashboardRepository,
+  toEffectiveDashboardUserRecord,
 } from "./effective-platform";
 import type { AccessRepository } from "@/lib/access/repository.types";
 import type { CurrentUserProfile, DashboardRepository } from "./service";
@@ -21,6 +23,28 @@ const effectiveProfile: CurrentUserProfile = {
 };
 
 describe("effective platform dashboard adapters", () => {
+  it("wraps any tenant repository that resolves the current user by auth id", async () => {
+    const repository = {
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue(null),
+      listCalls: vi.fn().mockResolvedValue([]),
+    };
+    const effectiveRepository = createEffectiveCurrentUserRepository(
+      repository,
+      toEffectiveDashboardUserRecord(effectiveProfile),
+      "staff-user",
+    );
+
+    await expect(effectiveRepository.findCurrentUserByAuthId("staff-user")).resolves.toMatchObject({
+      email: "platform:staff-user",
+      org: {
+        id: "org-1",
+        slug: "acme-health",
+      },
+    });
+    await expect(effectiveRepository.listCalls()).resolves.toEqual([]);
+    expect(repository.findCurrentUserByAuthId).not.toHaveBeenCalled();
+  });
+
   it("returns the effective tenant profile instead of re-querying the raw platform staff user", async () => {
     const repository = {
       findCurrentUserByAuthId: vi.fn().mockResolvedValue(null),

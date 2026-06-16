@@ -1,5 +1,6 @@
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 import { createTrainingRepository } from "@/lib/training/create-repository";
 import { assignTrainingModule } from "@/lib/training/service";
 
@@ -76,7 +77,8 @@ export async function POST(
   }
 
   const { id } = await params;
-  const result = await assignTrainingModule(createTrainingRepository(), authUser.id, id, {
+  const repository = await createEffectiveTenantRepository(createTrainingRepository(), authUser.id);
+  const result = await assignTrainingModule(repository, authUser.id, id, {
     repIds: body.repIds.map((repId) => repId.trim()),
     dueDate,
   });

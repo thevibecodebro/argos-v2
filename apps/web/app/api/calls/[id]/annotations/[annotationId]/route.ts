@@ -2,6 +2,7 @@ import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user"
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { deleteAnnotation } from "@/lib/calls/service";
 import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,7 @@ export async function DELETE(
   }
 
   const { id, annotationId } = await params;
-  const result = await deleteAnnotation(createCallsRepository(), authUser.id, id, annotationId);
+  const repository = await createEffectiveTenantRepository(createCallsRepository(), authUser.id);
+  const result = await deleteAnnotation(repository, authUser.id, id, annotationId);
   return fromServiceResult(result);
 }

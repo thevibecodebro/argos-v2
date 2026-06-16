@@ -6,6 +6,10 @@ import {
 } from "@/lib/auth/request-user";
 import { createInvitesRepository } from "@/lib/invites/create-repository";
 import { listPendingInvites } from "@/lib/invites/service";
+import {
+  createEffectiveTenantTeamAccessRepository,
+  createEffectiveTenantUsersRepository,
+} from "@/lib/platform/effective-request";
 import { createTeamAccessRepository } from "@/lib/team-access/create-repository";
 import { getTeamAccessSnapshot } from "@/lib/team-access/service";
 import { createUsersRepository } from "@/lib/users/create-repository";
@@ -20,10 +24,14 @@ export default async function SettingsPeoplePage() {
   if (!result?.ok) redirect("/settings");
   if (result.data.role !== "admin") redirect("/settings");
 
+  const [usersRepository, teamAccessRepository] = await Promise.all([
+    createEffectiveTenantUsersRepository(createUsersRepository(), authUser.id),
+    createEffectiveTenantTeamAccessRepository(createTeamAccessRepository(), authUser.id),
+  ]);
   const [membersResult, teamAccessResult, pendingInvitesResult] = await Promise.all([
-    listOrganizationMembers(createUsersRepository(), authUser.id),
-    getTeamAccessSnapshot(createTeamAccessRepository(), authUser.id),
-    listPendingInvites(createInvitesRepository(), createUsersRepository(), authUser.id),
+    listOrganizationMembers(usersRepository, authUser.id),
+    getTeamAccessSnapshot(teamAccessRepository, authUser.id),
+    listPendingInvites(createInvitesRepository(), usersRepository, authUser.id),
   ]);
 
   return (

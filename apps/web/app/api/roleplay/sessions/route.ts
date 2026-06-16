@@ -1,5 +1,6 @@
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 import { createRoleplayRepository } from "@/lib/roleplay/create-repository";
 import { createRoleplaySession, listRoleplaySessions } from "@/lib/roleplay/service";
 
@@ -12,7 +13,8 @@ export async function GET() {
     return unauthorizedJson();
   }
 
-  const result = await listRoleplaySessions(createRoleplayRepository(), authUser.id);
+  const repository = await createEffectiveTenantRepository(createRoleplayRepository(), authUser.id);
+  const result = await listRoleplaySessions(repository, authUser.id);
   return fromServiceResult(result);
 }
 
@@ -30,6 +32,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "personaId is required" }, { status: 400 });
   }
 
-  const result = await createRoleplaySession(createRoleplayRepository(), authUser.id, personaId);
+  const repository = await createEffectiveTenantRepository(createRoleplayRepository(), authUser.id);
+  const result = await createRoleplaySession(repository, authUser.id, personaId);
   return fromServiceResult(result);
 }

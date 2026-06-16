@@ -1,8 +1,9 @@
 import { CALL_SCORING_CATEGORIES } from "@argos-v2/call-processing";
 import {
   getCachedAuthenticatedSupabaseUser,
-  getCachedCurrentUserDetails,
+  getCachedCurrentUserProfile,
 } from "@/lib/auth/request-user";
+import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 import { createRubricsRepository } from "@/lib/rubrics/create-repository";
 import { getActiveRubric } from "@/lib/rubrics/service";
 import { createTrainingRepository } from "@/lib/training/create-repository";
@@ -40,11 +41,14 @@ export async function loadTrainingPageData(
   options: LoadTrainingPageDataOptions = {},
 ): Promise<TrainingPageData> {
   const authUser = await getCachedAuthenticatedSupabaseUser();
-  const currentUserResult = authUser ? await getCachedCurrentUserDetails(authUser.id) : null;
-  const orgId = currentUserResult?.ok ? currentUserResult.data.orgId : null;
+  const currentUserProfile = authUser ? await getCachedCurrentUserProfile(authUser.id) : null;
+  const orgId = currentUserProfile?.org?.id ?? null;
+  const trainingRepository = authUser
+    ? await createEffectiveTenantRepository(createTrainingRepository(), authUser.id)
+    : null;
   const [modulesResult, aiStatus, activeRubricResult] = authUser
     ? await Promise.all([
-        getTrainingModules(createTrainingRepository(), authUser.id),
+        getTrainingModules(trainingRepository ?? createTrainingRepository(), authUser.id),
         Promise.resolve(getTrainingAiStatus()),
         orgId
           ? getActiveRubric(createRubricsRepository(), orgId)
@@ -64,7 +68,7 @@ export async function loadTrainingPageData(
   const modules = modulesResult?.ok ? modulesResult.data.modules : [];
   const canManage = modulesResult?.ok ? modulesResult.data.canManage : false;
   const teamProgressResult = authUser && canManage && options.includeTeamProgress
-    ? await getTrainingTeamProgress(createTrainingRepository(), authUser.id)
+    ? await getTrainingTeamProgress(trainingRepository ?? createTrainingRepository(), authUser.id)
     : null;
   const teamRows = teamProgressResult?.ok ? teamProgressResult.data.rows : [];
   const assignedCount = modules.filter((module) => module.progress?.status === "assigned").length;

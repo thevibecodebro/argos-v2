@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { unauthorizedJson, fromServiceResult } from "@/lib/http";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { createEffectiveTenantUsersRepository } from "@/lib/platform/effective-request";
 import { createUsersRepository } from "@/lib/users/create-repository";
 import { removeOrganizationMember, updateOrganizationMemberRole } from "@/lib/users/service";
 
@@ -21,9 +22,13 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   const { userId } = await context.params;
   const payload = (await request.json()) as { role?: unknown };
+  const repository = await createEffectiveTenantUsersRepository(
+    createUsersRepository(),
+    authUser.id,
+  );
 
   return fromServiceResult(
-    await updateOrganizationMemberRole(createUsersRepository(), authUser.id, userId, payload),
+    await updateOrganizationMemberRole(repository, authUser.id, userId, payload),
   );
 }
 
@@ -36,9 +41,13 @@ export async function DELETE(_request: Request, context: RouteContext) {
     }
 
     const { userId } = await context.params;
+    const repository = await createEffectiveTenantUsersRepository(
+      createUsersRepository(),
+      authUser.id,
+    );
 
     return fromServiceResult(
-      await removeOrganizationMember(createUsersRepository(), authUser.id, userId),
+      await removeOrganizationMember(repository, authUser.id, userId),
     );
   } catch (error) {
     console.error("Failed to remove organization member", error);

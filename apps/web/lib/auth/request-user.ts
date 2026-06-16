@@ -52,5 +52,37 @@ export const getCachedCurrentUserProfile = cache(async (authUserId: string) => {
 });
 
 export const getCachedCurrentUserDetails = cache(async (authUserId: string) =>
-  getCurrentUserDetails(createUsersRepository(), authUserId),
+  {
+    const cookieStore = await cookies();
+
+    if (getPlatformSessionCookieValue(cookieStore)) {
+      const profile = await getCachedCurrentUserProfile(authUserId);
+
+      if (profile?.email.startsWith("platform:") && profile.org) {
+        return {
+          ok: true as const,
+          data: {
+            displayNameSet: true,
+            email: profile.email,
+            firstName: null,
+            id: profile.id,
+            lastName: profile.fullName || null,
+            org: {
+              createdAt: new Date(0).toISOString(),
+              id: profile.org.id,
+              logoUrl: profile.org.logoUrl ?? null,
+              name: profile.org.name,
+              plan: profile.org.plan,
+              slug: profile.org.slug,
+            },
+            orgId: profile.org.id,
+            profileImageUrl: null,
+            role: profile.role,
+          },
+        };
+      }
+    }
+
+    return getCurrentUserDetails(createUsersRepository(), authUserId);
+  },
 );

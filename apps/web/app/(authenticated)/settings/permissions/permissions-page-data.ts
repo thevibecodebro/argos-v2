@@ -3,6 +3,7 @@ import {
   getCachedAuthenticatedSupabaseUser,
   getCachedCurrentUserDetails,
 } from "@/lib/auth/request-user";
+import { createEffectiveTenantTeamAccessRepository } from "@/lib/platform/effective-request";
 import { createTeamAccessRepository } from "@/lib/team-access/create-repository";
 import { getTeamAccessSnapshot, PRESET_GRANTS } from "@/lib/team-access/service";
 
@@ -14,10 +15,11 @@ export async function loadAdminPermissionsSettings() {
   if (!result?.ok) redirect("/settings");
   if (result.data.role !== "admin") redirect("/settings");
 
-  const snapshotResult = await getTeamAccessSnapshot(
+  const repository = await createEffectiveTenantTeamAccessRepository(
     createTeamAccessRepository(),
     authUser.id,
   );
+  const snapshotResult = await getTeamAccessSnapshot(repository, authUser.id);
   const snapshot = snapshotResult?.ok ? snapshotResult.data : null;
 
   const presets = (Object.keys(PRESET_GRANTS) as Array<keyof typeof PRESET_GRANTS>).map(

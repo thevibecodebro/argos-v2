@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { createEffectiveTenantUsersRepository } from "@/lib/platform/effective-request";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createUsersRepository } from "@/lib/users/create-repository";
 import {
@@ -38,7 +39,10 @@ function errorJson(error: string, status = 400) {
 }
 
 async function requireBrandingAdmin(authUserId: string) {
-  const repository = createUsersRepository();
+  const repository = await createEffectiveTenantUsersRepository(
+    createUsersRepository(),
+    authUserId,
+  );
   const userResult = await getCurrentUserDetails(repository, authUserId);
 
   if (!userResult.ok) {

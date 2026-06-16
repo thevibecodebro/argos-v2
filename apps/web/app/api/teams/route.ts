@@ -4,6 +4,10 @@ import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user"
 import { createTeamAccessRepository } from "@/lib/team-access/create-repository";
 import { createTeam } from "@/lib/team-access/service";
 import { createInvitesRepository } from "@/lib/invites/create-repository";
+import {
+  createEffectiveTenantTeamAccessRepository,
+  createEffectiveTenantUsersRepository,
+} from "@/lib/platform/effective-request";
 import { createUsersRepository } from "@/lib/users/create-repository";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +19,10 @@ export async function GET() {
     return unauthorizedJson();
   }
 
-  const usersRepo = createUsersRepository();
+  const usersRepo = await createEffectiveTenantUsersRepository(
+    createUsersRepository(),
+    authUser.id,
+  );
   const caller = await usersRepo.findCurrentUserByAuthId(authUser.id);
 
   if (!caller || !caller.orgId) {
@@ -39,5 +46,9 @@ export async function POST(request: Request) {
   }
 
   const payload = (await request.json()) as { name?: unknown; description?: unknown };
-  return fromServiceResult(await createTeam(createTeamAccessRepository(), authUser.id, payload));
+  const repository = await createEffectiveTenantTeamAccessRepository(
+    createTeamAccessRepository(),
+    authUser.id,
+  );
+  return fromServiceResult(await createTeam(repository, authUser.id, payload));
 }

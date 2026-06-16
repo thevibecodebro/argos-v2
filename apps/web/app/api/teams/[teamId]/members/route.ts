@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { unauthorizedJson, fromServiceResult } from "@/lib/http";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { createEffectiveTenantTeamAccessRepository } from "@/lib/platform/effective-request";
 import { createTeamAccessRepository } from "@/lib/team-access/create-repository";
 import {
   addTeamManagerMembership,
@@ -26,10 +27,14 @@ export async function POST(request: Request, context: RouteContext) {
     membershipType?: unknown;
     userId?: unknown;
   };
+  const repository = await createEffectiveTenantTeamAccessRepository(
+    createTeamAccessRepository(),
+    authUser.id,
+  );
 
   if (payload.membershipType === "manager") {
     return fromServiceResult(
-      await addTeamManagerMembership(createTeamAccessRepository(), authUser.id, {
+      await addTeamManagerMembership(repository, authUser.id, {
         teamId,
         userId: payload.userId,
       }),
@@ -41,7 +46,7 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   return fromServiceResult(
-    await addTeamRepMembership(createTeamAccessRepository(), authUser.id, {
+    await addTeamRepMembership(repository, authUser.id, {
       teamId,
       userId: payload.userId,
     }),
@@ -60,9 +65,13 @@ export async function DELETE(request: Request, context: RouteContext) {
     membershipType?: unknown;
     userId?: unknown;
   };
+  const repository = await createEffectiveTenantTeamAccessRepository(
+    createTeamAccessRepository(),
+    authUser.id,
+  );
 
   return fromServiceResult(
-    await removeTeamMembership(createTeamAccessRepository(), authUser.id, {
+    await removeTeamMembership(repository, authUser.id, {
       teamId,
       userId: payload.userId,
       membershipType: payload.membershipType,

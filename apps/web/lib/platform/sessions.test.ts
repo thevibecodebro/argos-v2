@@ -42,7 +42,7 @@ function createRepository(overrides: Partial<PlatformSessionRepository> = {}) {
 }
 
 describe("createPlatformSwitchSession", () => {
-  it("requires a reason", async () => {
+  it("creates an automatic audit reason when none is provided", async () => {
     const repository = createRepository();
 
     await expect(
@@ -50,14 +50,28 @@ describe("createPlatformSwitchSession", () => {
         repository,
         { userId: "staff-1", role: "operator" },
         { orgId: "org-1", reason: " " },
+        { now: () => new Date("2026-06-11T10:00:00.000Z") },
       ),
     ).resolves.toEqual({
-      ok: false,
-      status: 400,
-      error: "reason is required",
+      ok: true,
+      data: { auditEvent, session },
     });
 
-    expect(repository.createAccessSessionWithAuditEvent).not.toHaveBeenCalled();
+    expect(repository.createAccessSessionWithAuditEvent).toHaveBeenCalledWith({
+      audit: {
+        action: "platform.session.create",
+        metadata: {
+          automaticReason: true,
+          source: "platform.organization.launch",
+        },
+        resourceId: "org-1",
+        resourceType: "organization",
+      },
+      expiresAt: new Date("2026-06-11T11:00:00.000Z"),
+      reason: "Platform organization launch by staff-1",
+      staffUserId: "staff-1",
+      targetOrgId: "org-1",
+    });
   });
 
   it("creates an audited platform access session", async () => {

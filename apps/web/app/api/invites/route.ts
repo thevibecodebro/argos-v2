@@ -8,6 +8,7 @@ import {
   auditPlatformWorkspaceMutation,
   getPlatformMutationAuditContext,
 } from "@/lib/platform/audit";
+import { createEffectiveTenantUsersRepository } from "@/lib/platform/effective-request";
 import { createUsersRepository } from "@/lib/users/create-repository";
 import { sendInvite, listPendingInvites } from "@/lib/invites/service";
 import {
@@ -121,7 +122,7 @@ export async function GET() {
 
   const result = await listPendingInvites(
     createInvitesRepository(),
-    createUsersRepository(),
+    await createEffectiveTenantUsersRepository(createUsersRepository(), authUser.id),
     authUser.id,
   );
 

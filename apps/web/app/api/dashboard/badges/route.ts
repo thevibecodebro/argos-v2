@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { createDashboardRepository } from "@/lib/dashboard/create-repository";
 import { DashboardServiceError, getRepBadges } from "@/lib/dashboard/service";
+import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,8 @@ export async function GET(request: NextRequest) {
     }
 
     const repId = request.nextUrl.searchParams.get("repId") ?? undefined;
-    const badges = await getRepBadges(createDashboardRepository(), authUser.id, repId);
+    const repository = await createEffectiveTenantRepository(createDashboardRepository(), authUser.id);
+    const badges = await getRepBadges(repository, authUser.id, repId);
 
     if (!badges) {
       return NextResponse.json({ error: "User is not provisioned in the app database" }, { status: 404 });

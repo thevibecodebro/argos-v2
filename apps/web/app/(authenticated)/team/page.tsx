@@ -12,11 +12,14 @@ import {
 } from "@/lib/auth/request-user";
 import { createDashboardRepository } from "@/lib/dashboard/create-repository";
 import { getManagerDashboard } from "@/lib/dashboard/service";
+import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 
 export default async function TeamPage() {
   const authUser = await getCachedAuthenticatedSupabaseUser();
-  const repository = createDashboardRepository();
   const profile = authUser ? await getCachedCurrentUserProfile(authUser.id) : null;
+  const repository = authUser
+    ? await createEffectiveTenantRepository(createDashboardRepository(), authUser.id)
+    : createDashboardRepository();
 
   if (profile?.role === "rep") {
     redirect("/dashboard");
