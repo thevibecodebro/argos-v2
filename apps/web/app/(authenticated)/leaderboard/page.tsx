@@ -3,12 +3,9 @@ import {
   ForgeChip,
   ForgeEmptyState,
   ForgeIcon,
-  ForgeSegmentedTab,
-  ForgeSegmentedTabs,
 } from "@/components/forge";
 import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
 import {
-  OperationalMetricStrip,
   OperationalPreviewDrawer,
   OperationalToolbar,
   OperationalWorkspace,
@@ -28,6 +25,9 @@ export default async function LeaderboardPage() {
   const improvementRows = leaderboard?.mostImproved ?? [];
   const rows = buildLeaderboardRows(qualityRows, volumeRows, improvementRows);
   const selected = rows[0] ?? null;
+  const sectionClassName = selected
+    ? "grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_320px]"
+    : "grid min-w-0 gap-3";
 
   return (
     <AuthenticatedPageContainer>
@@ -38,63 +38,9 @@ export default async function LeaderboardPage() {
           eyebrow="People"
           status={{ icon: "leaderboard", label: `${rows.length} ranked reps`, tone: "muted" }}
           title="Leaderboard"
-        >
-          <div className="space-y-2">
-            <ForgeSegmentedTabs
-              className="w-full justify-start overflow-x-auto"
-              label="Leaderboard views"
-            >
-              <ForgeSegmentedTab active href="/leaderboard" icon="leaderboard">
-                Overall
-              </ForgeSegmentedTab>
-              <ForgeSegmentedTab href="/leaderboard?view=quality" icon="workspace_premium">
-                Quality
-              </ForgeSegmentedTab>
-              <ForgeSegmentedTab href="/leaderboard?view=volume" icon="call">
-                Volume
-              </ForgeSegmentedTab>
-              <ForgeSegmentedTab href="/leaderboard?view=improvement" icon="trending_up">
-                Improvement
-              </ForgeSegmentedTab>
-            </ForgeSegmentedTabs>
-            <div className="flex flex-wrap gap-2 text-xs text-[var(--forge-muted)]">
-              <span className="rounded-lg border border-[var(--forge-border)] px-2 py-1">Period: Last 30 days</span>
-              <span className="rounded-lg border border-[var(--forge-border)] px-2 py-1">Team: All teams</span>
-              <span className="rounded-lg border border-[var(--forge-border)] px-2 py-1">Role: All roles</span>
-            </div>
-          </div>
-        </OperationalToolbar>
-
-        <OperationalMetricStrip
-          metrics={[
-            {
-              icon: "workspace_premium",
-              label: "Top score",
-              tone: scoreTone(qualityRows[0]?.value),
-              value: qualityRows[0]?.value ?? "--",
-            },
-            {
-              icon: "trending_up",
-              label: "Most improved",
-              tone: improvementRows[0]?.value != null ? "success" : "muted",
-              value: improvementRows[0]?.value ?? "--",
-            },
-            {
-              icon: "call",
-              label: "Calls scored",
-              tone: volumeRows[0]?.value != null ? "cyan" : "muted",
-              value: volumeRows[0]?.value ?? "--",
-            },
-            {
-              icon: "groups",
-              label: "Ranked reps",
-              tone: rows.length > 0 ? "gold" : "muted",
-              value: rows.length,
-            },
-          ]}
         />
 
-        <section className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <section className={sectionClassName}>
           <div
             className="min-w-0 overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[rgba(8,6,5,0.88)] shadow-[inset_0_1px_0_rgba(255,244,230,0.04)]"
             data-forge-table="true"
@@ -162,35 +108,30 @@ export default async function LeaderboardPage() {
             ) : (
               <div className="p-4">
                 <ForgeEmptyState
-                  description="Once this org has enough scored calls, ranked reps will populate automatically."
+                  description="Scored calls will populate rankings once reps have activity."
                   icon="leaderboard"
-                  title="No leaderboard data yet"
+                  title="No leaderboard data"
                 />
               </div>
             )}
           </div>
 
-          <OperationalPreviewDrawer
-            actions={
-              selected
-                ? [{ href: `/team/${selected.userId}`, label: "Open profile", variant: "primary" }]
-                : [{ href: "/team", label: "Open team view", variant: "secondary" }]
-            }
-            description={
-              selected
-                ? "Rank is based on quality, call activity, and improvement signals for the selected period."
-                : "Rep ranking context appears here once scored calls are available."
-            }
-            eyebrow="Rep insight"
-            title={selected?.name ?? "No rank selected"}
-          >
-            <div className="grid gap-2 text-sm">
-              <InsightRow label="Quality score" value={selected?.score ?? "--"} />
-              <InsightRow label="Call volume" value={selected?.calls ?? "--"} />
-              <InsightRow label="Improvement" value={selected?.improvement != null ? `+${selected.improvement}` : "--"} />
-              <InsightRow label="Coaching action" value={selected?.score != null && selected.score < 70 ? "Review calls" : "Maintain pace"} />
-            </div>
-          </OperationalPreviewDrawer>
+          {selected ? (
+            <OperationalPreviewDrawer
+              actions={[{ href: `/team/${selected.userId}`, label: "Open profile", variant: "primary" }]}
+              data-selected-object-drawer="true"
+              description="Rank is based on quality, call activity, and improvement signals for the selected period."
+              eyebrow="Rep insight"
+              title={selected.name}
+            >
+              <div className="grid gap-2 text-sm">
+                <InsightRow label="Quality score" value={selected.score ?? "--"} />
+                <InsightRow label="Call volume" value={selected.calls ?? "--"} />
+                <InsightRow label="Improvement" value={selected.improvement != null ? `+${selected.improvement}` : "--"} />
+                <InsightRow label="Coaching action" value={selected.score != null && selected.score < 70 ? "Review calls" : "Maintain pace"} />
+              </div>
+            </OperationalPreviewDrawer>
+          ) : null}
         </section>
       </OperationalWorkspace>
     </AuthenticatedPageContainer>
@@ -277,14 +218,6 @@ function scoreColor(value: number | null | undefined) {
   if (value >= 70) return "text-[var(--forge-gold)]";
   if (value >= 60) return "text-[var(--forge-ember)]";
   return "text-[var(--forge-danger)]";
-}
-
-function scoreTone(value: number | null | undefined) {
-  if (typeof value !== "number") return "muted";
-  if (value >= 85) return "success";
-  if (value >= 70) return "gold";
-  if (value >= 60) return "ember";
-  return "danger";
 }
 
 function InsightRow({

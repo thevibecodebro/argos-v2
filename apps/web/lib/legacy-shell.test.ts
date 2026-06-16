@@ -167,12 +167,14 @@ describe("legacy UI shell", () => {
 
     const html = renderToStaticMarkup(await DashboardPage());
 
-    expect(html).toContain('data-dashboard-route="operational-pulse"');
+    expect(html).toContain('data-dashboard-route="dashboard"');
     expect(html).toContain('data-operational-toolbar="true"');
     expect(html).toContain('data-dashboard-today-queue="true"');
+    expect(html).toContain(">Dashboard<");
     expect(html).toContain("Open team");
     expect(html).toContain("Upload call");
-    expect(html).toContain("Review queue");
+    expect(html).toContain("Needs attention");
+    expect(html).not.toContain("Review queue");
     expect(html).not.toContain("Rep Skill Matrix");
     expect(html).not.toContain('data-rep-skill-matrix-table="true"');
     expect(html).not.toContain('href="/team/rep-1"');

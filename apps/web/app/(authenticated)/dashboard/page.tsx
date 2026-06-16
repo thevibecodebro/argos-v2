@@ -23,7 +23,6 @@ import {
   type RepDashboard,
 } from "@/lib/dashboard/service";
 import {
-  OperationalMetricStrip,
   OperationalPreviewDrawer,
   OperationalToolbar,
   OperationalWorkspace,
@@ -37,14 +36,14 @@ export default async function DashboardPage() {
   if (!authUser || !profile) {
     return (
       <AuthenticatedPageContainer>
-        <OperationalWorkspace data-dashboard-route="operational-pulse">
+        <OperationalWorkspace data-dashboard-route="dashboard">
           <OperationalToolbar
             description="This account is authenticated but is not provisioned inside the Argos app database yet."
             eyebrow="Provisioning"
             title="Dashboard unavailable"
           />
           <EmptyState
-            description="Complete app provisioning first, then reload this route to unlock the product dashboards."
+            description="Complete app provisioning first, then reload the dashboard to unlock the attention queue."
             title="User record missing"
           />
         </OperationalWorkspace>
@@ -67,7 +66,7 @@ export default async function DashboardPage() {
 
   return (
     <AuthenticatedPageContainer>
-      <OperationalWorkspace data-dashboard-route="operational-pulse">
+      <OperationalWorkspace data-dashboard-route="dashboard">
         <OperationalToolbar
           actions={
             isManager
@@ -78,99 +77,12 @@ export default async function DashboardPage() {
               : [
                   { href: "/calls", icon: "subject", label: "Open calls", variant: "secondary" },
                   { href: "/training", icon: "school", label: "Open training", variant: "primary" },
-                ]
+              ]
           }
-          description="See what needs attention today, then jump into the right workspace."
-          eyebrow="Review"
+          description="Start with the items that need attention, then move into the right workspace."
+          eyebrow="Work queue"
           status={{ icon: "dashboard", label: roleLabel, tone: "muted" }}
           title="Dashboard"
-        />
-
-        <OperationalMetricStrip
-          metrics={
-            isExecutive
-              ? [
-                  {
-                    icon: "monitoring",
-                    label: "Team avg score",
-                    tone: scoreMetricTone(managerDashboard?.teamAvgScore),
-                    value: managerDashboard?.teamAvgScore ?? "--",
-                  },
-                  {
-                    icon: "call",
-                    label: "Total calls",
-                    tone: "cyan",
-                    value: managerDashboard?.totalCallsThisMonth ?? 0,
-                  },
-                  {
-                    icon: "school",
-                    label: "Training completion",
-                    tone: "gold",
-                    value: executiveDashboard?.trainingStats
-                      ? `${executiveDashboard.trainingStats.completionRate}%`
-                      : "--",
-                  },
-                  {
-                    icon: "warning",
-                    label: "Coaching flags",
-                    tone: (managerDashboard?.coachingFlagsCount ?? 0) > 0 ? "ember" : "success",
-                    value: managerDashboard?.coachingFlagsCount ?? 0,
-                  },
-                ]
-              : isManager
-                ? [
-                    {
-                      icon: "monitoring",
-                      label: "Team avg score",
-                      tone: scoreMetricTone(managerDashboard?.teamAvgScore),
-                      value: managerDashboard?.teamAvgScore ?? "--",
-                    },
-                    {
-                      icon: "call",
-                      label: "Total calls",
-                      tone: "cyan",
-                      value: managerDashboard?.totalCallsThisMonth ?? 0,
-                    },
-                    {
-                      icon: "group",
-                      label: "Active reps",
-                      tone: "gold",
-                      value: managerDashboard?.reps.length ?? 0,
-                    },
-                    {
-                      icon: "warning",
-                      label: "Coaching flags",
-                      tone: (managerDashboard?.coachingFlagsCount ?? 0) > 0 ? "ember" : "success",
-                      value: managerDashboard?.coachingFlagsCount ?? 0,
-                    },
-                  ]
-                : [
-                    {
-                      icon: "monitoring",
-                      label: "30-day average",
-                      tone: scoreMetricTone(repDashboard?.monthlyAvgScore),
-                      value: repDashboard?.monthlyAvgScore ?? "--",
-                    },
-                    {
-                      icon: "subject",
-                      label: "Calls analyzed",
-                      tone: "cyan",
-                      value: repDashboard?.recentCalls.length ?? 0,
-                    },
-                    {
-                      icon: "target",
-                      label: "Focus categories",
-                      tone: "gold",
-                      value: repDashboard?.lowestCategories.length ?? 0,
-                    },
-                    {
-                      icon: "workspace_premium",
-                      label: "Badges earned",
-                      tone: "success",
-                      value: badges?.badges.filter((badge) => badge.earned).length ?? 0,
-                    },
-                  ]
-          }
         />
 
         {isExecutive ? (
@@ -273,11 +185,8 @@ function TodayDashboardView({
         <div className="border-b border-[var(--forge-border)] bg-[rgba(255,244,230,0.024)] px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
-                Review queue
-              </p>
               <h2 className="mt-1 text-base font-semibold text-[var(--forge-text)]">
-                Today
+                Needs attention
               </h2>
             </div>
             <ForgeChip tone={queueItems.length ? "gold" : "muted"}>
@@ -390,7 +299,7 @@ function TodayDashboardView({
         }
         description={
           selected?.description ??
-          "This drawer previews the selected attention item and keeps the dashboard focused on the next action."
+          "This drawer previews the selected attention item and keeps the attention queue focused on the next action."
         }
         eyebrow="Selected item"
         title={selected?.label ?? "Queue clear"}

@@ -166,8 +166,12 @@ describe("RoleplayPanel", () => {
     expect(html).toContain(">Scenario</span>");
     expect(html).toContain(">Practice</span>");
     expect(html).toContain(">Score</span>");
-    expect(html).toContain('data-roleplay-workspace="practice-workbench"');
+    expect(html).toContain('data-roleplay-workspace="simple-practice"');
     expect(html).toContain('data-roleplay-scenario-picker=""');
+    expect(html).toContain('data-roleplay-scenario-list="true"');
+    expect(html).toContain(
+      'data-roleplay-primary-action="start-simulation"',
+    );
     expect(html).toContain('id="roleplay-scenario"');
     expect(html).toContain('aria-label="Scenario"');
     expect(html).not.toContain('data-roleplay-scenario-rail=""');
@@ -182,17 +186,18 @@ describe("RoleplayPanel", () => {
     expect(html).toContain("Improve");
     expect(html).toContain("Frame Control");
     expect(html).not.toContain("Recent History");
-    expect(html).toContain('data-roleplay-transcript="responsive"');
+    expect(html).toContain('data-roleplay-transcript="simple-log"');
     expect(html).toContain('role="log"');
     expect(html).toContain('aria-label="Roleplay transcript"');
     expect(html).toContain('tabindex="0"');
     expect(html).toContain("max-h-[min(64vh,620px)]");
     expect(html).not.toContain("h-[480px]");
     expect(html).toContain('data-roleplay-mode-control="true"');
-    expect(html).toContain("Practice mode");
+    expect(html).not.toContain("Practice mode");
     expect(html).toContain("Start voice");
     expect(html).toMatch(/aria-label="Start voice practice"[^>]*disabled=""/);
-    expect(html).toContain("Text entry always available");
+    expect(html).not.toContain("Text entry always available");
+    expect(html).not.toContain("Generated from call</span><span");
     expect(html).toContain('for="roleplay-response"');
     expect(html).toContain('id="roleplay-response"');
     expect(html).toContain("Roleplay response");
@@ -234,6 +239,10 @@ describe("RoleplayPanel", () => {
 
     expect(html).toContain('data-roleplay-mobile-sections="true"');
     expect(html).toContain('data-roleplay-scenario-picker=""');
+    expect(html).toContain('data-roleplay-scenario-list="true"');
+    expect(html).toContain(
+      'data-roleplay-primary-action="start-simulation"',
+    );
     expect(html).toContain('id="roleplay-scenario"');
     expect(html).toContain('data-roleplay-simulation-stage=""');
     expect(html).toContain('id="roleplay-practice"');
@@ -243,11 +252,12 @@ describe("RoleplayPanel", () => {
     expect(html).toContain("No active simulation");
     expect(html).toContain("Choose a persona in the scenario picker, then start a simulation.");
     expect(html).toContain("Select a scenario to begin scoring.");
-    expect(html).toContain('data-roleplay-transcript="responsive"');
+    expect(html).toContain('data-roleplay-transcript="simple-log"');
     expect(html).toContain('data-roleplay-mode-control="true"');
-    expect(html).toContain("Practice mode");
+    expect(html).not.toContain("Practice mode");
     expect(html).toContain("Start voice");
-    expect(html).toContain("Text entry always available");
+    expect(html).not.toContain("Text entry always available");
+    expect(html).not.toContain("Generated from call</span><span");
     expect(html).toContain('id="roleplay-response"');
     expect(html).toContain('aria-label="Send response"');
     expect(html).toContain('data-forge-icon-name="send"');
@@ -352,6 +362,7 @@ describe("RoleplayPanel", () => {
     expect(html).toContain("Generated Roleplay: Discovery");
     expect(html).toContain("Generated from call");
     expect(html).toContain("Focus: Discovery");
+    expect(html).not.toContain("Generated from call</span><span");
     expect(html).toContain("Derived from a real call. Stay concise, skeptical, and push on discovery.");
     expect(html).toContain("An anonymized buyer wants stronger proof and tighter next-step control.");
     expect(html).toContain("Anonymized buyer");

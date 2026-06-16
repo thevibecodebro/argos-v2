@@ -1,7 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
 import {
-  OperationalMetricStrip,
   OperationalPreviewDrawer,
   OperationalToolbar,
   OperationalWorkspace,
@@ -66,34 +65,6 @@ export default async function RepProfilePage({
           }}
           title={repName}
         />
-        <OperationalMetricStrip
-          metrics={[
-            {
-              icon: "monitoring",
-              label: "Average score",
-              tone: scoreTone(rep.compositeScore),
-              value: rep.compositeScore ?? "--",
-            },
-            {
-              icon: "call",
-              label: "Calls reviewed",
-              tone: "cyan",
-              value: rep.callCount,
-            },
-            {
-              icon: "trending_up",
-              label: "Week trend",
-              tone: deltaTone(rep.weekOverWeekDelta),
-              value: formatDelta(rep.weekOverWeekDelta),
-            },
-            {
-              icon: "calendar_month",
-              label: "30-day average",
-              tone: scoreTone(repDashboard.monthlyAvgScore),
-              value: repDashboard.monthlyAvgScore ?? "--",
-            },
-          ]}
-        />
         <section className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
           <div className="min-w-0">
             <TeamRepProfileView badges={badges} rep={rep} repDashboard={repDashboard} />
@@ -103,6 +74,7 @@ export default async function RepProfilePage({
               { href: "/calls", icon: "subject", label: "Open call library", variant: "secondary" },
               { href: "/training", icon: "school", label: "Open training", variant: "secondary" },
             ]}
+            data-selected-object-drawer="true"
             description="Rep-level coaching status and next review paths."
             eyebrow="Team member"
             title={repName}
@@ -128,19 +100,6 @@ function formatDelta(value: number | null | undefined) {
   if (typeof value !== "number") return "--";
   if (value === 0) return "0";
   return value > 0 ? `+${value}` : `${value}`;
-}
-
-function scoreTone(value: number | null | undefined) {
-  if (typeof value !== "number") return "muted";
-  if (value >= 85) return "success";
-  if (value >= 70) return "gold";
-  if (value >= 60) return "ember";
-  return "danger";
-}
-
-function deltaTone(value: number | null | undefined) {
-  if (typeof value !== "number" || value === 0) return "muted";
-  return value > 0 ? "success" : "ember";
 }
 
 function SummaryRow({

@@ -15,6 +15,7 @@ import {
   SettingsEditorPanel,
   SettingsEditorWorkbench,
 } from "./settings-workbench";
+import { SettingsTableShell } from "./settings-readability";
 
 type Team = {
   id: string;
@@ -452,72 +453,25 @@ export function TeamsPanel({
     if (!selectedTeam) return null;
 
     return (
-      <ForgeManagementTable
-        mobileCards={
-          <ForgeMobileTableCards>
-            {selectedMembers.length === 0 ? (
-              <p className="text-sm text-[var(--forge-muted)]">
-                No {label.toLowerCase()} on this team yet.
-              </p>
-            ) : (
-              selectedMembers.map((membership) => (
-                <div
-                  className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4"
-                  key={`${membership.teamId}:${membership.userId}:${membership.membershipType}:card`}
-                >
-                  <p className="text-sm font-semibold text-white">
-                    {names.get(membership.userId) ?? membership.userId}
-                  </p>
-                  <ForgeButton
-                    className="mt-3"
-                    disabled={
-                      pendingKey ===
-                      `remove:${membershipType}:${selectedTeam.id}:${membership.userId}`
-                    }
-                    onClick={() => {
-                      void handleRemoveMembership(
-                        selectedTeam.id,
-                        membership.userId,
-                        membershipType,
-                      );
-                    }}
-                    size="sm"
-                    type="button"
-                    variant="danger"
-                  >
-                    Remove
-                  </ForgeButton>
-                </div>
-              ))
-            )}
-          </ForgeMobileTableCards>
-        }
-      >
-        <table className="w-full text-left text-sm">
-          <thead className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">
-            <tr>
-              <th className="px-4 py-3">Name</th>
-              <th className="px-4 py-3 text-right">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--forge-border-strong)]/10">
-            {selectedMembers.length === 0 ? (
-              <tr>
-                <td className="px-4 py-4 text-[var(--forge-muted)]" colSpan={2}>
+      <SettingsTableShell>
+        <ForgeManagementTable
+          mobileCards={
+            <ForgeMobileTableCards>
+              {selectedMembers.length === 0 ? (
+                <p className="text-sm text-[var(--forge-muted)]">
                   No {label.toLowerCase()} on this team yet.
-                </td>
-              </tr>
-            ) : (
-              selectedMembers.map((membership) => (
-                <tr
-                  key={`${membership.teamId}:${membership.userId}:${membership.membershipType}`}
-                >
-                  <td className="px-4 py-3 text-[var(--forge-text)]">
-                    {names.get(membership.userId) ?? membership.userId}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--forge-muted)] transition hover:text-[var(--forge-danger)] disabled:opacity-50"
+                </p>
+              ) : (
+                selectedMembers.map((membership) => (
+                  <div
+                    className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4"
+                    key={`${membership.teamId}:${membership.userId}:${membership.membershipType}:card`}
+                  >
+                    <p className="text-sm font-semibold text-white">
+                      {names.get(membership.userId) ?? membership.userId}
+                    </p>
+                    <ForgeButton
+                      className="mt-3"
                       disabled={
                         pendingKey ===
                         `remove:${membershipType}:${selectedTeam.id}:${membership.userId}`
@@ -529,17 +483,69 @@ export function TeamsPanel({
                           membershipType,
                         );
                       }}
+                      size="sm"
                       type="button"
+                      variant="danger"
                     >
                       Remove
-                    </button>
+                    </ForgeButton>
+                  </div>
+                ))
+              )}
+            </ForgeMobileTableCards>
+          }
+        >
+          <table className="w-full text-left text-sm">
+            <thead className="text-xs font-medium text-[var(--forge-muted)]">
+              <tr>
+                <th className="px-4 py-3">Name</th>
+                <th className="px-4 py-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--forge-border-strong)]/10">
+              {selectedMembers.length === 0 ? (
+                <tr>
+                  <td
+                    className="px-4 py-4 text-[var(--forge-muted)]"
+                    colSpan={2}
+                  >
+                    No {label.toLowerCase()} on this team yet.
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </ForgeManagementTable>
+              ) : (
+                selectedMembers.map((membership) => (
+                  <tr
+                    key={`${membership.teamId}:${membership.userId}:${membership.membershipType}`}
+                  >
+                    <td className="px-4 py-3 text-[var(--forge-text)]">
+                      {names.get(membership.userId) ?? membership.userId}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--forge-muted)] transition hover:text-[var(--forge-danger)] disabled:opacity-50"
+                        disabled={
+                          pendingKey ===
+                          `remove:${membershipType}:${selectedTeam.id}:${membership.userId}`
+                        }
+                        onClick={() => {
+                          void handleRemoveMembership(
+                            selectedTeam.id,
+                            membership.userId,
+                            membershipType,
+                          );
+                        }}
+                        type="button"
+                      >
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </ForgeManagementTable>
+      </SettingsTableShell>
     );
   }
 
@@ -659,7 +665,7 @@ export function TeamsPanel({
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
+            <p className="text-xs font-medium text-[var(--forge-muted)]">
               Selected team editor
             </p>
             <h3 className="mt-2 text-xl font-semibold text-white">
@@ -777,7 +783,7 @@ export function TeamsPanel({
               <section className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)]/60 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">
+                    <p className="text-xs font-medium text-[var(--forge-muted)]">
                       Managers
                     </p>
                     <p className="mt-1 text-sm text-[var(--forge-muted)]">
@@ -833,7 +839,7 @@ export function TeamsPanel({
               <section className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)]/60 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">
+                    <p className="text-xs font-medium text-[var(--forge-muted)]">
                       Reps
                     </p>
                     <p className="mt-1 text-sm text-[var(--forge-muted)]">

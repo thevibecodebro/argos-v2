@@ -15,6 +15,7 @@ import {
   SettingsEditorPanel,
   SettingsEditorWorkbench,
 } from "./settings-workbench";
+import { SettingsTableShell } from "./settings-readability";
 
 function initials(
   firstName: string | null,
@@ -210,7 +211,7 @@ export function PeoplePanel({
         <div className="space-y-3">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
+              <p className="text-xs font-medium text-[var(--forge-muted)]">
                 Invites
               </p>
               <p className="mt-2 text-sm text-[var(--forge-muted)]">
@@ -223,7 +224,10 @@ export function PeoplePanel({
             </span>
           </div>
           {!showInviteForm ? (
-            <div className="grid gap-2" data-people-invite-actions="role-specific">
+            <div
+              className="grid gap-2"
+              data-people-invite-actions="role-specific"
+            >
               <SettingsDrawerButton
                 icon="person_add"
                 onClick={() => openInviteForm("rep")}
@@ -245,7 +249,7 @@ export function PeoplePanel({
         {showInviteForm ? (
           <div className="space-y-4 rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4">
             <label className="block">
-              <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">
+              <span className="text-xs font-medium text-[var(--forge-muted)]">
                 Email
               </span>
               <input
@@ -258,7 +262,7 @@ export function PeoplePanel({
             </label>
 
             <label className="block">
-              <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">
+              <span className="text-xs font-medium text-[var(--forge-muted)]">
                 Role
               </span>
               <select
@@ -280,7 +284,7 @@ export function PeoplePanel({
 
             {showTeamPicker && initialTeams.length > 0 ? (
               <div>
-                <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">
+                <span className="text-xs font-medium text-[var(--forge-muted)]">
                   Teams (optional)
                 </span>
                 <div className="mt-2 space-y-2">
@@ -342,7 +346,7 @@ export function PeoplePanel({
         ) : null}
 
         <div className="space-y-3">
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
+          <p className="text-xs font-medium text-[var(--forge-muted)]">
             Pending invites
           </p>
           {pendingInvites.length === 0 ? (
@@ -488,7 +492,7 @@ export function PeoplePanel({
       <SettingsEditorPanel data-people-member-table="">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
+            <p className="text-xs font-medium text-[var(--forge-muted)]">
               Member management
             </p>
             <h3 className="mt-2 text-xl font-semibold text-white">
@@ -546,80 +550,25 @@ export function PeoplePanel({
             No members match the current search or role filter.
           </p>
         ) : (
-          <ForgeManagementTable
-            className="mt-5"
-            mobileCards={
-              <ForgeMobileTableCards>
-                {visibleMembers.map((member) => {
-                  const memberName =
-                    [member.firstName, member.lastName]
-                      .filter(Boolean)
-                      .join(" ")
-                      .trim() || member.email;
-                  const isSelf = member.id === currentUserId;
+          <SettingsTableShell className="mt-5">
+            <ForgeManagementTable
+              mobileCards={
+                <ForgeMobileTableCards>
+                  {visibleMembers.map((member) => {
+                    const memberName =
+                      [member.firstName, member.lastName]
+                        .filter(Boolean)
+                        .join(" ")
+                        .trim() || member.email;
+                    const isSelf = member.id === currentUserId;
 
-                  return (
-                    <div
-                      className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4"
-                      key={`${member.id}:mobile`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/8 text-sm font-semibold text-[var(--forge-gold)]">
-                          {initials(
-                            member.firstName,
-                            member.lastName,
-                            member.email,
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-white">
-                            {memberName}
-                            {isSelf ? (
-                              <span className="ml-2 text-xs font-medium text-[var(--forge-muted)]">
-                                (you)
-                              </span>
-                            ) : null}
-                          </p>
-                          <p className="mt-1 truncate text-sm text-[var(--forge-muted)]">
-                            {member.email}
-                          </p>
-                          <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[var(--forge-muted)]">
-                            {member.role ?? "rep"} · {member.callCount} calls
-                          </p>
-                        </div>
-                      </div>
-                      <div className="mt-4">
-                        {renderMemberRoleControls(member)}
-                      </div>
-                    </div>
-                  );
-                })}
-              </ForgeMobileTableCards>
-            }
-          >
-            <table className="w-full text-left text-sm">
-              <thead className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">
-                <tr>
-                  <th className="px-4 py-3">Member</th>
-                  <th className="px-4 py-3">Role</th>
-                  <th className="px-4 py-3">Activity</th>
-                  <th className="px-4 py-3 text-right">Controls</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--forge-border-strong)]/10">
-                {visibleMembers.map((member) => {
-                  const memberName =
-                    [member.firstName, member.lastName]
-                      .filter(Boolean)
-                      .join(" ")
-                      .trim() || member.email;
-                  const isSelf = member.id === currentUserId;
-
-                  return (
-                    <tr key={member.id}>
-                      <td className="px-4 py-3">
+                    return (
+                      <div
+                        className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4"
+                        key={`${member.id}:mobile`}
+                      >
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/8 text-xs font-semibold text-[var(--forge-gold)]">
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/8 text-sm font-semibold text-[var(--forge-gold)]">
                             {initials(
                               member.firstName,
                               member.lastName,
@@ -638,25 +587,81 @@ export function PeoplePanel({
                             <p className="mt-1 truncate text-sm text-[var(--forge-muted)]">
                               {member.email}
                             </p>
+                            <p className="mt-1 text-xs text-[var(--forge-muted)]">
+                              {member.role ?? "rep"} · {member.callCount} calls
+                            </p>
                           </div>
                         </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm capitalize text-[var(--forge-text)]">
-                        {member.role ?? "rep"}
-                      </td>
-                      <td className="px-4 py-3 text-xs uppercase tracking-[0.18em] text-[var(--forge-muted)]">
-                        {member.callCount} calls · joined{" "}
-                        {formatDate(member.joinedAt)}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {renderMemberRoleControls(member)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </ForgeManagementTable>
+                        <div className="mt-4">
+                          {renderMemberRoleControls(member)}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </ForgeMobileTableCards>
+              }
+            >
+              <table className="w-full text-left text-sm">
+                <thead className="text-xs font-medium text-[var(--forge-muted)]">
+                  <tr>
+                    <th className="px-4 py-3">Member</th>
+                    <th className="px-4 py-3">Role</th>
+                    <th className="px-4 py-3">Activity</th>
+                    <th className="px-4 py-3 text-right">Controls</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--forge-border-strong)]/10">
+                  {visibleMembers.map((member) => {
+                    const memberName =
+                      [member.firstName, member.lastName]
+                        .filter(Boolean)
+                        .join(" ")
+                        .trim() || member.email;
+                    const isSelf = member.id === currentUserId;
+
+                    return (
+                      <tr key={member.id}>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/8 text-xs font-semibold text-[var(--forge-gold)]">
+                              {initials(
+                                member.firstName,
+                                member.lastName,
+                                member.email,
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-white">
+                                {memberName}
+                                {isSelf ? (
+                                  <span className="ml-2 text-xs font-medium text-[var(--forge-muted)]">
+                                    (you)
+                                  </span>
+                                ) : null}
+                              </p>
+                              <p className="mt-1 truncate text-sm text-[var(--forge-muted)]">
+                                {member.email}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm capitalize text-[var(--forge-text)]">
+                          {member.role ?? "rep"}
+                        </td>
+                        <td className="px-4 py-3 text-xs uppercase tracking-[0.18em] text-[var(--forge-muted)]">
+                          {member.callCount} calls · joined{" "}
+                          {formatDate(member.joinedAt)}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {renderMemberRoleControls(member)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </ForgeManagementTable>
+          </SettingsTableShell>
         )}
       </SettingsEditorPanel>
     </SettingsEditorWorkbench>

@@ -6,7 +6,6 @@ import {
 } from "@/components/forge";
 import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
 import {
-  OperationalMetricStrip,
   OperationalPreviewDrawer,
   OperationalToolbar,
   OperationalWorkspace,
@@ -22,20 +21,10 @@ export default async function HighlightsPage() {
     : null;
   const highlights = result?.ok ? result.data.highlights : [];
 
-  const categoryCounts: Record<string, number> = {};
-  for (const highlight of highlights) {
-    const category = highlight.category ?? "Highlight";
-    categoryCounts[category] = (categoryCounts[category] ?? 0) + 1;
-  }
-
-  const topCategory =
-    Object.entries(categoryCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
-  const withRecommendation = highlights.filter((highlight) => highlight.recommendation).length;
-  const completeness =
-    highlights.length > 0
-      ? Math.round((withRecommendation / highlights.length) * 100)
-      : null;
   const selectedHighlight = highlights[0] ?? null;
+  const sectionClassName = selectedHighlight
+    ? "grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_320px]"
+    : "grid min-w-0 gap-3";
 
   return (
     <AuthenticatedPageContainer>
@@ -51,37 +40,8 @@ export default async function HighlightsPage() {
           title="Highlights"
         />
 
-        <OperationalMetricStrip
-          metrics={[
-            {
-              icon: "auto_awesome",
-              label: "Saved moments",
-              tone: "gold",
-              value: highlights.length,
-            },
-            {
-              icon: "insights",
-              label: "Top pattern",
-              tone: "cyan",
-              value: topCategory ?? "None yet",
-            },
-            {
-              icon: "task_alt",
-              label: "With recommendations",
-              tone: completeness !== null && completeness >= 80 ? "success" : "gold",
-              value: completeness !== null ? `${completeness}%` : "--",
-            },
-            {
-              icon: "subject",
-              label: "With guidance",
-              tone: withRecommendation > 0 ? "success" : "muted",
-              value: withRecommendation,
-            },
-          ]}
-        />
-
         <section
-          className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_320px]"
+          className={sectionClassName}
           data-highlight-selection-flow="explicit"
         >
           <div
@@ -164,7 +124,7 @@ export default async function HighlightsPage() {
             ) : (
               <div className="p-4">
                 <ForgeEmptyState
-                  description="Managers can star moments from a call detail page to build a reusable coaching library here."
+                  description="Saved coaching moments from scored calls will appear here."
                   icon="auto_awesome"
                   title="No highlights yet"
                 />
@@ -172,20 +132,14 @@ export default async function HighlightsPage() {
             )}
           </div>
 
-          <OperationalPreviewDrawer
-            actions={
-              selectedHighlight
-                ? [{ href: `/calls/${selectedHighlight.callId}`, label: "Open call", variant: "primary" }]
-                : [{ href: "/calls", label: "Open call library", variant: "secondary" }]
-            }
-            description={
-              selectedHighlight?.recommendation ??
-              "Select an evidence row to inspect its recommendation and source call."
-            }
-            eyebrow="Selected evidence"
-            title={selectedHighlight?.category ?? "No evidence selected"}
-          >
-            {selectedHighlight ? (
+          {selectedHighlight ? (
+            <OperationalPreviewDrawer
+              actions={[{ href: `/calls/${selectedHighlight.callId}`, label: "Open call", variant: "primary" }]}
+              data-selected-object-drawer="true"
+              description={selectedHighlight.recommendation ?? "Inspect this recommendation and source call."}
+              eyebrow="Selected evidence"
+              title={selectedHighlight.category ?? "Highlight"}
+            >
               <div className="space-y-3">
                 <div className="rounded-lg border border-[var(--forge-border)] bg-[rgba(8,6,5,0.66)] p-3">
                   <p className="text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
@@ -212,8 +166,8 @@ export default async function HighlightsPage() {
                   </span>
                 </div>
               </div>
-            ) : null}
-          </OperationalPreviewDrawer>
+            </OperationalPreviewDrawer>
+          ) : null}
         </section>
       </OperationalWorkspace>
     </AuthenticatedPageContainer>
