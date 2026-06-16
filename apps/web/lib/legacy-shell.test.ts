@@ -60,12 +60,27 @@ describe("legacy UI shell", () => {
   it("renders the landing page ahead of the login flow", async () => {
     const html = renderToStaticMarkup(await HomePage());
 
-    expect(html).toContain("Sales teams changed. Coaching should have too.");
-    expect(html).toContain("Argos turns real sales calls into scored evidence");
-    expect(html).toContain("See Argos in action.");
-    expect(html).toContain("Book A Demo");
+    expect(html).toContain("Sales standard installation + Argos platform");
+    expect(html).toContain("Build a sales team that actually follows the playbook.");
+    expect(html).toContain("We Install The Sales Standard In Your Organization");
+    expect(html).toContain("Argos makes it visible in the work: calls reviewed, reps scored");
+    expect(html).toContain("Call review -&gt; Rubrics scored -&gt; Training assigned -&gt; Roleplay tracked -&gt; Manager dashboard");
+    expect(html).toContain("Product in motion");
+    expect(html).toContain("How The Standard Gets Installed");
+    expect(html).toContain("Teach the playbook. Track the behavior.");
+    expect(html).toContain("For Managers");
+    expect(html).toContain("Book the coaching walkthrough");
+    expect(html).toContain("Book The Coaching Walkthrough");
     expect(html).toContain('href="/login"');
     expect(html).toContain("Revenue Command");
+    expect(html).not.toContain("Sales standard system");
+    expect(html).not.toContain("CALL REVIEW // SCORECARDS AND RUBRICS");
+    expect(html).not.toContain("argos-metric-row");
+    expect(html).not.toContain("Founder-led sales coaching + Argos platform");
+    expect(html).not.toContain("The founder teaches the standard");
+    expect(html).not.toContain("Founder teaches the standard");
+    expect(html.toLowerCase()).not.toContain("fathom");
+    expect(html).not.toContain("Founder reviews calls");
   });
 
   it("renders the login page with the Forge auth shell", async () => {
