@@ -225,6 +225,7 @@ describe("CallDetailPanel", () => {
     expect(html).toContain("Processing job");
     expect(html).toContain("failed");
     expect(html).toContain("transcribe");
+    expect(html).toContain("Updated Apr 3, 2026, 12:10 AM");
     expect(html).toContain("OpenAI transcription request failed: 429");
     expect(html).toContain("Retry processing");
   });

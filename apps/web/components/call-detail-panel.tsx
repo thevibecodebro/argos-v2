@@ -39,6 +39,7 @@ function formatTimestamp(seconds: number | null | undefined) {
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
+    timeZone: "UTC",
     timeStyle: "short",
   }).format(new Date(value));
 }
