@@ -1,7 +1,13 @@
 import { createElement } from "react";
+import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CallsFilters } from "../app/(authenticated)/calls/calls-filters";
+
+const callsPageSource = readFileSync(
+  new URL("../app/(authenticated)/calls/page.tsx", import.meta.url),
+  "utf8",
+);
 
 const { replaceMock, useSearchParamsMock } = vi.hoisted(() => ({
   replaceMock: vi.fn(),
@@ -19,7 +25,9 @@ describe("CallsFilters forge treatment", () => {
   beforeEach(() => {
     replaceMock.mockReset();
     useSearchParamsMock.mockReturnValue(
-      new URLSearchParams("status=processing&sort=overallScore%3Adesc&minScore=70"),
+      new URLSearchParams(
+        "status=processing&sort=overallScore%3Adesc&minScore=70",
+      ),
     );
   });
 
@@ -29,6 +37,7 @@ describe("CallsFilters forge treatment", () => {
     );
 
     expect(html).toContain('data-calls-filter-bar="operational"');
+    expect(html).toContain('data-calls-filter-surface="inline"');
     expect(html).toContain('id="status"');
     expect(html).toContain(">Processing</option>");
     expect(html).toContain(">Status</p>");
@@ -40,8 +49,16 @@ describe("CallsFilters forge treatment", () => {
     expect(html).not.toContain("#74b1ff");
     expect(html).not.toContain("#6dddff");
     expect(html).not.toContain("backdrop-blur-md");
+    expect(html).not.toContain("bg-[rgba(255,244,230,0.024)]");
+    expect(html).not.toContain("shadow-[inset_0_1px_0");
     expect(html).not.toContain("border-b-2");
     expect(html).not.toContain(">search</span>");
     expect(html).not.toContain(">filter_list</span>");
+  });
+
+  it("keeps mobile call cards shrinkable inside narrow viewports", () => {
+    expect(callsPageSource).toContain(
+      'className="block min-w-0 rounded-xl border border-[var(--forge-border)]',
+    );
   });
 });

@@ -10,6 +10,11 @@ import {
   SettingsEditorPanel,
   SettingsEditorWorkbench,
 } from "./settings-workbench";
+import {
+  SettingsMetaRow,
+  SettingsSectionHeader,
+  SettingsTableShell,
+} from "./settings-readability";
 import type {
   RubricImportIssue,
   RubricInput,
@@ -548,30 +553,36 @@ export function RubricsPanel({
   const builderDrawer = (
     <SettingsEditorDrawer data-rubric-builder-drawer="">
       <div className="space-y-5">
-        <div className="border-b border-[var(--forge-border)] pb-3">
-          <p className="text-[0.66rem] font-semibold uppercase tracking-[0.1em] text-[var(--forge-muted)]">
-            Source and versions
-          </p>
-          <h3 className="mt-1 text-base font-semibold text-[var(--forge-text)]">
-            Scoring sources
-          </h3>
-          <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">
-            Choose the next draft source without changing the live version.
-          </p>
-        </div>
+        <SettingsSectionHeader
+          description="Choose the next draft source without changing the live version."
+          eyebrow="Source and versions"
+          title="Scoring sources"
+        />
         <SettingsDrawerGroup label="Active version">
           <div className="rounded-2xl border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/8 px-4 py-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-gold)]">
+            <p className="text-xs font-medium text-[var(--forge-gold)]">
               Active Rubric
             </p>
             <p className="mt-2 text-sm font-semibold text-[var(--forge-text)]">
               {activeRubric ? activeRubric.name : "No active rubric yet"}
             </p>
-            <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">
-              {activeRubric
-                ? `Version ${activeRubric.version} · ${activeRubric.categoryCount} categories`
-                : "Publish the first rubric version to start attaching it to new scoring jobs."}
-            </p>
+            {activeRubric ? (
+              <div className="mt-2">
+                <SettingsMetaRow
+                  label="Version"
+                  value={`v${activeRubric.version}`}
+                />
+                <SettingsMetaRow
+                  label="Categories"
+                  value={activeRubric.categoryCount}
+                />
+              </div>
+            ) : (
+              <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">
+                Publish the first rubric version to start attaching it to new
+                scoring jobs.
+              </p>
+            )}
           </div>
         </SettingsDrawerGroup>
 
@@ -613,7 +624,7 @@ export function RubricsPanel({
 
         <SettingsDrawerGroup label="Clone or import">
           <label className="block space-y-2 px-3">
-            <span className="text-xs font-black uppercase tracking-[0.18em] text-[var(--forge-muted)]">
+            <span className="text-xs font-medium text-[var(--forge-muted)]">
               Clone Historical Version
             </span>
             <select
@@ -680,7 +691,7 @@ export function RubricsPanel({
         </SettingsDrawerGroup>
 
         <SettingsDrawerGroup label={`Version History (${history.length})`}>
-          <div className="space-y-2">
+          <SettingsTableShell className="space-y-2 p-3">
             {history.length === 0 ? (
               <p className="text-sm text-[var(--forge-muted)]">
                 No rubric versions yet.
@@ -696,7 +707,7 @@ export function RubricsPanel({
                       v{entry.version} · {entry.name}
                     </p>
                     <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.16em] ${
+                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                         entry.isActive
                           ? "bg-[rgba(139,215,168,0.15)] text-[var(--forge-success)]"
                           : "border border-[var(--forge-border-strong)]/20 text-[var(--forge-muted)]"
@@ -712,18 +723,14 @@ export function RubricsPanel({
                 </div>
               ))
             )}
-          </div>
+          </SettingsTableShell>
         </SettingsDrawerGroup>
 
         <section className="space-y-5" data-rubric-readiness-panel="">
-          <div className="border-t border-[var(--forge-border)] pt-4">
-            <p className="text-[0.66rem] font-semibold uppercase tracking-[0.1em] text-[var(--forge-muted)]">
-              Admin controls
-            </p>
-            <h3 className="mt-1 text-base font-semibold text-[var(--forge-text)]">
-              Readiness panel
-            </h3>
-          </div>
+          <SettingsSectionHeader
+            eyebrow="Admin controls"
+            title="Readiness panel"
+          />
           <div aria-live="polite" className="sr-only" role="status">
             {rubricPendingStatusMessage}
           </div>
@@ -819,7 +826,7 @@ export function RubricsPanel({
                 }
               />
               <div className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+                <p className="text-xs font-medium text-[var(--forge-muted)]">
                   Validation issues
                 </p>
                 {draftIssues.length > 0 ? (
@@ -842,7 +849,7 @@ export function RubricsPanel({
                 )}
               </div>
               <div className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+                <p className="text-xs font-medium text-[var(--forge-muted)]">
                   Import warnings
                 </p>
                 {sourceIssues.length > 0 ? (
@@ -863,7 +870,7 @@ export function RubricsPanel({
                 )}
               </div>
               <div className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+                <p className="text-xs font-medium text-[var(--forge-muted)]">
                   Server draft
                 </p>
                 <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">
@@ -929,33 +936,31 @@ export function RubricsPanel({
     <SettingsEditorWorkbench drawer={builderDrawer} workbench="rubrics">
       <main className="min-w-0" data-rubric-category-editor="">
         <SettingsEditorPanel>
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[var(--forge-gold)]">
-                Category editor
-              </p>
-              <h3 className="mt-2 text-2xl font-semibold text-white">
+          <SettingsSectionHeader
+            actions={
+              <span className="rounded-full border border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface-2)]/70 px-3 py-1 text-xs font-medium text-[var(--forge-muted)]">
                 {draft
-                  ? draft.name || "Untitled rubric draft"
-                  : (activeRubric?.name ?? "No scoring draft selected")}
-              </h3>
-              <p className="mt-2 max-w-3xl text-sm leading-7 text-[var(--forge-muted)]">
-                {draft
-                  ? "Edit scoring categories as compact rows, then use readiness controls to prepare and publish."
-                  : "Choose a source to start a scoring draft. The current active rubric is shown below for reference."}
-              </p>
-            </div>
-            <span className="rounded-full border border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface-2)]/70 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--forge-muted)]">
-              {draft
-                ? `${draft.categories.length} draft categories`
-                : `${activeRubric?.categoryCount ?? 0} active categories`}
-            </span>
-          </div>
+                  ? `${draft.categories.length} draft categories`
+                  : `${activeRubric?.categoryCount ?? 0} active categories`}
+              </span>
+            }
+            description={
+              draft
+                ? "Edit scoring categories as compact rows, then use readiness controls to prepare and publish."
+                : "Choose a source to start a scoring draft. The current active rubric is shown below for reference."
+            }
+            eyebrow="Category editor"
+            title={
+              draft
+                ? draft.name || "Untitled rubric draft"
+                : (activeRubric?.name ?? "No scoring draft selected")
+            }
+          />
 
           {draft ? (
             <div className="mt-6 space-y-5">
               <div className="rounded-2xl border border-[var(--forge-border-strong)]/12 bg-[var(--forge-surface-2)]/55 p-4">
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-gold)]">
+                <p className="text-xs font-medium text-[var(--forge-gold)]">
                   Draft Source
                 </p>
                 <p className="mt-2 text-sm text-[var(--forge-text)]">
@@ -971,7 +976,7 @@ export function RubricsPanel({
 
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
                 <label className="space-y-2">
-                  <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+                  <span className="text-xs font-medium text-[var(--forge-muted)]">
                     Rubric name
                   </span>
                   <input
@@ -987,7 +992,7 @@ export function RubricsPanel({
                   />
                 </label>
                 <label className="space-y-2">
-                  <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+                  <span className="text-xs font-medium text-[var(--forge-muted)]">
                     Description
                   </span>
                   <input
@@ -1004,7 +1009,7 @@ export function RubricsPanel({
                 </label>
               </div>
 
-              <div className="space-y-3">
+              <SettingsTableShell className="space-y-3 p-3">
                 {draft.categories.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/40 p-5 text-sm text-[var(--forge-muted)]">
                     No categories in this draft yet.
@@ -1019,7 +1024,7 @@ export function RubricsPanel({
                     >
                       <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-4 py-3">
                         <div className="min-w-0">
-                          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-gold)]">
+                          <p className="text-xs font-medium text-[var(--forge-gold)]">
                             Category {index + 1}
                           </p>
                           <p className="mt-1 truncate text-sm font-semibold text-white">
@@ -1033,7 +1038,7 @@ export function RubricsPanel({
                       <div className="border-t border-[var(--forge-border-strong)]/10 px-4 pb-4 pt-3">
                         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_7rem]">
                           <label className="space-y-2">
-                            <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+                            <span className="text-xs font-medium text-[var(--forge-muted)]">
                               Name
                             </span>
                             <input
@@ -1054,7 +1059,7 @@ export function RubricsPanel({
                             />
                           </label>
                           <label className="space-y-2">
-                            <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+                            <span className="text-xs font-medium text-[var(--forge-muted)]">
                               Slug
                             </span>
                             <input
@@ -1075,7 +1080,7 @@ export function RubricsPanel({
                             />
                           </label>
                           <label className="space-y-2">
-                            <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+                            <span className="text-xs font-medium text-[var(--forge-muted)]">
                               Weight
                             </span>
                             <input
@@ -1104,7 +1109,7 @@ export function RubricsPanel({
                         </div>
 
                         <label className="mt-3 block space-y-2">
-                          <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+                          <span className="text-xs font-medium text-[var(--forge-muted)]">
                             Description
                           </span>
                           <textarea
@@ -1128,10 +1133,10 @@ export function RubricsPanel({
                           />
                         </label>
 
-                        <div className="mt-3 grid gap-3 lg:grid-cols-3">
+                        <div className="mt-3 grid gap-3 lg:grid-cols-[repeat(3,minmax(0,1fr))]">
                           {GUIDANCE_FIELDS.map(({ field, label }) => (
                             <label className="space-y-2" key={field}>
-                              <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+                              <span className="text-xs font-medium text-[var(--forge-muted)]">
                                 {label}
                               </span>
                               <textarea
@@ -1161,7 +1166,7 @@ export function RubricsPanel({
                         </div>
 
                         <label className="mt-3 block space-y-2">
-                          <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+                          <span className="text-xs font-medium text-[var(--forge-muted)]">
                             Look For
                           </span>
                           <input
@@ -1218,7 +1223,7 @@ export function RubricsPanel({
                     </details>
                   ))
                 )}
-              </div>
+              </SettingsTableShell>
 
               <div className="flex flex-wrap gap-3">
                 <button
@@ -1259,46 +1264,48 @@ export function RubricsPanel({
 
               {activeRubric?.categories.length ? (
                 <div className="space-y-3">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-gold)]">
+                  <p className="text-xs font-medium text-[var(--forge-gold)]">
                     Published scoring categories
                   </p>
-                  {activeRubric.categories.map((category, index) => (
-                    <div
-                      className="rounded-2xl border border-[var(--forge-border-strong)]/12 bg-[var(--forge-surface-2)]/55 p-4"
-                      data-rubric-category-row=""
-                      key={category.id}
-                    >
-                      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_7rem]">
-                        <div>
-                          <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
-                            Name
-                          </p>
-                          <p className="mt-1 text-sm font-semibold text-white">
-                            {category.name || `Category ${index + 1}`}
-                          </p>
+                  <SettingsTableShell className="space-y-3 p-3">
+                    {activeRubric.categories.map((category, index) => (
+                      <div
+                        className="rounded-2xl border border-[var(--forge-border-strong)]/12 bg-[var(--forge-surface-2)]/55 p-4"
+                        data-rubric-category-row=""
+                        key={category.id}
+                      >
+                        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_7rem]">
+                          <div>
+                            <p className="text-xs font-medium text-[var(--forge-muted)]">
+                              Name
+                            </p>
+                            <p className="mt-1 text-sm font-semibold text-white">
+                              {category.name || `Category ${index + 1}`}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-[var(--forge-muted)]">
+                              Slug
+                            </p>
+                            <p className="mt-1 text-sm text-[var(--forge-text)]">
+                              {category.slug}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-[var(--forge-muted)]">
+                              Weight
+                            </p>
+                            <p className="mt-1 text-sm text-[var(--forge-text)]">
+                              {category.weight}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
-                            Slug
-                          </p>
-                          <p className="mt-1 text-sm text-[var(--forge-text)]">
-                            {category.slug}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
-                            Weight
-                          </p>
-                          <p className="mt-1 text-sm text-[var(--forge-text)]">
-                            {category.weight}
-                          </p>
-                        </div>
+                        <p className="mt-3 text-sm leading-6 text-[var(--forge-muted)]">
+                          {category.description}
+                        </p>
                       </div>
-                      <p className="mt-3 text-sm leading-6 text-[var(--forge-muted)]">
-                        {category.description}
-                      </p>
-                    </div>
-                  ))}
+                    ))}
+                  </SettingsTableShell>
                 </div>
               ) : null}
             </div>

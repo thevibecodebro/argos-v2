@@ -103,12 +103,12 @@ export function PageFrame({
   ) : null;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {headerMode === "default" ? (
         <section
           data-page-header="forge"
           className={cn(
-            "forge-page-header p-6 sm:p-7",
+            "forge-page-header pb-4 pt-1",
             tone === "warning" && "forge-page-header--warning",
           )}
         >
@@ -117,10 +117,10 @@ export function PageFrame({
               {eyebrow}
             </p>
           ) : null}
-          <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
-            <div className="space-y-2">
-              <h2 className="forge-page-title text-2xl font-semibold">{title}</h2>
-              <p className="forge-page-description max-w-2xl text-sm leading-7">{description}</p>
+          <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
+            <div className="space-y-1.5">
+              <h2 className="forge-page-title text-xl font-semibold">{title}</h2>
+              <p className="forge-page-description max-w-2xl text-sm leading-5">{description}</p>
             </div>
             {headerTools}
           </div>

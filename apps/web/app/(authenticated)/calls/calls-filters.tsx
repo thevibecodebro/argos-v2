@@ -57,8 +57,10 @@ export function CallsFilters({ initialSearch }: Props) {
         }
       }
       params.delete("offset");
-      if (!params.get("status") || params.get("status") === "all") params.delete("status");
-      if (!params.get("sort") || params.get("sort") === "createdAt:desc") params.delete("sort");
+      if (!params.get("status") || params.get("status") === "all")
+        params.delete("status");
+      if (!params.get("sort") || params.get("sort") === "createdAt:desc")
+        params.delete("sort");
       const query = params.toString();
       return query ? `/calls?${query}` : "/calls";
     },
@@ -119,15 +121,20 @@ export function CallsFilters({ initialSearch }: Props) {
 
   return (
     <div
-      className="grid items-stretch gap-2 rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.024)] p-2 shadow-[inset_0_1px_0_rgba(255,244,230,0.035)] lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.62fr)_minmax(0,0.72fr)_auto]"
+      className="grid items-stretch gap-2 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.62fr)_minmax(0,0.72fr)_auto]"
       data-calls-filter-bar="operational"
+      data-calls-filter-surface="inline"
       data-filter-pending={isPending ? "true" : undefined}
     >
       <span aria-live="polite" className="sr-only" role="status">
         {isPending ? "Updating calls" : ""}
       </span>
       <div className="group flex min-h-11 items-center rounded-lg border border-[var(--forge-border)] bg-[rgba(8,6,5,0.5)] px-3 transition focus-within:border-[rgba(136,218,247,0.35)] focus-within:bg-[rgba(136,218,247,0.045)]">
-        <ForgeIcon className="mr-2 text-[var(--forge-cyan)]" name="search" size={17} />
+        <ForgeIcon
+          className="mr-2 text-[var(--forge-cyan)]"
+          name="search"
+          size={17}
+        />
         <label className="sr-only" htmlFor="search">
           Search by topic
         </label>
@@ -201,7 +208,11 @@ export function CallsFilters({ initialSearch }: Props) {
       >
         <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-sm font-semibold text-[var(--forge-text)] marker:hidden">
           <span className="flex min-w-0 items-center gap-2">
-            <ForgeIcon className="text-[var(--forge-muted)]" name="tune" size={16} />
+            <ForgeIcon
+              className="text-[var(--forge-muted)]"
+              name="tune"
+              size={16}
+            />
             <span>Score range</span>
           </span>
           <span className="text-xs font-semibold text-[var(--forge-muted)]">

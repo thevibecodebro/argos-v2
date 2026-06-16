@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -41,6 +42,11 @@ vi.mock("@/lib/calls/service", () => ({
 
 import CallDetailPage from "../app/(authenticated)/calls/[id]/page";
 
+const callDetailPageSource = readFileSync(
+  new URL("../app/(authenticated)/calls/[id]/page.tsx", import.meta.url),
+  "utf8",
+);
+
 async function renderRoute(page: Promise<React.ReactElement> | React.ReactElement) {
   return renderToStaticMarkup(await page);
 }
@@ -80,8 +86,8 @@ describe("CallDetailPage forge treatment", () => {
     expect(html).toContain('data-call-detail-shell="forge-review-bench"');
     expect(html).toContain('data-operational-workspace="true"');
     expect(html).toContain('data-operational-toolbar="true"');
-    expect(html).toContain('data-operational-metric-strip="true"');
-    expect(html).toContain('data-operational-preview-drawer="true"');
+    expect(html).not.toContain('data-operational-metric-strip="true"');
+    expect(html).not.toContain('data-operational-preview-drawer="true"');
     expect(html).toContain('href="/calls"');
     expect(html).toContain('href="/highlights"');
     expect(html).toContain("Open Highlights");
@@ -94,5 +100,12 @@ describe("CallDetailPage forge treatment", () => {
     expect(html).not.toContain("#6dddff");
     expect(html).not.toContain("backdrop-blur-md");
     expect(html).not.toContain(">Call Detail<");
+  });
+
+  it("keeps the route wired to the review bench panel without metric strips", () => {
+    expect(callDetailPageSource).toContain('data-call-detail-route="review-bench"');
+    expect(callDetailPageSource).toContain("CallDetailPanel");
+    expect(callDetailPageSource).not.toContain("OperationalMetricStrip");
+    expect(callDetailPageSource).not.toContain("OperationalPreviewDrawer");
   });
 });

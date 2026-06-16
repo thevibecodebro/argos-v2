@@ -15,6 +15,7 @@ import {
   SettingsEditorPanel,
   SettingsEditorWorkbench,
 } from "./settings-workbench";
+import { SettingsTableShell } from "./settings-readability";
 
 type Preset = {
   id: string;
@@ -457,7 +458,7 @@ export function PermissionsPanel({
         <SettingsDrawerGroup label="Counts">
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+              <p className="text-xs font-medium text-[var(--forge-muted)]">
                 Teams
               </p>
               <p className="mt-1 text-2xl font-semibold text-white">
@@ -465,7 +466,7 @@ export function PermissionsPanel({
               </p>
             </div>
             <div className="rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+              <p className="text-xs font-medium text-[var(--forge-muted)]">
                 Reps
               </p>
               <p className="mt-1 text-2xl font-semibold text-white">
@@ -488,7 +489,7 @@ export function PermissionsPanel({
         <SettingsEditorPanel>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
+              <p className="text-xs font-medium text-[var(--forge-muted)]">
                 Team Preset Assignments
               </p>
               <h3 className="mt-2 text-xl font-semibold text-white">
@@ -522,107 +523,108 @@ export function PermissionsPanel({
             </div>
           ) : null}
 
-          <ForgeManagementTable
-            className="mt-5"
-            mobileCards={
-              <ForgeMobileTableCards>
-                {!selectedTeam || selectedTeamManagers.length === 0 ? (
-                  <p className="text-sm text-[var(--forge-muted)]">
-                    {selectedTeam
-                      ? "No managers on this team yet. Add team membership from /settings/teams."
-                      : "Select a team to manage preset assignments."}
-                  </p>
-                ) : (
-                  selectedTeamManagers.map((membership) => {
-                    const stateKey = `${selectedTeam.id}:${membership.userId}`;
-                    const resolvedPresetName = resolvePresetName(
-                      selectedTeam.id,
-                      membership.userId,
-                      localGrants,
-                      presets,
-                    );
-                    const stagedPresetId = stagedPresetByKey[stateKey];
-                    const currentPreset =
-                      stagedPresetId ?? resolvedPresetName ?? "";
-                    const isPending = pendingKey === `preset:${stateKey}`;
+          <SettingsTableShell className="mt-5">
+            <ForgeManagementTable
+              mobileCards={
+                <ForgeMobileTableCards>
+                  {!selectedTeam || selectedTeamManagers.length === 0 ? (
+                    <p className="text-sm text-[var(--forge-muted)]">
+                      {selectedTeam
+                        ? "No managers on this team yet. Add team membership from /settings/teams."
+                        : "Select a team to manage preset assignments."}
+                    </p>
+                  ) : (
+                    selectedTeamManagers.map((membership) => {
+                      const stateKey = `${selectedTeam.id}:${membership.userId}`;
+                      const resolvedPresetName = resolvePresetName(
+                        selectedTeam.id,
+                        membership.userId,
+                        localGrants,
+                        presets,
+                      );
+                      const stagedPresetId = stagedPresetByKey[stateKey];
+                      const currentPreset =
+                        stagedPresetId ?? resolvedPresetName ?? "";
+                      const isPending = pendingKey === `preset:${stateKey}`;
 
-                    return (
-                      <div
-                        className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4"
-                        key={`${stateKey}:card`}
-                      >
-                        <p className="text-sm font-semibold text-white">
-                          {managers.find(
-                            (manager) => manager.id === membership.userId,
-                          )?.name ?? membership.userId}
-                        </p>
-                        <p className="mt-1 text-xs text-[var(--forge-muted)]">
-                          Current preset:{" "}
-                          {resolvedPresetName ?? "No preset applied"}
-                        </p>
-                        <label className="mt-3 block">
-                          <span className="sr-only">Preset for manager</span>
-                          <select
-                            className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60 disabled:opacity-50"
-                            disabled={isPending}
-                            onChange={(event) => {
-                              setStagedPresetByKey((current) => ({
-                                ...current,
-                                [stateKey]: event.target.value,
-                              }));
-                            }}
-                            value={currentPreset}
-                          >
-                            <option value="">Select preset</option>
-                            {presets.map((preset) => (
-                              <option key={preset.id} value={preset.id}>
-                                {preset.name}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        {hasStagedPreset(stateKey) ? (
-                          <ForgeButton
-                            className="mt-3"
-                            disabled={isPending}
-                            onClick={() => {
-                              void applyPreset(
-                                selectedTeam.id,
-                                membership.userId,
-                              );
-                            }}
-                            size="sm"
-                            type="button"
-                            variant="primary"
-                          >
-                            {isPending ? "Saving..." : "Apply"}
-                          </ForgeButton>
-                        ) : null}
-                      </div>
-                    );
-                  })
-                )}
-              </ForgeMobileTableCards>
-            }
-          >
-            <table className="w-full text-left text-sm">
-              <thead className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">
-                <tr>
-                  <th className="px-4 py-3">Manager</th>
-                  <th className="px-4 py-3">Current preset</th>
-                  <th className="px-4 py-3">Staged preset</th>
-                  <th className="px-4 py-3 text-right">Apply</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--forge-border-strong)]/10">
-                {renderPresetRows()}
-              </tbody>
-            </table>
-          </ForgeManagementTable>
+                      return (
+                        <div
+                          className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4"
+                          key={`${stateKey}:card`}
+                        >
+                          <p className="text-sm font-semibold text-white">
+                            {managers.find(
+                              (manager) => manager.id === membership.userId,
+                            )?.name ?? membership.userId}
+                          </p>
+                          <p className="mt-1 text-xs text-[var(--forge-muted)]">
+                            Current preset:{" "}
+                            {resolvedPresetName ?? "No preset applied"}
+                          </p>
+                          <label className="mt-3 block">
+                            <span className="sr-only">Preset for manager</span>
+                            <select
+                              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60 disabled:opacity-50"
+                              disabled={isPending}
+                              onChange={(event) => {
+                                setStagedPresetByKey((current) => ({
+                                  ...current,
+                                  [stateKey]: event.target.value,
+                                }));
+                              }}
+                              value={currentPreset}
+                            >
+                              <option value="">Select preset</option>
+                              {presets.map((preset) => (
+                                <option key={preset.id} value={preset.id}>
+                                  {preset.name}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          {hasStagedPreset(stateKey) ? (
+                            <ForgeButton
+                              className="mt-3"
+                              disabled={isPending}
+                              onClick={() => {
+                                void applyPreset(
+                                  selectedTeam.id,
+                                  membership.userId,
+                                );
+                              }}
+                              size="sm"
+                              type="button"
+                              variant="primary"
+                            >
+                              {isPending ? "Saving..." : "Apply"}
+                            </ForgeButton>
+                          ) : null}
+                        </div>
+                      );
+                    })
+                  )}
+                </ForgeMobileTableCards>
+              }
+            >
+              <table className="w-full text-left text-sm">
+                <thead className="text-xs font-medium text-[var(--forge-muted)]">
+                  <tr>
+                    <th className="px-4 py-3">Manager</th>
+                    <th className="px-4 py-3">Current preset</th>
+                    <th className="px-4 py-3">Staged preset</th>
+                    <th className="px-4 py-3 text-right">Apply</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--forge-border-strong)]/10">
+                  {renderPresetRows()}
+                </tbody>
+              </table>
+            </ForgeManagementTable>
+          </SettingsTableShell>
         </SettingsEditorPanel>
 
         <SettingsEditorPanel>
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
+          <p className="text-xs font-medium text-[var(--forge-muted)]">
             Primary Manager
           </p>
           <p className="mt-2 text-sm text-[var(--forge-muted)]">
@@ -635,105 +637,33 @@ export function PermissionsPanel({
               {primaryManagerEmptyMessage}
             </p>
           ) : (
-            <ForgeManagementTable
-              className="mt-5"
-              mobileCards={
-                <ForgeMobileTableCards>
-                  {visiblePrimaryManagerReps.map((rep) => {
-                    const currentManagerId =
-                      stagedManagerByRepId[rep.id] ??
-                      rep.primaryManagerId ??
-                      "";
-                    const assignedManager = managers.find(
-                      (manager) => manager.id === rep.primaryManagerId,
-                    );
-                    const isPending = pendingKey === `rep:${rep.id}`;
+            <SettingsTableShell className="mt-5">
+              <ForgeManagementTable
+                mobileCards={
+                  <ForgeMobileTableCards>
+                    {visiblePrimaryManagerReps.map((rep) => {
+                      const currentManagerId =
+                        stagedManagerByRepId[rep.id] ??
+                        rep.primaryManagerId ??
+                        "";
+                      const assignedManager = managers.find(
+                        (manager) => manager.id === rep.primaryManagerId,
+                      );
+                      const isPending = pendingKey === `rep:${rep.id}`;
 
-                    return (
-                      <div
-                        className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4"
-                        key={`${rep.id}:mobile`}
-                      >
-                        <p className="text-sm font-semibold text-white">
-                          {rep.name}
-                        </p>
-                        <p className="mt-1 text-xs text-[var(--forge-muted)]">
-                          Current:{" "}
-                          {assignedManager?.name ?? "No manager assigned"}
-                        </p>
-                        <label className="mt-3 block">
-                          <span className="sr-only">
-                            Primary manager for {rep.name}
-                          </span>
-                          <select
-                            className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60 disabled:opacity-50"
-                            disabled={isPending}
-                            onChange={(event) => {
-                              setStagedManagerByRepId((current) => ({
-                                ...current,
-                                [rep.id]: event.target.value,
-                              }));
-                            }}
-                            value={currentManagerId}
-                          >
-                            <option value="">Select manager</option>
-                            {managers.map((manager) => (
-                              <option key={manager.id} value={manager.id}>
-                                {manager.name}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        {hasStagedManager(rep.id) ? (
-                          <ForgeButton
-                            className="mt-3"
-                            disabled={isPending}
-                            onClick={() => {
-                              void applyPrimaryManager(rep.id);
-                            }}
-                            size="sm"
-                            type="button"
-                            variant="primary"
-                          >
-                            {isPending ? "Saving..." : "Apply"}
-                          </ForgeButton>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </ForgeMobileTableCards>
-              }
-            >
-              <table className="w-full text-left text-sm">
-                <thead className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">
-                  <tr>
-                    <th className="px-4 py-3">Rep</th>
-                    <th className="px-4 py-3">Current manager</th>
-                    <th className="px-4 py-3">Staged manager</th>
-                    <th className="px-4 py-3 text-right">Apply</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--forge-border-strong)]/10">
-                  {visiblePrimaryManagerReps.map((rep) => {
-                    const currentManagerId =
-                      stagedManagerByRepId[rep.id] ??
-                      rep.primaryManagerId ??
-                      "";
-                    const assignedManager = managers.find(
-                      (manager) => manager.id === rep.primaryManagerId,
-                    );
-                    const isPending = pendingKey === `rep:${rep.id}`;
-
-                    return (
-                      <tr key={rep.id}>
-                        <td className="px-4 py-3 text-sm font-semibold text-white">
-                          {rep.name}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-[var(--forge-muted)]">
-                          {assignedManager?.name ?? "No manager assigned"}
-                        </td>
-                        <td className="px-4 py-3">
-                          <label className="block">
+                      return (
+                        <div
+                          className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4"
+                          key={`${rep.id}:mobile`}
+                        >
+                          <p className="text-sm font-semibold text-white">
+                            {rep.name}
+                          </p>
+                          <p className="mt-1 text-xs text-[var(--forge-muted)]">
+                            Current:{" "}
+                            {assignedManager?.name ?? "No manager assigned"}
+                          </p>
+                          <label className="mt-3 block">
                             <span className="sr-only">
                               Primary manager for {rep.name}
                             </span>
@@ -756,10 +686,9 @@ export function PermissionsPanel({
                               ))}
                             </select>
                           </label>
-                        </td>
-                        <td className="px-4 py-3 text-right">
                           {hasStagedManager(rep.id) ? (
                             <ForgeButton
+                              className="mt-3"
                               disabled={isPending}
                               onClick={() => {
                                 void applyPrimaryManager(rep.id);
@@ -770,18 +699,92 @@ export function PermissionsPanel({
                             >
                               {isPending ? "Saving..." : "Apply"}
                             </ForgeButton>
-                          ) : (
-                            <span className="text-xs uppercase tracking-[0.16em] text-[var(--forge-muted)]">
-                              Saved
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </ForgeManagementTable>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </ForgeMobileTableCards>
+                }
+              >
+                <table className="w-full text-left text-sm">
+                  <thead className="text-xs font-medium text-[var(--forge-muted)]">
+                    <tr>
+                      <th className="px-4 py-3">Rep</th>
+                      <th className="px-4 py-3">Current manager</th>
+                      <th className="px-4 py-3">Staged manager</th>
+                      <th className="px-4 py-3 text-right">Apply</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--forge-border-strong)]/10">
+                    {visiblePrimaryManagerReps.map((rep) => {
+                      const currentManagerId =
+                        stagedManagerByRepId[rep.id] ??
+                        rep.primaryManagerId ??
+                        "";
+                      const assignedManager = managers.find(
+                        (manager) => manager.id === rep.primaryManagerId,
+                      );
+                      const isPending = pendingKey === `rep:${rep.id}`;
+
+                      return (
+                        <tr key={rep.id}>
+                          <td className="px-4 py-3 text-sm font-semibold text-white">
+                            {rep.name}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-[var(--forge-muted)]">
+                            {assignedManager?.name ?? "No manager assigned"}
+                          </td>
+                          <td className="px-4 py-3">
+                            <label className="block">
+                              <span className="sr-only">
+                                Primary manager for {rep.name}
+                              </span>
+                              <select
+                                className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60 disabled:opacity-50"
+                                disabled={isPending}
+                                onChange={(event) => {
+                                  setStagedManagerByRepId((current) => ({
+                                    ...current,
+                                    [rep.id]: event.target.value,
+                                  }));
+                                }}
+                                value={currentManagerId}
+                              >
+                                <option value="">Select manager</option>
+                                {managers.map((manager) => (
+                                  <option key={manager.id} value={manager.id}>
+                                    {manager.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            {hasStagedManager(rep.id) ? (
+                              <ForgeButton
+                                disabled={isPending}
+                                onClick={() => {
+                                  void applyPrimaryManager(rep.id);
+                                }}
+                                size="sm"
+                                type="button"
+                                variant="primary"
+                              >
+                                {isPending ? "Saving..." : "Apply"}
+                              </ForgeButton>
+                            ) : (
+                              <span className="text-xs uppercase tracking-[0.16em] text-[var(--forge-muted)]">
+                                Saved
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </ForgeManagementTable>
+            </SettingsTableShell>
           )}
         </SettingsEditorPanel>
       </div>

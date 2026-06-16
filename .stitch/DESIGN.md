@@ -1,5 +1,5 @@
 ---
-name: Argos Operational
+name: Argos Operational Readability
 source: Google Stitch
 stitch_project_id: "7663541137437451553"
 stitch_project_title: Argos Authenticated Simplicity Pass
@@ -19,23 +19,23 @@ canonical_screens:
   rep_profile: "3fc9d2c449dc49cb855a18e85ba985ec"
   settings_people: "f0e35e679b9f4e17aa555ffbc8d5015e"
 colors:
-  background: "#050403"
-  depth: "#0d0907"
-  surface: "#100907"
-  surface_2: "#17100c"
-  surface_3: "#20150f"
-  text: "#fff4e6"
-  muted: "rgba(255, 244, 230, 0.68)"
-  faint: "rgba(255, 244, 230, 0.42)"
-  border: "rgba(255, 244, 230, 0.10)"
-  border_strong: "rgba(255, 244, 230, 0.18)"
-  gold: "#f1bf7b"
-  ember: "#ff9f5f"
-  cyan: "#88daf7"
-  success: "#8bd7a8"
-  danger: "#ff716c"
+  background: "#0c0b0a"
+  depth: "#11100e"
+  surface: "#151310"
+  surface_2: "#1b1814"
+  surface_3: "#231f19"
+  text: "#f4efe7"
+  muted: "rgba(244, 239, 231, 0.70)"
+  faint: "rgba(244, 239, 231, 0.45)"
+  border: "rgba(244, 239, 231, 0.11)"
+  border_strong: "rgba(244, 239, 231, 0.18)"
+  gold: "#d8aa68"
+  ember: "#d98c58"
+  cyan: "#7fb8c7"
+  success: "#8bc79d"
+  danger: "#e06d64"
 typography:
-  family: Inter for operational surfaces, existing brand/display font only for brand chrome
+  family: Geist for authenticated operational surfaces; `--font-display` and `--font-body` alias to `--font-ui`
   h1: 20px to 24px, 600 weight, normal tracking
   h2: 16px to 20px, 600 weight, normal tracking
   body: 13px to 14px, 18px to 20px line-height
@@ -54,13 +54,13 @@ spacing:
 
 # Argos Operational Design System
 
-This file is the implementation rubric for authenticated Argos pages. It is derived from the Google Stitch project `7663541137437451553`, the generated Stitch screens recorded in `.stitch/argos-authenticated-simplicity-pass.md` and `.stitch/argos-deep-page-simplicity-pass.md`, and the current Argos forge tokens.
+This file is the implementation rubric for authenticated Argos pages. The June 15 direction changed from a Forge command aesthetic to operational readability: cleaner SaaS surfaces, fewer decorative effects, flatter hierarchy, smaller chrome, and page composition that makes the primary work object easy to scan.
 
 Do not implement from prose alone. Use this file to translate the approved Stitch structure into the existing Argos components, data models, routes, validation, permissions, and product language.
 
 ## Product Feel
 
-Argos should feel like a simple operational SaaS product that happens to carry a lot of power. The target is closer to GoHighLevel's practical page composition than to a marketing dashboard: compact headers, clear tables, obvious filters, small action surfaces, and no decorative hero treatment.
+Argos should feel like a simple operational SaaS product that happens to carry a lot of power. The target is closer to GoHighLevel's practical page composition and Linear's readability than to a cinematic command dashboard: compact headers, clear tables, obvious filters, small action surfaces, and no decorative hero treatment.
 
 The user should always know:
 
@@ -133,7 +133,7 @@ Use uppercase label styles sparingly for table headers, section eyebrows, and me
 
 ## Color And Tone
 
-The base app remains dark, warm, and operational:
+The base app remains dark, warm, and operational, but the dark theme should be quiet and readable rather than theatrical:
 
 - Background: near black.
 - Surfaces: warm charcoal.
@@ -144,7 +144,7 @@ The base app remains dark, warm, and operational:
 - Ember: attention/warning.
 - Red: destructive/failure.
 
-No gradients are needed inside work surfaces except where an existing primary button primitive already uses one. Avoid decorative glows, bokeh, and large background effects in authenticated pages.
+No gradients are needed inside work surfaces. Avoid decorative glows, bokeh, grid textures, large background effects, and oversized rounded panels in authenticated pages.
 
 ## Component Patterns
 

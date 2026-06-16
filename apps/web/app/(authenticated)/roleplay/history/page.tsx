@@ -3,13 +3,13 @@ import { notFound } from "next/navigation";
 import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
 import {
   ForgeChip,
+  ForgeEmptyState,
   ForgeErrorState,
   ForgeScoreMeter,
   ForgeTableShell,
   type ForgeTone,
 } from "@/components/forge";
 import {
-  OperationalMetricStrip,
   OperationalPreviewDrawer,
   OperationalToolbar,
   OperationalWorkspace,
@@ -49,13 +49,9 @@ export default async function RoleplayHistoryPage() {
 
   const completedSessions = result.data.sessions.filter((session) => session.status === "complete");
   const selectedSession = completedSessions[0] ?? null;
-  const averageScore = completedSessions.length
-    ? Math.round(
-        completedSessions.reduce((sum, session) => sum + (session.overallScore ?? 0), 0) /
-          completedSessions.length,
-      )
-    : null;
-  const generatedCount = completedSessions.filter((session) => isGeneratedSession(session)).length;
+  const sectionClassName = selectedSession
+    ? "grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_320px]"
+    : "grid min-w-0 gap-3";
 
   return (
     <AuthenticatedPageContainer>
@@ -68,130 +64,101 @@ export default async function RoleplayHistoryPage() {
           title="Roleplay history"
         />
 
-        <OperationalMetricStrip
-          metrics={[
-            {
-              icon: "task_alt",
-              label: "Completed",
-              tone: completedSessions.length > 0 ? "success" : "muted",
-              value: completedSessions.length,
-            },
-            {
-              icon: "query_stats",
-              label: "Avg score",
-              tone: averageScore === null ? "muted" : roleplayScoreTone(averageScore),
-              value: averageScore ?? "--",
-            },
-            {
-              icon: "auto_awesome",
-              label: "Generated",
-              tone: generatedCount > 0 ? "gold" : "muted",
-              value: generatedCount,
-            },
-            {
-              icon: "timer",
-              label: "Last session",
-              tone: selectedSession ? "cyan" : "muted",
-              value: selectedSession ? formatDate(selectedSession.createdAt) : "--",
-            },
-          ]}
-        />
-
-        <section className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <ForgeTableShell className="min-w-0 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[840px] border-collapse text-left">
-                <thead>
-                  <tr className="border-b border-[var(--forge-border)] text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
-                    <th className="px-4 py-3">Scenario</th>
-                    <th className="px-4 py-3">Persona</th>
-                    <th className="px-4 py-3">Score</th>
-                    <th className="px-4 py-3">Duration</th>
-                    <th className="px-4 py-3">Date</th>
-                    <th className="px-4 py-3 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--forge-border)]">
-                  {completedSessions.length ? (
-                    completedSessions.map((session) => (
-                      <tr
-                        className="bg-[rgba(255,244,230,0.018)] text-sm text-[var(--forge-text)]"
-                        key={session.id}
-                      >
-                        <td className="px-4 py-3">
-                          <p className="font-semibold">{scenarioLabel(session)}</p>
-                          {isGeneratedSession(session) ? (
-                            <ForgeChip className="mt-2" tone="gold">
-                              Generated from call
-                            </ForgeChip>
-                          ) : null}
-                        </td>
-                        <td className="px-4 py-3 text-[var(--forge-muted)]">
-                          {getSessionPersonaLabel(session)}
-                        </td>
-                        <td className="px-4 py-3">
-                          <ForgeScoreMeter
-                            className="w-28"
-                            label="Session score"
-                            showValue
-                            tone={roleplayScoreTone(session.overallScore)}
-                            value={session.overallScore ?? 0}
-                            valueSuffix="%"
+        <section className={sectionClassName}>
+          <div data-forge-table="true">
+            <ForgeTableShell className="min-w-0 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[840px] border-collapse text-left">
+                  <thead>
+                    <tr className="border-b border-[var(--forge-border)] text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
+                      <th className="px-4 py-3">Scenario</th>
+                      <th className="px-4 py-3">Persona</th>
+                      <th className="px-4 py-3">Score</th>
+                      <th className="px-4 py-3">Duration</th>
+                      <th className="px-4 py-3">Date</th>
+                      <th className="px-4 py-3 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--forge-border)]">
+                    {completedSessions.length ? (
+                      completedSessions.map((session) => (
+                        <tr
+                          className="bg-[rgba(255,244,230,0.018)] text-sm text-[var(--forge-text)]"
+                          key={session.id}
+                        >
+                          <td className="px-4 py-3">
+                            <p className="font-semibold">{scenarioLabel(session)}</p>
+                            {isGeneratedSession(session) ? (
+                              <ForgeChip className="mt-2" tone="gold">
+                                Generated from call
+                              </ForgeChip>
+                            ) : null}
+                          </td>
+                          <td className="px-4 py-3 text-[var(--forge-muted)]">
+                            {getSessionPersonaLabel(session)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <ForgeScoreMeter
+                              className="w-28"
+                              label="Session score"
+                              showValue
+                              tone={roleplayScoreTone(session.overallScore)}
+                              value={session.overallScore ?? 0}
+                              valueSuffix="%"
+                            />
+                          </td>
+                          <td className="px-4 py-3 text-[var(--forge-muted)]">{formatDuration(session)}</td>
+                          <td className="px-4 py-3 text-[var(--forge-muted)]">{formatDate(session.createdAt)}</td>
+                          <td className="px-4 py-3 text-right">
+                            <Link
+                              className="font-semibold text-[var(--forge-gold)] underline hover:text-[var(--forge-gold)]/80"
+                              href={`/roleplay?sessionId=${session.id}`}
+                            >
+                              Review
+                            </Link>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td className="p-4" colSpan={6}>
+                          <ForgeEmptyState
+                            description="Completed practice sessions will appear here."
+                            title="No roleplay sessions"
                           />
                         </td>
-                        <td className="px-4 py-3 text-[var(--forge-muted)]">{formatDuration(session)}</td>
-                        <td className="px-4 py-3 text-[var(--forge-muted)]">{formatDate(session.createdAt)}</td>
-                        <td className="px-4 py-3 text-right">
-                          <Link
-                            className="font-semibold text-[var(--forge-gold)] underline hover:text-[var(--forge-gold)]/80"
-                            href={`/roleplay?sessionId=${session.id}`}
-                          >
-                            Review
-                          </Link>
-                        </td>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td className="px-4 py-8 text-sm text-[var(--forge-muted)]" colSpan={6}>
-                        Completed sessions appear here after you finish and score a roleplay.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </ForgeTableShell>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </ForgeTableShell>
+          </div>
 
-          <OperationalPreviewDrawer
-            actions={
-              selectedSession
-                ? [
-                    {
-                      href: `/roleplay?sessionId=${selectedSession.id}`,
-                      icon: "open_in_new",
-                      label: "Review session",
-                      variant: "primary",
-                    },
-                    { href: "/roleplay", icon: "mic", label: "Practice", variant: "secondary" },
-                  ]
-                : [{ href: "/roleplay", icon: "mic", label: "Start practice", variant: "secondary" }]
-            }
-            description={
-              selectedSession
-                ? "Open this session for transcript, scorecard, and coaching context."
-                : "Recent score context appears here once roleplays are completed."
-            }
-            eyebrow="Selected session"
-            title={selectedSession ? scenarioLabel(selectedSession) : "No completed sessions"}
-          >
-            <div className="grid gap-2 text-sm">
-              <PreviewRow label="Persona" value={selectedSession ? getSessionPersonaLabel(selectedSession) : "--"} />
-              <PreviewRow label="Score" value={selectedSession?.overallScore ?? "--"} />
-              <PreviewRow label="Duration" value={selectedSession ? formatDuration(selectedSession) : "--"} />
-              <PreviewRow label="Date" value={selectedSession ? formatDate(selectedSession.createdAt) : "--"} />
-            </div>
-          </OperationalPreviewDrawer>
+          {selectedSession ? (
+            <OperationalPreviewDrawer
+              actions={[
+                {
+                  href: `/roleplay?sessionId=${selectedSession.id}`,
+                  icon: "open_in_new",
+                  label: "Review session",
+                  variant: "primary",
+                },
+                { href: "/roleplay", icon: "mic", label: "Practice", variant: "secondary" },
+              ]}
+              data-selected-object-drawer="true"
+              description="Open this session for transcript, scorecard, and coaching context."
+              eyebrow="Selected session"
+              title={scenarioLabel(selectedSession)}
+            >
+              <div className="grid gap-2 text-sm">
+                <PreviewRow label="Persona" value={getSessionPersonaLabel(selectedSession)} />
+                <PreviewRow label="Score" value={selectedSession.overallScore ?? "--"} />
+                <PreviewRow label="Duration" value={formatDuration(selectedSession)} />
+                <PreviewRow label="Date" value={formatDate(selectedSession.createdAt)} />
+              </div>
+            </OperationalPreviewDrawer>
+          ) : null}
         </section>
       </OperationalWorkspace>
     </AuthenticatedPageContainer>

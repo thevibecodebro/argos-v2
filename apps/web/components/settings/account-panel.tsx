@@ -5,6 +5,7 @@ import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ForgeButton, ForgeChip, ForgeSurface } from "@/components/forge";
 import type { CurrentUserDetails } from "@/lib/users/service";
+import { SettingsMetaRow, SettingsSectionHeader } from "./settings-readability";
 
 function initials(
   firstName: string | null,
@@ -144,8 +145,17 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
   return (
     <div className="space-y-5">
       {/* Profile card */}
-      <ForgeSurface as="section" className="p-6" variant="panel">
-        <div className="flex items-start gap-4">
+      <ForgeSurface
+        as="section"
+        className="overflow-hidden p-0"
+        variant="panel"
+      >
+        <SettingsSectionHeader
+          description="Manage the profile information tied to your workspace access."
+          eyebrow="Account"
+          title="Your profile"
+        />
+        <div className="flex items-start gap-4 p-4 sm:p-6">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/8 text-lg font-semibold text-[var(--forge-gold)]">
             {initials(
               currentUser.firstName,
@@ -154,15 +164,11 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
-              Your Profile
-            </p>
-
             {isEditing ? (
-              <div className="mt-4 space-y-3">
+              <div className="space-y-3">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="text-left">
-                    <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">
+                    <span className="text-xs font-medium text-[var(--forge-muted)]">
                       First Name
                     </span>
                     <input
@@ -172,7 +178,7 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
                     />
                   </label>
                   <label className="text-left">
-                    <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">
+                    <span className="text-xs font-medium text-[var(--forge-muted)]">
                       Last Name
                     </span>
                     <input
@@ -215,17 +221,22 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
                 </div>
               </div>
             ) : (
-              <div className="mt-4">
+              <div>
                 <p className="text-2xl font-semibold text-white">
                   {displayName}
                 </p>
-                <p className="mt-2 text-sm text-[var(--forge-muted)]">
-                  {currentUser.email}
-                </p>
+                <div className="mt-3 max-w-xl">
+                  <SettingsMetaRow label="Email" value={currentUser.email} />
+                  <SettingsMetaRow
+                    label="Role"
+                    value={
+                      <ForgeChip tone="gold">
+                        {currentUser.role ?? "member"}
+                      </ForgeChip>
+                    }
+                  />
+                </div>
                 <div className="mt-3 flex flex-wrap items-center gap-3">
-                  <ForgeChip tone="gold">
-                    {currentUser.role ?? "member"}
-                  </ForgeChip>
                   <ForgeButton
                     onClick={() => setIsEditing(true)}
                     size="sm"
@@ -242,15 +253,18 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
       </ForgeSurface>
 
       {/* Organization card */}
-      <ForgeSurface as="section" className="p-6" variant="panel">
-        <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
-          Organization
-        </p>
-        <p className="mt-4 text-2xl font-semibold text-white">
-          {currentUser.org?.name ?? "No organization"}
-        </p>
+      <ForgeSurface
+        as="section"
+        className="overflow-hidden p-0"
+        variant="panel"
+      >
+        <SettingsSectionHeader
+          description="Workspace identity, logo, and API-facing identifiers."
+          eyebrow="Organization"
+          title={currentUser.org?.name ?? "No organization"}
+        />
         {currentUser.org ? (
-          <div className="mt-5 space-y-4">
+          <div className="space-y-4 p-4 sm:p-6">
             <div className="flex flex-col gap-4 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex min-w-0 items-center gap-4">
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-1)]">
@@ -267,7 +281,7 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">
+                  <p className="text-xs font-medium text-[var(--forge-muted)]">
                     Logo
                   </p>
                   <p className="mt-1 truncate text-sm font-medium text-[var(--forge-text)]">
@@ -322,77 +336,69 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
                 {logoStatus}
               </p>
             ) : null}
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">
-                  Org ID
-                </p>
-                <p className="mt-1 font-mono text-sm font-medium text-[var(--forge-text)]">
-                  {currentUser.org.slug}
-                </p>
-                <p className="mt-1 text-xs text-[var(--forge-muted)]">
-                  Used in API references and webhook configurations
-                </p>
-              </div>
-              <ForgeButton
-                onClick={() => void copySlug()}
-                size="sm"
-                type="button"
-                variant="secondary"
-              >
-                {copied ? "Copied" : "Copy"}
-              </ForgeButton>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3">
-                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">
-                  Plan
-                </p>
-                <p className="mt-2 text-sm font-medium capitalize text-[var(--forge-text)]">
-                  {currentUser.org.plan}
-                </p>
-              </div>
-              <div className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3">
-                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">
-                  Created
-                </p>
-                <p className="mt-2 text-sm font-medium text-[var(--forge-text)]">
-                  {formatDate(currentUser.org.createdAt) ?? "Unknown"}
-                </p>
+            <div className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-2">
+              <SettingsMetaRow
+                label="Org ID"
+                value={
+                  <span className="font-mono">{currentUser.org.slug}</span>
+                }
+              />
+              <SettingsMetaRow
+                label="API usage"
+                value="Webhook and API references"
+              />
+              <SettingsMetaRow
+                label="Plan"
+                value={
+                  <span className="capitalize">{currentUser.org.plan}</span>
+                }
+              />
+              <SettingsMetaRow
+                label="Created"
+                value={formatDate(currentUser.org.createdAt) ?? "Unknown"}
+              />
+              <div className="flex justify-end py-2">
+                <ForgeButton
+                  aria-label="Copy org ID"
+                  onClick={() => void copySlug()}
+                  size="sm"
+                  type="button"
+                  variant="secondary"
+                >
+                  {copied ? "Copied org ID" : "Copy org ID"}
+                </ForgeButton>
               </div>
             </div>
           </div>
         ) : (
-          <p className="mt-3 text-sm text-[var(--forge-muted)]">
+          <p className="p-4 text-sm text-[var(--forge-muted)] sm:p-6">
             Join or create an organization to unlock the workspace.
           </p>
         )}
       </ForgeSurface>
 
       {currentUser.org ? (
-        <ForgeSurface as="section" className="p-6" variant="panel">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
-                Billing
-              </p>
-              <p className="mt-4 text-2xl font-semibold text-white">
-                Manage subscription
-              </p>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--forge-muted)]">
-                Team subscriptions can adjust paid seat quantity from Stripe billing.
-              </p>
-            </div>
-            <ForgeButton
-              href="/billing/portal"
-              icon="payments"
-              size="sm"
-              trailingIcon="open_in_new"
-              variant="primary"
-            >
-              Manage billing and seats
-            </ForgeButton>
-          </div>
+        <ForgeSurface
+          as="section"
+          className="overflow-hidden p-0"
+          variant="panel"
+        >
+          <SettingsSectionHeader
+            actions={
+              <ForgeButton
+                href="/billing/portal"
+                icon="payments"
+                size="sm"
+                trailingIcon="open_in_new"
+                variant="primary"
+              >
+                Manage billing and seats
+              </ForgeButton>
+            }
+            description="Team subscriptions can adjust paid seat quantity from Stripe billing."
+            eyebrow="Billing"
+            title="Manage subscription"
+          />
         </ForgeSurface>
       ) : null}
     </div>
