@@ -5,16 +5,19 @@ import { isRetryableSupabaseAuthError } from "@/lib/supabase/auth-errors";
 import { logAuthTransportFailure } from "@/lib/supabase/auth-observability";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSafeRequestOrigin } from "@/lib/security/trusted-origins";
-import { getAuthenticatedEntryHref, isProtectedPath } from "@/lib/auth-routing";
+import { getAuthenticatedEntryHref, getSafeNextPath, isProtectedPath } from "@/lib/auth-routing";
 import { getPlatformStaffAfterProvisioning } from "@/lib/platform/auth";
 import { createPlatformRepository } from "@/lib/platform/create-repository";
 
-function getSafeNextPath(value: string | null) {
-  if (!value?.startsWith("/") || value.startsWith("//")) {
-    return "/dashboard";
+function getOrglessProtectedDestination(
+  next: string,
+  isActivePlatformStaff: boolean,
+) {
+  if (isActivePlatformStaff && (next === "/platform" || next.startsWith("/platform/"))) {
+    return next === "/platform" ? "/platform/dashboard" : next;
   }
 
-  return value;
+  return getAuthenticatedEntryHref(false, { isActivePlatformStaff });
 }
 
 export async function GET(request: Request) {
@@ -85,7 +88,7 @@ export async function GET(request: Request) {
 
         if (provisionedUser?.orgId === null && isProtectedPath(next)) {
           return NextResponse.redirect(
-            `${origin}${getAuthenticatedEntryHref(false, { isActivePlatformStaff })}`,
+            `${origin}${getOrglessProtectedDestination(next, isActivePlatformStaff)}`,
           );
         }
       }

@@ -1,0 +1,76 @@
+import { describe, expect, it, vi } from "vitest";
+import {
+  createEffectiveAccessRepository,
+  createEffectiveDashboardRepository,
+} from "./effective-platform";
+import type { AccessRepository } from "@/lib/access/repository.types";
+import type { CurrentUserProfile, DashboardRepository } from "./service";
+
+const effectiveProfile: CurrentUserProfile = {
+  email: "platform:staff-user",
+  fullName: "Platform Staff",
+  id: "staff-user",
+  role: "admin",
+  org: {
+    id: "org-1",
+    logoUrl: null,
+    name: "Acme Health",
+    plan: "trial",
+    slug: "acme-health",
+  },
+};
+
+describe("effective platform dashboard adapters", () => {
+  it("returns the effective tenant profile instead of re-querying the raw platform staff user", async () => {
+    const repository = {
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue(null),
+    } as unknown as DashboardRepository;
+    const effectiveRepository = createEffectiveDashboardRepository(
+      repository,
+      effectiveProfile,
+      "staff-user",
+    );
+
+    await expect(effectiveRepository.findCurrentUserByAuthId("staff-user")).resolves.toMatchObject({
+      id: "staff-user",
+      role: "admin",
+      org: {
+        id: "org-1",
+        slug: "acme-health",
+      },
+    });
+    expect(repository.findCurrentUserByAuthId).not.toHaveBeenCalled();
+  });
+
+  it("delegates unrelated user lookups and exposes effective access actor for the session org", async () => {
+    const repository = {
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({ id: "rep-1" }),
+    } as unknown as DashboardRepository;
+    const accessRepository = {
+      findActorByAuthUserId: vi.fn().mockResolvedValue(null),
+      findGrantsByUserId: vi.fn().mockResolvedValue([]),
+      findMembershipsByOrgId: vi.fn().mockResolvedValue([]),
+    } satisfies AccessRepository;
+
+    const effectiveRepository = createEffectiveDashboardRepository(
+      repository,
+      effectiveProfile,
+      "staff-user",
+    );
+    const effectiveAccessRepository = createEffectiveAccessRepository(
+      accessRepository,
+      effectiveProfile,
+      "staff-user",
+    );
+
+    await expect(effectiveRepository.findCurrentUserByAuthId("rep-1")).resolves.toEqual({ id: "rep-1" });
+    await expect(effectiveAccessRepository.findActorByAuthUserId("staff-user")).resolves.toEqual({
+      id: "staff-user",
+      orgId: "org-1",
+      role: "admin",
+    });
+
+    expect(repository.findCurrentUserByAuthId).toHaveBeenCalledWith("rep-1");
+    expect(accessRepository.findActorByAuthUserId).not.toHaveBeenCalled();
+  });
+});

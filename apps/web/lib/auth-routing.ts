@@ -26,12 +26,20 @@ export function getLoginHref(pathname: string, search = ""): string {
   return `/login?${params.toString()}`;
 }
 
+export function getSafeNextPath(value: string | null, fallback = "/dashboard") {
+  if (!value?.startsWith("/") || value.startsWith("//")) {
+    return fallback;
+  }
+
+  return value;
+}
+
 export function getAuthenticatedEntryHref(
   hasOrganization: boolean,
   options: { isActivePlatformStaff?: boolean } = {},
 ): string {
   if (!hasOrganization && options.isActivePlatformStaff) {
-    return "/platform";
+    return "/platform/dashboard";
   }
 
   return hasOrganization ? "/dashboard" : "/onboarding";

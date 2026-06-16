@@ -4,6 +4,7 @@ import {
   platformStaffTable,
 } from "@argos-v2/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { parsePlatformDashboardFilters } from "./dashboard";
 import { DrizzlePlatformRepository } from "./repository";
 
 vi.mock("drizzle-orm", async (importOriginal) => {
@@ -33,6 +34,7 @@ type Operation =
       whereArgs: unknown[];
       whereCount: number;
       orderCount: number;
+      groupCount: number;
       limitValue?: number;
     }
   | {
@@ -63,6 +65,7 @@ function createRepositoryHarness(results: unknown[][] = []) {
       whereArgs: [],
       whereCount: 0,
       orderCount: 0,
+      groupCount: 0,
     };
     operations.push(operation);
 
@@ -82,6 +85,10 @@ function createRepositoryHarness(results: unknown[][] = []) {
       },
       orderBy() {
         operation.orderCount += 1;
+        return builder;
+      },
+      groupBy() {
+        operation.groupCount += 1;
         return builder;
       },
       limit(value: number) {
@@ -311,6 +318,51 @@ describe("DrizzlePlatformRepository", () => {
       },
     ]);
     expect(operations[0]).toMatchObject({ kind: "select", joins: expect.any(Array), orderCount: 1 });
+  });
+
+  it("loads platform dashboard organizations without a hard result cap", async () => {
+    const createdAt = new Date("2026-06-11T10:00:00.000Z");
+    const filters = parsePlatformDashboardFilters(
+      {
+        plan: "enterprise",
+        q: "acme",
+      },
+      new Date("2026-06-16T10:00:00.000Z"),
+    );
+    const { operations, repository } = createRepositoryHarness([
+      [
+        {
+          id: "org-1",
+          name: "Acme",
+          slug: "acme",
+          plan: "enterprise",
+          createdAt,
+        },
+      ],
+      [],
+      [],
+      [],
+      [],
+    ]);
+
+    await expect(repository.getDashboardSnapshot(filters)).resolves.toMatchObject({
+      summary: {
+        totalOrganizations: 1,
+      },
+    });
+
+    expect(operations[0]).toMatchObject({
+      kind: "select",
+      orderCount: 1,
+      whereCount: 1,
+    });
+    expect((operations[0] as Extract<Operation, { kind: "select" }>).limitValue).toBeUndefined();
+    expect(
+      operations.some(
+        (operation) =>
+          operation.kind === "select" && operation.limitValue !== undefined,
+      ),
+    ).toBe(false);
   });
 
   it("finds an orgless platform user candidate by email", async () => {
@@ -807,5 +859,54 @@ describe("DrizzlePlatformRepository", () => {
         },
       },
     ]);
+  });
+
+  it("loads an organization detail snapshot by slug", async () => {
+    const createdAt = new Date("2026-06-01T15:00:00.000Z");
+    const { operations, repository } = createRepositoryHarness([
+      [{ id: "org-1", name: "Acme Health", slug: "acme-health", plan: "trial", createdAt }],
+      [{ id: "user-1", email: "admin@acme.test", role: "admin" }],
+      [],
+      [{ averageScore: 82, failedCalls: 0, lastCallAt: createdAt, processingCalls: 0, reviewedCalls: 4, totalCalls: 4 }],
+      [{ completedTrainingAssignments: 0, totalTrainingAssignments: 0 }],
+      [{ lastRoleplayAt: null, roleplaySessions: 0 }],
+      [{ seatCount: 4, status: "trialing", stripeCustomerId: "cus_1", stripeSubscriptionId: "sub_1" }],
+      [],
+      [],
+    ]);
+
+    const snapshot = await repository.getOrganizationDetailSnapshot("acme-health");
+
+    expect(snapshot?.organization.slug).toBe("acme-health");
+    expect(snapshot?.summary.admins).toBe(1);
+    expect(snapshot?.billing.seats).toBe(4);
+    expect(operations.filter((operation) => operation.kind === "select")).toHaveLength(9);
+  });
+
+  it("returns null when organization detail slug is missing", async () => {
+    const { repository } = createRepositoryHarness([[]]);
+
+    await expect(repository.getOrganizationDetailSnapshot("missing")).resolves.toBeNull();
+  });
+
+  it("lists platform audit events with an optional organization filter", async () => {
+    const createdAt = new Date("2026-06-16T15:00:00.000Z");
+    const { operations, repository } = createRepositoryHarness([
+      [
+        {
+          action: "platform.organization.create",
+          createdAt,
+          id: "event-1",
+          reason: "Customer launch",
+          resourceType: "organization",
+          staffEmailSnapshot: "owner@argos.test",
+        },
+      ],
+    ]);
+
+    await expect(
+      repository.listAuditEvents({ targetOrgId: "org-1", limit: 25 }),
+    ).resolves.toHaveLength(1);
+    expect(operations[0]).toMatchObject({ kind: "select", limitValue: 25, whereCount: 1 });
   });
 });

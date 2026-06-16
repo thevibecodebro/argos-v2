@@ -1,136 +1,233 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { PlatformConsole } from "../components/platform/platform-console";
+import { PlatformCreateOrganizationPage } from "../components/platform/platform-create-organization-page";
+import { PlatformDashboardPage } from "../components/platform/platform-dashboard-page";
+import { PlatformOrganizationsPage } from "../components/platform/platform-organizations-page";
+import { PlatformSessionsPage } from "../components/platform/platform-sessions-page";
+import { PlatformShell } from "../components/platform/platform-shell";
+import { PlatformStaffPage } from "../components/platform/platform-staff-page";
+import type {
+  PlatformConsoleActiveSession,
+  PlatformConsoleOrganization,
+  PlatformConsoleStaffMember,
+} from "../components/platform/platform-types";
+import { parsePlatformDashboardFilters } from "./platform/dashboard";
 
-const baseProps = {
+const organizations: PlatformConsoleOrganization[] = [
+  {
+    createdAt: "2026-06-11T15:30:00.000Z",
+    id: "org-1",
+    name: "Acme Health",
+    plan: "trial",
+    slug: "acme-health",
+  },
+];
+
+const activeSession: PlatformConsoleActiveSession = {
+  expiresAt: "2026-06-11T16:30:00.000Z",
+  id: "session-1",
+  reason: "Support escalation",
+  targetOrgId: "org-1",
+  targetOrgName: "Acme Health",
+  targetOrgSlug: "acme-health",
+};
+
+const platformStaff: PlatformConsoleStaffMember[] = [
+  {
+    createdAt: "2026-06-10T15:30:00.000Z",
+    email: "owner@argos.test",
+    role: "owner",
+    status: "active",
+    updatedAt: "2026-06-10T15:30:00.000Z",
+    userId: "staff-1",
+  },
+];
+
+const shellProps = {
+  activePath: "/platform/dashboard",
   activeSession: null,
   currentUserEmail: "operator@argos.test",
-  currentUserId: "staff-2",
-  organizations: [
-    {
-      createdAt: "2026-06-11T15:30:00.000Z",
-      id: "org-1",
-      name: "Acme Health",
-      plan: "trial",
-      slug: "acme-health",
-    },
-  ],
-  platformStaff: [
-    {
-      createdAt: "2026-06-10T15:30:00.000Z",
-      email: "owner@argos.test",
-      role: "owner" as const,
-      status: "active" as const,
-      updatedAt: "2026-06-10T15:30:00.000Z",
-      userId: "staff-1",
-    },
-  ],
-  query: "",
+  organizationCount: organizations.length,
   staffRole: "owner" as const,
   staffStatus: "active" as const,
 };
 
-describe("PlatformConsole", () => {
-  it("renders the platform shell, organization controls, and staff controls", () => {
-    const html = renderToStaticMarkup(createElement(PlatformConsole, baseProps));
+describe("PlatformShell", () => {
+  it("renders real platform routes in the left rail", () => {
+    const html = renderToStaticMarkup(
+      createElement(PlatformShell, shellProps, "Platform content"),
+    );
 
-    expect(html).toContain('data-platform-console="true"');
-    expect(html).toContain('data-platform-layout="agency-control-plane"');
-    expect(html).toContain("Agency workspace");
+    expect(html).toContain('data-platform-shell="true"');
+    expect(html).toContain('data-platform-sidebar="true"');
+    expect(html).toContain('data-navigation-link="/platform/dashboard"');
+    expect(html).toContain('data-navigation-link="/platform/organizations"');
+    expect(html).toContain('data-navigation-link="/platform/sessions"');
+    expect(html).toContain('data-navigation-link="/platform/staff"');
+    expect(html).not.toContain('data-navigation-link="/platform/organizations/new"');
+    expect(html).toContain('aria-current="page"');
+    expect(html).toContain("Dashboard");
     expect(html).toContain("Organizations");
-    expect(html).toContain('id="platform-organizations"');
-    expect(html).toContain('id="platform-session"');
-    expect(html).toContain('data-platform-primary-table="organizations"');
-    expect(html).toContain('data-platform-selected-organization="org-1"');
-    expect(html).toContain('data-platform-action-panel="true"');
-    expect(html).toContain("Switch organization");
-    expect(html).toMatch(/<th[^>]*>Organization<\/th>[\s\S]*<th[^>]*>Plan<\/th>[\s\S]*<th[^>]*>Created<\/th>/);
-    expect(html).toContain("Acme Health");
-    expect(html).toContain("acme-health");
-    expect(html).toContain('data-platform-create-endpoint="/api/platform/organizations"');
-    expect(html).toContain('data-platform-session-endpoint="/api/platform/sessions"');
-    expect(html).toContain("Create organization");
-    expect(html).toContain("Initial admin email");
-    expect(html).toContain("Platform staff");
-    expect(html).toContain("Staff access stays separate from customer organization roles.");
-    expect(html).toContain('data-platform-staff-endpoint="/api/platform/staff"');
-    expect(html).toContain("Staff email");
-    expect(html).toContain("Revocation reason");
-    expect(html).toContain("owner@argos.test");
-    expect(html).toContain("operator@argos.test");
-    expect(html).not.toContain("Platform operations");
-    expect(html).not.toContain("Customer accounts");
-    expect(html).not.toContain("Org switch");
-    expect(html).not.toContain("Switch account");
-    expect(html).not.toContain("select the account");
-    expect(html).not.toContain("Select an account");
-    expect(html).not.toContain("New customer account");
+    expect(html).toContain("Sessions");
+    expect(html).toContain("Staff");
+    expect(html).not.toContain(">Create<");
+    expect(html).not.toContain("#platform-");
     expect(html).not.toContain("Sub-account");
     expect(html).not.toContain("Subaccounts");
-    expect(html).not.toContain("sub-account");
     expect(html).not.toContain("subaccount");
-    expect(html).not.toContain('data-operational-metric-strip="true"');
   });
 
-  it("keeps staff mutation UI owner-only and protects the current owner from self-revoke", () => {
-    const operatorHtml = renderToStaticMarkup(
-      createElement(PlatformConsole, {
-        ...baseProps,
-        staffRole: "operator" as const,
-      }),
+  it("keeps organization view gated behind an active session", () => {
+    const disabledHtml = renderToStaticMarkup(
+      createElement(PlatformShell, shellProps, "Platform content"),
+    );
+    const activeHtml = renderToStaticMarkup(
+      createElement(
+        PlatformShell,
+        { ...shellProps, activeSession },
+        "Platform content",
+      ),
     );
 
-    expect(operatorHtml).toContain("Owner role is required for staff membership changes.");
-    expect(operatorHtml).not.toContain('data-platform-staff-endpoint="/api/platform/staff"');
-    expect(operatorHtml).not.toContain("Revocation reason");
-
-    const selfOnlyOwnerHtml = renderToStaticMarkup(
-      createElement(PlatformConsole, {
-        ...baseProps,
-        currentUserId: "staff-1",
-      }),
-    );
-
-    expect(selfOnlyOwnerHtml).toContain('data-platform-staff-endpoint="/api/platform/staff"');
-    expect(selfOnlyOwnerHtml).not.toContain("Revocation reason");
-    expect(selfOnlyOwnerHtml).not.toContain("Revoke");
+    expect(disabledHtml).toContain('data-platform-organization-view-link="disabled"');
+    expect(activeHtml).toContain('data-platform-organization-view-link="active"');
+    expect(activeHtml).toContain('href="/dashboard"');
   });
+});
 
-  it("renders the active organization session banner", () => {
+describe("platform page components", () => {
+  it("renders the combined dashboard stats, filters, and risk queue", () => {
+    const filters = parsePlatformDashboardFilters({}, new Date("2026-06-16T15:00:00.000Z"));
     const html = renderToStaticMarkup(
-      createElement(PlatformConsole, {
-        ...baseProps,
-        activeSession: {
-          expiresAt: "2026-06-11T16:30:00.000Z",
-          id: "session-1",
-          reason: "Support escalation",
-          targetOrgId: "org-1",
-          targetOrgName: "Acme Health",
-          targetOrgSlug: "acme-health",
+      createElement(PlatformDashboardPage, {
+        dashboard: {
+          alerts: [
+            {
+              count: 1,
+              href: "/platform/dashboard?callStatus=failed",
+              label: "Organizations with failed-call risk",
+              severity: "warning",
+            },
+          ],
+          filters,
+          rows: [
+            {
+              activeSubscriptionCount: 1,
+              averageScore: 64,
+              completedTrainingAssignments: 1,
+              createdAt: "2026-06-01T15:00:00.000Z",
+              failedCalls: 1,
+              id: "org-1",
+              lastActivityAt: "2026-06-14T15:00:00.000Z",
+              name: "Acme Health",
+              plan: "trial",
+              processingCalls: 0,
+              reviewedCalls: 10,
+              riskReasons: ["Avg score below 70"],
+              riskScore: 2,
+              seats: 5,
+              slug: "acme-health",
+              totalCalls: 10,
+              totalTrainingAssignments: 4,
+              trainingCompletionRate: 25,
+            },
+          ],
+          summary: {
+            activeOrganizations: 1,
+            activeSeats: 5,
+            atRiskOrganizations: 1,
+            callsReviewed: 10,
+            reviewCompletionRate: 100,
+            totalOrganizations: 1,
+          },
         },
       }),
     );
 
-    expect(html).toContain("Active organization session");
-    expect(html).toContain("Back to agency view");
-    expect(html).toContain("Support escalation");
-    expect(html).toContain("Acme Health");
-    expect(html).toContain('href="/dashboard"');
+    expect(html).toContain('data-platform-dashboard-page="true"');
+    expect(html).toContain('data-platform-dashboard-filters="true"');
+    expect(html).toContain('data-platform-dashboard-alerts="true"');
+    expect(html).toContain('data-platform-risk-queue="true"');
+    expect(html).toContain("Organizations needing attention");
+    expect(html).toContain("Organizations with failed-call risk");
+    expect(html).toContain("Active organizations");
+    expect(html).toContain("Calls reviewed");
+    expect(html).toContain("Review completion");
+    expect(html).toContain("At risk");
+    expect(html).toContain("Active seats");
+    expect(html).toContain("Avg score below 70");
+    expect(html).toContain('href="/platform/organizations/acme-health"');
   });
 
-  it("renders empty and search states without losing the creation flow", () => {
+  it("renders organizations as a focused table with audited session actions", () => {
     const html = renderToStaticMarkup(
-      createElement(PlatformConsole, {
-        ...baseProps,
-        organizations: [],
-        query: "missing org",
+      createElement(PlatformOrganizationsPage, {
+        activeSession: null,
+        organizations,
+        query: "",
       }),
     );
 
-    expect(html).toContain("No organizations found");
-    expect(html).toContain("missing org");
-    expect(html).toContain("Create organization");
-    expect(html).toContain("No active platform session");
+    expect(html).toContain('data-platform-organizations-page="true"');
+    expect(html).toContain('data-platform-primary-table="organizations"');
+    expect(html).toContain('data-platform-session-endpoint="/api/platform/sessions"');
+    expect(html).toContain("Acme Health");
+    expect(html).toContain('href="/platform/organizations/acme-health"');
+    expect(html).toContain("Start session");
+    expect(html).not.toContain("#platform-");
+  });
+
+  it("renders sessions, create, and staff pages as separate workspaces", () => {
+    const sessionsHtml = renderToStaticMarkup(
+      createElement(PlatformSessionsPage, {
+        activeSession,
+        organizations,
+        recentSessions: [
+          {
+            endedAt: null,
+            expiresAt: "2026-06-11T16:30:00.000Z",
+            id: "session-1",
+            reason: "Support escalation",
+            staffEmailSnapshot: "operator@argos.test",
+            startedAt: "2026-06-11T15:30:00.000Z",
+            status: "active",
+            targetOrgName: "Acme Health",
+            targetOrgSlug: "acme-health",
+          },
+        ],
+        auditEvents: [
+          {
+            action: "platform.session.create",
+            createdAt: "2026-06-11T15:30:00.000Z",
+            id: "audit-1",
+            reason: "Support escalation",
+            resourceType: "platform_access_session",
+            staffEmailSnapshot: "operator@argos.test",
+          },
+        ],
+      }),
+    );
+    const createHtml = renderToStaticMarkup(
+      createElement(PlatformCreateOrganizationPage),
+    );
+    const staffHtml = renderToStaticMarkup(
+      createElement(PlatformStaffPage, {
+        currentUserId: "staff-2",
+        platformStaff,
+        staffRole: "owner",
+      }),
+    );
+
+    expect(sessionsHtml).toContain('data-platform-sessions-page="true"');
+    expect(sessionsHtml).toContain("Recent sessions");
+    expect(sessionsHtml).toContain("expired");
+    expect(sessionsHtml).toContain("Audit events");
+    expect(sessionsHtml).toContain("platform.session.create");
+    expect(createHtml).toContain('data-platform-create-page="true"');
+    expect(createHtml).toContain('data-platform-create-organization-page="true"');
+    expect(createHtml).toContain('data-platform-create-endpoint="/api/platform/organizations"');
+    expect(staffHtml).toContain('data-platform-staff-page="true"');
+    expect(staffHtml).toContain('data-platform-staff-endpoint="/api/platform/staff"');
   });
 });

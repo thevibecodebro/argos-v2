@@ -10,7 +10,12 @@ import {
   ForgeIcon,
   type ForgeTone,
 } from "@/components/forge";
+import { createAccessRepository } from "@/lib/access/create-repository";
 import { createDashboardRepository } from "@/lib/dashboard/create-repository";
+import {
+  createEffectiveAccessRepository,
+  createEffectiveDashboardRepository,
+} from "@/lib/dashboard/effective-platform";
 import {
   getExecutiveDashboard,
   getManagerDashboard,
@@ -53,14 +58,23 @@ export default async function DashboardPage() {
 
   const isExecutive = profile.role === "executive";
   const isManager = isExecutive || profile.role === "manager" || profile.role === "admin";
+  const isPlatformSessionProfile = profile.email?.startsWith("platform:") ?? false;
+  const dashboardRepository = authUser && isPlatformSessionProfile
+    ? createEffectiveDashboardRepository(repository, profile, authUser.id)
+    : repository;
+  const accessRepository = authUser && isPlatformSessionProfile
+    ? createEffectiveAccessRepository(createAccessRepository(), profile, authUser.id)
+    : undefined;
 
   const [repDashboard, badges, managerDashboard, executiveDashboard, setupStatus] =
     await Promise.all([
-      getRepDashboard(repository, authUser.id),
-      getRepBadges(repository, authUser.id),
-      isManager ? getManagerDashboard(repository, authUser.id) : Promise.resolve(null),
-      isExecutive ? getExecutiveDashboard(repository, authUser.id) : Promise.resolve(null),
-      isManager ? getSetupStatus(repository, authUser.id) : Promise.resolve(null),
+      getRepDashboard(dashboardRepository, authUser.id, undefined, undefined, accessRepository),
+      getRepBadges(dashboardRepository, authUser.id, undefined, accessRepository),
+      isManager
+        ? getManagerDashboard(dashboardRepository, authUser.id, undefined, accessRepository)
+        : Promise.resolve(null),
+      isExecutive ? getExecutiveDashboard(dashboardRepository, authUser.id) : Promise.resolve(null),
+      isManager ? getSetupStatus(dashboardRepository, authUser.id) : Promise.resolve(null),
     ]);
   const roleLabel = isExecutive ? "Executive view" : isManager ? "Manager view" : "Rep view";
 

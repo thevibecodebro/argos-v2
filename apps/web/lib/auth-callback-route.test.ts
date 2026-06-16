@@ -198,11 +198,61 @@ describe("auth callback route", () => {
       new Request("https://app.argos.ai/auth/callback?code=auth-code&next=/dashboard"),
     );
 
-    expect(response.headers.get("location")).toBe("https://app.argos.ai/platform");
+    expect(response.headers.get("location")).toBe("https://app.argos.ai/platform/dashboard");
     expect(getPlatformStaffAfterProvisioning).toHaveBeenCalledWith(platformRepository, authUser);
     expect(ensureUserProvisioned.mock.invocationCallOrder[0]).toBeLessThan(
       getPlatformStaffAfterProvisioning.mock.invocationCallOrder[0],
     );
+  });
+
+  it("preserves nested platform destinations for orgless active platform staff", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://app.argos.ai");
+
+    const authUser = {
+      email: "owner@argos.ai",
+      id: "auth-user-44",
+    };
+    const platformRepository = {
+      findStaffByUserId: vi.fn(),
+      upsertStaff: vi.fn(),
+    };
+
+    createPlatformRepository.mockReturnValue(platformRepository);
+    createSupabaseServerClient.mockResolvedValue({
+      auth: {
+        exchangeCodeForSession: vi.fn().mockResolvedValue({ error: null }),
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: authUser,
+          },
+          error: null,
+        }),
+      },
+    });
+    ensureUserProvisioned.mockResolvedValue({
+      created: false,
+      orgId: null,
+      userId: "auth-user-44",
+    });
+    getPlatformStaffAfterProvisioning.mockResolvedValue({
+      userId: "auth-user-44",
+      role: "operator",
+      status: "active",
+      createdBy: null,
+      revokedBy: null,
+      createdAt: new Date("2026-06-11T10:00:00.000Z"),
+      updatedAt: new Date("2026-06-11T10:00:00.000Z"),
+      revokedAt: null,
+    });
+
+    const route = await import("../app/auth/callback/route");
+    const response = await route.GET(
+      new Request("https://app.argos.ai/auth/callback?code=auth-code&next=/platform/staff"),
+    );
+
+    expect(response.headers.get("location")).toBe("https://app.argos.ai/platform/staff");
+    expect(getPlatformStaffAfterProvisioning).toHaveBeenCalledWith(platformRepository, authUser);
   });
 
   it("sends orgless revoked platform staff to onboarding after provisioning", async () => {

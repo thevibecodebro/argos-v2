@@ -15,7 +15,7 @@ async function verifyExistingTotp(formData: FormData) {
     factorId: String(formData.get("factorId") ?? ""),
     code: String(formData.get("code") ?? ""),
   });
-  redirect("/platform");
+  redirect("/platform/dashboard");
 }
 
 export default async function PlatformMfaVerifyPage() {

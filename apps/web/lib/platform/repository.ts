@@ -1,14 +1,25 @@
-import { and, asc, desc, eq, gt, ilike, or } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, ilike, inArray, lte, or, sql } from "drizzle-orm";
 import {
+  billingSubscriptionsTable,
+  callsTable,
   getDb,
   invitesTable,
   organizationsTable,
   platformAccessSessionsTable,
   platformAuditEventsTable,
   platformStaffTable,
+  roleplaySessionsTable,
+  trainingModulesTable,
+  trainingProgressTable,
   usersTable,
   type ArgosDb,
 } from "@argos-v2/db";
+import {
+  buildPlatformDashboardSnapshot,
+  type PlatformDashboardFilters,
+  type PlatformDashboardOrganizationAggregate,
+} from "./dashboard";
+import { buildPlatformOrganizationDetailSnapshot } from "./organization-detail";
 
 export type PlatformStaffRole = "owner" | "operator";
 export type PlatformStaffStatus = "active" | "revoked";
@@ -432,6 +443,168 @@ export class DrizzlePlatformRepository {
       .limit(limit);
   }
 
+  async getDashboardSnapshot(filters: PlatformDashboardFilters) {
+    const organizations = await this.listDashboardOrganizations(filters);
+    const organizationIds = organizations.map((organization) => organization.id);
+
+    if (organizationIds.length === 0) {
+      return buildPlatformDashboardSnapshot({
+        filters,
+        organizations: [],
+      });
+    }
+
+    const [callRows, trainingRows, roleplayRows, billingRows] = await Promise.all([
+      this.db
+        .select({
+          averageScore: sql<number | null>`round(avg(${callsTable.overallScore}) filter (where ${callsTable.status} = 'complete' and ${callsTable.overallScore} is not null))::int`,
+          failedCalls: sql<number>`count(*) filter (where ${callsTable.status} = 'failed')::int`,
+          lastCallAt: sql<Date | null>`max(${callsTable.createdAt})`,
+          orgId: callsTable.orgId,
+          processingCalls: sql<number>`count(*) filter (where ${callsTable.status} in ('uploaded', 'transcribing', 'evaluating'))::int`,
+          reviewedCalls: sql<number>`count(*) filter (where ${callsTable.status} = 'complete')::int`,
+          totalCalls: sql<number>`count(*)::int`,
+        })
+        .from(callsTable)
+        .where(
+          and(
+            inArray(callsTable.orgId, organizationIds),
+            gte(callsTable.createdAt, filters.from),
+            lte(callsTable.createdAt, filters.to),
+          ),
+        )
+        .groupBy(callsTable.orgId),
+      this.db
+        .select({
+          completedTrainingAssignments: sql<number>`count(*) filter (where ${trainingProgressTable.status} = 'passed')::int`,
+          orgId: trainingModulesTable.orgId,
+          totalTrainingAssignments: sql<number>`count(${trainingProgressTable.id})::int`,
+        })
+        .from(trainingModulesTable)
+        .leftJoin(trainingProgressTable, eq(trainingProgressTable.moduleId, trainingModulesTable.id))
+        .where(inArray(trainingModulesTable.orgId, organizationIds))
+        .groupBy(trainingModulesTable.orgId),
+      this.db
+        .select({
+          lastRoleplayAt: sql<Date | null>`max(${roleplaySessionsTable.createdAt})`,
+          orgId: roleplaySessionsTable.orgId,
+          roleplaySessions: sql<number>`count(*)::int`,
+        })
+        .from(roleplaySessionsTable)
+        .where(
+          and(
+            inArray(roleplaySessionsTable.orgId, organizationIds),
+            gte(roleplaySessionsTable.createdAt, filters.from),
+            lte(roleplaySessionsTable.createdAt, filters.to),
+          ),
+        )
+        .groupBy(roleplaySessionsTable.orgId),
+      this.db
+        .select({
+          activeSubscriptionCount: sql<number>`count(*) filter (where ${billingSubscriptionsTable.status} in ('active', 'trialing'))::int`,
+          orgId: billingSubscriptionsTable.orgId,
+          seats: sql<number>`coalesce(sum(${billingSubscriptionsTable.seatCount}) filter (where ${billingSubscriptionsTable.status} in ('active', 'trialing')), 0)::int`,
+        })
+        .from(billingSubscriptionsTable)
+        .where(inArray(billingSubscriptionsTable.orgId, organizationIds))
+        .groupBy(billingSubscriptionsTable.orgId),
+    ]);
+
+    const callMap = new Map(callRows.map((row) => [row.orgId, row]));
+    const trainingMap = new Map(trainingRows.map((row) => [row.orgId, row]));
+    const roleplayMap = new Map(roleplayRows.map((row) => [row.orgId, row]));
+    const billingMap = new Map(billingRows.map((row) => [row.orgId, row]));
+
+    const aggregates: PlatformDashboardOrganizationAggregate[] =
+      organizations.map((organization) => {
+        const callStats = callMap.get(organization.id);
+        const trainingStats = trainingMap.get(organization.id);
+        const roleplayStats = roleplayMap.get(organization.id);
+        const billingStats = billingMap.get(organization.id);
+        const lastActivityAt = getLatestDate([
+          callStats?.lastCallAt ?? null,
+          roleplayStats?.lastRoleplayAt ?? null,
+        ]);
+
+        return {
+          activeSubscriptionCount: toNumber(billingStats?.activeSubscriptionCount),
+          averageScore:
+            callStats?.averageScore === null || callStats?.averageScore === undefined
+              ? null
+              : toNumber(callStats.averageScore),
+          completedTrainingAssignments: toNumber(trainingStats?.completedTrainingAssignments),
+          createdAt: organization.createdAt.toISOString(),
+          failedCalls: toNumber(callStats?.failedCalls),
+          id: organization.id,
+          lastActivityAt: lastActivityAt?.toISOString() ?? null,
+          name: organization.name,
+          plan: organization.plan,
+          processingCalls: toNumber(callStats?.processingCalls),
+          reviewedCalls: toNumber(callStats?.reviewedCalls),
+          seats: toNumber(billingStats?.seats),
+          slug: organization.slug,
+          totalCalls: toNumber(callStats?.totalCalls),
+          totalTrainingAssignments: toNumber(trainingStats?.totalTrainingAssignments),
+        };
+      });
+
+    return buildPlatformDashboardSnapshot({
+      filters,
+      organizations: aggregates,
+    });
+  }
+
+  async listRecentAccessSessions(input?: { limit?: number }) {
+    return this.db
+      .select(accessSessionSelection)
+      .from(platformAccessSessionsTable)
+      .orderBy(desc(platformAccessSessionsTable.startedAt))
+      .limit(input?.limit ?? 50);
+  }
+
+  private async listDashboardOrganizations(filters: PlatformDashboardFilters) {
+    const query = filters.query.trim();
+    const hasPlanFilter = filters.plan !== "all";
+    const queryCondition = query
+      ? or(
+          ilike(organizationsTable.name, `%${query}%`),
+          ilike(organizationsTable.slug, `%${query}%`),
+        )
+      : null;
+    const planCondition = hasPlanFilter
+      ? eq(organizationsTable.plan, filters.plan)
+      : null;
+
+    if (queryCondition && planCondition) {
+      return this.db
+        .select(organizationSelection)
+        .from(organizationsTable)
+        .where(and(queryCondition, planCondition))
+        .orderBy(asc(organizationsTable.name));
+    }
+
+    if (queryCondition) {
+      return this.db
+        .select(organizationSelection)
+        .from(organizationsTable)
+        .where(queryCondition)
+        .orderBy(asc(organizationsTable.name));
+    }
+
+    if (planCondition) {
+      return this.db
+        .select(organizationSelection)
+        .from(organizationsTable)
+        .where(planCondition)
+        .orderBy(asc(organizationsTable.name));
+    }
+
+    return this.db
+      .select(organizationSelection)
+      .from(organizationsTable)
+      .orderBy(asc(organizationsTable.name));
+  }
+
   async createOrganization(input: { name: string; slug: string; plan?: string }) {
     const [organization] = await this.db
       .insert(organizationsTable)
@@ -524,4 +697,197 @@ export class DrizzlePlatformRepository {
 
     return organization ?? null;
   }
+
+  async getOrganizationDetailSnapshot(slug: string) {
+    const organization = await this.findOrganizationBySlug(slug);
+
+    if (!organization) {
+      return null;
+    }
+
+    const [
+      members,
+      invites,
+      callRows,
+      trainingRows,
+      roleplayRows,
+      billingSubscriptions,
+      accessSessions,
+    ] = await Promise.all([
+      this.db
+        .select({
+          email: usersTable.email,
+          id: usersTable.id,
+          role: usersTable.role,
+        })
+        .from(usersTable)
+        .where(eq(usersTable.orgId, organization.id))
+        .orderBy(asc(usersTable.email)),
+      this.db
+        .select(inviteSelection)
+        .from(invitesTable)
+        .where(eq(invitesTable.orgId, organization.id))
+        .orderBy(desc(invitesTable.createdAt))
+        .limit(10),
+      this.db
+        .select({
+          averageScore: sql<number | null>`round(avg(${callsTable.overallScore}) filter (where ${callsTable.status} = 'complete' and ${callsTable.overallScore} is not null))::int`,
+          failedCalls: sql<number>`count(*) filter (where ${callsTable.status} = 'failed')::int`,
+          lastCallAt: sql<Date | null>`max(${callsTable.createdAt})`,
+          processingCalls: sql<number>`count(*) filter (where ${callsTable.status} in ('uploaded', 'transcribing', 'evaluating'))::int`,
+          reviewedCalls: sql<number>`count(*) filter (where ${callsTable.status} = 'complete')::int`,
+          totalCalls: sql<number>`count(*)::int`,
+        })
+        .from(callsTable)
+        .where(eq(callsTable.orgId, organization.id)),
+      this.db
+        .select({
+          completedTrainingAssignments: sql<number>`count(*) filter (where ${trainingProgressTable.status} = 'passed')::int`,
+          totalTrainingAssignments: sql<number>`count(${trainingProgressTable.id})::int`,
+        })
+        .from(trainingModulesTable)
+        .leftJoin(trainingProgressTable, eq(trainingProgressTable.moduleId, trainingModulesTable.id))
+        .where(eq(trainingModulesTable.orgId, organization.id)),
+      this.db
+        .select({
+          lastRoleplayAt: sql<Date | null>`max(${roleplaySessionsTable.createdAt})`,
+          roleplaySessions: sql<number>`count(*)::int`,
+        })
+        .from(roleplaySessionsTable)
+        .where(eq(roleplaySessionsTable.orgId, organization.id)),
+      this.db
+        .select({
+          seatCount: billingSubscriptionsTable.seatCount,
+          status: billingSubscriptionsTable.status,
+          stripeCustomerId: billingSubscriptionsTable.stripeCustomerId,
+          stripeSubscriptionId: billingSubscriptionsTable.stripeSubscriptionId,
+        })
+        .from(billingSubscriptionsTable)
+        .where(eq(billingSubscriptionsTable.orgId, organization.id))
+        .orderBy(desc(billingSubscriptionsTable.createdAt)),
+      this.db
+        .select(accessSessionSelection)
+        .from(platformAccessSessionsTable)
+        .where(eq(platformAccessSessionsTable.targetOrgId, organization.id))
+        .orderBy(desc(platformAccessSessionsTable.startedAt))
+        .limit(10),
+    ]);
+    const auditEvents = await this.listAuditEvents({ targetOrgId: organization.id, limit: 10 });
+
+    const callStats = callRows[0];
+    const trainingStats = trainingRows[0];
+    const roleplayStats = roleplayRows[0];
+
+    return buildPlatformOrganizationDetailSnapshot({
+      accessSessions: accessSessions.map((session) => ({
+        endedAt: session.endedAt?.toISOString() ?? null,
+        expiresAt: session.expiresAt.toISOString(),
+        id: session.id,
+        reason: session.reason,
+        staffEmailSnapshot: session.staffEmailSnapshot ?? "unknown",
+        startedAt: session.startedAt.toISOString(),
+        status: session.status,
+      })),
+      auditEvents,
+      billingSubscriptions: billingSubscriptions.map((subscription) => ({
+        seatCount: toNumber(subscription.seatCount),
+        status: subscription.status,
+        stripeCustomerId: subscription.stripeCustomerId,
+        stripeSubscriptionId: subscription.stripeSubscriptionId,
+      })),
+      callStats: {
+        averageScore:
+          callStats?.averageScore === null || callStats?.averageScore === undefined
+            ? null
+            : toNumber(callStats.averageScore),
+        failedCalls: toNumber(callStats?.failedCalls),
+        lastCallAt: callStats?.lastCallAt?.toISOString() ?? null,
+        processingCalls: toNumber(callStats?.processingCalls),
+        reviewedCalls: toNumber(callStats?.reviewedCalls),
+        totalCalls: toNumber(callStats?.totalCalls),
+      },
+      invites: invites.map((invite) => ({
+        acceptedAt: invite.acceptedAt?.toISOString() ?? null,
+        createdAt: invite.createdAt.toISOString(),
+        email: invite.email,
+        expiresAt: invite.expiresAt.toISOString(),
+        id: invite.id,
+        role: invite.role,
+      })),
+      members,
+      organization: {
+        createdAt: organization.createdAt.toISOString(),
+        id: organization.id,
+        name: organization.name,
+        plan: organization.plan,
+        slug: organization.slug,
+      },
+      roleplayStats: {
+        lastRoleplayAt: roleplayStats?.lastRoleplayAt?.toISOString() ?? null,
+        roleplaySessions: toNumber(roleplayStats?.roleplaySessions),
+      },
+      trainingStats: {
+        completedTrainingAssignments: toNumber(trainingStats?.completedTrainingAssignments),
+        totalTrainingAssignments: toNumber(trainingStats?.totalTrainingAssignments),
+      },
+    });
+  }
+
+  async listAuditEvents(input?: { limit?: number; targetOrgId?: string }) {
+    const limit = input?.limit ?? 50;
+
+    if (input?.targetOrgId) {
+      const events = await this.db
+        .select(auditEventSelection)
+        .from(platformAuditEventsTable)
+        .where(eq(platformAuditEventsTable.targetOrgId, input.targetOrgId))
+        .orderBy(desc(platformAuditEventsTable.createdAt))
+        .limit(limit);
+
+      return events.map(serializeAuditEvent);
+    }
+
+    const events = await this.db
+      .select(auditEventSelection)
+      .from(platformAuditEventsTable)
+      .orderBy(desc(platformAuditEventsTable.createdAt))
+      .limit(limit);
+
+    return events.map(serializeAuditEvent);
+  }
+}
+
+function toNumber(value: number | string | null | undefined) {
+  return Number(value ?? 0);
+}
+
+function getLatestDate(values: Array<Date | string | null>) {
+  const dates = values
+    .filter((value): value is Date | string => Boolean(value))
+    .map((value) => (value instanceof Date ? value : new Date(value)))
+    .filter((value) => !Number.isNaN(value.getTime()));
+
+  if (!dates.length) {
+    return null;
+  }
+
+  return dates.sort((left, right) => right.getTime() - left.getTime())[0] ?? null;
+}
+
+function serializeAuditEvent(event: {
+  action: string;
+  createdAt: Date;
+  id: string;
+  reason: string;
+  resourceType: string;
+  staffEmailSnapshot: string | null;
+}) {
+  return {
+    action: event.action,
+    createdAt: event.createdAt.toISOString(),
+    id: event.id,
+    reason: event.reason,
+    resourceType: event.resourceType,
+    staffEmailSnapshot: event.staffEmailSnapshot,
+  };
 }

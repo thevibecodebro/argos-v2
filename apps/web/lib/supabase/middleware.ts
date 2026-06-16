@@ -1,6 +1,11 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { getAuthenticatedEntryHref, getLoginHref, isProtectedPath } from "@/lib/auth-routing";
+import {
+  getAuthenticatedEntryHref,
+  getLoginHref,
+  getSafeNextPath,
+  isProtectedPath,
+} from "@/lib/auth-routing";
 import { getWebEnv } from "@/lib/env";
 import { isRetryableSupabaseAuthError } from "@/lib/supabase/auth-errors";
 import { logAuthTransportFailure } from "@/lib/supabase/auth-observability";
@@ -76,7 +81,10 @@ export async function updateSession(request: NextRequest) {
 
   if (user && pathname === "/login") {
     const redirectResponse = NextResponse.redirect(
-      new URL(getAuthenticatedEntryHref(true), request.url),
+      new URL(
+        getSafeNextPath(request.nextUrl.searchParams.get("next"), getAuthenticatedEntryHref(true)),
+        request.url,
+      ),
     );
     redirectResponse.headers.set("Cache-Control", "private, no-store");
     return redirectResponse;

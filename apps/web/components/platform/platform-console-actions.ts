@@ -2,7 +2,7 @@ import type {
   PlatformConsoleActiveSession,
   PlatformConsoleOrganization,
   PlatformConsoleStaffMember,
-} from "./platform-console";
+} from "./platform-types";
 
 export const CREATE_ORGANIZATION_ENDPOINT = "/api/platform/organizations";
 export const PLATFORM_SESSION_ENDPOINT = "/api/platform/sessions";

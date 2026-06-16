@@ -75,6 +75,22 @@ describe("updateSession", () => {
     );
   });
 
+  it("redirects anonymous nested platform routes to login", async () => {
+    getUserMock.mockResolvedValue({
+      data: { user: null },
+      error: null,
+    });
+
+    const request = new NextRequest("http://localhost:3000/platform/staff");
+
+    const response = await updateSession(request);
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "http://localhost:3000/login?next=%2Fplatform%2Fstaff",
+    );
+  });
+
   it("matches platform routes in Next middleware", async () => {
     const { config } = await import("../../middleware");
 
@@ -109,5 +125,39 @@ describe("updateSession", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("location")).toBeNull();
     expect(getUserMock).not.toHaveBeenCalled();
+  });
+
+  it("preserves platform next destinations for users who are already authenticated on login", async () => {
+    getUserMock.mockResolvedValue({
+      data: { user: { id: "auth-user-1" } },
+      error: null,
+    });
+
+    const request = new NextRequest(
+      "http://localhost:3000/login?next=%2Fplatform%2Fdashboard",
+    );
+
+    const response = await updateSession(request);
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "http://localhost:3000/platform/dashboard",
+    );
+  });
+
+  it("does not redirect authenticated login users to external next destinations", async () => {
+    getUserMock.mockResolvedValue({
+      data: { user: { id: "auth-user-1" } },
+      error: null,
+    });
+
+    const request = new NextRequest(
+      "http://localhost:3000/login?next=https%3A%2F%2Fevil.example%2Fplatform",
+    );
+
+    const response = await updateSession(request);
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("http://localhost:3000/dashboard");
   });
 });
