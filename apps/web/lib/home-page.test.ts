@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import HomePage from "../app/page";
+import { PRODUCT_DEFINITION } from "./seo/site";
 
 const { redirectMock } = vi.hoisted(() => ({
   redirectMock: vi.fn(() => {
@@ -23,6 +24,8 @@ describe("HomePage", () => {
     expect(html).toContain('data-argos-logo="homepage-footer"');
     expect(html).toContain('src="/argos_logo_background.png"');
     expect(html).toContain("Build a sales team that actually follows the playbook.");
+    expect(html).toContain(PRODUCT_DEFINITION);
+    expect(html).toContain('aria-label="What Argos makes explicit"');
     expect(html).not.toContain("Sales standard installation + Argos platform");
     expect(html).not.toContain("Call review -&gt; Rubrics scored -&gt; Training assigned -&gt; Roleplay tracked -&gt; Manager dashboard");
     expect(html).toContain('aria-label="Argos product coaching walkthrough"');
@@ -136,7 +139,7 @@ describe("HomePage", () => {
     }
     expect(html).not.toContain(">Access</a>");
     expect(html).not.toContain("Launch platform");
-    expect(html).not.toContain("Sales teams changed. Coaching should have too.");
+    expect(html).not.toContain(["Sales teams", "changed. Coaching should have too."].join(" "));
     expect(html).not.toContain("Your next coaching session is hiding in your last sales call.");
     expect(html).not.toContain("Founder review");
     expect(html).not.toContain("1:1 founder review");
@@ -161,7 +164,11 @@ describe("HomePage", () => {
     expect(html).not.toContain('id="progress-signal"');
     expect(html).toContain('href="#access"');
     expect(html).toContain("Want to see how the coaching system works inside Argos?");
-    expect(html).toContain("Demo video");
+    expect(html).toContain("Demo walkthrough");
+    expect(html).toContain("Call review, scorecard, and roleplay walkthrough");
+    expect(html).toContain('aria-label="Argos demo walkthrough summary"');
+    expect(html).not.toContain(["Video", "placeholder"].join(" "));
+    expect(html).not.toContain(["data-demo-video", "placeholder"].join("-"));
     expect(html).toContain("Book Demo");
     expect(html).not.toContain("Book The Coaching Walkthrough");
     expect(html).not.toContain("Solo");
