@@ -24,9 +24,9 @@ type PlatformShellProps = {
 };
 
 const platformNavItems = [
-  { href: "/platform/dashboard", icon: "dashboard", label: "Dashboard" },
+  { href: "/platform/dashboard", icon: "dashboard", label: "Agency" },
   { href: "/platform/organizations", icon: "business", label: "Organizations" },
-  { href: "/platform/sessions", icon: "input", label: "Sessions" },
+  { href: "/platform/sessions", icon: "input", label: "Access History" },
   { href: "/platform/staff", icon: "admin_panel_settings", label: "Staff" },
 ] as const;
 
@@ -117,7 +117,7 @@ export function PlatformShell({
         />
 
         <nav
-          aria-label="Platform navigation"
+          aria-label="Agency navigation"
           className={cn("flex-1 space-y-1 overflow-y-auto pr-1", primaryRailCollapsed && "lg:pr-0")}
         >
           {platformNavItems.map((item) => (
@@ -141,7 +141,7 @@ export function PlatformShell({
         >
           {activeSession ? (
             <a
-              aria-label="Organization view"
+              aria-label="Open Organization"
               className={cn(
                 "forge-nav-link flex items-center gap-3 rounded-2xl px-3 py-2.5 font-[var(--font-display)] text-[0.7rem] font-bold uppercase tracking-[0.16em]",
                 primaryRailCollapsed && "lg:h-11 lg:justify-center lg:px-0",
@@ -149,26 +149,26 @@ export function PlatformShell({
               data-navigation-link="/dashboard"
               data-platform-organization-view-link="active"
               href="/dashboard"
-              title={primaryRailCollapsed ? "Organization view" : undefined}
+              title={primaryRailCollapsed ? "Open Organization" : undefined}
             >
               <ForgeIcon name="open_in_new" size={18} />
               <span className={cn("truncate", primaryRailCollapsed && "lg:sr-only")}>
-                Organization view
+                Open Organization
               </span>
             </a>
           ) : (
             <div
-              aria-label="Organization view"
+              aria-label="Open Organization"
               className={cn(
                 "forge-nav-link flex items-center gap-3 rounded-2xl px-3 py-2.5 font-[var(--font-display)] text-[0.7rem] font-bold uppercase tracking-[0.16em] opacity-60",
                 primaryRailCollapsed && "lg:h-11 lg:justify-center lg:px-0",
               )}
               data-platform-organization-view-link="disabled"
-              title={primaryRailCollapsed ? "Organization view" : undefined}
+              title={primaryRailCollapsed ? "Open Organization" : undefined}
             >
               <ForgeIcon name="lock" size={18} />
               <span className={cn("truncate", primaryRailCollapsed && "lg:sr-only")}>
-                Organization view
+                Open Organization
               </span>
             </div>
           )}

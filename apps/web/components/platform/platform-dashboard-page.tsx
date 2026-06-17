@@ -39,14 +39,14 @@ export function PlatformDashboardPage({ dashboard }: PlatformDashboardPageProps)
             variant: "primary",
           },
         ]}
-        description="Combined organization health, usage, and risk."
-        eyebrow="Argos platform"
+        description="Organization health, usage, and risk."
+        eyebrow="Agency"
         status={{
           icon: "warning",
           label: `${dashboard.summary.atRiskOrganizations} at risk`,
           tone: dashboard.summary.atRiskOrganizations > 0 ? "ember" : "success",
         }}
-        title="Dashboard"
+        title="Agency"
       >
         <form
           action="/platform/dashboard"
@@ -157,7 +157,7 @@ export function PlatformDashboardPage({ dashboard }: PlatformDashboardPageProps)
         >
           <div className="flex flex-wrap items-center gap-2">
             <p className="mr-1 font-[var(--font-display)] text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[var(--forge-muted)]">
-              Platform alerts
+              Agency alerts
             </p>
             {dashboard.alerts.map((alert) => (
               <a
@@ -294,7 +294,7 @@ export function PlatformDashboardPage({ dashboard }: PlatformDashboardPageProps)
         ) : (
           <ForgeEmptyState
             className="mt-4"
-            description="Adjust the filters or create an organization to begin tracking platform health."
+            description="Adjust the filters or create an Organization to begin tracking agency health."
             icon="business"
             title="No organizations match these filters"
           />

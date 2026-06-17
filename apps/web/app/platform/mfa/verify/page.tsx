@@ -36,11 +36,11 @@ export default async function PlatformMfaVerifyPage() {
       <section className="mx-auto flex w-full max-w-xl flex-col gap-6">
         <header className="border-b border-[#30343b] pb-5">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#88d498]">
-            Platform MFA
+            Agency MFA
           </p>
           <h1 className="mt-2 text-3xl font-black">Verify multi-factor authentication</h1>
           <p className="mt-3 text-sm leading-6 text-[#a6adbb]">
-            Enter the current code from your authenticator app to continue to platform tools.
+            Enter the current code from your authenticator app to continue to Agency tools.
           </p>
         </header>
 

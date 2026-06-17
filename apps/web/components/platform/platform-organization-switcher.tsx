@@ -73,7 +73,7 @@ export function PlatformOrganizationSwitcher({
       setSession(toActiveSession(data, organizations));
       window.location.assign("/dashboard");
     } catch (error) {
-      setSessionStatus(error instanceof Error ? error.message : "Unable to launch organization");
+      setSessionStatus(error instanceof Error ? error.message : "Unable to open Organization");
     } finally {
       setSwitchingOrgId(null);
     }
@@ -86,9 +86,10 @@ export function PlatformOrganizationSwitcher({
     try {
       await submitEndSession(fetch);
       setSession(null);
-      setSessionStatus("Organization session ended.");
+      setSessionStatus("Back in Agency.");
+      window.location.assign("/platform/dashboard");
     } catch (error) {
-      setSessionStatus(error instanceof Error ? error.message : "Unable to end organization session");
+      setSessionStatus(error instanceof Error ? error.message : "Unable to return to Agency");
     } finally {
       setSwitchingOrgId(null);
     }
@@ -105,7 +106,7 @@ export function PlatformOrganizationSwitcher({
     >
       <summary className="list-none cursor-pointer [&::-webkit-details-marker]:hidden">
         <p className="font-[var(--font-display)] text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-gold)]">
-          Platform
+          Agency
         </p>
         <p className="mt-1 font-[var(--font-display)] text-[0.58rem] font-bold uppercase tracking-[0.14em] text-[var(--forge-muted)]">
           Switch organization
@@ -168,7 +169,7 @@ export function PlatformOrganizationSwitcher({
                         ? "Opening"
                         : isCurrent
                           ? "Current"
-                          : "Switch"}
+                          : "Open"}
                     </span>
                   </span>
                 </button>
@@ -187,15 +188,16 @@ export function PlatformOrganizationSwitcher({
               href="/dashboard"
             >
               <ForgeIcon name="open_in_new" size={16} />
-              Open workspace
+              Open Organization
             </a>
             <button
               className="rounded-xl border border-[var(--forge-border-strong)]/20 px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] text-[var(--forge-muted)] transition hover:text-[var(--forge-text)] disabled:opacity-60"
+              data-platform-return-to-agency="true"
               disabled={switchingOrgId !== null}
               onClick={handleEndSession}
               type="button"
             >
-              {switchingOrgId === "ending" ? "Ending session" : "End session"}
+              {switchingOrgId === "ending" ? "Returning" : "Back to Agency"}
             </button>
           </div>
         ) : null}

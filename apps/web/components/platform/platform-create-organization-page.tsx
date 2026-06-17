@@ -48,9 +48,9 @@ export function PlatformCreateOrganizationPage() {
             variant: "secondary",
           },
         ]}
-        description="Create the workspace and prepare the first admin invite."
-        eyebrow="Platform"
-        title="Create organization"
+        description="Create the Organization and prepare the first admin invite."
+        eyebrow="Agency"
+        title="Create Organization"
       />
 
       <ForgeSurface className="p-4" variant="panel">
@@ -111,7 +111,7 @@ export function PlatformCreateOrganizationPage() {
             </p>
           ) : null}
           <ForgeButton disabled={isCreating} icon="add_business" type="submit" variant="primary">
-            {isCreating ? "Creating" : "Create organization"}
+            {isCreating ? "Creating" : "Create Organization"}
           </ForgeButton>
         </form>
       </ForgeSurface>
