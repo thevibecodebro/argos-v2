@@ -10,6 +10,10 @@ Use the sales standard opener:
 
 > Build a sales team that actually follows the playbook.
 
+Then make the product definition explicit:
+
+> Argos is a web platform for sales teams that turns real sales calls into scored evidence, coaching actions, roleplay practice, and progress signals managers can track across the team.
+
 Then move into the coaching plus platform operating loop:
 
 > call review -> scorecards and rubrics -> coaching flags -> training assignments -> roleplay practice -> manager dashboards
@@ -23,17 +27,26 @@ Core line:
 ## Canonical Flow
 
 1. Hero: Build a sales team that actually follows the playbook.
-2. Product screenshot carousel: show real Argos dashboard screens through buyer-facing coaching outcomes, not backend UI labels.
-3. Coaching model: coaching only counts if it changes the next call; Argos reinforces it in the work.
-4. How The Standard Gets Installed: install the sales standard, score real calls against it, reinforce it weekly.
-5. Product loop: call review -> scorecards and rubrics -> coaching flags -> training assignments -> roleplay practice -> manager dashboards.
-6. Role cards: For Owners, For Managers, For Reps.
-7. Access: ask visitors to book a coaching walkthrough.
+2. Answer block: define what Argos is, who it is for, how the loop works, and what managers see.
+3. Product screenshot carousel: show real Argos dashboard screens through buyer-facing coaching outcomes, not backend UI labels.
+4. Coaching model: coaching only counts if it changes the next call; Argos reinforces it in the work.
+5. How The Standard Gets Installed: install the sales standard, score real calls against it, reinforce it weekly.
+6. Product loop: call review -> scorecards and rubrics -> coaching flags -> training assignments -> roleplay practice -> manager dashboards.
+7. Role cards: For Owners, For Managers, For Reps.
+8. Access: ask visitors to book a guided coaching walkthrough, not public pricing.
+
+## Access model
+
+Public pricing is not part of this homepage pass.
+
+The demo path stays focused on a guided walkthrough. Keep the enterprise booking link available for teams that want to see the call review, scorecard, and roleplay workflow.
 
 ## Keep
 
 - Headline: `Build a sales team that actually follows the playbook.`
 - Hero body: `We Install The Sales Standard In Your Organization. Argos makes it visible in the work: calls reviewed, reps scored, training assigned, and roleplay tracked.`
+- Product definition: `Argos is a web platform for sales teams that turns real sales calls into scored evidence, coaching actions, roleplay practice, and progress signals managers can track across the team.`
+- Answer block points: who it is for, how the loop works, and what managers see.
 - Public nav order: `Product`, `Coaching`, `Standard`, `System`, `Roles`, `Demo`.
 - Problem card headline: `Coaching only counts if it changes the next call.`
 - Problem card body: `Most teams leave the meeting nodding. Then the next call happens, old habits come back, and managers are stuck guessing what actually changed.`
@@ -56,6 +69,8 @@ Core line:
 - Secondary CTA: `See how Argos supports the system`
 - Product loop labels: `Call review`, `Scorecards and rubrics`, `Team coaching flags`, `Training assignments`, `Roleplay practice`, `Manager dashboards`
 - Product loop card format: number, label, explanatory paragraph. Do not add amber proof lines like transcript highlights, score movement, manager flags, assignment status, roleplay queue, or dashboard signal.
+- Demo label: `Demo walkthrough`
+- Demo summary: `Call review, scorecard, and roleplay walkthrough`
 - Enterprise booking link: `https://calendar.app.google/RSBtSGHYRSxmcs717`
 
 ## Do not resurrect
@@ -72,7 +87,7 @@ Core line:
 - Do not bring back the separate `Sales standard system` section.
 - Do not bring back the marquee strip.
 - The public hero CTA `Launch platform`.
-- The previous hero line as the page promise: `Sales teams changed. Coaching should have too.`
+- Any sales-teams-changed era line as the page promise.
 - The one-call service promise: `Your next coaching session is hiding in your last sales call.`
 - Any promise that the founder reviews individual calls or personally identifies each coaching moment.
 - Coaching Flywheel as the homepage concept.

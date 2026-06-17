@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ArgosLogo } from "@/components/argos-logo";
+import { PRODUCT_DEFINITION } from "@/lib/seo/site";
 import { LegalFooterLinks } from "./legal-links";
 import styles from "./landing-page.module.css";
 import { LandingProductShowcase } from "./product-showcase";
@@ -116,6 +117,21 @@ const roleCards = [
   },
 ] as const;
 
+const answerPoints = [
+  {
+    title: "Who it is for",
+    body: "Sales managers and leaders who need coaching tied to real calls.",
+  },
+  {
+    title: "How the loop works",
+    body: "A call becomes scored evidence, a coaching action, a roleplay drill, and a next-call progress signal.",
+  },
+  {
+    title: "What managers see",
+    body: "The transcript, scorecard evidence, training assignment, and behavior trend stay connected.",
+  },
+] as const;
+
 export function LandingPage() {
   return (
     <div
@@ -193,6 +209,17 @@ function LandingHero() {
         <div className={styles["argos-hero-copy"]}>
           <h1 id="hero-copy-heading">{salesSystemHero.headline}</h1>
           <p className={styles["argos-hero-body"]}>{salesSystemHero.body}</p>
+          <div className={styles["argos-answer-block"]}>
+            <p>{PRODUCT_DEFINITION}</p>
+            <dl aria-label="What Argos makes explicit">
+              {answerPoints.map((point) => (
+                <div key={point.title}>
+                  <dt>{point.title}</dt>
+                  <dd>{point.body}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
           <div className={styles["argos-hero-actions"]}>
             <PremiumButton href={salesSystemHero.primaryCta.href}>
               {salesSystemHero.primaryCta.label}
@@ -322,17 +349,13 @@ function LandingAccess() {
         </div>
 
         <div className={styles["argos-demo-grid"]}>
-          <div
-            aria-label="Argos product demo video placeholder"
-            className={styles["argos-demo-video"]}
-            data-demo-video-placeholder="true"
-          >
+          <div aria-label="Argos demo walkthrough summary" className={styles["argos-demo-video"]}>
             <div className={styles["argos-demo-video-frame"]}>
-              <span className={styles["argos-demo-label"]}>Demo video</span>
+              <span className={styles["argos-demo-label"]}>Demo walkthrough</span>
               <div className={styles["argos-demo-play"]} aria-hidden="true">
                 <span />
               </div>
-              <p>Video placeholder</p>
+              <p>Call review, scorecard, and roleplay walkthrough</p>
             </div>
           </div>
 

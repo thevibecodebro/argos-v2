@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Geist } from "next/font/google";
 import { getDevelopmentStartupEnvError } from "@/lib/env";
+import { getPublicSiteUrl, HOME_DESCRIPTION, SITE_NAME } from "@/lib/seo/site";
 import "./globals.css";
 
 const uiFont = Geist({
@@ -17,9 +18,12 @@ const materialSymbolsFont = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Argos | Sales Standard Installation Platform",
-  description:
-    "Sales coaching backed by Argos scorecards, call reviews, training assignments, roleplay practice, and manager dashboards.",
+  metadataBase: new URL(getPublicSiteUrl()),
+  title: {
+    default: SITE_NAME,
+    template: `%s | ${SITE_NAME}`,
+  },
+  description: HOME_DESCRIPTION,
 };
 
 export default function RootLayout({

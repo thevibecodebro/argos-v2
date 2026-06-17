@@ -8,9 +8,15 @@ describe("public homepage source of truth", () => {
   it("keeps one canonical Argos homepage direction and removes superseded narratives", () => {
     const sourcePath = resolve(repoRoot, "docs/public-homepage-source-of-truth.md");
     const source = readFileSync(sourcePath, "utf8");
+    const deprecatedSalesTeamsChanged = ["Sales teams", "changed"].join(" ");
+    const stalePricingRequirement = ["Pricing: keep Solo, Team,", "Enterprise"].join(" ");
 
     expect(source).toContain("Canonical public homepage direction");
     expect(source).toContain("Build a sales team that actually follows the playbook.");
+    expect(source).toContain(
+      "Argos is a web platform for sales teams that turns real sales calls into scored evidence, coaching actions, roleplay practice, and progress signals managers can track across the team.",
+    );
+    expect(source).toContain("Answer block points: who it is for, how the loop works, and what managers see.");
     expect(source).toContain("Do not bring back the hero eyebrow: `Sales standard installation + Argos platform`.");
     expect(source).not.toContain("Positioning phrase: `Sales standard installation + Argos platform`");
     expect(source).toContain("The coaching sets the standard. Argos reinforces it in the work.");
@@ -75,7 +81,14 @@ describe("public homepage source of truth", () => {
     expect(source).not.toContain("founder review -> coaching moment");
     expect(source).not.toContain("call review -> scored evidence -> coaching moment -> roleplay drill -> next call -> progress signal");
     expect(source).not.toContain("Progress signal");
+    expect(source).toContain("## Access model");
+    expect(source).toContain("Public pricing is not part of this homepage pass.");
+    expect(source).toContain("The demo path stays focused on a guided walkthrough.");
+    expect(source).toContain("Demo label: `Demo walkthrough`");
+    expect(source).toContain("Demo summary: `Call review, scorecard, and roleplay walkthrough`");
     expect(source).toContain("Do not resurrect");
+    expect(source).not.toContain(deprecatedSalesTeamsChanged);
+    expect(source).not.toContain(stalePricingRequirement);
     expect(source).toContain("Coaching Flywheel");
     expect(source).toContain("Sales Evolution era-history");
 

@@ -302,6 +302,53 @@ html:has(.argos-3d-page) {
   line-height: 1.45;
 }
 
+.argos-answer-block {
+  max-width: 42rem;
+  margin-top: 1.25rem;
+  border-left: 4px solid var(--argos-amber);
+  background: rgba(241, 191, 123, 0.08);
+  padding: 1rem 1.15rem;
+}
+
+.argos-answer-block p {
+  margin: 0;
+  color: var(--argos-text);
+  font-size: 0.96rem;
+  font-weight: 800;
+  line-height: 1.55;
+}
+
+.argos-answer-block dl {
+  display: grid;
+  gap: 0.85rem;
+  margin: 1rem 0 0;
+}
+
+.argos-answer-block div {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.argos-answer-block dt,
+.argos-answer-block dd {
+  margin: 0;
+}
+
+.argos-answer-block dt {
+  color: var(--argos-amber);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.argos-answer-block dd {
+  color: var(--argos-muted);
+  font-size: 0.84rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
 .argos-hero-actions {
   display: flex;
   flex-wrap: wrap;
