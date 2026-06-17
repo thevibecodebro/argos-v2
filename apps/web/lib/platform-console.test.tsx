@@ -68,10 +68,11 @@ describe("PlatformShell", () => {
     expect(html).toContain('data-navigation-link="/platform/staff"');
     expect(html).not.toContain('data-navigation-link="/platform/organizations/new"');
     expect(html).toContain('aria-current="page"');
-    expect(html).toContain("Dashboard");
+    expect(html).toContain("Agency");
     expect(html).toContain("Organizations");
-    expect(html).toContain("Sessions");
+    expect(html).toContain("Access History");
     expect(html).toContain("Staff");
+    expect(html).not.toContain(">Sessions<");
     expect(html).not.toContain(">Create<");
     expect(html).not.toContain("#platform-");
     expect(html).not.toContain("Sub-account");
@@ -112,6 +113,10 @@ describe("PlatformShell", () => {
     expect(html).toContain("Switch organization");
     expect(html).toContain("Acme Health");
     expect(html).toContain("Current organization");
+    expect(html).toContain("Open Organization");
+    expect(html).toContain("Back to Agency");
+    expect(html).not.toContain("Open workspace");
+    expect(html).not.toContain("End session");
     expect(html).not.toContain("Sub-account");
     expect(html).not.toContain("sub-account");
     expect(html).not.toContain("Subaccount");
@@ -183,7 +188,7 @@ describe("platform page components", () => {
     expect(html).toContain('href="/platform/organizations/acme-health"');
   });
 
-  it("renders organizations as a focused table with audited session actions", () => {
+  it("renders organizations as a focused table with direct Organization open actions", () => {
     const html = renderToStaticMarkup(
       createElement(PlatformOrganizationsPage, {
         activeSession: null,
@@ -195,9 +200,20 @@ describe("platform page components", () => {
     expect(html).toContain('data-platform-organizations-page="true"');
     expect(html).toContain('data-platform-primary-table="organizations"');
     expect(html).toContain('data-platform-session-endpoint="/api/platform/sessions"');
+    expect(html).toContain('data-platform-open-organization="org-1"');
     expect(html).toContain("Acme Health");
     expect(html).toContain('href="/platform/organizations/acme-health"');
-    expect(html).toContain("Start session");
+    expect(html).toContain("Open Organization");
+    expect(html).toContain("Access History");
+    expect(html).toContain("Action");
+    expect(html).not.toContain("<select");
+    expect(html).not.toContain("Selected organization");
+    expect(html).not.toContain(">Session<");
+    expect(html).not.toContain("Selected");
+    expect(html).not.toContain("Start session");
+    expect(html).not.toContain("Launch organization");
+    expect(html).not.toContain("View sessions");
+    expect(html).not.toContain("Open workspace");
     expect(html).not.toContain("#platform-");
   });
 
@@ -243,7 +259,19 @@ describe("platform page components", () => {
     );
 
     expect(sessionsHtml).toContain('data-platform-sessions-page="true"');
-    expect(sessionsHtml).toContain("Recent sessions");
+    expect(sessionsHtml).toContain("Access History");
+    expect(sessionsHtml).toContain("Recent access");
+    expect(sessionsHtml).toContain("Open Organization");
+    expect(sessionsHtml).toContain("Back to Agency");
+    expect(sessionsHtml).not.toContain('data-platform-session-endpoint="/api/platform/sessions"');
+    expect(sessionsHtml).not.toContain("Sessions");
+    expect(sessionsHtml).not.toContain("Audited access");
+    expect(sessionsHtml).not.toContain("Choose an Organization");
+    expect(sessionsHtml).not.toContain("<select");
+    expect(sessionsHtml).not.toContain("Start session");
+    expect(sessionsHtml).not.toContain("Launch organization");
+    expect(sessionsHtml).not.toContain("Open workspace");
+    expect(sessionsHtml).not.toContain("End session");
     expect(sessionsHtml).toContain("expired");
     expect(sessionsHtml).toContain("Audit events");
     expect(sessionsHtml).toContain("platform.session.create");
@@ -252,5 +280,7 @@ describe("platform page components", () => {
     expect(createHtml).toContain('data-platform-create-endpoint="/api/platform/organizations"');
     expect(staffHtml).toContain('data-platform-staff-page="true"');
     expect(staffHtml).toContain('data-platform-staff-endpoint="/api/platform/staff"');
+    expect(staffHtml).toContain("Agency staff");
+    expect(staffHtml).not.toContain("Platform staff");
   });
 });

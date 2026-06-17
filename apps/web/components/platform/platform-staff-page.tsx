@@ -56,7 +56,7 @@ export function PlatformStaffPage({
       setStaffStatusMessage(`Granted ${data.staff.role} access to ${data.staff.email ?? data.staff.userId}.`);
       form.reset();
     } catch (error) {
-      setStaffStatusMessage(error instanceof Error ? error.message : "Unable to grant platform staff");
+      setStaffStatusMessage(error instanceof Error ? error.message : "Unable to grant agency staff");
     } finally {
       setIsGrantingStaff(false);
     }
@@ -79,10 +79,10 @@ export function PlatformStaffPage({
             : member,
         ),
       );
-      setStaffStatusMessage("Platform staff access revoked.");
+      setStaffStatusMessage("Agency staff access revoked.");
       setRevokeReasons((current) => ({ ...current, [userId]: "" }));
     } catch (error) {
-      setStaffStatusMessage(error instanceof Error ? error.message : "Unable to revoke platform staff");
+      setStaffStatusMessage(error instanceof Error ? error.message : "Unable to revoke agency staff");
     } finally {
       setRevokingStaffId(null);
     }
@@ -94,8 +94,8 @@ export function PlatformStaffPage({
       data-platform-staff-page="true"
     >
       <OperationalToolbar
-        description="Manage internal platform access. This is separate from organization roles."
-        eyebrow="Platform"
+        description="Manage internal agency access. This is separate from Organization roles."
+        eyebrow="Agency"
         status={{
           icon: "admin_panel_settings",
           label: staffRole === "owner" ? `${activeStaffCount} active staff` : "Operator access",
@@ -107,7 +107,7 @@ export function PlatformStaffPage({
       <ForgeSurface className="p-4" variant="panel">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="forge-page-eyebrow">Platform staff</p>
+            <p className="forge-page-eyebrow">Agency staff</p>
             <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">Staff controls</h2>
           </div>
         </div>

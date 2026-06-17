@@ -40,7 +40,7 @@ export function PlatformOrganizationDetailPage({
           {
             href: "/platform/sessions",
             icon: "input",
-            label: "Sessions",
+            label: "Access History",
             variant: "secondary",
           },
         ]}
@@ -89,7 +89,7 @@ export function PlatformOrganizationDetailPage({
             <div>
               <p className="forge-page-eyebrow">Health</p>
               <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">
-                Platform alerts
+                Agency alerts
               </h2>
             </div>
             <ForgeChip tone={organization.alerts.length ? "ember" : "success"}>
@@ -114,7 +114,7 @@ export function PlatformOrganizationDetailPage({
           ) : (
             <ForgeEmptyState
               className="mt-4"
-              description="No platform alerts are active for this organization."
+              description="No agency alerts are active for this Organization."
               icon="check_circle"
               title="No active alerts"
             />
@@ -149,11 +149,11 @@ export function PlatformOrganizationDetailPage({
             <div>
               <p className="forge-page-eyebrow">Access</p>
               <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">
-                Recent platform access
+                Recent agency access
               </h2>
             </div>
             <ForgeButton href="/platform/sessions" icon="input" size="sm" variant="secondary">
-              View sessions
+              Access History
             </ForgeButton>
           </div>
 
@@ -197,9 +197,9 @@ export function PlatformOrganizationDetailPage({
           ) : (
             <ForgeEmptyState
               className="mt-4"
-              description="No platform access sessions have been recorded for this organization."
+              description="No agency access has been recorded for this Organization."
               icon="lock"
-              title="No recent access"
+              title="No recent agency access"
             />
           )}
         </ForgeSurface>
@@ -244,7 +244,7 @@ export function PlatformOrganizationDetailPage({
           ) : (
             <ForgeEmptyState
               className="mt-4"
-              description="No platform audit events have been recorded for this organization."
+              description="No agency audit events have been recorded for this Organization."
               icon="history"
               title="No audit events"
             />

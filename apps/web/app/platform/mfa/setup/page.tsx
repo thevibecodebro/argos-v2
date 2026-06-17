@@ -39,7 +39,7 @@ export default async function PlatformMfaSetupPage() {
       <section className="mx-auto flex w-full max-w-2xl flex-col gap-6">
         <header className="border-b border-[#30343b] pb-5">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#88d498]">
-            Platform MFA
+            Agency MFA
           </p>
           <h1 className="mt-2 text-3xl font-black">Set up multi-factor authentication</h1>
           <p className="mt-3 text-sm leading-6 text-[#a6adbb]">
@@ -50,7 +50,7 @@ export default async function PlatformMfaSetupPage() {
         <div className="rounded-md border border-[#30343b] bg-[#171a20] p-4">
           {enrollment.totp?.qr_code ? (
             <img
-              alt="Platform TOTP enrollment QR code"
+              alt="Agency TOTP enrollment QR code"
               className="h-48 w-48 rounded-md bg-white p-2"
               src={enrollment.totp.qr_code}
             />
