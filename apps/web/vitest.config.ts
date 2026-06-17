@@ -7,7 +7,9 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      "@/lib/platform/effective-request": path.resolve(__dirname, "lib/test/effective-request.ts"),
       "@": path.resolve(__dirname, "."),
+      "server-only": path.resolve(__dirname, "lib/test/server-only.ts"),
     },
   },
   test: {
