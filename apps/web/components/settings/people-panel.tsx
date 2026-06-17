@@ -253,7 +253,7 @@ export function PeoplePanel({
                 Email
               </span>
               <input
-                className="mt-2 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3 text-sm text-white outline-none transition placeholder:text-[rgba(255,244,230,0.34)] focus:border-[var(--forge-gold)]/60"
+                className="mt-2 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3 text-sm text-white outline-none transition placeholder:text-[color-mix(in_srgb,var(--forge-text)_34%,transparent)] focus:border-[var(--forge-gold)]/60"
                 onChange={(e) => setInviteEmail(e.target.value)}
                 placeholder="teammate@company.com"
                 type="email"
@@ -371,7 +371,7 @@ export function PeoplePanel({
                       </p>
                     </div>
                     <button
-                      className="rounded-xl border border-[var(--forge-border-strong)]/20 px-3 py-1.5 text-sm font-medium text-[var(--forge-muted)] transition hover:border-[rgba(255,113,108,0.3)] hover:text-[var(--forge-danger)] disabled:opacity-50"
+                      className="rounded-xl border border-[var(--forge-border-strong)]/20 px-3 py-1.5 text-sm font-medium text-[var(--forge-muted)] transition hover:border-[color-mix(in_srgb,var(--forge-danger)_30%,transparent)] hover:text-[var(--forge-danger)] disabled:opacity-50"
                       disabled={revokingId === invite.id}
                       onClick={() => void revokeInvite(invite)}
                       type="button"
@@ -508,7 +508,7 @@ export function PeoplePanel({
         </div>
 
         {memberError ? (
-          <div className="mt-4 rounded-xl border border-[rgba(255,113,108,0.26)] bg-[rgba(255,113,108,0.1)] px-4 py-3 text-sm text-[var(--forge-danger)]">
+          <div className="mt-4 rounded-xl border border-[color-mix(in_srgb,var(--forge-danger)_26%,transparent)] bg-[color-mix(in_srgb,var(--forge-danger)_10%,transparent)] px-4 py-3 text-sm text-[var(--forge-danger)]">
             {memberError}
           </div>
         ) : null}

@@ -68,7 +68,7 @@ export function PlatformShell({
       {mobileNavOpen ? (
         <button
           aria-label="Close navigation"
-          className="fixed inset-0 z-40 bg-[rgba(5,4,3,0.68)] lg:hidden"
+          className="fixed inset-0 z-40 bg-[color-mix(in_srgb,var(--forge-shadow)_68%,transparent)] lg:hidden"
           onClick={() => setMobileNavOpen(false)}
           type="button"
         />
@@ -216,7 +216,7 @@ export function PlatformShell({
             <span className="hidden max-w-[240px] truncate sm:inline">
               {currentUserEmail}
             </span>
-            <span className="grid h-10 w-10 place-items-center rounded-full border border-[var(--forge-border)] bg-[rgba(255,244,230,0.045)] font-[var(--font-display)] text-sm font-bold text-[var(--forge-gold)]">
+            <span className="grid h-10 w-10 place-items-center rounded-full border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_4.5%,transparent)] font-[var(--font-display)] text-sm font-bold text-[var(--forge-gold)]">
               {currentUserEmail.slice(0, 1).toUpperCase()}
             </span>
           </div>

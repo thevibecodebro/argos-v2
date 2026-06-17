@@ -98,7 +98,7 @@ export function PlatformOrganizationSwitcher({
   return (
     <details
       className={cn(
-        "mb-4 rounded-2xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3",
+        "mb-4 rounded-2xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_3.5%,transparent)] px-3 py-3",
         collapsed && "lg:sr-only",
         className,
       )}
@@ -150,8 +150,8 @@ export function PlatformOrganizationSwitcher({
               return (
                 <button
                   className={cn(
-                    "w-full rounded-xl border border-transparent px-3 py-2 text-left transition hover:border-[rgba(241,191,123,0.28)] hover:bg-[rgba(241,191,123,0.06)]",
-                    isCurrent && "border-[rgba(136,218,247,0.22)] bg-[rgba(136,218,247,0.06)]",
+                    "w-full rounded-xl border border-transparent px-3 py-2 text-left transition hover:border-[color-mix(in_srgb,var(--forge-gold)_28%,transparent)] hover:bg-[color-mix(in_srgb,var(--forge-gold)_6%,transparent)]",
+                    isCurrent && "border-[color-mix(in_srgb,var(--forge-cyan)_22%,transparent)] bg-[color-mix(in_srgb,var(--forge-cyan)_6%,transparent)]",
                   )}
                   data-platform-organization-option={organization.id}
                   disabled={switchingOrgId !== null}

@@ -666,7 +666,7 @@ export function RoleplayPanel({
         <main className="min-w-0 space-y-3" data-forge-workspace-main="true">
           <section
             aria-label="Scenario"
-            className="scroll-mt-24 rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.026)] p-3 shadow-[inset_0_1px_0_rgba(255,244,230,0.04)]"
+            className="scroll-mt-24 rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.6%,transparent)] p-3 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)]"
             data-roleplay-scenario-picker=""
             id="roleplay-scenario"
           >
@@ -706,8 +706,8 @@ export function RoleplayPanel({
                     aria-pressed={isSelected}
                     className={`flex w-full items-start gap-3 px-3 py-3 text-left transition ${
                       isSelected
-                        ? "bg-[rgba(241,191,123,0.09)] text-[var(--forge-text)]"
-                        : "bg-[rgba(12,11,10,0.34)] hover:bg-[rgba(255,244,230,0.04)]"
+                        ? "bg-[color-mix(in_srgb,var(--forge-gold)_9%,transparent)] text-[var(--forge-text)]"
+                        : "bg-[color-mix(in_srgb,var(--forge-shadow)_34%,transparent)] hover:bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)]"
                     }`}
                     key={persona.id}
                     onClick={() => setSelectedPersonaId(persona.id)}
@@ -811,7 +811,7 @@ export function RoleplayPanel({
             </div>
 
             {generatedActiveSession?.scenarioSummary && (
-              <div className="mb-4 rounded-lg border border-[var(--forge-border)] bg-[rgba(12,11,10,0.52)] px-4 py-4">
+              <div className="mb-4 rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_52%,transparent)] px-4 py-4">
                 <p className="text-xs font-semibold text-[var(--forge-muted)]">
                   Generated from call · Focus:{" "}
                   {generatedActiveSession.focusMode === "all"
@@ -828,7 +828,7 @@ export function RoleplayPanel({
 
             {/* Transcript */}
             <div
-              className="mb-5 flex min-h-[320px] max-h-[min(64vh,620px)] flex-col gap-3 overflow-y-auto rounded-lg border border-[var(--forge-border)] bg-[rgba(12,11,10,0.52)] p-4"
+              className="mb-5 flex min-h-[320px] max-h-[min(64vh,620px)] flex-col gap-3 overflow-y-auto rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_52%,transparent)] p-4"
               aria-label="Roleplay transcript"
               aria-live="polite"
               aria-relevant="additions text"
@@ -942,7 +942,7 @@ export function RoleplayPanel({
                 </label>
                 <div className="relative">
                   <textarea
-                    className="h-20 w-full resize-none rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-depth)] p-4 pr-12 text-sm text-[var(--forge-text)] outline-none placeholder:text-[rgba(255,244,230,0.4)] focus:border-[var(--forge-gold)]/50 focus:ring-1 focus:ring-[var(--forge-gold)]/20 disabled:opacity-40"
+                    className="h-20 w-full resize-none rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-depth)] p-4 pr-12 text-sm text-[var(--forge-text)] outline-none placeholder:text-[color-mix(in_srgb,var(--forge-text)_40%,transparent)] focus:border-[var(--forge-gold)]/50 focus:ring-1 focus:ring-[var(--forge-gold)]/20 disabled:opacity-40"
                     disabled={
                       !activeSession ||
                       activeSession.status === "complete" ||

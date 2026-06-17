@@ -46,7 +46,7 @@ describe("forge primitives", () => {
     expect(html).not.toContain("#6dddff");
   });
 
-  it("renders link and button actions with Material Symbols only", () => {
+  it("renders link and button actions with lucide icons", () => {
     const linkHtml = renderToStaticMarkup(
       createElement(
         ForgeButton,
@@ -64,7 +64,7 @@ describe("forge primitives", () => {
 
     expect(linkHtml).toContain('href="/upload"');
     expect(linkHtml).toContain('data-forge-button="primary"');
-    expect(linkHtml).toContain("material-symbols-outlined");
+    expect(linkHtml).toContain("forge-symbol-icon");
     expect(buttonHtml).toContain("<button");
     expect(buttonHtml).toContain('data-forge-button="secondary"');
     expect(linkHtml).toContain('data-forge-icon-name="cloud_upload"');
@@ -73,36 +73,35 @@ describe("forge primitives", () => {
     expect(buttonHtml).not.toContain(">filter_list<");
   });
 
-  it("renders icons from codepoints so unknown ligatures do not leak raw text", () => {
+  it("renders SVG icons so unknown names do not leak raw text", () => {
     const html = renderToStaticMarkup(
       createElement(
         "div",
         null,
         createElement(ForgeIcon, { name: "cloud_upload" }),
-        createElement(ForgeIcon, { name: "not_in_subset_yet" }),
+        createElement(ForgeIcon, { name: "not_in_registry_yet" }),
       ),
     );
 
     expect(html).toContain('data-forge-icon-name="cloud_upload"');
-    expect(html).toContain('data-forge-icon-name="not_in_subset_yet"');
-    expect(html).toContain("material-symbols-outlined");
+    expect(html).toContain('data-forge-icon-name="not_in_registry_yet"');
+    expect(html).toContain("<svg");
+    expect(html).toContain("forge-symbol-icon");
     expect(html).not.toContain(">cloud_upload<");
-    expect(html).not.toContain(">not_in_subset_yet<");
-    expect(html).not.toContain('data-forge-icon-codepoint="e887"');
-    expect(html).not.toContain('role="status"');
+    expect(html).not.toContain(">not_in_registry_yet<");
   });
 
-  it("uses a known-present icon codepoint as the unknown fallback", () => {
+  it("falls back to a known icon for unmapped names", () => {
     const html = renderToStaticMarkup(
       createElement(ForgeIcon, { name: "future_unbundled_symbol" }),
     );
 
     expect(html).toContain('data-forge-icon-name="future_unbundled_symbol"');
-    expect(html).toContain('data-forge-icon-codepoint="e0f0"');
+    expect(html).toContain("lucide-circle-question-mark");
     expect(html).not.toContain(">future_unbundled_symbol<");
   });
 
-  it("maps forge icon names used by authenticated workspaces to distinct codepoints", () => {
+  it("maps forge icon names used by authenticated workspaces to distinct glyphs", () => {
     const mappedIcons = [
       "account_tree",
       "analytics",
@@ -113,19 +112,19 @@ describe("forge primitives", () => {
       "subject",
       "summarize",
     ];
-    const html = renderToStaticMarkup(
-      createElement(
-        "div",
-        null,
-        ...mappedIcons.map((name) => createElement(ForgeIcon, { key: name, name })),
-      ),
-    );
 
-    for (const name of mappedIcons) {
+    const lucideClasses = mappedIcons.map((name) => {
+      const html = renderToStaticMarkup(createElement(ForgeIcon, { name }));
       expect(html).toContain(`data-forge-icon-name="${name}"`);
       expect(html).not.toContain(`>${name}<`);
-    }
-    expect(html).not.toContain('data-forge-icon-codepoint="e0f0"');
+      const match = html.match(/lucide-[a-z0-9-]+/);
+      expect(match).not.toBeNull();
+      return match?.[0];
+    });
+
+    // Every mapped icon should resolve to a non-fallback, distinct lucide glyph.
+    expect(new Set(lucideClasses).size).toBe(mappedIcons.length);
+    expect(lucideClasses).not.toContain("lucide-circle-question-mark");
   });
 
   it("standardizes chips and metric emphasis by forge tone", () => {

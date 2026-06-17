@@ -200,7 +200,7 @@ function ZoomCard({
       ) : null}
 
       {!available && !isConnected ? (
-        <p className="mt-3 text-sm text-[rgba(255,159,95,0.82)]">
+        <p className="mt-3 text-sm text-[color-mix(in_srgb,var(--forge-ember)_82%,transparent)]">
           OAuth credentials for Zoom are not yet configured in this environment.
         </p>
       ) : null}
@@ -366,7 +366,7 @@ function GhlCard({
       ) : null}
 
       {!available && !isConnected ? (
-        <p className="mt-3 text-sm text-[rgba(255,159,95,0.82)]">
+        <p className="mt-3 text-sm text-[color-mix(in_srgb,var(--forge-ember)_82%,transparent)]">
           Go High Level is disabled until ARGOS_GHL_ENABLED is true and OAuth
           credentials are configured.
         </p>

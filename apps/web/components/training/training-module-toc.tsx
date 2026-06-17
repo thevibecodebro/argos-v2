@@ -42,7 +42,7 @@ export function TrainingModuleToc({
     <section
       aria-label="Curriculum map"
       data-training-module-tree=""
-      className="rounded-[1.5rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.24)]"
+      className="rounded-[1.5rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_color-mix(in_srgb,var(--forge-shadow)_24%,transparent)]"
     >
       <div className="flex items-start justify-between gap-3">
         <div>

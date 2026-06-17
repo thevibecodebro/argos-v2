@@ -186,7 +186,7 @@ export function RoleOnboardingGuide({
       className="px-3 pt-3 sm:px-4 lg:px-6"
       data-role-onboarding-guide={guide.id}
     >
-      <div className="overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.028)] shadow-[inset_0_1px_0_rgba(255,244,230,0.045)]">
+      <div className="overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.8%,transparent)] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4.5%,transparent)]">
         <div className="flex flex-col gap-3 border-b border-[var(--forge-border)] px-3 py-3 sm:px-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -225,14 +225,14 @@ export function RoleOnboardingGuide({
           {guide.items.map((item) => (
             <Link
               className={cn(
-                "group min-h-24 bg-[rgba(12,9,7,0.96)] px-3 py-3 transition",
-                "hover:bg-[rgba(241,191,123,0.055)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--forge-gold)]",
+                "group min-h-24 bg-[color-mix(in_srgb,var(--forge-shadow)_96%,transparent)] px-3 py-3 transition",
+                "hover:bg-[color-mix(in_srgb,var(--forge-gold)_5.5%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--forge-gold)]",
               )}
               href={item.href}
               key={item.label}
             >
               <span className="flex items-start gap-3">
-                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] text-[var(--forge-gold)] transition group-hover:border-[rgba(241,191,123,0.34)]">
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_3.5%,transparent)] text-[var(--forge-gold)] transition group-hover:border-[color-mix(in_srgb,var(--forge-gold)_34%,transparent)]">
                   <ForgeIcon name={item.icon} size={17} />
                 </span>
                 <span className="min-w-0">

@@ -29,7 +29,7 @@ export function TrainingModuleStage({
 }) {
   if (!selectedModule) {
     return (
-      <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+      <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_color-mix(in_srgb,var(--forge-shadow)_28%,transparent)]">
         <p className="text-sm text-[var(--forge-muted)]">No module selected.</p>
       </section>
     );
@@ -132,7 +132,7 @@ export function TrainingModuleStage({
         ) : null}
 
         <button
-          className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-5 py-3 text-sm font-semibold text-[#170d07] transition hover:brightness-110 disabled:opacity-50"
+          className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-5 py-3 text-sm font-semibold text-[var(--forge-on-accent)] transition hover:brightness-110 disabled:opacity-50"
           disabled={primaryActionDisabled}
           onClick={onPrimaryAction}
           type="button"

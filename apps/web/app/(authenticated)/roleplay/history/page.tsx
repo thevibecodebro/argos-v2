@@ -85,7 +85,7 @@ export default async function RoleplayHistoryPage() {
                     {completedSessions.length ? (
                       completedSessions.map((session) => (
                         <tr
-                          className="bg-[rgba(255,244,230,0.018)] text-sm text-[var(--forge-text)]"
+                          className="bg-[color-mix(in_srgb,var(--forge-text)_1.8%,transparent)] text-sm text-[var(--forge-text)]"
                           key={session.id}
                         >
                           <td className="px-4 py-3">

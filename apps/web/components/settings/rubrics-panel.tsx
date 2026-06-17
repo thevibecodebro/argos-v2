@@ -709,7 +709,7 @@ export function RubricsPanel({
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                         entry.isActive
-                          ? "bg-[rgba(139,215,168,0.15)] text-[var(--forge-success)]"
+                          ? "bg-[color-mix(in_srgb,var(--forge-success)_15%,transparent)] text-[var(--forge-success)]"
                           : "border border-[var(--forge-border-strong)]/20 text-[var(--forge-muted)]"
                       }`}
                     >
@@ -825,7 +825,7 @@ export function RubricsPanel({
                     : "No draft started"
                 }
               />
-              <div className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3">
+              <div className="rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_3.5%,transparent)] px-3 py-3">
                 <p className="text-xs font-medium text-[var(--forge-muted)]">
                   Validation issues
                 </p>
@@ -848,7 +848,7 @@ export function RubricsPanel({
                   </p>
                 )}
               </div>
-              <div className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3">
+              <div className="rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_3.5%,transparent)] px-3 py-3">
                 <p className="text-xs font-medium text-[var(--forge-muted)]">
                   Import warnings
                 </p>
@@ -869,7 +869,7 @@ export function RubricsPanel({
                   </p>
                 )}
               </div>
-              <div className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3">
+              <div className="rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_3.5%,transparent)] px-3 py-3">
                 <p className="text-xs font-medium text-[var(--forge-muted)]">
                   Server draft
                 </p>
@@ -1198,7 +1198,7 @@ export function RubricsPanel({
 
                         <div className="mt-4 flex justify-end border-t border-[var(--forge-border-strong)]/10 pt-4">
                           <button
-                            className="rounded-xl border border-[rgba(255,113,108,0.26)] px-3 py-2 text-sm font-medium text-[var(--forge-danger)] transition hover:bg-[rgba(255,113,108,0.1)] focus-visible:ring-2 focus-visible:ring-[var(--forge-danger)]/35"
+                            className="rounded-xl border border-[color-mix(in_srgb,var(--forge-danger)_26%,transparent)] px-3 py-2 text-sm font-medium text-[var(--forge-danger)] transition hover:bg-[color-mix(in_srgb,var(--forge-danger)_10%,transparent)] focus-visible:ring-2 focus-visible:ring-[var(--forge-danger)]/35"
                             data-rubric-category-remove-action="body"
                             onClick={() => {
                               updateDraft((current) => ({

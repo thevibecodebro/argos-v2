@@ -90,7 +90,7 @@ export default async function CallsPage({
             data-operational-list-table="true"
           >
             <div
-              className="mb-3 rounded-lg border border-[var(--forge-border)] bg-[rgba(12,11,10,0.58)] p-2"
+              className="mb-3 rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_58%,transparent)] p-2"
               data-calls-table-controls="true"
             >
               <div className="mb-2 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
@@ -107,8 +107,8 @@ export default async function CallsPage({
                       aria-current={view.active ? "page" : undefined}
                       className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition ${
                         view.active
-                          ? "bg-[rgba(216,170,104,0.13)] text-[var(--forge-gold)]"
-                          : "text-[var(--forge-muted)] hover:bg-[rgba(244,239,231,0.045)] hover:text-[var(--forge-text)]"
+                          ? "bg-[color-mix(in_srgb,var(--forge-gold)_13%,transparent)] text-[var(--forge-gold)]"
+                          : "text-[var(--forge-muted)] hover:bg-[color-mix(in_srgb,var(--forge-text)_4.5%,transparent)] hover:text-[var(--forge-text)]"
                       }`}
                       data-calls-saved-view-active={
                         view.active ? "true" : "false"
@@ -151,7 +151,7 @@ export default async function CallsPage({
 
                       return (
                         <Link
-                          className="block min-w-0 rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] p-4 transition hover:border-[rgba(241,191,123,0.3)] hover:bg-[rgba(241,191,123,0.055)]"
+                          className="block min-w-0 rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_3.5%,transparent)] p-4 transition hover:border-[color-mix(in_srgb,var(--forge-gold)_30%,transparent)] hover:bg-[color-mix(in_srgb,var(--forge-gold)_5.5%,transparent)]"
                           data-mobile-call-card="true"
                           href={`/calls/${call.id}`}
                           key={call.id}
@@ -234,13 +234,13 @@ export default async function CallsPage({
               </div>
 
               <div
-                className="hidden overflow-hidden rounded-lg border border-[var(--forge-border)] bg-[rgba(12,11,10,0.76)] md:block"
+                className="hidden overflow-hidden rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_76%,transparent)] md:block"
                 data-forge-table="true"
               >
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[720px] border-collapse">
                     <thead>
-                      <tr className="border-b border-[var(--forge-border)] bg-[rgba(255,244,230,0.024)]">
+                      <tr className="border-b border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.4%,transparent)]">
                         <th
                           className="px-4 py-3 text-left text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]"
                           scope="col"
@@ -292,7 +292,7 @@ export default async function CallsPage({
 
                           return (
                             <tr
-                              className="group transition hover:bg-[rgba(255,244,230,0.035)]"
+                              className="group transition hover:bg-[color-mix(in_srgb,var(--forge-text)_3.5%,transparent)]"
                               key={call.id}
                             >
                               <td className="px-4 py-3">
@@ -322,14 +322,14 @@ export default async function CallsPage({
                               {canSeeRep ? (
                                 <td className="px-4 py-3">
                                   <div className="flex items-center gap-3">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--forge-border)] bg-[rgba(255,244,230,0.04)] text-xs font-bold text-[var(--forge-cyan)]">
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)] text-xs font-bold text-[var(--forge-cyan)]">
                                       {initials(repName)}
                                     </div>
                                     <span
                                       className={`text-sm font-medium ${
                                         repName
                                           ? "text-[var(--forge-text)]"
-                                          : "italic text-[rgba(255,244,230,0.4)]"
+                                          : "italic text-[color-mix(in_srgb,var(--forge-text)_40%,transparent)]"
                                       }`}
                                     >
                                       {repName ?? "Unassigned"}
@@ -355,7 +355,7 @@ export default async function CallsPage({
                               <td className="px-4 py-3 text-right">
                                 <Link
                                   aria-label={`Open ${topic}`}
-                                  className="inline-flex rounded-lg border border-transparent p-2 text-[var(--forge-muted)] transition hover:border-[var(--forge-border)] hover:bg-[rgba(241,191,123,0.08)] hover:text-[var(--forge-gold)]"
+                                  className="inline-flex rounded-lg border border-transparent p-2 text-[var(--forge-muted)] transition hover:border-[var(--forge-border)] hover:bg-[color-mix(in_srgb,var(--forge-gold)_8%,transparent)] hover:text-[var(--forge-gold)]"
                                   href={`/calls/${call.id}`}
                                 >
                                   <ForgeIcon name="arrow_forward" size={18} />
@@ -478,7 +478,7 @@ export default async function CallsPage({
           </OperationalPreviewDrawer>
         </section>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.024)] px-3 py-2">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.4%,transparent)] px-3 py-2">
           <p className="text-sm font-medium text-[var(--forge-muted)]">
             {total > 0
               ? `Showing ${(filters.offset ?? 0) + 1} - ${(filters.offset ?? 0) + calls.length} of ${total.toLocaleString()} ${total === 1 ? "interaction" : "interactions"}`
@@ -491,8 +491,8 @@ export default async function CallsPage({
                 aria-disabled={page === 0}
                 className={`flex h-9 w-9 items-center justify-center rounded-lg border transition ${
                   page === 0
-                    ? "pointer-events-none border-[var(--forge-border)] bg-[rgba(255,244,230,0.025)] text-[rgba(255,244,230,0.26)]"
-                    : "border-[var(--forge-border)] bg-[rgba(255,244,230,0.04)] text-[var(--forge-muted)] hover:border-[rgba(241,191,123,0.3)] hover:text-[var(--forge-gold)]"
+                    ? "pointer-events-none border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.5%,transparent)] text-[color-mix(in_srgb,var(--forge-text)_26%,transparent)]"
+                    : "border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)] text-[var(--forge-muted)] hover:border-[color-mix(in_srgb,var(--forge-gold)_30%,transparent)] hover:text-[var(--forge-gold)]"
                 }`}
                 href={buildCallsHref(filters, {
                   offset: Math.max(0, (page - 1) * (filters.limit ?? 20)),
@@ -501,19 +501,19 @@ export default async function CallsPage({
               >
                 <ForgeIcon name="arrow_back" size={18} />
               </Link>
-              <span className="flex h-9 min-w-9 items-center justify-center rounded-lg border border-[rgba(241,191,123,0.28)] bg-[rgba(241,191,123,0.11)] px-3 text-sm font-bold text-[var(--forge-gold)]">
+              <span className="flex h-9 min-w-9 items-center justify-center rounded-lg border border-[color-mix(in_srgb,var(--forge-gold)_28%,transparent)] bg-[color-mix(in_srgb,var(--forge-gold)_11%,transparent)] px-3 text-sm font-bold text-[var(--forge-gold)]">
                 {page + 1}
               </span>
               <span className="px-1 text-sm text-[var(--forge-muted)]">/</span>
-              <span className="flex h-9 min-w-9 items-center justify-center rounded-lg border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 text-sm font-semibold text-[var(--forge-muted)]">
+              <span className="flex h-9 min-w-9 items-center justify-center rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_3.5%,transparent)] px-3 text-sm font-semibold text-[var(--forge-muted)]">
                 {totalPages}
               </span>
               <Link
                 aria-disabled={page + 1 >= totalPages}
                 className={`flex h-9 w-9 items-center justify-center rounded-lg border transition ${
                   page + 1 >= totalPages
-                    ? "pointer-events-none border-[var(--forge-border)] bg-[rgba(255,244,230,0.025)] text-[rgba(255,244,230,0.26)]"
-                    : "border-[var(--forge-border)] bg-[rgba(255,244,230,0.04)] text-[var(--forge-muted)] hover:border-[rgba(241,191,123,0.3)] hover:text-[var(--forge-gold)]"
+                    ? "pointer-events-none border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.5%,transparent)] text-[color-mix(in_srgb,var(--forge-text)_26%,transparent)]"
+                    : "border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)] text-[var(--forge-muted)] hover:border-[color-mix(in_srgb,var(--forge-gold)_30%,transparent)] hover:text-[var(--forge-gold)]"
                 }`}
                 href={buildCallsHref(filters, {
                   offset: (page + 1) * (filters.limit ?? 20),
@@ -652,7 +652,7 @@ function formatDuration(seconds: number | null | undefined) {
 function scoreColor(value: number | null | undefined) {
   if (typeof value !== "number") return "text-[var(--forge-muted)]";
   if (value >= 85) return "text-[var(--forge-cyan)]";
-  if (value >= 70) return "text-[rgba(136,218,247,0.82)]";
+  if (value >= 70) return "text-[color-mix(in_srgb,var(--forge-cyan)_82%,transparent)]";
   if (value >= 60) return "text-[var(--forge-gold)]";
   return "text-[var(--forge-danger)]";
 }
@@ -690,7 +690,7 @@ function rowIcon(status: string) {
     return {
       icon: "query_stats",
       className:
-        "border-[rgba(136,218,247,0.22)] bg-[rgba(136,218,247,0.08)] text-[var(--forge-cyan)]",
+        "border-[color-mix(in_srgb,var(--forge-cyan)_22%,transparent)] bg-[color-mix(in_srgb,var(--forge-cyan)_8%,transparent)] text-[var(--forge-cyan)]",
     };
   }
 
@@ -698,7 +698,7 @@ function rowIcon(status: string) {
     return {
       icon: "history",
       className:
-        "border-[rgba(255,159,95,0.22)] bg-[rgba(255,159,95,0.08)] text-[var(--forge-ember)]",
+        "border-[color-mix(in_srgb,var(--forge-ember)_22%,transparent)] bg-[color-mix(in_srgb,var(--forge-ember)_8%,transparent)] text-[var(--forge-ember)]",
     };
   }
 
@@ -706,14 +706,14 @@ function rowIcon(status: string) {
     return {
       icon: "warning",
       className:
-        "border-[rgba(255,113,108,0.22)] bg-[rgba(255,113,108,0.08)] text-[var(--forge-danger)]",
+        "border-[color-mix(in_srgb,var(--forge-danger)_22%,transparent)] bg-[color-mix(in_srgb,var(--forge-danger)_8%,transparent)] text-[var(--forge-danger)]",
     };
   }
 
   return {
     icon: "insights",
     className:
-      "border-[var(--forge-border)] bg-[rgba(255,244,230,0.04)] text-[var(--forge-muted)]",
+      "border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)] text-[var(--forge-muted)]",
   };
 }
 

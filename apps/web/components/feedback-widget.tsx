@@ -151,8 +151,8 @@ export function FeedbackDialog({ onOpenChange, open }: FeedbackDialogProps) {
                   className={cn(
                     "forge-focus-ring flex min-h-12 items-center justify-center gap-2 rounded-xl border px-3 font-[var(--font-display)] text-xs font-bold uppercase tracking-[0.12em] transition",
                     selected
-                      ? "border-[rgba(241,191,123,0.42)] bg-[rgba(241,191,123,0.12)] text-[var(--forge-gold)]"
-                      : "border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] text-[var(--forge-muted)] hover:border-[rgba(241,191,123,0.28)] hover:text-[var(--forge-text)]",
+                      ? "border-[color-mix(in_srgb,var(--forge-gold)_42%,transparent)] bg-[color-mix(in_srgb,var(--forge-gold)_12%,transparent)] text-[var(--forge-gold)]"
+                      : "border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_3.5%,transparent)] text-[var(--forge-muted)] hover:border-[color-mix(in_srgb,var(--forge-gold)_28%,transparent)] hover:text-[var(--forge-text)]",
                   )}
                   key={item.value}
                   onClick={() => setCategory(item.value)}
@@ -171,7 +171,7 @@ export function FeedbackDialog({ onOpenChange, open }: FeedbackDialogProps) {
             Subject
           </span>
           <input
-            className="forge-focus-ring min-h-11 rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 text-sm text-[var(--forge-text)] outline-none transition placeholder:text-[var(--forge-faint)] focus:border-[rgba(241,191,123,0.45)]"
+            className="forge-focus-ring min-h-11 rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_3.5%,transparent)] px-3 text-sm text-[var(--forge-text)] outline-none transition placeholder:text-[var(--forge-faint)] focus:border-[color-mix(in_srgb,var(--forge-gold)_45%,transparent)]"
             maxLength={140}
             onChange={(event) => setSubject(event.target.value)}
             placeholder="Optional"
@@ -184,7 +184,7 @@ export function FeedbackDialog({ onOpenChange, open }: FeedbackDialogProps) {
             Message
           </span>
           <textarea
-            className="forge-focus-ring min-h-36 resize-y rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3 text-sm leading-6 text-[var(--forge-text)] outline-none transition placeholder:text-[var(--forge-faint)] focus:border-[rgba(241,191,123,0.45)]"
+            className="forge-focus-ring min-h-36 resize-y rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_3.5%,transparent)] px-3 py-3 text-sm leading-6 text-[var(--forge-text)] outline-none transition placeholder:text-[var(--forge-faint)] focus:border-[color-mix(in_srgb,var(--forge-gold)_45%,transparent)]"
             maxLength={4000}
             onChange={(event) => setMessage(event.target.value)}
             placeholder="What happened, what did you expect, or what would make this better?"
@@ -202,8 +202,8 @@ export function FeedbackDialog({ onOpenChange, open }: FeedbackDialogProps) {
             className={cn(
               "rounded-xl border px-3 py-2 text-sm",
               status.tone === "success"
-                ? "border-[rgba(139,215,168,0.3)] bg-[rgba(139,215,168,0.1)] text-[var(--forge-success)]"
-                : "border-[rgba(255,113,108,0.3)] bg-[rgba(255,113,108,0.1)] text-[var(--forge-danger)]",
+                ? "border-[color-mix(in_srgb,var(--forge-success)_30%,transparent)] bg-[color-mix(in_srgb,var(--forge-success)_10%,transparent)] text-[var(--forge-success)]"
+                : "border-[color-mix(in_srgb,var(--forge-danger)_30%,transparent)] bg-[color-mix(in_srgb,var(--forge-danger)_10%,transparent)] text-[var(--forge-danger)]",
             )}
             role={status.tone === "danger" ? "alert" : "status"}
           >
@@ -222,7 +222,7 @@ export function FeedbackWidget() {
     <>
       <button
         aria-label="Open bugs and feedback form"
-        className="forge-focus-ring fixed bottom-4 right-4 z-40 inline-flex h-12 items-center justify-center gap-2 rounded-full border border-[rgba(241,191,123,0.34)] bg-[rgba(16,9,7,0.94)] px-3 text-[var(--forge-gold)] shadow-[0_18px_52px_rgba(5,3,2,0.45)] backdrop-blur-xl transition hover:border-[rgba(241,191,123,0.56)] hover:bg-[rgba(32,21,15,0.96)] hover:text-[var(--forge-text)] sm:bottom-5 sm:right-5 sm:px-4"
+        className="forge-focus-ring fixed bottom-4 right-4 z-40 inline-flex h-12 items-center justify-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--forge-gold)_34%,transparent)] bg-[rgba(16,9,7,0.94)] px-3 text-[var(--forge-gold)] shadow-[0_18px_52px_rgba(5,3,2,0.45)] backdrop-blur-xl transition hover:border-[color-mix(in_srgb,var(--forge-gold)_56%,transparent)] hover:bg-[rgba(32,21,15,0.96)] hover:text-[var(--forge-text)] sm:bottom-5 sm:right-5 sm:px-4"
         data-feedback-widget="true"
         onClick={() => {
           setOpen(true);

@@ -172,7 +172,7 @@ export function TrainingManagerAiTools({
     "Add notes to ground the draft in this lesson.";
 
   return (
-    <section className="rounded-[1.15rem] border border-white/10 bg-[rgba(5,4,3,0.32)] p-4">
+    <section className="rounded-[1.15rem] border border-white/10 bg-[color-mix(in_srgb,var(--forge-shadow)_32%,transparent)] p-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-2xl">
           <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">Lesson drafting</p>

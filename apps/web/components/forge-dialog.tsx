@@ -159,7 +159,7 @@ export function ForgeDialog({
 
   return (
     <div
-      className="forge-dialog-overlay fixed inset-0 z-50 flex items-center justify-center bg-[rgba(5,4,3,0.78)] px-4 py-6 text-[var(--forge-text)] backdrop-blur-sm"
+      className="forge-dialog-overlay fixed inset-0 z-50 flex items-center justify-center bg-[color-mix(in_srgb,var(--forge-shadow)_78%,transparent)] px-4 py-6 text-[var(--forge-text)] backdrop-blur-sm"
       data-forge-dialog-overlay="true"
       onClick={handleBackdropClick}
     >
@@ -192,7 +192,7 @@ export function ForgeDialog({
           </div>
           <button
             aria-label="Close dialog"
-            className="forge-focus-ring forge-icon-button inline-flex h-10 w-10 flex-none items-center justify-center rounded-full text-[var(--forge-gold)] transition hover:border-[rgba(241,191,123,0.35)] hover:bg-[rgba(241,191,123,0.1)]"
+            className="forge-focus-ring forge-icon-button inline-flex h-10 w-10 flex-none items-center justify-center rounded-full text-[var(--forge-gold)] transition hover:border-[color-mix(in_srgb,var(--forge-gold)_35%,transparent)] hover:bg-[color-mix(in_srgb,var(--forge-gold)_10%,transparent)]"
             onClick={requestClose}
             type="button"
           >

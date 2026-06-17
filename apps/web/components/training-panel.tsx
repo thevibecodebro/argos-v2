@@ -828,7 +828,7 @@ function TrainingExperiencePanel({
               </div>
               <button
                 aria-describedby={!aiAvailable ? "training-create-ai-unavailable" : undefined}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-2 text-sm font-semibold text-[#170d07] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-2 text-sm font-semibold text-[var(--forge-on-accent)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={!aiAvailable || isManagerBusy}
                 onClick={openGenerateModal}
                 type="button"
@@ -893,7 +893,7 @@ function TrainingExperiencePanel({
           />
           <div className="flex justify-end">
             <button
-              className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-3 text-sm font-semibold text-[#170d07] transition hover:brightness-110 disabled:opacity-50"
+              className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-3 text-sm font-semibold text-[var(--forge-on-accent)] transition hover:brightness-110 disabled:opacity-50"
               disabled={isManagerBusy}
               onClick={() => {
                 void submitModuleForm();
@@ -907,7 +907,7 @@ function TrainingExperiencePanel({
       </section>
     ) : activeManagerModal === "generate" ? (
       <section className="space-y-4">
-        <div className="rounded-[1.15rem] border border-white/10 bg-[rgba(5,4,3,0.32)] p-4">
+        <div className="rounded-[1.15rem] border border-white/10 bg-[color-mix(in_srgb,var(--forge-shadow)_32%,transparent)] p-4">
           <div className="space-y-3">
             <div className="grid gap-3 md:grid-cols-2">
               <input
@@ -954,7 +954,7 @@ function TrainingExperiencePanel({
             </div>
             <div className="flex justify-end">
               <button
-                className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-3 text-sm font-semibold text-[#170d07] transition hover:brightness-110 disabled:opacity-50"
+                className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-3 text-sm font-semibold text-[var(--forge-on-accent)] transition hover:brightness-110 disabled:opacity-50"
                 disabled={isManagerBusy}
                 onClick={() => {
                   void submitGenerate();
@@ -1012,7 +1012,7 @@ function TrainingExperiencePanel({
       </section>
     ) : activeManagerModal === "assign" && assigningModule ? (
       <section className="space-y-4">
-        <div className="rounded-[1.15rem] border border-white/10 bg-[rgba(5,4,3,0.32)] p-4">
+        <div className="rounded-[1.15rem] border border-white/10 bg-[color-mix(in_srgb,var(--forge-shadow)_32%,transparent)] p-4">
           <div className="grid gap-3 md:grid-cols-2">
             <div>
               <h4 className="text-lg font-semibold text-white">{assigningModule.title}</h4>
@@ -1089,7 +1089,7 @@ function TrainingExperiencePanel({
           </div>
           <div className="flex justify-end">
             <button
-              className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-3 text-sm font-semibold text-[#170d07] transition hover:brightness-110 disabled:opacity-50"
+              className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-3 text-sm font-semibold text-[var(--forge-on-accent)] transition hover:brightness-110 disabled:opacity-50"
               disabled={isManagerBusy}
               onClick={() => {
                 void submitAssignment();
@@ -1142,7 +1142,7 @@ function TrainingExperiencePanel({
         ))}
         {!canManage ? (
           <button
-            className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-5 py-3 text-sm font-semibold text-[#170d07] transition hover:brightness-110 disabled:opacity-50"
+            className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-5 py-3 text-sm font-semibold text-[var(--forge-on-accent)] transition hover:brightness-110 disabled:opacity-50"
             disabled={isSubmitting}
             onClick={() => {
               void submitProgress();
@@ -1176,7 +1176,7 @@ function TrainingExperiencePanel({
       statusMessage={statusMessage}
     />
   ) : canManage ? (
-    <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+    <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_color-mix(in_srgb,var(--forge-shadow)_28%,transparent)]">
       <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[var(--forge-gold)]">Curriculum</p>
       <div className="mt-4 rounded-[1.25rem] border border-dashed border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface-2)]/40 p-5">
         <h2 className="text-2xl font-semibold text-white">Create your first module</h2>
@@ -1187,7 +1187,7 @@ function TrainingExperiencePanel({
       </div>
     </section>
   ) : (
-    <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_rgba(2,8,23,0.28)]">
+    <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_color-mix(in_srgb,var(--forge-shadow)_28%,transparent)]">
       <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[var(--forge-gold)]">Course player</p>
       <div className="mt-4 rounded-[1.25rem] border border-dashed border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface-2)]/40 p-5">
         <h2 className="text-2xl font-semibold text-white">Nothing is assigned yet</h2>

@@ -65,7 +65,7 @@ function ProviderCard({
       <div className="mt-5 flex flex-wrap gap-3">
         {provider.connected ? (
           <button
-            className="rounded-xl border border-[rgba(255,113,108,0.3)] bg-[rgba(255,113,108,0.1)] px-4 py-2 text-sm font-medium text-[var(--forge-danger)] transition hover:bg-[rgba(255,113,108,0.18)] disabled:opacity-50"
+            className="rounded-xl border border-[color-mix(in_srgb,var(--forge-danger)_30%,transparent)] bg-[color-mix(in_srgb,var(--forge-danger)_10%,transparent)] px-4 py-2 text-sm font-medium text-[var(--forge-danger)] transition hover:bg-[color-mix(in_srgb,var(--forge-danger)_18%,transparent)] disabled:opacity-50"
             disabled={!canManage || isMutating}
             onClick={() => {
               void handleDisconnect();
@@ -76,7 +76,7 @@ function ProviderCard({
           </button>
         ) : (
           <button
-            className="rounded-xl border border-[rgba(241,191,123,0.30)] bg-[rgba(241,191,123,0.12)] px-4 py-2 text-sm font-medium text-[var(--forge-gold)] transition hover:bg-[rgba(241,191,123,0.18)] disabled:opacity-50"
+            className="rounded-xl border border-[color-mix(in_srgb,var(--forge-gold)_30%,transparent)] bg-[color-mix(in_srgb,var(--forge-gold)_12%,transparent)] px-4 py-2 text-sm font-medium text-[var(--forge-gold)] transition hover:bg-[color-mix(in_srgb,var(--forge-gold)_18%,transparent)] disabled:opacity-50"
             disabled={!canManage}
             onClick={onManage}
             type="button"
@@ -131,7 +131,7 @@ export function IntegrationsSettingsPanel({
     <div className="space-y-4">
       {notices.map((notice) => (
         <div
-          className="rounded-[1.25rem] border border-[rgba(255,159,95,0.26)] bg-[rgba(255,159,95,0.1)] px-4 py-3 text-sm text-[var(--forge-ember)]"
+          className="rounded-[1.25rem] border border-[color-mix(in_srgb,var(--forge-ember)_26%,transparent)] bg-[color-mix(in_srgb,var(--forge-ember)_10%,transparent)] px-4 py-3 text-sm text-[var(--forge-ember)]"
           key={notice}
         >
           {notice}

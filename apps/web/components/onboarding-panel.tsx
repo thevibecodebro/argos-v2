@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ForgeErrorState, ForgeStatusPanel } from "@/components/forge";
+import { ForgeErrorState, ForgeIcon, ForgeStatusPanel } from "@/components/forge";
 import type { OnboardingAccessMode } from "@/lib/onboarding/service";
 
 type Step = "choose" | "create" | "join" | "invite";
@@ -39,7 +39,7 @@ function autoSlug(value: string) {
 }
 
 const panelClass =
-  "forge-surface rounded-xl border border-[var(--forge-border)] bg-[rgba(16,9,7,0.92)] p-4 shadow-[inset_0_1px_0_rgba(255,244,230,0.04)] sm:p-5";
+  "forge-surface rounded-xl border border-[var(--forge-border)] bg-[rgba(16,9,7,0.92)] p-4 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)] sm:p-5";
 const labelClass = "text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[var(--forge-muted)]";
 const inputClass = "forge-form-control mt-2 min-h-11 rounded-lg px-3 py-2.5 text-sm outline-none";
 const primaryButtonClass =
@@ -283,10 +283,8 @@ export function OnboardingPanel({
                   title="Join Organization"
                 />
               ) : null}
-              <div className="flex min-h-11 items-start gap-3 rounded-lg border border-[var(--forge-border)] bg-[rgba(255,244,230,0.04)] px-3 py-3 text-left">
-                <span className="material-symbols-outlined forge-symbol-icon mt-0.5 text-base text-[var(--forge-muted)]">
-                  info
-                </span>
+              <div className="flex min-h-11 items-start gap-3 rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)] px-3 py-3 text-left">
+                <ForgeIcon className="mt-0.5 text-[var(--forge-muted)]" name="info" size={18} />
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-[var(--forge-text)]">
                     Invite required for existing organizations
@@ -333,7 +331,7 @@ function FlowTabs({
   ];
 
   return (
-    <div className="mb-3 grid grid-cols-3 rounded-lg border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] p-1">
+    <div className="mb-3 grid grid-cols-3 rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_3.5%,transparent)] p-1">
       {tabs.map((tab) => {
         const isActive = activeFlow === tab.id;
         return (
@@ -343,7 +341,7 @@ function FlowTabs({
               "forge-focus-ring min-h-11 rounded-md px-3 text-xs font-bold uppercase tracking-[0.08em] transition",
               isActive
                 ? "bg-[var(--forge-gold)] text-[#291800]"
-                : "text-[var(--forge-muted)] hover:bg-[rgba(255,244,230,0.045)] hover:text-[var(--forge-text)]",
+                : "text-[var(--forge-muted)] hover:bg-[color-mix(in_srgb,var(--forge-text)_4.5%,transparent)] hover:text-[var(--forge-text)]",
               tab.disabled ? "cursor-not-allowed opacity-45 hover:bg-transparent" : "",
             ].join(" ")}
             disabled={tab.disabled}
@@ -387,7 +385,7 @@ function CreatePanel({
             Create Organization
           </h2>
         </div>
-        <span className="inline-flex min-h-7 w-fit items-center rounded-md border border-[rgba(241,191,123,0.26)] bg-[rgba(241,191,123,0.08)] px-2 text-xs font-semibold text-[var(--forge-gold)]">
+        <span className="inline-flex min-h-7 w-fit items-center rounded-md border border-[color-mix(in_srgb,var(--forge-gold)_26%,transparent)] bg-[color-mix(in_srgb,var(--forge-gold)_8%,transparent)] px-2 text-xs font-semibold text-[var(--forge-gold)]">
           {accessMode === "bootstrap-admin" ? "Bootstrap admin" : "Admin setup"}
         </span>
       </div>
@@ -411,7 +409,7 @@ function CreatePanel({
               argos.app/
             </span>
             <input
-              className="min-h-11 min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm text-[var(--forge-text)] outline-none placeholder:text-[rgba(255,244,230,0.34)]"
+              className="min-h-11 min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm text-[var(--forge-text)] outline-none placeholder:text-[color-mix(in_srgb,var(--forge-text)_34%,transparent)]"
               onChange={(event) => onSlugChange(event.target.value)}
               placeholder="acme-corp"
               type="text"
@@ -575,14 +573,14 @@ function InvitePanel({
           <div className="block text-left">
             <span className={labelClass}>Teams optional</span>
             {teams.length === 0 ? (
-              <p className="mt-2 rounded-lg border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3 text-sm text-[var(--forge-muted)]">
+              <p className="mt-2 rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_3.5%,transparent)] px-3 py-3 text-sm text-[var(--forge-muted)]">
                 You can assign teams later from settings.
               </p>
             ) : (
               <div className="mt-2 grid gap-2">
                 {teams.map((team) => (
                   <label
-                    className="flex min-h-11 items-center gap-2 rounded-lg border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 text-sm text-[var(--forge-text)]"
+                    className="flex min-h-11 items-center gap-2 rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_3.5%,transparent)] px-3 text-sm text-[var(--forge-text)]"
                     key={team.id}
                   >
                     <input
@@ -655,7 +653,7 @@ function InviteRequiredPanel({ userEmail }: { userEmail?: string | null }) {
         tone="gold"
       />
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <div className="rounded-lg border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-4 py-4">
+        <div className="rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_3.5%,transparent)] px-4 py-4">
           <p className={labelClass}>Joining a team</p>
           <h2 className="mt-2 text-base font-semibold text-[var(--forge-text)]">
             Wait for the admin invite
@@ -664,7 +662,7 @@ function InviteRequiredPanel({ userEmail }: { userEmail?: string | null }) {
             Reps and managers join through the invite link their workspace admin sends.
           </p>
         </div>
-        <div className="rounded-lg border border-[rgba(241,191,123,0.24)] bg-[rgba(241,191,123,0.07)] px-4 py-4">
+        <div className="rounded-lg border border-[color-mix(in_srgb,var(--forge-gold)_24%,transparent)] bg-[color-mix(in_srgb,var(--forge-gold)_7%,transparent)] px-4 py-4">
           <p className={labelClass}>Setting up Argos</p>
           <h2 className="mt-2 text-base font-semibold text-[var(--forge-text)]">
             Start an organization
@@ -715,15 +713,15 @@ function ActionRow({
       className={[
         "forge-focus-ring flex min-h-14 items-center justify-between gap-3 rounded-lg border px-3 py-3 text-left transition",
         isActive
-          ? "border-[rgba(241,191,123,0.34)] bg-[rgba(241,191,123,0.08)]"
-          : "border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] hover:border-[rgba(241,191,123,0.3)]",
+          ? "border-[color-mix(in_srgb,var(--forge-gold)_34%,transparent)] bg-[color-mix(in_srgb,var(--forge-gold)_8%,transparent)]"
+          : "border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_3.5%,transparent)] hover:border-[color-mix(in_srgb,var(--forge-gold)_30%,transparent)]",
       ].join(" ")}
       onClick={onClick}
       type="button"
     >
       <span className="flex min-w-0 items-center gap-3">
-        <span className="material-symbols-outlined forge-symbol-icon flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface-2)] text-base text-[var(--forge-muted)]">
-          {icon}
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface-2)] text-[var(--forge-muted)]">
+          <ForgeIcon name={icon} size={18} />
         </span>
         <span className="min-w-0">
           <span className="block text-sm font-semibold text-[var(--forge-text)]">
@@ -734,9 +732,7 @@ function ActionRow({
           </span>
         </span>
       </span>
-      <span className="material-symbols-outlined forge-symbol-icon text-base text-[var(--forge-muted)]">
-        chevron_right
-      </span>
+      <ForgeIcon className="text-[var(--forge-muted)]" name="chevron_right" size={18} />
     </button>
   );
 }
@@ -791,17 +787,20 @@ function SetupStep({
 }) {
   const dotClass =
     status === "complete"
-      ? "border-[var(--forge-success)] bg-[rgba(139,215,168,0.12)] text-[var(--forge-success)]"
+      ? "border-[var(--forge-success)] bg-[color-mix(in_srgb,var(--forge-success)_12%,transparent)] text-[var(--forge-success)]"
       : status === "active"
-        ? "border-[var(--forge-gold)] bg-[rgba(241,191,123,0.12)] text-[var(--forge-gold)]"
+        ? "border-[var(--forge-gold)] bg-[color-mix(in_srgb,var(--forge-gold)_12%,transparent)] text-[var(--forge-gold)]"
         : "border-[var(--forge-border)] bg-transparent text-[var(--forge-faint)]";
 
   return (
     <li className={status === "pending" ? "flex gap-3 opacity-55" : "flex gap-3"}>
       <span
-        className={`material-symbols-outlined forge-symbol-icon mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-sm ${dotClass}`}
+        className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${dotClass}`}
       >
-        {status === "complete" ? "check" : status === "active" ? "radio_button_checked" : "radio_button_unchecked"}
+        <ForgeIcon
+          name={status === "complete" ? "check" : status === "active" ? "radio_button_checked" : "radio_button_unchecked"}
+          size={14}
+        />
       </span>
       <span className="min-w-0">
         <span className="block text-sm font-semibold text-[var(--forge-text)]">
@@ -883,18 +882,16 @@ function ReadinessRow({
 }) {
   const toneClass =
     status === "success"
-      ? "border-[rgba(139,215,168,0.28)] bg-[rgba(139,215,168,0.08)] text-[var(--forge-success)]"
+      ? "border-[color-mix(in_srgb,var(--forge-success)_28%,transparent)] bg-[color-mix(in_srgb,var(--forge-success)_8%,transparent)] text-[var(--forge-success)]"
       : status === "warning"
-        ? "border-[rgba(255,159,95,0.34)] bg-[rgba(255,159,95,0.08)] text-[var(--forge-ember)]"
+        ? "border-[color-mix(in_srgb,var(--forge-ember)_34%,transparent)] bg-[color-mix(in_srgb,var(--forge-ember)_8%,transparent)] text-[var(--forge-ember)]"
         : status === "info"
-          ? "border-[rgba(136,218,247,0.3)] bg-[rgba(136,218,247,0.08)] text-[var(--forge-cyan)]"
-          : "border-[var(--forge-border)] bg-[rgba(255,244,230,0.03)] text-[var(--forge-muted)]";
+          ? "border-[color-mix(in_srgb,var(--forge-cyan)_30%,transparent)] bg-[color-mix(in_srgb,var(--forge-cyan)_8%,transparent)] text-[var(--forge-cyan)]"
+          : "border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_3%,transparent)] text-[var(--forge-muted)]";
 
   return (
     <div className={`flex min-h-14 items-start gap-3 rounded-lg border px-3 py-3 ${toneClass}`}>
-      <span className="material-symbols-outlined forge-symbol-icon mt-0.5 text-base">
-        {icon}
-      </span>
+      <ForgeIcon className="mt-0.5" name={icon} size={18} />
       <span className="min-w-0">
         <span className="block text-sm font-semibold text-[var(--forge-text)]">
           {title}

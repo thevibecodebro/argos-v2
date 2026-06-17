@@ -91,21 +91,21 @@ export function CompliancePanel({
           ) : null}
 
           {hasConsented ? (
-            <div className="mt-5 rounded-xl border border-[rgba(139,215,168,0.24)] bg-[rgba(139,215,168,0.1)] px-4 py-4">
+            <div className="mt-5 rounded-xl border border-[color-mix(in_srgb,var(--forge-success)_24%,transparent)] bg-[color-mix(in_srgb,var(--forge-success)_10%,transparent)] px-4 py-4">
               <div className="flex items-start gap-3">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[rgba(139,215,168,0.36)] bg-[rgba(139,215,168,0.18)] text-[var(--forge-success)]">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--forge-success)_36%,transparent)] bg-[color-mix(in_srgb,var(--forge-success)_18%,transparent)] text-[var(--forge-success)]">
                   <ForgeIcon name="check_circle" size={14} />
                 </span>
                 <div>
                   <p className="text-sm font-semibold text-[var(--forge-success)]">
                     Recording consent acknowledged
                   </p>
-                  <p className="mt-1.5 text-sm text-[rgba(139,215,168,0.82)]">
+                  <p className="mt-1.5 text-sm text-[color-mix(in_srgb,var(--forge-success)_82%,transparent)]">
                     {acknowledgedByName
                       ? `Acknowledged by ${acknowledgedByName} on ${formatDate(consentedAt) ?? "recently"}.`
                       : `Last acknowledged ${formatDate(consentedAt) ?? "recently"}.`}
                   </p>
-                  <p className="mt-1 text-xs text-[rgba(139,215,168,0.5)]">
+                  <p className="mt-1 text-xs text-[color-mix(in_srgb,var(--forge-success)_50%,transparent)]">
                     Re-acknowledgment is required whenever your recording policy
                     or applicable laws change.
                   </p>
@@ -113,9 +113,9 @@ export function CompliancePanel({
               </div>
             </div>
           ) : (
-            <div className="mt-5 rounded-xl border border-[rgba(255,159,95,0.22)] bg-[rgba(255,159,95,0.06)] px-4 py-4">
+            <div className="mt-5 rounded-xl border border-[color-mix(in_srgb,var(--forge-ember)_22%,transparent)] bg-[color-mix(in_srgb,var(--forge-ember)_6%,transparent)] px-4 py-4">
               <div className="flex items-start gap-3">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[rgba(255,159,95,0.36)] bg-[rgba(255,159,95,0.14)] text-[var(--forge-ember)]">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--forge-ember)_36%,transparent)] bg-[color-mix(in_srgb,var(--forge-ember)_14%,transparent)] text-[var(--forge-ember)]">
                   <ForgeIcon name="warning" size={14} />
                 </span>
                 <div>
@@ -179,7 +179,7 @@ export function CompliancePanel({
                 "h-2 w-2 shrink-0 rounded-full",
                 recordingEnabled && hasConsented
                   ? "bg-[var(--forge-success)]"
-                  : "bg-[rgba(255,244,230,0.46)]",
+                  : "bg-[color-mix(in_srgb,var(--forge-text)_46%,transparent)]",
               ].join(" ")}
             />
             <div>

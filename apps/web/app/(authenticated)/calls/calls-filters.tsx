@@ -129,7 +129,7 @@ export function CallsFilters({ initialSearch }: Props) {
       <span aria-live="polite" className="sr-only" role="status">
         {isPending ? "Updating calls" : ""}
       </span>
-      <div className="group flex min-h-11 items-center rounded-lg border border-[var(--forge-border)] bg-[rgba(8,6,5,0.5)] px-3 transition focus-within:border-[rgba(136,218,247,0.35)] focus-within:bg-[rgba(136,218,247,0.045)]">
+      <div className="group flex min-h-11 items-center rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_50%,transparent)] px-3 transition focus-within:border-[color-mix(in_srgb,var(--forge-cyan)_35%,transparent)] focus-within:bg-[color-mix(in_srgb,var(--forge-cyan)_4.5%,transparent)]">
         <ForgeIcon
           className="mr-2 text-[var(--forge-cyan)]"
           name="search"
@@ -139,7 +139,7 @@ export function CallsFilters({ initialSearch }: Props) {
           Search by topic
         </label>
         <input
-          className="w-full border-none bg-transparent px-0 py-2 text-sm font-medium text-[var(--forge-text)] outline-none placeholder:text-[rgba(255,244,230,0.42)] focus:ring-0"
+          className="w-full border-none bg-transparent px-0 py-2 text-sm font-medium text-[var(--forge-text)] outline-none placeholder:text-[color-mix(in_srgb,var(--forge-text)_42%,transparent)] focus:ring-0"
           id="search"
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search calls, reps, topics..."
@@ -148,7 +148,7 @@ export function CallsFilters({ initialSearch }: Props) {
         />
       </div>
 
-      <div className="rounded-lg border border-[var(--forge-border)] bg-[rgba(8,6,5,0.5)] px-3 py-2">
+      <div className="rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_50%,transparent)] px-3 py-2">
         <p className="mb-0.5 text-[0.64rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
           Status
         </p>
@@ -169,7 +169,7 @@ export function CallsFilters({ initialSearch }: Props) {
         </select>
       </div>
 
-      <div className="rounded-lg border border-[var(--forge-border)] bg-[rgba(8,6,5,0.5)] px-3 py-2">
+      <div className="rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_50%,transparent)] px-3 py-2">
         <p className="mb-0.5 text-[0.64rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
           Sort By
         </p>
@@ -203,7 +203,7 @@ export function CallsFilters({ initialSearch }: Props) {
       </ForgeButton>
 
       <details
-        className="rounded-lg border border-[var(--forge-border)] bg-[rgba(8,6,5,0.42)] lg:col-span-full"
+        className="rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_42%,transparent)] lg:col-span-full"
         open={Boolean(currentMinScore || currentMaxScore)}
       >
         <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-sm font-semibold text-[var(--forge-text)] marker:hidden">
@@ -220,7 +220,7 @@ export function CallsFilters({ initialSearch }: Props) {
           </span>
         </summary>
         <div className="grid gap-2 border-t border-[var(--forge-border)] p-2 sm:grid-cols-2">
-          <div className="rounded-lg border border-[var(--forge-border)] bg-[rgba(8,6,5,0.5)] px-3 py-2">
+          <div className="rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_50%,transparent)] px-3 py-2">
             <p className="mb-0.5 text-[0.64rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
               Min Score
             </p>
@@ -242,7 +242,7 @@ export function CallsFilters({ initialSearch }: Props) {
             </select>
           </div>
 
-          <div className="rounded-lg border border-[var(--forge-border)] bg-[rgba(8,6,5,0.5)] px-3 py-2">
+          <div className="rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_50%,transparent)] px-3 py-2">
             <p className="mb-0.5 text-[0.64rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
               Max Score
             </p>

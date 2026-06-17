@@ -45,7 +45,7 @@ export function AuthenticatedRouteLoading({
       size={size}
     >
       <section
-        className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.026)] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,244,230,0.04)] sm:px-4"
+        className="rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.6%,transparent)] px-3 py-3 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)] sm:px-4"
         data-authenticated-route-loading-header="true"
       >
         <p className="sr-only">{description}</p>
@@ -60,7 +60,7 @@ export function AuthenticatedRouteLoading({
               {title}
             </h1>
           </div>
-          <span className="inline-flex w-fit items-center gap-2 rounded-lg border border-[rgba(241,191,123,0.24)] bg-[rgba(241,191,123,0.08)] px-2.5 py-1 text-xs font-semibold text-[var(--forge-gold)]">
+          <span className="inline-flex w-fit items-center gap-2 rounded-lg border border-[color-mix(in_srgb,var(--forge-gold)_24%,transparent)] bg-[color-mix(in_srgb,var(--forge-gold)_8%,transparent)] px-2.5 py-1 text-xs font-semibold text-[var(--forge-gold)]">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--forge-gold)]" aria-hidden="true" />
             Loading
           </span>
@@ -71,10 +71,10 @@ export function AuthenticatedRouteLoading({
         className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_20rem]"
         data-authenticated-route-skeletons="compact"
       >
-        <section className="rounded-xl border border-[var(--forge-border)] bg-[rgba(8,6,5,0.78)] p-3 shadow-[inset_0_1px_0_rgba(255,244,230,0.035)]">
+        <section className="rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_78%,transparent)] p-3 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_3.5%,transparent)]">
           <div className="mb-3 grid gap-px overflow-hidden rounded-lg border border-[var(--forge-border)] bg-[var(--forge-border)] sm:grid-cols-2 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, index) => (
-              <div className="bg-[rgba(12,9,7,0.96)] px-3 py-2" key={index}>
+              <div className="bg-[color-mix(in_srgb,var(--forge-shadow)_96%,transparent)] px-3 py-2" key={index}>
                 <div className="forge-skeleton-line h-3 w-20" />
                 <div className="forge-skeleton-line mt-2 h-4 w-24" />
               </div>
@@ -83,7 +83,7 @@ export function AuthenticatedRouteLoading({
           <div className="space-y-2">
             {Array.from({ length: lines }).map((_, index) => (
               <div
-                className="grid min-h-14 gap-3 rounded-lg border border-[var(--forge-border)] bg-[rgba(255,244,230,0.024)] px-3 py-3 sm:grid-cols-[minmax(0,1.5fr)_minmax(7rem,0.6fr)_minmax(7rem,0.6fr)_2.5rem] sm:items-center"
+                className="grid min-h-14 gap-3 rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.4%,transparent)] px-3 py-3 sm:grid-cols-[minmax(0,1.5fr)_minmax(7rem,0.6fr)_minmax(7rem,0.6fr)_2.5rem] sm:items-center"
                 key={index}
               >
                 <div className="min-w-0">
@@ -98,7 +98,7 @@ export function AuthenticatedRouteLoading({
           </div>
         </section>
 
-        <aside className="hidden rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.026)] p-3 shadow-[inset_0_1px_0_rgba(255,244,230,0.035)] xl:block">
+        <aside className="hidden rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.6%,transparent)] p-3 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_3.5%,transparent)] xl:block">
           <div className="forge-skeleton-line h-3 w-20" />
           <div className="forge-skeleton-line mt-3 h-6 w-3/4" />
           <div className="mt-4 space-y-2">

@@ -279,8 +279,8 @@
 }
 
 .inviteAudienceRow[data-state="primary"] {
-  border-color: rgba(241, 191, 123, 0.28);
-  background: rgba(241, 191, 123, 0.08);
+  border-color: color-mix(in srgb, var(--forge-gold) 28%, transparent);
+  background: color-mix(in srgb, var(--forge-gold) 8%, transparent);
 }
 
 .inviteAudienceRow span {

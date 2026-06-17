@@ -513,12 +513,12 @@ export function PermissionsPanel({
           </div>
 
           {error ? (
-            <div className="mt-4 rounded-xl border border-[rgba(255,113,108,0.26)] bg-[rgba(255,113,108,0.1)] px-4 py-3 text-sm text-[var(--forge-danger)]">
+            <div className="mt-4 rounded-xl border border-[color-mix(in_srgb,var(--forge-danger)_26%,transparent)] bg-[color-mix(in_srgb,var(--forge-danger)_10%,transparent)] px-4 py-3 text-sm text-[var(--forge-danger)]">
               {error}
             </div>
           ) : null}
           {notice ? (
-            <div className="mt-4 rounded-xl border border-[rgba(139,215,168,0.24)] bg-[rgba(139,215,168,0.1)] px-4 py-3 text-sm text-[var(--forge-success)]">
+            <div className="mt-4 rounded-xl border border-[color-mix(in_srgb,var(--forge-success)_24%,transparent)] bg-[color-mix(in_srgb,var(--forge-success)_10%,transparent)] px-4 py-3 text-sm text-[var(--forge-success)]">
               {notice}
             </div>
           ) : null}

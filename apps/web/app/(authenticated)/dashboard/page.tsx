@@ -192,11 +192,11 @@ function TodayDashboardView({
       data-dashboard-today-queue="true"
     >
       <div
-        className="min-w-0 overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[rgba(8,6,5,0.88)] shadow-[inset_0_1px_0_rgba(255,244,230,0.04)]"
+        className="min-w-0 overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_88%,transparent)] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)]"
         data-dashboard-queue-table="true"
         data-forge-table="true"
       >
-        <div className="border-b border-[var(--forge-border)] bg-[rgba(255,244,230,0.024)] px-4 py-3">
+        <div className="border-b border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.4%,transparent)] px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="mt-1 text-base font-semibold text-[var(--forge-text)]">
@@ -214,7 +214,7 @@ function TodayDashboardView({
             <div className="grid gap-2 p-3 md:hidden">
               {queueItems.map((item) => (
                 <Link
-                  className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] p-4 transition hover:border-[rgba(241,191,123,0.3)] hover:bg-[rgba(241,191,123,0.055)]"
+                  className="rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_3.5%,transparent)] p-4 transition hover:border-[color-mix(in_srgb,var(--forge-gold)_30%,transparent)] hover:bg-[color-mix(in_srgb,var(--forge-gold)_5.5%,transparent)]"
                   href={item.href}
                   key={`${item.id}-mobile`}
                 >
@@ -247,7 +247,7 @@ function TodayDashboardView({
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full min-w-[760px] border-collapse">
                 <thead>
-                  <tr className="border-b border-[var(--forge-border)] bg-[rgba(255,244,230,0.024)] text-left text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
+                  <tr className="border-b border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.4%,transparent)] text-left text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
                     <th className="px-4 py-3" scope="col">Work item</th>
                     <th className="px-4 py-3" scope="col">Signal</th>
                     <th className="px-4 py-3" scope="col">Status</th>
@@ -257,7 +257,7 @@ function TodayDashboardView({
                 <tbody className="divide-y divide-[var(--forge-border)]">
                   {queueItems.map((item, index) => (
                     <tr
-                      className="transition hover:bg-[rgba(241,191,123,0.045)]"
+                      className="transition hover:bg-[color-mix(in_srgb,var(--forge-gold)_4.5%,transparent)]"
                       data-dashboard-queue-row={index === 0 ? "selected" : "default"}
                       key={item.id}
                     >
@@ -540,19 +540,19 @@ function formatRepCardName(rep: ManagerDashboard["reps"][number]) {
 
 function queueIconToneClass(tone: ForgeTone) {
   if (tone === "success") {
-    return "border-[rgba(139,215,168,0.24)] bg-[rgba(139,215,168,0.08)] text-[var(--forge-success)]";
+    return "border-[color-mix(in_srgb,var(--forge-success)_24%,transparent)] bg-[color-mix(in_srgb,var(--forge-success)_8%,transparent)] text-[var(--forge-success)]";
   }
   if (tone === "danger") {
-    return "border-[rgba(255,113,108,0.26)] bg-[rgba(255,113,108,0.08)] text-[var(--forge-danger)]";
+    return "border-[color-mix(in_srgb,var(--forge-danger)_26%,transparent)] bg-[color-mix(in_srgb,var(--forge-danger)_8%,transparent)] text-[var(--forge-danger)]";
   }
   if (tone === "ember") {
-    return "border-[rgba(255,159,95,0.24)] bg-[rgba(255,159,95,0.07)] text-[var(--forge-ember)]";
+    return "border-[color-mix(in_srgb,var(--forge-ember)_24%,transparent)] bg-[color-mix(in_srgb,var(--forge-ember)_7%,transparent)] text-[var(--forge-ember)]";
   }
   if (tone === "cyan") {
-    return "border-[rgba(136,218,247,0.24)] bg-[rgba(136,218,247,0.07)] text-[var(--forge-cyan)]";
+    return "border-[color-mix(in_srgb,var(--forge-cyan)_24%,transparent)] bg-[color-mix(in_srgb,var(--forge-cyan)_7%,transparent)] text-[var(--forge-cyan)]";
   }
   if (tone === "gold") {
-    return "border-[rgba(241,191,123,0.24)] bg-[rgba(241,191,123,0.08)] text-[var(--forge-gold)]";
+    return "border-[color-mix(in_srgb,var(--forge-gold)_24%,transparent)] bg-[color-mix(in_srgb,var(--forge-gold)_8%,transparent)] text-[var(--forge-gold)]";
   }
-  return "border-[var(--forge-border)] bg-[rgba(255,244,230,0.04)] text-[var(--forge-muted)]";
+  return "border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)] text-[var(--forge-muted)]";
 }

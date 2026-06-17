@@ -1,5 +1,21 @@
 import { Children } from "react";
 import Link from "next/link";
+import {
+  Activity, AlignLeft, Archive, ArrowLeft, ArrowRight, ArrowRightToLine,
+  ArrowUpRight, AtSign, AudioLines, Award, BarChart3, Bell, BookText, Bookmark,
+  Bot, Braces, Brain, Bug, Building2, CalendarDays, ChartLine, Check, CheckCheck,
+  CheckCircle2, ChevronLeft, ChevronRight, ChevronsUpDown, Circle, CircleAlert,
+  CircleDot, CircleHelp,
+  ClipboardCheck, Clock, CloudOff, CloudUpload, Copy, CreditCard, Crosshair, Drama,
+  ExternalLink, Eye, Factory, FileText, FileUp, Fingerprint, Flag, Globe,
+  GraduationCap, History, Info, LayoutDashboard, Layers, Lightbulb, ListChecks,
+  ListFilter, Lock, LockOpen, LogIn, LogOut, Mail, MailOpen, Medal, MessageCircle,
+  MessagesSquare, Mic, Network, Paperclip, Phone, PhoneCall, Play, Plus, PlusCircle,
+  Power, RefreshCw, School, Search, Send, Settings, Shield, ShieldCheck, SignalZero,
+  SlidersHorizontal, Sparkles, SquarePen, Store, Table, Target, TrendingUp,
+  TriangleAlert, Trophy, Upload, User, UserCog, UserPlus, UserSearch,
+  Users, Video, Wand2, X, type LucideIcon,
+} from "lucide-react";
 import { cn } from "@argos-v2/ui";
 
 export type ForgeTone = "gold" | "ember" | "cyan" | "success" | "danger" | "muted";
@@ -346,14 +362,14 @@ function forgeToneBarClass(tone: ForgeTone) {
   if (tone === "danger") return "bg-[var(--forge-danger)]";
   if (tone === "ember") return "bg-[var(--forge-ember)]";
   if (tone === "cyan") return "bg-[var(--forge-cyan)]";
-  if (tone === "muted") return "bg-[rgba(255,244,230,0.18)]";
+  if (tone === "muted") return "bg-[color-mix(in_srgb,var(--forge-text)_18%,transparent)]";
   return "bg-[var(--forge-gold)]";
 }
 
 function forgeToneIconClass(tone: ForgeTone) {
-  if (tone === "success") return "border-[rgba(139,215,168,0.24)] bg-[rgba(139,215,168,0.1)] text-[var(--forge-success)]";
-  if (tone === "danger") return "border-[rgba(255,113,108,0.24)] bg-[rgba(255,113,108,0.1)] text-[var(--forge-danger)]";
-  if (tone === "ember") return "border-[rgba(255,159,95,0.26)] bg-[rgba(255,159,95,0.1)] text-[var(--forge-ember)]";
+  if (tone === "success") return "border-[color-mix(in_srgb,var(--forge-success)_24%,transparent)] bg-[color-mix(in_srgb,var(--forge-success)_10%,transparent)] text-[var(--forge-success)]";
+  if (tone === "danger") return "border-[color-mix(in_srgb,var(--forge-danger)_24%,transparent)] bg-[color-mix(in_srgb,var(--forge-danger)_10%,transparent)] text-[var(--forge-danger)]";
+  if (tone === "ember") return "border-[color-mix(in_srgb,var(--forge-ember)_26%,transparent)] bg-[color-mix(in_srgb,var(--forge-ember)_10%,transparent)] text-[var(--forge-ember)]";
   if (tone === "cyan") return "border-[var(--forge-cyan)]/20 bg-[var(--forge-cyan)]/10 text-[var(--forge-cyan)]";
   if (tone === "muted") return "border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface-2)]/45 text-[var(--forge-muted)]";
   return "border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/10 text-[var(--forge-gold)]";
@@ -473,7 +489,7 @@ export function ForgeEmptyState({
       data-forge-empty-state="true"
       variant="subtle"
     >
-      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.04)] text-[var(--forge-gold)]">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)] text-[var(--forge-gold)]">
         <ForgeIcon name={icon} size={22} />
       </div>
       <h3 className="mt-4 font-[var(--font-display)] text-lg font-semibold text-[var(--forge-text)]">
@@ -875,7 +891,7 @@ export function ForgeWorkspaceRail({
       data-forge-workspace-rail-collapsed-default={collapsible ? String(defaultCollapsed) : undefined}
       {...props}
     >
-      <div className="forge-workspace-rail-header mb-5 rounded-[1.15rem] border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] p-4">
+      <div className="forge-workspace-rail-header mb-5 rounded-[1.15rem] border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_3.5%,transparent)] p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="forge-workspace-rail-header-text min-w-0">
             {eyebrow ? <p className="forge-page-eyebrow">{eyebrow}</p> : null}
@@ -982,108 +998,129 @@ export function ForgeWorkspaceRailAction(
   );
 }
 
-const MATERIAL_SYMBOL_CODEPOINTS: Record<string, string> = {
-  add: "\ue145",
-  add_circle: "\ue147",
-  account_tree: "\ue97a",
-  alternate_email: "\ue0e6",
-  analytics: "\uef3e",
-  add_business: "\ue729",
-  admin_panel_settings: "\uef3d",
-  archive: "\ue0f0",
-  arrow_back: "\ue5c4",
-  arrow_forward: "\ue5c8",
-  arrow_outward: "\uf8ce",
-  attach_file: "\ue226",
-  auto_fix: "\ue663",
-  auto_fix_high: "\ue663",
-  auto_awesome: "\ue65f",
-  bookmark: "\ue866",
-  business: "\ue0af",
-  call: "\ue0b0",
-  call_log: "\ue08e",
-  calendar_month: "\uebcc",
-  chevron_left: "\ue5cb",
-  chevron_right: "\ue5cc",
-  check_circle: "\ue86c",
-  cloud_upload: "\ue2c3",
-  close: "\ue5cd",
-  content_copy: "\ue14d",
-  dashboard: "\ue871",
-  data_object: "\uf1c9",
-  edit_note: "\ue745",
-  edit_square: "\uf88d",
-  error: "\ue002",
-  filter_list: "\ue152",
-  fingerprint: "\ue90d",
-  grading: "\uea4f",
-  graphic_eq: "\ue1b8",
-  group: "\ue7ef",
-  group_add: "\ue7f0",
-  group_off: "\ue747",
-  groups: "\uf233",
-  groups_2: "\uf8df",
-  help: "\ue0f0",
-  history: "\ue889",
-  info: "\ue0f0",
-  input: "\ue890",
-  insights: "\uf092",
-  leaderboard: "\uf20c",
-  library_books: "\ue02f",
-  lightbulb: "\ue0f0",
-  lock: "\ue897",
-  login: "\uea77",
-  logout: "\ue9ba",
-  mic: "\ue029",
-  military_tech: "\uea3f",
-  monitoring: "\uf190",
-  north_east: "\uf1e9",
-  notifications: "\ue7f4",
-  open_in_new: "\ue895",
-  pending: "\ue0f0",
-  person: "\ue7fd",
-  person_add: "\ue7fe",
-  person_search: "\uf106",
-  play_arrow: "\ue037",
-  power: "\ue63c",
-  preview: "\uf1c5",
-  psychology: "\uea4a",
-  publish: "\ue255",
-  query_stats: "\ue4fc",
-  record_voice_over: "\ue91f",
-  rule: "\uf1c2",
-  school: "\ue80c",
-  search: "\ue8b6",
-  send: "\ue163",
-  settings: "\ue8b8",
-  shield: "\ue9e0",
-  signal_cellular_nodata: "\uf062",
-  smart_toy: "\uf06c",
-  stacked_line_chart: "\uf22b",
-  subject: "\ue8d2",
-  summarize: "\uf071",
-  table: "\uf191",
-  table_chart: "\ue265",
-  task_alt: "\ue2e6",
-  theater_comedy: "\uea66",
-  track_changes: "\ue8e1",
-  travel_explore: "\ue2db",
-  trending_up: "\ue8e5",
-  upload: "\uf09b",
-  upload_file: "\ue9fc",
-  verified_user: "\ue8e8",
-  videocam: "\ue04b",
-  warning: "\ue002",
-  workspace_premium: "\ue7af",
+const ICON_REGISTRY: Record<string, LucideIcon> = {
+  account_tree: Network,
+  activity: Activity,
+  add: Plus,
+  add_business: Store,
+  add_circle: PlusCircle,
+  admin_panel_settings: ShieldCheck,
+  alternate_email: AtSign,
+  analytics: BarChart3,
+  archive: Archive,
+  arrow_back: ArrowLeft,
+  arrow_forward: ArrowRight,
+  arrow_outward: ArrowUpRight,
+  assignment_add: ClipboardCheck,
+  attach_file: Paperclip,
+  auto_awesome: Sparkles,
+  auto_fix: Wand2,
+  auto_fix_high: Wand2,
+  bookmark: Bookmark,
+  bug_report: Bug,
+  business: Building2,
+  calendar_month: CalendarDays,
+  call: Phone,
+  call_log: PhoneCall,
+  chat_bubble: MessageCircle,
+  check: Check,
+  check_circle: CheckCircle2,
+  chevron_left: ChevronLeft,
+  chevron_right: ChevronRight,
+  cloud_off: CloudOff,
+  cloud_upload: CloudUpload,
+  close: X,
+  content_copy: Copy,
+  dashboard: LayoutDashboard,
+  data_object: Braces,
+  done_all: CheckCheck,
+  edit_note: SquarePen,
+  edit_square: SquarePen,
+  email: Mail,
+  error: CircleAlert,
+  fact_check: ClipboardCheck,
+  filter_list: ListFilter,
+  fingerprint: Fingerprint,
+  flag: Flag,
+  forum: MessagesSquare,
+  grading: ClipboardCheck,
+  graphic_eq: AudioLines,
+  group: Users,
+  group_add: UserPlus,
+  group_off: Users,
+  groups: Users,
+  groups_2: Users,
+  help: CircleHelp,
+  history: History,
+  info: Info,
+  input: ArrowRightToLine,
+  insights: ChartLine,
+  leaderboard: Trophy,
+  library_books: BookText,
+  lightbulb: Lightbulb,
+  lock: Lock,
+  lock_open: LockOpen,
+  login: LogIn,
+  logout: LogOut,
+  mail: Mail,
+  mark_email_read: MailOpen,
+  mic: Mic,
+  military_tech: Medal,
+  monitoring: Activity,
+  north_east: ArrowUpRight,
+  notifications: Bell,
+  open_in_new: ExternalLink,
+  payments: CreditCard,
+  pending: Clock,
+  person: User,
+  person_add: UserPlus,
+  person_search: UserSearch,
+  play_arrow: Play,
+  power: Power,
+  precision_manufacturing: Factory,
+  preview: Eye,
+  psychology: Brain,
+  publish: Upload,
+  query_stats: ChartLine,
+  queue: Layers,
+  radio_button_checked: CircleDot,
+  radio_button_unchecked: Circle,
+  record_voice_over: Mic,
+  refresh: RefreshCw,
+  rule: ListChecks,
+  schedule: Clock,
+  school: GraduationCap,
+  search: Search,
+  send: Send,
+  settings: Settings,
+  shield: Shield,
+  signal_cellular_nodata: SignalZero,
+  smart_toy: Bot,
+  stacked_line_chart: ChartLine,
+  subject: AlignLeft,
+  summarize: FileText,
+  supervisor_account: UserCog,
+  table: Table,
+  table_chart: Table,
+  target: Target,
+  task_alt: CheckCircle2,
+  theater_comedy: Drama,
+  track_changes: Crosshair,
+  travel_explore: Globe,
+  trending_up: TrendingUp,
+  tune: SlidersHorizontal,
+  unfold_more: ChevronsUpDown,
+  upload: Upload,
+  upload_file: FileUp,
+  verified_user: ShieldCheck,
+  videocam: Video,
+  warning: TriangleAlert,
+  workspace_premium: Award,
 };
 
 function normalizeIconName(name: string) {
   const normalized = name.trim().toLowerCase().replace(/[^a-z0-9_]/g, "_");
   return normalized || "help";
-}
-
-function getMaterialSymbolCodepoint(name: string) {
-  return MATERIAL_SYMBOL_CODEPOINTS[normalizeIconName(name)] ?? MATERIAL_SYMBOL_CODEPOINTS.lightbulb;
 }
 
 export function ForgeIcon({
@@ -1096,21 +1133,15 @@ export function ForgeIcon({
   size?: number;
 }) {
   const iconName = normalizeIconName(name);
-  const iconCodepoint = getMaterialSymbolCodepoint(iconName);
+  const Icon = ICON_REGISTRY[iconName] ?? CircleHelp;
 
   return (
-    <span
+    <Icon
       aria-hidden="true"
-      className={cn("material-symbols-outlined forge-icon forge-symbol-icon shrink-0", className)}
-      data-forge-icon-codepoint={iconCodepoint.codePointAt(0)?.toString(16)}
+      className={cn("forge-icon forge-symbol-icon shrink-0", className)}
       data-forge-icon-name={iconName}
-      style={{
-        fontFamily: "var(--font-material-symbols), 'Material Symbols Outlined'",
-        fontSize: `${size}px`,
-        textTransform: "none",
-      }}
-    >
-      {iconCodepoint}
-    </span>
+      size={size}
+      strokeWidth={1.75}
+    />
   );
 }

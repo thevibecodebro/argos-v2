@@ -245,7 +245,7 @@ export function AuthenticatedAppShell({
       {mobileNavOpen ? (
         <button
           aria-label="Close navigation"
-          className="fixed inset-0 z-40 bg-[rgba(5,4,3,0.68)] lg:hidden"
+          className="fixed inset-0 z-40 bg-[color-mix(in_srgb,var(--forge-shadow)_68%,transparent)] lg:hidden"
           onClick={() => setMobileNavOpen(false)}
           type="button"
         />
@@ -451,7 +451,7 @@ export function AuthenticatedAppShell({
                 </div>
 
                 <button
-                  className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-[var(--forge-muted)] transition hover:bg-[rgba(241,191,123,0.07)] hover:text-[var(--forge-text)]"
+                  className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-[var(--forge-muted)] transition hover:bg-[color-mix(in_srgb,var(--forge-gold)_7%,transparent)] hover:text-[var(--forge-text)]"
                   data-account-menu-item="feedback"
                   onClick={() => {
                     setFeedbackOpen(true);
@@ -466,7 +466,7 @@ export function AuthenticatedAppShell({
                 </button>
 
                 <button
-                  className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-[var(--forge-muted)] transition hover:bg-[rgba(241,191,123,0.07)] hover:text-[var(--forge-text)]"
+                  className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-[var(--forge-muted)] transition hover:bg-[color-mix(in_srgb,var(--forge-gold)_7%,transparent)] hover:text-[var(--forge-text)]"
                   data-account-menu-item="product-guide"
                   onClick={() => {
                     setGuideReplaySignal((value) => value + 1);
@@ -481,7 +481,7 @@ export function AuthenticatedAppShell({
                 </button>
 
                 <Link
-                  className="flex items-center gap-3 px-4 py-3 text-sm text-[var(--forge-muted)] transition hover:bg-[rgba(241,191,123,0.07)] hover:text-[var(--forge-text)]"
+                  className="flex items-center gap-3 px-4 py-3 text-sm text-[var(--forge-muted)] transition hover:bg-[color-mix(in_srgb,var(--forge-gold)_7%,transparent)] hover:text-[var(--forge-text)]"
                   data-account-menu-item="notifications"
                   data-navigation-pending={
                     navigationPendingState.pendingHref === "/notifications"
@@ -503,7 +503,7 @@ export function AuthenticatedAppShell({
                 <div className="border-t border-[var(--forge-border)]">
                   <form action="/auth/signout" method="post">
                     <button
-                      className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-[var(--forge-muted)] transition hover:bg-[rgba(255,113,108,0.09)] hover:text-[var(--forge-text)]"
+                      className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-[var(--forge-muted)] transition hover:bg-[color-mix(in_srgb,var(--forge-danger)_9%,transparent)] hover:text-[var(--forge-text)]"
                       role="menuitem"
                       tabIndex={accountOpen ? 0 : -1}
                       type="submit"
