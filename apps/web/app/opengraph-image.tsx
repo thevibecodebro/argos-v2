@@ -27,7 +27,7 @@ export default function Image() {
         <div style={{ fontSize: 36, fontWeight: 800, letterSpacing: 2, textTransform: "uppercase" }}>
           Argos
         </div>
-        <div>
+        <div style={{ display: "flex", flexDirection: "column" }}>
           <div style={{ maxWidth: 900, color: "#e9e4dd", fontSize: 78, fontWeight: 900, lineHeight: 0.95 }}>
             {HOME_PAGE_TITLE}
           </div>
