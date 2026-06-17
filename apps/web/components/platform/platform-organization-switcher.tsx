@@ -14,6 +14,10 @@ import type {
   PlatformConsoleOrganization,
 } from "./platform-types";
 
+function initialOf(value: string | null | undefined): string {
+  return value?.trim().charAt(0).toUpperCase() || "A";
+}
+
 type PlatformOrganizationSwitcherProps = {
   activeSession: PlatformConsoleActiveSession | null;
   className?: string;
@@ -61,6 +65,9 @@ export function PlatformOrganizationSwitcher({
         organization.slug === session?.targetOrgSlug,
     ) ?? null;
 
+  const activeName =
+    activeOrganization?.name ?? session?.targetOrgName ?? null;
+
   async function handleLaunchOrganization(organization: PlatformConsoleOrganization) {
     setSessionStatus(null);
     setSwitchingOrgId(organization.id);
@@ -98,47 +105,57 @@ export function PlatformOrganizationSwitcher({
   return (
     <details
       className={cn(
-        "mb-4 rounded-2xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_3.5%,transparent)] px-3 py-3",
+        "mb-4 rounded-2xl border border-[var(--forge-border)] bg-[var(--forge-surface)] px-2.5 py-2.5",
         collapsed && "lg:sr-only",
         className,
       )}
       data-platform-organization-switcher="true"
     >
       <summary className="list-none cursor-pointer [&::-webkit-details-marker]:hidden">
-        <p className="font-[var(--font-display)] text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-gold)]">
-          Agency
-        </p>
-        <p className="mt-1 font-[var(--font-display)] text-[0.58rem] font-bold uppercase tracking-[0.14em] text-[var(--forge-muted)]">
-          Switch organization
-        </p>
-        <div className="mt-1 flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-[var(--forge-text)]">
-              {activeOrganization?.name ?? session?.targetOrgName ?? "Select organization"}
-            </p>
-            <p className="mt-0.5 truncate text-xs text-[var(--forge-muted)]">
-              {session ? "Current organization" : `${organizationCount ?? organizations.length} organizations`}
-            </p>
-          </div>
+        <span className="sr-only">Switch organization</span>
+        <div className="flex items-center gap-3 rounded-xl px-1.5 py-1 transition hover:bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)]">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--forge-text)_8%,transparent)] text-sm font-semibold text-[var(--forge-text)]">
+            {initialOf(activeName)}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-semibold text-[var(--forge-text)]">
+              {activeName ?? "Select organization"}
+            </span>
+            <span className="block truncate text-xs text-[var(--forge-muted)]">
+              {session
+                ? "Current organization"
+                : `${organizationCount ?? organizations.length} organizations`}
+            </span>
+          </span>
           <ForgeIcon name="unfold_more" size={18} />
         </div>
       </summary>
 
-      <div className="mt-3 border-t border-[var(--forge-border)] pt-3">
+      <div className="mt-3">
         <label className="sr-only" htmlFor="platform-organization-switch-search">
           Search organizations
         </label>
-        <input
-          className="min-h-9 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
-          data-platform-organization-switcher-search="true"
-          id="platform-organization-switch-search"
-          onChange={(event) => setOrganizationQuery(event.target.value)}
-          placeholder="Search organizations"
-          type="search"
-          value={organizationQuery}
-        />
+        <div className="relative">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--forge-muted)]">
+            <ForgeIcon name="search" size={16} />
+          </span>
+          <input
+            className="min-h-10 w-full rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface)] pl-9 pr-3 text-sm text-[var(--forge-text)] outline-none transition placeholder:text-[var(--forge-muted)] focus:border-[var(--forge-gold)]/60"
+            data-platform-organization-switcher-search="true"
+            id="platform-organization-switch-search"
+            onChange={(event) => setOrganizationQuery(event.target.value)}
+            placeholder="Search for an organization"
+            type="search"
+            value={organizationQuery}
+          />
+        </div>
+
+        <p className="mt-3 px-1 text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-[var(--forge-muted)]">
+          All accounts
+        </p>
+
         <div
-          className="mt-2 max-h-64 space-y-1 overflow-y-auto pr-1"
+          className="mt-1.5 max-h-72 space-y-1.5 overflow-y-auto pr-1"
           data-platform-session-endpoint={PLATFORM_SESSION_ENDPOINT}
         >
           {filteredOrganizations.length ? (
@@ -146,12 +163,14 @@ export function PlatformOrganizationSwitcher({
               const isCurrent =
                 organization.id === session?.targetOrgId ||
                 organization.slug === session?.targetOrgSlug;
+              const isOpening = switchingOrgId === organization.id;
 
               return (
                 <button
                   className={cn(
-                    "w-full rounded-xl border border-transparent px-3 py-2 text-left transition hover:border-[color-mix(in_srgb,var(--forge-gold)_28%,transparent)] hover:bg-[color-mix(in_srgb,var(--forge-gold)_6%,transparent)]",
-                    isCurrent && "border-[color-mix(in_srgb,var(--forge-cyan)_22%,transparent)] bg-[color-mix(in_srgb,var(--forge-cyan)_6%,transparent)]",
+                    "group flex w-full items-center gap-3 rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2.5 text-left transition hover:border-[color-mix(in_srgb,var(--forge-gold)_40%,transparent)] hover:bg-[color-mix(in_srgb,var(--forge-gold)_5%,transparent)] disabled:cursor-not-allowed",
+                    isCurrent &&
+                      "border-[color-mix(in_srgb,var(--forge-gold)_45%,transparent)] bg-[color-mix(in_srgb,var(--forge-gold)_8%,transparent)]",
                   )}
                   data-platform-organization-option={organization.id}
                   disabled={switchingOrgId !== null}
@@ -159,30 +178,38 @@ export function PlatformOrganizationSwitcher({
                   onClick={() => handleLaunchOrganization(organization)}
                   type="button"
                 >
-                  <span className="block truncate text-sm font-semibold text-[var(--forge-text)]">
-                    {organization.name}
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--forge-text)_8%,transparent)] text-sm font-semibold text-[var(--forge-text)]">
+                    {initialOf(organization.name)}
                   </span>
-                  <span className="mt-0.5 flex items-center justify-between gap-2 text-xs text-[var(--forge-muted)]">
-                    <span className="truncate">{organization.slug}</span>
-                    <span className="shrink-0 font-semibold uppercase tracking-[0.1em] text-[var(--forge-cyan)]">
-                      {switchingOrgId === organization.id
-                        ? "Opening"
-                        : isCurrent
-                          ? "Current"
-                          : "Open"}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-[var(--forge-text)]">
+                      {organization.name}
                     </span>
+                    <span className="block truncate text-xs text-[var(--forge-muted)]">
+                      {isOpening ? "Opening…" : organization.slug}
+                    </span>
+                  </span>
+                  <span
+                    className={cn(
+                      "shrink-0 rounded-full px-2.5 py-1 text-[0.68rem] font-semibold",
+                      "bg-[color-mix(in_srgb,var(--forge-gold)_16%,transparent)] text-[var(--forge-gold)]",
+                      isCurrent ? "block" : "hidden group-hover:block",
+                    )}
+                  >
+                    {isCurrent ? "Current" : "Click to switch"}
                   </span>
                 </button>
               );
             })
           ) : (
-            <p className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-xs text-[var(--forge-muted)]">
+            <p className="rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface-2)] px-3 py-2.5 text-xs text-[var(--forge-muted)]">
               No organizations match this search.
             </p>
           )}
         </div>
+
         {session ? (
-          <div className="mt-2 grid gap-2">
+          <div className="mt-3 grid gap-2">
             <a
               className="forge-nav-link flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-[0.12em]"
               href="/dashboard"
@@ -191,18 +218,18 @@ export function PlatformOrganizationSwitcher({
               Open Organization
             </a>
             <button
-              className="rounded-xl border border-[var(--forge-border-strong)]/20 px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] text-[var(--forge-muted)] transition hover:text-[var(--forge-text)] disabled:opacity-60"
+              className="rounded-xl px-3 py-2 text-xs font-semibold text-[var(--forge-muted)] transition hover:text-[var(--forge-text)] disabled:opacity-60"
               data-platform-return-to-agency="true"
               disabled={switchingOrgId !== null}
               onClick={handleEndSession}
               type="button"
             >
-              {switchingOrgId === "ending" ? "Returning" : "Back to Agency"}
+              {switchingOrgId === "ending" ? "Returning…" : "Back to Agency"}
             </button>
           </div>
         ) : null}
         {sessionStatus ? (
-          <p className="mt-2 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-xs text-[var(--forge-muted)]">
+          <p className="mt-2 rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface-2)] px-3 py-2 text-xs text-[var(--forge-muted)]">
             {sessionStatus}
           </p>
         ) : null}
