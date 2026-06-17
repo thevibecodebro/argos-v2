@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("next/font/google", () => ({
+  Geist: () => ({
+    variable: "--font-ui",
+  }),
   Space_Grotesk: () => ({
     variable: "--font-display",
   }),
