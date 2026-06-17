@@ -1,4 +1,13 @@
+import type { Metadata } from "next";
 import { LegalPage } from "@/components/public/legal-page";
+
+export const metadata: Metadata = {
+  title: "Security Policy",
+  description: "Review the safeguards Argos applies to protect customer workspaces, application access, and supporting infrastructure.",
+  alternates: {
+    canonical: "/security-policy",
+  },
+};
 
 export default function SecurityPolicyPage() {
   return (

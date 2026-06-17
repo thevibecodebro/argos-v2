@@ -1,4 +1,13 @@
+import type { Metadata } from "next";
 import { LegalPage } from "@/components/public/legal-page";
+
+export const metadata: Metadata = {
+  title: "Terms of Service",
+  description: "Review the responsibilities that apply when customers and authorized users access the Argos platform.",
+  alternates: {
+    canonical: "/terms-of-service",
+  },
+};
 
 export default function TermsOfServicePage() {
   return (
