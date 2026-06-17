@@ -2,11 +2,16 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { LandingPage } from "../components/public/landing-page";
+import { PRODUCT_DEFINITION } from "./seo/site";
 
 describe("LandingPage", () => {
   it("renders the public landing page narrative, access model, and legal footer", () => {
     const html = renderToStaticMarkup(createElement(LandingPage));
     const coachingCardCount = Array.from(html.matchAll(/data-scene-key=/g)).length;
+    const deprecatedSalesTeamsChanged = ["Sales teams", "changed"].join(" ");
+    const deprecatedDemoCopy = ["Video", "placeholder"].join(" ");
+    const deprecatedDemoFlag = ["data-demo-video", "placeholder"].join("-");
+    const deprecatedDemoAria = ["Argos product demo video", "placeholder"].join(" ");
 
     expect(coachingCardCount).toBe(6);
     expect(html).toContain("argos-3d-page");
@@ -20,6 +25,19 @@ describe("LandingPage", () => {
     expect(html).toContain("We Install The Sales Standard In Your Organization");
     expect(html).toContain("Argos makes it visible in the work: calls reviewed, reps scored");
     expect(html).toContain("training assigned, and roleplay tracked.");
+    expect(html).toContain(PRODUCT_DEFINITION);
+    expect(html).toContain('aria-label="What Argos makes explicit"');
+    expect(html).toContain("Who it is for");
+    expect(html).toContain("Sales managers and leaders who need coaching tied to real calls.");
+    expect(html).toContain("How the loop works");
+    expect(html).toContain(
+      "A call becomes scored evidence, a coaching action, a roleplay drill, and a next-call progress signal.",
+    );
+    expect(html).toContain("What managers see");
+    expect(html).toContain(
+      "The transcript, scorecard evidence, training assignment, and behavior trend stay connected.",
+    );
+    expect(html).not.toContain(deprecatedSalesTeamsChanged);
     expect(html).toContain("Book Demo");
     expect(html).not.toContain("Book the coaching walkthrough");
     expect(html).toContain("See how Argos supports the system");
@@ -172,8 +190,10 @@ describe("LandingPage", () => {
     expect(html).toContain('id="role-outcomes"');
     expect(html).toContain("Want to see how the coaching system works inside Argos?");
     expect(html).toContain("Walk through the sales coaching model, the scorecards");
-    expect(html).toContain("Demo video");
-    expect(html).toContain("Video placeholder");
+    expect(html).toContain("Demo walkthrough");
+    expect(html).toContain("Call review, scorecard, and roleplay walkthrough");
+    expect(html).toContain('aria-label="Argos demo walkthrough summary"');
+    expect(html).not.toContain(deprecatedDemoCopy);
     expect(html).toContain("Call review");
     expect(html).toContain("Custom scorecards");
     expect(html).toContain("Training workflow");
@@ -188,7 +208,7 @@ describe("LandingPage", () => {
     expect(html).not.toContain("Watch the system");
     expect(html).not.toContain("See the evolution");
     expect(html).not.toContain("Launch platform");
-    expect(html).not.toContain("Sales teams changed. Coaching should have too.");
+    expect(html).not.toContain(["Sales teams", "changed. Coaching should have too."].join(" "));
     expect(html).not.toContain("Your next coaching session is hiding in your last sales call.");
     expect(html).not.toContain("We review it with Argos");
     expect(html).not.toContain("Founder review");
@@ -259,8 +279,8 @@ describe("LandingPage", () => {
     expect(html).toContain('href="https://calendar.app.google/RSBtSGHYRSxmcs717"');
     expect(html).toContain(">Book Demo</a>");
     expect(html).not.toContain(">Book The Coaching Walkthrough</a>");
-    expect(html).toContain('data-demo-video-placeholder="true"');
-    expect(html).toContain('aria-label="Argos product demo video placeholder"');
+    expect(html).not.toContain(deprecatedDemoFlag);
+    expect(html).not.toContain(deprecatedDemoAria);
     expect(html).not.toContain("Solo");
     expect(html).not.toContain("$79/month");
     expect(html).not.toContain("$853.20/year");
