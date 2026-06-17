@@ -151,14 +151,14 @@
 
 .forge-nav-link--active {
   color: var(--forge-gold);
-  border-color: var(--forge-gold);
-  background: var(--forge-gold);
+  border-color: color-mix(in srgb, var(--forge-gold) 25%, transparent);
+  background: color-mix(in srgb, var(--forge-gold) 9%, transparent);
 }
 
 .forge-nav-link--pending {
   color: var(--forge-text);
-  border-color: var(--forge-gold);
-  background: var(--forge-gold);
+  border-color: color-mix(in srgb, var(--forge-gold) 25%, transparent);
+  background: color-mix(in srgb, var(--forge-gold) 7%, transparent);
 }
 
 .forge-icon {
@@ -737,7 +737,7 @@
 .forge-button-secondary:hover {
   border-color: color-mix(in srgb, var(--forge-gold) 32%, transparent);
   color: var(--forge-gold);
-  background: var(--forge-gold);
+  background: color-mix(in srgb, var(--forge-gold) 8%, transparent);
 }
 
 .forge-button-danger {
@@ -763,7 +763,7 @@
 .forge-icon-button[data-active="true"] {
   border-color: color-mix(in srgb, var(--forge-gold) 32%, transparent);
   color: var(--forge-gold);
-  background: var(--forge-gold);
+  background: color-mix(in srgb, var(--forge-gold) 8%, transparent);
 }
 
 .forge-focus-ring:focus-visible {
@@ -880,9 +880,9 @@
 }
 
 .forge-chip--gold {
-  border-color: var(--forge-gold);
+  border-color: color-mix(in srgb, var(--forge-gold) 26%, transparent);
   color: var(--forge-gold);
-  background: var(--forge-gold);
+  background: color-mix(in srgb, var(--forge-gold) 9%, transparent);
 }
 
 .forge-chip--ember {
