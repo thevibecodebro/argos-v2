@@ -46,14 +46,14 @@ export default async function LeaderboardPage() {
 
         <section className={sectionClassName}>
           <div
-            className="min-w-0 overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[rgba(8,6,5,0.88)] shadow-[inset_0_1px_0_rgba(255,244,230,0.04)]"
+            className="min-w-0 overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_88%,transparent)] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)]"
             data-forge-table="true"
           >
             {rows.length ? (
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[860px] border-collapse">
                   <thead>
-                    <tr className="border-b border-[var(--forge-border)] bg-[rgba(255,244,230,0.024)] text-left text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
+                    <tr className="border-b border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.4%,transparent)] text-left text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
                       <th className="px-4 py-3" scope="col">Rank</th>
                       <th className="px-4 py-3" scope="col">Rep</th>
                       <th className="px-4 py-3" scope="col">Score</th>
@@ -66,7 +66,7 @@ export default async function LeaderboardPage() {
                   <tbody className="divide-y divide-[var(--forge-border)]">
                     {rows.map((entry) => (
                       <tr
-                        className="transition hover:bg-[rgba(241,191,123,0.045)]"
+                        className="transition hover:bg-[color-mix(in_srgb,var(--forge-gold)_4.5%,transparent)]"
                         key={entry.userId}
                       >
                         <td className="px-4 py-4 text-sm font-semibold text-[var(--forge-gold)]">
@@ -74,7 +74,7 @@ export default async function LeaderboardPage() {
                         </td>
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--forge-border)] bg-[rgba(255,244,230,0.04)] text-xs font-semibold text-[var(--forge-text)]">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)] text-xs font-semibold text-[var(--forge-text)]">
                               {initials(entry.name)}
                             </div>
                             <div>

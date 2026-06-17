@@ -27,10 +27,10 @@ type TeamRepProfileViewProps = {
 };
 
 const shellPanelClass =
-  "rounded-xl border border-[var(--forge-border)] bg-[rgba(8,6,5,0.88)] shadow-[inset_0_1px_0_rgba(255,244,230,0.04)]";
+  "rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_88%,transparent)] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)]";
 
 const insetPanelClass =
-  "rounded-lg border border-[var(--forge-border)] bg-[rgba(255,244,230,0.026)]";
+  "rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.6%,transparent)]";
 
 const badgeIconById: Record<string, string> = {
   first_call: "call",
@@ -51,10 +51,10 @@ export function TeamRosterView({ dashboard }: TeamRosterViewProps) {
   return (
     <div className="space-y-3" data-team-workspace="roster-first">
       <section
-        className="overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[rgba(8,6,5,0.88)] shadow-[inset_0_1px_0_rgba(255,244,230,0.04)]"
+        className="overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_88%,transparent)] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)]"
         data-team-roster-table="true"
       >
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--forge-border)] bg-[rgba(255,244,230,0.024)] px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.4%,transparent)] px-4 py-3">
           <div>
             <p className="text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
               Rep roster
@@ -73,7 +73,7 @@ export function TeamRosterView({ dashboard }: TeamRosterViewProps) {
             <div className="grid gap-2 p-3 md:hidden">
               {reps.map((rep) => (
                 <Link
-                  className="rounded-lg border border-[var(--forge-border)] bg-[rgba(255,244,230,0.026)] p-3 transition hover:border-[rgba(241,191,123,0.3)] hover:bg-[rgba(241,191,123,0.055)]"
+                  className="rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.6%,transparent)] p-3 transition hover:border-[color-mix(in_srgb,var(--forge-gold)_30%,transparent)] hover:bg-[color-mix(in_srgb,var(--forge-gold)_5.5%,transparent)]"
                   href={`/team/${rep.id}`}
                   key={rep.id}
                 >
@@ -115,7 +115,7 @@ export function TeamRosterView({ dashboard }: TeamRosterViewProps) {
                 <tbody className="divide-y divide-[var(--forge-border)]">
                   {reps.map((rep) => (
                     <tr
-                      className="transition hover:bg-[rgba(241,191,123,0.045)]"
+                      className="transition hover:bg-[color-mix(in_srgb,var(--forge-gold)_4.5%,transparent)]"
                       key={rep.id}
                     >
                       <td className="px-4 py-4">
@@ -254,7 +254,7 @@ export function TeamRepProfileView({
               <SectionEyebrow>Weekly trend</SectionEyebrow>
               <p className="text-sm leading-7 text-[var(--forge-muted)]">Past 12 weeks of scored-call performance.</p>
             </div>
-            <span className="rounded-lg border border-[var(--forge-border)] bg-[rgba(255,244,230,0.04)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
+            <span className="rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
               {totalTrendCalls} calls reviewed
             </span>
           </div>
@@ -476,7 +476,7 @@ function DeltaTrack({ delta }: { delta: number | null }) {
       <div className="absolute left-1/2 top-1/2 h-2.5 w-px -translate-x-1/2 -translate-y-1/2 bg-[var(--forge-border-strong)]/20" />
       <span
         className={cn(
-          "absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[var(--forge-border-strong)]/10 shadow-[0_0_0_4px_rgba(241,191,123,0.04)]",
+          "absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[var(--forge-border-strong)]/10 shadow-[0_0_0_4px_color-mix(in_srgb,var(--forge-gold)_4%,transparent)]",
           deltaTrackTone(delta),
         )}
         style={{ left }}
@@ -724,7 +724,7 @@ function scoreBarTone(value: number | null | undefined) {
   if (tone === "success") return "bg-[var(--forge-success)]";
   if (tone === "ember") return "bg-[var(--forge-ember)]";
   if (tone === "red") return "bg-[var(--forge-danger)]";
-  if (tone === "muted") return "bg-[rgba(255,244,230,0.18)]";
+  if (tone === "muted") return "bg-[color-mix(in_srgb,var(--forge-text)_18%,transparent)]";
   if (tone === "cyan") return "bg-[var(--forge-cyan)]";
   return "bg-[var(--forge-gold)]";
 }
@@ -735,7 +735,7 @@ function deltaTrackTone(value: number | null | undefined) {
   if (tone === "success") return "bg-[var(--forge-success)]";
   if (tone === "ember") return "bg-[var(--forge-ember)]";
   if (tone === "red") return "bg-[var(--forge-danger)]";
-  if (tone === "muted") return "bg-[rgba(255,244,230,0.46)]";
+  if (tone === "muted") return "bg-[color-mix(in_srgb,var(--forge-text)_46%,transparent)]";
   if (tone === "cyan") return "bg-[var(--forge-cyan)]";
   return "bg-[var(--forge-gold)]";
 }

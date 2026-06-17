@@ -161,7 +161,7 @@ export function PlatformDashboardPage({ dashboard }: PlatformDashboardPageProps)
             </p>
             {dashboard.alerts.map((alert) => (
               <a
-                className="flex min-h-9 min-w-0 items-center gap-2 rounded-lg border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-xs font-semibold text-[var(--forge-text)] transition hover:border-[rgba(241,191,123,0.34)]"
+                className="flex min-h-9 min-w-0 items-center gap-2 rounded-lg border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-xs font-semibold text-[var(--forge-text)] transition hover:border-[color-mix(in_srgb,var(--forge-gold)_34%,transparent)]"
                 href={alert.href}
                 key={alert.href}
               >
@@ -199,7 +199,7 @@ export function PlatformDashboardPage({ dashboard }: PlatformDashboardPageProps)
               <ForgeMobileTableCards>
                 {dashboard.rows.map((row) => (
                   <a
-                    className="block rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4 text-left transition hover:border-[rgba(241,191,123,0.32)]"
+                    className="block rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4 text-left transition hover:border-[color-mix(in_srgb,var(--forge-gold)_32%,transparent)]"
                     href={`/platform/organizations/${encodeURIComponent(row.slug)}`}
                     key={`${row.id}:mobile`}
                   >

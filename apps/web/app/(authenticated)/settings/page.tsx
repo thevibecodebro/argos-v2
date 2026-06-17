@@ -128,18 +128,18 @@ export default async function SettingsAccountPage() {
         <div className="min-w-0 space-y-3">
           <section
             aria-label="Settings sections"
-            className="overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[rgba(8,6,5,0.88)]"
+            className="overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_88%,transparent)]"
             data-settings-workspace-map="true"
           >
             <div className="divide-y divide-[var(--forge-border)]">
               {workspaceRows.map((section) => (
                 <Link
-                  className="grid gap-3 px-4 py-3 transition hover:bg-[rgba(241,191,123,0.045)] md:grid-cols-[minmax(0,1fr)_120px_80px]"
+                  className="grid gap-3 px-4 py-3 transition hover:bg-[color-mix(in_srgb,var(--forge-gold)_4.5%,transparent)] md:grid-cols-[minmax(0,1fr)_120px_80px]"
                   href={section.href}
                   key={section.href}
                 >
                   <div className="flex min-w-0 items-start gap-3">
-                    <span className="mt-0.5 rounded-lg border border-[rgba(241,191,123,0.24)] bg-[rgba(241,191,123,0.08)] p-2 text-[var(--forge-gold)]">
+                    <span className="mt-0.5 rounded-lg border border-[color-mix(in_srgb,var(--forge-gold)_24%,transparent)] bg-[color-mix(in_srgb,var(--forge-gold)_8%,transparent)] p-2 text-[var(--forge-gold)]">
                       <ForgeIcon name={section.icon} size={18} />
                     </span>
                     <div className="min-w-0">
@@ -165,7 +165,7 @@ export default async function SettingsAccountPage() {
           </section>
 
           <section
-            className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.026)] p-4"
+            className="rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.6%,transparent)] p-4"
             data-settings-inline-detail="account"
           >
             <div className="mb-3">

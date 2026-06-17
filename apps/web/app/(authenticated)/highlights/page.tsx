@@ -49,11 +49,11 @@ export default async function HighlightsPage() {
           data-highlight-selection-flow="explicit"
         >
           <div
-            className="min-w-0 overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[rgba(8,6,5,0.88)] shadow-[inset_0_1px_0_rgba(255,244,230,0.04)]"
+            className="min-w-0 overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_88%,transparent)] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)]"
             data-forge-table="true"
             data-highlights-library="operational-table"
           >
-            <div className="border-b border-[var(--forge-border)] bg-[rgba(255,244,230,0.024)] px-4 py-3">
+            <div className="border-b border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.4%,transparent)] px-4 py-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
@@ -84,7 +84,7 @@ export default async function HighlightsPage() {
                   <tbody className="divide-y divide-[var(--forge-border)]">
                     {highlights.map((highlight, index) => (
                       <tr
-                        className="transition hover:bg-[rgba(241,191,123,0.045)]"
+                        className="transition hover:bg-[color-mix(in_srgb,var(--forge-gold)_4.5%,transparent)]"
                         data-highlight-row={index === 0 ? "selected" : "default"}
                         key={highlight.id}
                       >
@@ -145,7 +145,7 @@ export default async function HighlightsPage() {
               title={selectedHighlight.category ?? "Highlight"}
             >
               <div className="space-y-3">
-                <div className="rounded-lg border border-[var(--forge-border)] bg-[rgba(8,6,5,0.66)] p-3">
+                <div className="rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_66%,transparent)] p-3">
                   <p className="text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
                     Observation
                   </p>
@@ -154,7 +154,7 @@ export default async function HighlightsPage() {
                   </p>
                 </div>
                 {selectedHighlight.highlightNote ? (
-                  <div className="rounded-lg border border-[rgba(255,159,95,0.24)] bg-[rgba(255,159,95,0.06)] p-3">
+                  <div className="rounded-lg border border-[color-mix(in_srgb,var(--forge-ember)_24%,transparent)] bg-[color-mix(in_srgb,var(--forge-ember)_6%,transparent)] p-3">
                     <p className="text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-ember)]">
                       Manager note
                     </p>

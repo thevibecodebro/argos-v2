@@ -530,7 +530,7 @@ export function CallDetailPanel({
         </label>
         <textarea
           aria-describedby="call-coaching-note-help"
-          className="mt-2 min-h-[120px] w-full resize-none border-none bg-transparent text-sm text-[var(--forge-text)] outline-none placeholder:text-[rgba(255,244,230,0.38)] focus:ring-0"
+          className="mt-2 min-h-[120px] w-full resize-none border-none bg-transparent text-sm text-[var(--forge-text)] outline-none placeholder:text-[color-mix(in_srgb,var(--forge-text)_38%,transparent)] focus:ring-0"
           id="call-coaching-note"
           onChange={(event) => setNote(event.target.value)}
           placeholder="Add a coaching observation..."
@@ -598,7 +598,7 @@ export function CallDetailPanel({
 
     return (
       <section
-        className="overflow-hidden rounded-lg border border-[var(--forge-border)] bg-[rgba(12,11,10,0.52)]"
+        className="overflow-hidden rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_52%,transparent)]"
         data-call-transcript-primary="true"
       >
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--forge-border)] px-4 py-3">
@@ -620,7 +620,7 @@ export function CallDetailPanel({
                   className="flex gap-3 px-4 py-3"
                   key={`${line.timestampSeconds}-${line.speaker}-${index}`}
                 >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[var(--forge-border)] bg-[rgba(255,244,230,0.04)] text-xs font-semibold text-[var(--forge-cyan)]">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)] text-xs font-semibold text-[var(--forge-cyan)]">
                     {speakerInitials}
                   </div>
                   <div className="min-w-0">
@@ -689,7 +689,7 @@ export function CallDetailPanel({
               Edit note
             </label>
             <textarea
-              className="min-h-[88px] w-full resize-y rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition placeholder:text-[rgba(255,244,230,0.38)] focus:border-[rgba(241,191,123,0.36)]"
+              className="min-h-[88px] w-full resize-y rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_3.5%,transparent)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition placeholder:text-[color-mix(in_srgb,var(--forge-text)_38%,transparent)] focus:border-[color-mix(in_srgb,var(--forge-gold)_36%,transparent)]"
               id={`highlight-note-${moment.id}`}
               onChange={(event) =>
                 setHighlightNoteDrafts((current) => ({
@@ -762,7 +762,7 @@ export function CallDetailPanel({
   function renderEvidenceSection() {
     return (
       <section
-        className="overflow-hidden rounded-lg border border-[var(--forge-border)] bg-[rgba(12,11,10,0.42)]"
+        className="overflow-hidden rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_42%,transparent)]"
         data-call-evidence-panel="true"
       >
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--forge-border)] px-4 py-3">
@@ -797,7 +797,7 @@ export function CallDetailPanel({
   function renderCoachingPane() {
     return (
       <aside
-        className="rounded-lg border border-[var(--forge-border)] bg-[rgba(12,11,10,0.48)] p-3 xl:sticky xl:top-20 xl:self-start"
+        className="rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_48%,transparent)] p-3 xl:sticky xl:top-20 xl:self-start"
         data-call-coaching-pane="true"
       >
         <h2 className="text-base font-semibold text-[var(--forge-text)]">Coaching action</h2>
@@ -890,7 +890,7 @@ export function CallDetailPanel({
                   Focus
                 </span>
                 <select
-                  className="mt-2 w-full rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.035)] px-3 py-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[rgba(241,191,123,0.36)]"
+                  className="mt-2 w-full rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_3.5%,transparent)] px-3 py-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[color-mix(in_srgb,var(--forge-gold)_36%,transparent)]"
                   onChange={(event) => setFocusCategorySlug(event.target.value)}
                   value={focusCategorySlug}
                 >
@@ -914,7 +914,7 @@ export function CallDetailPanel({
                         className={`min-h-11 rounded-xl border px-3 py-2 text-sm font-semibold transition ${
                           isSelected
                             ? "border-[var(--forge-gold)]/35 bg-[var(--forge-gold)]/10 text-[var(--forge-gold)]"
-                            : "border-[var(--forge-border)] bg-[rgba(255,244,230,0.025)] text-[var(--forge-muted)] hover:text-[var(--forge-text)]"
+                            : "border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.5%,transparent)] text-[var(--forge-muted)] hover:text-[var(--forge-text)]"
                         }`}
                         disabled={isGeneratingRoleplay}
                         key={voice}

@@ -131,7 +131,7 @@ export function NotificationsPanel({
       </div>
 
       <div
-        className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--forge-border)] bg-[rgba(8,6,5,0.45)] p-2"
+        className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_45%,transparent)] p-2"
         data-notification-filters="active"
       >
         {[
@@ -142,8 +142,8 @@ export function NotificationsPanel({
           <button
             className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
               filter === option.value
-                ? "bg-[rgba(241,191,123,0.14)] text-[var(--forge-gold)]"
-                : "text-[var(--forge-muted)] hover:bg-[rgba(255,244,230,0.04)] hover:text-[var(--forge-text)]"
+                ? "bg-[color-mix(in_srgb,var(--forge-gold)_14%,transparent)] text-[var(--forge-gold)]"
+                : "text-[var(--forge-muted)] hover:bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)] hover:text-[var(--forge-text)]"
             }`}
             key={option.value}
             onClick={() => setFilter(option.value)}

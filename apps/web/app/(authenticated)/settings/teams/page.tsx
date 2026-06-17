@@ -25,7 +25,7 @@ export default async function SettingsTeamsPage() {
       title="Teams"
     >
       <section className="grid gap-3" data-teams-route="overview">
-        <div className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.026)] p-4">
+        <div className="rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.6%,transparent)] p-4">
           <p className="text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
             Team overview
           </p>
@@ -57,7 +57,7 @@ export default async function SettingsTeamsPage() {
 
                     return (
                       <tr
-                        className="bg-[rgba(255,244,230,0.018)] text-sm text-[var(--forge-text)]"
+                        className="bg-[color-mix(in_srgb,var(--forge-text)_1.8%,transparent)] text-sm text-[var(--forge-text)]"
                         key={team.id}
                       >
                         <td className="px-4 py-3">

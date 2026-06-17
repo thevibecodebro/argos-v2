@@ -183,8 +183,8 @@ export function PlatformOrganizationsPage({
                   {organizations.map((org) => (
                     <article
                       className={cn(
-                        "w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4 text-left transition hover:border-[rgba(241,191,123,0.32)]",
-                        isActiveOrganization(session, org) && "border-[rgba(136,218,247,0.24)] bg-[rgba(136,218,247,0.06)]",
+                        "w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4 text-left transition hover:border-[color-mix(in_srgb,var(--forge-gold)_32%,transparent)]",
+                        isActiveOrganization(session, org) && "border-[color-mix(in_srgb,var(--forge-cyan)_24%,transparent)] bg-[color-mix(in_srgb,var(--forge-cyan)_6%,transparent)]",
                       )}
                       key={`${org.id}:mobile`}
                     >
@@ -218,7 +218,7 @@ export function PlatformOrganizationsPage({
                     <tr
                       className={cn(
                         "transition-colors",
-                        isActiveOrganization(session, org) && "bg-[rgba(136,218,247,0.05)]",
+                        isActiveOrganization(session, org) && "bg-[color-mix(in_srgb,var(--forge-cyan)_5%,transparent)]",
                       )}
                       key={org.id}
                     >

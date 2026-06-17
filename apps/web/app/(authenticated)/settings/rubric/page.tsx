@@ -23,7 +23,7 @@ export default async function SettingsRubricPage() {
       title="Rubrics"
     >
       <section className="grid gap-3" data-rubric-route="overview">
-        <article className="rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.026)] p-4">
+        <article className="rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.6%,transparent)] p-4">
           <p className="text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
             Active rubric
           </p>
@@ -98,7 +98,7 @@ function OverviewStat({
   value: number | string;
 }) {
   return (
-    <div className="rounded-lg border border-[var(--forge-border)] bg-[rgba(8,6,5,0.55)] px-3 py-2">
+    <div className="rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_55%,transparent)] px-3 py-2">
       <p className="text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">{label}</p>
       <p className="mt-1 text-sm font-semibold text-[var(--forge-text)]">{value}</p>
     </div>
@@ -107,7 +107,7 @@ function OverviewStat({
 
 function RubricHistoryRow({ entry }: { entry: RubricSummary }) {
   return (
-    <tr className="bg-[rgba(255,244,230,0.018)] text-sm text-[var(--forge-text)]">
+    <tr className="bg-[color-mix(in_srgb,var(--forge-text)_1.8%,transparent)] text-sm text-[var(--forge-text)]">
       <td className="px-4 py-3 font-semibold tabular-nums">v{entry.version}</td>
       <td className="px-4 py-3">
         <p className="font-semibold">{entry.name}</p>

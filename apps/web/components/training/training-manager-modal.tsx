@@ -106,7 +106,7 @@ export function TrainingManagerModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(5,4,3,0.78)] px-4 py-8 "
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[color-mix(in_srgb,var(--forge-shadow)_78%,transparent)] px-4 py-8 "
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
@@ -117,7 +117,7 @@ export function TrainingManagerModal({
         aria-modal="true"
         aria-describedby={descriptionId}
         aria-labelledby={titleId}
-        className="w-full max-w-4xl rounded-[1.5rem] border border-white/10 bg-[var(--forge-surface)] p-6 shadow-[0_24px_80px_rgba(2,8,23,0.4)]"
+        className="w-full max-w-4xl rounded-[1.5rem] border border-white/10 bg-[var(--forge-surface)] p-6 shadow-[0_24px_80px_color-mix(in_srgb,var(--forge-shadow)_40%,transparent)]"
         role="dialog"
         ref={dialogRef}
         tabIndex={-1}

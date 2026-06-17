@@ -4,10 +4,9 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-const { geistMock, localFontMock, sourceSansMock, spaceGroteskMock } =
+const { geistMock, sourceSansMock, spaceGroteskMock } =
   vi.hoisted(() => ({
     geistMock: vi.fn(() => ({ variable: "font-ui-variable" })),
-    localFontMock: vi.fn(() => ({ variable: "material-symbols-variable" })),
     sourceSansMock: vi.fn(() => ({ variable: "font-body-variable" })),
     spaceGroteskMock: vi.fn(() => ({ variable: "font-display-variable" })),
   }));
@@ -16,10 +15,6 @@ vi.mock("next/font/google", () => ({
   Geist: geistMock,
   Source_Sans_3: sourceSansMock,
   Space_Grotesk: spaceGroteskMock,
-}));
-
-vi.mock("next/font/local", () => ({
-  default: localFontMock,
 }));
 
 vi.mock("@/lib/env", () => ({
@@ -50,7 +45,6 @@ describe("authenticated typography contract", () => {
     expect(spaceGroteskMock).not.toHaveBeenCalled();
     expect(sourceSansMock).not.toHaveBeenCalled();
     expect(html).toContain("font-ui-variable");
-    expect(html).toContain("material-symbols-variable");
     expect(html).not.toContain("font-display-variable");
     expect(html).not.toContain("font-body-variable");
   });

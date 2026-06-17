@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
 import { Geist } from "next/font/google";
 import { getDevelopmentStartupEnvError } from "@/lib/env";
 import { getPublicSiteUrl, HOME_DESCRIPTION, SITE_NAME } from "@/lib/seo/site";
@@ -9,12 +8,6 @@ const uiFont = Geist({
   display: "swap",
   subsets: ["latin"],
   variable: "--font-ui",
-});
-
-const materialSymbolsFont = localFont({
-  display: "block",
-  src: "./fonts/material-symbols-outlined.ttf",
-  variable: "--font-material-symbols",
 });
 
 export const metadata: Metadata = {
@@ -35,7 +28,7 @@ export default function RootLayout({
 
   return (
     <html
-      className={`${uiFont.variable} ${materialSymbolsFont.variable}`}
+      className={uiFont.variable}
       lang="en"
     >
       <body>

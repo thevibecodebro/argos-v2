@@ -432,8 +432,8 @@ export function UploadCallPanel() {
                 <span
                   className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${
                     step.active
-                      ? "border-[rgba(241,191,123,0.38)] bg-[rgba(241,191,123,0.12)] text-[var(--forge-gold)]"
-                      : "border-[var(--forge-border)] bg-[rgba(255,244,230,0.04)] text-[var(--forge-muted)]"
+                      ? "border-[color-mix(in_srgb,var(--forge-gold)_38%,transparent)] bg-[color-mix(in_srgb,var(--forge-gold)_12%,transparent)] text-[var(--forge-gold)]"
+                      : "border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)] text-[var(--forge-muted)]"
                   }`}
                 >
                   {index + 1}
@@ -474,7 +474,7 @@ export function UploadCallPanel() {
             isDragging
               ? "border-[var(--forge-gold)]/60 bg-[var(--forge-gold)]/8"
               : queue.length
-                ? "border-[rgba(139,215,168,0.36)] bg-[rgba(139,215,168,0.06)]"
+                ? "border-[color-mix(in_srgb,var(--forge-success)_36%,transparent)] bg-[color-mix(in_srgb,var(--forge-success)_6%,transparent)]"
                 : "border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 hover:border-[var(--forge-border-strong)]/40"
           }`}
           data-upload-dropzone={canSelectFile ? "keyboard-accessible" : undefined}
@@ -511,7 +511,7 @@ export function UploadCallPanel() {
         >
           {queue.length ? (
             <div className="space-y-4">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-[rgba(139,215,168,0.3)] bg-[rgba(139,215,168,0.08)] text-[var(--forge-success)]">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-[color-mix(in_srgb,var(--forge-success)_30%,transparent)] bg-[color-mix(in_srgb,var(--forge-success)_8%,transparent)] text-[var(--forge-success)]">
                 <ForgeIcon name="check_circle" size={22} />
               </div>
               <div>
@@ -529,7 +529,7 @@ export function UploadCallPanel() {
 
                   return (
                     <div
-                      className="rounded-lg border border-[var(--forge-border)] bg-[rgba(12,11,10,0.36)] p-3"
+                      className="rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_36%,transparent)] p-3"
                       data-upload-queue-item={item.status}
                       key={item.id}
                     >
@@ -554,7 +554,7 @@ export function UploadCallPanel() {
                           {item.status === "uploaded" && item.callId ? (
                             <a
                               aria-label={`Open ${item.file.name}`}
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--forge-border)] text-[var(--forge-muted)] transition hover:border-[rgba(241,191,123,0.32)] hover:text-[var(--forge-gold)]"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--forge-border)] text-[var(--forge-muted)] transition hover:border-[color-mix(in_srgb,var(--forge-gold)_32%,transparent)] hover:text-[var(--forge-gold)]"
                               href={getUploadedCallHref(item.callId)}
                               onClick={(event) => event.stopPropagation()}
                             >
@@ -603,7 +603,7 @@ export function UploadCallPanel() {
             </div>
           ) : (
             <div className="space-y-3">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.04)] text-[var(--forge-gold)]">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)] text-[var(--forge-gold)]">
                 <ForgeIcon name="upload_file" size={24} />
               </div>
               <p className="text-lg font-semibold text-[var(--forge-text)]">Drop call recordings here</p>

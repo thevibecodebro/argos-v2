@@ -79,7 +79,7 @@ export function OperationalToolbar({
   return (
     <section
       className={cn(
-        "rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.026)] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,244,230,0.04)] sm:px-4",
+        "rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.6%,transparent)] px-3 py-3 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)] sm:px-4",
         className,
       )}
       data-operational-toolbar="true"
@@ -143,7 +143,7 @@ export function OperationalMetricStrip({
     >
       {metrics.map((metric) => (
         <div
-          className="min-h-14 bg-[rgba(12,9,7,0.96)] px-3 py-2"
+          className="min-h-14 bg-[color-mix(in_srgb,var(--forge-shadow)_96%,transparent)] px-3 py-2"
           data-operational-metric={metric.tone ?? "muted"}
           key={metric.label}
         >
@@ -185,7 +185,7 @@ export function OperationalPreviewDrawer({
   return (
     <aside
       className={cn(
-        "rounded-xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.026)] p-3 shadow-[inset_0_1px_0_rgba(255,244,230,0.04)]",
+        "rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.6%,transparent)] p-3 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)]",
         className,
       )}
       data-operational-preview-drawer="true"

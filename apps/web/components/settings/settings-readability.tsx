@@ -75,7 +75,7 @@ export function SettingsTableShell({
   return (
     <div
       className={cn(
-        "min-w-0 overflow-hidden rounded-lg border border-[var(--forge-border)] bg-[rgba(12,11,10,0.5)]",
+        "min-w-0 overflow-hidden rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_50%,transparent)]",
         className,
       )}
       data-settings-table-shell="true"

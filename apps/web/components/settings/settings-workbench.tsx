@@ -44,7 +44,7 @@ export function SettingsEditorPanel({
   return (
     <section
       className={cn(
-        "rounded-lg border border-[var(--forge-border)] bg-[rgba(255,244,230,0.026)] p-3 sm:p-4",
+        "rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.6%,transparent)] p-3 sm:p-4",
         className,
       )}
       {...props}
@@ -62,7 +62,7 @@ export function SettingsEditorDrawer({
   return (
     <aside
       className={cn(
-        "rounded-lg border border-[var(--forge-border)] bg-[rgba(255,244,230,0.026)] p-3 xl:sticky xl:top-3 xl:self-start",
+        "rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.6%,transparent)] p-3 xl:sticky xl:top-3 xl:self-start",
         className,
       )}
       {...props}
@@ -103,8 +103,8 @@ export function SettingsDrawerButton({
   return (
     <button
       className={cn(
-        "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-[var(--forge-muted)] transition hover:bg-[rgba(255,244,230,0.04)] hover:text-[var(--forge-text)] disabled:cursor-not-allowed disabled:opacity-45",
-        active && "bg-[rgba(241,191,123,0.12)] text-[var(--forge-gold)]",
+        "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-[var(--forge-muted)] transition hover:bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)] hover:text-[var(--forge-text)] disabled:cursor-not-allowed disabled:opacity-45",
+        active && "bg-[color-mix(in_srgb,var(--forge-gold)_12%,transparent)] text-[var(--forge-gold)]",
         className,
       )}
       type={type}

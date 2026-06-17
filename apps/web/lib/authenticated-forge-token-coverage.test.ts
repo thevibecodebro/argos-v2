@@ -1,8 +1,27 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const repoRoot = join(__dirname, "../../..");
+const webRoot = join(__dirname, "..");
+
+function walk(dir: string, exts: string[]): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name === "public" || entry.name === "node_modules") return [];
+      return walk(full, exts);
+    }
+    return exts.some((ext) => entry.name.endsWith(ext)) ? [full] : [];
+  });
+}
+
+// The brand gold is #d8aa68. These are the historical drifted literals that
+// must always flow through var(--forge-gold) instead.
+const driftedGoldLiterals = [
+  /rgba?\(\s*241\s*,\s*191\s*,\s*123/i,
+  /rgba?\(\s*216\s*,\s*170\s*,\s*104/i,
+];
 
 const authenticatedSurfaceFiles = [
   "apps/web/app/(authenticated)/dashboard/page.tsx",
@@ -71,6 +90,24 @@ describe("authenticated forge token coverage", () => {
       return forbiddenLegacyForgeBreakers.flatMap((pattern) => {
         const match = source.match(pattern);
         return match ? [`${file}: ${match[0]}`] : [];
+      });
+    });
+
+    expect(violations).toEqual([]);
+  });
+
+  it("routes all accent gold through var(--forge-gold) instead of drifted literals", () => {
+    const surfaces = [
+      ...walk(join(webRoot, "components"), [".tsx", ".css"]),
+      ...walk(join(webRoot, "app/(authenticated)"), [".tsx", ".css"]),
+      join(webRoot, "app/globals.css"),
+    ];
+
+    const violations = surfaces.flatMap((file) => {
+      const source = readFileSync(file, "utf8");
+      return driftedGoldLiterals.flatMap((pattern) => {
+        const match = source.match(pattern);
+        return match ? [`${file.replace(`${webRoot}/`, "")}: ${match[0]}`] : [];
       });
     });
 

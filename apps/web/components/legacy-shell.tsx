@@ -21,7 +21,7 @@ export function AuthShell({ children }: AuthShellProps) {
     <div
       className={cx(
         styles["argos-3d-page"],
-        "min-h-screen overflow-x-hidden text-[var(--forge-text)] selection:bg-[rgba(241,191,123,0.24)] selection:text-[var(--forge-text)]",
+        "min-h-screen overflow-x-hidden text-[var(--forge-text)] selection:bg-[color-mix(in_srgb,var(--forge-gold)_24%,transparent)] selection:text-[var(--forge-text)]",
       )}
       data-auth-shell="forge"
       data-shell-theme="forge"
@@ -59,13 +59,13 @@ export function AuthShell({ children }: AuthShellProps) {
 
       <main className="relative z-[2] flex min-h-screen items-center justify-center px-5 pb-16 pt-52 sm:px-8 sm:pt-48 md:pb-24 lg:px-14 lg:pt-36 xl:px-20">
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-          <div className="absolute left-1/2 top-1/2 h-[34rem] w-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[rgba(241,191,123,0.055)] blur-3xl" />
-          <div className="absolute inset-x-[12%] top-[18%] h-px bg-[linear-gradient(90deg,transparent,rgba(255,244,230,0.13),transparent)]" />
-          <div className="absolute inset-x-[18%] bottom-[20%] h-px bg-[linear-gradient(90deg,transparent,rgba(255,244,230,0.08),transparent)]" />
+          <div className="absolute left-1/2 top-1/2 h-[34rem] w-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[color-mix(in_srgb,var(--forge-gold)_5.5%,transparent)] blur-3xl" />
+          <div className="absolute inset-x-[12%] top-[18%] h-px bg-[linear-gradient(90deg,transparent,color-mix(in_srgb,var(--forge-text)_13%,transparent),transparent)]" />
+          <div className="absolute inset-x-[18%] bottom-[20%] h-px bg-[linear-gradient(90deg,transparent,color-mix(in_srgb,var(--forge-text)_8%,transparent),transparent)]" />
         </div>
 
         <section className="flex w-full items-center justify-center">
-          <div className="w-full max-w-[32rem] space-y-10 rounded-[1.65rem] border border-[rgba(255,244,230,0.12)] bg-[rgba(5,4,3,0.76)] p-6 shadow-[inset_0_1px_0_rgba(255,244,230,0.08),0_30px_90px_rgba(0,0,0,0.34)] backdrop-blur-md sm:p-8">
+          <div className="w-full max-w-[32rem] space-y-10 rounded-[1.65rem] border border-[color-mix(in_srgb,var(--forge-text)_12%,transparent)] bg-[color-mix(in_srgb,var(--forge-shadow)_76%,transparent)] p-6 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_8%,transparent),0_30px_90px_rgba(0,0,0,0.34)] backdrop-blur-md sm:p-8">
             {children}
           </div>
         </section>
@@ -111,7 +111,7 @@ export function LegacyAuthShell({ children, note }: LegacyAuthShellProps) {
       data-shell-theme="forge"
       style={{ fontFamily: "var(--font-body, 'Source Sans 3', sans-serif)" }}
     >
-      <div className="forge-surface mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-[1500px] items-center justify-center rounded-[2rem] border border-[var(--forge-border)] bg-[var(--forge-surface)] shadow-[inset_0_1px_0_rgba(255,244,230,0.06)] sm:min-h-[calc(100vh-4rem)]">
+      <div className="forge-surface mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-[1500px] items-center justify-center rounded-[2rem] border border-[var(--forge-border)] bg-[var(--forge-surface)] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_6%,transparent)] sm:min-h-[calc(100vh-4rem)]">
         <div className="w-full max-w-4xl px-6 py-12 sm:px-10 md:px-16 md:py-16">
           <div className="flex flex-col items-center text-center">
             <ArgosLogo
@@ -134,7 +134,7 @@ export function LegacyAuthShell({ children, note }: LegacyAuthShellProps) {
                   className="forge-surface forge-surface--inset rounded-[1.75rem] px-6 py-7"
                   key={title}
                 >
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--forge-border)] bg-[rgba(255,244,230,0.04)] text-[var(--forge-gold)]">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)] text-[var(--forge-gold)]">
                     <HighlightIcon className="h-6 w-6" />
                   </div>
                   <h2 className="mt-6 text-2xl font-semibold text-[var(--forge-text)]">{title}</h2>

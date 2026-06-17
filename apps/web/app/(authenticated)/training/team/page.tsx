@@ -56,7 +56,7 @@ export default async function TrainingTeamPage() {
                     {teamRows.length ? (
                       teamRows.map((row) => (
                         <tr
-                          className="bg-[rgba(255,244,230,0.018)] text-sm text-[var(--forge-text)]"
+                          className="bg-[color-mix(in_srgb,var(--forge-text)_1.8%,transparent)] text-sm text-[var(--forge-text)]"
                           key={row.repId}
                         >
                           <td className="px-4 py-3">

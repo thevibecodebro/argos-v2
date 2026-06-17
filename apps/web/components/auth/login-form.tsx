@@ -122,7 +122,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
           {status === "submitting" ? "Sending sign-in link." : status === "sent" ? "Sign-in link sent." : ""}
         </div>
         <button
-          className="forge-focus-ring inline-flex min-h-16 w-full items-center justify-center gap-2.5 rounded-full border border-[rgba(255,244,230,0.18)] bg-[rgba(255,244,230,0.045)] px-5 text-sm font-bold text-[var(--forge-text)] shadow-[inset_0_1px_0_rgba(255,244,230,0.06)] transition duration-200 hover:-translate-y-0.5 hover:border-[rgba(241,191,123,0.32)] hover:bg-[rgba(241,191,123,0.08)] hover:text-[var(--forge-gold)] disabled:cursor-not-allowed disabled:opacity-55 sm:gap-3 sm:px-6 sm:text-base"
+          className="forge-focus-ring inline-flex min-h-16 w-full items-center justify-center gap-2.5 rounded-full border border-[color-mix(in_srgb,var(--forge-text)_18%,transparent)] bg-[color-mix(in_srgb,var(--forge-text)_4.5%,transparent)] px-5 text-sm font-bold text-[var(--forge-text)] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_6%,transparent)] transition duration-200 hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--forge-gold)_32%,transparent)] hover:bg-[color-mix(in_srgb,var(--forge-gold)_8%,transparent)] hover:text-[var(--forge-gold)] disabled:cursor-not-allowed disabled:opacity-55 sm:gap-3 sm:px-6 sm:text-base"
           disabled={!authEnabled}
           onClick={handleGoogleSignIn}
           type="button"
@@ -173,7 +173,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
           </div>
 
           <button
-            className="forge-focus-ring inline-flex min-h-16 w-full items-center justify-center rounded-full border border-[rgba(255,244,230,0.22)] bg-[var(--forge-text)] px-5 text-sm font-black text-[#100b08] shadow-[inset_0_1px_0_rgba(255,255,255,0.42),0_24px_70px_rgba(255,244,230,0.12)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#fff8ed] disabled:cursor-not-allowed disabled:opacity-50 sm:px-6 sm:text-base"
+            className="forge-focus-ring inline-flex min-h-16 w-full items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--forge-text)_22%,transparent)] bg-[var(--forge-text)] px-5 text-sm font-black text-[#100b08] shadow-[inset_0_1px_0_rgba(255,255,255,0.42),0_24px_70px_color-mix(in_srgb,var(--forge-text)_12%,transparent)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#fff8ed] disabled:cursor-not-allowed disabled:opacity-50 sm:px-6 sm:text-base"
             disabled={status === "submitting" || !authEnabled}
             type="submit"
           >
