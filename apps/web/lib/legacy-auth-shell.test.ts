@@ -75,17 +75,55 @@ describe("legacy auth shell", () => {
   it("renders the landing page ahead of the login flow", async () => {
     const html = renderToStaticMarkup(await HomePage());
 
-    expect(html).toContain("Sales standard installation + Argos platform");
+    expect(html).not.toContain("Sales standard installation + Argos platform");
     expect(html).toContain("Build a sales team that actually follows the playbook.");
     expect(html).toContain("We Install The Sales Standard In Your Organization");
     expect(html).toContain("Argos makes it visible in the work: calls reviewed, reps scored");
-    expect(html).toContain("Call review -&gt; Rubrics scored -&gt; Training assigned -&gt; Roleplay tracked -&gt; Manager dashboard");
-    expect(html).toContain("Product in motion");
+    expect(html).not.toContain("Call review -&gt; Rubrics scored -&gt; Training assigned -&gt; Roleplay tracked -&gt; Manager dashboard");
+    expect(html).toContain('aria-label="Argos product coaching walkthrough"');
+    expect(html).not.toContain("Every call should become the next coaching move.");
+    expect(html).toContain('aria-label="Argos product showcase"');
+    expect(Array.from(html.matchAll(/data-showcase-slide=/g))).toHaveLength(8);
+    expect(html).toContain("/homepage-product/argos-dashboard.png");
+    expect(html).toContain("/homepage-product/argos-calls.png");
+    expect(html).toContain("/homepage-product/argos-scorecard.png");
+    expect(html).toContain("/homepage-product/argos-highlights.png");
+    expect(html).toContain("/homepage-product/argos-training.png");
+    expect(html).toContain("/homepage-product/argos-roleplay.png");
+    expect(html).toContain("/homepage-product/argos-team.png");
+    expect(html).toContain("/homepage-product/argos-leaderboard.png");
+    expect(html).not.toContain("/homepage-product/argos-dashboard-workspace.png");
+    expect(html).toContain("Dashboard");
+    expect(html).toContain("Calls");
+    expect(html).toContain("Call review");
+    expect(html).toContain("Scorecards");
+    expect(html).toContain("Highlights");
+    expect(html).toContain("Training");
+    expect(html).toContain("Roleplay");
+    expect(html).toContain("Team");
+    expect(html).toContain("Leaderboard");
+    expect(html).toContain("Know where to coach");
+    expect(html).toContain("Start with the conversations");
+    expect(html).toContain("your team actually had.");
+    expect(html).not.toContain("Authenticated product screenshot");
+    expect(html).not.toContain("Dashboard workspace");
+    expect(html).not.toContain("Work queue");
+    expect(html).not.toContain("Selected item");
+    expect(html).not.toContain("Manager action");
+    expect(html).toContain("Previous product view");
+    expect(html).toContain("Next product view");
+    expect(html).not.toContain("Operating feed");
+    expect(html).not.toContain("Animated operating feed cards");
+    expect(html).not.toContain("Animated operating feed carousel");
+    expect(html).not.toContain("One call becomes five visible handoffs.");
+    expect(html).not.toContain("Product in motion");
+    expect(html).not.toContain("Live operating loop");
     expect(html).toContain("How The Standard Gets Installed");
     expect(html).toContain("Teach the playbook. Track the behavior.");
     expect(html).toContain("For Reps");
-    expect(html).toContain("Book the coaching walkthrough");
-    expect(html).toContain("Book The Coaching Walkthrough");
+    expect(html).toContain("Book Demo");
+    expect(html).not.toContain("Book the coaching walkthrough");
+    expect(html).not.toContain("Book The Coaching Walkthrough");
     expect(html).toContain('href="/login"');
     expect(html).toContain("Revenue Command");
     expect(html).not.toContain("Sales standard system");
@@ -111,7 +149,33 @@ describe("legacy auth shell", () => {
     expect(html).toContain('data-auth-shell="forge"');
     expect(html).toContain('data-argos-logo="auth-header"');
     expect(html).toContain('src="/argos_logo_background.png"');
-    expect(html).toContain("View plans");
+    const navOrder = [
+      'href="/#product-in-motion"',
+      'href="/#coaching-system"',
+      'href="/#standard-installation"',
+      'href="/#coaching-loop"',
+      'href="/#role-outcomes"',
+      'href="/#access"',
+    ];
+    let lastNavIndex = -1;
+    for (const navHref of navOrder) {
+      const navIndex = html.indexOf(navHref);
+      expect(navIndex).toBeGreaterThan(lastNavIndex);
+      lastNavIndex = navIndex;
+    }
+    expect(html).toContain(">Product</a>");
+    expect(html).toContain(">Coaching</a>");
+    expect(html).toContain(">Standard</a>");
+    expect(html).toContain(">System</a>");
+    expect(html).toContain(">Roles</a>");
+    expect(html).toContain(">Demo</a>");
+    expect(html).toContain(">Log in</a>");
+    expect(html).toContain(">Book Demo</a>");
+    expect(html).not.toContain("View plans");
+    expect(html).not.toContain(">Home</a>");
+    expect(html).not.toContain('href="/#features"');
+    expect(html).not.toContain('href="/#detail"');
+    expect(html).not.toContain('href="/#trust"');
     expect(html).not.toContain('data-argos-logo="auth-panel"');
     expect(html).not.toContain("Turn every sales call into the next practice plan.");
     expect(html).not.toContain("Review calls, score performance, save highlights, assign training, practice roleplay, and coach the team.");

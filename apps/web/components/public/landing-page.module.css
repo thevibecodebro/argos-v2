@@ -309,21 +309,6 @@ html:has(.argos-3d-page) {
   margin-top: 1.25rem;
 }
 
-.argos-hero-proof {
-  display: inline-flex;
-  max-width: 100%;
-  border: 2px solid var(--argos-line);
-  background: rgba(241, 191, 123, 0.08);
-  color: var(--argos-amber);
-  font-size: 0.72rem;
-  font-weight: 900;
-  letter-spacing: 0.1em;
-  line-height: 1.55;
-  margin: 1.25rem 0 0;
-  padding: 0.8rem 1rem;
-  text-transform: uppercase;
-}
-
 .argos-primary-action,
 .argos-secondary-action {
   display: inline-flex;
@@ -374,230 +359,189 @@ html:has(.argos-3d-page) {
   font-size: 1.1rem;
 }
 
-.argos-score-panel span,
-.argos-snippet-panel article span {
-  color: var(--argos-amber);
-  font-size: 0.68rem;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
 .argos-product-preview {
-  padding: 0 clamp(1rem, 4vw, 2rem) clamp(5rem, 9vw, 8rem);
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  padding: clamp(2rem, 4vw, 3.5rem) 0 clamp(5rem, 9vw, 8rem);
 }
 
-.argos-console-shell {
-  width: min(80rem, 100%);
-  margin: 0 auto;
-  border: 2px solid var(--argos-amber);
-  background: #000;
-  padding: 0.35rem;
+.argos-product-showcase {
+  position: relative;
+  isolation: isolate;
 }
 
-.argos-console-topbar {
+.argos-product-showcase::before {
+  content: "";
+  position: absolute;
+  inset: 19% 0 8%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 55%, rgba(241, 191, 123, 0.18), transparent 34rem),
+    linear-gradient(180deg, transparent, rgba(241, 191, 123, 0.08), transparent);
+}
+
+.argos-product-showcase-viewport {
+  overflow: hidden;
+  width: 100%;
+}
+
+.argos-product-showcase-track {
   display: flex;
-  min-height: 2.7rem;
-  align-items: center;
-  justify-content: space-between;
-  border: 2px solid var(--argos-line);
-  border-bottom: 0;
-  background: rgba(79, 69, 57, 0.18);
-  padding-inline: 1rem;
+  gap: clamp(1.5rem, 5vw, 4rem);
+  overflow-x: auto;
+  padding: clamp(1rem, 2.2vw, 1.75rem) max(1rem, calc((100vw - min(64rem, 76vw)) / 2)) clamp(1.35rem, 2.4vw, 2rem);
+  scroll-behavior: smooth;
+  scroll-padding-inline: max(1rem, calc((100vw - min(64rem, 76vw)) / 2));
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
 }
 
-.argos-console-topbar > div {
-  display: flex;
-  gap: 0.45rem;
+.argos-product-showcase-track::-webkit-scrollbar {
+  display: none;
 }
 
-.argos-console-topbar span {
-  width: 0.75rem;
-  height: 0.75rem;
-  background: var(--argos-amber);
+.argos-product-showcase-slide {
+  flex: 0 0 min(64rem, 76vw);
+  scroll-snap-align: center;
+  transform-origin: center center;
+  transition:
+    opacity 360ms cubic-bezier(0.25, 1, 0.5, 1),
+    transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.argos-console-topbar span:nth-child(2) {
-  opacity: 0.52;
+.argos-product-showcase-slide[data-active="false"] {
+  opacity: 1;
+  transform: scale(1);
 }
 
-.argos-console-topbar span:nth-child(3) {
-  opacity: 0.28;
+.argos-product-showcase-slide[data-active="true"] {
+  opacity: 1;
+  transform: scale(1.035);
+  z-index: 2;
 }
 
-.argos-console-topbar p {
+.argos-product-showcase-text {
+  display: grid;
+  grid-template-columns: minmax(10rem, 0.28fr) minmax(0, 1fr);
+  align-items: end;
+  gap: clamp(0.9rem, 2vw, 1.4rem);
+  margin-bottom: clamp(1rem, 2vw, 1.4rem);
+}
+
+.argos-product-showcase-kicker {
   color: var(--argos-amber);
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 900;
   letter-spacing: 0.14em;
-  margin: 0;
   text-transform: uppercase;
 }
 
-.argos-console-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.42fr);
-  gap: 1.5rem;
-  border: 2px solid var(--argos-line);
-  padding: clamp(1rem, 3vw, 2rem);
-}
-
-.argos-console-main,
-.argos-snippet-panel,
-.argos-score-panel {
-  background: #050505;
-}
-
-.argos-console-main {
-  display: grid;
-  gap: 1.5rem;
-}
-
-.argos-score-panel {
-  position: relative;
-  min-height: 20rem;
-  border: 2px solid var(--argos-line);
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  overflow: hidden;
-  padding: 2rem;
-}
-
-.argos-score-panel::before {
-  content: "";
-  position: absolute;
-  inset: 16% 10% auto auto;
-  width: 12rem;
-  aspect-ratio: 1;
-  border: 2px solid rgba(241, 191, 123, 0.34);
-  transform: rotate(18deg);
-}
-
-.argos-score-panel strong {
-  color: var(--argos-amber);
-  font-family: var(--argos-font-display);
-  font-size: clamp(3.6rem, 7vw, 6rem);
-  line-height: 0.9;
-}
-
-.argos-score-panel p {
-  max-width: 34rem;
+.argos-product-showcase-text h3 {
   color: var(--argos-muted);
-  font-size: 0.86rem;
-  font-weight: 700;
-  line-height: 1.55;
-  text-transform: uppercase;
-}
-
-.argos-score-panel h2 {
-  max-width: 28rem;
-  color: var(--argos-text);
   font-family: var(--argos-font-display);
-  font-size: clamp(2.1rem, 4.5vw, 4rem);
+  font-size: clamp(1.65rem, 2.65vw, 2.8rem);
   font-weight: 900;
-  letter-spacing: 0;
-  line-height: 0.95;
-  margin: 1rem 0 0;
-  text-transform: uppercase;
-}
-
-.argos-snippet-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 1.2rem;
-  border: 2px solid var(--argos-line);
-  padding: 1.25rem;
-}
-
-.argos-snippet-panel h2 {
-  color: var(--argos-amber);
-  font-family: var(--argos-font-display);
-  font-size: 1.6rem;
-  line-height: 1;
-  margin: 0 0 0.4rem;
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 0.35rem;
-  text-transform: uppercase;
-}
-
-.argos-snippet-panel article {
-  border-left: 4px solid var(--argos-amber);
-  background: rgba(79, 69, 57, 0.18);
-  padding: 1rem;
-}
-
-.argos-snippet-panel p {
-  color: var(--argos-text);
-  font-size: 0.78rem;
-  font-weight: 700;
-  line-height: 1.6;
-  margin: 0.6rem 0 0;
-  text-transform: uppercase;
-}
-
-.argos-operating-preview {
-  position: relative;
-  display: grid;
-  gap: 0.9rem;
-  overflow: hidden;
-}
-
-.argos-operating-preview::before {
-  content: "";
-  position: absolute;
-  inset: -18% -20%;
-  pointer-events: none;
-  background: linear-gradient(110deg, transparent 30%, rgba(241, 191, 123, 0.18), transparent 70%);
-  transform: translateX(-60%);
-  animation: argos-operating-scan 5.5s linear infinite;
-}
-
-.argos-operating-state {
-  position: relative;
-  display: grid;
-  gap: 0.45rem;
-  border: 2px solid var(--argos-line);
-  border-left: 4px solid var(--argos-amber);
-  background: rgba(79, 69, 57, 0.18);
-  padding: 1rem 1rem 1rem 2.25rem;
-}
-
-.argos-operating-state::before {
-  content: "";
-  position: absolute;
-  top: 1.18rem;
-  left: 0.95rem;
-  width: 0.55rem;
-  height: 0.55rem;
-  background: var(--argos-amber);
-  animation: argos-status-pulse 1.8s steps(2) infinite;
-}
-
-.argos-operating-state strong {
-  color: var(--argos-text);
-  font-family: var(--argos-font-display);
-  font-size: 1.05rem;
-  line-height: 1.08;
-  text-transform: uppercase;
-}
-
-.argos-operating-state p {
-  color: var(--argos-muted);
+  line-height: 1.02;
   margin: 0;
+  text-transform: none;
 }
 
-@keyframes argos-operating-scan {
-  to {
-    transform: translateX(62%);
-  }
+.argos-product-showcase-text h3 span,
+.argos-product-showcase-text h3 strong {
+  display: block;
 }
 
-@keyframes argos-status-pulse {
-  50% {
-    opacity: 0.35;
-  }
+.argos-product-showcase-text h3 strong {
+  color: var(--argos-text);
+  font-weight: 900;
+}
+
+.argos-product-showcase-frame {
+  position: relative;
+  overflow: hidden;
+  margin: 0;
+  border: 2px solid rgba(241, 191, 123, 0.42);
+  background: #050403;
+  box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.42);
+}
+
+.argos-product-showcase-frame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.34), transparent 18%, transparent 82%, rgba(0, 0, 0, 0.38)),
+    linear-gradient(180deg, transparent 76%, rgba(0, 0, 0, 0.36));
+}
+
+.argos-product-showcase-frame img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+}
+
+.argos-product-showcase-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: clamp(0.75rem, 2vw, 1.25rem);
+}
+
+.argos-product-showcase-arrow,
+.argos-product-showcase-dot {
+  border: 2px solid var(--argos-amber);
+  cursor: pointer;
+}
+
+.argos-product-showcase-arrow {
+  display: grid;
+  width: 3.25rem;
+  height: 3.25rem;
+  place-items: center;
+  background: var(--argos-amber);
+  color: #000;
+  transition:
+    background-color 160ms steps(2),
+    color 160ms steps(2),
+    transform 160ms steps(2);
+}
+
+.argos-product-showcase-arrow:hover {
+  background: #000;
+  color: var(--argos-amber);
+  transform: translateY(-2px);
+}
+
+.argos-product-showcase-arrow-icon {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.argos-product-showcase-dots {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.argos-product-showcase-dot {
+  width: 0.72rem;
+  height: 0.72rem;
+  background: transparent;
+  padding: 0;
+  transition:
+    background-color 160ms steps(2),
+    transform 160ms steps(2);
+}
+
+.argos-product-showcase-dot[data-active="true"] {
+  background: var(--argos-amber);
+  transform: scale(1.25);
 }
 
 .argos-section {
@@ -739,7 +683,9 @@ html:has(.argos-3d-page) {
 }
 
 .argos-feature-card {
+  display: flex;
   min-height: 22rem;
+  flex-direction: column;
   border-right: 2px solid var(--argos-line);
   background: #111;
   padding: clamp(1.5rem, 4vw, 3rem);
@@ -773,7 +719,9 @@ html:has(.argos-3d-page) {
   color: var(--argos-text);
   font-family: var(--argos-font-display);
   font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.16;
   margin: 2.5rem 0 1rem;
+  min-height: 3.5em;
   text-transform: uppercase;
 }
 
@@ -782,16 +730,14 @@ html:has(.argos-3d-page) {
   font-size: 0.9rem;
   font-weight: 700;
   line-height: 1.7;
+  margin: 0;
   text-transform: uppercase;
 }
 
-.argos-feature-proof {
-  border-top: 2px solid var(--argos-line);
-  color: var(--argos-amber) !important;
-  font-size: 0.72rem !important;
-  letter-spacing: 0.08em;
-  margin: 1.5rem 0 0;
-  padding-top: 1rem;
+.argos-feature-card p strong {
+  display: block;
+  color: var(--argos-text);
+  margin-bottom: 0.65rem;
 }
 
 .argos-role-section {
@@ -1068,7 +1014,6 @@ html:has(.argos-3d-page) {
 
 @media (max-width: 1024px) {
   .argos-hero-frame,
-  .argos-console-grid,
   .argos-offer-grid,
   .argos-standard-grid,
   .argos-role-grid,
@@ -1133,16 +1078,13 @@ html:has(.argos-3d-page) {
     font-size: clamp(3.4rem, 8.4svh, 5.25rem);
   }
 
-  .argos-score-panel {
-    min-height: 18rem;
+  .argos-product-showcase-slide {
+    flex-basis: min(48rem, 84vw);
   }
 
-  .argos-score-panel strong {
-    font-size: clamp(3.1rem, 8vw, 4.6rem);
-  }
-
-  .argos-score-panel h2 {
-    font-size: clamp(2rem, 4vw, 3.2rem);
+  .argos-product-showcase-text {
+    grid-template-columns: 1fr;
+    align-items: start;
   }
 }
 
@@ -1210,22 +1152,19 @@ html:has(.argos-3d-page) {
     flex-direction: column;
   }
 
-  .argos-hero-proof {
-    display: block;
-    font-size: 0.68rem;
-  }
-
   .argos-primary-action,
   .argos-secondary-action,
   .argos-demo-button {
     width: 100%;
   }
 
-  .argos-console-topbar {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 0.7rem;
-    padding-block: 0.8rem;
+  .argos-product-showcase-track {
+    padding-inline: 1rem;
+    scroll-padding-inline: 1rem;
+  }
+
+  .argos-product-showcase-slide {
+    flex-basis: min(30rem, 86vw);
   }
 
   .argos-footer-inner {
@@ -1242,7 +1181,6 @@ html:has(.argos-3d-page) {
     padding-inline: 1rem;
   }
 
-  .argos-console-grid,
   .argos-offer-card,
   .argos-feature-card,
   .argos-standard-card,
@@ -1252,33 +1190,8 @@ html:has(.argos-3d-page) {
     padding: 1rem;
   }
 
-  .argos-score-panel {
-    min-height: 0;
-    justify-content: flex-start;
-    padding: 1.5rem;
-  }
-
-  .argos-score-panel strong {
-    max-width: 9ch;
-    font-size: clamp(2.65rem, 12vw, 3.05rem);
-  }
-
-  .argos-score-panel h2 {
-    max-width: 13ch;
-    font-size: clamp(1.8rem, 8vw, 2.25rem);
-    margin-top: 0.85rem;
-  }
-
-  .argos-score-panel p {
-    font-size: 0.76rem;
-  }
-
-  .argos-snippet-panel h2 {
-    font-size: 1.35rem;
-  }
-
-  .argos-operating-state {
-    padding: 0.9rem 0.9rem 0.9rem 2rem;
+  .argos-product-showcase-controls {
+    gap: 0.75rem;
   }
 }
 
@@ -1297,11 +1210,6 @@ html:has(.argos-3d-page) {
     font-size: 0.78rem;
     letter-spacing: 0.04em;
     padding-inline: 0.85rem;
-  }
-
-  .argos-hero-proof {
-    font-size: 0.62rem;
-    padding: 0.7rem 0.85rem;
   }
 }
 
@@ -1342,24 +1250,22 @@ html:has(.argos-3d-page) {
     font-size: 0.72rem;
     padding: 0.65rem 1rem;
   }
-
-  .argos-hero-proof {
-    margin-top: 0.75rem;
-    font-size: 0.62rem;
-    line-height: 1.35;
-    padding: 0.55rem 0.75rem;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .argos-bg-rig span,
-  .argos-operating-preview::before,
-  .argos-operating-state::before {
+  .argos-bg-rig span {
     animation: none;
+  }
+
+  .argos-product-showcase-track {
+    scroll-behavior: auto;
   }
 
   .argos-primary-action,
   .argos-secondary-action,
+  .argos-product-showcase-slide,
+  .argos-product-showcase-arrow,
+  .argos-product-showcase-dot,
   .argos-demo-button,
   .argos-feature-card {
     transition: none;

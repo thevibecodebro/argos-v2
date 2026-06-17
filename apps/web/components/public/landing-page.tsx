@@ -3,10 +3,12 @@ import type { ReactNode } from "react";
 import { ArgosLogo } from "@/components/argos-logo";
 import { LegalFooterLinks } from "./legal-links";
 import styles from "./landing-page.module.css";
+import { LandingProductShowcase } from "./product-showcase";
 
 const navLinks = [
-  { label: "Coaching", href: "#coaching-system" },
   { label: "Product", href: "#product-in-motion" },
+  { label: "Coaching", href: "#coaching-system" },
+  { label: "Standard", href: "#standard-installation" },
   { label: "System", href: "#coaching-loop" },
   { label: "Roles", href: "#role-outcomes" },
   { label: "Demo", href: "#access" },
@@ -15,50 +17,14 @@ const navLinks = [
 const salesSystemHero = {
   body: "We Install The Sales Standard In Your Organization. Argos makes it visible in the work: calls reviewed, reps scored, training assigned, and roleplay tracked.",
   headline: "Build a sales team that actually follows the playbook.",
-  primaryCta: { href: "#access", label: "Book the coaching walkthrough" },
+  primaryCta: { href: "#access", label: "Book Demo" },
   secondaryCta: { href: "#coaching-loop", label: "See how Argos supports the system" },
 } as const;
 
-const heroProofSteps = [
-  "Call review",
-  "Rubrics scored",
-  "Training assigned",
-  "Roleplay tracked",
-  "Manager dashboard",
-] as const;
-
-const operatingPreviewSteps = [
-  {
-    detail: "Zoom recording ready for scorecard review.",
-    label: "Call reviewed",
-    value: "Real conversation captured",
-  },
-  {
-    detail: "Discovery, objection handling, and next step clarity scored.",
-    label: "Scorecard completed",
-    value: "Rubric scored",
-  },
-  {
-    detail: "Rep needs practice on price pushback before the next live call.",
-    label: "Coaching flag surfaced",
-    value: "Manager focus",
-  },
-  {
-    detail: "Objection handling module attached to the exact gap.",
-    label: "Training assigned",
-    value: "Module queued",
-  },
-  {
-    detail: "Practice scenario mirrors the call moment that created it.",
-    label: "Roleplay queued",
-    value: "Practice before next call",
-  },
-] as const;
-
 const offerCards = [
   {
-    body: "A team hears the advice, nods along, then goes back to the same calls, the same objections, and the same manager guesswork.",
-    title: "Most sales coaching dies between meetings.",
+    body: "Most teams leave the meeting nodding. Then the next call happens, old habits come back, and managers are stuck guessing what actually changed.",
+    title: "Coaching only counts if it changes the next call.",
   },
   {
     body: "The sales standard gets installed with your leadership team. Argos keeps that standard visible in calls, scorecards, training assignments, roleplay practice, and manager dashboards.",
@@ -72,7 +38,6 @@ const coachingLoopSteps = [
     eyebrow: "Call review",
     heading: "Turn real conversations into coaching context.",
     id: "call-review-step",
-    proof: "Transcript highlight: price objection at 18:42.",
     sceneKey: "call-review",
   },
   {
@@ -80,7 +45,6 @@ const coachingLoopSteps = [
     eyebrow: "Scorecards and rubrics",
     heading: "Make the playbook measurable.",
     id: "scorecards-and-rubrics",
-    proof: "Score movement: 62 -> 81 after practice.",
     sceneKey: "scorecards-and-rubrics",
   },
   {
@@ -88,7 +52,6 @@ const coachingLoopSteps = [
     eyebrow: "Team coaching flags",
     heading: "Show managers where to focus.",
     id: "team-coaching-flags",
-    proof: "Manager flag: needs objection practice.",
     sceneKey: "team-coaching-flags",
   },
   {
@@ -96,7 +59,6 @@ const coachingLoopSteps = [
     eyebrow: "Training assignments",
     heading: "Turn coaching into follow-through.",
     id: "training-assignments",
-    proof: "Assignment status: module queued.",
     sceneKey: "training-assignments",
   },
   {
@@ -104,7 +66,6 @@ const coachingLoopSteps = [
     eyebrow: "Roleplay practice",
     heading: "Give reps a place to rehearse.",
     id: "roleplay-practice",
-    proof: "Roleplay queue: price pushback scenario.",
     sceneKey: "roleplay-practice",
   },
   {
@@ -112,7 +73,6 @@ const coachingLoopSteps = [
     eyebrow: "Manager dashboards",
     heading: "Make the sales system inspectable.",
     id: "manager-dashboards",
-    proof: "Dashboard signal: 3 reps trending up.",
     sceneKey: "manager-dashboards",
   },
 ] as const;
@@ -166,7 +126,7 @@ export function LandingPage() {
       <LandingHeader />
       <main>
         <LandingHero />
-        <LandingProductMotion />
+        <LandingProductShowcase />
         <LandingCallReviewOffer />
         <LandingStandardInstall />
         <LandingCoachingLoop />
@@ -218,7 +178,7 @@ function LandingHeader() {
             Log in
           </Link>
           <Link aria-label="Book an Argos demo" className={styles["argos-mini-cta"]} href="#access">
-            Book demo
+            Book Demo
           </Link>
         </div>
       </nav>
@@ -231,7 +191,6 @@ function LandingHero() {
     <section className={styles["argos-hero"]} id="platform" aria-labelledby="hero-copy-heading">
       <div className={styles["argos-hero-frame"]}>
         <div className={styles["argos-hero-copy"]}>
-          <p className={styles["argos-eyebrow"]}>Sales standard installation + Argos platform</p>
           <h1 id="hero-copy-heading">{salesSystemHero.headline}</h1>
           <p className={styles["argos-hero-body"]}>{salesSystemHero.body}</p>
           <div className={styles["argos-hero-actions"]}>
@@ -242,57 +201,8 @@ function LandingHero() {
               {salesSystemHero.secondaryCta.label}
             </Link>
           </div>
-          <p className={styles["argos-hero-proof"]}>{heroProofSteps.join(" -> ")}</p>
         </div>
 
-      </div>
-    </section>
-  );
-}
-
-function LandingProductMotion() {
-  return (
-    <section
-      aria-labelledby="argos-product-motion-heading"
-      className={styles["argos-product-preview"]}
-      id="product-in-motion"
-    >
-      <div className={styles["argos-console-shell"]}>
-        <div className={styles["argos-console-topbar"]}>
-          <div aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </div>
-          <p>Argos operating preview</p>
-        </div>
-
-        <div className={styles["argos-console-grid"]}>
-          <div className={styles["argos-console-main"]}>
-            <div className={styles["argos-score-panel"]}>
-              <span>Product in motion</span>
-              <strong>Live operating loop</strong>
-              <h2 id="argos-product-motion-heading">Watch one call become the next coaching action.</h2>
-              <p>
-                Sample workflow, not customer data. Argos shows the manager what happened,
-                what changed, and what needs to happen next.
-              </p>
-            </div>
-          </div>
-
-          <aside className={styles["argos-snippet-panel"]}>
-            <h2>Operating feed</h2>
-            <div className={styles["argos-operating-preview"]}>
-              {operatingPreviewSteps.map((step) => (
-                <article className={styles["argos-operating-state"]} key={step.label}>
-                  <span>{step.label}</span>
-                  <strong>{step.value}</strong>
-                  <p>{step.detail}</p>
-                </article>
-              ))}
-            </div>
-          </aside>
-        </div>
       </div>
     </section>
   );
@@ -366,10 +276,8 @@ function LandingCoachingLoop() {
             <h3>{step.eyebrow}</h3>
             <p>
               <strong>{step.heading}</strong>
-              <br />
               {step.body}
             </p>
-            <p className={styles["argos-feature-proof"]}>{step.proof}</p>
           </article>
         ))}
       </div>
@@ -436,7 +344,7 @@ function LandingAccess() {
               ))}
             </ul>
             <Link className={styles["argos-demo-button"]} href={demoBookingHref}>
-              Book The Coaching Walkthrough
+              Book Demo
             </Link>
           </aside>
         </div>

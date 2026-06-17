@@ -44,13 +44,24 @@ describe("public landing styles", () => {
     expect(globalsCss).not.toContain(".argos-demo-video");
     expect(moduleCss).toContain(".argos-3d-page");
     expect(moduleCss).toContain(".argos-hero-frame");
-    expect(moduleCss).toContain(".argos-hero-proof");
     expect(moduleCss).toContain(".argos-wordmark");
     expect(moduleCss).toContain(".argos-wordmark-image");
     expect(moduleCss).toContain(".argos-footer-wordmark");
-    expect(moduleCss).toContain(".argos-console-shell");
-    expect(moduleCss).toContain(".argos-operating-preview");
-    expect(moduleCss).toContain(".argos-operating-state");
+    expect(moduleCss).toContain(".argos-product-showcase");
+    expect(moduleCss).toContain(".argos-product-showcase-kicker");
+    expect(moduleCss).toContain(".argos-product-showcase-track");
+    expect(moduleCss).toContain(".argos-product-showcase-slide");
+    expect(moduleCss).toContain(".argos-product-showcase-frame");
+    expect(moduleCss).toContain(".argos-product-showcase-controls");
+    expect(moduleCss).not.toContain(".argos-hero-proof");
+    expect(moduleCss).not.toContain(".argos-operating-shell");
+    expect(moduleCss).not.toContain(".argos-operating-head");
+    expect(moduleCss).not.toContain(".argos-operating-carousel");
+    expect(moduleCss).not.toContain(".argos-operating-track");
+    expect(moduleCss).not.toContain(".argos-operating-state");
+    expect(moduleCss).not.toContain(".argos-console-shell");
+    expect(moduleCss).not.toContain(".argos-score-panel");
+    expect(moduleCss).not.toContain(".argos-snippet-panel");
     expect(moduleCss).toContain(".argos-standard-grid");
     expect(moduleCss).toContain(".argos-standard-card");
     expect(moduleCss).toContain(".argos-offer-grid");
@@ -62,7 +73,25 @@ describe("public landing styles", () => {
     expect(moduleCss).not.toContain(".argos-standard-system-card");
     expect(moduleCss).not.toContain(".argos-founder-led-card");
     expect(moduleCss).toContain(".argos-feature-grid");
-    expect(moduleCss).toContain(".argos-feature-proof");
+    expect(moduleCss).not.toContain(".argos-feature-proof");
+    expectCssRule(moduleCss, ".argos-feature-card", [
+      "display: flex;",
+      "flex-direction: column;",
+    ]);
+    expectCssRule(moduleCss, ".argos-feature-card h3", [
+      "line-height: 1.16;",
+      "min-height: 3.5em;",
+    ]);
+    expectCssRule(moduleCss, ".argos-feature-card p", [
+      "color: var(--argos-muted);",
+      "line-height: 1.7;",
+      "margin: 0;",
+      "text-transform: uppercase;",
+    ]);
+    expectCssRule(moduleCss, ".argos-feature-card p strong", [
+      "display: block;",
+      "margin-bottom: 0.65rem;",
+    ]);
     expect(moduleCss).toContain(".argos-role-grid");
     expect(moduleCss).toContain(".argos-role-card");
     expect(moduleCss).toContain(".argos-demo-grid");
@@ -114,19 +143,35 @@ describe("public landing styles", () => {
     expect(moduleCss).not.toContain(".argos-hero-terminal");
   });
 
-  it("keeps product-in-motion animation CSS-only and reduced-motion safe", () => {
+  it("keeps the product screenshot carousel peeking and reduced-motion safe", () => {
     const moduleCss = readPublicFile("../components/public/landing-page.module.css");
 
-    expect(moduleCss).toContain("@keyframes argos-operating-scan");
-    expect(moduleCss).toContain("@keyframes argos-status-pulse");
-    expect(moduleCss).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.argos-operating-preview::before,[\s\S]*?\.argos-operating-state::before\s*\{[\s\S]*?animation: none;/);
+    expect(moduleCss).toContain("scroll-snap-type: x mandatory;");
+    expect(moduleCss).toContain("padding: clamp(1rem, 2.2vw, 1.75rem) max(1rem, calc((100vw - min(64rem, 76vw)) / 2)) clamp(1.35rem, 2.4vw, 2rem);");
+    expect(moduleCss).toContain("scroll-padding-inline: max(1rem, calc((100vw - min(64rem, 76vw)) / 2));");
+    expect(moduleCss).toContain("scrollbar-width: none;");
+    expect(moduleCss).toContain(".argos-product-showcase-slide[data-active=\"false\"]");
+    expect(moduleCss).toMatch(/\.argos-product-showcase-slide\[data-active="false"\]\s*\{[\s\S]*?opacity: 1;/);
+    expect(moduleCss).toMatch(/\.argos-product-showcase-slide\[data-active="false"\]\s*\{[\s\S]*?transform: scale\(1\);/);
+    expect(moduleCss).toMatch(/\.argos-product-showcase-slide\[data-active="true"\]\s*\{[\s\S]*?transform: scale\(1\.035\);/);
+    expect(moduleCss).toContain("gap: clamp(1.5rem, 5vw, 4rem);");
+    expect(moduleCss).toContain(".argos-product-showcase-dot[data-active=\"true\"]");
+    expect(moduleCss).toContain(".argos-product-showcase-arrow-icon");
+    expect(moduleCss).toContain("aspect-ratio: 16 / 10;");
+    expect(moduleCss).not.toContain("@keyframes argos-feed-carousel");
+    expect(moduleCss).not.toContain("@keyframes argos-card-scan");
+    expect(moduleCss).not.toContain("@keyframes argos-operating-card-reveal");
+    expect(moduleCss).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.argos-product-showcase-track\s*\{[\s\S]*?scroll-behavior: auto;/);
+    expect(moduleCss).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.argos-product-showcase-slide,[\s\S]*?\.argos-product-showcase-arrow,[\s\S]*?\.argos-product-showcase-dot,[\s\S]*?\.argos-demo-button,[\s\S]*?\.argos-feature-card\s*\{[\s\S]*?transition: none;/);
+    expect(moduleCss).not.toContain(".argos-product-showcase-copy");
+    expect(moduleCss).not.toContain(".argos-product-showcase-text p");
   });
 
   it("keeps the homepage adapted for narrow, tablet, and short landscape viewports", () => {
     const moduleCss = readPublicFile("../components/public/landing-page.module.css");
 
     expect(moduleCss).toMatch(/@media \(max-width: 1024px\)[\s\S]*?\.argos-hero-copy h1\s*\{[\s\S]*?max-width: 18ch;[\s\S]*?font-size: clamp\(3\.4rem, 8\.4svh, 5\.25rem\);/);
-    expect(moduleCss).toMatch(/@media \(max-width: 420px\)[\s\S]*?\.argos-score-panel strong\s*\{[\s\S]*?font-size: clamp\(2\.65rem, 12vw, 3\.05rem\);/);
+    expect(moduleCss).toMatch(/@media \(max-width: 760px\)[\s\S]*?\.argos-product-showcase-slide\s*\{[\s\S]*?flex-basis: min\(30rem, 86vw\);/);
     expect(moduleCss).toMatch(/@media \(max-width: 360px\)[\s\S]*?\.argos-hero-copy h1\s*\{[\s\S]*?font-size: clamp\(2\.25rem, 13\.5vw, 2\.7rem\);/);
     expect(moduleCss).toMatch(/@media \(max-height: 520px\) and \(min-width: 700px\)[\s\S]*?\.argos-hero-copy h1\s*\{[\s\S]*?max-width: 22ch;[\s\S]*?font-size: clamp\(2\.35rem, 10svh, 3rem\);/);
   });

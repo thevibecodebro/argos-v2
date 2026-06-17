@@ -8,10 +8,12 @@ type AuthShellProps = {
 };
 
 const homepageNavLinks = [
-  { label: "Calls", href: "/#features" },
-  { label: "Coaching", href: "/#detail" },
-  { label: "Team", href: "/#trust" },
-  { label: "Pricing", href: "/#access" },
+  { label: "Product", href: "/#product-in-motion" },
+  { label: "Coaching", href: "/#coaching-system" },
+  { label: "Standard", href: "/#standard-installation" },
+  { label: "System", href: "/#coaching-loop" },
+  { label: "Roles", href: "/#role-outcomes" },
+  { label: "Demo", href: "/#access" },
 ] as const;
 
 export function AuthShell({ children }: AuthShellProps) {
@@ -45,11 +47,11 @@ export function AuthShell({ children }: AuthShellProps) {
           </div>
 
           <div className={styles["argos-nav-actions"]}>
-            <Link className={styles["argos-login-link"]} href="/">
-              Home
+            <Link className={styles["argos-login-link"]} href="/login">
+              Log in
             </Link>
-            <Link className={styles["argos-mini-cta"]} href="/#access">
-              View plans
+            <Link aria-label="Book an Argos demo" className={styles["argos-mini-cta"]} href="/#access">
+              Book Demo
             </Link>
           </div>
         </nav>
