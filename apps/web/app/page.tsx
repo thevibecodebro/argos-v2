@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { JsonLd } from "@/components/public/json-ld";
 import { LandingPage } from "@/components/public/landing-page";
+import { buildHomeJsonLd } from "@/lib/seo/schema";
 import { HOME_DESCRIPTION, HOME_TITLE, SOCIAL_IMAGE_PATH } from "@/lib/seo/site";
 
 export const metadata: Metadata = {
@@ -32,5 +34,10 @@ export const metadata: Metadata = {
 };
 
 export default function HomePage() {
-  return <LandingPage />;
+  return (
+    <>
+      <JsonLd data={buildHomeJsonLd()} />
+      <LandingPage />
+    </>
+  );
 }
