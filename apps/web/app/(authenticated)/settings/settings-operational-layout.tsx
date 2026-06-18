@@ -8,6 +8,7 @@ import {
 import { SettingsSecondaryRail } from "@/components/settings/settings-secondary-rail";
 
 type SettingsRoute =
+  | "branding"
   | "people"
   | "teams"
   | "permissions"
@@ -34,6 +35,12 @@ type SettingsOperationalLayoutProps = {
 
 const SETTINGS_SECTIONS = [
   { href: "/settings", icon: "person", key: "account", label: "Account" },
+  {
+    href: "/settings/branding",
+    icon: "palette",
+    key: "branding",
+    label: "Branding",
+  },
   { href: "/settings/people", icon: "group", key: "people", label: "People" },
   { href: "/settings/teams", icon: "groups", key: "teams", label: "Teams" },
   {

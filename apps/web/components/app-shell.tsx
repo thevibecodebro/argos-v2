@@ -4,6 +4,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type CSSProperties,
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import Link from "next/link";
@@ -14,6 +15,10 @@ import { FeedbackDialogLoader } from "./feedback-dialog-loader";
 import { ForgeIcon } from "./forge";
 import { PlatformOrganizationSwitcher } from "./platform/platform-organization-switcher";
 import { RoleOnboardingGuide } from "./role-onboarding-guide";
+import {
+  workspaceThemeToForgeVars,
+  type WorkspaceTheme,
+} from "@/lib/organizations/workspace-theme";
 import type { AppUserRole } from "@/lib/users/roles";
 import type {
   PlatformConsoleActiveSession,
@@ -27,6 +32,7 @@ type ShellUser = {
   orgLogoUrl?: string | null;
   orgName?: string | null;
   role: AppUserRole | null;
+  workspaceTheme?: WorkspaceTheme | null;
 };
 
 type AuthenticatedAppShellProps = {
@@ -113,6 +119,9 @@ export function AuthenticatedAppShell({
   const initials = getInitials(user.fullName || user.email);
   const roleLabel = formatRole(user.role);
   const hasDockedSecondaryRail = isDockedSecondaryRailRoute(currentPath);
+  const workspaceThemeVars = user.workspaceTheme
+    ? (workspaceThemeToForgeVars(user.workspaceTheme) as CSSProperties)
+    : undefined;
 
   const visibleGroups = navGroups.filter((group) => {
     if (!group.visibleTo) return true;
@@ -232,6 +241,7 @@ export function AuthenticatedAppShell({
       data-navigation-pending-href={navigationPendingState.pendingHref ?? undefined}
       data-primary-rail-collapsed={primaryRailCollapsed ? "true" : "false"}
       data-shell-theme="forge"
+      style={workspaceThemeVars}
     >
       <p
         aria-live="polite"

@@ -11,6 +11,7 @@ const platformAuditPattern =
 
 const platformAuditCoveredRoutes = new Set([
   "invites/route.ts",
+  "organizations/branding/route.ts",
   "platform/organizations/route.ts",
   "platform/sessions/route.ts",
   "platform/staff/route.ts",

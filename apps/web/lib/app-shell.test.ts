@@ -1,6 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { DEFAULT_WORKSPACE_THEME } from "@/lib/organizations/workspace-theme";
 import {
   AuthenticatedAppShell,
   getNavigationPendingState,
@@ -233,6 +234,32 @@ describe("AuthenticatedAppShell", () => {
     expect(html).not.toContain("#74b1ff");
     expect(html).not.toContain("#6dddff");
     expect(html).not.toContain("border-r-2");
+  });
+
+  it("scopes custom workspace theme variables onto the forge shell", () => {
+    const html = renderToStaticMarkup(
+      createElement(AuthenticatedAppShell, {
+        user: {
+          ...adminUser,
+          workspaceTheme: {
+            ...DEFAULT_WORKSPACE_THEME,
+            colors: {
+              ...DEFAULT_WORKSPACE_THEME.colors,
+              background: "#102030",
+              primary: "#1A5FB4",
+              onPrimary: "#FFFFFF",
+              focus: "#8DD6FF",
+            },
+          },
+        },
+        children: createElement("div", null, "Page body"),
+      }),
+    );
+
+    expect(html).toContain("--forge-bg:#102030");
+    expect(html).toContain("--forge-gold:#1A5FB4");
+    expect(html).toContain("--forge-on-accent:#FFFFFF");
+    expect(html).toContain("--forge-focus:#8DD6FF");
   });
 
   it("renders an uploaded organization logo in the primary rail when available", () => {

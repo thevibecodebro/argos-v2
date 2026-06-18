@@ -1,4 +1,5 @@
 import type { DashboardUserRecord } from "@/lib/dashboard/service";
+import type { WorkspaceTheme } from "@/lib/organizations/workspace-theme";
 import type { PlatformAccessSessionStatus, PlatformStaffRole, PlatformStaffStatus } from "./repository";
 
 export const PLATFORM_SESSION_COOKIE_NAME = "argos_platform_session";
@@ -15,6 +16,7 @@ type PlatformAccessSessionRecord = {
   targetOrgId: string | null;
   targetOrgName?: string | null;
   targetOrgSlug?: string | null;
+  targetOrgWorkspaceTheme?: WorkspaceTheme | null;
   targetOrgNameSnapshot?: string | null;
   targetOrgSlugSnapshot?: string | null;
   reason: string;
@@ -112,6 +114,7 @@ export async function resolveEffectiveActor(
         slug: targetOrgSlug,
         plan: "trial",
         logoUrl: null,
+        workspaceTheme: session.targetOrgWorkspaceTheme ?? null,
       },
     },
     platform: {

@@ -16,6 +16,13 @@ import {
 
 const SETTINGS_SECTIONS = [
   {
+    description: "Set workspace colors for buttons, text, surfaces, and states.",
+    href: "/settings/branding",
+    icon: "palette",
+    label: "Branding",
+    visibleTo: ["admin"],
+  },
+  {
     description: "Manage user records and account access.",
     href: "/settings/people",
     icon: "group",

@@ -57,6 +57,7 @@ export default async function AuthenticatedLayout({
         orgLogoUrl: currentUser.org?.logoUrl ?? null,
         orgName: currentUser.org?.name,
         role: currentUser.role,
+        workspaceTheme: currentUser.org?.workspaceTheme ?? null,
       }}
     >
       {children}

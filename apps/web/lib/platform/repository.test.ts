@@ -609,6 +609,7 @@ describe("DrizzlePlatformRepository", () => {
       targetOrgSlugSnapshot: "acme",
       targetOrgName: "Acme",
       targetOrgSlug: "acme",
+      targetOrgWorkspaceTheme: null,
     });
     expect(eq).toHaveBeenCalledWith(platformAccessSessionsTable.id, "session-1");
     expect(eq).toHaveBeenCalledWith(platformAccessSessionsTable.staffUserId, "staff-1");

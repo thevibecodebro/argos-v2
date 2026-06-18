@@ -74,6 +74,7 @@ export const getCachedCurrentUserDetails = cache(async (authUserId: string) =>
               name: profile.org.name,
               plan: profile.org.plan,
               slug: profile.org.slug,
+              workspaceTheme: profile.org.workspaceTheme ?? null,
             },
             orgId: profile.org.id,
             profileImageUrl: null,

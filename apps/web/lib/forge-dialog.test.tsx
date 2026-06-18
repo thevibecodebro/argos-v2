@@ -85,8 +85,8 @@ describe("ForgeDialog", () => {
     const focusRingRule = getCssRule(".forge-focus-ring:focus-visible");
     const formControlFocusRule = getCssRule(".forge-form-control:focus-visible");
 
-    expect(focusRingRule).toContain("var(--forge-gold)");
-    expect(formControlFocusRule).toContain("var(--forge-gold)");
+    expect(focusRingRule).toContain("var(--forge-focus)");
+    expect(formControlFocusRule).toContain("var(--forge-focus)");
     expect(focusRingRule).not.toContain("rgba(241, 191, 123");
     expect(formControlFocusRule).not.toContain("rgba(241, 191, 123");
   });
