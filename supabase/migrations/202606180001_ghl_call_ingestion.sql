@@ -62,3 +62,11 @@ create index if not exists ghl_call_imports_call_id_idx
 
 alter table public.ghl_user_mappings enable row level security;
 alter table public.ghl_call_imports enable row level security;
+
+revoke all on table public.ghl_user_mappings from public;
+revoke all on table public.ghl_user_mappings from anon;
+revoke all on table public.ghl_user_mappings from authenticated;
+
+revoke all on table public.ghl_call_imports from public;
+revoke all on table public.ghl_call_imports from anon;
+revoke all on table public.ghl_call_imports from authenticated;

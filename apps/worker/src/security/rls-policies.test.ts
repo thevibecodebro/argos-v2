@@ -60,7 +60,9 @@ const expectedPolicies = [
   },
 ] satisfies PolicyRow[];
 
-const serviceOnlyTables = ["invites", "call_processing_jobs"] as const;
+const coreServiceOnlyTables = ["invites", "call_processing_jobs"] as const;
+const ghlServiceOnlyTables = ["ghl_user_mappings", "ghl_call_imports"] as const;
+const serviceOnlyTables = [...coreServiceOnlyTables, ...ghlServiceOnlyTables] as const;
 const broadClientRoles = ["authenticated", "anon", "public"] as const;
 const directClientGrantees = ["anon", "authenticated", "PUBLIC"] as const;
 
@@ -96,6 +98,15 @@ async function readMigrationSql() {
   return normalizeWhitespace(await readFile(migrationPath, "utf8"));
 }
 
+async function readGhlMigrationSql() {
+  const migrationPath = join(
+    process.cwd(),
+    "../../supabase/migrations/202606180001_ghl_call_ingestion.sql",
+  );
+
+  return normalizeWhitespace(await readFile(migrationPath, "utf8"));
+}
+
 describe("RLS policy hardening migration", () => {
   it("defines the expected rubric and call score policies", async () => {
     const migrationSql = await readMigrationSql();
@@ -117,7 +128,21 @@ describe("RLS policy hardening migration", () => {
   it("keeps service-only tables behind RLS without broad client policies", async () => {
     const migrationSql = await readMigrationSql();
 
-    for (const table of serviceOnlyTables) {
+    for (const table of coreServiceOnlyTables) {
+      expect(migrationSql).toContain(`alter table public.${table} enable row level security`);
+      expect(migrationSql).toContain(`revoke all on table public.${table} from public`);
+      expect(migrationSql).toContain(`revoke all on table public.${table} from anon`);
+      expect(migrationSql).toContain(`revoke all on table public.${table} from authenticated`);
+      expect(migrationSql).not.toMatch(
+        new RegExp(`create policy "[^"]+" on public\\.${table} .* to (${broadClientRoles.join("|")})`),
+      );
+    }
+  });
+
+  it("keeps GHL service-only import tables behind RLS without broad client policies", async () => {
+    const migrationSql = await readGhlMigrationSql();
+
+    for (const table of ghlServiceOnlyTables) {
       expect(migrationSql).toContain(`alter table public.${table} enable row level security`);
       expect(migrationSql).toContain(`revoke all on table public.${table} from public`);
       expect(migrationSql).toContain(`revoke all on table public.${table} from anon`);
@@ -152,7 +177,9 @@ describeWithDatabase("RLS policy coverage in pg_policies", () => {
           'rubric_categories',
           'call_scores',
           'invites',
-          'call_processing_jobs'
+          'call_processing_jobs',
+          'ghl_user_mappings',
+          'ghl_call_imports'
         )
       order by tablename, policyname;
     `);
@@ -181,7 +208,7 @@ describeWithDatabase("RLS policy coverage in pg_policies", () => {
         privilege_type
       from information_schema.role_table_grants
       where table_schema = 'public'
-        and table_name in ('invites', 'call_processing_jobs')
+        and table_name in ('invites', 'call_processing_jobs', 'ghl_user_mappings', 'ghl_call_imports')
         and grantee in ('anon', 'authenticated', 'PUBLIC')
       order by table_name, grantee, privilege_type;
     `);
@@ -209,7 +236,9 @@ describeWithDatabase("RLS policy coverage in pg_policies", () => {
           'rubric_categories',
           'call_scores',
           'invites',
-          'call_processing_jobs'
+          'call_processing_jobs',
+          'ghl_user_mappings',
+          'ghl_call_imports'
         )
       order by relname;
     `);
