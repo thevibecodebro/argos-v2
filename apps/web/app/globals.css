@@ -39,6 +39,16 @@
   --forge-shadow: #050403;
   --forge-on-accent: #170d07;
   --forge-focus: var(--forge-gold);
+  --forge-sidebar-bg: var(--forge-depth);
+  --forge-sidebar-text: var(--forge-text);
+  --forge-sidebar-muted: var(--forge-faint);
+  --forge-sidebar-active-bg: color-mix(in srgb, var(--forge-gold) 9%, transparent);
+  --forge-sidebar-active-text: var(--forge-gold);
+  --forge-sidebar-border: var(--forge-border);
+  --forge-topbar-bg: color-mix(in srgb, var(--forge-shadow) 96%, transparent);
+  --forge-topbar-text: var(--forge-text);
+  --forge-topbar-muted: var(--forge-muted);
+  --forge-topbar-border: var(--forge-border);
 
   /* ── Derived neutrals (computed from --forge-text) ─────────────── */
   --forge-muted: color-mix(in srgb, var(--forge-text) 70%, transparent);
@@ -101,14 +111,15 @@
 }
 
 .forge-sidebar {
-  border-right: 1px solid var(--forge-border);
-  background: var(--forge-depth);
+  border-right: 1px solid var(--forge-sidebar-border);
+  background: var(--forge-sidebar-bg);
   box-shadow: inset -1px 0 0 color-mix(in srgb, var(--forge-text) 3.5%, transparent);
 }
 
 .forge-topbar {
-  border-bottom: 1px solid var(--forge-border);
-  background: color-mix(in srgb, var(--forge-shadow) 96%, transparent);
+  border-bottom: 1px solid var(--forge-topbar-border);
+  color: var(--forge-topbar-text);
+  background: var(--forge-topbar-bg);
   box-shadow: none;
 }
 
@@ -131,7 +142,7 @@
 
 .forge-nav-link {
   border: 1px solid transparent;
-  color: var(--forge-faint);
+  color: var(--forge-sidebar-muted);
   background: transparent;
   transition:
     background-color 180ms cubic-bezier(0.23, 1, 0.32, 1),
@@ -140,8 +151,8 @@
 }
 
 .forge-nav-link:hover {
-  color: var(--forge-text);
-  border-color: var(--forge-border);
+  color: var(--forge-sidebar-text);
+  border-color: var(--forge-sidebar-border);
   background: color-mix(in srgb, var(--forge-text) 4.5%, transparent);
 }
 
@@ -151,15 +162,15 @@
 }
 
 .forge-nav-link--active {
-  color: var(--forge-gold);
-  border-color: color-mix(in srgb, var(--forge-gold) 25%, transparent);
-  background: color-mix(in srgb, var(--forge-gold) 9%, transparent);
+  color: var(--forge-sidebar-active-text);
+  border-color: color-mix(in srgb, var(--forge-sidebar-active-text) 25%, transparent);
+  background: var(--forge-sidebar-active-bg);
 }
 
 .forge-nav-link--pending {
-  color: var(--forge-text);
-  border-color: color-mix(in srgb, var(--forge-gold) 25%, transparent);
-  background: color-mix(in srgb, var(--forge-gold) 7%, transparent);
+  color: var(--forge-sidebar-text);
+  border-color: color-mix(in srgb, var(--forge-sidebar-active-text) 25%, transparent);
+  background: color-mix(in srgb, var(--forge-sidebar-active-text) 7%, transparent);
 }
 
 .forge-icon {

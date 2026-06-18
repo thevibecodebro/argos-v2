@@ -10,7 +10,7 @@ import {
 } from "./workspace-theme";
 
 describe("parseWorkspaceTheme", () => {
-  it("fills missing color fields from Argos defaults and normalizes hex colors", () => {
+  it("fills missing color fields from Argos defaults, normalizes hex colors, and backfills light and dark modes", () => {
     const result = parseWorkspaceTheme({
       version: 1,
       colors: {
@@ -23,10 +23,102 @@ describe("parseWorkspaceTheme", () => {
       ok: true,
       data: {
         version: 1,
+        activeMode: "dark",
         colors: {
           ...DEFAULT_WORKSPACE_THEME.colors,
           background: "#112233",
           primary: "#AA8844",
+        },
+        modes: {
+          dark: {
+            colors: {
+              ...DEFAULT_WORKSPACE_THEME.modes.dark.colors,
+              background: "#112233",
+              primary: "#AA8844",
+            },
+            navigation: DEFAULT_WORKSPACE_THEME.modes.dark.navigation,
+          },
+          light: DEFAULT_WORKSPACE_THEME.modes.light,
+        },
+      },
+    });
+  });
+
+  it("normalizes separate light, dark, left navigation, and top navigation colors", () => {
+    const result = parseWorkspaceTheme({
+      version: 1,
+      activeMode: "light",
+      modes: {
+        dark: {
+          colors: {
+            background: "#080808",
+            text: "#f8f8f8",
+            primary: "#d8aa68",
+            onPrimary: "#170d07",
+            focus: "#8fd0e0",
+          },
+          navigation: {
+            leftBackground: "#050505",
+            leftText: "#f5f5f5",
+            leftMutedText: "#a8a8a8",
+            leftActiveBackground: "#2a2014",
+            leftActiveText: "#f4c27a",
+            leftBorder: "#303030",
+            topBackground: "#090909",
+            topText: "#f5f5f5",
+            topMutedText: "#a8a8a8",
+            topBorder: "#303030",
+          },
+        },
+        light: {
+          colors: {
+            background: "#f8fafc",
+            text: "#15202b",
+            primary: "#1a5fb4",
+            onPrimary: "#ffffff",
+            focus: "#1a5fb4",
+          },
+          navigation: {
+            leftBackground: "#ffffff",
+            leftText: "#15202b",
+            leftMutedText: "#546171",
+            leftActiveBackground: "#dbeafe",
+            leftActiveText: "#123f7d",
+            leftBorder: "#cbd5e1",
+            topBackground: "#f8fafc",
+            topText: "#15202b",
+            topMutedText: "#546171",
+            topBorder: "#cbd5e1",
+          },
+        },
+      },
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      data: {
+        activeMode: "light",
+        modes: {
+          dark: {
+            colors: {
+              background: "#080808",
+              text: "#F8F8F8",
+            },
+            navigation: {
+              leftBackground: "#050505",
+              topBackground: "#090909",
+            },
+          },
+          light: {
+            colors: {
+              background: "#F8FAFC",
+              text: "#15202B",
+            },
+            navigation: {
+              leftBackground: "#FFFFFF",
+              topBackground: "#F8FAFC",
+            },
+          },
         },
       },
     });
@@ -129,9 +221,10 @@ describe("parseWorkspaceTheme", () => {
 });
 
 describe("workspaceThemeToForgeVars", () => {
-  it("maps a valid workspace theme to forge CSS variable values", () => {
+  it("maps the active mode and navigation colors to forge CSS variable values", () => {
     const theme = {
       ...DEFAULT_WORKSPACE_THEME,
+      activeMode: "light" as const,
       colors: {
         ...DEFAULT_WORKSPACE_THEME.colors,
         background: "#102030",
@@ -151,25 +244,71 @@ describe("workspaceThemeToForgeVars", () => {
         danger: "#E07070",
         focus: "#8DD6FF",
       },
+      modes: {
+        dark: DEFAULT_WORKSPACE_THEME.modes.dark,
+        light: {
+          colors: {
+            ...DEFAULT_WORKSPACE_THEME.modes.light.colors,
+            background: "#F8FAFC",
+            depth: "#EEF2F7",
+            surface: "#FFFFFF",
+            surfaceRaised: "#F1F5F9",
+            surfaceHigh: "#E2E8F0",
+            text: "#172033",
+            mutedText: "#536174",
+            border: "#CBD5E1",
+            borderStrong: "#94A3B8",
+            primary: "#1A5FB4",
+            onPrimary: "#FFFFFF",
+            secondary: "#087990",
+            warning: "#9A5B13",
+            success: "#19724B",
+            danger: "#B42318",
+            focus: "#1A5FB4",
+          },
+          navigation: {
+            leftBackground: "#FFFFFF",
+            leftText: "#172033",
+            leftMutedText: "#536174",
+            leftActiveBackground: "#DBEAFE",
+            leftActiveText: "#123F7D",
+            leftBorder: "#CBD5E1",
+            topBackground: "#F8FAFC",
+            topText: "#172033",
+            topMutedText: "#536174",
+            topBorder: "#CBD5E1",
+          },
+        },
+      },
     };
 
     expect(workspaceThemeToForgeVars(theme)).toEqual({
-      "--forge-bg": "#102030",
-      "--forge-depth": "#112233",
-      "--forge-surface": "#223344",
-      "--forge-surface-2": "#334455",
-      "--forge-surface-3": "#445566",
-      "--forge-text": "#FDFDFD",
-      "--forge-muted": "#B8C0C8",
-      "--forge-border": "#556677",
-      "--forge-border-strong": "#667788",
-      "--forge-gold": "#E0B060",
-      "--forge-cyan": "#80C0D0",
-      "--forge-ember": "#D99050",
-      "--forge-success": "#90CCAA",
-      "--forge-danger": "#E07070",
-      "--forge-focus": "#8DD6FF",
-      "--forge-on-accent": "#160D06",
+      "--forge-bg": "#F8FAFC",
+      "--forge-depth": "#EEF2F7",
+      "--forge-surface": "#FFFFFF",
+      "--forge-surface-2": "#F1F5F9",
+      "--forge-surface-3": "#E2E8F0",
+      "--forge-text": "#172033",
+      "--forge-muted": "#536174",
+      "--forge-border": "#CBD5E1",
+      "--forge-border-strong": "#94A3B8",
+      "--forge-gold": "#1A5FB4",
+      "--forge-cyan": "#087990",
+      "--forge-ember": "#9A5B13",
+      "--forge-success": "#19724B",
+      "--forge-danger": "#B42318",
+      "--forge-focus": "#1A5FB4",
+      "--forge-on-accent": "#FFFFFF",
+      "--forge-sidebar-bg": "#FFFFFF",
+      "--forge-sidebar-text": "#172033",
+      "--forge-sidebar-muted": "#536174",
+      "--forge-sidebar-active-bg": "#DBEAFE",
+      "--forge-sidebar-active-text": "#123F7D",
+      "--forge-sidebar-border": "#CBD5E1",
+      "--forge-topbar-bg": "#F8FAFC",
+      "--forge-topbar-text": "#172033",
+      "--forge-topbar-muted": "#536174",
+      "--forge-topbar-border": "#CBD5E1",
     });
   });
 });
@@ -183,11 +322,17 @@ describe("coerceStoredWorkspaceTheme", () => {
           primary: "#aa8844",
         },
       }),
-    ).toEqual({
+    ).toMatchObject({
       version: 1,
-      colors: {
-        ...DEFAULT_WORKSPACE_THEME.colors,
-        primary: "#AA8844",
+      activeMode: "dark",
+      modes: {
+        dark: {
+          colors: {
+            ...DEFAULT_WORKSPACE_THEME.modes.dark.colors,
+            primary: "#AA8844",
+          },
+        },
+        light: DEFAULT_WORKSPACE_THEME.modes.light,
       },
     });
     expect(coerceStoredWorkspaceTheme(null)).toBeNull();
@@ -212,6 +357,21 @@ describe("workspace theme contrast helpers", () => {
         primary: "#EEEEEE",
         onPrimary: "#FFFFFF",
         focus: "#252525",
+      },
+      modes: {
+        ...DEFAULT_WORKSPACE_THEME.modes,
+        dark: {
+          ...DEFAULT_WORKSPACE_THEME.modes.dark,
+          colors: {
+            ...DEFAULT_WORKSPACE_THEME.modes.dark.colors,
+            background: "#101010",
+            text: "#222222",
+            mutedText: "#333333",
+            primary: "#EEEEEE",
+            onPrimary: "#FFFFFF",
+            focus: "#252525",
+          },
+        },
       },
     });
 
@@ -245,8 +405,11 @@ describe("workspace theme contrast helpers", () => {
 });
 
 describe("WORKSPACE_THEME_PRESETS", () => {
-  it("includes Argos defaults and a metadata-only Custom preset", () => {
+  it("includes Argos defaults and starter templates for dark and light modes", () => {
     expect(WORKSPACE_THEME_PRESETS.argos.theme).toEqual(DEFAULT_WORKSPACE_THEME);
+    expect(WORKSPACE_THEME_PRESETS.ocean.mode).toBe("dark");
+    expect(WORKSPACE_THEME_PRESETS.daylight.mode).toBe("light");
+    expect(WORKSPACE_THEME_PRESETS.mist.mode).toBe("light");
     expect(WORKSPACE_THEME_PRESETS.custom).toEqual({
       id: "custom",
       name: "Custom",

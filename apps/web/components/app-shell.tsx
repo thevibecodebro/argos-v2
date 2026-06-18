@@ -427,7 +427,7 @@ export function AuthenticatedAppShell({
                 aria-expanded={accountOpen}
                 aria-haspopup="menu"
                 aria-label="Account menu"
-                className="forge-icon-button flex h-10 w-10 items-center justify-center rounded-full font-[var(--font-display)] text-sm font-bold text-[var(--forge-gold)]"
+                className="forge-icon-button flex h-10 w-10 items-center justify-center rounded-full font-[var(--font-display)] text-sm font-bold text-[var(--forge-topbar-text)]"
                 onClick={() => setAccountOpen((v) => !v)}
                 ref={accountTriggerRef}
                 type="button"

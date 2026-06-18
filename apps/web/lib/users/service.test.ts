@@ -193,10 +193,22 @@ describe("updateOrganizationWorkspaceTheme", () => {
   it("allows admins to persist a validated workspace theme", async () => {
     const customTheme = {
       version: 1 as const,
+      activeMode: "dark" as const,
       colors: {
         ...DEFAULT_WORKSPACE_THEME.colors,
         primary: "#1A5FB4",
         onPrimary: "#FFFFFF",
+      },
+      modes: {
+        ...DEFAULT_WORKSPACE_THEME.modes,
+        dark: {
+          ...DEFAULT_WORKSPACE_THEME.modes.dark,
+          colors: {
+            ...DEFAULT_WORKSPACE_THEME.modes.dark.colors,
+            primary: "#1A5FB4",
+            onPrimary: "#FFFFFF",
+          },
+        },
       },
     };
     const repository = createRepository({
