@@ -14,6 +14,7 @@ export type RateLimitPolicyName =
   | "uploadDirect"
   | "uploadPrepare"
   | "uploadComplete"
+  | "ghlWebhook"
   | "zoomWebhook"
   | "zoomWebhookAccount"
   | "trainingAi"
@@ -62,6 +63,7 @@ export const RATE_LIMIT_POLICIES = {
   uploadDirect: { limit: 20, window: "hour" },
   uploadPrepare: { limit: 20, window: "hour" },
   uploadComplete: { limit: 20, window: "hour" },
+  ghlWebhook: { limit: 300, window: "minute" },
   zoomWebhook: { limit: 300, window: "minute" },
   zoomWebhookAccount: { limit: 300, window: "minute" },
   trainingAi: { limit: 20, window: "day" },

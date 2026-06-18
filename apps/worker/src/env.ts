@@ -4,6 +4,10 @@ export type WorkerEnv = {
   callProcessingEnabled: boolean;
   databaseUrl: string | null;
   ffmpegBinary: string | null;
+  ghlImportEnabled: boolean;
+  ghlImportPollIntervalMs: number;
+  ghlSyncIntervalMs: number;
+  ghlSyncPollIntervalMs: number;
   host: string;
   maxSourceBytes: number;
   openaiApiKey: string | null;
@@ -79,6 +83,22 @@ export function getWorkerEnv(env: WorkerEnvSource = process.env): WorkerEnv {
   const callProcessingEnabled = parseBoolean(env.CALL_PROCESSING_ENABLED, false);
   const databaseUrl = readEnv(env, "DATABASE_URL");
   const ffmpegBinary = readEnv(env, "FFMPEG_BINARY", "CALL_PROCESSING_FFMPEG_BINARY");
+  const ghlImportEnabled = parseBoolean(env.GHL_IMPORT_ENABLED, false);
+  const ghlImportPollIntervalMs = parseInteger(
+    env.GHL_IMPORT_POLL_INTERVAL_MS,
+    5_000,
+    "GHL_IMPORT_POLL_INTERVAL_MS",
+  );
+  const ghlSyncIntervalMs = parseInteger(
+    env.GHL_SYNC_INTERVAL_MS,
+    15 * 60 * 1000,
+    "GHL_SYNC_INTERVAL_MS",
+  );
+  const ghlSyncPollIntervalMs = parseInteger(
+    env.GHL_SYNC_POLL_INTERVAL_MS,
+    60_000,
+    "GHL_SYNC_POLL_INTERVAL_MS",
+  );
   const openaiApiKey = readEnv(env, "OPENAI_CALL_PROCESSING_API_KEY", "OPENAI_API_KEY");
   const supabaseServiceRoleKey = readEnv(env, "SUPABASE_SERVICE_ROLE_KEY");
   const supabaseUrl = readEnv(env, "SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL");
@@ -98,7 +118,7 @@ export function getWorkerEnv(env: WorkerEnvSource = process.env): WorkerEnv {
     "CALL_PROCESSING_TRANSCRIBE_CONCURRENCY",
   );
 
-  if (callProcessingEnabled) {
+  if (callProcessingEnabled || ghlImportEnabled) {
     if (!databaseUrl) {
       throw new Error("Missing required environment variable: DATABASE_URL");
     }
@@ -111,7 +131,7 @@ export function getWorkerEnv(env: WorkerEnvSource = process.env): WorkerEnv {
       throw new Error("Missing required environment variable: SUPABASE_URL");
     }
 
-    if (!openaiApiKey) {
+    if (callProcessingEnabled && !openaiApiKey) {
       throw new Error(
         "Missing required environment variable: OPENAI_CALL_PROCESSING_API_KEY or OPENAI_API_KEY",
       );
@@ -122,6 +142,10 @@ export function getWorkerEnv(env: WorkerEnvSource = process.env): WorkerEnv {
     callProcessingEnabled,
     databaseUrl,
     ffmpegBinary,
+    ghlImportEnabled,
+    ghlImportPollIntervalMs,
+    ghlSyncIntervalMs,
+    ghlSyncPollIntervalMs,
     host: env.HOST || "0.0.0.0",
     maxSourceBytes,
     openaiApiKey,

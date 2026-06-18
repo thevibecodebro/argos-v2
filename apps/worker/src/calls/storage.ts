@@ -17,6 +17,13 @@ type DownloadSourceAssetDependencies = {
   writeFile?: typeof writeFile;
 };
 
+type StoreSourceAssetInput = {
+  callId: string;
+  bytes: Buffer;
+  contentType: string | null;
+  fileName: string;
+};
+
 export async function downloadSourceAsset(
   input: DownloadSourceAssetInput,
   dependencies: DownloadSourceAssetDependencies = {},
@@ -47,4 +54,42 @@ export async function downloadSourceAsset(
   await persistFile(input.targetPath, Buffer.from(await data.arrayBuffer()));
 
   return input.targetPath;
+}
+
+export async function storeCallSourceAsset(
+  input: StoreSourceAssetInput,
+  dependencies: {
+    env?: WorkerEnv;
+    supabase?: StorageClient;
+  } = {},
+) {
+  const env = dependencies.env ?? getWorkerEnv();
+  const supabaseUrl = env.supabaseUrl;
+  const supabaseServiceRoleKey = env.supabaseServiceRoleKey;
+
+  if (!supabaseUrl) {
+    throw new Error("Missing required environment variable: SUPABASE_URL");
+  }
+
+  if (!supabaseServiceRoleKey) {
+    throw new Error("Missing required environment variable: SUPABASE_SERVICE_ROLE_KEY");
+  }
+
+  const supabase = dependencies.supabase ?? createClient(supabaseUrl, supabaseServiceRoleKey);
+  const storagePath = `recordings/${input.callId}/source/${input.fileName}`;
+  const { error } = await supabase.storage.from("call-recordings").upload(storagePath, input.bytes, {
+    contentType: input.contentType ?? "application/octet-stream",
+    upsert: true,
+  });
+
+  if (error) {
+    throw new Error(`Failed to store source recording: ${error.message}`);
+  }
+
+  return {
+    storageBucket: "call-recordings" as const,
+    storagePath,
+    contentType: input.contentType,
+    fileSizeBytes: input.bytes.length,
+  };
 }

@@ -1,6 +1,7 @@
-import { eq } from "drizzle-orm";
+import { count, eq, sql } from "drizzle-orm";
 import {
   getDb,
+  ghlUserMappingsTable,
   ghlIntegrationsTable,
   organizationsTable,
   usersTable,
@@ -34,6 +35,19 @@ export class DrizzleIntegrationsRepository implements IntegrationsRepository {
       .returning({ id: zoomIntegrationsTable.id });
 
     return deleted.length > 0;
+  }
+
+  async acknowledgeGhlRecordingConsent(orgId: string, userId: string) {
+    await this.db
+      .update(ghlIntegrationsTable)
+      .set({
+        consentConfirmedAt: new Date(),
+        consentConfirmedBy: userId,
+        syncEnabled: true,
+        lastSyncError: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(ghlIntegrationsTable.orgId, orgId));
   }
 
   async upsertGhlIntegration(input: {
@@ -173,22 +187,119 @@ export class DrizzleIntegrationsRepository implements IntegrationsRepository {
       .where(eq(zoomIntegrationsTable.orgId, orgId));
   }
 
+  async listGhlUserMappings(orgId: string) {
+    return this.db
+      .select({
+        id: ghlUserMappingsTable.id,
+        argosUserId: ghlUserMappingsTable.argosUserId,
+        ghlUserEmail: ghlUserMappingsTable.ghlUserEmail,
+        ghlUserId: ghlUserMappingsTable.ghlUserId,
+        ghlUserName: ghlUserMappingsTable.ghlUserName,
+        locationId: ghlUserMappingsTable.locationId,
+      })
+      .from(ghlUserMappingsTable)
+      .where(eq(ghlUserMappingsTable.orgId, orgId));
+  }
+
+  async requestGhlSync(orgId: string) {
+    await this.db
+      .update(ghlIntegrationsTable)
+      .set({
+        lastSyncError: null,
+        lastSyncStartedAt: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(ghlIntegrationsTable.orgId, orgId));
+  }
+
+  async setGhlDefaultRep(orgId: string, repId: string | null) {
+    await this.db
+      .update(ghlIntegrationsTable)
+      .set({
+        defaultRepId: repId,
+        updatedAt: new Date(),
+      })
+      .where(eq(ghlIntegrationsTable.orgId, orgId));
+  }
+
+  async upsertGhlUserMappings(input: {
+    orgId: string;
+    locationId: string;
+    mappings: Array<{
+      argosUserId: string;
+      ghlUserEmail?: string | null;
+      ghlUserId: string;
+      ghlUserName?: string | null;
+    }>;
+  }) {
+    if (!input.mappings.length) {
+      return;
+    }
+
+    await this.db
+      .insert(ghlUserMappingsTable)
+      .values(
+        input.mappings.map((mapping) => ({
+          orgId: input.orgId,
+          locationId: input.locationId,
+          argosUserId: mapping.argosUserId,
+          ghlUserEmail: mapping.ghlUserEmail ?? null,
+          ghlUserId: mapping.ghlUserId,
+          ghlUserName: mapping.ghlUserName ?? null,
+          updatedAt: new Date(),
+        })),
+      )
+      .onConflictDoUpdate({
+        target: [
+          ghlUserMappingsTable.orgId,
+          ghlUserMappingsTable.locationId,
+          ghlUserMappingsTable.ghlUserId,
+        ],
+        set: {
+          argosUserId: sql`excluded.argos_user_id`,
+          ghlUserEmail: sql`excluded.ghl_user_email`,
+          ghlUserName: sql`excluded.ghl_user_name`,
+          updatedAt: new Date(),
+        },
+      });
+  }
+
   async findGhlStatus(orgId: string) {
     const [integration] = await this.db
       .select({
         connectedAt: ghlIntegrationsTable.connectedAt,
+        consentConfirmedAt: ghlIntegrationsTable.consentConfirmedAt,
+        defaultRepId: ghlIntegrationsTable.defaultRepId,
+        lastSyncCompletedAt: ghlIntegrationsTable.lastSyncCompletedAt,
+        lastSyncError: ghlIntegrationsTable.lastSyncError,
+        lastSyncStartedAt: ghlIntegrationsTable.lastSyncStartedAt,
         locationId: ghlIntegrationsTable.locationId,
         locationName: ghlIntegrationsTable.locationName,
+        syncEnabled: ghlIntegrationsTable.syncEnabled,
       })
       .from(ghlIntegrationsTable)
       .where(eq(ghlIntegrationsTable.orgId, orgId))
       .limit(1);
 
+    const [mappingCount] = integration
+      ? await this.db
+          .select({ count: count() })
+          .from(ghlUserMappingsTable)
+          .where(eq(ghlUserMappingsTable.orgId, orgId))
+      : [{ count: 0 }];
+
     return {
       connected: !!integration,
       connectedAt: integration?.connectedAt ?? null,
+      consentConfirmedAt: integration?.consentConfirmedAt ?? null,
+      defaultRepId: integration?.defaultRepId ?? null,
+      lastSyncCompletedAt: integration?.lastSyncCompletedAt ?? null,
+      lastSyncError: integration?.lastSyncError ?? null,
+      lastSyncStartedAt: integration?.lastSyncStartedAt ?? null,
       locationId: integration?.locationId ?? null,
       locationName: integration?.locationName ?? null,
+      mappedUsersCount: Number(mappingCount?.count ?? 0),
+      syncEnabled: integration?.syncEnabled ?? false,
     };
   }
 

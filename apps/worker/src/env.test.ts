@@ -14,6 +14,10 @@ describe("getWorkerEnv", () => {
       callProcessingEnabled: false,
       databaseUrl: null,
       ffmpegBinary: null,
+      ghlImportEnabled: false,
+      ghlImportPollIntervalMs: 5_000,
+      ghlSyncIntervalMs: 15 * 60 * 1000,
+      ghlSyncPollIntervalMs: 60_000,
       host: "0.0.0.0",
       maxSourceBytes: 500 * 1024 * 1024,
       openaiApiKey: null,
@@ -40,6 +44,10 @@ describe("getWorkerEnv", () => {
       callProcessingEnabled: true,
       databaseUrl: "postgres://postgres:postgres@localhost:5432/argos",
       ffmpegBinary: "/usr/local/bin/ffmpeg",
+      ghlImportEnabled: false,
+      ghlImportPollIntervalMs: 5_000,
+      ghlSyncIntervalMs: 15 * 60 * 1000,
+      ghlSyncPollIntervalMs: 60_000,
       host: "0.0.0.0",
       maxSourceBytes: 1_048_576,
       openaiApiKey: "openai-key",
@@ -99,6 +107,10 @@ describe("getWorkerEnv", () => {
       callProcessingEnabled: true,
       databaseUrl: "postgres://postgres:postgres@localhost:5432/argos",
       ffmpegBinary: null,
+      ghlImportEnabled: false,
+      ghlImportPollIntervalMs: 5_000,
+      ghlSyncIntervalMs: 15 * 60 * 1000,
+      ghlSyncPollIntervalMs: 60_000,
       host: "0.0.0.0",
       maxSourceBytes: 2_097_152,
       openaiApiKey: "openai-key",
@@ -120,5 +132,24 @@ describe("getWorkerEnv", () => {
       SUPABASE_SERVICE_ROLE_KEY: callProcessingEnv.SUPABASE_SERVICE_ROLE_KEY,
       SUPABASE_URL: callProcessingEnv.SUPABASE_URL,
     }).openaiApiKey).toBe("call-processing-openai-key");
+  });
+
+  it("enables GHL import with database and Supabase credentials but without OpenAI", () => {
+    expect(getWorkerEnv({
+      GHL_IMPORT_ENABLED: "true",
+      DATABASE_URL: callProcessingEnv.DATABASE_URL,
+      SUPABASE_SERVICE_ROLE_KEY: callProcessingEnv.SUPABASE_SERVICE_ROLE_KEY,
+      SUPABASE_URL: callProcessingEnv.SUPABASE_URL,
+      GHL_IMPORT_POLL_INTERVAL_MS: "7000",
+      GHL_SYNC_INTERVAL_MS: "120000",
+      GHL_SYNC_POLL_INTERVAL_MS: "30000",
+    })).toMatchObject({
+      callProcessingEnabled: false,
+      ghlImportEnabled: true,
+      ghlImportPollIntervalMs: 7_000,
+      ghlSyncIntervalMs: 120_000,
+      ghlSyncPollIntervalMs: 30_000,
+      openaiApiKey: null,
+    });
   });
 });

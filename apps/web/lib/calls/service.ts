@@ -316,7 +316,7 @@ export type CallsRepository = {
   createOrResetCallProcessingJob(input: {
     callId: string;
     rubricId?: string | null;
-    sourceOrigin: "manual_upload" | "zoom_recording";
+    sourceOrigin: "manual_upload" | "zoom_recording" | "ghl_recording";
     sourceStoragePath: string;
     sourceFileName: string;
     sourceContentType: string | null;

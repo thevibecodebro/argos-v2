@@ -10,6 +10,9 @@ const platformAuditPattern =
   /auditPlatformWorkspaceMutation|getPlatformApiAccess|createPlatformOrganizationWithAdminInvite|createPlatformSwitchSession|endPlatformSwitchSession|grantPlatformStaffAccess|revokePlatformStaffAccess/;
 
 const platformAuditCoveredRoutes = new Set([
+  "integrations/ghl/consent/route.ts",
+  "integrations/ghl/mappings/route.ts",
+  "integrations/ghl/sync/route.ts",
   "invites/route.ts",
   "platform/organizations/route.ts",
   "platform/sessions/route.ts",

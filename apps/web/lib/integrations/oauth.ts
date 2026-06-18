@@ -19,6 +19,16 @@ export const integrationOAuthCookieNames: Record<IntegrationOAuthProvider, strin
 
 const ZOOM_OAUTH_FETCH_TIMEOUT_MS = 30_000;
 const ZOOM_API_FETCH_TIMEOUT_MS = 30_000;
+const GHL_OAUTH_FETCH_TIMEOUT_MS = 30_000;
+const GHL_API_FETCH_TIMEOUT_MS = 30_000;
+
+export const GHL_OAUTH_SCOPES = [
+  "locations.readonly",
+  "conversations.readonly",
+  "conversations/message.readonly",
+  "users.readonly",
+  "contacts.readonly",
+] as const;
 
 export function buildZoomOAuthUrl(input: {
   clientId: string;
@@ -42,7 +52,7 @@ export function buildGhlOAuthUrl(input: {
   authUrl.searchParams.set("response_type", "code");
   authUrl.searchParams.set("client_id", input.clientId);
   authUrl.searchParams.set("redirect_uri", input.redirectUri);
-  authUrl.searchParams.set("scope", "contacts.readonly contacts.write locations.readonly");
+  authUrl.searchParams.set("scope", GHL_OAUTH_SCOPES.join(" "));
   authUrl.searchParams.set("state", input.state);
   return authUrl.toString();
 }
@@ -93,7 +103,7 @@ export function resolveZoomWebhookUrl(origin: string, env: EnvSource = process.e
 }
 
 export function resolveGhlRedirectUri(origin: string, env: EnvSource = process.env) {
-  return env.GHL_REDIRECT_URI ?? `${origin}/api/integrations/ghl/callback`;
+  return env.GHL_REDIRECT_URI ?? `${origin}/api/integrations/leadconnector/callback`;
 }
 
 export function getRequestOrigin(request: Request) {
@@ -202,19 +212,40 @@ export async function exchangeGhlCode(
     user_type: "Location",
   });
 
-  const tokenResponse = await fetch("https://services.leadconnectorhq.com/oauth/token", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
+  const { response: tokenResponse, body: tokenBody } = await fetchWithTimeout<
+    | {
+        access_token: string;
+        refresh_token: string;
+        expires_in: number;
+        locationId?: string;
+      }
+    | null
+  >(
+    "https://services.leadconnectorhq.com/oauth/token",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: body.toString(),
     },
-    body: body.toString(),
-  });
+    GHL_OAUTH_FETCH_TIMEOUT_MS,
+    (response) =>
+      response.ok
+        ? (response.json() as Promise<{
+            access_token: string;
+            refresh_token: string;
+            expires_in: number;
+            locationId?: string;
+          }>)
+        : Promise.resolve(null),
+  );
 
   if (!tokenResponse.ok) {
     throw new Error(`GHL token exchange failed: ${tokenResponse.status}`);
   }
 
-  const tokenPayload = (await tokenResponse.json()) as {
+  const tokenPayload = tokenBody as {
     access_token: string;
     refresh_token: string;
     expires_in: number;
@@ -224,7 +255,9 @@ export async function exchangeGhlCode(
   let locationName: string | null = null;
 
   if (tokenPayload.locationId) {
-    const locationResponse = await fetch(
+    const { response: locationResponse, body: locationPayload } = await fetchWithTimeout<{
+      location?: { name?: string };
+    }>(
       `https://services.leadconnectorhq.com/locations/${tokenPayload.locationId}`,
       {
         headers: {
@@ -232,12 +265,14 @@ export async function exchangeGhlCode(
           Version: "2021-07-28",
         },
       },
-    ).catch(() => null);
+      GHL_API_FETCH_TIMEOUT_MS,
+      (response) =>
+        response.ok
+          ? (response.json() as Promise<{ location?: { name?: string } }>)
+          : Promise.resolve({}),
+    ).catch(() => ({ response: null, body: {} }));
 
     if (locationResponse?.ok) {
-      const locationPayload = (await locationResponse.json()) as {
-        location?: { name?: string };
-      };
       locationName = locationPayload.location?.name ?? null;
     }
   }
@@ -248,6 +283,69 @@ export async function exchangeGhlCode(
     tokenExpiresAt: new Date(Date.now() + tokenPayload.expires_in * 1000 - 60_000),
     locationId: tokenPayload.locationId ?? "",
     locationName,
+  };
+}
+
+export async function refreshGhlToken(
+  refreshToken: string,
+  env: EnvSource = process.env,
+) {
+  const clientId = env.GHL_CLIENT_ID;
+  const clientSecret = env.GHL_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error("GHL integration is not configured");
+  }
+
+  const body = new URLSearchParams({
+    client_id: clientId,
+    client_secret: clientSecret,
+    grant_type: "refresh_token",
+    refresh_token: refreshToken,
+    user_type: "Location",
+  });
+
+  const { response: tokenResponse, body: tokenBody } = await fetchWithTimeout<
+    | {
+        access_token: string;
+        refresh_token: string;
+        expires_in: number;
+      }
+    | null
+  >(
+    "https://services.leadconnectorhq.com/oauth/token",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: body.toString(),
+    },
+    GHL_OAUTH_FETCH_TIMEOUT_MS,
+    (response) =>
+      response.ok
+        ? (response.json() as Promise<{
+            access_token: string;
+            refresh_token: string;
+            expires_in: number;
+          }>)
+        : Promise.resolve(null),
+  );
+
+  if (!tokenResponse.ok) {
+    throw new Error(`GHL token refresh failed: ${tokenResponse.status}`);
+  }
+
+  const tokenPayload = tokenBody as {
+    access_token: string;
+    refresh_token: string;
+    expires_in: number;
+  };
+
+  return {
+    accessToken: tokenPayload.access_token,
+    refreshToken: tokenPayload.refresh_token,
+    tokenExpiresAt: new Date(Date.now() + tokenPayload.expires_in * 1000 - 60_000),
   };
 }
 
