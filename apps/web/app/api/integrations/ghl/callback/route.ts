@@ -43,7 +43,7 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const state = searchParams.get("state");
 
-  if (!code || !state) {
+  if (!code) {
     return settingsRedirect(request, "ghl_error", "missing_params");
   }
 
@@ -71,24 +71,26 @@ export async function GET(request: Request) {
     return settingsRedirect(request, "ghl_error", "forbidden", true);
   }
 
-  const decoded = decodeIntegrationOAuthState(state);
+  const cookieStore = await cookies();
+  const cookieValue = cookieStore.get(integrationOAuthCookieNames.ghl)?.value ?? null;
+
+  if (!cookieValue) {
+    return settingsRedirect(request, "ghl_error", "session_expired", true);
+  }
+
+  const decoded = state
+    ? decodeIntegrationOAuthState(state)
+    : decodeIntegrationOAuthState(cookieValue);
 
   if (!decoded) {
     return settingsRedirect(request, "ghl_error", "invalid_state");
   }
 
-  const cookieStore = await cookies();
-  const cookieNonce = cookieStore.get(integrationOAuthCookieNames.ghl)?.value ?? null;
+  const cookieMatchesReturnedState = state
+    ? timingSafeNonceMatch(cookieValue, state) || timingSafeNonceMatch(cookieValue, decoded.nonce)
+    : true;
 
-  if (!cookieNonce) {
-    return settingsRedirect(request, "ghl_error", "session_expired", true);
-  }
-
-  if (
-    !timingSafeNonceMatch(cookieNonce, decoded.nonce) ||
-    decoded.userId !== viewer.id ||
-    decoded.orgId !== viewer.org.id
-  ) {
+  if (!cookieMatchesReturnedState || decoded.userId !== viewer.id || decoded.orgId !== viewer.org.id) {
     return settingsRedirect(request, "ghl_error", "state_mismatch", true);
   }
 

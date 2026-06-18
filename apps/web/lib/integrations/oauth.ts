@@ -45,14 +45,30 @@ export function buildZoomOAuthUrl(input: {
 
 export function buildGhlOAuthUrl(input: {
   clientId: string;
+  installUrl?: string | null;
   redirectUri: string;
   state: string;
 }) {
-  const authUrl = new URL("https://marketplace.gohighlevel.com/oauth/chooselocation");
-  authUrl.searchParams.set("response_type", "code");
-  authUrl.searchParams.set("client_id", input.clientId);
-  authUrl.searchParams.set("redirect_uri", input.redirectUri);
-  authUrl.searchParams.set("scope", GHL_OAUTH_SCOPES.join(" "));
+  const authUrl = input.installUrl?.trim()
+    ? new URL(input.installUrl)
+    : new URL("https://marketplace.gohighlevel.com/oauth/chooselocation");
+
+  if (authUrl.protocol !== "https:") {
+    throw new Error("GHL install URL must use HTTPS");
+  }
+
+  if (!authUrl.searchParams.has("response_type")) {
+    authUrl.searchParams.set("response_type", "code");
+  }
+  if (!authUrl.searchParams.has("client_id")) {
+    authUrl.searchParams.set("client_id", input.clientId);
+  }
+  if (!authUrl.searchParams.has("redirect_uri")) {
+    authUrl.searchParams.set("redirect_uri", input.redirectUri);
+  }
+  if (!authUrl.searchParams.has("scope")) {
+    authUrl.searchParams.set("scope", GHL_OAUTH_SCOPES.join(" "));
+  }
   authUrl.searchParams.set("state", input.state);
   return authUrl.toString();
 }

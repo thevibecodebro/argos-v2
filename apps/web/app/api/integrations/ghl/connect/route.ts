@@ -58,15 +58,21 @@ export async function GET(request: Request) {
     userId: viewer.id,
   });
 
-  const response = NextResponse.redirect(
-    buildGhlOAuthUrl({
+  let oauthUrl: string;
+  try {
+    oauthUrl = buildGhlOAuthUrl({
       clientId,
+      installUrl: process.env.GHL_INSTALL_URL,
       redirectUri,
       state,
-    }),
-  );
+    });
+  } catch {
+    return settingsRedirect(request, "invalid_install_url");
+  }
 
-  response.cookies.set(integrationOAuthCookieNames.ghl, nonce, {
+  const response = NextResponse.redirect(oauthUrl);
+
+  response.cookies.set(integrationOAuthCookieNames.ghl, state, {
     httpOnly: true,
     maxAge: 60 * 10,
     path: "/",

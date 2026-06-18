@@ -72,6 +72,28 @@ describe("integration oauth helpers", () => {
     );
   });
 
+  it("uses the configured GHL Marketplace install URL when present", () => {
+    const ghlUrl = new URL(
+      buildGhlOAuthUrl({
+        clientId: "fallback-client",
+        installUrl:
+          "https://marketplace.gohighlevel.com/oauth/chooselocation?client_id=marketplace-client&install_id=app-install",
+        redirectUri: "https://app.argos.ai/api/integrations/leadconnector/callback",
+        state: "ghl-state",
+      }),
+    );
+
+    expect(ghlUrl.origin + ghlUrl.pathname).toBe(
+      "https://marketplace.gohighlevel.com/oauth/chooselocation",
+    );
+    expect(ghlUrl.searchParams.get("client_id")).toBe("marketplace-client");
+    expect(ghlUrl.searchParams.get("install_id")).toBe("app-install");
+    expect(ghlUrl.searchParams.get("redirect_uri")).toBe(
+      "https://app.argos.ai/api/integrations/leadconnector/callback",
+    );
+    expect(ghlUrl.searchParams.get("state")).toBe("ghl-state");
+  });
+
   it("round-trips encoded state and rejects malformed payloads", () => {
     const encoded = encodeIntegrationOAuthState({
       nonce: "nonce-123",

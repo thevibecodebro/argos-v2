@@ -109,6 +109,7 @@ Required hosted env when enabling GoHighLevel:
 - `GHL_CLIENT_ID`
 - `GHL_CLIENT_SECRET`
 - `GHL_REDIRECT_URI`
+- `GHL_INSTALL_URL` copied from the GoHighLevel Marketplace app auth pane
 - `GHL_WEBHOOK_TOKEN`
 - `GHL_IMPORT_ENABLED=true` on the worker once Marketplace OAuth and webhook delivery are verified
 - `GHL_IMPORT_POLL_INTERVAL_MS` if the default 5 second import queue poll is not appropriate
@@ -132,6 +133,7 @@ GoHighLevel live verification:
 
 - Keep `ARGOS_GHL_ENABLED=false` until Marketplace app access and OAuth credentials are confirmed.
 - Confirm the Marketplace redirect URI exactly matches `GHL_REDIRECT_URI`.
+- Confirm `GHL_INSTALL_URL` is the Marketplace app installation URL, not a hand-built OAuth URL.
 - Confirm the GHL Marketplace app includes `locations.readonly`, `conversations.readonly`, `conversations/message.readonly`, `users.readonly`, and `contacts.readonly`.
 - Connect a test location from the hosted app before exposing the control to users.
 - Send a test GHL message webhook to `/api/webhooks/leadconnector` and confirm a `ghl_call_imports` row is queued without downloading audio in the route.
