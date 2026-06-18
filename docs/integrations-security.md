@@ -109,12 +109,33 @@ Required hosted env when enabling GoHighLevel:
 - `GHL_CLIENT_ID`
 - `GHL_CLIENT_SECRET`
 - `GHL_REDIRECT_URI`
+- `GHL_WEBHOOK_TOKEN`
+- `GHL_IMPORT_ENABLED=true` on the worker once Marketplace OAuth and webhook delivery are verified
+- `GHL_IMPORT_POLL_INTERVAL_MS` if the default 5 second import queue poll is not appropriate
+- `GHL_SYNC_INTERVAL_MS` if the default 15 minute backfill interval is not appropriate
+- `GHL_SYNC_POLL_INTERVAL_MS` if the default 60 second sync scheduler poll is not appropriate
+
+Use the white-label-safe public aliases in the GoHighLevel Marketplace app:
+
+- OAuth redirect URL: `/api/integrations/leadconnector/callback`
+- Webhook URL: `/api/webhooks/leadconnector`
+
+GoHighLevel recording import is additionally gated in-app:
+
+- A location/sub-account must be connected through Marketplace OAuth.
+- An admin must acknowledge recording-processing consent before imports run.
+- Calls import only when the connected integration has sync enabled and a mapped GHL user or default Argos owner exists.
+- Webhook requests must include `GHL_WEBHOOK_TOKEN` through `x-ghl-webhook-token`, `Authorization: Bearer`, or the white-label webhook URL query string when Marketplace cannot send custom headers.
+- The worker imports recordings into private `call-recordings` storage and queues `call_processing_jobs` with `source_origin='ghl_recording'`.
 
 GoHighLevel live verification:
 
 - Keep `ARGOS_GHL_ENABLED=false` until Marketplace app access and OAuth credentials are confirmed.
 - Confirm the Marketplace redirect URI exactly matches `GHL_REDIRECT_URI`.
+- Confirm the GHL Marketplace app includes `locations.readonly`, `conversations.readonly`, `conversations/message.readonly`, `users.readonly`, and `contacts.readonly`.
 - Connect a test location from the hosted app before exposing the control to users.
+- Send a test GHL message webhook to `/api/webhooks/leadconnector` and confirm a `ghl_call_imports` row is queued without downloading audio in the route.
+- Turn on `GHL_IMPORT_ENABLED=true` for the worker and confirm a test recording moves from `ghl_call_imports` to `calls` plus `call_processing_jobs`.
 - If HighLevel returns account or provisioning errors during Marketplace login, verify the HighLevel admin state before changing app code.
 
 ## Hosted Verification Checklist

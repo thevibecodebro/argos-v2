@@ -55,9 +55,16 @@ export default async function SettingsIntegrationsPage() {
             connectPath: "/api/integrations/ghl/connect",
             connected: false,
             connectedAt: null,
+            consentConfirmedAt: null,
+            defaultRepId: null,
             disconnectPath: "/api/integrations/ghl/disconnect",
+            lastSyncCompletedAt: null,
+            lastSyncError: null,
+            lastSyncStartedAt: null,
             locationId: null,
             locationName: null,
+            mappedUsersCount: 0,
+            syncEnabled: false,
           }
         }
       />

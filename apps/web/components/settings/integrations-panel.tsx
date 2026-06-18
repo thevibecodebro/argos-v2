@@ -19,9 +19,16 @@ export type IntegrationsPanelProps = {
     connectPath: string;
     connected: boolean;
     connectedAt?: string | null;
+    consentConfirmedAt?: string | null;
+    defaultRepId?: string | null;
     disconnectPath: string;
+    lastSyncCompletedAt?: string | null;
+    lastSyncError?: string | null;
+    lastSyncStartedAt?: string | null;
     locationId?: string | null;
     locationName?: string | null;
+    mappedUsersCount?: number;
+    syncEnabled?: boolean;
   };
 };
 
@@ -47,6 +54,8 @@ const disconnectFallbacks: Record<IntegrationService, string> = {
   zoom: "Unable to disconnect Zoom. Try again.",
   ghl: "Unable to disconnect Go High Level. Try again.",
 };
+
+const ghlActionFallback = "Unable to update Go High Level settings. Try again.";
 
 export function getDisconnectConfirmationCopy(service: IntegrationService) {
   return service === "zoom"
@@ -278,9 +287,16 @@ type GhlCardProps = {
   connectPath: string;
   connected: boolean;
   connectedAt?: string | null;
+  consentConfirmedAt?: string | null;
+  defaultRepId?: string | null;
   disconnectPath: string;
+  lastSyncCompletedAt?: string | null;
+  lastSyncError?: string | null;
+  lastSyncStartedAt?: string | null;
   locationId?: string | null;
   locationName?: string | null;
+  mappedUsersCount?: number;
+  syncEnabled?: boolean;
 };
 
 function GhlCard({
@@ -288,8 +304,15 @@ function GhlCard({
   connectPath,
   connected,
   connectedAt,
+  consentConfirmedAt,
+  defaultRepId,
   disconnectPath,
+  lastSyncCompletedAt,
+  lastSyncError,
+  lastSyncStartedAt,
   locationName,
+  mappedUsersCount,
+  syncEnabled,
 }: GhlCardProps) {
   const router = useRouter();
   const [isMutating, setIsMutating] = useState(false);
@@ -297,6 +320,10 @@ function GhlCard({
   const [isConnected, setIsConnected] = useState(connected);
   const [connectedAtState, setConnectedAtState] = useState(connectedAt);
   const [disconnectError, setDisconnectError] = useState<string | null>(null);
+  const [ghlActionError, setGhlActionError] = useState<string | null>(null);
+  const [isGhlActionPending, setIsGhlActionPending] = useState(false);
+  const [consentConfirmedAtState, setConsentConfirmedAtState] = useState(consentConfirmedAt);
+  const [syncRequested, setSyncRequested] = useState(false);
   const [locationNameState, setLocationNameState] = useState(locationName);
 
   async function handleDisconnect() {
@@ -324,6 +351,44 @@ function GhlCard({
     }
   }
 
+  async function postGhlAction(path: string) {
+    setGhlActionError(null);
+    setIsGhlActionPending(true);
+
+    try {
+      const response = await fetch(path, { method: "POST" });
+
+      if (!response.ok) {
+        setGhlActionError(await getReadableActionError(response));
+        return false;
+      }
+
+      router.refresh();
+      return true;
+    } catch {
+      setGhlActionError(ghlActionFallback);
+      return false;
+    } finally {
+      setIsGhlActionPending(false);
+    }
+  }
+
+  async function handleConsent() {
+    const ok = await postGhlAction("/api/integrations/ghl/consent");
+
+    if (ok) {
+      setConsentConfirmedAtState(new Date().toISOString());
+    }
+  }
+
+  async function handleSyncNow() {
+    const ok = await postGhlAction("/api/integrations/ghl/sync");
+
+    if (ok) {
+      setSyncRequested(true);
+    }
+  }
+
   return (
     <ForgeSurface as="section" className="p-6" variant="panel">
       <div className="flex items-start justify-between gap-4">
@@ -344,7 +409,8 @@ function GhlCard({
       </div>
 
       <p className="mt-3 text-sm leading-7 text-[var(--forge-muted)]">
-        Connect Go High Level to sync contacts and automate post-call workflows.
+        Connect Go High Level to import dialed call recordings into Argos for
+        review, scoring, and coaching.
       </p>
 
       {isConnected ? (
@@ -362,6 +428,57 @@ function GhlCard({
               Connected {formatConnectedAt(connectedAtState)}
             </p>
           ) : null}
+          <div className="mt-4 grid gap-2 rounded-[8px] border border-[var(--forge-border)] bg-black/10 p-3 text-sm text-[var(--forge-muted)] sm:grid-cols-2">
+            <p>
+              <span className="block text-xs text-[var(--forge-muted)]">
+                Call Recording Sync
+              </span>
+              <span className="font-medium text-[var(--forge-text)]">
+                {syncEnabled ? "Enabled" : "Not enabled"}
+              </span>
+            </p>
+            <p>
+              <span className="block text-xs text-[var(--forge-muted)]">
+                Consent
+              </span>
+              <span className="font-medium text-[var(--forge-text)]">
+                {consentConfirmedAtState ? "Consent confirmed" : "Consent required"}
+              </span>
+            </p>
+            <p>
+              <span className="block text-xs text-[var(--forge-muted)]">
+                Mapped users
+              </span>
+              <span className="font-medium text-[var(--forge-text)]">
+                {mappedUsersCount ?? 0}
+              </span>
+            </p>
+            <p>
+              <span className="block text-xs text-[var(--forge-muted)]">
+                Fallback owner
+              </span>
+              <span className="font-medium text-[var(--forge-text)]">
+                {defaultRepId ? "Configured" : "Not set"}
+              </span>
+            </p>
+            <p className="sm:col-span-2">
+              <span className="block text-xs text-[var(--forge-muted)]">
+                Last sync
+              </span>
+              <span className="font-medium text-[var(--forge-text)]">
+                {lastSyncCompletedAt
+                  ? formatConnectedAt(lastSyncCompletedAt)
+                  : lastSyncStartedAt
+                    ? `Started ${formatConnectedAt(lastSyncStartedAt)}`
+                  : "No completed sync yet"}
+              </span>
+            </p>
+            {lastSyncError ? (
+              <p className="sm:col-span-2 text-[var(--forge-danger)]">
+                {lastSyncError}
+              </p>
+            ) : null}
+          </div>
         </div>
       ) : null}
 
@@ -381,9 +498,50 @@ function GhlCard({
         </p>
       ) : null}
 
+      {ghlActionError ? (
+        <p
+          className="mt-3 text-sm font-medium text-[var(--forge-danger)]"
+          role="alert"
+        >
+          {ghlActionError}
+        </p>
+      ) : null}
+
+      {syncRequested ? (
+        <p className="mt-3 text-sm text-[var(--forge-muted)]">
+          Sync queued. The worker will import new eligible GHL recordings.
+        </p>
+      ) : null}
+
       <div className="mt-5 flex flex-wrap items-center gap-3">
         {isConnected ? (
-          confirmDisconnect ? (
+          <>
+            {!consentConfirmedAtState ? (
+              <ForgeButton
+                disabled={isGhlActionPending}
+                onClick={() => {
+                  void handleConsent();
+                }}
+                size="sm"
+                type="button"
+                variant="primary"
+              >
+                {isGhlActionPending ? "Confirming..." : "Confirm consent"}
+              </ForgeButton>
+            ) : (
+              <ForgeButton
+                disabled={isGhlActionPending}
+                onClick={() => {
+                  void handleSyncNow();
+                }}
+                size="sm"
+                type="button"
+                variant="primary"
+              >
+                {isGhlActionPending ? "Queueing..." : "Sync now"}
+              </ForgeButton>
+            )}
+            {confirmDisconnect ? (
             <>
               <p className="text-sm text-[var(--forge-muted)]">
                 {getDisconnectConfirmationCopy("ghl")}
@@ -424,7 +582,8 @@ function GhlCard({
             >
               Disconnect
             </ForgeButton>
-          )
+          )}
+          </>
         ) : (
           <ForgeButton
             disabled={!available}
@@ -438,6 +597,19 @@ function GhlCard({
       </div>
     </ForgeSurface>
   );
+}
+
+async function getReadableActionError(response: Response) {
+  try {
+    const payload = (await response.json()) as { error?: unknown; message?: unknown };
+    const message = [payload.message, payload.error].find(
+      (value) => typeof value === "string" && value.trim().length > 0,
+    );
+
+    return typeof message === "string" ? message : ghlActionFallback;
+  } catch {
+    return ghlActionFallback;
+  }
 }
 
 export function IntegrationsPanel({ zoom, ghl }: IntegrationsPanelProps) {
@@ -456,9 +628,16 @@ export function IntegrationsPanel({ zoom, ghl }: IntegrationsPanelProps) {
         connectPath={ghl.connectPath}
         connected={ghl.connected}
         connectedAt={ghl.connectedAt}
+        consentConfirmedAt={ghl.consentConfirmedAt}
+        defaultRepId={ghl.defaultRepId}
         disconnectPath={ghl.disconnectPath}
+        lastSyncCompletedAt={ghl.lastSyncCompletedAt}
+        lastSyncError={ghl.lastSyncError}
+        lastSyncStartedAt={ghl.lastSyncStartedAt}
         locationId={ghl.locationId}
         locationName={ghl.locationName}
+        mappedUsersCount={ghl.mappedUsersCount}
+        syncEnabled={ghl.syncEnabled}
       />
     </div>
   );

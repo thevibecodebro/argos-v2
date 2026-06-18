@@ -4,6 +4,9 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CallProcessingRepository } from "./calls/repository";
 import { getWorkerEnv } from "./env";
+import { pollGhlCallImports } from "./ghl/poll-ghl-call-imports";
+import { pollGhlSync } from "./ghl/poll-ghl-sync";
+import { GhlImportRepository } from "./ghl/repository";
 import { pollCallProcessingJobs } from "./jobs/poll-call-processing-jobs";
 import { processCallJob } from "./jobs/process-call-job";
 
@@ -48,6 +51,25 @@ if (env.callProcessingEnabled) {
     },
   }).catch((error) => {
     console.error("Call processing poll loop stopped", error);
+  });
+}
+
+if (env.ghlImportEnabled) {
+  const repository = new GhlImportRepository();
+
+  void pollGhlCallImports({
+    repository,
+    pollIntervalMs: env.ghlImportPollIntervalMs,
+  }).catch((error) => {
+    console.error("GHL import poll loop stopped", error);
+  });
+
+  void pollGhlSync({
+    repository,
+    minIntervalMs: env.ghlSyncIntervalMs,
+    pollIntervalMs: env.ghlSyncPollIntervalMs,
+  }).catch((error) => {
+    console.error("GHL sync poll loop stopped", error);
   });
 }
 

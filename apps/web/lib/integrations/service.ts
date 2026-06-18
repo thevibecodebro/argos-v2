@@ -4,9 +4,18 @@ import type { AppUserRole } from "@/lib/users/roles";
 
 type ServiceResult<T> =
   | { ok: true; data: T }
-  | { ok: false; status: 403 | 404; error: string };
+  | { ok: false; status: 400 | 403 | 404; error: string };
 
 type IntegrationProvider = "zoom" | "ghl";
+
+export type GhlUserMapping = {
+  id: string;
+  argosUserId: string;
+  ghlUserEmail: string | null;
+  ghlUserId: string;
+  ghlUserName: string | null;
+  locationId: string;
+};
 
 type IntegrationAvailability = {
   ghlClientId: string | null | undefined;
@@ -29,9 +38,16 @@ export type GhlIntegrationStatus = {
   connectPath: string;
   connected: boolean;
   connectedAt: string | null;
+  consentConfirmedAt: string | null;
+  defaultRepId: string | null;
   disconnectPath: string;
+  lastSyncCompletedAt: string | null;
+  lastSyncError: string | null;
+  lastSyncStartedAt: string | null;
   locationId: string | null;
   locationName: string | null;
+  mappedUsersCount: number;
+  syncEnabled: boolean;
 };
 
 export type IntegrationStatusData = {
@@ -43,11 +59,37 @@ export type IntegrationStatusData = {
 export type IntegrationsRepository = {
   deleteGhlIntegration(orgId: string): Promise<boolean>;
   deleteZoomIntegration(orgId: string): Promise<boolean>;
+  acknowledgeGhlRecordingConsent(orgId: string, userId: string): Promise<void>;
   findCurrentUserByAuthId(authUserId: string): Promise<DashboardUserRecord | null>;
-  findGhlStatus(orgId: string): Promise<{ connected: boolean; connectedAt: Date | null; locationId: string | null; locationName: string | null }>;
+  findGhlStatus(orgId: string): Promise<{
+    connected: boolean;
+    connectedAt: Date | null;
+    consentConfirmedAt: Date | null;
+    defaultRepId: string | null;
+    lastSyncCompletedAt: Date | null;
+    lastSyncError: string | null;
+    lastSyncStartedAt: Date | null;
+    locationId: string | null;
+    locationName: string | null;
+    mappedUsersCount: number;
+    syncEnabled: boolean;
+  }>;
   findZoomIntegrationForDisconnect(orgId: string): Promise<{ accessToken: string; refreshToken: string; tokenExpiresAt: Date; webhookId: string | null } | null>;
   findZoomStatus(orgId: string): Promise<{ connected: boolean; connectedAt: Date | null; zoomUserId: string | null }>;
+  listGhlUserMappings(orgId: string): Promise<GhlUserMapping[]>;
+  requestGhlSync(orgId: string): Promise<void>;
+  setGhlDefaultRep(orgId: string, repId: string | null): Promise<void>;
   updateZoomTokens(orgId: string, tokens: { accessToken: string; refreshToken: string; tokenExpiresAt: Date }): Promise<void>;
+  upsertGhlUserMappings(input: {
+    orgId: string;
+    locationId: string;
+    mappings: Array<{
+      argosUserId: string;
+      ghlUserEmail?: string | null;
+      ghlUserId: string;
+      ghlUserName?: string | null;
+    }>;
+  }): Promise<void>;
 };
 
 function canManage(role: AppUserRole | null) {
@@ -100,9 +142,16 @@ export async function getIntegrationStatuses(
           connectPath: "/api/integrations/ghl/connect",
           connected: false,
           connectedAt: null,
+          consentConfirmedAt: null,
+          defaultRepId: null,
           disconnectPath: "/api/integrations/ghl/disconnect",
+          lastSyncCompletedAt: null,
+          lastSyncError: null,
+          lastSyncStartedAt: null,
           locationId: null,
           locationName: null,
+          mappedUsersCount: 0,
+          syncEnabled: false,
         },
         zoom: {
           available: availability.zoom,
@@ -119,8 +168,15 @@ export async function getIntegrationStatuses(
   const unavailableGhl = {
     connected: false,
     connectedAt: null,
+    consentConfirmedAt: null,
+    defaultRepId: null,
+    lastSyncCompletedAt: null,
+    lastSyncError: null,
+    lastSyncStartedAt: null,
     locationId: null,
     locationName: null,
+    mappedUsersCount: 0,
+    syncEnabled: false,
   };
   const [zoom, ghl] = await Promise.all([
     repository.findZoomStatus(viewer.org.id),
@@ -144,9 +200,16 @@ export async function getIntegrationStatuses(
         connectPath: "/api/integrations/ghl/connect",
         connected: ghl.connected,
         connectedAt: ghl.connectedAt?.toISOString() ?? null,
+        consentConfirmedAt: ghl.consentConfirmedAt?.toISOString() ?? null,
+        defaultRepId: ghl.defaultRepId,
         disconnectPath: "/api/integrations/ghl/disconnect",
+        lastSyncCompletedAt: ghl.lastSyncCompletedAt?.toISOString() ?? null,
+        lastSyncError: ghl.lastSyncError,
+        lastSyncStartedAt: ghl.lastSyncStartedAt?.toISOString() ?? null,
         locationId: ghl.locationId,
         locationName: ghl.locationName,
+        mappedUsersCount: ghl.mappedUsersCount,
+        syncEnabled: ghl.syncEnabled,
       },
     },
   };
@@ -210,4 +273,160 @@ export async function disconnectIntegration(
     ok: true,
     data: { provider, success: true },
   };
+}
+
+async function getAdminViewer(
+  repository: IntegrationsRepository,
+  authUserId: string,
+): Promise<ServiceResult<DashboardUserRecord & { org: NonNullable<DashboardUserRecord["org"]> }>> {
+  const viewer = await repository.findCurrentUserByAuthId(authUserId);
+
+  if (!viewer) {
+    return {
+      ok: false,
+      status: 404,
+      error: "User is not provisioned in the app database",
+    };
+  }
+
+  if (!canManage(viewer.role)) {
+    return {
+      ok: false,
+      status: 403,
+      error: "Only organization admins can manage integrations",
+    };
+  }
+
+  if (!viewer.org) {
+    return {
+      ok: false,
+      status: 404,
+      error: "User is not assigned to an organization",
+    };
+  }
+
+  return {
+    ok: true,
+    data: viewer as DashboardUserRecord & { org: NonNullable<DashboardUserRecord["org"]> },
+  };
+}
+
+export async function acknowledgeGhlRecordingConsent(
+  repository: IntegrationsRepository,
+  authUserId: string,
+): Promise<ServiceResult<{ success: true }>> {
+  const viewer = await getAdminViewer(repository, authUserId);
+
+  if (!viewer.ok) {
+    return viewer;
+  }
+
+  const ghl = await repository.findGhlStatus(viewer.data.org.id);
+
+  if (!ghl.connected) {
+    return {
+      ok: false,
+      status: 404,
+      error: "GoHighLevel is not connected",
+    };
+  }
+
+  await repository.acknowledgeGhlRecordingConsent(viewer.data.org.id, viewer.data.id);
+
+  return { ok: true, data: { success: true } };
+}
+
+export async function listGhlUserMappings(
+  repository: IntegrationsRepository,
+  authUserId: string,
+): Promise<ServiceResult<{ mappings: GhlUserMapping[] }>> {
+  const viewer = await getAdminViewer(repository, authUserId);
+
+  if (!viewer.ok) {
+    return viewer;
+  }
+
+  return {
+    ok: true,
+    data: {
+      mappings: await repository.listGhlUserMappings(viewer.data.org.id),
+    },
+  };
+}
+
+export async function updateGhlUserMappings(
+  repository: IntegrationsRepository,
+  authUserId: string,
+  input: {
+    defaultRepId?: string | null;
+    mappings?: Array<{
+      argosUserId: string;
+      ghlUserEmail?: string | null;
+      ghlUserId: string;
+      ghlUserName?: string | null;
+    }>;
+  },
+): Promise<ServiceResult<{ success: true }>> {
+  const viewer = await getAdminViewer(repository, authUserId);
+
+  if (!viewer.ok) {
+    return viewer;
+  }
+
+  const ghl = await repository.findGhlStatus(viewer.data.org.id);
+
+  if (!ghl.connected || !ghl.locationId) {
+    return {
+      ok: false,
+      status: 404,
+      error: "GoHighLevel is not connected",
+    };
+  }
+
+  if (input.defaultRepId !== undefined) {
+    await repository.setGhlDefaultRep(viewer.data.org.id, input.defaultRepId);
+  }
+
+  if (input.mappings?.length) {
+    await repository.upsertGhlUserMappings({
+      orgId: viewer.data.org.id,
+      locationId: ghl.locationId,
+      mappings: input.mappings,
+    });
+  }
+
+  return { ok: true, data: { success: true } };
+}
+
+export async function requestGhlSync(
+  repository: IntegrationsRepository,
+  authUserId: string,
+): Promise<ServiceResult<{ success: true }>> {
+  const viewer = await getAdminViewer(repository, authUserId);
+
+  if (!viewer.ok) {
+    return viewer;
+  }
+
+  const ghl = await repository.findGhlStatus(viewer.data.org.id);
+
+  if (!ghl.connected) {
+    return {
+      ok: false,
+      status: 404,
+      error: "GoHighLevel is not connected",
+    };
+  }
+
+  if (!ghl.consentConfirmedAt) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Confirm recording consent before syncing GoHighLevel calls",
+    };
+  }
+
+  await repository.requestGhlSync(viewer.data.org.id);
+
+  return { ok: true, data: { success: true } };
 }

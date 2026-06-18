@@ -2,7 +2,7 @@ import { index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-c
 import { callsTable } from "./calls";
 import { rubricsTable } from "./rubrics";
 
-export const CALL_PROCESSING_JOB_ORIGINS = ["manual_upload", "zoom_recording"] as const;
+export const CALL_PROCESSING_JOB_ORIGINS = ["manual_upload", "zoom_recording", "ghl_recording"] as const;
 export const CALL_PROCESSING_JOB_STATUSES = [
   "pending",
   "running",

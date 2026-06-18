@@ -32,6 +32,13 @@ const connectedProps = {
     disconnectPath: "/api/integrations/ghl/disconnect",
     locationId: "loc-1",
     locationName: "North Team",
+    syncEnabled: true,
+    consentConfirmedAt: "2026-04-30T12:05:00.000Z",
+    defaultRepId: "rep-1",
+    mappedUsersCount: 2,
+    lastSyncStartedAt: "2026-04-30T12:10:00.000Z",
+    lastSyncCompletedAt: "2026-04-30T12:11:00.000Z",
+    lastSyncError: null,
   },
 };
 
@@ -94,5 +101,15 @@ describe("IntegrationsPanel disconnect feedback", () => {
     expect(html).toContain("Go High Level");
     expect(html).toContain("Disconnect");
     expect(html).not.toContain("Are you sure?");
+  });
+
+  it("renders GHL recording sync metadata when connected", () => {
+    const html = renderToStaticMarkup(createElement(IntegrationsPanel, connectedProps));
+
+    expect(html).toContain("Call Recording Sync");
+    expect(html).toContain("Consent confirmed");
+    expect(html).toContain("Mapped users");
+    expect(html).toContain("2");
+    expect(html).toContain("Last sync");
   });
 });

@@ -12,6 +12,7 @@
   "dependencies": {
     "@argos-v2/call-processing": "*",
     "@argos-v2/db": "*",
+    "@argos-v2/ghl-client": "*",
     "@argos-v2/ui": "*",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.49.8",

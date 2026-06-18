@@ -39,6 +39,24 @@ export class SupabaseIntegrationsRepository implements IntegrationsRepository {
     return Boolean(data?.length);
   }
 
+  async acknowledgeGhlRecordingConsent(orgId: string, userId: string) {
+    const supabase: any = this.supabase;
+    const { error } = await supabase
+      .from("ghl_integrations")
+      .update({
+        consent_confirmed_at: new Date().toISOString(),
+        consent_confirmed_by: userId,
+        sync_enabled: true,
+        last_sync_error: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("org_id", orgId);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
   async upsertGhlIntegration(input: {
     accessToken: string;
     locationId: string;
@@ -140,6 +158,91 @@ export class SupabaseIntegrationsRepository implements IntegrationsRepository {
     }
   }
 
+  async listGhlUserMappings(orgId: string) {
+    const supabase: any = this.supabase;
+    const { data, error } = await supabase
+      .from("ghl_user_mappings")
+      .select("id, argos_user_id, ghl_user_email, ghl_user_id, ghl_user_name, location_id")
+      .eq("org_id", orgId);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return (data ?? []).map((row: any) => ({
+      id: row.id,
+      argosUserId: row.argos_user_id,
+      ghlUserEmail: row.ghl_user_email,
+      ghlUserId: row.ghl_user_id,
+      ghlUserName: row.ghl_user_name,
+      locationId: row.location_id,
+    }));
+  }
+
+  async requestGhlSync(orgId: string) {
+    const supabase: any = this.supabase;
+    const { error } = await supabase
+      .from("ghl_integrations")
+      .update({
+        last_sync_error: null,
+        last_sync_started_at: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("org_id", orgId);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  async setGhlDefaultRep(orgId: string, repId: string | null) {
+    const supabase: any = this.supabase;
+    const { error } = await supabase
+      .from("ghl_integrations")
+      .update({
+        default_rep_id: repId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("org_id", orgId);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  async upsertGhlUserMappings(input: {
+    orgId: string;
+    locationId: string;
+    mappings: Array<{
+      argosUserId: string;
+      ghlUserEmail?: string | null;
+      ghlUserId: string;
+      ghlUserName?: string | null;
+    }>;
+  }) {
+    if (!input.mappings.length) {
+      return;
+    }
+
+    const supabase: any = this.supabase;
+    const { error } = await supabase.from("ghl_user_mappings").upsert(
+      input.mappings.map((mapping) => ({
+        org_id: input.orgId,
+        location_id: input.locationId,
+        argos_user_id: mapping.argosUserId,
+        ghl_user_email: mapping.ghlUserEmail ?? null,
+        ghl_user_id: mapping.ghlUserId,
+        ghl_user_name: mapping.ghlUserName ?? null,
+        updated_at: new Date().toISOString(),
+      })),
+      { onConflict: "org_id,location_id,ghl_user_id" },
+    );
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
   async findCurrentUserByAuthId(authUserId: string) {
     const user = await findUserWithOrgByAuthId(authUserId, this.supabase);
 
@@ -168,7 +271,7 @@ export class SupabaseIntegrationsRepository implements IntegrationsRepository {
     const supabase: any = this.supabase;
     const { data, error } = await supabase
       .from("ghl_integrations")
-      .select("connected_at, location_id, location_name")
+      .select("connected_at, consent_confirmed_at, default_rep_id, last_sync_completed_at, last_sync_error, last_sync_started_at, location_id, location_name, sync_enabled")
       .eq("org_id", orgId)
       .maybeSingle();
 
@@ -176,11 +279,29 @@ export class SupabaseIntegrationsRepository implements IntegrationsRepository {
       throw new Error(error.message);
     }
 
+    const { count: mappedUsersCount, error: countError } = data
+      ? await supabase
+          .from("ghl_user_mappings")
+          .select("id", { count: "exact", head: true })
+          .eq("org_id", orgId)
+      : { count: 0, error: null };
+
+    if (countError) {
+      throw new Error(countError.message);
+    }
+
     return {
       connected: Boolean(data),
       connectedAt: toDate(data?.connected_at),
+      consentConfirmedAt: toDate(data?.consent_confirmed_at),
+      defaultRepId: data?.default_rep_id ?? null,
+      lastSyncCompletedAt: toDate(data?.last_sync_completed_at),
+      lastSyncError: data?.last_sync_error ?? null,
+      lastSyncStartedAt: toDate(data?.last_sync_started_at),
       locationId: data?.location_id ?? null,
       locationName: data?.location_name ?? null,
+      mappedUsersCount: mappedUsersCount ?? 0,
+      syncEnabled: Boolean(data?.sync_enabled),
     };
   }
 

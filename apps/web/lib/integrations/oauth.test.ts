@@ -6,6 +6,7 @@ import {
   deleteZoomWebhook,
   encodeIntegrationOAuthState,
   exchangeZoomCode,
+  refreshGhlToken,
   refreshZoomToken,
   registerZoomWebhook,
   resolveGhlRedirectUri,
@@ -36,7 +37,7 @@ describe("integration oauth helpers", () => {
       "http://localhost:3100/api/integrations/zoom/callback",
     );
     expect(resolveGhlRedirectUri("https://app.argos.ai", {})).toBe(
-      "https://app.argos.ai/api/integrations/ghl/callback",
+      "https://app.argos.ai/api/integrations/leadconnector/callback",
     );
   });
 
@@ -58,7 +59,7 @@ describe("integration oauth helpers", () => {
     const ghlUrl = new URL(
       buildGhlOAuthUrl({
         clientId: "ghl-client",
-        redirectUri: "http://localhost:3100/api/integrations/ghl/callback",
+        redirectUri: "http://localhost:3100/api/integrations/leadconnector/callback",
         state: "ghl-state",
       }),
     );
@@ -67,7 +68,7 @@ describe("integration oauth helpers", () => {
     );
     expect(ghlUrl.searchParams.get("client_id")).toBe("ghl-client");
     expect(ghlUrl.searchParams.get("scope")).toBe(
-      "contacts.readonly contacts.write locations.readonly",
+      "locations.readonly conversations.readonly conversations/message.readonly users.readonly contacts.readonly",
     );
   });
 
@@ -147,6 +148,36 @@ describe("integration oauth helpers", () => {
 
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("refreshes GHL location tokens with timeout protection", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          access_token: "ghl-access-2",
+          refresh_token: "ghl-refresh-2",
+          expires_in: 86_400,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const refreshed = await refreshGhlToken("ghl-refresh", {
+      GHL_CLIENT_ID: "ghl-client",
+      GHL_CLIENT_SECRET: "ghl-secret",
+    });
+
+    expect(refreshed).toMatchObject({
+      accessToken: "ghl-access-2",
+      refreshToken: "ghl-refresh-2",
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe("https://services.leadconnectorhq.com/oauth/token");
+    expect(init?.signal).toBeInstanceOf(AbortSignal);
+    expect(String(init?.body)).toContain("grant_type=refresh_token");
+    expect(String(init?.body)).toContain("user_type=Location");
   });
 
   it("uses timeout signals for Zoom webhook deletion and registration fetches", async () => {

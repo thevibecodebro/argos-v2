@@ -9,13 +9,18 @@ function createRepository(
   overrides: Partial<IntegrationsRepository> = {},
 ): IntegrationsRepository {
   return {
+    acknowledgeGhlRecordingConsent: vi.fn(),
     deleteGhlIntegration: vi.fn(),
     deleteZoomIntegration: vi.fn(),
     findCurrentUserByAuthId: vi.fn(),
     findGhlStatus: vi.fn(),
     findZoomIntegrationForDisconnect: vi.fn().mockResolvedValue(null),
     findZoomStatus: vi.fn(),
+    listGhlUserMappings: vi.fn(),
+    requestGhlSync: vi.fn(),
+    setGhlDefaultRep: vi.fn(),
     updateZoomTokens: vi.fn(),
+    upsertGhlUserMappings: vi.fn(),
     ...overrides,
   };
 }
@@ -41,6 +46,13 @@ describe("getIntegrationStatuses", () => {
         connectedAt: null,
         locationId: null,
         locationName: null,
+        syncEnabled: false,
+        consentConfirmedAt: null,
+        defaultRepId: null,
+        mappedUsersCount: 0,
+        lastSyncStartedAt: null,
+        lastSyncCompletedAt: null,
+        lastSyncError: null,
       }),
     });
 
@@ -89,6 +101,13 @@ describe("getIntegrationStatuses", () => {
         connectedAt: null,
         locationId: null,
         locationName: null,
+        syncEnabled: false,
+        consentConfirmedAt: null,
+        defaultRepId: null,
+        mappedUsersCount: 0,
+        lastSyncStartedAt: null,
+        lastSyncCompletedAt: null,
+        lastSyncError: null,
       }),
     });
 
@@ -122,6 +141,13 @@ describe("getIntegrationStatuses", () => {
       connectedAt: new Date("2026-04-03T00:00:00.000Z"),
       locationId: "location-1",
       locationName: "Legacy Location",
+      syncEnabled: true,
+      consentConfirmedAt: new Date("2026-04-03T00:00:00.000Z"),
+      defaultRepId: "rep-1",
+      mappedUsersCount: 3,
+      lastSyncStartedAt: new Date("2026-04-03T00:15:00.000Z"),
+      lastSyncCompletedAt: new Date("2026-04-03T00:16:00.000Z"),
+      lastSyncError: null,
     });
     const repository = createRepository({
       findCurrentUserByAuthId: vi.fn().mockResolvedValue({
@@ -155,8 +181,68 @@ describe("getIntegrationStatuses", () => {
       connectedAt: null,
       locationId: null,
       locationName: null,
+      syncEnabled: false,
+      consentConfirmedAt: null,
+      defaultRepId: null,
+      mappedUsersCount: 0,
+      lastSyncStartedAt: null,
+      lastSyncCompletedAt: null,
+      lastSyncError: null,
     });
     expect(findGhlStatus).not.toHaveBeenCalled();
+  });
+
+  it("exposes GHL consent, mapping, and sync metadata when connected", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "admin-1",
+        email: "admin@argos.ai",
+        role: "admin",
+        firstName: "Morgan",
+        lastName: "Lane",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      findZoomStatus: vi.fn().mockResolvedValue({
+        connected: false,
+        connectedAt: null,
+        zoomUserId: null,
+      }),
+      findGhlStatus: vi.fn().mockResolvedValue({
+        connected: true,
+        connectedAt: new Date("2026-06-18T12:00:00.000Z"),
+        locationId: "loc-1",
+        locationName: "North Team",
+        syncEnabled: true,
+        consentConfirmedAt: new Date("2026-06-18T12:05:00.000Z"),
+        defaultRepId: "rep-1",
+        mappedUsersCount: 2,
+        lastSyncStartedAt: new Date("2026-06-18T12:10:00.000Z"),
+        lastSyncCompletedAt: new Date("2026-06-18T12:11:00.000Z"),
+        lastSyncError: null,
+      }),
+    });
+
+    const result = await getIntegrationStatuses(repository, "admin-1", {
+      ghlClientId: "ghl-client-id",
+      ghlClientSecret: "ghl-secret",
+      ghlEnabled: "true",
+      zoomClientId: "zoom-client-id",
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected integration statuses");
+    expect(result.data.ghl).toMatchObject({
+      connected: true,
+      locationId: "loc-1",
+      locationName: "North Team",
+      syncEnabled: true,
+      consentConfirmedAt: "2026-06-18T12:05:00.000Z",
+      defaultRepId: "rep-1",
+      mappedUsersCount: 2,
+      lastSyncStartedAt: "2026-06-18T12:10:00.000Z",
+      lastSyncCompletedAt: "2026-06-18T12:11:00.000Z",
+      lastSyncError: null,
+    });
   });
 });
 

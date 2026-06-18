@@ -13,6 +13,8 @@ export * from "./roleplay";
 export * from "./compliance";
 export * from "./zoomIntegrations";
 export * from "./ghlIntegrations";
+export * from "./ghlUserMappings";
+export * from "./ghlCallImports";
 export * from "./invites";
 export * from "./callProcessingJobs";
 export * from "./rateLimitBuckets";
