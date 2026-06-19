@@ -65,7 +65,7 @@ export function AuthShell({ children }: AuthShellProps) {
         </div>
 
         <section className="flex w-full items-center justify-center">
-          <div className="w-full max-w-[32rem] space-y-10 rounded-[1.65rem] border border-[color-mix(in_srgb,var(--forge-text)_12%,transparent)] bg-[color-mix(in_srgb,var(--forge-shadow)_76%,transparent)] p-6 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_8%,transparent),0_30px_90px_rgba(0,0,0,0.34)] backdrop-blur-md sm:p-8">
+          <div className="w-full max-w-[32rem] space-y-10 rounded-[1.65rem] border border-[color-mix(in_srgb,var(--forge-text)_12%,transparent)] bg-[var(--forge-panel-bg)] p-6 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_8%,transparent),0_30px_90px_color-mix(in_srgb,var(--forge-bg)_26%,transparent)] sm:p-8">
             {children}
           </div>
         </section>

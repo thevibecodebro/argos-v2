@@ -91,6 +91,7 @@ function makeUsersRepo(
     removeOrganizationMember: vi.fn().mockResolvedValue(true),
     updateCurrentUserProfile: vi.fn().mockResolvedValue(null),
     updateOrganizationLogo: vi.fn().mockResolvedValue(null),
+    updateOrganizationWorkspaceTheme: vi.fn().mockResolvedValue(null),
     updateOrganizationMemberRole: vi.fn().mockResolvedValue(null),
     ...overrides,
   };

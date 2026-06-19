@@ -1,10 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
+import { DEFAULT_WORKSPACE_THEME } from "@/lib/organizations/workspace-theme";
 import {
   getCurrentUserDetails,
   listOrganizationMembers,
   removeOrganizationMember,
   updateCurrentUserProfile,
   updateOrganizationLogo,
+  updateOrganizationWorkspaceTheme,
   updateOrganizationMemberRole,
   type UsersRepository,
 } from "./service";
@@ -19,6 +21,7 @@ function createRepository(
     removeOrganizationMember: vi.fn(),
     updateCurrentUserProfile: vi.fn(),
     updateOrganizationLogo: vi.fn(),
+    updateOrganizationWorkspaceTheme: vi.fn(),
     updateOrganizationMemberRole: vi.fn(),
     ...overrides,
   };
@@ -39,6 +42,7 @@ const adminUser = {
     slug: "argos",
     plan: "trial",
     logoUrl: "https://assets.example/argos-logo.png",
+    workspaceTheme: null,
     createdAt: new Date("2026-04-03T00:00:00.000Z"),
   },
 };
@@ -68,6 +72,7 @@ describe("getCurrentUserDetails", () => {
           slug: "argos",
           plan: "trial",
           logoUrl: "https://assets.example/argos-logo.png",
+          workspaceTheme: null,
           createdAt: "2026-04-03T00:00:00.000Z",
         },
       },
@@ -108,6 +113,7 @@ describe("updateCurrentUserProfile", () => {
           slug: "argos",
           plan: "trial",
           logoUrl: "https://assets.example/argos-logo.png",
+          workspaceTheme: null,
           createdAt: "2026-04-03T00:00:00.000Z",
         },
       },
@@ -153,6 +159,7 @@ describe("updateOrganizationLogo", () => {
           slug: "argos",
           plan: "trial",
           logoUrl: "https://assets.example/new-logo.png",
+          workspaceTheme: null,
           createdAt: "2026-04-03T00:00:00.000Z",
         },
       },
@@ -179,6 +186,138 @@ describe("updateOrganizationLogo", () => {
       error: "Only admins can update organization branding",
     });
     expect(repository.updateOrganizationLogo).not.toHaveBeenCalled();
+  });
+});
+
+describe("updateOrganizationWorkspaceTheme", () => {
+  it("allows admins to persist a validated workspace theme", async () => {
+    const customTheme = {
+      version: 1 as const,
+      activeMode: "dark" as const,
+      colors: {
+        ...DEFAULT_WORKSPACE_THEME.colors,
+        primary: "#1A5FB4",
+        onPrimary: "#FFFFFF",
+      },
+      modes: {
+        ...DEFAULT_WORKSPACE_THEME.modes,
+        dark: {
+          ...DEFAULT_WORKSPACE_THEME.modes.dark,
+          colors: {
+            ...DEFAULT_WORKSPACE_THEME.modes.dark.colors,
+            primary: "#1A5FB4",
+            onPrimary: "#FFFFFF",
+          },
+        },
+      },
+    };
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue(adminUser),
+      updateOrganizationWorkspaceTheme: vi.fn().mockResolvedValue({
+        ...adminUser.org,
+        workspaceTheme: customTheme,
+      }),
+    });
+
+    const result = await updateOrganizationWorkspaceTheme(
+      repository,
+      "user-1",
+      {
+        version: 1,
+        colors: {
+          primary: "#1a5fb4",
+          onPrimary: "#ffffff",
+        },
+      },
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      data: expect.objectContaining({
+        org: expect.objectContaining({
+          workspaceTheme: customTheme,
+        }),
+      }),
+    });
+    expect(repository.updateOrganizationWorkspaceTheme).toHaveBeenCalledWith(
+      "org-1",
+      customTheme,
+    );
+  });
+
+  it("allows admins to restore default workspace branding", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue(adminUser),
+      updateOrganizationWorkspaceTheme: vi.fn().mockResolvedValue({
+        ...adminUser.org,
+        workspaceTheme: null,
+      }),
+    });
+
+    const result = await updateOrganizationWorkspaceTheme(
+      repository,
+      "user-1",
+      null,
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      data: expect.objectContaining({
+        org: expect.objectContaining({
+          workspaceTheme: null,
+        }),
+      }),
+    });
+    expect(repository.updateOrganizationWorkspaceTheme).toHaveBeenCalledWith(
+      "org-1",
+      null,
+    );
+  });
+
+  it("rejects non-admin workspace theme updates", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        ...adminUser,
+        role: "manager",
+      }),
+    });
+
+    const result = await updateOrganizationWorkspaceTheme(
+      repository,
+      "user-1",
+      DEFAULT_WORKSPACE_THEME,
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      status: 403,
+      error: "Only admins can update organization branding",
+    });
+    expect(repository.updateOrganizationWorkspaceTheme).not.toHaveBeenCalled();
+  });
+
+  it("rejects invalid workspace theme payloads", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue(adminUser),
+    });
+
+    const result = await updateOrganizationWorkspaceTheme(
+      repository,
+      "user-1",
+      {
+        version: 1,
+        colors: {
+          primary: "var(--unsafe)",
+        },
+      },
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      status: 400,
+      error: "colors.primary must be a #RRGGBB hex color",
+    });
+    expect(repository.updateOrganizationWorkspaceTheme).not.toHaveBeenCalled();
   });
 });
 

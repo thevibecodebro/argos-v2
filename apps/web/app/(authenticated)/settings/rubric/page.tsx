@@ -98,7 +98,7 @@ function OverviewStat({
   value: number | string;
 }) {
   return (
-    <div className="rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_55%,transparent)] px-3 py-2">
+    <div className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] px-3 py-2">
       <p className="text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">{label}</p>
       <p className="mt-1 text-sm font-semibold text-[var(--forge-text)]">{value}</p>
     </div>

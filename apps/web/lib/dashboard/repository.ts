@@ -20,6 +20,7 @@ import {
   usersTable,
   type ArgosDb,
 } from "@argos-v2/db";
+import { coerceStoredWorkspaceTheme } from "@/lib/organizations/workspace-theme";
 import { parseAppUserRole } from "@/lib/users/roles";
 import type { DashboardRepository } from "./service";
 
@@ -40,6 +41,7 @@ export class DrizzleDashboardRepository implements DashboardRepository {
           slug: organizationsTable.slug,
           plan: organizationsTable.plan,
           logoUrl: organizationsTable.logoUrl,
+          workspaceTheme: organizationsTable.workspaceTheme,
         },
       })
       .from(usersTable)
@@ -53,6 +55,12 @@ export class DrizzleDashboardRepository implements DashboardRepository {
 
     return {
       ...record,
+      org: record.org?.id
+        ? {
+            ...record.org,
+            workspaceTheme: coerceStoredWorkspaceTheme(record.org.workspaceTheme),
+          }
+        : null,
       role: parseAppUserRole(record.role),
     };
   }

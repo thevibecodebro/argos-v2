@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { coerceStoredWorkspaceTheme } from "@/lib/organizations/workspace-theme";
 import { parseAppUserRole } from "@/lib/users/roles";
 import type { DashboardRepository } from "./service";
 
@@ -36,7 +37,7 @@ export class SupabaseDashboardRepository implements DashboardRepository {
     if (dashboardUser.org_id) {
       const { data: orgRow, error: orgError } = await supabase
         .from("organizations")
-        .select("id, name, slug, plan, logo_url")
+        .select("id, name, slug, plan, logo_url, workspace_theme")
         .eq("id", dashboardUser.org_id)
         .maybeSingle();
 
@@ -52,6 +53,7 @@ export class SupabaseDashboardRepository implements DashboardRepository {
             slug: orgData.slug,
             plan: orgData.plan,
             logoUrl: orgData.logo_url,
+            workspaceTheme: coerceStoredWorkspaceTheme(orgData.workspace_theme),
           }
         : null;
     }

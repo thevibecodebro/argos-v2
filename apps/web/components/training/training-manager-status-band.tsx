@@ -33,7 +33,7 @@ export function TrainingManagerStatusBand({ metrics }: TrainingManagerStatusBand
           key={item.label}
         >
           <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-muted)]">{item.label}</p>
-          <p className="mt-3 text-2xl font-semibold tracking-tight text-white">{item.value}</p>
+          <p className="mt-3 text-2xl font-semibold tracking-tight text-[var(--forge-text)]">{item.value}</p>
           <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">{item.detail}</p>
         </div>
       ))}

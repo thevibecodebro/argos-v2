@@ -3,6 +3,7 @@ import type {
   PlatformConsoleActiveSession,
   PlatformConsoleOrganization,
 } from "./platform/platform-types";
+import type { WorkspaceTheme } from "@/lib/organizations/workspace-theme";
 
 type AuthenticatedAppChromeProps = {
   children: React.ReactNode;
@@ -17,6 +18,7 @@ type AuthenticatedAppChromeProps = {
     orgLogoUrl?: string | null;
     orgName?: string | null;
     role: "rep" | "manager" | "executive" | "admin" | null;
+    workspaceTheme?: WorkspaceTheme | null;
   };
 };
 

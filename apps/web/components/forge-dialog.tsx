@@ -159,7 +159,7 @@ export function ForgeDialog({
 
   return (
     <div
-      className="forge-dialog-overlay fixed inset-0 z-50 flex items-center justify-center bg-[color-mix(in_srgb,var(--forge-shadow)_78%,transparent)] px-4 py-6 text-[var(--forge-text)] backdrop-blur-sm"
+      className="forge-dialog-overlay fixed inset-0 z-50 flex items-center justify-center bg-[var(--forge-overlay-bg)] px-4 py-6 text-[var(--forge-text)]"
       data-forge-dialog-overlay="true"
       onClick={handleBackdropClick}
     >
@@ -168,7 +168,7 @@ export function ForgeDialog({
         aria-labelledby={titleId}
         aria-modal="true"
         className={cn(
-          "forge-dialog-panel forge-surface flex max-h-[min(42rem,calc(100dvh-2rem))] w-full max-w-2xl flex-col overflow-hidden rounded-[1.5rem] border border-[var(--forge-border-strong)] bg-[var(--forge-surface)] text-[var(--forge-text)] shadow-[0_30px_100px_rgba(5,3,2,0.5)]",
+          "forge-dialog-panel forge-surface flex max-h-[min(42rem,calc(100dvh-2rem))] w-full max-w-2xl flex-col overflow-hidden rounded-[1.5rem] border border-[var(--forge-border-strong)] bg-[var(--forge-surface)] text-[var(--forge-text)] shadow-[0_30px_100px_color-mix(in_srgb,var(--forge-bg)_38%,transparent)]",
           className,
         )}
         data-forge-dialog-panel="true"

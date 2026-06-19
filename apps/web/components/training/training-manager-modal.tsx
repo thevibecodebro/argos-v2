@@ -106,7 +106,7 @@ export function TrainingManagerModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[color-mix(in_srgb,var(--forge-shadow)_78%,transparent)] px-4 py-8 "
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--forge-overlay-bg)] px-4 py-8 "
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
@@ -117,7 +117,7 @@ export function TrainingManagerModal({
         aria-modal="true"
         aria-describedby={descriptionId}
         aria-labelledby={titleId}
-        className="w-full max-w-4xl rounded-[1.5rem] border border-white/10 bg-[var(--forge-surface)] p-6 shadow-[0_24px_80px_color-mix(in_srgb,var(--forge-shadow)_40%,transparent)]"
+        className="w-full max-w-4xl rounded-[1.5rem] border border-[var(--forge-border)] bg-[var(--forge-panel-bg)] p-6 shadow-[0_24px_80px_color-mix(in_srgb,var(--forge-bg)_14%,transparent)]"
         role="dialog"
         ref={dialogRef}
         tabIndex={-1}
@@ -125,7 +125,7 @@ export function TrainingManagerModal({
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-gold)]">{eyebrow}</p>
-            <h2 className="mt-2 text-2xl font-semibold text-white" id={titleId}>
+            <h2 className="mt-2 text-2xl font-semibold text-[var(--forge-text)]" id={titleId}>
               {title}
             </h2>
             <p className="mt-2 text-sm text-[var(--forge-muted)]" id={descriptionId}>
@@ -134,7 +134,7 @@ export function TrainingManagerModal({
           </div>
           <button
             aria-label="Close manager modal"
-            className="rounded-full border border-white/10 bg-white/[0.03] p-2 text-[var(--forge-muted)] transition hover:text-white"
+            className="rounded-full border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-2 text-[var(--forge-muted)] transition hover:text-[var(--forge-text)]"
             onClick={onClose}
             type="button"
           >

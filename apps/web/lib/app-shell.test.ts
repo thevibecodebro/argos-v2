@@ -1,6 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { DEFAULT_WORKSPACE_THEME } from "@/lib/organizations/workspace-theme";
 import {
   AuthenticatedAppShell,
   getNavigationPendingState,
@@ -233,6 +234,54 @@ describe("AuthenticatedAppShell", () => {
     expect(html).not.toContain("#74b1ff");
     expect(html).not.toContain("#6dddff");
     expect(html).not.toContain("border-r-2");
+  });
+
+  it("scopes custom workspace theme and navigation variables onto the forge shell", () => {
+    const html = renderToStaticMarkup(
+      createElement(AuthenticatedAppShell, {
+        user: {
+          ...adminUser,
+          workspaceTheme: {
+            ...DEFAULT_WORKSPACE_THEME,
+            activeMode: "dark",
+            colors: {
+              ...DEFAULT_WORKSPACE_THEME.colors,
+              background: "#102030",
+              primary: "#1A5FB4",
+              onPrimary: "#FFFFFF",
+              focus: "#8DD6FF",
+            },
+            modes: {
+              ...DEFAULT_WORKSPACE_THEME.modes,
+              dark: {
+                colors: {
+                  ...DEFAULT_WORKSPACE_THEME.modes.dark.colors,
+                  background: "#102030",
+                  primary: "#1A5FB4",
+                  onPrimary: "#FFFFFF",
+                  focus: "#8DD6FF",
+                },
+                navigation: {
+                  ...DEFAULT_WORKSPACE_THEME.modes.dark.navigation,
+                  leftBackground: "#081522",
+                  leftActiveText: "#CDE6FF",
+                  topBackground: "#0A1724",
+                },
+              },
+            },
+          },
+        },
+        children: createElement("div", null, "Page body"),
+      }),
+    );
+
+    expect(html).toContain("--forge-bg:#102030");
+    expect(html).toContain("--forge-gold:#1A5FB4");
+    expect(html).toContain("--forge-on-accent:#FFFFFF");
+    expect(html).toContain("--forge-focus:#8DD6FF");
+    expect(html).toContain("--forge-sidebar-bg:#081522");
+    expect(html).toContain("--forge-sidebar-active-text:#CDE6FF");
+    expect(html).toContain("--forge-topbar-bg:#0A1724");
   });
 
   it("renders an uploaded organization logo in the primary rail when available", () => {

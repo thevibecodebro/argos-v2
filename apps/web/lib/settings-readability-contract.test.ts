@@ -11,6 +11,14 @@ const settingsFiles = [
   "../components/settings/rubrics-panel.tsx",
 ];
 
+const themedSettingsChromeFiles = [
+  "../app/(authenticated)/settings/page.tsx",
+  "../app/(authenticated)/settings/settings-operational-layout.tsx",
+  "../components/settings/workspace-branding-panel.tsx",
+  "../components/settings/settings-readability.tsx",
+  "../components/operational-workspace.tsx",
+];
+
 describe("settings readability contract", () => {
   it("keeps settings panels in configuration-workspace grammar", () => {
     for (const path of settingsFiles) {
@@ -44,5 +52,16 @@ describe("settings readability contract", () => {
     expect(workbench).toContain("data-settings-editor-workbench");
     expect(account).toContain("SettingsSectionHeader");
     expect(people).toContain("SettingsTableShell");
+  });
+
+  it("does not hard-code dark resources in themed settings chrome", () => {
+    for (const path of themedSettingsChromeFiles) {
+      const source = readFileSync(new URL(path, import.meta.url), "utf8");
+
+      expect(source, path).not.toContain("rgba(16, 9, 7");
+      expect(source, path).not.toContain("var(--forge-shadow)_72%");
+      expect(source, path).not.toContain("var(--forge-shadow)_88%");
+      expect(source, path).not.toContain("text-white");
+    }
   });
 });

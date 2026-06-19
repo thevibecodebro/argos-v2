@@ -673,7 +673,7 @@ describe("training panels", () => {
     expect(shellHtml).not.toContain('data-training-admin-rail=""');
     expect(stageHtml).toContain("relative space-y-6");
     expect(stageHtml).toContain("rounded-[1.25rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface-2)]/45 p-6");
-    expect(tocHtml).toContain("rounded-[1.5rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6");
+    expect(tocHtml).toContain("rounded-[1.5rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-panel-bg)] p-6");
     expect(`${stageHtml}${tocHtml}`).not.toContain("#74b1ff");
   });
 

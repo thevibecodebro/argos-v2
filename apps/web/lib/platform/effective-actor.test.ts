@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { DEFAULT_WORKSPACE_THEME } from "@/lib/organizations/workspace-theme";
 import {
   PLATFORM_SESSION_COOKIE_NAME,
   resolveEffectiveActor,
@@ -37,6 +38,7 @@ const platformSession = {
   targetOrgId: "org-1",
   targetOrgName: "Acme",
   targetOrgSlug: "acme",
+  targetOrgWorkspaceTheme: DEFAULT_WORKSPACE_THEME,
   reason: "Support request",
   status: "active" as const,
   startedAt: new Date("2026-06-11T10:00:00.000Z"),
@@ -97,6 +99,7 @@ describe("resolveEffectiveActor", () => {
           slug: "acme",
           plan: "trial",
           logoUrl: null,
+          workspaceTheme: DEFAULT_WORKSPACE_THEME,
         },
       },
       platform: {

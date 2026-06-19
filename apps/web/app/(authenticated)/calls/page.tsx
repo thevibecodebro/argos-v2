@@ -90,7 +90,7 @@ export default async function CallsPage({
             data-operational-list-table="true"
           >
             <div
-              className="mb-3 rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_58%,transparent)] p-2"
+              className="mb-3 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] p-2"
               data-calls-table-controls="true"
             >
               <div className="mb-2 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
@@ -234,7 +234,7 @@ export default async function CallsPage({
               </div>
 
               <div
-                className="hidden overflow-hidden rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_76%,transparent)] md:block"
+                className="hidden overflow-hidden rounded-lg border border-[var(--forge-border)] bg-[var(--forge-table-bg)] md:block"
                 data-forge-table="true"
               >
                 <div className="overflow-x-auto">

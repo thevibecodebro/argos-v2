@@ -529,7 +529,7 @@ export function UploadCallPanel() {
 
                   return (
                     <div
-                      className="rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_36%,transparent)] p-3"
+                      className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-item-bg)] p-3"
                       data-upload-queue-item={item.status}
                       key={item.id}
                     >

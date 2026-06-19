@@ -7,6 +7,10 @@ import {
   usersTable,
   type ArgosDb,
 } from "@argos-v2/db";
+import {
+  coerceStoredWorkspaceTheme,
+  type WorkspaceTheme,
+} from "@/lib/organizations/workspace-theme";
 import { parseAppUserRole, type AppUserRole } from "./roles";
 import type { UsersRepository } from "./service";
 
@@ -30,6 +34,7 @@ export class DrizzleUsersRepository implements UsersRepository {
           slug: organizationsTable.slug,
           plan: organizationsTable.plan,
           logoUrl: organizationsTable.logoUrl,
+          workspaceTheme: organizationsTable.workspaceTheme,
           createdAt: organizationsTable.createdAt,
         },
       })
@@ -58,6 +63,7 @@ export class DrizzleUsersRepository implements UsersRepository {
             slug: record.org.slug,
             plan: record.org.plan,
             logoUrl: record.org.logoUrl,
+            workspaceTheme: coerceStoredWorkspaceTheme(record.org.workspaceTheme),
             createdAt: record.org.createdAt,
           }
         : null,
@@ -188,10 +194,44 @@ export class DrizzleUsersRepository implements UsersRepository {
         slug: organizationsTable.slug,
         plan: organizationsTable.plan,
         logoUrl: organizationsTable.logoUrl,
+        workspaceTheme: organizationsTable.workspaceTheme,
         createdAt: organizationsTable.createdAt,
       });
 
-    return updated ?? null;
+    return updated
+      ? {
+          ...updated,
+          workspaceTheme: coerceStoredWorkspaceTheme(updated.workspaceTheme),
+        }
+      : null;
+  }
+
+  async updateOrganizationWorkspaceTheme(
+    orgId: string,
+    workspaceTheme: WorkspaceTheme | null,
+  ) {
+    const [updated] = await this.db
+      .update(organizationsTable)
+      .set({
+        workspaceTheme,
+      })
+      .where(eq(organizationsTable.id, orgId))
+      .returning({
+        id: organizationsTable.id,
+        name: organizationsTable.name,
+        slug: organizationsTable.slug,
+        plan: organizationsTable.plan,
+        logoUrl: organizationsTable.logoUrl,
+        workspaceTheme: organizationsTable.workspaceTheme,
+        createdAt: organizationsTable.createdAt,
+      });
+
+    return updated
+      ? {
+          ...updated,
+          workspaceTheme: coerceStoredWorkspaceTheme(updated.workspaceTheme),
+        }
+      : null;
   }
 
   async updateOrganizationMemberRole(

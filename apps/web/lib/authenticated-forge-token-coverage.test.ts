@@ -24,6 +24,8 @@ const driftedGoldLiterals = [
 ];
 
 const authenticatedSurfaceFiles = [
+  "apps/web/app/(authenticated)/calls/calls-filters.tsx",
+  "apps/web/app/(authenticated)/calls/page.tsx",
   "apps/web/app/(authenticated)/dashboard/page.tsx",
   "apps/web/app/(authenticated)/highlights/page.tsx",
   "apps/web/app/(authenticated)/leaderboard/page.tsx",
@@ -37,8 +39,16 @@ const authenticatedSurfaceFiles = [
   "apps/web/app/(authenticated)/team/page.tsx",
   "apps/web/app/(authenticated)/training/page.tsx",
   "apps/web/app/(authenticated)/upload/page.tsx",
+  "apps/web/components/call-detail-panel.tsx",
+  "apps/web/components/feedback-widget.tsx",
+  "apps/web/components/forge-dialog.tsx",
+  "apps/web/components/legacy-shell.tsx",
   "apps/web/components/integrations-settings-panel.tsx",
   "apps/web/components/notifications-panel.tsx",
+  "apps/web/components/onboarding-panel.tsx",
+  "apps/web/components/platform/platform-shell.tsx",
+  "apps/web/components/role-onboarding-guide.tsx",
+  "apps/web/components/app-shell.tsx",
   "apps/web/components/roleplay-panel.tsx",
   "apps/web/components/settings/account-panel.tsx",
   "apps/web/components/settings/compliance-panel.tsx",
@@ -82,6 +92,15 @@ const forbiddenLegacyForgeBreakers = [
   /\b(?:bg|border|hover:border|text|placeholder:text)-slate-/,
 ] as const;
 
+const forbiddenDarkSurfaceResources = [
+  /var\(--forge-shadow\)/,
+  /rgba\(\s*16\s*,\s*9\s*,\s*7/i,
+  /rgba\(\s*5\s*,\s*3\s*,\s*2/i,
+  /text-white/,
+  /border-white/,
+  /bg-\[#0c1629\]/,
+] as const;
+
 describe("authenticated forge token coverage", () => {
   it("keeps remaining authenticated feature surfaces out of the legacy blue command-center palette", () => {
     const violations = authenticatedSurfaceFiles.flatMap((file) => {
@@ -108,6 +127,19 @@ describe("authenticated forge token coverage", () => {
       return driftedGoldLiterals.flatMap((pattern) => {
         const match = source.match(pattern);
         return match ? [`${file.replace(`${webRoot}/`, "")}: ${match[0]}`] : [];
+      });
+    });
+
+    expect(violations).toEqual([]);
+  });
+
+  it("routes authenticated feature surfaces through semantic theme resources instead of dark-only bases", () => {
+    const violations = authenticatedSurfaceFiles.flatMap((file) => {
+      const source = readFileSync(join(repoRoot, file), "utf8");
+
+      return forbiddenDarkSurfaceResources.flatMap((pattern) => {
+        const match = source.match(pattern);
+        return match ? [`${file}: ${match[0]}`] : [];
       });
     });
 

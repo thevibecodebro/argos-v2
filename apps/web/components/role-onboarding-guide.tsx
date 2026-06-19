@@ -225,7 +225,7 @@ export function RoleOnboardingGuide({
           {guide.items.map((item) => (
             <Link
               className={cn(
-                "group min-h-24 bg-[color-mix(in_srgb,var(--forge-shadow)_96%,transparent)] px-3 py-3 transition",
+                "group min-h-24 bg-[var(--forge-item-bg)] px-3 py-3 transition",
                 "hover:bg-[color-mix(in_srgb,var(--forge-gold)_5.5%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--forge-gold)]",
               )}
               href={item.href}

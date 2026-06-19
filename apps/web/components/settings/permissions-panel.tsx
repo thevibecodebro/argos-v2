@@ -340,7 +340,7 @@ export function PermissionsPanel({
 
       return (
         <tr key={stateKey}>
-          <td className="px-4 py-3 text-sm font-semibold text-white">
+          <td className="px-4 py-3 text-sm font-semibold text-[var(--forge-text)]">
             {managers.find((manager) => manager.id === membership.userId)
               ?.name ?? membership.userId}
           </td>
@@ -351,7 +351,7 @@ export function PermissionsPanel({
             <label className="block">
               <span className="sr-only">Preset for manager</span>
               <select
-                className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60 disabled:opacity-50"
+                className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60 disabled:opacity-50"
                 disabled={isPending}
                 onChange={(event) => {
                   setStagedPresetByKey((current) => ({
@@ -442,7 +442,7 @@ export function PermissionsPanel({
                 key={preset.id}
               >
                 <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm font-semibold text-white">
+                  <p className="text-sm font-semibold text-[var(--forge-text)]">
                     {preset.name}
                   </p>
                   <ForgeChip tone="gold">{preset.role}</ForgeChip>
@@ -461,7 +461,7 @@ export function PermissionsPanel({
               <p className="text-xs font-medium text-[var(--forge-muted)]">
                 Teams
               </p>
-              <p className="mt-1 text-2xl font-semibold text-white">
+              <p className="mt-1 text-2xl font-semibold text-[var(--forge-text)]">
                 {teams.length}
               </p>
             </div>
@@ -469,7 +469,7 @@ export function PermissionsPanel({
               <p className="text-xs font-medium text-[var(--forge-muted)]">
                 Reps
               </p>
-              <p className="mt-1 text-2xl font-semibold text-white">
+              <p className="mt-1 text-2xl font-semibold text-[var(--forge-text)]">
                 {localReps.length}
               </p>
             </div>
@@ -492,7 +492,7 @@ export function PermissionsPanel({
               <p className="text-xs font-medium text-[var(--forge-muted)]">
                 Team Preset Assignments
               </p>
-              <h3 className="mt-2 text-xl font-semibold text-white">
+              <h3 className="mt-2 text-xl font-semibold text-[var(--forge-text)]">
                 {selectedTeam ? selectedTeam.name : "Select a team"}
               </h3>
               <p className="mt-2 text-sm text-[var(--forge-muted)]">
@@ -552,7 +552,7 @@ export function PermissionsPanel({
                           className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4"
                           key={`${stateKey}:card`}
                         >
-                          <p className="text-sm font-semibold text-white">
+                          <p className="text-sm font-semibold text-[var(--forge-text)]">
                             {managers.find(
                               (manager) => manager.id === membership.userId,
                             )?.name ?? membership.userId}
@@ -564,7 +564,7 @@ export function PermissionsPanel({
                           <label className="mt-3 block">
                             <span className="sr-only">Preset for manager</span>
                             <select
-                              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60 disabled:opacity-50"
+                              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60 disabled:opacity-50"
                               disabled={isPending}
                               onChange={(event) => {
                                 setStagedPresetByKey((current) => ({
@@ -656,7 +656,7 @@ export function PermissionsPanel({
                           className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4"
                           key={`${rep.id}:mobile`}
                         >
-                          <p className="text-sm font-semibold text-white">
+                          <p className="text-sm font-semibold text-[var(--forge-text)]">
                             {rep.name}
                           </p>
                           <p className="mt-1 text-xs text-[var(--forge-muted)]">
@@ -668,7 +668,7 @@ export function PermissionsPanel({
                               Primary manager for {rep.name}
                             </span>
                             <select
-                              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60 disabled:opacity-50"
+                              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60 disabled:opacity-50"
                               disabled={isPending}
                               onChange={(event) => {
                                 setStagedManagerByRepId((current) => ({
@@ -728,7 +728,7 @@ export function PermissionsPanel({
 
                       return (
                         <tr key={rep.id}>
-                          <td className="px-4 py-3 text-sm font-semibold text-white">
+                          <td className="px-4 py-3 text-sm font-semibold text-[var(--forge-text)]">
                             {rep.name}
                           </td>
                           <td className="px-4 py-3 text-sm text-[var(--forge-muted)]">
@@ -740,7 +740,7 @@ export function PermissionsPanel({
                                 Primary manager for {rep.name}
                               </span>
                               <select
-                                className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60 disabled:opacity-50"
+                                className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60 disabled:opacity-50"
                                 disabled={isPending}
                                 onChange={(event) => {
                                   setStagedManagerByRepId((current) => ({

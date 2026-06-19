@@ -1,4 +1,8 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import {
+  coerceStoredWorkspaceTheme,
+  type WorkspaceTheme,
+} from "@/lib/organizations/workspace-theme";
 import { parseAppUserRole } from "@/lib/users/roles";
 
 type SupabaseAdminClient = ReturnType<typeof createSupabaseAdminClient>;
@@ -19,6 +23,7 @@ type UserOrgRecord = {
     slug: string;
     plan: string;
     logoUrl: string | null;
+    workspaceTheme: WorkspaceTheme | null;
     createdAt: Date;
   } | null;
 };
@@ -57,7 +62,7 @@ export async function findUserWithOrgByAuthId(
   if (user.org_id) {
     const { data: orgData, error: orgError } = await supabase
       .from("organizations")
-      .select("id, name, slug, plan, logo_url, created_at")
+      .select("id, name, slug, plan, logo_url, workspace_theme, created_at")
       .eq("id", user.org_id)
       .maybeSingle();
 
@@ -72,6 +77,7 @@ export async function findUserWithOrgByAuthId(
           slug: orgData.slug,
           plan: orgData.plan,
           logoUrl: orgData.logo_url,
+          workspaceTheme: coerceStoredWorkspaceTheme(orgData.workspace_theme),
           createdAt: toDate(orgData.created_at) ?? new Date(0),
         }
       : null;

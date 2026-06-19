@@ -4,6 +4,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type CSSProperties,
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import Link from "next/link";
@@ -14,6 +15,10 @@ import { FeedbackDialogLoader } from "./feedback-dialog-loader";
 import { ForgeIcon } from "./forge";
 import { PlatformOrganizationSwitcher } from "./platform/platform-organization-switcher";
 import { RoleOnboardingGuide } from "./role-onboarding-guide";
+import {
+  workspaceThemeToForgeVars,
+  type WorkspaceTheme,
+} from "@/lib/organizations/workspace-theme";
 import type { AppUserRole } from "@/lib/users/roles";
 import type {
   PlatformConsoleActiveSession,
@@ -27,6 +32,7 @@ type ShellUser = {
   orgLogoUrl?: string | null;
   orgName?: string | null;
   role: AppUserRole | null;
+  workspaceTheme?: WorkspaceTheme | null;
 };
 
 type AuthenticatedAppShellProps = {
@@ -113,6 +119,9 @@ export function AuthenticatedAppShell({
   const initials = getInitials(user.fullName || user.email);
   const roleLabel = formatRole(user.role);
   const hasDockedSecondaryRail = isDockedSecondaryRailRoute(currentPath);
+  const workspaceThemeVars = user.workspaceTheme
+    ? (workspaceThemeToForgeVars(user.workspaceTheme) as CSSProperties)
+    : undefined;
 
   const visibleGroups = navGroups.filter((group) => {
     if (!group.visibleTo) return true;
@@ -232,6 +241,7 @@ export function AuthenticatedAppShell({
       data-navigation-pending-href={navigationPendingState.pendingHref ?? undefined}
       data-primary-rail-collapsed={primaryRailCollapsed ? "true" : "false"}
       data-shell-theme="forge"
+      style={workspaceThemeVars}
     >
       <p
         aria-live="polite"
@@ -245,7 +255,7 @@ export function AuthenticatedAppShell({
       {mobileNavOpen ? (
         <button
           aria-label="Close navigation"
-          className="fixed inset-0 z-40 bg-[color-mix(in_srgb,var(--forge-shadow)_68%,transparent)] lg:hidden"
+          className="fixed inset-0 z-40 bg-[var(--forge-overlay-bg)] lg:hidden"
           onClick={() => setMobileNavOpen(false)}
           type="button"
         />
@@ -393,7 +403,7 @@ export function AuthenticatedAppShell({
       >
         <header
           className={cn(
-            "forge-topbar fixed left-0 right-0 top-0 z-30 flex min-h-16 items-center justify-between gap-3 px-4 py-3 backdrop-blur-xl transition-[left] duration-300 lg:left-64 lg:px-7",
+            "forge-topbar fixed left-0 right-0 top-0 z-30 flex min-h-16 items-center justify-between gap-3 px-4 py-3 transition-[left] duration-300 lg:left-64 lg:px-7",
             primaryRailCollapsed && "lg:left-20",
           )}
         >
@@ -417,7 +427,7 @@ export function AuthenticatedAppShell({
                 aria-expanded={accountOpen}
                 aria-haspopup="menu"
                 aria-label="Account menu"
-                className="forge-icon-button flex h-10 w-10 items-center justify-center rounded-full font-[var(--font-display)] text-sm font-bold text-[var(--forge-gold)]"
+                className="forge-icon-button flex h-10 w-10 items-center justify-center rounded-full font-[var(--font-display)] text-sm font-bold text-[var(--forge-topbar-text)]"
                 onClick={() => setAccountOpen((v) => !v)}
                 ref={accountTriggerRef}
                 type="button"

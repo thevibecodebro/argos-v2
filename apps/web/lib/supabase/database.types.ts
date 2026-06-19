@@ -535,6 +535,7 @@ export type Database = {
           name: string
           plan: string
           slug: string
+          workspace_theme: Json | null
         }
         Insert: {
           created_at?: string
@@ -543,6 +544,7 @@ export type Database = {
           name: string
           plan?: string
           slug: string
+          workspace_theme?: Json | null
         }
         Update: {
           created_at?: string
@@ -551,6 +553,7 @@ export type Database = {
           name?: string
           plan?: string
           slug?: string
+          workspace_theme?: Json | null
         }
         Relationships: []
       }

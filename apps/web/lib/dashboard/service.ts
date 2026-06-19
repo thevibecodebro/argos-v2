@@ -8,6 +8,7 @@ import type { AccessRepository } from "@/lib/access/repository.types";
 import { createRubricsRepository } from "@/lib/rubrics/create-repository";
 import { getActiveRubric, type RubricsRepository } from "@/lib/rubrics/service";
 import { CALL_SCORE_LABELS_BY_FIELD } from "@/lib/calls/rubric";
+import type { WorkspaceTheme } from "@/lib/organizations/workspace-theme";
 import type { AppUserRole } from "@/lib/users/roles";
 
 export type DashboardUserRecord = {
@@ -22,6 +23,7 @@ export type DashboardUserRecord = {
     slug: string;
     plan: string;
     logoUrl?: string | null;
+    workspaceTheme?: WorkspaceTheme | null;
   } | null;
 };
 

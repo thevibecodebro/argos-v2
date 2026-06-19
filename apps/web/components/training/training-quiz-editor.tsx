@@ -16,9 +16,9 @@ export type TrainingQuizEditorProps = {
 
 const TRAINING_QUIZ_FIELD_FOCUS_CLASS =
   "outline-none transition focus-visible:border-[var(--forge-gold)] focus-visible:ring-2 focus-visible:ring-[var(--forge-gold)]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--forge-surface)]";
-const TRAINING_QUIZ_INPUT_CLASS = `min-w-0 flex-1 rounded-xl border border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white ${TRAINING_QUIZ_FIELD_FOCUS_CLASS}`;
-const TRAINING_QUIZ_TEXTAREA_CLASS = `min-h-24 w-full rounded-xl border border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white ${TRAINING_QUIZ_FIELD_FOCUS_CLASS}`;
-const TRAINING_QUIZ_SELECT_CLASS = `w-full rounded-xl border border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white ${TRAINING_QUIZ_FIELD_FOCUS_CLASS}`;
+const TRAINING_QUIZ_INPUT_CLASS = `min-w-0 flex-1 rounded-xl border border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface)] px-4 py-3 text-sm text-[var(--forge-text)] ${TRAINING_QUIZ_FIELD_FOCUS_CLASS}`;
+const TRAINING_QUIZ_TEXTAREA_CLASS = `min-h-24 w-full rounded-xl border border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface)] px-4 py-3 text-sm text-[var(--forge-text)] ${TRAINING_QUIZ_FIELD_FOCUS_CLASS}`;
+const TRAINING_QUIZ_SELECT_CLASS = `w-full rounded-xl border border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface)] px-4 py-3 text-sm text-[var(--forge-text)] ${TRAINING_QUIZ_FIELD_FOCUS_CLASS}`;
 
 export function createEmptyTrainingQuizQuestionDraft(): TrainingQuizQuestionDraft {
   return {
@@ -148,7 +148,7 @@ export function TrainingQuizEditor({ onChange, value }: TrainingQuizEditorProps)
   }
 
   return (
-    <section className="rounded-[1.15rem] border border-white/10 bg-[color-mix(in_srgb,var(--forge-shadow)_32%,transparent)] p-4">
+    <section className="rounded-[1.15rem] border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-gold)]">
@@ -159,7 +159,7 @@ export function TrainingQuizEditor({ onChange, value }: TrainingQuizEditorProps)
           </p>
         </div>
         <button
-          className="rounded-xl border border-[var(--forge-border-strong)]/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white transition hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/10"
+          className="rounded-xl border border-[var(--forge-border-strong)]/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-text)] transition hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/10"
           onClick={handleAddQuestion}
           type="button"
         >
@@ -174,9 +174,9 @@ export function TrainingQuizEditor({ onChange, value }: TrainingQuizEditorProps)
             key={`question-${questionIndex}`}
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-white">Question {questionIndex + 1}</p>
+              <p className="text-sm font-semibold text-[var(--forge-text)]">Question {questionIndex + 1}</p>
               <button
-                className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-muted)] hover:text-white"
+                className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-muted)] hover:text-[var(--forge-text)]"
                 onClick={() => handleRemoveQuestion(questionIndex)}
                 type="button"
               >
@@ -233,7 +233,7 @@ export function TrainingQuizEditor({ onChange, value }: TrainingQuizEditorProps)
                           className={cn(
                             "rounded-lg border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition",
                             canRemoveTrainingQuizQuestionOption(question, optionIndex)
-                              ? "border-[var(--forge-border-strong)]/20 text-[var(--forge-muted)] hover:border-[var(--forge-gold)]/30 hover:text-white"
+                              ? "border-[var(--forge-border-strong)]/20 text-[var(--forge-muted)] hover:border-[var(--forge-gold)]/30 hover:text-[var(--forge-text)]"
                               : "cursor-not-allowed border-[var(--forge-border-strong)]/10 text-[var(--forge-border-strong)]",
                           )}
                           disabled={!canRemoveTrainingQuizQuestionOption(question, optionIndex)}

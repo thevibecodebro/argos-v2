@@ -16,6 +16,13 @@ import {
 
 const SETTINGS_SECTIONS = [
   {
+    description: "Set workspace colors for buttons, text, surfaces, and states.",
+    href: "/settings/branding",
+    icon: "palette",
+    label: "Branding",
+    visibleTo: ["admin"],
+  },
+  {
     description: "Manage user records and account access.",
     href: "/settings/people",
     icon: "group",
@@ -128,7 +135,7 @@ export default async function SettingsAccountPage() {
         <div className="min-w-0 space-y-3">
           <section
             aria-label="Settings sections"
-            className="overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_88%,transparent)]"
+            className="overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[var(--forge-panel-bg)]"
             data-settings-workspace-map="true"
           >
             <div className="divide-y divide-[var(--forge-border)]">
@@ -165,7 +172,7 @@ export default async function SettingsAccountPage() {
           </section>
 
           <section
-            className="rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.6%,transparent)] p-4"
+            className="rounded-xl border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-4"
             data-settings-inline-detail="account"
           >
             <div className="mb-3">

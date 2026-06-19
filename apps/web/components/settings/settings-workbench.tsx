@@ -44,7 +44,7 @@ export function SettingsEditorPanel({
   return (
     <section
       className={cn(
-        "rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.6%,transparent)] p-3 sm:p-4",
+        "rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-bg)] p-3 sm:p-4",
         className,
       )}
       {...props}
@@ -62,7 +62,7 @@ export function SettingsEditorDrawer({
   return (
     <aside
       className={cn(
-        "rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.6%,transparent)] p-3 xl:sticky xl:top-3 xl:self-start",
+        "rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-bg)] p-3 xl:sticky xl:top-3 xl:self-start",
         className,
       )}
       {...props}

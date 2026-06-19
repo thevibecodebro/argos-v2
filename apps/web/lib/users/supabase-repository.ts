@@ -3,6 +3,10 @@ import {
   getSupabaseAdminClient,
   toDate,
 } from "@/lib/supabase/admin-repository-helpers";
+import {
+  coerceStoredWorkspaceTheme,
+  type WorkspaceTheme,
+} from "@/lib/organizations/workspace-theme";
 import { parseAppUserRole } from "./roles";
 import type { AppUserRole } from "./roles";
 import type { UsersRepository } from "./service";
@@ -146,7 +150,7 @@ export class SupabaseUsersRepository implements UsersRepository {
         logo_url: logoUrl,
       })
       .eq("id", orgId)
-      .select("id, name, slug, plan, logo_url, created_at")
+      .select("id, name, slug, plan, logo_url, workspace_theme, created_at")
       .maybeSingle();
 
     if (error) {
@@ -160,6 +164,38 @@ export class SupabaseUsersRepository implements UsersRepository {
           slug: data.slug,
           plan: data.plan,
           logoUrl: data.logo_url,
+          workspaceTheme: coerceStoredWorkspaceTheme(data.workspace_theme),
+          createdAt: toDate(data.created_at) ?? new Date(0),
+        }
+      : null;
+  }
+
+  async updateOrganizationWorkspaceTheme(
+    orgId: string,
+    workspaceTheme: WorkspaceTheme | null,
+  ) {
+    const supabase: any = this.supabase;
+    const { data, error } = await supabase
+      .from("organizations")
+      .update({
+        workspace_theme: workspaceTheme,
+      })
+      .eq("id", orgId)
+      .select("id, name, slug, plan, logo_url, workspace_theme, created_at")
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data
+      ? {
+          id: data.id,
+          name: data.name,
+          slug: data.slug,
+          plan: data.plan,
+          logoUrl: data.logo_url,
+          workspaceTheme: coerceStoredWorkspaceTheme(data.workspace_theme),
           createdAt: toDate(data.created_at) ?? new Date(0),
         }
       : null;

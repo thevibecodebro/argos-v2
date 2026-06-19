@@ -192,7 +192,7 @@ function TodayDashboardView({
       data-dashboard-today-queue="true"
     >
       <div
-        className="min-w-0 overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_88%,transparent)] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)]"
+        className="min-w-0 overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[var(--forge-table-bg)] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)]"
         data-dashboard-queue-table="true"
         data-forge-table="true"
       >

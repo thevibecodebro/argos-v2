@@ -1,3 +1,7 @@
+import {
+  parseWorkspaceTheme,
+  type WorkspaceTheme,
+} from "@/lib/organizations/workspace-theme";
 import type { AppUserRole } from "./roles";
 
 type OrganizationRecord = {
@@ -6,6 +10,7 @@ type OrganizationRecord = {
   slug: string;
   plan: string;
   logoUrl?: string | null;
+  workspaceTheme?: WorkspaceTheme | null;
   createdAt: Date;
 };
 
@@ -58,6 +63,7 @@ export type CurrentUserDetails = {
     slug: string;
     plan: string;
     logoUrl: string | null;
+    workspaceTheme: WorkspaceTheme | null;
     createdAt: string;
   } | null;
 };
@@ -96,6 +102,10 @@ export interface UsersRepository {
     orgId: string,
     logoUrl: string | null,
   ): Promise<OrganizationRecord | null>;
+  updateOrganizationWorkspaceTheme(
+    orgId: string,
+    workspaceTheme: WorkspaceTheme | null,
+  ): Promise<OrganizationRecord | null>;
   updateOrganizationMemberRole(
     userId: string,
     orgId: string,
@@ -126,6 +136,7 @@ function serializeCurrentUser(user: CurrentUserRecord): CurrentUserDetails {
           slug: user.org.slug,
           plan: user.org.plan,
           logoUrl: user.org.logoUrl ?? null,
+          workspaceTheme: user.org.workspaceTheme ?? null,
           createdAt: user.org.createdAt.toISOString(),
         }
       : null,
@@ -229,6 +240,66 @@ export async function updateOrganizationLogo(
   const updatedOrg = await repository.updateOrganizationLogo(
     user.orgId,
     logoUrl,
+  );
+
+  if (!updatedOrg) {
+    return {
+      ok: false,
+      status: 404,
+      error: "Organization not found",
+    };
+  }
+
+  return {
+    ok: true,
+    data: serializeCurrentUser({
+      ...user,
+      org: updatedOrg,
+    }),
+  };
+}
+
+export async function updateOrganizationWorkspaceTheme(
+  repository: UsersRepository,
+  authUserId: string,
+  input: unknown | null,
+): Promise<ServiceResult<CurrentUserDetails>> {
+  const user = await repository.findCurrentUserByAuthId(authUserId);
+
+  if (!user) {
+    return {
+      ok: false,
+      status: 404,
+      error: "User not found",
+    };
+  }
+
+  if (!user.orgId) {
+    return {
+      ok: false,
+      status: 400,
+      error: "You are not part of an organization",
+    };
+  }
+
+  if (user.role !== "admin") {
+    return {
+      ok: false,
+      status: 403,
+      error: "Only admins can update organization branding",
+    };
+  }
+
+  const parsedTheme = input === null ? null : parseWorkspaceTheme(input);
+
+  if (parsedTheme && !parsedTheme.ok) {
+    return parsedTheme;
+  }
+
+  const workspaceTheme = parsedTheme ? parsedTheme.data : null;
+  const updatedOrg = await repository.updateOrganizationWorkspaceTheme(
+    user.orgId,
+    workspaceTheme,
   );
 
   if (!updatedOrg) {

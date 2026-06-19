@@ -14,6 +14,7 @@ const platformAuditCoveredRoutes = new Set([
   "integrations/ghl/mappings/route.ts",
   "integrations/ghl/sync/route.ts",
   "invites/route.ts",
+  "organizations/branding/route.ts",
   "platform/organizations/route.ts",
   "platform/sessions/route.ts",
   "platform/staff/route.ts",

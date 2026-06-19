@@ -29,7 +29,7 @@ export function TrainingModuleStage({
 }) {
   if (!selectedModule) {
     return (
-      <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_color-mix(in_srgb,var(--forge-shadow)_28%,transparent)]">
+      <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-panel-bg)] p-6 shadow-[0_18px_60px_color-mix(in_srgb,var(--forge-bg)_10%,transparent)]">
         <p className="text-sm text-[var(--forge-muted)]">No module selected.</p>
       </section>
     );
@@ -39,7 +39,7 @@ export function TrainingModuleStage({
   const stageLabel = canManage ? "Module preview" : "Lesson workspace";
 
   return (
-    <section className="relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[linear-gradient(180deg,rgba(32,21,15,0.98),rgba(13,9,7,0.96))] p-6 shadow-[0_24px_80px_rgba(5,3,2,0.32)] sm:p-7">
+    <section className="relative overflow-hidden rounded-[1.75rem] border border-[var(--forge-border)] bg-[var(--forge-panel-bg)] p-6 shadow-[0_24px_80px_color-mix(in_srgb,var(--forge-bg)_14%,transparent)] sm:p-7">
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.05),transparent_24%,transparent_72%,rgba(255,255,255,0.02))]" />
       <div className="relative space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -50,7 +50,7 @@ export function TrainingModuleStage({
         </div>
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div className="space-y-3">
-            <h2 className="text-3xl font-semibold tracking-tight text-white">{selectedModule.title}</h2>
+            <h2 className="text-3xl font-semibold tracking-tight text-[var(--forge-text)]">{selectedModule.title}</h2>
             <p className="max-w-3xl text-sm leading-7 text-[var(--forge-muted)]">{selectedModule.description}</p>
           </div>
           <div className="rounded-full border border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface-2)]/70 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--forge-muted)]">

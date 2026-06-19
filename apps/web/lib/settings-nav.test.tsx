@@ -10,6 +10,7 @@ vi.mock("next/link", () => ({
 
 const adminItems = [
   { href: "/settings", icon: "person", key: "account", label: "Account" },
+  { href: "/settings/branding", icon: "palette", key: "branding", label: "Branding" },
   { href: "/settings/people", icon: "group", key: "people", label: "People" },
   { href: "/settings/rubric", icon: "grading", key: "rubrics", label: "Rubrics" },
   { href: "/settings/compliance", icon: "verified_user", key: "compliance", label: "Compliance" },
@@ -22,7 +23,9 @@ describe("SettingsSecondaryRail", () => {
     );
 
     expect(html).toContain('href="/settings/rubric"');
+    expect(html).toContain('href="/settings/branding"');
     expect(html).toContain("Rubrics");
+    expect(html).toContain("Branding");
     expect(html).toContain("Settings");
     expect(html).toContain("Sections");
     expect(html).toContain('aria-current="page"');

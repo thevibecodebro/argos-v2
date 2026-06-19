@@ -8,6 +8,7 @@ import {
 import { SettingsSecondaryRail } from "@/components/settings/settings-secondary-rail";
 
 type SettingsRoute =
+  | "branding"
   | "people"
   | "teams"
   | "permissions"
@@ -34,6 +35,12 @@ type SettingsOperationalLayoutProps = {
 
 const SETTINGS_SECTIONS = [
   { href: "/settings", icon: "person", key: "account", label: "Account" },
+  {
+    href: "/settings/branding",
+    icon: "palette",
+    key: "branding",
+    label: "Branding",
+  },
   { href: "/settings/people", icon: "group", key: "people", label: "People" },
   { href: "/settings/teams", icon: "groups", key: "teams", label: "Teams" },
   {
@@ -108,7 +115,7 @@ export function SettingsOperationalLayout({
         <SettingsSecondaryRail activeKey={route} items={SETTINGS_RAIL_ITEMS} />
 
         <section
-          className="min-w-0 rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_88%,transparent)] p-3"
+          className="min-w-0 rounded-xl border border-[var(--forge-border)] bg-[var(--forge-panel-bg)] p-3"
           data-settings-detail-panel="true"
           data-settings-editor-panel={variant === "editor" ? "true" : undefined}
         >

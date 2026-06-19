@@ -222,7 +222,7 @@ export function FeedbackWidget() {
     <>
       <button
         aria-label="Open bugs and feedback form"
-        className="forge-focus-ring fixed bottom-4 right-4 z-40 inline-flex h-12 items-center justify-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--forge-gold)_34%,transparent)] bg-[rgba(16,9,7,0.94)] px-3 text-[var(--forge-gold)] shadow-[0_18px_52px_rgba(5,3,2,0.45)] backdrop-blur-xl transition hover:border-[color-mix(in_srgb,var(--forge-gold)_56%,transparent)] hover:bg-[rgba(32,21,15,0.96)] hover:text-[var(--forge-text)] sm:bottom-5 sm:right-5 sm:px-4"
+        className="forge-focus-ring fixed bottom-4 right-4 z-40 inline-flex h-12 items-center justify-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--forge-gold)_34%,transparent)] bg-[var(--forge-floating-bg)] px-3 text-[var(--forge-gold)] shadow-[0_18px_52px_color-mix(in_srgb,var(--forge-bg)_18%,transparent)] transition hover:border-[color-mix(in_srgb,var(--forge-gold)_56%,transparent)] hover:bg-[var(--forge-panel-muted-bg)] hover:text-[var(--forge-text)] sm:bottom-5 sm:right-5 sm:px-4"
         data-feedback-widget="true"
         onClick={() => {
           setOpen(true);

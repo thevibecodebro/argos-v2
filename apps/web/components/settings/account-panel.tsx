@@ -172,7 +172,7 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
                       First Name
                     </span>
                     <input
-                      className="mt-2 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
+                      className="mt-2 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
                       onChange={(e) => setFirstName(e.target.value)}
                       value={firstName}
                     />
@@ -182,7 +182,7 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
                       Last Name
                     </span>
                     <input
-                      className="mt-2 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
+                      className="mt-2 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
                       onChange={(e) => setLastName(e.target.value)}
                       value={lastName}
                     />
@@ -222,7 +222,7 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
               </div>
             ) : (
               <div>
-                <p className="text-2xl font-semibold text-white">
+                <p className="text-2xl font-semibold text-[var(--forge-text)]">
                   {displayName}
                 </p>
                 <div className="mt-3 max-w-xl">

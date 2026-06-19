@@ -38,6 +38,38 @@
   --forge-success: #8bc79d;
   --forge-shadow: #050403;
   --forge-on-accent: #170d07;
+  --forge-focus: var(--forge-gold);
+  --forge-sidebar-bg: var(--forge-depth);
+  --forge-sidebar-text: var(--forge-text);
+  --forge-sidebar-muted: var(--forge-faint);
+  --forge-sidebar-active-bg: color-mix(in srgb, var(--forge-gold) 9%, transparent);
+  --forge-sidebar-active-text: var(--forge-gold);
+  --forge-sidebar-border: var(--forge-border);
+  --forge-topbar-bg: color-mix(in srgb, var(--forge-shadow) 96%, transparent);
+  --forge-topbar-text: var(--forge-text);
+  --forge-topbar-muted: var(--forge-muted);
+  --forge-topbar-border: var(--forge-border);
+  --forge-panel-bg: var(--forge-surface);
+  --forge-panel-muted-bg: var(--forge-surface-2);
+  --forge-panel-strong-bg: var(--forge-surface-3);
+  --forge-row-bg: var(--forge-surface-2);
+  --forge-field-bg: var(--forge-surface);
+  --forge-table-bg: var(--forge-surface);
+  --forge-table-header-bg: var(--forge-surface-2);
+  --forge-item-bg: var(--forge-surface-2);
+  --forge-item-selected-bg: var(--forge-sidebar-active-bg);
+  --forge-control-bg: var(--forge-surface-2);
+  --forge-transcript-bg: var(--forge-surface);
+  --forge-bubble-bg: var(--forge-surface-2);
+  --forge-floating-bg: var(--forge-surface);
+  --forge-workspace-rail-bg: var(--forge-surface);
+  --forge-secondary-rail-bg: var(--forge-sidebar-bg);
+  --forge-secondary-rail-text: var(--forge-sidebar-text);
+  --forge-secondary-rail-muted: var(--forge-sidebar-muted);
+  --forge-secondary-rail-active-bg: var(--forge-sidebar-active-bg);
+  --forge-secondary-rail-active-text: var(--forge-sidebar-active-text);
+  --forge-secondary-rail-border: var(--forge-sidebar-border);
+  --forge-overlay-bg: color-mix(in srgb, var(--forge-bg) 72%, transparent);
 
   /* ── Derived neutrals (computed from --forge-text) ─────────────── */
   --forge-muted: color-mix(in srgb, var(--forge-text) 70%, transparent);
@@ -100,14 +132,15 @@
 }
 
 .forge-sidebar {
-  border-right: 1px solid var(--forge-border);
-  background: var(--forge-depth);
+  border-right: 1px solid var(--forge-sidebar-border);
+  background: var(--forge-sidebar-bg);
   box-shadow: inset -1px 0 0 color-mix(in srgb, var(--forge-text) 3.5%, transparent);
 }
 
 .forge-topbar {
-  border-bottom: 1px solid var(--forge-border);
-  background: color-mix(in srgb, var(--forge-shadow) 96%, transparent);
+  border-bottom: 1px solid var(--forge-topbar-border);
+  color: var(--forge-topbar-text);
+  background: var(--forge-topbar-bg);
   box-shadow: none;
 }
 
@@ -130,7 +163,7 @@
 
 .forge-nav-link {
   border: 1px solid transparent;
-  color: var(--forge-faint);
+  color: var(--forge-sidebar-muted);
   background: transparent;
   transition:
     background-color 180ms cubic-bezier(0.23, 1, 0.32, 1),
@@ -139,8 +172,8 @@
 }
 
 .forge-nav-link:hover {
-  color: var(--forge-text);
-  border-color: var(--forge-border);
+  color: var(--forge-sidebar-text);
+  border-color: var(--forge-sidebar-border);
   background: color-mix(in srgb, var(--forge-text) 4.5%, transparent);
 }
 
@@ -150,15 +183,15 @@
 }
 
 .forge-nav-link--active {
-  color: var(--forge-gold);
-  border-color: color-mix(in srgb, var(--forge-gold) 25%, transparent);
-  background: color-mix(in srgb, var(--forge-gold) 9%, transparent);
+  color: var(--forge-sidebar-active-text);
+  border-color: color-mix(in srgb, var(--forge-sidebar-active-text) 25%, transparent);
+  background: var(--forge-sidebar-active-bg);
 }
 
 .forge-nav-link--pending {
-  color: var(--forge-text);
-  border-color: color-mix(in srgb, var(--forge-gold) 25%, transparent);
-  background: color-mix(in srgb, var(--forge-gold) 7%, transparent);
+  color: var(--forge-sidebar-text);
+  border-color: color-mix(in srgb, var(--forge-sidebar-active-text) 25%, transparent);
+  background: color-mix(in srgb, var(--forge-sidebar-active-text) 7%, transparent);
 }
 
 .forge-icon {
@@ -182,7 +215,7 @@
 .forge-workspace-rail {
   min-width: 0;
   border-bottom: 1px solid var(--forge-border);
-  background: color-mix(in srgb, var(--forge-shadow) 56%, transparent);
+  background: var(--forge-workspace-rail-bg);
   padding: 1rem;
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--forge-text) 5.5%, transparent);
   transition:
@@ -196,9 +229,10 @@
 
 .secondary-rail {
   min-width: 0;
-  border: 1px solid var(--forge-border);
+  border: 1px solid var(--forge-secondary-rail-border);
   border-radius: 0.75rem;
-  background: color-mix(in srgb, var(--forge-text) 2.6%, transparent);
+  color: var(--forge-secondary-rail-text);
+  background: var(--forge-secondary-rail-bg);
   padding: 0.5rem;
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--forge-text) 4%, transparent);
   transition:
@@ -226,7 +260,7 @@
 
 .secondary-rail-group-label {
   padding-inline: 0.75rem;
-  color: color-mix(in srgb, var(--forge-text) 46%, transparent);
+  color: var(--forge-secondary-rail-muted);
   font-size: 0.66rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -242,7 +276,7 @@
   border: 1px solid transparent;
   border-radius: 0.625rem;
   padding: 0.625rem 0.75rem;
-  color: var(--forge-muted);
+  color: var(--forge-secondary-rail-muted);
   text-align: left;
   transition:
     background-color 180ms cubic-bezier(0.23, 1, 0.32, 1),
@@ -252,9 +286,9 @@
 }
 
 .secondary-rail-item:hover {
-  border-color: var(--forge-border);
+  border-color: var(--forge-secondary-rail-border);
   background: color-mix(in srgb, var(--forge-text) 4%, transparent);
-  color: var(--forge-text);
+  color: var(--forge-secondary-rail-text);
 }
 
 .secondary-rail-item:active {
@@ -262,9 +296,9 @@
 }
 
 .secondary-rail-item--active {
-  border-color: color-mix(in srgb, var(--forge-gold) 28%, transparent);
-  background: color-mix(in srgb, var(--forge-gold) 11%, transparent);
-  color: var(--forge-gold);
+  border-color: color-mix(in srgb, var(--forge-secondary-rail-active-text) 28%, transparent);
+  background: var(--forge-secondary-rail-active-bg);
+  color: var(--forge-secondary-rail-active-text);
 }
 
 .secondary-rail-item-icon {
@@ -289,7 +323,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--forge-muted);
+  color: var(--forge-secondary-rail-muted);
   font-size: 0.72rem;
   line-height: 1rem;
 }
@@ -297,7 +331,7 @@
 .secondary-rail-item-badge {
   margin-left: auto;
   flex: 0 0 auto;
-  color: var(--forge-gold);
+  color: var(--forge-secondary-rail-active-text);
   font-size: 0.68rem;
   font-weight: 700;
 }
@@ -541,12 +575,10 @@
     max-height: none;
     border: 0;
     border-radius: 0;
-    background:
-      linear-gradient(180deg, rgba(16, 9, 7, 0.98), color-mix(in srgb, var(--forge-shadow) 98%, transparent)),
-      var(--forge-bg);
+    background: var(--forge-secondary-rail-bg);
     box-shadow:
       inset -1px 0 0 color-mix(in srgb, var(--forge-text) 3.5%, transparent),
-      12px 0 48px rgba(5, 3, 2, 0.2);
+      12px 0 48px color-mix(in srgb, var(--forge-bg) 14%, transparent);
     padding: 1.25rem 0.875rem 1rem;
   }
 
@@ -767,9 +799,9 @@
 }
 
 .forge-focus-ring:focus-visible {
-  outline: 2px solid var(--forge-gold);
+  outline: 2px solid var(--forge-focus);
   outline-offset: 3px;
-  box-shadow: 0 0 0 5px color-mix(in srgb, var(--forge-gold) 16%, transparent);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--forge-focus) 16%, transparent);
 }
 
 .forge-form-control {
@@ -777,9 +809,7 @@
   border: 1px solid var(--forge-border);
   border-radius: 0.95rem;
   color: var(--forge-text);
-  background:
-    linear-gradient(180deg, rgba(16, 9, 7, 0.9), color-mix(in srgb, var(--forge-shadow) 96%, transparent)),
-    var(--forge-depth);
+  background: var(--forge-field-bg);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--forge-text) 4.5%, transparent);
   transition:
     background-color 180ms cubic-bezier(0.23, 1, 0.32, 1),
@@ -797,12 +827,12 @@
 }
 
 .forge-form-control:focus-visible {
-  border-color: color-mix(in srgb, var(--forge-gold) 46%, transparent);
-  outline: 2px solid var(--forge-gold);
+  border-color: color-mix(in srgb, var(--forge-focus) 46%, transparent);
+  outline: 2px solid var(--forge-focus);
   outline-offset: 2px;
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, var(--forge-text) 5.5%, transparent),
-    0 0 0 5px color-mix(in srgb, var(--forge-gold) 16%, transparent);
+    0 0 0 5px color-mix(in srgb, var(--forge-focus) 16%, transparent);
 }
 
 .forge-account-menu {
@@ -1067,9 +1097,7 @@
   border-radius: 1.25rem;
   padding: 1rem;
   color: var(--forge-text);
-  background:
-    linear-gradient(180deg, rgba(16, 9, 7, 0.9), color-mix(in srgb, var(--forge-shadow) 96%, transparent)),
-    var(--forge-depth);
+  background: var(--forge-panel-bg);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--forge-text) 4.5%, transparent);
 }
 

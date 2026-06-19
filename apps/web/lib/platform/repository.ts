@@ -14,6 +14,7 @@ import {
   usersTable,
   type ArgosDb,
 } from "@argos-v2/db";
+import { coerceStoredWorkspaceTheme } from "@/lib/organizations/workspace-theme";
 import {
   buildPlatformDashboardSnapshot,
   type PlatformDashboardFilters,
@@ -324,6 +325,7 @@ export class DrizzlePlatformRepository {
         ...accessSessionSelection,
         targetOrgName: organizationsTable.name,
         targetOrgSlug: organizationsTable.slug,
+        targetOrgWorkspaceTheme: organizationsTable.workspaceTheme,
       })
       .from(platformAccessSessionsTable)
       .leftJoin(organizationsTable, eq(platformAccessSessionsTable.targetOrgId, organizationsTable.id))
@@ -337,7 +339,14 @@ export class DrizzlePlatformRepository {
       )
       .limit(1);
 
-    return session ?? null;
+    return session
+      ? {
+          ...session,
+          targetOrgWorkspaceTheme: coerceStoredWorkspaceTheme(
+            session.targetOrgWorkspaceTheme,
+          ),
+        }
+      : null;
   }
 
   async endAccessSession(sessionId: string, staffUserId: string, endedAt = new Date()) {
