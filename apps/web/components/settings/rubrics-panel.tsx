@@ -703,7 +703,7 @@ export function RubricsPanel({
                   key={entry.id}
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <p className="truncate text-sm font-semibold text-white">
+                    <p className="truncate text-sm font-semibold text-[var(--forge-text)]">
                       v{entry.version} · {entry.name}
                     </p>
                     <span
@@ -1027,7 +1027,7 @@ export function RubricsPanel({
                           <p className="text-xs font-medium text-[var(--forge-gold)]">
                             Category {index + 1}
                           </p>
-                          <p className="mt-1 truncate text-sm font-semibold text-white">
+                          <p className="mt-1 truncate text-sm font-semibold text-[var(--forge-text)]">
                             {category.name || "Untitled category"} ·{" "}
                             {category.slug || "missing-slug"} · weight{" "}
                             {category.weight}
@@ -1227,7 +1227,7 @@ export function RubricsPanel({
 
               <div className="flex flex-wrap gap-3">
                 <button
-                  className="rounded-xl border border-[var(--forge-border-strong)]/20 px-4 py-3 text-sm font-semibold text-[var(--forge-muted)] transition hover:text-white"
+                  className="rounded-xl border border-[var(--forge-border-strong)]/20 px-4 py-3 text-sm font-semibold text-[var(--forge-muted)] transition hover:text-[var(--forge-text)]"
                   onClick={() =>
                     updateDraft((current) => ({
                       ...current,
@@ -1242,7 +1242,7 @@ export function RubricsPanel({
                   Add Category
                 </button>
                 <button
-                  className="rounded-xl border border-[var(--forge-border-strong)]/20 px-4 py-3 text-sm font-semibold text-[var(--forge-muted)] transition hover:text-white"
+                  className="rounded-xl border border-[var(--forge-border-strong)]/20 px-4 py-3 text-sm font-semibold text-[var(--forge-muted)] transition hover:text-[var(--forge-text)]"
                   onClick={() => setStep("source")}
                   type="button"
                 >
@@ -1253,7 +1253,7 @@ export function RubricsPanel({
           ) : (
             <div className="mt-6 space-y-3">
               <div className="rounded-2xl border border-dashed border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/40 p-5">
-                <h4 className="text-lg font-semibold text-white">
+                <h4 className="text-lg font-semibold text-[var(--forge-text)]">
                   Choose a source to start a scoring draft.
                 </h4>
                 <p className="mt-2 text-sm leading-7 text-[var(--forge-muted)]">
@@ -1279,7 +1279,7 @@ export function RubricsPanel({
                             <p className="text-xs font-medium text-[var(--forge-muted)]">
                               Name
                             </p>
-                            <p className="mt-1 text-sm font-semibold text-white">
+                            <p className="mt-1 text-sm font-semibold text-[var(--forge-text)]">
                               {category.name || `Category ${index + 1}`}
                             </p>
                           </div>

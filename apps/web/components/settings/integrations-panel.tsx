@@ -164,7 +164,7 @@ function ZoomCard({
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-medium text-[var(--forge-muted)]">Zoom</p>
-          <p className="mt-2 text-xl font-semibold text-white">
+          <p className="mt-2 text-xl font-semibold text-[var(--forge-text)]">
             Call Recording Ingest
           </p>
         </div>
@@ -331,7 +331,7 @@ function GhlCard({
           <p className="text-xs font-medium text-[var(--forge-muted)]">
             Go High Level
           </p>
-          <p className="mt-2 text-xl font-semibold text-white">
+          <p className="mt-2 text-xl font-semibold text-[var(--forge-text)]">
             CRM &amp; Workflow Automation
           </p>
         </div>

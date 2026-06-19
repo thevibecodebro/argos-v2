@@ -253,7 +253,7 @@ export function PeoplePanel({
                 Email
               </span>
               <input
-                className="mt-2 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3 text-sm text-white outline-none transition placeholder:text-[color-mix(in_srgb,var(--forge-text)_34%,transparent)] focus:border-[var(--forge-gold)]/60"
+                className="mt-2 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3 text-sm text-[var(--forge-text)] outline-none transition placeholder:text-[color-mix(in_srgb,var(--forge-text)_34%,transparent)] focus:border-[var(--forge-gold)]/60"
                 onChange={(e) => setInviteEmail(e.target.value)}
                 placeholder="teammate@company.com"
                 type="email"
@@ -266,7 +266,7 @@ export function PeoplePanel({
                 Role
               </span>
               <select
-                className="mt-2 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
+                className="mt-2 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
                 onChange={(e) => {
                   setInviteRole(e.target.value as typeof inviteRole);
                   setInviteTeamIds([]);
@@ -291,7 +291,7 @@ export function PeoplePanel({
                   {initialTeams.map((team) => (
                     <label
                       key={team.id}
-                      className="flex cursor-pointer items-center gap-2 text-sm text-white"
+                      className="flex cursor-pointer items-center gap-2 text-sm text-[var(--forge-text)]"
                     >
                       <input
                         checked={inviteTeamIds.includes(team.id)}
@@ -362,7 +362,7 @@ export function PeoplePanel({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-white">
+                      <p className="truncate text-sm font-medium text-[var(--forge-text)]">
                         {invite.email}
                       </p>
                       <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[var(--forge-muted)]">
@@ -495,7 +495,7 @@ export function PeoplePanel({
             <p className="text-xs font-medium text-[var(--forge-muted)]">
               Member management
             </p>
-            <h3 className="mt-2 text-xl font-semibold text-white">
+            <h3 className="mt-2 text-xl font-semibold text-[var(--forge-text)]">
               People table
             </h3>
             <p className="mt-2 text-sm text-[var(--forge-muted)]">
@@ -517,7 +517,7 @@ export function PeoplePanel({
           <label className="space-y-2 text-sm text-[var(--forge-muted)]">
             <span>Search members</span>
             <input
-              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
+              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
               onChange={(event) => setMemberSearch(event.target.value)}
               placeholder="Name, email, or role"
               value={memberSearch}
@@ -526,7 +526,7 @@ export function PeoplePanel({
           <label className="space-y-2 text-sm text-[var(--forge-muted)]">
             <span>Role filter</span>
             <select
-              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--forge-gold)]/60"
+              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
               onChange={(event) =>
                 setRoleFilter(event.target.value as typeof roleFilter)
               }
@@ -576,7 +576,7 @@ export function PeoplePanel({
                             )}
                           </div>
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold text-white">
+                            <p className="truncate text-sm font-semibold text-[var(--forge-text)]">
                               {memberName}
                               {isSelf ? (
                                 <span className="ml-2 text-xs font-medium text-[var(--forge-muted)]">
@@ -631,7 +631,7 @@ export function PeoplePanel({
                               )}
                             </div>
                             <div className="min-w-0">
-                              <p className="truncate text-sm font-semibold text-white">
+                              <p className="truncate text-sm font-semibold text-[var(--forge-text)]">
                                 {memberName}
                                 {isSelf ? (
                                   <span className="ml-2 text-xs font-medium text-[var(--forge-muted)]">

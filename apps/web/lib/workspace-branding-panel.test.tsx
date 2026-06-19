@@ -35,6 +35,8 @@ describe("WorkspaceBrandingPanel", () => {
     expect(html).toContain("Safety checks");
     expect(html).toContain("Save branding");
     expect(html).toContain("Cancel");
+    expect(html).not.toContain("var(--forge-shadow)_72%");
+    expect(html).not.toContain("var(--forge-shadow)_88%");
     expect(html).toContain(
       "This will remove custom colors and return this workspace to the Argos default light and dark themes. Your logo, users, calls, billing, and settings will not change.",
     );

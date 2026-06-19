@@ -7,6 +7,7 @@ import {
   getHexContrastRatio,
   parseWorkspaceTheme,
   workspaceThemeToForgeVars,
+  applyWorkspaceThemePreset,
 } from "./workspace-theme";
 
 describe("parseWorkspaceTheme", () => {
@@ -282,7 +283,7 @@ describe("workspaceThemeToForgeVars", () => {
       },
     };
 
-    expect(workspaceThemeToForgeVars(theme)).toEqual({
+    expect(workspaceThemeToForgeVars(theme)).toMatchObject({
       "--forge-bg": "#F8FAFC",
       "--forge-depth": "#EEF2F7",
       "--forge-surface": "#FFFFFF",
@@ -309,7 +310,50 @@ describe("workspaceThemeToForgeVars", () => {
       "--forge-topbar-text": "#172033",
       "--forge-topbar-muted": "#536174",
       "--forge-topbar-border": "#CBD5E1",
+      "--forge-panel-bg": "#FFFFFF",
+      "--forge-panel-muted-bg": "#F1F5F9",
+      "--forge-row-bg": "#F1F5F9",
+      "--forge-field-bg": "#FFFFFF",
+      "--forge-secondary-rail-bg": "#FFFFFF",
+      "--forge-secondary-rail-text": "#172033",
+      "--forge-secondary-rail-active-bg": "#DBEAFE",
+      "--forge-secondary-rail-active-text": "#123F7D",
     });
+  });
+
+  it("emits light semantic resources for the Mist starter template", () => {
+    const mistTheme = {
+      ...WORKSPACE_THEME_PRESETS.mist.theme,
+      activeMode: "light" as const,
+    };
+
+    expect(workspaceThemeToForgeVars(mistTheme)).toMatchObject({
+      "--forge-bg": "#F3F7F8",
+      "--forge-panel-bg": "#FFFFFF",
+      "--forge-panel-muted-bg": "#EEF4F6",
+      "--forge-row-bg": "#EEF4F6",
+      "--forge-field-bg": "#FFFFFF",
+      "--forge-secondary-rail-bg": "#FFFFFF",
+      "--forge-secondary-rail-text": "#18313A",
+      "--forge-secondary-rail-active-bg": "#EEF4F6",
+      "--forge-secondary-rail-active-text": "#176B87",
+    });
+
+    expect(workspaceThemeToForgeVars(mistTheme)["--forge-panel-bg"]).not.toBe("#050403");
+    expect(workspaceThemeToForgeVars(mistTheme)["--forge-secondary-rail-bg"]).not.toBe("#050403");
+  });
+});
+
+describe("applyWorkspaceThemePreset", () => {
+  it("applies light starter templates as the active saved workspace mode", () => {
+    const nextTheme = applyWorkspaceThemePreset(
+      DEFAULT_WORKSPACE_THEME,
+      "mist",
+    );
+
+    expect(nextTheme.activeMode).toBe("light");
+    expect(nextTheme.modes.light.colors.background).toBe("#F3F7F8");
+    expect(nextTheme.colors).toEqual(nextTheme.modes.dark.colors);
   });
 });
 

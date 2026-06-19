@@ -115,7 +115,7 @@ export function SettingsOperationalLayout({
         <SettingsSecondaryRail activeKey={route} items={SETTINGS_RAIL_ITEMS} />
 
         <section
-          className="min-w-0 rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_88%,transparent)] p-3"
+          className="min-w-0 rounded-xl border border-[var(--forge-border)] bg-[var(--forge-panel-bg)] p-3"
           data-settings-detail-panel="true"
           data-settings-editor-panel={variant === "editor" ? "true" : undefined}
         >

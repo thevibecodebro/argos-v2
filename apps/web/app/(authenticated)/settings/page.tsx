@@ -135,7 +135,7 @@ export default async function SettingsAccountPage() {
         <div className="min-w-0 space-y-3">
           <section
             aria-label="Settings sections"
-            className="overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_88%,transparent)]"
+            className="overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[var(--forge-panel-bg)]"
             data-settings-workspace-map="true"
           >
             <div className="divide-y divide-[var(--forge-border)]">
@@ -172,7 +172,7 @@ export default async function SettingsAccountPage() {
           </section>
 
           <section
-            className="rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.6%,transparent)] p-4"
+            className="rounded-xl border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-4"
             data-settings-inline-detail="account"
           >
             <div className="mb-3">

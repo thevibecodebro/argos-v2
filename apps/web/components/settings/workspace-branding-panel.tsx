@@ -6,6 +6,7 @@ import { ForgeIcon } from "@/components/forge";
 import {
   DEFAULT_WORKSPACE_THEME,
   WORKSPACE_THEME_PRESETS,
+  applyWorkspaceThemePreset,
   checkWorkspaceThemeContrast,
   parseWorkspaceTheme,
   workspaceThemeToForgeVars,
@@ -189,19 +190,9 @@ export function WorkspaceBrandingPanel({
 
       setEditingMode(preset.mode);
       setDraftTheme((current) => {
-        const presetModeTheme = preset.theme.modes[preset.mode];
-        const modes = {
-          ...current.modes,
-          [preset.mode]: presetModeTheme,
-        };
-
-        return {
-          ...current,
-          colors: modes.dark.colors,
-          modes,
-        };
+        return applyWorkspaceThemePreset(current, presetKey);
       });
-      setMessage(`${preset.name} ${preset.mode} template previewing.`);
+      setMessage(`${preset.name} ${preset.mode} template will be the default after saving.`);
     } else {
       setMessage("Custom palette ready.");
     }
@@ -292,7 +283,7 @@ export function WorkspaceBrandingPanel({
         </aside>
 
         <section className="order-2 min-w-0 space-y-3 xl:order-1">
-          <section className="rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.6%,transparent)] p-3">
+          <section className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-3">
             <div className="grid gap-3 md:grid-cols-2">
               <div>
                 <h2 className="text-sm font-semibold text-[var(--forge-text)]">
@@ -340,7 +331,7 @@ export function WorkspaceBrandingPanel({
             </div>
           </section>
 
-          <section className="rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.6%,transparent)] p-3">
+          <section className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-3">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-sm font-semibold text-[var(--forge-text)]">
@@ -370,7 +361,7 @@ export function WorkspaceBrandingPanel({
 
                   return (
                     <button
-                      className="forge-focus-ring rounded-lg border border-[var(--forge-border)] bg-[var(--forge-surface)] p-2 text-left transition hover:border-[color-mix(in_srgb,var(--forge-gold)_44%,transparent)]"
+                      className="forge-focus-ring rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-bg)] p-2 text-left transition hover:border-[color-mix(in_srgb,var(--forge-gold)_44%,transparent)]"
                       data-branding-preset={preset.id}
                       key={preset.id}
                       onClick={() => selectPreset(presetKey)}
@@ -426,7 +417,7 @@ export function WorkspaceBrandingPanel({
             title="Top navigation"
           />
 
-          <details className="rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.6%,transparent)] p-3">
+          <details className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-3">
             <summary className="cursor-pointer text-sm font-semibold text-[var(--forge-text)]">
               Advanced colors
             </summary>
@@ -470,7 +461,7 @@ export function WorkspaceBrandingPanel({
 
       <div
         aria-modal="true"
-        className="fixed inset-0 z-50 flex items-end bg-[color-mix(in_srgb,var(--forge-shadow)_70%,transparent)] p-3 sm:items-center sm:justify-center"
+        className="fixed inset-0 z-50 flex items-end bg-[var(--forge-overlay-bg)] p-3 sm:items-center sm:justify-center"
         hidden={!isRestoreOpen}
         role="dialog"
       >
@@ -518,12 +509,12 @@ function ColorGroup({
   return (
     <section
       aria-label={title}
-      className="rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.6%,transparent)] p-3"
+      className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-3"
     >
       <div className="grid gap-2">
         {controls.map((control) => (
           <label
-            className="grid gap-2 rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_72%,transparent)] p-3 sm:grid-cols-[minmax(0,1fr)_150px]"
+            className="grid gap-2 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-row-bg)] p-3 sm:grid-cols-[minmax(0,1fr)_150px]"
             data-branding-color-row={control.field}
             key={control.field}
           >
@@ -545,7 +536,7 @@ function ColorGroup({
               />
               <input
                 aria-label={`${control.label} hex value`}
-                className="forge-focus-ring min-h-10 min-w-0 flex-1 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 text-sm font-semibold text-[var(--forge-text)]"
+                className="forge-focus-ring min-h-10 min-w-0 flex-1 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-field-bg)] px-3 text-sm font-semibold text-[var(--forge-text)]"
                 inputMode="text"
                 onChange={(event) => onChange(control.field, event.target.value)}
                 spellCheck={false}
@@ -573,7 +564,7 @@ function NavigationColorGroup({
   return (
     <section
       aria-label={title}
-      className="rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.6%,transparent)] p-3"
+      className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-3"
     >
       <h2 className="mb-3 text-sm font-semibold text-[var(--forge-text)]">
         {title}
@@ -581,7 +572,7 @@ function NavigationColorGroup({
       <div className="grid gap-2">
         {controls.map((control) => (
           <label
-            className="grid gap-2 rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_72%,transparent)] p-3 sm:grid-cols-[minmax(0,1fr)_150px]"
+            className="grid gap-2 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-row-bg)] p-3 sm:grid-cols-[minmax(0,1fr)_150px]"
             data-branding-nav-row={control.field}
             key={control.field}
           >
@@ -603,7 +594,7 @@ function NavigationColorGroup({
               />
               <input
                 aria-label={`${control.label} hex value`}
-                className="forge-focus-ring min-h-10 min-w-0 flex-1 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 text-sm font-semibold text-[var(--forge-text)]"
+                className="forge-focus-ring min-h-10 min-w-0 flex-1 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-field-bg)] px-3 text-sm font-semibold text-[var(--forge-text)]"
                 inputMode="text"
                 onChange={(event) => onChange(control.field, event.target.value)}
                 spellCheck={false}
@@ -720,7 +711,7 @@ function ValidationPanel({
   ];
 
   return (
-    <section className="rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_88%,transparent)] p-3">
+    <section className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-bg)] p-3">
       <h2 className="text-sm font-semibold text-[var(--forge-text)]">
         Safety checks
       </h2>

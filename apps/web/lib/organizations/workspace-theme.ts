@@ -749,35 +749,78 @@ export function coerceStoredWorkspaceTheme(input: unknown): WorkspaceTheme | nul
   return parsed.ok ? parsed.data : null;
 }
 
-export function workspaceThemeToForgeVars(theme: WorkspaceTheme) {
-  const modeTheme = theme.modes[theme.activeMode] ?? theme.modes.dark;
+export function applyWorkspaceThemePreset(
+  currentTheme: WorkspaceTheme,
+  presetKey: keyof typeof WORKSPACE_THEME_PRESETS,
+): WorkspaceTheme {
+  const preset = WORKSPACE_THEME_PRESETS[presetKey];
+
+  if (!("theme" in preset)) {
+    return currentTheme;
+  }
+
+  if (preset.id === "argos") {
+    return DEFAULT_WORKSPACE_THEME;
+  }
+
+  const presetModeTheme = preset.theme.modes[preset.mode];
+  const modes = {
+    ...currentTheme.modes,
+    [preset.mode]: presetModeTheme,
+  };
 
   return {
-    "--forge-bg": modeTheme.colors.background,
-    "--forge-depth": modeTheme.colors.depth,
-    "--forge-surface": modeTheme.colors.surface,
-    "--forge-surface-2": modeTheme.colors.surfaceRaised,
-    "--forge-surface-3": modeTheme.colors.surfaceHigh,
-    "--forge-text": modeTheme.colors.text,
-    "--forge-muted": modeTheme.colors.mutedText,
-    "--forge-border": modeTheme.colors.border,
-    "--forge-border-strong": modeTheme.colors.borderStrong,
-    "--forge-gold": modeTheme.colors.primary,
-    "--forge-cyan": modeTheme.colors.secondary,
-    "--forge-ember": modeTheme.colors.warning,
-    "--forge-success": modeTheme.colors.success,
-    "--forge-danger": modeTheme.colors.danger,
-    "--forge-focus": modeTheme.colors.focus,
-    "--forge-on-accent": modeTheme.colors.onPrimary,
-    "--forge-sidebar-bg": modeTheme.navigation.leftBackground,
-    "--forge-sidebar-text": modeTheme.navigation.leftText,
-    "--forge-sidebar-muted": modeTheme.navigation.leftMutedText,
-    "--forge-sidebar-active-bg": modeTheme.navigation.leftActiveBackground,
-    "--forge-sidebar-active-text": modeTheme.navigation.leftActiveText,
-    "--forge-sidebar-border": modeTheme.navigation.leftBorder,
-    "--forge-topbar-bg": modeTheme.navigation.topBackground,
-    "--forge-topbar-text": modeTheme.navigation.topText,
-    "--forge-topbar-muted": modeTheme.navigation.topMutedText,
-    "--forge-topbar-border": modeTheme.navigation.topBorder,
+    ...currentTheme,
+    activeMode: preset.mode,
+    colors: modes.dark.colors,
+    modes,
+  };
+}
+
+export function workspaceThemeToForgeVars(theme: WorkspaceTheme) {
+  const modeTheme = theme.modes[theme.activeMode] ?? theme.modes.dark;
+  const colors = modeTheme.colors;
+  const navigation = modeTheme.navigation;
+
+  return {
+    "--forge-bg": colors.background,
+    "--forge-depth": colors.depth,
+    "--forge-surface": colors.surface,
+    "--forge-surface-2": colors.surfaceRaised,
+    "--forge-surface-3": colors.surfaceHigh,
+    "--forge-text": colors.text,
+    "--forge-muted": colors.mutedText,
+    "--forge-border": colors.border,
+    "--forge-border-strong": colors.borderStrong,
+    "--forge-gold": colors.primary,
+    "--forge-cyan": colors.secondary,
+    "--forge-ember": colors.warning,
+    "--forge-success": colors.success,
+    "--forge-danger": colors.danger,
+    "--forge-focus": colors.focus,
+    "--forge-on-accent": colors.onPrimary,
+    "--forge-sidebar-bg": navigation.leftBackground,
+    "--forge-sidebar-text": navigation.leftText,
+    "--forge-sidebar-muted": navigation.leftMutedText,
+    "--forge-sidebar-active-bg": navigation.leftActiveBackground,
+    "--forge-sidebar-active-text": navigation.leftActiveText,
+    "--forge-sidebar-border": navigation.leftBorder,
+    "--forge-topbar-bg": navigation.topBackground,
+    "--forge-topbar-text": navigation.topText,
+    "--forge-topbar-muted": navigation.topMutedText,
+    "--forge-topbar-border": navigation.topBorder,
+    "--forge-panel-bg": colors.surface,
+    "--forge-panel-muted-bg": colors.surfaceRaised,
+    "--forge-panel-strong-bg": colors.surfaceHigh,
+    "--forge-row-bg": colors.surfaceRaised,
+    "--forge-field-bg": colors.surface,
+    "--forge-workspace-rail-bg": colors.surface,
+    "--forge-secondary-rail-bg": navigation.leftBackground,
+    "--forge-secondary-rail-text": navigation.leftText,
+    "--forge-secondary-rail-muted": navigation.leftMutedText,
+    "--forge-secondary-rail-active-bg": navigation.leftActiveBackground,
+    "--forge-secondary-rail-active-text": navigation.leftActiveText,
+    "--forge-secondary-rail-border": navigation.leftBorder,
+    "--forge-overlay-bg": "color-mix(in srgb, var(--forge-bg) 72%, transparent)",
   } satisfies Record<string, string>;
 }

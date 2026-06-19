@@ -79,9 +79,9 @@ export function SecondaryRail({
       <div className="secondary-rail-header">
         <div className="secondary-rail-header-text min-w-0">
           {eyebrow ? <p className="forge-page-eyebrow">{eyebrow}</p> : null}
-          <h2 className="mt-1 truncate text-sm font-semibold text-[var(--forge-text)]">{title}</h2>
+          <h2 className="mt-1 truncate text-sm font-semibold text-[var(--forge-secondary-rail-text)]">{title}</h2>
           {description ? (
-            <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">{description}</p>
+            <p className="mt-1 text-xs leading-5 text-[var(--forge-secondary-rail-muted)]">{description}</p>
           ) : null}
         </div>
         <button
