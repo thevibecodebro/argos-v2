@@ -858,10 +858,15 @@
 }
 
 .forge-button-primary {
-  border: 1px solid color-mix(in srgb, var(--forge-gold) 58%, transparent);
+  border: 1px solid var(--forge-gold);
   color: var(--forge-on-accent);
   background: var(--forge-gold);
   box-shadow: none;
+}
+
+.forge-button-primary:hover {
+  border-color: color-mix(in srgb, var(--forge-gold) 90%, #000);
+  background: color-mix(in srgb, var(--forge-gold) 90%, #000);
 }
 
 .forge-button-secondary {
