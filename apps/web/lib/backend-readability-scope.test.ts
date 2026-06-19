@@ -25,7 +25,7 @@ function collectFiles(
 describe("authenticated backend readability scope", () => {
   it("keeps the existing primary navigation route set and labels", () => {
     const source = readFileSync(
-      new URL("../components/app-shell.tsx", import.meta.url),
+      new URL("../components/app-navigation.ts", import.meta.url),
       "utf8",
     );
     // Scope to the grouped primary-rail declaration (not the bottom tab bar).

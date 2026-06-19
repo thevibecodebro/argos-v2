@@ -7,12 +7,21 @@ import {
   getNavigationPendingState,
 } from "../components/app-shell";
 
-const { usePathnameMock } = vi.hoisted(() => ({
+const { usePathnameMock, useRouterMock } = vi.hoisted(() => ({
   usePathnameMock: vi.fn(),
+  useRouterMock: vi.fn(() => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    refresh: vi.fn(),
+  })),
 }));
 
 vi.mock("next/navigation", () => ({
   usePathname: usePathnameMock,
+  useRouter: useRouterMock,
 }));
 
 const managerUser = {
@@ -336,6 +345,10 @@ describe("AuthenticatedAppShell", () => {
     // One global create action — not a duplicated nav destination.
     expect(html).toContain('data-global-create="upload"');
     expect(html).not.toContain('data-navigation-link="/upload"');
+
+    // Command palette trigger (⌘K) is present in the topbar.
+    expect(html).toContain('data-command-trigger="true"');
+    expect(html).toContain("⌘K");
 
     // Mobile bottom tab bar with the five Option-A slots.
     expect(html).toContain('data-mobile-tabbar="true"');

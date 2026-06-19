@@ -153,6 +153,102 @@
   box-shadow: 0 -8px 24px color-mix(in srgb, var(--forge-text) 6%, transparent);
 }
 
+/* ── Command palette (⌘K) ─────────────────────────────────────────── */
+.forge-command-trigger {
+  border: 1px solid var(--forge-topbar-border);
+  background: color-mix(in srgb, var(--forge-topbar-text) 4%, transparent);
+  color: var(--forge-topbar-text);
+  transition: background-color 150ms ease;
+}
+
+.forge-command-trigger:hover {
+  background: color-mix(in srgb, var(--forge-topbar-text) 8%, transparent);
+}
+
+.forge-command-kbd {
+  font-family: var(--font-numeric);
+  font-size: 11px;
+  color: var(--forge-topbar-muted);
+  border: 1px solid var(--forge-topbar-border);
+  border-radius: 5px;
+  padding: 1px 6px;
+}
+
+.forge-command-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: var(--forge-overlay-bg);
+  backdrop-filter: blur(2px);
+}
+
+.forge-command-dialog {
+  position: fixed;
+  left: 50%;
+  top: 16%;
+  transform: translateX(-50%);
+  z-index: 81;
+  width: min(640px, calc(100vw - 32px));
+  overflow: hidden;
+  border: 1px solid var(--forge-border);
+  border-radius: 16px;
+  background: var(--forge-floating-bg);
+  box-shadow: 0 24px 60px color-mix(in srgb, var(--forge-text) 18%, transparent);
+}
+
+.forge-command [cmdk-input] {
+  width: 100%;
+  padding: 15px 18px;
+  border: none;
+  border-bottom: 1px solid var(--forge-border);
+  background: transparent;
+  font-size: 15px;
+  color: var(--forge-text);
+  outline: none;
+}
+
+.forge-command [cmdk-input]::placeholder {
+  color: var(--forge-faint);
+}
+
+.forge-command [cmdk-list] {
+  max-height: 360px;
+  overflow: auto;
+  padding: 8px;
+}
+
+.forge-command [cmdk-group-heading] {
+  padding: 10px 10px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--forge-muted);
+}
+
+.forge-command [cmdk-item] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  font-size: 14px;
+  color: var(--forge-text);
+  cursor: pointer;
+}
+
+.forge-command [cmdk-item][data-selected="true"] {
+  background: var(--forge-sidebar-active-bg);
+  color: var(--forge-sidebar-active-text);
+}
+
+.forge-command [cmdk-empty] {
+  padding: 20px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--forge-muted);
+}
+
 .forge-nav-section-label,
 .forge-page-eyebrow {
   color: var(--forge-gold);

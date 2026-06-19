@@ -11,6 +11,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@argos-v2/ui";
 import { ArgosLogo } from "./argos-logo";
+import {
+  bottomTabs,
+  getVisibleNavGroups,
+  type BottomTabItem,
+} from "./app-navigation";
+import { CommandPalette } from "./command-palette";
 import { FeedbackDialogLoader } from "./feedback-dialog-loader";
 import { ForgeIcon } from "./forge";
 import { PlatformOrganizationSwitcher } from "./platform/platform-organization-switcher";
@@ -46,12 +52,6 @@ type AuthenticatedAppShellProps = {
   user: ShellUser;
 };
 
-type NavItem = {
-  href: string;
-  label: string;
-  icon: string;
-};
-
 type NavigationDestination = {
   href: string;
   label: string;
@@ -63,66 +63,6 @@ type NavigationPendingState = {
   pendingHref: string | null;
 };
 
-type NavGroup = {
-  label: string;
-  icon: string;
-  items: NavItem[];
-  visibleTo?: AppUserRole[];
-};
-
-type BottomTabItem = {
-  href: string;
-  label: string;
-  icon: string;
-  fab?: boolean;
-};
-
-const navGroups: NavGroup[] = [
-  {
-    label: "Review",
-    icon: "query_stats",
-    items: [
-      { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
-      { href: "/calls", label: "Calls", icon: "library_books" },
-      { href: "/highlights", label: "Highlights", icon: "auto_awesome" },
-    ],
-  },
-  {
-    label: "Coach",
-    icon: "psychology",
-    items: [
-      { href: "/training", label: "Training", icon: "school" },
-      { href: "/roleplay", label: "Roleplay", icon: "psychology" },
-    ],
-  },
-  {
-    label: "People",
-    icon: "group",
-    visibleTo: ["manager", "executive", "admin"],
-    items: [
-      { href: "/team", label: "Team", icon: "group" },
-      { href: "/leaderboard", label: "Leaderboard", icon: "leaderboard" },
-    ],
-  },
-  {
-    label: "System",
-    icon: "settings",
-    items: [
-      { href: "/notifications", label: "Notifications", icon: "notifications" },
-      { href: "/settings", label: "Settings", icon: "settings" },
-    ],
-  },
-];
-
-// Mobile bottom tab bar — five slots with a centered upload action (Option A).
-const bottomTabs: BottomTabItem[] = [
-  { href: "/dashboard", label: "Home", icon: "dashboard" },
-  { href: "/calls", label: "Calls", icon: "library_books" },
-  { href: "/upload", label: "Upload", icon: "upload", fab: true },
-  { href: "/training", label: "Coach", icon: "school" },
-  { href: "/settings", label: "Me", icon: "person" },
-];
-
 export function AuthenticatedAppShell({
   children,
   initialPrimaryRailCollapsed = false,
@@ -131,6 +71,7 @@ export function AuthenticatedAppShell({
 }: AuthenticatedAppShellProps) {
   const currentPath = usePathname();
   const [accountOpen, setAccountOpen] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [guideReplaySignal, setGuideReplaySignal] = useState(0);
   const [pendingHref, setPendingHref] = useState<string | null>(null);
@@ -149,11 +90,7 @@ export function AuthenticatedAppShell({
     user.workspaceTheme ?? DEFAULT_WORKSPACE_THEME,
   ) as CSSProperties;
 
-  const visibleGroups = navGroups.filter((group) => {
-    if (!group.visibleTo) return true;
-    if (!user.role) return false;
-    return group.visibleTo.includes(user.role);
-  });
+  const visibleGroups = getVisibleNavGroups(user.role);
   const visibleItems = visibleGroups.flatMap((group) => group.items);
   const navigationDestinations: NavigationDestination[] = visibleItems.map(
     ({ href, label }) => ({ href, label }),
@@ -215,6 +152,19 @@ export function AuthenticatedAppShell({
 
     return () => window.clearTimeout(timeout);
   }, [pendingHref]);
+
+  useEffect(() => {
+    function handleCommandShortcut(event: KeyboardEvent) {
+      if (event.key === "k" && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        setCommandOpen((open) => !open);
+      }
+    }
+
+    document.addEventListener("keydown", handleCommandShortcut);
+    return () =>
+      document.removeEventListener("keydown", handleCommandShortcut);
+  }, []);
 
   useEffect(() => {
     const saved = window.localStorage.getItem("argos.primaryRailCollapsed");
@@ -423,7 +373,31 @@ export function AuthenticatedAppShell({
             </span>
           </div>
 
+          {/* Command palette trigger (⌘K) — the global jump-to / search. */}
+          <button
+            aria-label="Search and commands"
+            className="forge-command-trigger mx-auto hidden h-10 max-w-sm flex-1 items-center gap-2 rounded-xl px-3 text-left text-sm md:flex"
+            data-command-trigger="true"
+            onClick={() => setCommandOpen(true)}
+            type="button"
+          >
+            <ForgeIcon name="search" size={16} />
+            <span className="flex-1 truncate text-[var(--forge-topbar-muted)]">
+              Search calls, reps…
+            </span>
+            <kbd className="forge-command-kbd">⌘K</kbd>
+          </button>
+
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <button
+              aria-label="Search and commands"
+              className="forge-icon-button flex h-10 w-10 items-center justify-center rounded-xl md:hidden"
+              data-command-trigger="mobile"
+              onClick={() => setCommandOpen(true)}
+              type="button"
+            >
+              <ForgeIcon name="search" size={20} />
+            </button>
             <Link
               className="forge-button forge-button-primary flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-semibold sm:px-4"
               data-global-create="upload"
@@ -562,6 +536,13 @@ export function AuthenticatedAppShell({
           {children}
         </main>
       </div>
+
+      <CommandPalette
+        onBeforeNavigate={setPendingHref}
+        onOpenChange={setCommandOpen}
+        open={commandOpen}
+        role={user.role}
+      />
 
       {/* ===== Mobile bottom tab bar ===== */}
       <nav
