@@ -105,10 +105,10 @@ export default async function CallsPage({
                   {quickViews.map((view) => (
                     <Link
                       aria-current={view.active ? "page" : undefined}
-                      className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition ${
+                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                         view.active
-                          ? "bg-[color-mix(in_srgb,var(--forge-gold)_13%,transparent)] text-[var(--forge-gold)]"
-                          : "text-[var(--forge-muted)] hover:bg-[color-mix(in_srgb,var(--forge-text)_4.5%,transparent)] hover:text-[var(--forge-text)]"
+                          ? "border-[var(--forge-gold)] bg-[var(--forge-gold)] text-[var(--forge-on-accent)]"
+                          : "border-[var(--forge-border)] text-[var(--forge-muted)] hover:border-[color-mix(in_srgb,var(--forge-gold)_40%,transparent)] hover:text-[var(--forge-text)]"
                       }`}
                       data-calls-saved-view-active={
                         view.active ? "true" : "false"
