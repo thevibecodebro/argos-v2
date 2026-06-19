@@ -68,7 +68,7 @@ export function PlatformShell({
       {mobileNavOpen ? (
         <button
           aria-label="Close navigation"
-          className="fixed inset-0 z-40 bg-[color-mix(in_srgb,var(--forge-shadow)_68%,transparent)] lg:hidden"
+          className="fixed inset-0 z-40 bg-[var(--forge-overlay-bg)] lg:hidden"
           onClick={() => setMobileNavOpen(false)}
           type="button"
         />
@@ -184,7 +184,7 @@ export function PlatformShell({
       >
         <header
           className={cn(
-            "forge-topbar fixed left-0 right-0 top-0 z-30 flex min-h-16 items-center justify-between gap-3 px-4 py-3 backdrop-blur-xl transition-[left] duration-300 lg:left-64 lg:px-7",
+            "forge-topbar fixed left-0 right-0 top-0 z-30 flex min-h-16 items-center justify-between gap-3 px-4 py-3 transition-[left] duration-300 lg:left-64 lg:px-7",
             primaryRailCollapsed && "lg:left-20",
           )}
         >

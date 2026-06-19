@@ -20,7 +20,7 @@ export function TrainingLoadingShell() {
         <TrainingCourseShell
           mode="learner"
           stage={
-            <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_color-mix(in_srgb,var(--forge-shadow)_28%,transparent)]">
+            <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-panel-bg)] p-6 shadow-[0_18px_60px_color-mix(in_srgb,var(--forge-bg)_10%,transparent)]">
               <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[var(--forge-gold)]">Course player</p>
               <h2 className="mt-4 text-3xl font-semibold tracking-tight text-[var(--forge-text)]">Loading training</h2>
               <div className="mt-6 space-y-5">
@@ -38,7 +38,7 @@ export function TrainingLoadingShell() {
           structureRail={
             <section
               aria-label="Curriculum map"
-              className="rounded-[1.5rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_color-mix(in_srgb,var(--forge-shadow)_24%,transparent)]"
+              className="rounded-[1.5rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-panel-bg)] p-6 shadow-[0_18px_60px_color-mix(in_srgb,var(--forge-bg)_10%,transparent)]"
             >
               <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-gold)]">Course structure</p>
               <p className="mt-1 text-xs text-[var(--forge-muted)]">Curriculum map</p>

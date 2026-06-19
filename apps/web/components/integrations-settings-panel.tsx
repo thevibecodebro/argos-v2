@@ -46,9 +46,9 @@ function ProviderCard({
   }
 
   return (
-    <div className="rounded-[1.5rem] border border-[var(--forge-border)] bg-[#0c1629] p-6">
+    <div className="rounded-[1.5rem] border border-[var(--forge-border)] bg-[var(--forge-panel-bg)] p-6">
       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--forge-faint)]">{name}</p>
-      <p className="mt-3 text-xl font-semibold text-white">
+      <p className="mt-3 text-xl font-semibold text-[var(--forge-text)]">
         {provider.connected ? "Connected" : provider.available ? "Ready to connect" : "Not configured"}
       </p>
       <p className="mt-2 text-sm leading-7 text-[var(--forge-muted)]">{description}</p>

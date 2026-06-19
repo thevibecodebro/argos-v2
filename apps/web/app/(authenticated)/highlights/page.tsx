@@ -49,7 +49,7 @@ export default async function HighlightsPage() {
           data-highlight-selection-flow="explicit"
         >
           <div
-            className="min-w-0 overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_88%,transparent)] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)]"
+            className="min-w-0 overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[var(--forge-table-bg)] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)]"
             data-forge-table="true"
             data-highlights-library="operational-table"
           >
@@ -145,7 +145,7 @@ export default async function HighlightsPage() {
               title={selectedHighlight.category ?? "Highlight"}
             >
               <div className="space-y-3">
-                <div className="rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_66%,transparent)] p-3">
+                <div className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-item-bg)] p-3">
                   <p className="text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
                     Observation
                   </p>

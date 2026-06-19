@@ -27,7 +27,7 @@ type TeamRepProfileViewProps = {
 };
 
 const shellPanelClass =
-  "rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_88%,transparent)] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)]";
+  "rounded-xl border border-[var(--forge-border)] bg-[var(--forge-table-bg)] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)]";
 
 const insetPanelClass =
   "rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.6%,transparent)]";
@@ -51,7 +51,7 @@ export function TeamRosterView({ dashboard }: TeamRosterViewProps) {
   return (
     <div className="space-y-3" data-team-workspace="roster-first">
       <section
-        className="overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_88%,transparent)] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)]"
+        className="overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[var(--forge-table-bg)] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)]"
         data-team-roster-table="true"
       >
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.4%,transparent)] px-4 py-3">

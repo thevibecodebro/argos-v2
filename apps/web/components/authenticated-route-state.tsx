@@ -71,10 +71,10 @@ export function AuthenticatedRouteLoading({
         className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_20rem]"
         data-authenticated-route-skeletons="compact"
       >
-        <section className="rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_78%,transparent)] p-3 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_3.5%,transparent)]">
+        <section className="rounded-xl border border-[var(--forge-border)] bg-[var(--forge-panel-bg)] p-3 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_3.5%,transparent)]">
           <div className="mb-3 grid gap-px overflow-hidden rounded-lg border border-[var(--forge-border)] bg-[var(--forge-border)] sm:grid-cols-2 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, index) => (
-              <div className="bg-[color-mix(in_srgb,var(--forge-shadow)_96%,transparent)] px-3 py-2" key={index}>
+              <div className="bg-[var(--forge-table-header-bg)] px-3 py-2" key={index}>
                 <div className="forge-skeleton-line h-3 w-20" />
                 <div className="forge-skeleton-line mt-2 h-4 w-24" />
               </div>

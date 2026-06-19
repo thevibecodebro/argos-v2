@@ -64,9 +64,9 @@ type ModuleAiDraftFormState = {
 
 const TRAINING_ADMIN_FIELD_FOCUS_CLASS =
   "outline-none transition focus-visible:border-[var(--forge-gold)] focus-visible:ring-2 focus-visible:ring-[var(--forge-gold)]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--forge-surface)]";
-const TRAINING_ADMIN_FIELD_CLASS = `w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white ${TRAINING_ADMIN_FIELD_FOCUS_CLASS}`;
+const TRAINING_ADMIN_FIELD_CLASS = `w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-4 py-3 text-sm text-[var(--forge-text)] ${TRAINING_ADMIN_FIELD_FOCUS_CLASS}`;
 const TRAINING_ADMIN_TEXTAREA_CLASS = `min-h-28 ${TRAINING_ADMIN_FIELD_CLASS}`;
-const TRAINING_ASSIGN_DATE_FIELD_CLASS = `rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white ${TRAINING_ADMIN_FIELD_FOCUS_CLASS}`;
+const TRAINING_ASSIGN_DATE_FIELD_CLASS = `rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-4 py-3 text-sm text-[var(--forge-text)] ${TRAINING_ADMIN_FIELD_FOCUS_CLASS}`;
 
 export type TrainingLearnerPanelProps = {
   initialModules: TrainingModuleSummary[];
@@ -821,7 +821,7 @@ function TrainingExperiencePanel({
           >
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-semibold text-white">Start from scratch or draft with AI</p>
+                <p className="text-sm font-semibold text-[var(--forge-text)]">Start from scratch or draft with AI</p>
                 <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">
                   Generate a draft sequence, then save the modules you want into Curriculum.
                 </p>
@@ -907,7 +907,7 @@ function TrainingExperiencePanel({
       </section>
     ) : activeManagerModal === "generate" ? (
       <section className="space-y-4">
-        <div className="rounded-[1.15rem] border border-white/10 bg-[color-mix(in_srgb,var(--forge-shadow)_32%,transparent)] p-4">
+        <div className="rounded-[1.15rem] border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-4">
           <div className="space-y-3">
             <div className="grid gap-3 md:grid-cols-2">
               <input
@@ -974,7 +974,7 @@ function TrainingExperiencePanel({
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-white">{draft.title}</p>
+                        <p className="text-sm font-semibold text-[var(--forge-text)]">{draft.title}</p>
                         <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[var(--forge-gold)]">
                           {draft.skillCategory}
                         </p>
@@ -1012,10 +1012,10 @@ function TrainingExperiencePanel({
       </section>
     ) : activeManagerModal === "assign" && assigningModule ? (
       <section className="space-y-4">
-        <div className="rounded-[1.15rem] border border-white/10 bg-[color-mix(in_srgb,var(--forge-shadow)_32%,transparent)] p-4">
+        <div className="rounded-[1.15rem] border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-4">
           <div className="grid gap-3 md:grid-cols-2">
             <div>
-              <h4 className="text-lg font-semibold text-white">{assigningModule.title}</h4>
+              <h4 className="text-lg font-semibold text-[var(--forge-text)]">{assigningModule.title}</h4>
               <p className="mt-2 text-sm leading-7 text-[var(--forge-muted)]">
                 Select reps, set an optional due date, and remove unstarted assignments without leaving this focused
                 planner.
@@ -1055,7 +1055,7 @@ function TrainingExperiencePanel({
                       type="checkbox"
                     />
                     <div>
-                      <p className="text-sm font-semibold text-white">
+                      <p className="text-sm font-semibold text-[var(--forge-text)]">
                         {[row.firstName, row.lastName].filter(Boolean).join(" ").trim() || row.email}
                       </p>
                       <p className="text-xs text-[var(--forge-muted)]">{row.email}</p>
@@ -1072,7 +1072,7 @@ function TrainingExperiencePanel({
                     </div>
                     {progress?.status === "assigned" ? (
                       <button
-                        className="rounded-lg border border-[var(--forge-border-strong)]/30 px-3 py-2 text-xs font-semibold text-white"
+                        className="rounded-lg border border-[var(--forge-border-strong)]/30 px-3 py-2 text-xs font-semibold text-[var(--forge-text)]"
                         disabled={isManagerBusy}
                         onClick={() => {
                           void unassignRep(row.repId);
@@ -1176,10 +1176,10 @@ function TrainingExperiencePanel({
       statusMessage={statusMessage}
     />
   ) : canManage ? (
-    <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_color-mix(in_srgb,var(--forge-shadow)_28%,transparent)]">
+    <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-panel-bg)] p-6 shadow-[0_18px_60px_color-mix(in_srgb,var(--forge-bg)_10%,transparent)]">
       <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[var(--forge-gold)]">Curriculum</p>
       <div className="mt-4 rounded-[1.25rem] border border-dashed border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface-2)]/40 p-5">
-        <h2 className="text-2xl font-semibold text-white">Create your first module</h2>
+        <h2 className="text-2xl font-semibold text-[var(--forge-text)]">Create your first module</h2>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--forge-muted)]">
           Start with a single lesson. Generate a draft sequence with AI when you want a faster starting point. Once
           modules exist, assignment and editing flows stay available from the curriculum toolbar.
@@ -1187,10 +1187,10 @@ function TrainingExperiencePanel({
       </div>
     </section>
   ) : (
-    <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_color-mix(in_srgb,var(--forge-shadow)_28%,transparent)]">
+    <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-panel-bg)] p-6 shadow-[0_18px_60px_color-mix(in_srgb,var(--forge-bg)_10%,transparent)]">
       <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[var(--forge-gold)]">Course player</p>
       <div className="mt-4 rounded-[1.25rem] border border-dashed border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface-2)]/40 p-5">
-        <h2 className="text-2xl font-semibold text-white">Nothing is assigned yet</h2>
+        <h2 className="text-2xl font-semibold text-[var(--forge-text)]">Nothing is assigned yet</h2>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--forge-muted)]">
           Your manager will place modules here when new training is ready. Check back soon to start practice.
         </p>

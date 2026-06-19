@@ -54,6 +54,14 @@
   --forge-panel-strong-bg: var(--forge-surface-3);
   --forge-row-bg: var(--forge-surface-2);
   --forge-field-bg: var(--forge-surface);
+  --forge-table-bg: var(--forge-surface);
+  --forge-table-header-bg: var(--forge-surface-2);
+  --forge-item-bg: var(--forge-surface-2);
+  --forge-item-selected-bg: var(--forge-sidebar-active-bg);
+  --forge-control-bg: var(--forge-surface-2);
+  --forge-transcript-bg: var(--forge-surface);
+  --forge-bubble-bg: var(--forge-surface-2);
+  --forge-floating-bg: var(--forge-surface);
   --forge-workspace-rail-bg: var(--forge-surface);
   --forge-secondary-rail-bg: var(--forge-sidebar-bg);
   --forge-secondary-rail-text: var(--forge-sidebar-text);

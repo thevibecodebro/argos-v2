@@ -39,7 +39,7 @@ function autoSlug(value: string) {
 }
 
 const panelClass =
-  "forge-surface rounded-xl border border-[var(--forge-border)] bg-[rgba(16,9,7,0.92)] p-4 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)] sm:p-5";
+  "forge-surface rounded-xl border border-[var(--forge-border)] bg-[var(--forge-panel-bg)] p-4 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)] sm:p-5";
 const labelClass = "text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[var(--forge-muted)]";
 const inputClass = "forge-form-control mt-2 min-h-11 rounded-lg px-3 py-2.5 text-sm outline-none";
 const primaryButtonClass =
@@ -748,7 +748,7 @@ function SetupRail({
   const launchStatus = currentStep === "invite" ? "active" : "pending";
 
   return (
-    <aside className="border-b border-[var(--forge-border)] bg-[rgba(16,9,7,0.72)] px-4 py-5 lg:border-r lg:border-b-0 lg:px-5">
+    <aside className="border-b border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] px-4 py-5 lg:border-r lg:border-b-0 lg:px-5">
       <div className="mb-5 min-w-0">
         <p className={labelClass}>Account</p>
         <p className="mt-1 truncate text-sm text-[var(--forge-text)]">
@@ -852,7 +852,7 @@ function ReadinessDrawer({
       ];
 
   return (
-    <aside className="border-t border-[var(--forge-border)] bg-[rgba(16,9,7,0.72)] px-4 py-5 lg:border-t-0 lg:border-l lg:px-5">
+    <aside className="border-t border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] px-4 py-5 lg:border-t-0 lg:border-l lg:px-5">
       <p className={labelClass}>Workspace readiness</p>
       <div className="mt-4 grid gap-2">
         {rows.map((row) => (

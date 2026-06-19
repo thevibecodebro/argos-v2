@@ -598,7 +598,7 @@ export function CallDetailPanel({
 
     return (
       <section
-        className="overflow-hidden rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_52%,transparent)]"
+        className="overflow-hidden rounded-lg border border-[var(--forge-border)] bg-[var(--forge-transcript-bg)]"
         data-call-transcript-primary="true"
       >
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--forge-border)] px-4 py-3">
@@ -762,7 +762,7 @@ export function CallDetailPanel({
   function renderEvidenceSection() {
     return (
       <section
-        className="overflow-hidden rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_42%,transparent)]"
+        className="overflow-hidden rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)]"
         data-call-evidence-panel="true"
       >
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--forge-border)] px-4 py-3">
@@ -797,7 +797,7 @@ export function CallDetailPanel({
   function renderCoachingPane() {
     return (
       <aside
-        className="rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_48%,transparent)] p-3 xl:sticky xl:top-20 xl:self-start"
+        className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-3 xl:sticky xl:top-20 xl:self-start"
         data-call-coaching-pane="true"
       >
         <h2 className="text-base font-semibold text-[var(--forge-text)]">Coaching action</h2>

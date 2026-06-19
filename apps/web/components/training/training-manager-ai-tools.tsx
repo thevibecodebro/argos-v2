@@ -37,7 +37,7 @@ export type TrainingManagerAiToolsProps = {
 
 const TRAINING_AI_FIELD_FOCUS_CLASS =
   "outline-none transition focus-visible:border-[var(--forge-gold)] focus-visible:ring-2 focus-visible:ring-[var(--forge-gold)]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--forge-surface)]";
-const TRAINING_AI_TEXTAREA_CLASS = `min-h-28 w-full rounded-xl border border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface)] px-4 py-3 text-sm text-white ${TRAINING_AI_FIELD_FOCUS_CLASS}`;
+const TRAINING_AI_TEXTAREA_CLASS = `min-h-28 w-full rounded-xl border border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface)] px-4 py-3 text-sm text-[var(--forge-text)] ${TRAINING_AI_FIELD_FOCUS_CLASS}`;
 
 function isQuizData(value: unknown): value is TrainingModuleRecord["quizData"] {
   if (!value || typeof value !== "object") {
@@ -172,11 +172,11 @@ export function TrainingManagerAiTools({
     "Add notes to ground the draft in this lesson.";
 
   return (
-    <section className="rounded-[1.15rem] border border-white/10 bg-[color-mix(in_srgb,var(--forge-shadow)_32%,transparent)] p-4">
+    <section className="rounded-[1.15rem] border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-2xl">
           <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">Lesson drafting</p>
-          <h3 className="mt-2 text-lg font-semibold text-white">
+          <h3 className="mt-2 text-lg font-semibold text-[var(--forge-text)]">
             {selectedModule?.title ?? "Select a module to draft"}
           </h3>
           <p className="mt-2 text-sm leading-7 text-[var(--forge-muted)]">
@@ -208,7 +208,7 @@ export function TrainingManagerAiTools({
 
         <div className="space-y-3">
           <button
-            className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/70 px-4 py-3 text-sm font-semibold text-white transition hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/10 disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/70 px-4 py-3 text-sm font-semibold text-[var(--forge-text)] transition hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/10 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={actionsDisabled}
             onClick={() => onGenerate("content")}
             type="button"
@@ -216,7 +216,7 @@ export function TrainingManagerAiTools({
             Draft lesson content
           </button>
           <button
-            className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/70 px-4 py-3 text-sm font-semibold text-white transition hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/10 disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/70 px-4 py-3 text-sm font-semibold text-[var(--forge-text)] transition hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/10 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={actionsDisabled}
             onClick={() => onGenerate("quiz")}
             type="button"

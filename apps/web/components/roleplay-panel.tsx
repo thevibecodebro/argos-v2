@@ -707,7 +707,7 @@ export function RoleplayPanel({
                     className={`flex w-full items-start gap-3 px-3 py-3 text-left transition ${
                       isSelected
                         ? "bg-[color-mix(in_srgb,var(--forge-gold)_9%,transparent)] text-[var(--forge-text)]"
-                        : "bg-[color-mix(in_srgb,var(--forge-shadow)_34%,transparent)] hover:bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)]"
+                        : "bg-[var(--forge-item-bg)] hover:bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)]"
                     }`}
                     key={persona.id}
                     onClick={() => setSelectedPersonaId(persona.id)}
@@ -811,7 +811,7 @@ export function RoleplayPanel({
             </div>
 
             {generatedActiveSession?.scenarioSummary && (
-              <div className="mb-4 rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_52%,transparent)] px-4 py-4">
+              <div className="mb-4 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-transcript-bg)] px-4 py-4">
                 <p className="text-xs font-semibold text-[var(--forge-muted)]">
                   Generated from call · Focus:{" "}
                   {generatedActiveSession.focusMode === "all"
@@ -828,7 +828,7 @@ export function RoleplayPanel({
 
             {/* Transcript */}
             <div
-              className="mb-5 flex min-h-[320px] max-h-[min(64vh,620px)] flex-col gap-3 overflow-y-auto rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_52%,transparent)] p-4"
+              className="mb-5 flex min-h-[320px] max-h-[min(64vh,620px)] flex-col gap-3 overflow-y-auto rounded-lg border border-[var(--forge-border)] bg-[var(--forge-transcript-bg)] p-4"
               aria-label="Roleplay transcript"
               aria-live="polite"
               aria-relevant="additions text"

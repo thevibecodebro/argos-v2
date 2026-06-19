@@ -42,7 +42,7 @@ export function TrainingModuleToc({
     <section
       aria-label="Curriculum map"
       data-training-module-tree=""
-      className="rounded-[1.5rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface)] p-6 shadow-[0_18px_60px_color-mix(in_srgb,var(--forge-shadow)_24%,transparent)]"
+      className="rounded-[1.5rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-panel-bg)] p-6 shadow-[0_18px_60px_color-mix(in_srgb,var(--forge-bg)_10%,transparent)]"
     >
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -53,14 +53,14 @@ export function TrainingModuleToc({
           {modules.length} module{modules.length === 1 ? "" : "s"}
         </span>
       </div>
-      <div className="mt-5 divide-y divide-white/6 overflow-hidden rounded-[1.15rem] border border-white/8 bg-white/[0.03]">
+      <div className="mt-5 divide-y divide-[var(--forge-border)] overflow-hidden rounded-[1.15rem] border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)]">
         {modules.map((module) => (
           <button
             aria-current={module.id === selectedModuleId ? "page" : undefined}
             className={
               module.id === selectedModuleId
                 ? "w-full bg-[var(--forge-gold)]/10 px-4 py-3.5 text-left transition"
-                : "w-full px-4 py-3.5 text-left transition hover:bg-white/[0.04]"
+                : "w-full px-4 py-3.5 text-left transition hover:bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)]"
             }
             key={module.id}
             onClick={() => onSelectModule(module.id)}
@@ -68,7 +68,7 @@ export function TrainingModuleToc({
           >
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-white">{module.title}</p>
+                <p className="truncate text-sm font-semibold text-[var(--forge-text)]">{module.title}</p>
                 <p className="mt-1 truncate text-xs text-[var(--forge-muted)]">
                   {module.skillCategory} · {module.progress?.status ?? "assigned"}
                 </p>

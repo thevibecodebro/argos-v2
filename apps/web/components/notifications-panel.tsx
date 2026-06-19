@@ -131,7 +131,7 @@ export function NotificationsPanel({
       </div>
 
       <div
-        className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-shadow)_45%,transparent)] p-2"
+        className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--forge-border)] bg-[var(--forge-control-bg)] p-2"
         data-notification-filters="active"
       >
         {[
