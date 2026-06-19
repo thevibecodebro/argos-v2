@@ -958,7 +958,8 @@ describe("primary route hero removal", () => {
 
     expect(settingsHtml).toContain('data-settings-route="settings"');
     expect(settingsHtml).toContain('data-operational-preview-drawer="true"');
-    expect(settingsHtml).toContain("Personal");
+    // Navigation is the secondary rail only; the duplicate section list is gone.
+    expect(settingsHtml).toContain('data-secondary-rail="settings"');
     expect(settingsHtml).toContain("Sections");
 
     expect(notificationsHtml).toContain(
