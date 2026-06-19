@@ -28,8 +28,13 @@ describe("authenticated backend readability scope", () => {
       new URL("../components/app-shell.tsx", import.meta.url),
       "utf8",
     );
+    // Scope to the grouped primary-rail declaration (not the bottom tab bar).
+    const navSource = source.slice(
+      source.indexOf("const navGroups"),
+      source.indexOf("const bottomTabs"),
+    );
     const primaryNavigationEntries = Array.from(
-      source.matchAll(
+      navSource.matchAll(
         /\{\s*href:\s*"([^"]+)",\s*label:\s*"([^"]+)",\s*icon:\s*"([^"]+)"\s*\}/g,
       ),
       ([, href, label, icon]) => ({ href, icon, label }),
@@ -43,6 +48,8 @@ describe("authenticated backend readability scope", () => {
       { href: "/roleplay", label: "Roleplay", icon: "psychology" },
       { href: "/team", label: "Team", icon: "group" },
       { href: "/leaderboard", label: "Leaderboard", icon: "leaderboard" },
+      { href: "/notifications", label: "Notifications", icon: "notifications" },
+      { href: "/settings", label: "Settings", icon: "settings" },
     ]);
     expect(source).not.toContain('label: "Today"');
     expect(source).not.toContain('label: "Coaching"');

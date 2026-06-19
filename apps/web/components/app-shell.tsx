@@ -70,6 +70,13 @@ type NavGroup = {
   visibleTo?: AppUserRole[];
 };
 
+type BottomTabItem = {
+  href: string;
+  label: string;
+  icon: string;
+  fab?: boolean;
+};
+
 const navGroups: NavGroup[] = [
   {
     label: "Review",
@@ -97,6 +104,23 @@ const navGroups: NavGroup[] = [
       { href: "/leaderboard", label: "Leaderboard", icon: "leaderboard" },
     ],
   },
+  {
+    label: "System",
+    icon: "settings",
+    items: [
+      { href: "/notifications", label: "Notifications", icon: "notifications" },
+      { href: "/settings", label: "Settings", icon: "settings" },
+    ],
+  },
+];
+
+// Mobile bottom tab bar — five slots with a centered upload action (Option A).
+const bottomTabs: BottomTabItem[] = [
+  { href: "/dashboard", label: "Home", icon: "dashboard" },
+  { href: "/calls", label: "Calls", icon: "library_books" },
+  { href: "/upload", label: "Upload", icon: "upload", fab: true },
+  { href: "/training", label: "Coach", icon: "school" },
+  { href: "/settings", label: "Me", icon: "person" },
 ];
 
 export function AuthenticatedAppShell({
@@ -109,7 +133,6 @@ export function AuthenticatedAppShell({
   const [accountOpen, setAccountOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [guideReplaySignal, setGuideReplaySignal] = useState(0);
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [primaryRailCollapsed, setPrimaryRailCollapsed] = useState(
     initialPrimaryRailCollapsed,
@@ -132,11 +155,9 @@ export function AuthenticatedAppShell({
     return group.visibleTo.includes(user.role);
   });
   const visibleItems = visibleGroups.flatMap((group) => group.items);
-  const navigationDestinations: NavigationDestination[] = [
-    ...visibleItems.map(({ href, label }) => ({ href, label })),
-    { href: "/notifications", label: "Notifications" },
-    { href: "/settings", label: "Settings" },
-  ];
+  const navigationDestinations: NavigationDestination[] = visibleItems.map(
+    ({ href, label }) => ({ href, label }),
+  );
   const navigationPendingState = getNavigationPendingState({
     currentPath,
     destinations: navigationDestinations,
@@ -176,10 +197,6 @@ export function AuthenticatedAppShell({
     return () =>
       document.removeEventListener("keydown", handleAccountMenuKeydown);
   }, [accountOpen]);
-
-  useEffect(() => {
-    setMobileNavOpen(false);
-  }, [currentPath]);
 
   useEffect(() => {
     setPendingHref((current) =>
@@ -255,29 +272,23 @@ export function AuthenticatedAppShell({
         {navigationPendingState.announcement}
       </p>
 
-      {mobileNavOpen ? (
-        <button
-          aria-label="Close navigation"
-          className="fixed inset-0 z-40 bg-[var(--forge-overlay-bg)] lg:hidden"
-          onClick={() => setMobileNavOpen(false)}
-          type="button"
-        />
-      ) : null}
-
+      {/* ===== Primary rail — full on desktop, icon-only on tablet, hidden on phones ===== */}
       <aside
         className={cn(
-          "forge-sidebar fixed inset-y-0 left-0 z-50 flex h-dvh w-64 flex-col px-4 py-5 transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] lg:px-4",
-          primaryRailCollapsed && "lg:w-20 lg:px-3",
-          mobileNavOpen
-            ? "translate-x-0"
-            : "-translate-x-full lg:translate-x-0",
+          "forge-sidebar fixed inset-y-0 left-0 z-50 hidden h-dvh flex-col py-5 transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] md:flex md:w-20 md:px-3",
+          primaryRailCollapsed ? "lg:w-20 lg:px-3" : "lg:w-64 lg:px-4",
         )}
         data-primary-rail-collapsed={primaryRailCollapsed ? "true" : "false"}
         id="auth-navigation"
       >
-        <div className={cn("mb-7 px-1", primaryRailCollapsed && "lg:px-0")}>
+        <div className="mb-6 px-1">
           <div className="flex items-center justify-between gap-3">
-            <div className={cn(primaryRailCollapsed && "lg:sr-only")}>
+            <div
+              className={cn(
+                "sr-only",
+                primaryRailCollapsed ? "lg:sr-only" : "lg:not-sr-only",
+              )}
+            >
               {user.orgLogoUrl ? (
                 <img
                   alt={`${user.orgName ?? "Organization"} logo`}
@@ -296,7 +307,7 @@ export function AuthenticatedAppShell({
                   placement="primary-rail"
                 />
               )}
-              <p className="mt-0.5 font-[var(--font-display)] text-[0.62rem] font-bold uppercase tracking-[0.24em] text-[var(--forge-gold)]">
+              <p className="mt-0.5 font-[var(--font-display)] text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
                 Revenue Command
               </p>
             </div>
@@ -331,99 +342,103 @@ export function AuthenticatedAppShell({
         ) : null}
 
         <nav
-          className={cn(
-            "flex-1 space-y-1 overflow-y-auto pr-1",
-            primaryRailCollapsed && "lg:pr-0",
-          )}
+          className="flex-1 space-y-0.5 overflow-y-auto pr-0 lg:pr-1"
           aria-label="Primary navigation"
         >
-          {visibleItems.map((item) => (
-            <NavLink
-              active={isRouteActive(currentPath, item.href)}
-              collapsed={primaryRailCollapsed}
-              href={item.href}
-              icon={item.icon}
-              key={item.href}
-              label={item.label}
-              onClick={(event) => handleRouteLinkClick(event, item.href)}
-              pending={navigationPendingState.pendingHref === item.href}
-            />
+          {visibleGroups.map((group) => (
+            <div className="mb-1.5" key={group.label}>
+              <p
+                className={cn(
+                  "forge-nav-section-label px-3 pb-1 pt-3",
+                  primaryRailCollapsed ? "lg:hidden" : "hidden lg:block",
+                  "md:hidden",
+                )}
+                data-primary-rail-section={group.label}
+              >
+                {group.label}
+              </p>
+              {group.items.map((item) => (
+                <NavLink
+                  active={isRouteActive(currentPath, item.href)}
+                  collapsed={primaryRailCollapsed}
+                  href={item.href}
+                  icon={item.icon}
+                  key={item.href}
+                  label={item.label}
+                  onClick={(event) => handleRouteLinkClick(event, item.href)}
+                  pending={navigationPendingState.pendingHref === item.href}
+                />
+              ))}
+            </div>
           ))}
         </nav>
 
-        <div
-          className={cn(
-            "mt-4 border-t border-[var(--forge-border)] pt-3",
-            primaryRailCollapsed && "lg:px-0",
-          )}
-        >
-          <Link
-            aria-current={
-              isRouteActive(currentPath, "/settings") ? "page" : undefined
-            }
-            aria-describedby={
-              navigationPendingState.pendingHref === "/settings"
-                ? "auth-navigation-status"
-                : undefined
-            }
-            aria-label="Settings"
-            className={cn(
-              "forge-nav-link flex items-center gap-3 rounded-2xl px-3 py-2.5 font-[var(--font-display)] text-[0.7rem] font-bold uppercase tracking-[0.16em]",
-              primaryRailCollapsed && "lg:h-11 lg:justify-center lg:px-0",
-              isRouteActive(currentPath, "/settings") &&
-                "forge-nav-link--active",
-              navigationPendingState.pendingHref === "/settings" &&
-                "forge-nav-link--pending",
-            )}
-            data-navigation-link="/settings"
-            data-navigation-pending={
-              navigationPendingState.pendingHref === "/settings"
-                ? "true"
-                : undefined
-            }
-            data-primary-rail-footer-link="settings"
-            href="/settings"
-            onClick={(event) => handleRouteLinkClick(event, "/settings")}
-            title={primaryRailCollapsed ? "Settings" : undefined}
+        {/* Footer identity chip */}
+        <div className="mt-3 flex items-center gap-3 border-t border-[var(--forge-border)] px-1 pt-3">
+          <span
+            aria-hidden="true"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--forge-sidebar-active-bg)] font-[var(--font-display)] text-xs font-semibold text-[var(--forge-sidebar-active-text)]"
           >
-            <ForgeIcon name="settings" size={18} />
-            <span
-              className={cn("truncate", primaryRailCollapsed && "lg:sr-only")}
-              data-primary-rail-label="true"
-            >
-              Settings
-            </span>
-          </Link>
+            {initials}
+          </span>
+          <div
+            className={cn(
+              "min-w-0 leading-tight",
+              primaryRailCollapsed ? "hidden" : "hidden lg:block",
+            )}
+            data-primary-rail-identity="true"
+          >
+            <p className="truncate text-sm font-semibold text-[var(--forge-sidebar-text)]">
+              {user.fullName || user.email}
+            </p>
+            <p className="truncate text-xs text-[var(--forge-sidebar-muted)]">
+              {roleLabel}
+            </p>
+          </div>
         </div>
       </aside>
 
       <div
         className={cn(
-          "min-h-dvh transition-[padding] duration-300 lg:pl-64",
-          primaryRailCollapsed && "lg:pl-20",
+          "min-h-dvh pb-20 transition-[padding] duration-300 md:pb-0 md:pl-20",
+          primaryRailCollapsed ? "lg:pl-20" : "lg:pl-64",
         )}
         data-auth-shell-content="true"
       >
         <header
           className={cn(
-            "forge-topbar fixed left-0 right-0 top-0 z-30 flex min-h-16 items-center justify-between gap-3 px-4 py-3 transition-[left] duration-300 lg:left-64 lg:px-7",
-            primaryRailCollapsed && "lg:left-20",
+            "forge-topbar fixed left-0 right-0 top-0 z-30 flex min-h-16 items-center justify-between gap-3 px-4 py-3 transition-[left] duration-300 md:left-20 lg:px-7",
+            primaryRailCollapsed ? "lg:left-20" : "lg:left-64",
           )}
         >
-          <div className="flex min-w-0 items-center gap-3">
-            <button
-              aria-controls="auth-navigation"
-              aria-expanded={mobileNavOpen}
-              aria-label="Open navigation"
-              className="forge-icon-button flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl lg:hidden"
-              onClick={() => setMobileNavOpen(true)}
-              type="button"
-            >
-              <ForgeIcon name="filter_list" size={22} />
-            </button>
+          <div className="flex min-w-0 items-center gap-2">
+            {/* Compact brand mark on phones, where the rail is hidden. */}
+            <span className="md:hidden" data-topbar-brand="true">
+              <ArgosLogo
+                className="block w-24"
+                decorative
+                imageClassName="block h-auto w-full"
+                placement="topbar"
+              />
+            </span>
           </div>
 
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <Link
+              className="forge-button forge-button-primary flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-semibold sm:px-4"
+              data-global-create="upload"
+              data-navigation-pending={
+                navigationPendingState.pendingHref === "/upload"
+                  ? "true"
+                  : undefined
+              }
+              href="/upload"
+              onClick={(event) => handleRouteLinkClick(event, "/upload")}
+            >
+              <ForgeIcon name="upload" size={18} />
+              <span className="hidden sm:inline">Upload</span>
+            </Link>
+
             <div className="relative" ref={accountRef}>
               <button
                 aria-controls="account-menu"
@@ -547,6 +562,22 @@ export function AuthenticatedAppShell({
           {children}
         </main>
       </div>
+
+      {/* ===== Mobile bottom tab bar ===== */}
+      <nav
+        aria-label="Primary"
+        className="forge-bottom-bar fixed inset-x-0 bottom-0 z-40 flex items-stretch justify-around md:hidden"
+        data-mobile-tabbar="true"
+      >
+        {bottomTabs.map((tab) => (
+          <BottomTab
+            active={isRouteActive(currentPath, tab.href)}
+            key={tab.href}
+            onClick={(event) => handleRouteLinkClick(event, tab.href)}
+            tab={tab}
+          />
+        ))}
+      </nav>
     </div>
   );
 }
@@ -574,8 +605,10 @@ function NavLink({
       aria-current={active ? "page" : undefined}
       aria-describedby={pending ? "auth-navigation-status" : undefined}
       className={cn(
-        "forge-nav-link flex items-center gap-3 rounded-2xl px-3 py-2.5 font-[var(--font-display)] text-[0.7rem] font-bold uppercase tracking-[0.16em]",
-        collapsed && "lg:h-11 lg:justify-center lg:px-0",
+        "forge-nav-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-[0.84rem] font-medium md:h-11 md:justify-center md:px-0",
+        collapsed
+          ? "lg:h-11 lg:justify-center lg:px-0"
+          : "lg:h-auto lg:justify-start lg:px-3",
         active && "forge-nav-link--active",
         pending && "forge-nav-link--pending",
       )}
@@ -587,11 +620,59 @@ function NavLink({
     >
       <ForgeIcon name={icon} size={18} />
       <span
-        className={cn("truncate", collapsed && "lg:sr-only")}
+        className={cn(
+          "truncate",
+          collapsed ? "sr-only" : "sr-only lg:not-sr-only",
+        )}
         data-primary-rail-label="true"
       >
         {label}
       </span>
+    </Link>
+  );
+}
+
+function BottomTab({
+  tab,
+  active,
+  onClick,
+}: {
+  tab: BottomTabItem;
+  active: boolean;
+  onClick: (event: ReactMouseEvent<HTMLAnchorElement>) => void;
+}) {
+  if (tab.fab) {
+    return (
+      <Link
+        aria-label={tab.label}
+        className="flex flex-1 items-center justify-center"
+        data-global-create="upload"
+        href={tab.href}
+        onClick={onClick}
+      >
+        <span className="-mt-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--forge-gold)] text-[var(--forge-on-accent)] shadow-[0_8px_24px_color-mix(in_srgb,var(--forge-gold)_40%,transparent)]">
+          <ForgeIcon name={tab.icon} size={22} />
+        </span>
+      </Link>
+    );
+  }
+
+  return (
+    <Link
+      aria-current={active ? "page" : undefined}
+      aria-label={tab.label}
+      className={cn(
+        "flex flex-1 flex-col items-center justify-center gap-1 py-2 text-[0.62rem] font-semibold",
+        active
+          ? "text-[var(--forge-sidebar-active-text)]"
+          : "text-[var(--forge-sidebar-muted)]",
+      )}
+      data-mobile-tab={tab.href}
+      href={tab.href}
+      onClick={onClick}
+    >
+      <ForgeIcon name={tab.icon} size={20} />
+      <span>{tab.label}</span>
     </Link>
   );
 }

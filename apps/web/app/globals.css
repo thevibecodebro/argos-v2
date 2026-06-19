@@ -144,6 +144,15 @@
   box-shadow: none;
 }
 
+.forge-bottom-bar {
+  min-height: 4rem;
+  border-top: 1px solid var(--forge-sidebar-border);
+  background: var(--forge-sidebar-bg);
+  color: var(--forge-sidebar-text);
+  padding-bottom: env(safe-area-inset-bottom);
+  box-shadow: 0 -8px 24px color-mix(in srgb, var(--forge-text) 6%, transparent);
+}
+
 .forge-nav-section-label,
 .forge-page-eyebrow {
   color: var(--forge-gold);
