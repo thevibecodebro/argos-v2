@@ -16,6 +16,7 @@ import { ForgeIcon } from "./forge";
 import { PlatformOrganizationSwitcher } from "./platform/platform-organization-switcher";
 import { RoleOnboardingGuide } from "./role-onboarding-guide";
 import {
+  DEFAULT_WORKSPACE_THEME,
   workspaceThemeToForgeVars,
   type WorkspaceTheme,
 } from "@/lib/organizations/workspace-theme";
@@ -119,9 +120,11 @@ export function AuthenticatedAppShell({
   const initials = getInitials(user.fullName || user.email);
   const roleLabel = formatRole(user.role);
   const hasDockedSecondaryRail = isDockedSecondaryRailRoute(currentPath);
-  const workspaceThemeVars = user.workspaceTheme
-    ? (workspaceThemeToForgeVars(user.workspaceTheme) as CSSProperties)
-    : undefined;
+  // Orgs without a saved theme fall back to the default workspace theme
+  // (warm-Indigo light), so the authenticated app is light by default.
+  const workspaceThemeVars = workspaceThemeToForgeVars(
+    user.workspaceTheme ?? DEFAULT_WORKSPACE_THEME,
+  ) as CSSProperties;
 
   const visibleGroups = navGroups.filter((group) => {
     if (!group.visibleTo) return true;

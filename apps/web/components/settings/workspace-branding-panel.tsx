@@ -183,7 +183,7 @@ export function WorkspaceBrandingPanel({
     if ("theme" in preset) {
       if (preset.id === "argos") {
         setDraftTheme(DEFAULT_WORKSPACE_THEME);
-        setEditingMode("dark");
+        setEditingMode(DEFAULT_WORKSPACE_THEME.activeMode);
         setMessage("Argos default light and dark themes previewing.");
         return;
       }

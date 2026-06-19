@@ -1210,6 +1210,9 @@
     "Segoe UI", sans-serif;
   --font-display: var(--font-ui, var(--font-sans-fallback));
   --font-body: var(--font-ui, var(--font-sans-fallback));
+  --font-mono-fallback:
+    "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-numeric: var(--font-mono, var(--font-mono-fallback));
   --legacy-bg: #040b18;
   --legacy-surface: #101a30;
   --legacy-panel: #0b1428;
@@ -1241,6 +1244,13 @@ body {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+/* Tabular numerals (Geist Mono) for scores, ranks, counts, durations. */
+.forge-tabular-nums {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
 }
 
 h1,
