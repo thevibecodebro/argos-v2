@@ -6,6 +6,9 @@ import {
 } from "@/lib/auth/request-user";
 import { createIntegrationsRepository } from "@/lib/integrations/create-repository";
 import { getIntegrationStatuses } from "@/lib/integrations/service";
+import { createEffectiveTenantUsersRepository } from "@/lib/platform/effective-request";
+import { createUsersRepository } from "@/lib/users/create-repository";
+import { listOrganizationMembers } from "@/lib/users/service";
 import { SettingsOperationalLayout } from "../settings-operational-layout";
 
 export default async function SettingsIntegrationsPage() {
@@ -16,12 +19,26 @@ export default async function SettingsIntegrationsPage() {
   if (!result?.ok) redirect("/settings");
   if (result.data.role !== "admin") redirect("/settings");
 
-  const integrationsResult = await getIntegrationStatuses(
-    createIntegrationsRepository(),
+  const usersRepository = await createEffectiveTenantUsersRepository(
+    createUsersRepository(),
     authUser.id,
   );
+  const [integrationsResult, membersResult] = await Promise.all([
+    getIntegrationStatuses(createIntegrationsRepository(), authUser.id),
+    listOrganizationMembers(usersRepository, authUser.id),
+  ]);
 
   const integrations = integrationsResult.ok ? integrationsResult.data : null;
+  const fallbackOwnerOptions = membersResult.ok
+    ? membersResult.data.map((member) => ({
+        email: member.email,
+        id: member.id,
+        name:
+          [member.firstName, member.lastName].filter(Boolean).join(" ") ||
+          member.email,
+        role: member.role,
+      }))
+    : [];
   const connectedCount = [integrations?.zoom.connected, integrations?.ghl.connected].filter(Boolean).length;
 
   return (
@@ -49,8 +66,8 @@ export default async function SettingsIntegrationsPage() {
             zoomUserId: null,
           }
         }
-        ghl={
-          integrations?.ghl ?? {
+        ghl={{
+          ...(integrations?.ghl ?? {
             available: false,
             connectPath: "/api/integrations/ghl/connect",
             connected: false,
@@ -65,8 +82,9 @@ export default async function SettingsIntegrationsPage() {
             locationName: null,
             mappedUsersCount: 0,
             syncEnabled: false,
-          }
-        }
+          }),
+          fallbackOwnerOptions,
+        }}
       />
     </SettingsOperationalLayout>
   );

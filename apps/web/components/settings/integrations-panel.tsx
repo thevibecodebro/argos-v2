@@ -29,6 +29,7 @@ export type IntegrationsPanelProps = {
     locationName?: string | null;
     mappedUsersCount?: number;
     syncEnabled?: boolean;
+    fallbackOwnerOptions?: GhlFallbackOwnerOption[];
   };
 };
 
@@ -49,6 +50,17 @@ type DisconnectFetcher = (
   init?: RequestInit,
 ) => Promise<Response>;
 type DisconnectResult = { ok: true } | { error: string; ok: false };
+type GhlFallbackOwnerFetcher = (
+  input: RequestInfo | URL,
+  init?: RequestInit,
+) => Promise<Response>;
+type GhlFallbackOwnerResult = { ok: true } | { error: string; ok: false };
+type GhlFallbackOwnerOption = {
+  email: string;
+  id: string;
+  name: string;
+  role: string | null;
+};
 
 const disconnectFallbacks: Record<IntegrationService, string> = {
   zoom: "Unable to disconnect Zoom. Try again.",
@@ -112,6 +124,33 @@ export async function disconnectIntegrationFromBrowser(
     return {
       ok: false,
       error: disconnectFallbacks[service],
+    };
+  }
+}
+
+export async function updateGhlDefaultRepFromBrowser(
+  defaultRepId: string | null,
+  fetcher: GhlFallbackOwnerFetcher = fetch,
+): Promise<GhlFallbackOwnerResult> {
+  try {
+    const response = await fetcher("/api/integrations/ghl/mappings", {
+      body: JSON.stringify({ defaultRepId }),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    });
+
+    if (response.ok) {
+      return { ok: true };
+    }
+
+    return {
+      ok: false,
+      error: await getReadableActionError(response),
+    };
+  } catch {
+    return {
+      ok: false,
+      error: ghlActionFallback,
     };
   }
 }
@@ -297,6 +336,7 @@ type GhlCardProps = {
   locationName?: string | null;
   mappedUsersCount?: number;
   syncEnabled?: boolean;
+  fallbackOwnerOptions?: GhlFallbackOwnerOption[];
 };
 
 function GhlCard({
@@ -313,6 +353,7 @@ function GhlCard({
   locationName,
   mappedUsersCount,
   syncEnabled,
+  fallbackOwnerOptions = [],
 }: GhlCardProps) {
   const router = useRouter();
   const [isMutating, setIsMutating] = useState(false);
@@ -325,6 +366,11 @@ function GhlCard({
   const [consentConfirmedAtState, setConsentConfirmedAtState] = useState(consentConfirmedAt);
   const [syncRequested, setSyncRequested] = useState(false);
   const [locationNameState, setLocationNameState] = useState(locationName);
+  const [defaultRepIdState, setDefaultRepIdState] = useState(defaultRepId ?? "");
+  const [fallbackOwnerDraft, setFallbackOwnerDraft] = useState(defaultRepId ?? "");
+  const [isSavingFallbackOwner, setIsSavingFallbackOwner] = useState(false);
+  const [fallbackOwnerSaved, setFallbackOwnerSaved] = useState(false);
+  const hasOwnerPath = Boolean(defaultRepIdState) || (mappedUsersCount ?? 0) > 0;
 
   async function handleDisconnect() {
     setDisconnectError(null);
@@ -386,6 +432,28 @@ function GhlCard({
 
     if (ok) {
       setSyncRequested(true);
+    }
+  }
+
+  async function handleFallbackOwnerSave() {
+    setGhlActionError(null);
+    setFallbackOwnerSaved(false);
+    setIsSavingFallbackOwner(true);
+
+    try {
+      const result = await updateGhlDefaultRepFromBrowser(
+        fallbackOwnerDraft || null,
+      );
+
+      if (result.ok) {
+        setDefaultRepIdState(fallbackOwnerDraft);
+        setFallbackOwnerSaved(true);
+        router.refresh();
+      } else {
+        setGhlActionError(result.error);
+      }
+    } finally {
+      setIsSavingFallbackOwner(false);
     }
   }
 
@@ -458,7 +526,7 @@ function GhlCard({
                 Fallback owner
               </span>
               <span className="font-medium text-[var(--forge-text)]">
-                {defaultRepId ? "Configured" : "Not set"}
+                {defaultRepIdState ? "Configured" : "Not set"}
               </span>
             </p>
             <p className="sm:col-span-2">
@@ -476,6 +544,66 @@ function GhlCard({
             {lastSyncError ? (
               <p className="sm:col-span-2 text-[var(--forge-danger)]">
                 {lastSyncError}
+              </p>
+            ) : null}
+          </div>
+          <div
+            className="mt-4 space-y-3"
+            data-ghl-fallback-owner="true"
+          >
+            <label
+              className="block text-sm font-medium text-[var(--forge-text)]"
+              htmlFor="ghl-fallback-owner"
+            >
+              Select fallback owner
+            </label>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <select
+                className="min-h-10 rounded-[8px] border border-[var(--forge-border)] bg-black/20 px-3 py-2 text-sm text-[var(--forge-text)] outline-none focus:border-[var(--forge-ember)]"
+                disabled={isSavingFallbackOwner || fallbackOwnerOptions.length === 0}
+                id="ghl-fallback-owner"
+                onChange={(event) => {
+                  setFallbackOwnerDraft(event.target.value);
+                  setFallbackOwnerSaved(false);
+                }}
+                value={fallbackOwnerDraft}
+              >
+                <option value="">No fallback owner</option>
+                {fallbackOwnerOptions.map((owner) => (
+                  <option key={owner.id} value={owner.id}>
+                    {owner.name || owner.email} ({owner.email})
+                  </option>
+                ))}
+              </select>
+              <ForgeButton
+                disabled={
+                  isSavingFallbackOwner ||
+                  fallbackOwnerOptions.length === 0 ||
+                  fallbackOwnerDraft === defaultRepIdState
+                }
+                onClick={() => {
+                  void handleFallbackOwnerSave();
+                }}
+                size="sm"
+                type="button"
+                variant="secondary"
+              >
+                {isSavingFallbackOwner ? "Saving..." : "Save owner"}
+              </ForgeButton>
+            </div>
+            {fallbackOwnerOptions.length === 0 ? (
+              <p className="text-sm text-[var(--forge-muted)]">
+                Add an Argos user before enabling unmatched GHL call imports.
+              </p>
+            ) : null}
+            {!hasOwnerPath ? (
+              <p className="text-sm text-[var(--forge-muted)]">
+                Choose a fallback owner or map GHL users before syncing.
+              </p>
+            ) : null}
+            {fallbackOwnerSaved ? (
+              <p className="text-sm text-[var(--forge-muted)]">
+                Fallback owner saved for this organization.
               </p>
             ) : null}
           </div>
@@ -530,7 +658,7 @@ function GhlCard({
               </ForgeButton>
             ) : (
               <ForgeButton
-                disabled={isGhlActionPending}
+                disabled={isGhlActionPending || !hasOwnerPath}
                 onClick={() => {
                   void handleSyncNow();
                 }}
@@ -638,6 +766,7 @@ export function IntegrationsPanel({ zoom, ghl }: IntegrationsPanelProps) {
         locationName={ghl.locationName}
         mappedUsersCount={ghl.mappedUsersCount}
         syncEnabled={ghl.syncEnabled}
+        fallbackOwnerOptions={ghl.fallbackOwnerOptions}
       />
     </div>
   );
