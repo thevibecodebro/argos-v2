@@ -152,7 +152,7 @@ export function OperationalMetricStrip({
           </dt>
           <dd
             className={cn(
-              "mt-1 flex items-center justify-between gap-3 text-sm font-semibold tabular-nums",
+              "forge-tabular-nums mt-1 flex items-center justify-between gap-3 text-sm font-semibold",
               operationalToneClass(metric.tone ?? "muted"),
             )}
           >

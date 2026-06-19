@@ -193,7 +193,7 @@ export default async function CallsPage({
                                     Score
                                   </p>
                                   <p
-                                    className={`mt-1 font-bold ${scoreColor(call.overallScore)}`}
+                                    className={`forge-tabular-nums mt-1 font-bold ${scoreColor(call.overallScore)}`}
                                   >
                                     {call.overallScore ?? "--"}
                                   </p>
@@ -442,7 +442,7 @@ export default async function CallsPage({
                 <div className="flex items-center justify-between gap-3 py-2">
                   <dt className="text-[var(--forge-muted)]">Score</dt>
                   <dd
-                    className={`font-semibold tabular-nums ${scoreColor(selectedCall.overallScore)}`}
+                    className={`forge-tabular-nums font-semibold ${scoreColor(selectedCall.overallScore)}`}
                   >
                     {selectedCall.overallScore ?? "--"}
                   </dd>

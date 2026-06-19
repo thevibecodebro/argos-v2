@@ -468,7 +468,7 @@ export function ForgeScoreMeter({
         />
       </div>
       {showValue ? (
-        <span className={cn("w-10 text-right text-sm font-semibold", forgeToneTextClass(resolvedTone))}>
+        <span className={cn("forge-tabular-nums w-10 text-right text-sm font-semibold", forgeToneTextClass(resolvedTone))}>
           {displayValue}
         </span>
       ) : null}
