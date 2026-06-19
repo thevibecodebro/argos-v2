@@ -763,7 +763,7 @@ describe("primary route hero removal", () => {
     expect(repHtml).not.toContain(">My Dashboard<");
 
     expect(managerHtml).toContain('href="/team"');
-    expect(managerHtml).toContain('href="/upload"');
+    // Upload moved to the global shell action; the page no longer duplicates it.
     expect(managerHtml).toContain("Morgan Lee");
     expect(managerHtml).toContain('data-dashboard-route="dashboard"');
     expect(managerHtml).toContain('data-dashboard-today-queue="true"');
@@ -778,7 +778,6 @@ describe("primary route hero removal", () => {
     expect(managerHtml).not.toContain(">Team Dashboard<");
 
     expect(executiveHtml).toContain('href="/team"');
-    expect(executiveHtml).toContain('href="/upload"');
     expect(executiveHtml).toContain('href="/training"');
     expect(executiveHtml).toContain("Training completion");
     expect(executiveHtml).toContain('data-dashboard-route="dashboard"');

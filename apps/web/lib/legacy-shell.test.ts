@@ -251,7 +251,7 @@ describe("legacy UI shell", () => {
     expect(html).toContain('data-dashboard-today-queue="true"');
     expect(html).toContain(">Dashboard<");
     expect(html).toContain("Open team");
-    expect(html).toContain("Upload call");
+    // Upload is now a single global action in the app shell, not per page.
     expect(html).toContain("Needs attention");
     expect(html).not.toContain("Review queue");
     expect(html).not.toContain("Rep Skill Matrix");

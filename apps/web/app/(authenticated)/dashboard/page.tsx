@@ -85,7 +85,6 @@ export default async function DashboardPage() {
             isManager
               ? [
                   { href: "/team", icon: "group", label: "Open team", variant: "secondary" },
-                  { href: "/upload", icon: "cloud_upload", label: "Upload call", variant: "primary" },
                 ]
               : [
                   { href: "/calls", icon: "subject", label: "Open calls", variant: "secondary" },

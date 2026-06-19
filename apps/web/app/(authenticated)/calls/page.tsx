@@ -63,14 +63,6 @@ export default async function CallsPage({
     <AuthenticatedPageContainer className="py-4 sm:py-5" size="wide">
       <OperationalWorkspace data-calls-layout="table-first">
         <OperationalToolbar
-          actions={[
-            {
-              href: "/upload",
-              icon: "attach_file",
-              label: "Upload call",
-              variant: "primary",
-            },
-          ]}
           description="Find and review scored calls."
           status={
             hasActiveFilters
