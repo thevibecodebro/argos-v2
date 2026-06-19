@@ -105,7 +105,7 @@ export function PlatformOrganizationSwitcher({
   return (
     <details
       className={cn(
-        "mb-4 rounded-2xl border border-[var(--forge-border)] bg-[var(--forge-surface)] px-2.5 py-2.5",
+        "relative mb-4 rounded-2xl border border-[var(--forge-border)] bg-[var(--forge-surface)] px-2.5 py-2.5",
         collapsed && "lg:sr-only",
         className,
       )}
@@ -131,7 +131,7 @@ export function PlatformOrganizationSwitcher({
         </div>
       </summary>
 
-      <div className="mt-3">
+      <div className="absolute left-full top-0 z-50 ml-2 w-80 rounded-2xl border border-[var(--forge-border)] bg-[var(--forge-floating-bg)] p-3 shadow-[0_24px_60px_color-mix(in_srgb,var(--forge-text)_18%,transparent)]">
         <label className="sr-only" htmlFor="platform-organization-switch-search">
           Search organizations
         </label>
@@ -209,22 +209,18 @@ export function PlatformOrganizationSwitcher({
         </div>
 
         {session ? (
-          <div className="mt-3 grid gap-2">
-            <a
-              className="forge-nav-link flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-[0.12em]"
-              href="/dashboard"
-            >
-              <ForgeIcon name="open_in_new" size={16} />
-              Open Organization
-            </a>
+          <div className="mt-3">
             <button
-              className="rounded-xl px-3 py-2 text-xs font-semibold text-[var(--forge-muted)] transition hover:text-[var(--forge-text)] disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--forge-border)] px-3 py-2 text-xs font-semibold text-[var(--forge-muted)] transition hover:border-[color-mix(in_srgb,var(--forge-gold)_40%,transparent)] hover:text-[var(--forge-text)] disabled:opacity-60"
               data-platform-return-to-agency="true"
               disabled={switchingOrgId !== null}
               onClick={handleEndSession}
               type="button"
             >
-              {switchingOrgId === "ending" ? "Returning…" : "Back to Agency"}
+              <ForgeIcon name="arrow_back" size={15} />
+              {switchingOrgId === "ending"
+                ? "Returning…"
+                : "Return to platform dashboard"}
             </button>
           </div>
         ) : null}

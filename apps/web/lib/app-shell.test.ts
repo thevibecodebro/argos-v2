@@ -126,8 +126,7 @@ describe("AuthenticatedAppShell", () => {
     expect(html).toContain("Switch organization");
     expect(html).toContain("Current organization");
     expect(html).toContain("Acme Health");
-    expect(html).toContain("Open Organization");
-    expect(html).toContain("Back to Agency");
+    expect(html).toContain("Return to platform dashboard");
     expect(html).toContain('data-platform-return-to-agency="true"');
     expect(html).not.toContain("Sub-account");
     expect(html).not.toContain("sub-account");
