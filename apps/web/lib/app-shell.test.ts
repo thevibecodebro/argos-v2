@@ -89,7 +89,8 @@ describe("AuthenticatedAppShell", () => {
     expect(html).not.toContain("Argos Team");
     // Account menu and bottom rail utility items
     expect(html).toContain('data-account-menu-item="feedback"');
-    expect(html).toContain('data-account-menu-item="notifications"');
+    // Notifications lives in the System rail group, not duplicated in the menu.
+    expect(html).not.toContain('data-account-menu-item="notifications"');
     expect(html).not.toContain('data-account-menu-item="settings"');
     expect(html).toContain('href="/notifications"');
     expect(html).toContain('data-navigation-link="/settings"');

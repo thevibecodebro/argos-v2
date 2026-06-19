@@ -81,7 +81,20 @@ export function AuthenticatedAppShell({
   const accountRef = useRef<HTMLDivElement>(null);
   const accountTriggerRef = useRef<HTMLButtonElement>(null);
 
-  const initials = getInitials(user.fullName || user.email);
+  const isPlatformIdentity =
+    (user.fullName ?? "").startsWith("platform:") ||
+    user.email.startsWith("platform:");
+  const displayName = isPlatformIdentity
+    ? "Platform admin"
+    : user.fullName || user.email;
+  const displaySubtitle = isPlatformIdentity
+    ? "Platform session"
+    : user.fullName
+      ? user.email
+      : null;
+  const initials = isPlatformIdentity
+    ? "P"
+    : getInitials(user.fullName || user.email);
   const roleLabel = formatRole(user.role);
   const hasDockedSecondaryRail = isDockedSecondaryRailRoute(currentPath);
   // Orgs without a saved theme fall back to the default workspace theme
@@ -339,7 +352,7 @@ export function AuthenticatedAppShell({
             data-primary-rail-identity="true"
           >
             <p className="truncate text-sm font-semibold text-[var(--forge-sidebar-text)]">
-              {user.fullName || user.email}
+              {displayName}
             </p>
             <p className="truncate text-xs text-[var(--forge-sidebar-muted)]">
               {roleLabel}
@@ -440,11 +453,11 @@ export function AuthenticatedAppShell({
               >
                 <div className="border-b border-[var(--forge-border)] px-4 py-3">
                   <p className="truncate text-sm font-semibold text-[var(--forge-text)]">
-                    {user.fullName || user.email}
+                    {displayName}
                   </p>
-                  {user.fullName ? (
+                  {displaySubtitle ? (
                     <p className="mt-0.5 truncate text-xs text-[var(--forge-muted)]">
-                      {user.email}
+                      {displaySubtitle}
                     </p>
                   ) : null}
                   <p className="mt-1 font-[var(--font-display)] text-[0.6rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-gold)]">
@@ -481,26 +494,6 @@ export function AuthenticatedAppShell({
                   <ForgeIcon name="lightbulb" size={17} />
                   Product guide
                 </button>
-
-                <Link
-                  className="flex items-center gap-3 px-4 py-3 text-sm text-[var(--forge-muted)] transition hover:bg-[color-mix(in_srgb,var(--forge-gold)_7%,transparent)] hover:text-[var(--forge-text)]"
-                  data-account-menu-item="notifications"
-                  data-navigation-pending={
-                    navigationPendingState.pendingHref === "/notifications"
-                      ? "true"
-                      : undefined
-                  }
-                  href="/notifications"
-                  onClick={(event) => {
-                    handleRouteLinkClick(event, "/notifications");
-                    setAccountOpen(false);
-                  }}
-                  role="menuitem"
-                  tabIndex={accountOpen ? 0 : -1}
-                >
-                  <ForgeIcon name="notifications" size={17} />
-                  Notifications
-                </Link>
 
                 <div className="border-t border-[var(--forge-border)]">
                   <form action="/auth/signout" method="post">
