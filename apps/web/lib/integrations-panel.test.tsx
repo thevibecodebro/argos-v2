@@ -6,6 +6,7 @@ import {
   disconnectIntegrationFromBrowser,
   getDisconnectConfirmationCopy,
   getDisconnectErrorMessage,
+  updateGhlDefaultRepFromBrowser,
 } from "../components/settings/integrations-panel";
 
 vi.mock("next/navigation", () => ({
@@ -39,6 +40,20 @@ const connectedProps = {
     lastSyncStartedAt: "2026-04-30T12:10:00.000Z",
     lastSyncCompletedAt: "2026-04-30T12:11:00.000Z",
     lastSyncError: null,
+    fallbackOwnerOptions: [
+      {
+        email: "riley@example.com",
+        id: "rep-1",
+        name: "Riley Stone",
+        role: "rep",
+      },
+      {
+        email: "morgan@example.com",
+        id: "manager-1",
+        name: "Morgan Lee",
+        role: "manager",
+      },
+    ],
   },
 };
 
@@ -111,5 +126,37 @@ describe("IntegrationsPanel disconnect feedback", () => {
     expect(html).toContain("Mapped users");
     expect(html).toContain("2");
     expect(html).toContain("Last sync");
+  });
+
+  it("renders an organization-scoped fallback owner selector for connected GHL", () => {
+    const html = renderToStaticMarkup(
+      createElement(IntegrationsPanel, {
+        ...connectedProps,
+        ghl: {
+          ...connectedProps.ghl,
+          defaultRepId: null,
+        },
+      }),
+    );
+
+    expect(html).toContain('data-ghl-fallback-owner="true"');
+    expect(html).toContain("Select fallback owner");
+    expect(html).toContain("Riley Stone");
+    expect(html).toContain("morgan@example.com");
+    expect(html).toContain("Save owner");
+  });
+
+  it("saves the GHL fallback owner through the mappings endpoint", async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: true })));
+
+    await expect(updateGhlDefaultRepFromBrowser("rep-1", fetcher)).resolves.toEqual({
+      ok: true,
+    });
+
+    expect(fetcher).toHaveBeenCalledWith("/api/integrations/ghl/mappings", {
+      body: JSON.stringify({ defaultRepId: "rep-1" }),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    });
   });
 });
