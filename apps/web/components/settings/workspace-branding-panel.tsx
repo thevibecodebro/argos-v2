@@ -3,6 +3,7 @@
 import { useMemo, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { ForgeIcon } from "@/components/forge";
+import { OrgLogoUploader } from "@/components/settings/org-logo-uploader";
 import {
   DEFAULT_WORKSPACE_THEME,
   WORKSPACE_THEME_PRESETS,
@@ -17,6 +18,7 @@ import {
 } from "@/lib/organizations/workspace-theme";
 
 type WorkspaceBrandingPanelProps = {
+  initialLogoUrl?: string | null;
   initialTheme: WorkspaceTheme | null;
   organizationName: string;
 };
@@ -93,6 +95,7 @@ function getColorInputValue(value: string) {
 }
 
 export function WorkspaceBrandingPanel({
+  initialLogoUrl = null,
   initialTheme,
   organizationName,
 }: WorkspaceBrandingPanelProps) {
@@ -330,6 +333,11 @@ export function WorkspaceBrandingPanel({
               </div>
             </div>
           </section>
+
+          <OrgLogoUploader
+            initialLogoUrl={initialLogoUrl}
+            organizationName={organizationName}
+          />
 
           <section className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-3">
             <div className="flex items-center justify-between gap-3">
