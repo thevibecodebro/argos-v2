@@ -32,7 +32,27 @@ Design source: Claude Design handoff — *Argos App — Option A* (collapsible r
 
 ---
 
-## Phase 1 — Theme foundation (warm Indigo light preset)
+## Coverage & rebrand policy (features not drawn in Option A)
+
+User directive: **any feature that isn't in the Option A design gets rebranded to the new system using best judgment to fit.** Because the whole app is themed through `--forge-*` tokens and Phase 1 made the default theme warm-Indigo light, **every authenticated surface re-skins automatically** — the remaining work is layout/contrast cleanup and applying the operational contracts, not re-theming from scratch.
+
+**A. Drawn in Option A (11 screens)** — build to the design directly:
+dashboard, calls, calls/[id], highlights, training, roleplay, team, team/[repId] (rep profile), leaderboard, notifications, settings (+ branding), upload.
+
+**B. Authenticated but NOT drawn — best-assumption fit** (same shell, same tokens, follow DESIGN.md contracts):
+- `training/builder`, `training/team` — manager curriculum tools → settings-style rail + dense editor.
+- `roleplay/history` — list to the source session (named in the sitemap).
+- Settings deep pages: `permissions`(+`/manage`), `teams`(+`/manage`), `integrations` (Zoom/GHL), `rubric`(+`/builder`), `people`, `compliance` → secondary rail + one dense panel (table/matrix/form); builders inline.
+
+**C. Platform super-admin console (`/platform/*`)** — DESIGN.md principle 10 keeps platform out of the tenant shell, so it stays a **distinct chrome** (`platform-shell.tsx`) but adopts the same light/warm/Indigo tokens with a clear "Platform" differentiator so staff never confuse it with a tenant. Covers dashboard, organizations, sessions, staff, MFA.
+
+**D. Account funnel — best-assumption rebrand to the light system:** `onboarding`, `invite/[token]`, `billing` (checkout/portal). Part of the authenticated/account experience; should feel like the new app.
+
+**E. Boundary — left as-is (NOT part of the backend redesign):** public marketing (`homepage-product-capture`, landing), legal (`privacy-policy`, `terms-of-service`, `security-policy`), and the `login` / `auth` gates keep the existing dark editorial brand. _Easy to move the boundary if you want login/auth in the light system too._
+
+---
+
+## Phase 1 — Theme foundation (warm Indigo light preset) ✅ DONE
 
 **Goal:** Option A's exact look becomes a selectable, WCAG-valid preset, and the default for the workspace.
 
@@ -128,8 +148,14 @@ _PRs 4.x: one per page, each independently mergeable._
 
 All libraries above are MIT/ISC/BSD/OFL — safe for commercial use and React 19 / Tailwind v4 compatible (Tremor was explicitly dropped in the chat for being Tailwind-v3-bound).
 
-## Open decisions for you
+## Decisions (resolved)
 
-1. **Typography:** add Inter + Geist Mono (recommended, matches Option A) or stay on Geist only?
-2. **Default mode:** make `light` the workspace default now, or keep `dark` default and ship `argos-light` as opt-in until pages migrate?
-3. **Start point:** Phase 1 (theme foundation) is the natural first PR; confirm or pick another entry (e.g. Phase 2 shell first against existing light preset).
+1. **Typography:** ✅ Inter (UI) + Geist Mono (tabular numerals) — landed in Phase 1.
+2. **Default mode:** ✅ `light` is the workspace default; warm-Indigo is the default look. Cool-blue preserved as `daylight`; original gold preserved as `argos-dark`.
+3. **Start point:** ✅ Phase 1 done. Page titles follow Option A weight (≈540), not the low-fi wireframes' 800.
+
+## Phase 1 — shipped
+
+Commit `ac1510e` on `redesign/argos-option-a`. Warm-Indigo light default, Inter + Geist Mono, `argos-dark` preset, app-shell light fallback. Verified: typecheck clean, **850/850 tests**. (DESIGN.md rewritten in `ce6c82a`.)
+
+## Next: Phase 2 — Option-A app shell (grouped rail + mobile bottom tab bar).
