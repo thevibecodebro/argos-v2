@@ -336,29 +336,6 @@ export function AuthenticatedAppShell({
           ))}
         </nav>
 
-        {/* Footer identity chip */}
-        <div className="mt-3 flex items-center gap-3 border-t border-[var(--forge-border)] px-1 pt-3">
-          <span
-            aria-hidden="true"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--forge-sidebar-active-bg)] font-[var(--font-display)] text-xs font-semibold text-[var(--forge-sidebar-active-text)]"
-          >
-            {initials}
-          </span>
-          <div
-            className={cn(
-              "min-w-0 leading-tight",
-              primaryRailCollapsed ? "hidden" : "hidden lg:block",
-            )}
-            data-primary-rail-identity="true"
-          >
-            <p className="truncate text-sm font-semibold text-[var(--forge-sidebar-text)]">
-              {displayName}
-            </p>
-            <p className="truncate text-xs text-[var(--forge-sidebar-muted)]">
-              {roleLabel}
-            </p>
-          </div>
-        </div>
       </aside>
 
       <div
