@@ -24,7 +24,7 @@ type PlatformShellProps = {
 };
 
 const platformNavItems = [
-  { href: "/platform/dashboard", icon: "dashboard", label: "Agency" },
+  { href: "/platform/dashboard", icon: "dashboard", label: "Dashboard" },
   { href: "/platform/organizations", icon: "business", label: "Organizations" },
   { href: "/platform/sessions", icon: "input", label: "Access History" },
   { href: "/platform/staff", icon: "admin_panel_settings", label: "Staff" },
@@ -76,7 +76,7 @@ export function PlatformShell({
 
       <aside
         className={cn(
-          "forge-sidebar fixed inset-y-0 left-0 z-50 flex h-dvh w-64 flex-col px-4 py-5 transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] lg:px-4",
+          "forge-sidebar fixed inset-y-0 left-0 z-50 flex h-dvh w-64 flex-col px-4 py-5 transition-[width,padding,transform] duration-[220ms] ease-[cubic-bezier(0.23,1,0.32,1)] lg:px-4",
           primaryRailCollapsed && "lg:w-20 lg:px-3",
           mobileNavOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
@@ -117,7 +117,7 @@ export function PlatformShell({
         />
 
         <nav
-          aria-label="Agency navigation"
+          aria-label="Platform navigation"
           className={cn("flex-1 space-y-1 overflow-y-auto pr-1", primaryRailCollapsed && "lg:pr-0")}
         >
           {platformNavItems.map((item) => (

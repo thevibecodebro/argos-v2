@@ -337,10 +337,13 @@ function TodayDashboardView({
 
         {queueItems.length ? (
           <>
-            <div className="grid gap-2 p-3">
+            <div
+              className="grid gap-2 p-3 md:hidden"
+              data-dashboard-mobile-queue-cards="true"
+            >
               {queueItems.map((item) => (
                 <Link
-                  className="rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface)] p-4 transition hover:border-[color-mix(in_srgb,var(--forge-gold)_30%,transparent)] hover:bg-[var(--forge-sidebar-active-bg)]"
+                  className="rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface)] p-4 transition-[border-color,background-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:border-[color-mix(in_srgb,var(--forge-gold)_30%,transparent)] hover:bg-[var(--forge-sidebar-active-bg)] active:scale-[0.99]"
                   href={item.href}
                   key={`${item.id}-mobile`}
                 >
@@ -370,7 +373,10 @@ function TodayDashboardView({
               ))}
             </div>
 
-            <div className="hidden">
+            <div
+              className="hidden overflow-x-auto md:block"
+              data-dashboard-desktop-queue-table="true"
+            >
               <table className="w-full min-w-[760px] border-collapse">
                 <thead>
                   <tr className="border-b border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.4%,transparent)] text-left text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
@@ -387,7 +393,7 @@ function TodayDashboardView({
                       data-dashboard-queue-row={index === 0 ? "selected" : "default"}
                       key={item.id}
                     >
-                      <td className="px-4 py-4">
+                      <td className="px-4 py-3">
                         <div className="flex min-w-0 items-start gap-3">
                           <QueueIcon item={item} />
                           <div className="min-w-0">
@@ -400,13 +406,13 @@ function TodayDashboardView({
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-sm font-semibold text-[var(--forge-text)]">
+                      <td className="px-4 py-3 text-sm font-semibold text-[var(--forge-text)]">
                         {item.signal}
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-4 py-3">
                         <ForgeChip tone={item.tone}>{item.statusLabel}</ForgeChip>
                       </td>
-                      <td className="px-4 py-4 text-right">
+                      <td className="px-4 py-3 text-right">
                         <Link
                           className="inline-flex items-center justify-end gap-1 text-sm font-semibold text-[var(--forge-gold)] transition hover:text-[var(--forge-text)]"
                           href={item.href}

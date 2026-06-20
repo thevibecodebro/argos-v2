@@ -54,6 +54,28 @@ describe("settings readability contract", () => {
     expect(people).toContain("SettingsTableShell");
   });
 
+  it("keeps long settings metadata readable on narrow screens", () => {
+    const readability = readFileSync(
+      new URL("../components/settings/settings-readability.tsx", import.meta.url),
+      "utf8",
+    );
+
+    expect(readability).toContain('data-settings-meta-row="true"');
+    expect(readability).toContain('data-settings-meta-value="true"');
+    expect(readability).toContain("min-w-0");
+    expect(readability).toContain("break-all");
+  });
+
+  it("keeps the docked settings rail compact instead of oversized", () => {
+    const globals = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
+
+    expect(globals).toContain("--forge-docked-secondary-width: 13.25rem");
+    expect(globals).toContain("min-height: 2.25rem");
+    expect(globals).toContain("padding-block: 0.5rem");
+    expect(globals).toContain("box-shadow: none");
+    expect(globals).not.toContain("box-shadow: 4px 0 24px");
+  });
+
   it("does not hard-code dark resources in themed settings chrome", () => {
     for (const path of themedSettingsChromeFiles) {
       const source = readFileSync(new URL(path, import.meta.url), "utf8");

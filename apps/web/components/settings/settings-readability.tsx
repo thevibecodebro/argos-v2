@@ -54,9 +54,15 @@ export function SettingsSectionHeader({
 
 export function SettingsMetaRow({ label, value }: SettingsMetaRowProps) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-[var(--forge-border)] py-2 last:border-b-0">
-      <span className="text-sm text-[var(--forge-muted)]">{label}</span>
-      <span className="text-right text-sm font-medium text-[var(--forge-text)]">
+    <div
+      className="flex min-w-0 items-start justify-between gap-3 border-b border-[var(--forge-border)] py-2 last:border-b-0 sm:items-center"
+      data-settings-meta-row="true"
+    >
+      <span className="shrink-0 text-sm text-[var(--forge-muted)]">{label}</span>
+      <span
+        className="min-w-0 break-all text-right text-sm font-medium text-[var(--forge-text)]"
+        data-settings-meta-value="true"
+      >
         {value}
       </span>
     </div>

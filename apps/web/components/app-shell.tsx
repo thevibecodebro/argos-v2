@@ -238,7 +238,7 @@ export function AuthenticatedAppShell({
       {/* ===== Primary rail — full on desktop, icon-only on tablet, hidden on phones ===== */}
       <aside
         className={cn(
-          "forge-sidebar fixed inset-y-0 left-0 z-50 hidden h-dvh flex-col py-5 transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] md:flex md:w-20 md:px-3",
+          "forge-sidebar fixed inset-y-0 left-0 z-50 hidden h-dvh flex-col py-5 transition-[width,padding] duration-[220ms] ease-[cubic-bezier(0.23,1,0.32,1)] md:flex md:w-20 md:px-3",
           primaryRailCollapsed ? "lg:w-20 lg:px-3" : "lg:w-64 lg:px-4",
         )}
         data-primary-rail-collapsed={primaryRailCollapsed ? "true" : "false"}
@@ -373,7 +373,7 @@ export function AuthenticatedAppShell({
           >
             <ForgeIcon name="search" size={16} />
             <span className="flex-1 truncate text-[var(--forge-topbar-muted)]">
-              Search calls, reps…
+              Search pages and actions…
             </span>
             <kbd className="forge-command-kbd">⌘K</kbd>
           </button>
@@ -598,10 +598,11 @@ function BottomTab({
         aria-label={tab.label}
         className="flex flex-1 items-center justify-center"
         data-global-create="upload"
+        data-mobile-upload-fab="true"
         href={tab.href}
         onClick={onClick}
       >
-        <span className="-mt-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--forge-gold)] text-[var(--forge-on-accent)] shadow-[0_8px_24px_color-mix(in_srgb,var(--forge-gold)_40%,transparent)]">
+        <span className="-mt-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--forge-gold)] text-[var(--forge-on-accent)] shadow-[0_8px_24px_color-mix(in_srgb,var(--forge-gold)_40%,transparent)] transition-transform duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.96]">
           <ForgeIcon name={tab.icon} size={22} />
         </span>
       </Link>

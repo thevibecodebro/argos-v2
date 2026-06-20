@@ -121,9 +121,13 @@ describe("AuthenticatedAppShell", () => {
     );
 
     expect(html).toContain('data-platform-organization-switcher="true"');
+    expect(html).toContain('data-platform-organization-switcher-trigger="true"');
+    expect(html).toContain('data-platform-organization-switcher-menu="true"');
     expect(html).toContain('data-platform-organization-switcher-search="true"');
     expect(html).toContain('data-platform-organization-option="org-1"');
     expect(html).toContain('data-platform-session-endpoint="/api/platform/sessions"');
+    expect(html).toContain('aria-controls="platform-organization-switcher-menu"');
+    expect(html).toContain('aria-expanded="false"');
     expect(html).toContain("Switch organization");
     expect(html).toContain("Current organization");
     expect(html).toContain("Acme Health");
@@ -344,6 +348,7 @@ describe("AuthenticatedAppShell", () => {
 
     // One global create action — not a duplicated nav destination.
     expect(html).toContain('data-global-create="upload"');
+    expect(html).toContain('data-mobile-upload-fab="true"');
     expect(html).not.toContain('data-navigation-link="/upload"');
 
     // Command palette trigger (⌘K) is present in the topbar.

@@ -57,4 +57,16 @@ describe("authenticated performance boundaries", () => {
 
     expect(sharedLoaderImports).toEqual([]);
   });
+
+  it("keeps backend shell and score-meter transitions constrained", () => {
+    const constrainedFiles = [
+      "components/app-shell.tsx",
+      "components/platform/platform-shell.tsx",
+      "components/forge.tsx",
+    ];
+
+    for (const file of constrainedFiles) {
+      expect(read(file), file).not.toContain("transition-all");
+    }
+  });
 });

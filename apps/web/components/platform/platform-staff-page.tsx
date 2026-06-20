@@ -95,7 +95,6 @@ export function PlatformStaffPage({
     >
       <OperationalToolbar
         description="Manage internal agency access. This is separate from Organization roles."
-        eyebrow="Agency"
         status={{
           icon: "admin_panel_settings",
           label: staffRole === "owner" ? `${activeStaffCount} active staff` : "Operator access",

@@ -49,7 +49,6 @@ export function PlatformCreateOrganizationPage() {
           },
         ]}
         description="Create the Organization and prepare the first admin invite."
-        eyebrow="Agency"
         title="Create Organization"
       />
 

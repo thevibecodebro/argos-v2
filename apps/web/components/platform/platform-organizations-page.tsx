@@ -97,7 +97,6 @@ export function PlatformOrganizationsPage({
           },
         ]}
         description="Find an Organization and open audited access when needed."
-        eyebrow="Agency"
         status={{ icon: "business", label: `${organizations.length} visible`, tone: "muted" }}
         title="Organizations"
       />

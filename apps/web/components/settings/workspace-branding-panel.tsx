@@ -441,7 +441,10 @@ export function WorkspaceBrandingPanel({
         </section>
       </div>
 
-      <div className="sticky bottom-0 z-20 mt-3 border-t border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-bg)_92%,transparent)] px-3 py-3 backdrop-blur-xl">
+      <div
+        className="workspace-branding-save-bar sticky bottom-0 z-20 mt-3 border-t border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-bg)_92%,transparent)] px-3 py-3 backdrop-blur-xl"
+        data-workspace-branding-save-bar="true"
+      >
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="min-h-5 text-xs text-[var(--forge-muted)]" role="status">
             {message ?? (isDirty ? "Unsaved branding changes." : "Branding is up to date.")}

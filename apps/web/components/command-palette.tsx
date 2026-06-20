@@ -41,7 +41,7 @@ export function CommandPalette({
       open={open}
       overlayClassName="forge-command-overlay"
     >
-      <Command.Input placeholder="Search calls, reps, settings…" />
+      <Command.Input placeholder="Search pages and actions…" />
       <Command.List>
         <Command.Empty>No matches.</Command.Empty>
 
