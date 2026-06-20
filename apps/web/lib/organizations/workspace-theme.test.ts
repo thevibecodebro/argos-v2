@@ -407,33 +407,36 @@ describe("workspace theme contrast helpers", () => {
   });
 
   it("returns all required contrast failures for UI validation", () => {
-    const failures = checkWorkspaceThemeContrast({
-      ...DEFAULT_WORKSPACE_THEME,
-      colors: {
-        ...DEFAULT_WORKSPACE_THEME.colors,
-        background: "#101010",
-        text: "#222222",
-        mutedText: "#333333",
-        primary: "#EEEEEE",
-        onPrimary: "#FFFFFF",
-        focus: "#252525",
-      },
-      modes: {
-        ...DEFAULT_WORKSPACE_THEME.modes,
-        dark: {
-          ...DEFAULT_WORKSPACE_THEME.modes.dark,
-          colors: {
-            ...DEFAULT_WORKSPACE_THEME.modes.dark.colors,
-            background: "#101010",
-            text: "#222222",
-            mutedText: "#333333",
-            primary: "#EEEEEE",
-            onPrimary: "#FFFFFF",
-            focus: "#252525",
+    const failures = checkWorkspaceThemeContrast(
+      {
+        ...DEFAULT_WORKSPACE_THEME,
+        colors: {
+          ...DEFAULT_WORKSPACE_THEME.colors,
+          background: "#101010",
+          text: "#222222",
+          mutedText: "#333333",
+          primary: "#EEEEEE",
+          onPrimary: "#FFFFFF",
+          focus: "#252525",
+        },
+        modes: {
+          ...DEFAULT_WORKSPACE_THEME.modes,
+          dark: {
+            ...DEFAULT_WORKSPACE_THEME.modes.dark,
+            colors: {
+              ...DEFAULT_WORKSPACE_THEME.modes.dark.colors,
+              background: "#101010",
+              text: "#222222",
+              mutedText: "#333333",
+              primary: "#EEEEEE",
+              onPrimary: "#FFFFFF",
+              focus: "#252525",
+            },
           },
         },
       },
-    });
+      "dark",
+    );
 
     expect(failures).toEqual([
       {
@@ -474,5 +477,38 @@ describe("WORKSPACE_THEME_PRESETS", () => {
       id: "custom",
       name: "Custom",
     });
+  });
+
+  it("defaults Argos to the warm-Indigo light theme and keeps the gold dark theme reachable", () => {
+    expect(DEFAULT_WORKSPACE_THEME.activeMode).toBe("light");
+    expect(DEFAULT_WORKSPACE_THEME.modes.light.colors.primary).toBe("#1B1938");
+    expect(DEFAULT_WORKSPACE_THEME.modes.light.colors.background).toBe("#FAFAF8");
+
+    expect(WORKSPACE_THEME_PRESETS.argos.mode).toBe("light");
+    expect(WORKSPACE_THEME_PRESETS.argos.name).toBe("Argos Light");
+
+    const argosDark = WORKSPACE_THEME_PRESETS["argos-dark"];
+    expect(argosDark.mode).toBe("dark");
+    expect("theme" in argosDark && argosDark.theme.modes.dark.colors.primary).toBe(
+      "#D8AA68",
+    );
+
+    // Daylight remains the cool-blue light option, distinct from Argos Light.
+    expect(WORKSPACE_THEME_PRESETS.daylight.theme.modes.light.colors.primary).toBe(
+      "#1A5FB4",
+    );
+  });
+
+  it("passes WCAG contrast in both modes of the default theme", () => {
+    expect(checkWorkspaceThemeContrast(DEFAULT_WORKSPACE_THEME, "light")).toEqual(
+      [],
+    );
+    expect(checkWorkspaceThemeContrast(DEFAULT_WORKSPACE_THEME, "dark")).toEqual(
+      [],
+    );
+
+    // The default theme must survive a save (parse enforces contrast).
+    const parsed = parseWorkspaceTheme(DEFAULT_WORKSPACE_THEME);
+    expect(parsed.ok).toBe(true);
   });
 });

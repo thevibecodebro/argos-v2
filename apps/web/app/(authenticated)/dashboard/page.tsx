@@ -28,7 +28,6 @@ import {
   type RepDashboard,
 } from "@/lib/dashboard/service";
 import {
-  OperationalPreviewDrawer,
   OperationalToolbar,
   OperationalWorkspace,
 } from "@/components/operational-workspace";
@@ -86,7 +85,6 @@ export default async function DashboardPage() {
             isManager
               ? [
                   { href: "/team", icon: "group", label: "Open team", variant: "secondary" },
-                  { href: "/upload", icon: "cloud_upload", label: "Upload call", variant: "primary" },
                 ]
               : [
                   { href: "/calls", icon: "subject", label: "Open calls", variant: "secondary" },
@@ -143,6 +141,88 @@ function scoreMetricTone(value: number | null | undefined): ForgeTone {
   return "danger";
 }
 
+function toneTextClass(tone: ForgeTone) {
+  if (tone === "success") return "text-[var(--forge-success)]";
+  if (tone === "danger") return "text-[var(--forge-danger)]";
+  if (tone === "ember") return "text-[var(--forge-ember)]";
+  if (tone === "cyan") return "text-[var(--forge-cyan)]";
+  if (tone === "muted") return "text-[var(--forge-text)]";
+  return "text-[var(--forge-gold)]";
+}
+
+type TodayStat = {
+  hint: string;
+  label: string;
+  tone: ForgeTone;
+  value: string;
+};
+
+function buildTodayStats({
+  badges,
+  isManager,
+  managerDashboard,
+  repDashboard,
+}: {
+  badges: Badge[];
+  isManager: boolean;
+  managerDashboard: ManagerDashboard | null;
+  repDashboard: RepDashboard | null;
+}): TodayStat[] {
+  if (isManager) {
+    const avg = managerDashboard?.teamAvgScore ?? null;
+    const flags = managerDashboard?.coachingFlagsCount ?? 0;
+    const flaggedReps = (managerDashboard?.reps ?? []).filter(
+      (rep) => rep.needsCoaching,
+    ).length;
+    return [
+      {
+        hint: "quality score",
+        label: "Team avg",
+        tone: scoreMetricTone(avg),
+        value: avg != null ? String(avg) : "--",
+      },
+      {
+        hint: "scored",
+        label: "Calls this month",
+        tone: "muted",
+        value: String(managerDashboard?.totalCallsThisMonth ?? 0),
+      },
+      {
+        hint: flaggedReps
+          ? `across ${flaggedReps} rep${flaggedReps === 1 ? "" : "s"}`
+          : "team on track",
+        label: "Coaching flags",
+        tone: flags > 0 ? "danger" : "success",
+        value: String(flags),
+      },
+    ];
+  }
+
+  const recentCalls = repDashboard?.recentCalls ?? [];
+  const focus = repDashboard?.lowestCategories?.[0] ?? null;
+  const earned = badges.filter((badge) => badge.earned).length;
+  return [
+    {
+      hint: "scored",
+      label: "Recent calls",
+      tone: "muted",
+      value: String(recentCalls.length),
+    },
+    {
+      hint: focus ? focus.category : "all on track",
+      label: "Focus area",
+      tone: focus ? scoreMetricTone(focus.avgScore) : "success",
+      value: focus ? String(focus.avgScore) : "--",
+    },
+    {
+      hint: "earned",
+      label: "Badges",
+      tone: "gold",
+      value: String(earned),
+    },
+  ];
+}
+
 type TodayQueueItem = {
   actionLabel: string;
   description: string;
@@ -184,17 +264,63 @@ function TodayDashboardView({
     repDashboard,
     setupStatus,
   });
-  const selected = queueItems[0] ?? null;
+  const stats = buildTodayStats({
+    badges,
+    isManager,
+    managerDashboard,
+    repDashboard,
+  });
+  const setupChecklist = setupStatus
+    ? [
+        {
+          done: setupStatus.callsCount > 0,
+          href: setupStatus.callsCount > 0 ? undefined : "/upload",
+          label:
+            setupStatus.callsCount > 0
+              ? "Calls flowing"
+              : "Upload your first call",
+        },
+        {
+          done: setupStatus.repsCount > 1,
+          href: "/settings/people",
+          label: setupStatus.repsCount > 1 ? "Team invited" : "Invite your team",
+        },
+        {
+          done: setupStatus.roleplayCount > 0,
+          href: "/roleplay",
+          label:
+            setupStatus.roleplayCount > 0
+              ? "Practice started"
+              : "Start a roleplay",
+        },
+      ]
+    : [];
 
   return (
-    <section
-      className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_320px]"
-      data-dashboard-today-queue="true"
-    >
+    <div className="flex min-w-0 flex-col gap-3" data-dashboard-today-queue="true">
+      <div className="grid gap-3 sm:grid-cols-3" data-dashboard-stat-strip="true">
+        {stats.map((stat) => (
+          <div
+            className="rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface)] p-4"
+            key={stat.label}
+          >
+            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.07em] text-[var(--forge-faint)]">
+              {stat.label}
+            </p>
+            <p
+              className={`forge-tabular-nums mt-2 text-[1.75rem] font-[540] leading-none ${toneTextClass(stat.tone)}`}
+            >
+              {stat.value}
+            </p>
+            <p className="mt-1.5 text-xs text-[var(--forge-muted)]">{stat.hint}</p>
+          </div>
+        ))}
+      </div>
+
+      <section className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_300px]">
       <div
-        className="min-w-0 overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[var(--forge-table-bg)] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)]"
+        className="min-w-0 overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface)]"
         data-dashboard-queue-table="true"
-        data-forge-table="true"
       >
         <div className="border-b border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.4%,transparent)] px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -211,10 +337,13 @@ function TodayDashboardView({
 
         {queueItems.length ? (
           <>
-            <div className="grid gap-2 p-3 md:hidden">
+            <div
+              className="grid gap-2 p-3 md:hidden"
+              data-dashboard-mobile-queue-cards="true"
+            >
               {queueItems.map((item) => (
                 <Link
-                  className="rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_3.5%,transparent)] p-4 transition hover:border-[color-mix(in_srgb,var(--forge-gold)_30%,transparent)] hover:bg-[color-mix(in_srgb,var(--forge-gold)_5.5%,transparent)]"
+                  className="rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface)] p-4 transition-[border-color,background-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:border-[color-mix(in_srgb,var(--forge-gold)_30%,transparent)] hover:bg-[var(--forge-sidebar-active-bg)] active:scale-[0.99]"
                   href={item.href}
                   key={`${item.id}-mobile`}
                 >
@@ -244,7 +373,10 @@ function TodayDashboardView({
               ))}
             </div>
 
-            <div className="hidden overflow-x-auto md:block">
+            <div
+              className="hidden overflow-x-auto md:block"
+              data-dashboard-desktop-queue-table="true"
+            >
               <table className="w-full min-w-[760px] border-collapse">
                 <thead>
                   <tr className="border-b border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.4%,transparent)] text-left text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
@@ -261,7 +393,7 @@ function TodayDashboardView({
                       data-dashboard-queue-row={index === 0 ? "selected" : "default"}
                       key={item.id}
                     >
-                      <td className="px-4 py-4">
+                      <td className="px-4 py-3">
                         <div className="flex min-w-0 items-start gap-3">
                           <QueueIcon item={item} />
                           <div className="min-w-0">
@@ -274,13 +406,13 @@ function TodayDashboardView({
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-sm font-semibold text-[var(--forge-text)]">
+                      <td className="px-4 py-3 text-sm font-semibold text-[var(--forge-text)]">
                         {item.signal}
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-4 py-3">
                         <ForgeChip tone={item.tone}>{item.statusLabel}</ForgeChip>
                       </td>
-                      <td className="px-4 py-4 text-right">
+                      <td className="px-4 py-3 text-right">
                         <Link
                           className="inline-flex items-center justify-end gap-1 text-sm font-semibold text-[var(--forge-gold)] transition hover:text-[var(--forge-text)]"
                           href={item.href}
@@ -305,27 +437,68 @@ function TodayDashboardView({
         )}
       </div>
 
-      <OperationalPreviewDrawer
-        actions={
-          selected
-            ? [{ href: selected.href, icon: selected.icon, label: selected.actionLabel, variant: "primary" }]
-            : [{ href: isManager ? "/team" : "/calls", icon: isManager ? "group" : "subject", label: isManager ? "Open team" : "Open calls", variant: "secondary" }]
-        }
-        description={
-          selected?.description ??
-          "This drawer previews the selected attention item and keeps the attention queue focused on the next action."
-        }
-        eyebrow="Selected item"
-        title={selected?.label ?? "Queue clear"}
-      >
-        <div className="grid gap-2 text-sm">
-          <SummaryRow label="Type" value={selected?.typeLabel ?? "None"} />
-          <SummaryRow label="Signal" value={selected?.signal ?? "--"} />
-          <SummaryRow label="Status" value={selected?.statusLabel ?? "Clear"} />
-          <SummaryRow label="Earned badges" value={badges.filter((badge) => badge.earned).length} />
-        </div>
-      </OperationalPreviewDrawer>
-    </section>
+      <div className="flex flex-col gap-3">
+        {setupChecklist.length ? (
+          <div
+            className="rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface)] p-4"
+            data-dashboard-setup="true"
+          >
+            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.07em] text-[var(--forge-faint)]">
+              Setup
+            </p>
+            <ul className="mt-3 flex flex-col gap-2.5">
+              {setupChecklist.map((step) => (
+                <li
+                  className="flex items-center gap-2.5 text-sm"
+                  key={step.label}
+                >
+                  <span
+                    className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full ${
+                      step.done
+                        ? "bg-[var(--forge-gold)] text-[var(--forge-on-accent)]"
+                        : "border-2 border-[var(--forge-border-strong)]"
+                    }`}
+                  >
+                    {step.done ? <ForgeIcon name="check" size={11} /> : null}
+                  </span>
+                  {step.href ? (
+                    <Link
+                      className="text-[var(--forge-text)] underline-offset-2 hover:underline"
+                      href={step.href}
+                    >
+                      {step.label}
+                    </Link>
+                  ) : (
+                    <span className="text-[var(--forge-text)]">{step.label}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
+        <Link
+          className="flex items-center gap-3 rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface)] p-4 transition hover:border-[color-mix(in_srgb,var(--forge-gold)_40%,transparent)]"
+          data-dashboard-brand-shortcut="true"
+          href="/settings/branding"
+        >
+          <span
+            aria-hidden="true"
+            className="h-9 w-9 shrink-0 rounded-lg bg-[var(--forge-gold)]"
+          />
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-[var(--forge-text)]">
+              Brand &amp; appearance
+            </span>
+            <span className="block text-xs text-[var(--forge-muted)]">
+              Accent &amp; logo
+            </span>
+          </span>
+          <ForgeIcon name="chevron_right" size={18} />
+        </Link>
+      </div>
+      </section>
+    </div>
   );
 }
 
@@ -506,20 +679,6 @@ function QueueIcon({ item }: { item: TodayQueueItem }) {
   );
 }
 
-function SummaryRow({
-  label,
-  value,
-}: {
-  label: string;
-  value: number | string;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3 border-b border-[var(--forge-border)] py-2 last:border-b-0">
-      <span className="text-[var(--forge-muted)]">{label}</span>
-      <span className="text-right font-semibold text-[var(--forge-text)]">{value}</span>
-    </div>
-  );
-}
 
 function EmptyState({ description, title }: { description: string; title: string }) {
   return (

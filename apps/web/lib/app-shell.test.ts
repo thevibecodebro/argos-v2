@@ -7,12 +7,21 @@ import {
   getNavigationPendingState,
 } from "../components/app-shell";
 
-const { usePathnameMock } = vi.hoisted(() => ({
+const { usePathnameMock, useRouterMock } = vi.hoisted(() => ({
   usePathnameMock: vi.fn(),
+  useRouterMock: vi.fn(() => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    refresh: vi.fn(),
+  })),
 }));
 
 vi.mock("next/navigation", () => ({
   usePathname: usePathnameMock,
+  useRouter: useRouterMock,
 }));
 
 const managerUser = {
@@ -80,15 +89,18 @@ describe("AuthenticatedAppShell", () => {
     expect(html).not.toContain("Argos Team");
     // Account menu and bottom rail utility items
     expect(html).toContain('data-account-menu-item="feedback"');
-    expect(html).toContain('data-account-menu-item="notifications"');
+    // Notifications lives in the System rail group, not duplicated in the menu.
+    expect(html).not.toContain('data-account-menu-item="notifications"');
     expect(html).not.toContain('data-account-menu-item="settings"');
     expect(html).toContain('href="/notifications"');
-    expect(html).toContain('data-primary-rail-footer-link="settings"');
+    expect(html).toContain('data-navigation-link="/settings"');
     expect(html).toContain('href="/settings"');
     expect(html).not.toContain('data-primary-rail-section-label="true"');
-    expect(html).not.toContain("Coach");
-    expect(html).not.toContain("People");
-    expect(html).not.toContain("System");
+    // Option A: rail is grouped with section headers (manager sees all four).
+    expect(html).toContain('data-primary-rail-section="Review"');
+    expect(html).toContain("Coach");
+    expect(html).toContain("People");
+    expect(html).toContain("System");
     expect(html).not.toContain("Workspace scope");
     expect(html).not.toContain("Active scope");
     expect(html).not.toContain('href="/platform"');
@@ -109,14 +121,17 @@ describe("AuthenticatedAppShell", () => {
     );
 
     expect(html).toContain('data-platform-organization-switcher="true"');
+    expect(html).toContain('data-platform-organization-switcher-trigger="true"');
+    expect(html).toContain('data-platform-organization-switcher-menu="true"');
     expect(html).toContain('data-platform-organization-switcher-search="true"');
     expect(html).toContain('data-platform-organization-option="org-1"');
     expect(html).toContain('data-platform-session-endpoint="/api/platform/sessions"');
+    expect(html).toContain('aria-controls="platform-organization-switcher-menu"');
+    expect(html).toContain('aria-expanded="false"');
     expect(html).toContain("Switch organization");
     expect(html).toContain("Current organization");
     expect(html).toContain("Acme Health");
-    expect(html).toContain("Open Organization");
-    expect(html).toContain("Back to Agency");
+    expect(html).toContain("Return to platform dashboard");
     expect(html).toContain('data-platform-return-to-agency="true"');
     expect(html).not.toContain("Sub-account");
     expect(html).not.toContain("sub-account");
@@ -222,7 +237,7 @@ describe("AuthenticatedAppShell", () => {
     );
 
     expect(html).toContain('data-shell-theme="forge"');
-    expect(html).toContain("Open navigation");
+    expect(html).toContain('data-mobile-tabbar="true"');
     expect(html).toContain("Revenue Command");
     expect(html).toContain('data-argos-logo="primary-rail"');
     expect(html).toContain('src="/argos_logo_background.png"');
@@ -315,6 +330,37 @@ describe("AuthenticatedAppShell", () => {
     expect(html).not.toContain('data-forge-icon-name="chevron_right"');
     expect(html).toContain('aria-label="Dashboard"');
     expect(html).toContain('data-primary-rail-label="true"');
+  });
+
+  it("renders the Option-A grouped rail, single global upload, and mobile tab bar", () => {
+    const html = renderToStaticMarkup(
+      createElement(AuthenticatedAppShell, {
+        user: managerUser,
+        children: createElement("div", null, "Page body"),
+      }),
+    );
+
+    // Grouped rail with a System group exposing notifications + settings.
+    expect(html).toContain('data-primary-rail-section="Review"');
+    expect(html).toContain('data-primary-rail-section="System"');
+    expect(html).toContain('data-navigation-link="/notifications"');
+    expect(html).toContain('data-navigation-link="/settings"');
+
+    // One global create action — not a duplicated nav destination.
+    expect(html).toContain('data-global-create="upload"');
+    expect(html).toContain('data-mobile-upload-fab="true"');
+    expect(html).not.toContain('data-navigation-link="/upload"');
+
+    // Command palette trigger (⌘K) is present in the topbar.
+    expect(html).toContain('data-command-trigger="true"');
+    expect(html).toContain("⌘K");
+
+    // Mobile bottom tab bar with the five Option-A slots.
+    expect(html).toContain('data-mobile-tabbar="true"');
+    expect(html).toContain('data-mobile-tab="/dashboard"');
+    expect(html).toContain('data-mobile-tab="/calls"');
+    expect(html).toContain('data-mobile-tab="/training"');
+    expect(html).toContain('data-mobile-tab="/settings"');
   });
 
   it("marks only dense workspace routes for a docked secondary rail", () => {

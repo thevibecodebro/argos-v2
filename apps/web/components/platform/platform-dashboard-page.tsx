@@ -40,13 +40,7 @@ export function PlatformDashboardPage({ dashboard }: PlatformDashboardPageProps)
           },
         ]}
         description="Organization health, usage, and risk."
-        eyebrow="Agency"
-        status={{
-          icon: "warning",
-          label: `${dashboard.summary.atRiskOrganizations} at risk`,
-          tone: dashboard.summary.atRiskOrganizations > 0 ? "ember" : "success",
-        }}
-        title="Agency"
+        title="Dashboard"
       >
         <form
           action="/platform/dashboard"
@@ -157,7 +151,7 @@ export function PlatformDashboardPage({ dashboard }: PlatformDashboardPageProps)
         >
           <div className="flex flex-wrap items-center gap-2">
             <p className="mr-1 font-[var(--font-display)] text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[var(--forge-muted)]">
-              Agency alerts
+              Platform alerts
             </p>
             {dashboard.alerts.map((alert) => (
               <a
@@ -218,14 +212,13 @@ export function PlatformDashboardPage({ dashboard }: PlatformDashboardPageProps)
           >
             <table className="w-full table-fixed text-left text-sm">
               <colgroup>
-                <col className="w-[19%]" />
-                <col className="w-[10%]" />
-                <col className="w-[13%]" />
-                <col className="w-[9%]" />
-                <col className="w-[9%]" />
-                <col className="w-[10%]" />
                 <col className="w-[22%]" />
-                <col className="w-[8%]" />
+                <col className="w-[10%]" />
+                <col className="w-[14%]" />
+                <col className="w-[9%]" />
+                <col className="w-[9%]" />
+                <col className="w-[10%]" />
+                <col className="w-[26%]" />
               </colgroup>
               <thead className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--forge-muted)]">
                 <tr>
@@ -236,14 +229,18 @@ export function PlatformDashboardPage({ dashboard }: PlatformDashboardPageProps)
                   <th className="px-3 py-3">Avg score</th>
                   <th className="px-3 py-3">Training</th>
                   <th className="px-3 py-3">Risk</th>
-                  <th className="px-3 py-3 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--forge-border-strong)]/10">
                 {dashboard.rows.map((row) => (
                   <tr key={row.id}>
                     <td className="min-w-0 px-3 py-3">
-                      <p className="truncate font-semibold text-[var(--forge-text)]">{row.name}</p>
+                      <a
+                        className="block truncate font-semibold text-[var(--forge-text)] transition hover:text-[var(--forge-cyan)]"
+                        href={`/platform/organizations/${encodeURIComponent(row.slug)}`}
+                      >
+                        {row.name}
+                      </a>
                       <p className="mt-1 truncate text-xs text-[var(--forge-muted)]">{row.slug}</p>
                     </td>
                     <td className="px-3 py-3">
@@ -277,14 +274,6 @@ export function PlatformDashboardPage({ dashboard }: PlatformDashboardPageProps)
                           <ForgeChip tone="success">Healthy</ForgeChip>
                         )}
                       </div>
-                    </td>
-                    <td className="px-3 py-3 text-right">
-                      <a
-                        className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--forge-cyan)]"
-                        href={`/platform/organizations/${encodeURIComponent(row.slug)}`}
-                      >
-                        Open
-                      </a>
                     </td>
                   </tr>
                 ))}

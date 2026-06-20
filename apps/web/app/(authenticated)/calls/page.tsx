@@ -63,14 +63,6 @@ export default async function CallsPage({
     <AuthenticatedPageContainer className="py-4 sm:py-5" size="wide">
       <OperationalWorkspace data-calls-layout="table-first">
         <OperationalToolbar
-          actions={[
-            {
-              href: "/upload",
-              icon: "attach_file",
-              label: "Upload call",
-              variant: "primary",
-            },
-          ]}
           description="Find and review scored calls."
           status={
             hasActiveFilters
@@ -105,10 +97,10 @@ export default async function CallsPage({
                   {quickViews.map((view) => (
                     <Link
                       aria-current={view.active ? "page" : undefined}
-                      className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition ${
+                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                         view.active
-                          ? "bg-[color-mix(in_srgb,var(--forge-gold)_13%,transparent)] text-[var(--forge-gold)]"
-                          : "text-[var(--forge-muted)] hover:bg-[color-mix(in_srgb,var(--forge-text)_4.5%,transparent)] hover:text-[var(--forge-text)]"
+                          ? "border-[var(--forge-gold)] bg-[var(--forge-gold)] text-[var(--forge-on-accent)]"
+                          : "border-[var(--forge-border)] text-[var(--forge-muted)] hover:border-[color-mix(in_srgb,var(--forge-gold)_40%,transparent)] hover:text-[var(--forge-text)]"
                       }`}
                       data-calls-saved-view-active={
                         view.active ? "true" : "false"
@@ -193,7 +185,7 @@ export default async function CallsPage({
                                     Score
                                   </p>
                                   <p
-                                    className={`mt-1 font-bold ${scoreColor(call.overallScore)}`}
+                                    className={`forge-tabular-nums mt-1 font-bold ${scoreColor(call.overallScore)}`}
                                   >
                                     {call.overallScore ?? "--"}
                                   </p>
@@ -442,7 +434,7 @@ export default async function CallsPage({
                 <div className="flex items-center justify-between gap-3 py-2">
                   <dt className="text-[var(--forge-muted)]">Score</dt>
                   <dd
-                    className={`font-semibold tabular-nums ${scoreColor(selectedCall.overallScore)}`}
+                    className={`forge-tabular-nums font-semibold ${scoreColor(selectedCall.overallScore)}`}
                   >
                     {selectedCall.overallScore ?? "--"}
                   </dd>

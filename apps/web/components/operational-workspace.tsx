@@ -48,7 +48,7 @@ type OperationalPreviewDrawerProps = HTMLAttributes<HTMLElement> & {
 };
 
 const operationalEyebrowClass =
-  "mb-1 text-xs font-medium text-[var(--forge-muted)]";
+  "mb-1 text-[0.68rem] font-semibold uppercase tracking-[0.07em] text-[var(--forge-faint)]";
 
 export function OperationalWorkspace({
   children,
@@ -90,7 +90,7 @@ export function OperationalToolbar({
         <div className="min-w-0">
           {eyebrow ? <p className={operationalEyebrowClass}>{eyebrow}</p> : null}
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="truncate text-xl font-semibold tracking-normal text-[var(--forge-text)]">
+            <h1 className="truncate text-xl font-[540] tracking-[-0.01em] text-[var(--forge-text)]">
               {title}
             </h1>
             {status ? (
@@ -152,7 +152,7 @@ export function OperationalMetricStrip({
           </dt>
           <dd
             className={cn(
-              "mt-1 flex items-center justify-between gap-3 text-sm font-semibold tabular-nums",
+              "forge-tabular-nums mt-1 flex items-center justify-between gap-3 text-sm font-semibold",
               operationalToneClass(metric.tone ?? "muted"),
             )}
           >

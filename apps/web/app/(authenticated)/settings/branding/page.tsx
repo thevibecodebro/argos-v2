@@ -22,6 +22,7 @@ export default async function SettingsBrandingPage() {
       variant="editor"
     >
       <WorkspaceBrandingPanel
+        initialLogoUrl={result.data.org?.logoUrl ?? null}
         initialTheme={result.data.org?.workspaceTheme ?? null}
         organizationName={result.data.org?.name ?? "Workspace"}
       />

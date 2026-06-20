@@ -11,11 +11,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@argos-v2/ui";
 import { ArgosLogo } from "./argos-logo";
+import {
+  bottomTabs,
+  getVisibleNavGroups,
+  type BottomTabItem,
+} from "./app-navigation";
+import { CommandPalette } from "./command-palette";
 import { FeedbackDialogLoader } from "./feedback-dialog-loader";
 import { ForgeIcon } from "./forge";
 import { PlatformOrganizationSwitcher } from "./platform/platform-organization-switcher";
 import { RoleOnboardingGuide } from "./role-onboarding-guide";
 import {
+  DEFAULT_WORKSPACE_THEME,
   workspaceThemeToForgeVars,
   type WorkspaceTheme,
 } from "@/lib/organizations/workspace-theme";
@@ -45,12 +52,6 @@ type AuthenticatedAppShellProps = {
   user: ShellUser;
 };
 
-type NavItem = {
-  href: string;
-  label: string;
-  icon: string;
-};
-
 type NavigationDestination = {
   href: string;
   label: string;
@@ -62,42 +63,6 @@ type NavigationPendingState = {
   pendingHref: string | null;
 };
 
-type NavGroup = {
-  label: string;
-  icon: string;
-  items: NavItem[];
-  visibleTo?: AppUserRole[];
-};
-
-const navGroups: NavGroup[] = [
-  {
-    label: "Review",
-    icon: "query_stats",
-    items: [
-      { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
-      { href: "/calls", label: "Calls", icon: "library_books" },
-      { href: "/highlights", label: "Highlights", icon: "auto_awesome" },
-    ],
-  },
-  {
-    label: "Coach",
-    icon: "psychology",
-    items: [
-      { href: "/training", label: "Training", icon: "school" },
-      { href: "/roleplay", label: "Roleplay", icon: "psychology" },
-    ],
-  },
-  {
-    label: "People",
-    icon: "group",
-    visibleTo: ["manager", "executive", "admin"],
-    items: [
-      { href: "/team", label: "Team", icon: "group" },
-      { href: "/leaderboard", label: "Leaderboard", icon: "leaderboard" },
-    ],
-  },
-];
-
 export function AuthenticatedAppShell({
   children,
   initialPrimaryRailCollapsed = false,
@@ -106,9 +71,9 @@ export function AuthenticatedAppShell({
 }: AuthenticatedAppShellProps) {
   const currentPath = usePathname();
   const [accountOpen, setAccountOpen] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [guideReplaySignal, setGuideReplaySignal] = useState(0);
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [primaryRailCollapsed, setPrimaryRailCollapsed] = useState(
     initialPrimaryRailCollapsed,
@@ -116,24 +81,33 @@ export function AuthenticatedAppShell({
   const accountRef = useRef<HTMLDivElement>(null);
   const accountTriggerRef = useRef<HTMLButtonElement>(null);
 
-  const initials = getInitials(user.fullName || user.email);
+  const isPlatformIdentity =
+    (user.fullName ?? "").startsWith("platform:") ||
+    user.email.startsWith("platform:");
+  const displayName = isPlatformIdentity
+    ? "Platform admin"
+    : user.fullName || user.email;
+  const displaySubtitle = isPlatformIdentity
+    ? "Platform session"
+    : user.fullName
+      ? user.email
+      : null;
+  const initials = isPlatformIdentity
+    ? "P"
+    : getInitials(user.fullName || user.email);
   const roleLabel = formatRole(user.role);
   const hasDockedSecondaryRail = isDockedSecondaryRailRoute(currentPath);
-  const workspaceThemeVars = user.workspaceTheme
-    ? (workspaceThemeToForgeVars(user.workspaceTheme) as CSSProperties)
-    : undefined;
+  // Orgs without a saved theme fall back to the default workspace theme
+  // (warm-Indigo light), so the authenticated app is light by default.
+  const workspaceThemeVars = workspaceThemeToForgeVars(
+    user.workspaceTheme ?? DEFAULT_WORKSPACE_THEME,
+  ) as CSSProperties;
 
-  const visibleGroups = navGroups.filter((group) => {
-    if (!group.visibleTo) return true;
-    if (!user.role) return false;
-    return group.visibleTo.includes(user.role);
-  });
+  const visibleGroups = getVisibleNavGroups(user.role);
   const visibleItems = visibleGroups.flatMap((group) => group.items);
-  const navigationDestinations: NavigationDestination[] = [
-    ...visibleItems.map(({ href, label }) => ({ href, label })),
-    { href: "/notifications", label: "Notifications" },
-    { href: "/settings", label: "Settings" },
-  ];
+  const navigationDestinations: NavigationDestination[] = visibleItems.map(
+    ({ href, label }) => ({ href, label }),
+  );
   const navigationPendingState = getNavigationPendingState({
     currentPath,
     destinations: navigationDestinations,
@@ -175,10 +149,6 @@ export function AuthenticatedAppShell({
   }, [accountOpen]);
 
   useEffect(() => {
-    setMobileNavOpen(false);
-  }, [currentPath]);
-
-  useEffect(() => {
     setPendingHref((current) =>
       current && isRouteActive(currentPath, current) ? null : current,
     );
@@ -195,6 +165,19 @@ export function AuthenticatedAppShell({
 
     return () => window.clearTimeout(timeout);
   }, [pendingHref]);
+
+  useEffect(() => {
+    function handleCommandShortcut(event: KeyboardEvent) {
+      if (event.key === "k" && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        setCommandOpen((open) => !open);
+      }
+    }
+
+    document.addEventListener("keydown", handleCommandShortcut);
+    return () =>
+      document.removeEventListener("keydown", handleCommandShortcut);
+  }, []);
 
   useEffect(() => {
     const saved = window.localStorage.getItem("argos.primaryRailCollapsed");
@@ -252,29 +235,23 @@ export function AuthenticatedAppShell({
         {navigationPendingState.announcement}
       </p>
 
-      {mobileNavOpen ? (
-        <button
-          aria-label="Close navigation"
-          className="fixed inset-0 z-40 bg-[var(--forge-overlay-bg)] lg:hidden"
-          onClick={() => setMobileNavOpen(false)}
-          type="button"
-        />
-      ) : null}
-
+      {/* ===== Primary rail — full on desktop, icon-only on tablet, hidden on phones ===== */}
       <aside
         className={cn(
-          "forge-sidebar fixed inset-y-0 left-0 z-50 flex h-dvh w-64 flex-col px-4 py-5 transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] lg:px-4",
-          primaryRailCollapsed && "lg:w-20 lg:px-3",
-          mobileNavOpen
-            ? "translate-x-0"
-            : "-translate-x-full lg:translate-x-0",
+          "forge-sidebar fixed inset-y-0 left-0 z-50 hidden h-dvh flex-col py-5 transition-[width,padding] duration-[220ms] ease-[cubic-bezier(0.23,1,0.32,1)] md:flex md:w-20 md:px-3",
+          primaryRailCollapsed ? "lg:w-20 lg:px-3" : "lg:w-64 lg:px-4",
         )}
         data-primary-rail-collapsed={primaryRailCollapsed ? "true" : "false"}
         id="auth-navigation"
       >
-        <div className={cn("mb-7 px-1", primaryRailCollapsed && "lg:px-0")}>
+        <div className="mb-6 px-1">
           <div className="flex items-center justify-between gap-3">
-            <div className={cn(primaryRailCollapsed && "lg:sr-only")}>
+            <div
+              className={cn(
+                "sr-only",
+                primaryRailCollapsed ? "lg:sr-only" : "lg:not-sr-only",
+              )}
+            >
               {user.orgLogoUrl ? (
                 <img
                   alt={`${user.orgName ?? "Organization"} logo`}
@@ -293,7 +270,7 @@ export function AuthenticatedAppShell({
                   placement="primary-rail"
                 />
               )}
-              <p className="mt-0.5 font-[var(--font-display)] text-[0.62rem] font-bold uppercase tracking-[0.24em] text-[var(--forge-gold)]">
+              <p className="mt-0.5 font-[var(--font-display)] text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
                 Revenue Command
               </p>
             </div>
@@ -328,99 +305,104 @@ export function AuthenticatedAppShell({
         ) : null}
 
         <nav
-          className={cn(
-            "flex-1 space-y-1 overflow-y-auto pr-1",
-            primaryRailCollapsed && "lg:pr-0",
-          )}
+          className="flex-1 space-y-0.5 overflow-y-auto pr-0 lg:pr-1"
           aria-label="Primary navigation"
         >
-          {visibleItems.map((item) => (
-            <NavLink
-              active={isRouteActive(currentPath, item.href)}
-              collapsed={primaryRailCollapsed}
-              href={item.href}
-              icon={item.icon}
-              key={item.href}
-              label={item.label}
-              onClick={(event) => handleRouteLinkClick(event, item.href)}
-              pending={navigationPendingState.pendingHref === item.href}
-            />
+          {visibleGroups.map((group) => (
+            <div className="mb-1.5" key={group.label}>
+              <p
+                className={cn(
+                  "forge-nav-section-label px-3 pb-1 pt-3",
+                  primaryRailCollapsed ? "lg:hidden" : "hidden lg:block",
+                  "md:hidden",
+                )}
+                data-primary-rail-section={group.label}
+              >
+                {group.label}
+              </p>
+              {group.items.map((item) => (
+                <NavLink
+                  active={isRouteActive(currentPath, item.href)}
+                  collapsed={primaryRailCollapsed}
+                  href={item.href}
+                  icon={item.icon}
+                  key={item.href}
+                  label={item.label}
+                  onClick={(event) => handleRouteLinkClick(event, item.href)}
+                  pending={navigationPendingState.pendingHref === item.href}
+                />
+              ))}
+            </div>
           ))}
         </nav>
 
-        <div
-          className={cn(
-            "mt-4 border-t border-[var(--forge-border)] pt-3",
-            primaryRailCollapsed && "lg:px-0",
-          )}
-        >
-          <Link
-            aria-current={
-              isRouteActive(currentPath, "/settings") ? "page" : undefined
-            }
-            aria-describedby={
-              navigationPendingState.pendingHref === "/settings"
-                ? "auth-navigation-status"
-                : undefined
-            }
-            aria-label="Settings"
-            className={cn(
-              "forge-nav-link flex items-center gap-3 rounded-2xl px-3 py-2.5 font-[var(--font-display)] text-[0.7rem] font-bold uppercase tracking-[0.16em]",
-              primaryRailCollapsed && "lg:h-11 lg:justify-center lg:px-0",
-              isRouteActive(currentPath, "/settings") &&
-                "forge-nav-link--active",
-              navigationPendingState.pendingHref === "/settings" &&
-                "forge-nav-link--pending",
-            )}
-            data-navigation-link="/settings"
-            data-navigation-pending={
-              navigationPendingState.pendingHref === "/settings"
-                ? "true"
-                : undefined
-            }
-            data-primary-rail-footer-link="settings"
-            href="/settings"
-            onClick={(event) => handleRouteLinkClick(event, "/settings")}
-            title={primaryRailCollapsed ? "Settings" : undefined}
-          >
-            <ForgeIcon name="settings" size={18} />
-            <span
-              className={cn("truncate", primaryRailCollapsed && "lg:sr-only")}
-              data-primary-rail-label="true"
-            >
-              Settings
-            </span>
-          </Link>
-        </div>
       </aside>
 
       <div
         className={cn(
-          "min-h-dvh transition-[padding] duration-300 lg:pl-64",
-          primaryRailCollapsed && "lg:pl-20",
+          "min-h-dvh pb-20 transition-[padding] duration-300 md:pb-0 md:pl-20",
+          primaryRailCollapsed ? "lg:pl-20" : "lg:pl-64",
         )}
         data-auth-shell-content="true"
       >
         <header
           className={cn(
-            "forge-topbar fixed left-0 right-0 top-0 z-30 flex min-h-16 items-center justify-between gap-3 px-4 py-3 transition-[left] duration-300 lg:left-64 lg:px-7",
-            primaryRailCollapsed && "lg:left-20",
+            "forge-topbar fixed left-0 right-0 top-0 z-30 flex min-h-16 items-center justify-between gap-3 px-4 py-3 transition-[left] duration-300 md:left-20 lg:px-7",
+            primaryRailCollapsed ? "lg:left-20" : "lg:left-64",
           )}
         >
-          <div className="flex min-w-0 items-center gap-3">
-            <button
-              aria-controls="auth-navigation"
-              aria-expanded={mobileNavOpen}
-              aria-label="Open navigation"
-              className="forge-icon-button flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl lg:hidden"
-              onClick={() => setMobileNavOpen(true)}
-              type="button"
-            >
-              <ForgeIcon name="filter_list" size={22} />
-            </button>
+          <div className="flex min-w-0 items-center gap-2">
+            {/* Compact brand mark on phones, where the rail is hidden. */}
+            <span className="md:hidden" data-topbar-brand="true">
+              <ArgosLogo
+                className="block w-24"
+                decorative
+                imageClassName="block h-auto w-full"
+                placement="topbar"
+              />
+            </span>
           </div>
 
+          {/* Command palette trigger (⌘K) — the global jump-to / search. */}
+          <button
+            aria-label="Search and commands"
+            className="forge-command-trigger mx-auto hidden h-10 max-w-sm flex-1 items-center gap-2 rounded-xl px-3 text-left text-sm md:flex"
+            data-command-trigger="true"
+            onClick={() => setCommandOpen(true)}
+            type="button"
+          >
+            <ForgeIcon name="search" size={16} />
+            <span className="flex-1 truncate text-[var(--forge-topbar-muted)]">
+              Search pages and actions…
+            </span>
+            <kbd className="forge-command-kbd">⌘K</kbd>
+          </button>
+
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <button
+              aria-label="Search and commands"
+              className="forge-icon-button flex h-10 w-10 items-center justify-center rounded-xl md:hidden"
+              data-command-trigger="mobile"
+              onClick={() => setCommandOpen(true)}
+              type="button"
+            >
+              <ForgeIcon name="search" size={20} />
+            </button>
+            <Link
+              className="forge-button forge-button-primary flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-semibold sm:px-4"
+              data-global-create="upload"
+              data-navigation-pending={
+                navigationPendingState.pendingHref === "/upload"
+                  ? "true"
+                  : undefined
+              }
+              href="/upload"
+              onClick={(event) => handleRouteLinkClick(event, "/upload")}
+            >
+              <ForgeIcon name="upload" size={18} />
+              <span className="hidden sm:inline">Upload</span>
+            </Link>
+
             <div className="relative" ref={accountRef}>
               <button
                 aria-controls="account-menu"
@@ -448,11 +430,11 @@ export function AuthenticatedAppShell({
               >
                 <div className="border-b border-[var(--forge-border)] px-4 py-3">
                   <p className="truncate text-sm font-semibold text-[var(--forge-text)]">
-                    {user.fullName || user.email}
+                    {displayName}
                   </p>
-                  {user.fullName ? (
+                  {displaySubtitle ? (
                     <p className="mt-0.5 truncate text-xs text-[var(--forge-muted)]">
-                      {user.email}
+                      {displaySubtitle}
                     </p>
                   ) : null}
                   <p className="mt-1 font-[var(--font-display)] text-[0.6rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-gold)]">
@@ -490,26 +472,6 @@ export function AuthenticatedAppShell({
                   Product guide
                 </button>
 
-                <Link
-                  className="flex items-center gap-3 px-4 py-3 text-sm text-[var(--forge-muted)] transition hover:bg-[color-mix(in_srgb,var(--forge-gold)_7%,transparent)] hover:text-[var(--forge-text)]"
-                  data-account-menu-item="notifications"
-                  data-navigation-pending={
-                    navigationPendingState.pendingHref === "/notifications"
-                      ? "true"
-                      : undefined
-                  }
-                  href="/notifications"
-                  onClick={(event) => {
-                    handleRouteLinkClick(event, "/notifications");
-                    setAccountOpen(false);
-                  }}
-                  role="menuitem"
-                  tabIndex={accountOpen ? 0 : -1}
-                >
-                  <ForgeIcon name="notifications" size={17} />
-                  Notifications
-                </Link>
-
                 <div className="border-t border-[var(--forge-border)]">
                   <form action="/auth/signout" method="post">
                     <button
@@ -544,6 +506,29 @@ export function AuthenticatedAppShell({
           {children}
         </main>
       </div>
+
+      <CommandPalette
+        onBeforeNavigate={setPendingHref}
+        onOpenChange={setCommandOpen}
+        open={commandOpen}
+        role={user.role}
+      />
+
+      {/* ===== Mobile bottom tab bar ===== */}
+      <nav
+        aria-label="Primary"
+        className="forge-bottom-bar fixed inset-x-0 bottom-0 z-40 flex items-stretch justify-around md:hidden"
+        data-mobile-tabbar="true"
+      >
+        {bottomTabs.map((tab) => (
+          <BottomTab
+            active={isRouteActive(currentPath, tab.href)}
+            key={tab.href}
+            onClick={(event) => handleRouteLinkClick(event, tab.href)}
+            tab={tab}
+          />
+        ))}
+      </nav>
     </div>
   );
 }
@@ -571,8 +556,10 @@ function NavLink({
       aria-current={active ? "page" : undefined}
       aria-describedby={pending ? "auth-navigation-status" : undefined}
       className={cn(
-        "forge-nav-link flex items-center gap-3 rounded-2xl px-3 py-2.5 font-[var(--font-display)] text-[0.7rem] font-bold uppercase tracking-[0.16em]",
-        collapsed && "lg:h-11 lg:justify-center lg:px-0",
+        "forge-nav-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-[0.84rem] font-medium md:h-11 md:justify-center md:px-0",
+        collapsed
+          ? "lg:h-11 lg:justify-center lg:px-0"
+          : "lg:h-auto lg:justify-start lg:px-3",
         active && "forge-nav-link--active",
         pending && "forge-nav-link--pending",
       )}
@@ -584,11 +571,60 @@ function NavLink({
     >
       <ForgeIcon name={icon} size={18} />
       <span
-        className={cn("truncate", collapsed && "lg:sr-only")}
+        className={cn(
+          "truncate",
+          collapsed ? "sr-only" : "sr-only lg:not-sr-only",
+        )}
         data-primary-rail-label="true"
       >
         {label}
       </span>
+    </Link>
+  );
+}
+
+function BottomTab({
+  tab,
+  active,
+  onClick,
+}: {
+  tab: BottomTabItem;
+  active: boolean;
+  onClick: (event: ReactMouseEvent<HTMLAnchorElement>) => void;
+}) {
+  if (tab.fab) {
+    return (
+      <Link
+        aria-label={tab.label}
+        className="flex flex-1 items-center justify-center"
+        data-global-create="upload"
+        data-mobile-upload-fab="true"
+        href={tab.href}
+        onClick={onClick}
+      >
+        <span className="-mt-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--forge-gold)] text-[var(--forge-on-accent)] shadow-[0_8px_24px_color-mix(in_srgb,var(--forge-gold)_40%,transparent)] transition-transform duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.96]">
+          <ForgeIcon name={tab.icon} size={22} />
+        </span>
+      </Link>
+    );
+  }
+
+  return (
+    <Link
+      aria-current={active ? "page" : undefined}
+      aria-label={tab.label}
+      className={cn(
+        "flex flex-1 flex-col items-center justify-center gap-1 py-2 text-[0.62rem] font-semibold",
+        active
+          ? "text-[var(--forge-sidebar-active-text)]"
+          : "text-[var(--forge-sidebar-muted)]",
+      )}
+      data-mobile-tab={tab.href}
+      href={tab.href}
+      onClick={onClick}
+    >
+      <ForgeIcon name={tab.icon} size={20} />
+      <span>{tab.label}</span>
     </Link>
   );
 }

@@ -463,12 +463,15 @@ export function ForgeScoreMeter({
         role="progressbar"
       >
         <div
-          className={cn("h-full rounded-full transition-all", forgeToneBarClass(resolvedTone))}
+          className={cn(
+            "h-full rounded-full transition-[width,background-color] duration-[180ms] ease-[cubic-bezier(0.23,1,0.32,1)]",
+            forgeToneBarClass(resolvedTone),
+          )}
           style={{ width: `${width}%` }}
         />
       </div>
       {showValue ? (
-        <span className={cn("w-10 text-right text-sm font-semibold", forgeToneTextClass(resolvedTone))}>
+        <span className={cn("forge-tabular-nums w-10 text-right text-sm font-semibold", forgeToneTextClass(resolvedTone))}>
           {displayValue}
         </span>
       ) : null}

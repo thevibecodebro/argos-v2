@@ -751,6 +751,8 @@ describe("primary route hero removal", () => {
     expect(repHtml).toContain('href="/calls/call-1"');
     expect(repHtml).toContain('data-dashboard-route="dashboard"');
     expect(repHtml).toContain('data-dashboard-today-queue="true"');
+    expect(repHtml).toContain('data-dashboard-mobile-queue-cards="true"');
+    expect(repHtml).toContain('data-dashboard-desktop-queue-table="true"');
     expect(repHtml).toContain(">Dashboard<");
     expect(repHtml).toContain('data-operational-toolbar="true"');
     expect(repHtml).not.toContain('data-operational-metric-strip="true"');
@@ -763,10 +765,12 @@ describe("primary route hero removal", () => {
     expect(repHtml).not.toContain(">My Dashboard<");
 
     expect(managerHtml).toContain('href="/team"');
-    expect(managerHtml).toContain('href="/upload"');
+    // Upload moved to the global shell action; the page no longer duplicates it.
     expect(managerHtml).toContain("Morgan Lee");
     expect(managerHtml).toContain('data-dashboard-route="dashboard"');
     expect(managerHtml).toContain('data-dashboard-today-queue="true"');
+    expect(managerHtml).toContain('data-dashboard-mobile-queue-cards="true"');
+    expect(managerHtml).toContain('data-dashboard-desktop-queue-table="true"');
     expect(managerHtml).toContain(">Dashboard<");
     expect(managerHtml).toContain('data-operational-toolbar="true"');
     expect(managerHtml).not.toContain('data-operational-metric-strip="true"');
@@ -778,11 +782,12 @@ describe("primary route hero removal", () => {
     expect(managerHtml).not.toContain(">Team Dashboard<");
 
     expect(executiveHtml).toContain('href="/team"');
-    expect(executiveHtml).toContain('href="/upload"');
     expect(executiveHtml).toContain('href="/training"');
     expect(executiveHtml).toContain("Training completion");
     expect(executiveHtml).toContain('data-dashboard-route="dashboard"');
     expect(executiveHtml).toContain('data-dashboard-today-queue="true"');
+    expect(executiveHtml).toContain('data-dashboard-mobile-queue-cards="true"');
+    expect(executiveHtml).toContain('data-dashboard-desktop-queue-table="true"');
     expect(executiveHtml).toContain('data-operational-toolbar="true"');
     expect(executiveHtml).not.toContain('data-operational-metric-strip="true"');
     expect(executiveHtml).toContain("Needs attention");
@@ -802,6 +807,8 @@ describe("primary route hero removal", () => {
     );
 
     expect(source).toContain('data-dashboard-route="dashboard"');
+    expect(source).toContain('data-dashboard-mobile-queue-cards="true"');
+    expect(source).toContain('data-dashboard-desktop-queue-table="true"');
     expect(source).toContain("Needs attention");
     expect(source).not.toContain("product dashboards");
     expect(source).not.toContain("keeps the dashboard focused");
@@ -959,7 +966,8 @@ describe("primary route hero removal", () => {
 
     expect(settingsHtml).toContain('data-settings-route="settings"');
     expect(settingsHtml).toContain('data-operational-preview-drawer="true"');
-    expect(settingsHtml).toContain("Personal");
+    // Navigation is the secondary rail only; the duplicate section list is gone.
+    expect(settingsHtml).toContain('data-secondary-rail="settings"');
     expect(settingsHtml).toContain("Sections");
 
     expect(notificationsHtml).toContain(

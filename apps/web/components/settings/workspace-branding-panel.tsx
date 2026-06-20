@@ -3,6 +3,7 @@
 import { useMemo, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { ForgeIcon } from "@/components/forge";
+import { OrgLogoUploader } from "@/components/settings/org-logo-uploader";
 import {
   DEFAULT_WORKSPACE_THEME,
   WORKSPACE_THEME_PRESETS,
@@ -17,6 +18,7 @@ import {
 } from "@/lib/organizations/workspace-theme";
 
 type WorkspaceBrandingPanelProps = {
+  initialLogoUrl?: string | null;
   initialTheme: WorkspaceTheme | null;
   organizationName: string;
 };
@@ -93,6 +95,7 @@ function getColorInputValue(value: string) {
 }
 
 export function WorkspaceBrandingPanel({
+  initialLogoUrl = null,
   initialTheme,
   organizationName,
 }: WorkspaceBrandingPanelProps) {
@@ -183,7 +186,7 @@ export function WorkspaceBrandingPanel({
     if ("theme" in preset) {
       if (preset.id === "argos") {
         setDraftTheme(DEFAULT_WORKSPACE_THEME);
-        setEditingMode("dark");
+        setEditingMode(DEFAULT_WORKSPACE_THEME.activeMode);
         setMessage("Argos default light and dark themes previewing.");
         return;
       }
@@ -331,6 +334,11 @@ export function WorkspaceBrandingPanel({
             </div>
           </section>
 
+          <OrgLogoUploader
+            initialLogoUrl={initialLogoUrl}
+            organizationName={organizationName}
+          />
+
           <section className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-3">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -433,7 +441,10 @@ export function WorkspaceBrandingPanel({
         </section>
       </div>
 
-      <div className="sticky bottom-0 z-20 mt-3 border-t border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-bg)_92%,transparent)] px-3 py-3 backdrop-blur-xl">
+      <div
+        className="workspace-branding-save-bar sticky bottom-0 z-20 mt-3 border-t border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-bg)_92%,transparent)] px-3 py-3 backdrop-blur-xl"
+        data-workspace-branding-save-bar="true"
+      >
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="min-h-5 text-xs text-[var(--forge-muted)]" role="status">
             {message ?? (isDirty ? "Unsaved branding changes." : "Branding is up to date.")}

@@ -1,7 +1,6 @@
 // apps/web/app/(authenticated)/settings/page.tsx
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ForgeChip, ForgeErrorState, ForgeIcon } from "@/components/forge";
+import { ForgeErrorState } from "@/components/forge";
 import {
   OperationalPreviewDrawer,
   OperationalToolbar,
@@ -94,22 +93,6 @@ export default async function SettingsAccountPage() {
       (result.data.role !== null &&
         (section.visibleTo as readonly string[]).includes(result.data.role)),
   );
-  const workspaceRows = [
-    {
-      description: "Manage profile details and organization context.",
-      href: "/settings",
-      icon: "person",
-      label: "Account",
-      scope: "Personal",
-    },
-    ...visibleSections.map((section) => ({
-      description: section.description,
-      href: section.href,
-      icon: section.icon,
-      label: section.label,
-      scope: "Admin",
-    })),
-  ];
   const settingsRailItems = [
     { href: "/settings", icon: "person", key: "account", label: "Account" },
     ...visibleSections.map((section) => ({
@@ -133,44 +116,6 @@ export default async function SettingsAccountPage() {
         <SettingsSecondaryRail activeKey="account" items={settingsRailItems} />
 
         <div className="min-w-0 space-y-3">
-          <section
-            aria-label="Settings sections"
-            className="overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[var(--forge-panel-bg)]"
-            data-settings-workspace-map="true"
-          >
-            <div className="divide-y divide-[var(--forge-border)]">
-              {workspaceRows.map((section) => (
-                <Link
-                  className="grid gap-3 px-4 py-3 transition hover:bg-[color-mix(in_srgb,var(--forge-gold)_4.5%,transparent)] md:grid-cols-[minmax(0,1fr)_120px_80px]"
-                  href={section.href}
-                  key={section.href}
-                >
-                  <div className="flex min-w-0 items-start gap-3">
-                    <span className="mt-0.5 rounded-lg border border-[color-mix(in_srgb,var(--forge-gold)_24%,transparent)] bg-[color-mix(in_srgb,var(--forge-gold)_8%,transparent)] p-2 text-[var(--forge-gold)]">
-                      <ForgeIcon name={section.icon} size={18} />
-                    </span>
-                    <div className="min-w-0">
-                      <h3 className="text-sm font-semibold text-[var(--forge-text)]">
-                        {section.label}
-                      </h3>
-                      <p className="mt-1 text-sm leading-5 text-[var(--forge-muted)]">
-                        {section.description}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center md:justify-end">
-                    <ForgeChip tone={section.scope === "Admin" ? "gold" : "muted"}>
-                      {section.scope}
-                    </ForgeChip>
-                  </div>
-                  <div className="flex items-center text-sm font-semibold text-[var(--forge-gold)] md:justify-end">
-                    Edit
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </section>
-
           <section
             className="rounded-xl border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-4"
             data-settings-inline-detail="account"
@@ -198,7 +143,7 @@ export default async function SettingsAccountPage() {
             <SummaryRow label="Role" value={result.data.role ?? "member"} />
             <SummaryRow label="Email" value={result.data.email} />
             <SummaryRow label="Org slug" value={result.data.org?.slug ?? "Not assigned"} />
-            <SummaryRow label="Sections" value={`${workspaceRows.length} visible`} />
+            <SummaryRow label="Sections" value={`${visibleSections.length + 1} visible`} />
           </div>
         </OperationalPreviewDrawer>
       </section>

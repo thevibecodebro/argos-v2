@@ -69,7 +69,6 @@ export function PlatformSessionsPage({
           },
         ]}
         description="Review automatic Organization access and Agency audit events."
-        eyebrow="Agency"
         status={{
           icon: session ? "input" : "lock",
           label: session ? "Organization open" : "No Organization open",

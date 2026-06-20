@@ -69,7 +69,7 @@ export default async function LeaderboardPage() {
                         className="transition hover:bg-[color-mix(in_srgb,var(--forge-gold)_4.5%,transparent)]"
                         key={entry.userId}
                       >
-                        <td className="px-4 py-4 text-sm font-semibold text-[var(--forge-gold)]">
+                        <td className="forge-tabular-nums px-4 py-4 text-sm font-semibold text-[var(--forge-gold)]">
                           #{entry.rank}
                         </td>
                         <td className="px-4 py-4">
@@ -83,11 +83,11 @@ export default async function LeaderboardPage() {
                             </div>
                           </div>
                         </td>
-                        <td className={`px-4 py-4 text-sm font-semibold ${scoreColor(entry.score)}`}>
+                        <td className={`forge-tabular-nums px-4 py-4 text-sm font-semibold ${scoreColor(entry.score)}`}>
                           {entry.score ?? "--"}
                         </td>
-                        <td className="px-4 py-4 text-sm text-[var(--forge-text)]">{entry.calls ?? "--"}</td>
-                        <td className="px-4 py-4 text-sm text-[var(--forge-success)]">
+                        <td className="forge-tabular-nums px-4 py-4 text-sm text-[var(--forge-text)]">{entry.calls ?? "--"}</td>
+                        <td className="forge-tabular-nums px-4 py-4 text-sm text-[var(--forge-success)]">
                           {entry.improvement != null ? `+${entry.improvement}` : "--"}
                         </td>
                         <td className="px-4 py-4">

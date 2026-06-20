@@ -181,6 +181,8 @@ describe("forge primitives", () => {
     expect(html).toContain('aria-label="Average score meter"');
     expect(html).toContain('aria-valuenow="91"');
     expect(html).toContain('aria-valuetext="91 out of 100"');
+    expect(html).toContain("transition-[width,background-color]");
+    expect(html).not.toContain("transition-all");
     expect(html).toContain("Average across completed calls.");
   });
 

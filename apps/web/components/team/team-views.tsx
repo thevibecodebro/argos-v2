@@ -131,10 +131,10 @@ export function TeamRosterView({ dashboard }: TeamRosterViewProps) {
                           </div>
                         </div>
                       </td>
-                      <td className={`px-4 py-4 text-sm font-semibold ${scoreTextClass(rep.compositeScore)}`}>
+                      <td className={`forge-tabular-nums px-4 py-4 text-sm font-semibold ${scoreTextClass(rep.compositeScore)}`}>
                         {formatScore(rep.compositeScore)}
                       </td>
-                      <td className="px-4 py-4 text-sm text-[var(--forge-text)]">{rep.callCount}</td>
+                      <td className="forge-tabular-nums px-4 py-4 text-sm text-[var(--forge-text)]">{rep.callCount}</td>
                       <td className="px-4 py-4 text-sm text-[var(--forge-muted)]">
                         {formatDelta(rep.weekOverWeekDelta)}
                       </td>

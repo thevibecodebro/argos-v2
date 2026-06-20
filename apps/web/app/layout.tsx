@@ -1,13 +1,21 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { Geist_Mono, Inter } from "next/font/google";
 import { getDevelopmentStartupEnvError } from "@/lib/env";
 import { getPublicSiteUrl, HOME_DESCRIPTION, SITE_NAME } from "@/lib/seo/site";
 import "./globals.css";
 
-const uiFont = Geist({
+// Inter is the warmth-signature UI font for the redesign; Geist Mono
+// supplies tabular numerals for scores, ranks, counts, and durations.
+const uiFont = Inter({
   display: "swap",
   subsets: ["latin"],
   variable: "--font-ui",
+});
+
+const monoFont = Geist_Mono({
+  display: "swap",
+  subsets: ["latin"],
+  variable: "--font-mono",
 });
 
 export const metadata: Metadata = {
@@ -28,7 +36,7 @@ export default function RootLayout({
 
   return (
     <html
-      className={uiFont.variable}
+      className={`${uiFont.variable} ${monoFont.variable}`}
       lang="en"
     >
       <body>

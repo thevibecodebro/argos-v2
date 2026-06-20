@@ -59,6 +59,7 @@ type WorkspaceThemePreset =
   | {
       id:
         | "argos"
+        | "argos-dark"
         | "ocean"
         | "forest"
         | "violet"
@@ -152,7 +153,30 @@ const DEFAULT_DARK_COLORS = {
   focus: "#7FB8C7",
 } as const satisfies WorkspaceThemeColors;
 
+// Argos Option A — warm-neutral light palette with Indigo accent.
+// This is the default workspace look. Verified WCAG-compliant by the
+// contrast rules below (see workspace-theme.test.ts).
 const DEFAULT_LIGHT_COLORS = {
+  background: "#FAFAF8",
+  depth: "#F1EEE8",
+  surface: "#FFFFFF",
+  surfaceRaised: "#F4F1EA",
+  surfaceHigh: "#EAE6DE",
+  text: "#292827",
+  mutedText: "#73706D",
+  border: "#E8E4DD",
+  borderStrong: "#DDD8D0",
+  primary: "#1B1938",
+  onPrimary: "#FFFFFF",
+  secondary: "#3D6F8C",
+  warning: "#A4762E",
+  success: "#4A7D5C",
+  danger: "#B04A42",
+  focus: "#1B1938",
+} as const satisfies WorkspaceThemeColors;
+
+// Cool-blue light palette preserved as the "Daylight" preset.
+const DAYLIGHT_LIGHT_COLORS = {
   background: "#F8FAFC",
   depth: "#EEF2F7",
   surface: "#FFFFFF",
@@ -186,20 +210,20 @@ const DEFAULT_DARK_NAVIGATION = {
 
 const DEFAULT_LIGHT_NAVIGATION = {
   leftBackground: "#FFFFFF",
-  leftText: "#172033",
-  leftMutedText: "#536174",
-  leftActiveBackground: "#DBEAFE",
-  leftActiveText: "#123F7D",
-  leftBorder: "#CBD5E1",
-  topBackground: "#F8FAFC",
-  topText: "#172033",
-  topMutedText: "#536174",
-  topBorder: "#CBD5E1",
+  leftText: "#292827",
+  leftMutedText: "#73706D",
+  leftActiveBackground: "#F4F1EA",
+  leftActiveText: "#1B1938",
+  leftBorder: "#E8E4DD",
+  topBackground: "#FFFFFF",
+  topText: "#292827",
+  topMutedText: "#73706D",
+  topBorder: "#E8E4DD",
 } as const satisfies WorkspaceNavigationTheme;
 
 export const DEFAULT_WORKSPACE_THEME = {
   version: 1,
-  activeMode: "dark",
+  activeMode: "light",
   colors: DEFAULT_DARK_COLORS,
   modes: {
     dark: {
@@ -216,9 +240,15 @@ export const DEFAULT_WORKSPACE_THEME = {
 export const WORKSPACE_THEME_PRESETS = {
   argos: {
     id: "argos",
-    mode: "dark",
-    name: "Argos",
+    mode: "light",
+    name: "Argos Light",
     theme: DEFAULT_WORKSPACE_THEME,
+  },
+  "argos-dark": {
+    id: "argos-dark",
+    mode: "dark",
+    name: "Argos Dark",
+    theme: createPresetTheme("dark", DEFAULT_DARK_COLORS),
   },
   ocean: {
     id: "ocean",
@@ -316,7 +346,7 @@ export const WORKSPACE_THEME_PRESETS = {
     id: "daylight",
     mode: "light",
     name: "Daylight",
-    theme: createPresetTheme("light", DEFAULT_LIGHT_COLORS),
+    theme: createPresetTheme("light", DAYLIGHT_LIGHT_COLORS),
   },
   mist: {
     id: "mist",

@@ -20,6 +20,10 @@ describe("WorkspaceBrandingPanel", () => {
 
     expect(html).toContain('data-workspace-branding-panel="true"');
     expect(html).toContain('data-branding-preview="true"');
+    // Option A: logo lives in Brand & appearance alongside the accent.
+    expect(html).toContain('data-branding-logo="true"');
+    expect(html).toContain("Workspace logo");
+    expect(html).toContain('data-branding-logo-upload="true"');
     expect(html).toContain('data-branding-preset="argos"');
     expect(html).toContain('data-branding-preset="ocean"');
     expect(html).toContain('data-branding-preset="daylight"');
@@ -40,5 +44,21 @@ describe("WorkspaceBrandingPanel", () => {
     expect(html).toContain(
       "This will remove custom colors and return this workspace to the Argos default light and dark themes. Your logo, users, calls, billing, and settings will not change.",
     );
+  });
+
+  it("shows the current logo with replace and remove controls when one exists", () => {
+    const html = renderToStaticMarkup(
+      createElement(WorkspaceBrandingPanel, {
+        initialLogoUrl: "https://assets.example/org-logo.png",
+        initialTheme: null,
+        organizationName: "Argos Team",
+      }),
+    );
+
+    expect(html).toContain('data-branding-logo-image="true"');
+    expect(html).toContain('src="https://assets.example/org-logo.png"');
+    expect(html).toContain('alt="Argos Team logo"');
+    expect(html).toContain("Replace logo");
+    expect(html).toContain('data-branding-logo-remove="true"');
   });
 });

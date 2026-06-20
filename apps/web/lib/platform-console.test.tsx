@@ -68,7 +68,7 @@ describe("PlatformShell", () => {
     expect(html).toContain('data-navigation-link="/platform/staff"');
     expect(html).not.toContain('data-navigation-link="/platform/organizations/new"');
     expect(html).toContain('aria-current="page"');
-    expect(html).toContain("Agency");
+    expect(html).toContain("Dashboard");
     expect(html).toContain("Organizations");
     expect(html).toContain("Access History");
     expect(html).toContain("Staff");
@@ -107,14 +107,18 @@ describe("PlatformShell", () => {
     );
 
     expect(html).toContain('data-platform-organization-switcher="true"');
+    expect(html).toContain('data-platform-organization-switcher-trigger="true"');
+    expect(html).toContain('data-platform-organization-switcher-menu="true"');
     expect(html).toContain('data-platform-organization-switcher-search="true"');
     expect(html).toContain('data-platform-organization-option="org-1"');
     expect(html).toContain('data-platform-session-endpoint="/api/platform/sessions"');
+    expect(html).toContain('aria-controls="platform-organization-switcher-menu"');
+    expect(html).toContain('aria-expanded="false"');
     expect(html).toContain("Switch organization");
     expect(html).toContain("Acme Health");
     expect(html).toContain("Current organization");
-    expect(html).toContain("Open Organization");
-    expect(html).toContain("Back to Agency");
+    expect(html).toContain("Return to platform dashboard");
+    expect(html).not.toContain("Click to switch");
     expect(html).not.toContain("Open workspace");
     expect(html).not.toContain("End session");
     expect(html).not.toContain("Sub-account");
@@ -177,8 +181,10 @@ describe("platform page components", () => {
     expect(html).toContain('data-platform-dashboard-filters="true"');
     expect(html).toContain('data-platform-dashboard-alerts="true"');
     expect(html).toContain('data-platform-risk-queue="true"');
+    expect(html).toContain("Dashboard");
     expect(html).toContain("Organizations needing attention");
     expect(html).toContain("Organizations with failed-call risk");
+    expect(html).toContain("Platform alerts");
     expect(html).toContain("Active organizations");
     expect(html).toContain("Calls reviewed");
     expect(html).toContain("Review completion");
@@ -186,6 +192,10 @@ describe("platform page components", () => {
     expect(html).toContain("Active seats");
     expect(html).toContain("Avg score below 70");
     expect(html).toContain('href="/platform/organizations/acme-health"');
+    expect(html).not.toContain("1 at risk");
+    expect(html).not.toContain("Agency alerts");
+    expect(html).not.toContain("<th class=\"px-3 py-3 text-right\">Action</th>");
+    expect(html).not.toContain(">Open</a>");
   });
 
   it("renders organizations as a focused table with direct Organization open actions", () => {
