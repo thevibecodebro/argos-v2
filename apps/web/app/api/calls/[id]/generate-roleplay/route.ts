@@ -115,7 +115,13 @@ export async function POST(
     );
 
     if (!result.ok) {
-      return Response.json({ error: result.error }, { status: result.status });
+      return Response.json(
+        {
+          ...(result.code ? { code: result.code } : {}),
+          error: result.error,
+        },
+        { status: result.status },
+      );
     }
 
     return Response.json(result.data, {

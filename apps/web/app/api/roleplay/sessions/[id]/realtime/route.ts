@@ -6,6 +6,7 @@ import {
   checkRateLimitForPolicy,
   rateLimitExceededResponse,
 } from "@/lib/rate-limit/service";
+import { buildRoleplaySafetyIdentifier } from "@/lib/roleplay/content-policy";
 import { createRoleplayRepository } from "@/lib/roleplay/create-repository";
 import { getRoleplaySession, markRoleplayVoiceStarted } from "@/lib/roleplay/service";
 import {
@@ -139,6 +140,7 @@ export async function POST(
     const realtime = await createRealtimeCall({
       instructions: buildRoleplayRealtimeInstructions(sessionResult.data),
       offerSdp,
+      safetyIdentifier: buildRoleplaySafetyIdentifier(authUser.id, id),
       voice: getRoleplayRealtimeVoice(sessionResult.data),
     });
     const markStartedResult = await markRoleplayVoiceStarted(

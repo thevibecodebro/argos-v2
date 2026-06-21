@@ -120,6 +120,31 @@ describe("generate roleplay route", () => {
     );
   });
 
+  it("forwards generated roleplay validation error codes", async () => {
+    createGeneratedRoleplaySession.mockResolvedValue({
+      ok: false,
+      status: 400,
+      code: "invalid_focus_category",
+      error: "Focus category is not part of the active rubric.",
+    });
+
+    const route = await import("../app/api/calls/[id]/generate-roleplay/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/calls/call-22/generate-roleplay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ focusCategorySlug: "pricing" }),
+      }),
+      { params: Promise.resolve({ id: "call-22" }) },
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "invalid_focus_category",
+      error: "Focus category is not part of the active rubric.",
+    });
+  });
+
   it("returns 401 when unauthenticated", async () => {
     getAuthenticatedSupabaseUser.mockResolvedValue(null);
 

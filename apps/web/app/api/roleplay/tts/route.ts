@@ -9,6 +9,10 @@ import {
   checkRateLimitForPolicy,
   rateLimitExceededResponse,
 } from "@/lib/rate-limit/service";
+import {
+  assertRoleplayContentAllowed,
+  roleplayContentPolicyResponse,
+} from "@/lib/roleplay/content-policy";
 import { createSpeechAudio, getOpenAiVoiceConfigurationError } from "@/lib/roleplay/openai-voice";
 import { readRequestTextWithLimit } from "@/lib/security/request-body";
 
@@ -89,6 +93,26 @@ export async function POST(request: Request) {
       { error: `instructions must be ${MAX_TTS_INSTRUCTIONS_LENGTH} characters or fewer` },
       { status: 400 },
     );
+  }
+
+  const textPolicy = await assertRoleplayContentAllowed({
+    content: text,
+    surface: "roleplay_tts",
+  });
+
+  if (!textPolicy.ok) {
+    return roleplayContentPolicyResponse(textPolicy);
+  }
+
+  if (instructions) {
+    const instructionsPolicy = await assertRoleplayContentAllowed({
+      content: instructions,
+      surface: "roleplay_tts_instructions",
+    });
+
+    if (!instructionsPolicy.ok) {
+      return roleplayContentPolicyResponse(instructionsPolicy);
+    }
   }
 
   try {

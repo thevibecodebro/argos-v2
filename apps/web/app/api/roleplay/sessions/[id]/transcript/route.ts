@@ -1,5 +1,10 @@
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
+import {
+  assertRoleplayContentAllowed,
+  roleplayContentPolicyResponse,
+} from "@/lib/roleplay/content-policy";
 import { createRoleplayRepository } from "@/lib/roleplay/create-repository";
 import { appendRoleplayTranscriptMessage } from "@/lib/roleplay/service";
 import type { RoleplayMessage } from "@/lib/roleplay/types";
@@ -26,8 +31,18 @@ export async function POST(
     return Response.json({ error: "role and content are required" }, { status: 400 });
   }
 
+  const contentPolicy = await assertRoleplayContentAllowed({
+    content,
+    surface: "roleplay_transcript",
+  });
+
+  if (!contentPolicy.ok) {
+    return roleplayContentPolicyResponse(contentPolicy);
+  }
+
+  const repository = await createEffectiveTenantRepository(createRoleplayRepository(), authUser.id);
   const result = await appendRoleplayTranscriptMessage(
-    createRoleplayRepository(),
+    repository,
     authUser.id,
     id,
     {

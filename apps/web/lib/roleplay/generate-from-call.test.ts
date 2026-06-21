@@ -236,6 +236,90 @@ describe("createGeneratedRoleplaySession", () => {
     );
   });
 
+  it("rejects a category focus that is not in the active rubric", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "rep-9",
+        email: "rep@argos.ai",
+        role: "rep",
+        firstName: "Riley",
+        lastName: "Stone",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      createSession: vi.fn(),
+    });
+
+    const result = await createGeneratedRoleplaySession(repository, "auth-user-9", {
+      call,
+      activeRubric,
+      focusCategorySlug: "pricing",
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      status: 400,
+      code: "invalid_focus_category",
+      error: "Focus category is not part of the active rubric.",
+    });
+    expect(repository.createSession).not.toHaveBeenCalled();
+  });
+
+  it("rejects category focus when no active rubric is available", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "rep-9",
+        email: "rep@argos.ai",
+        role: "rep",
+        firstName: "Riley",
+        lastName: "Stone",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      createSession: vi.fn(),
+    });
+
+    const result = await createGeneratedRoleplaySession(repository, "auth-user-9", {
+      call,
+      activeRubric: null,
+      focusCategorySlug: "discovery",
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      status: 400,
+      code: "invalid_focus_category",
+      error: "Focus category is not part of the active rubric.",
+    });
+    expect(repository.createSession).not.toHaveBeenCalled();
+  });
+
+  it("rejects generated sessions for calls that are not complete", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "rep-9",
+        email: "rep@argos.ai",
+        role: "rep",
+        firstName: "Riley",
+        lastName: "Stone",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      createSession: vi.fn(),
+    });
+
+    const result = await createGeneratedRoleplaySession(repository, "auth-user-9", {
+      call: { ...call, status: "processing" },
+      activeRubric,
+      focusCategorySlug: null,
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      status: 409,
+      code: "call_not_complete",
+      error: "Generated roleplay sessions require a completed call.",
+    });
+    expect(repository.createSession).not.toHaveBeenCalled();
+  });
+
   it("persists the selected generated buyer voice as the generated persona", async () => {
     const repository = createRepository({
       findCurrentUserByAuthId: vi.fn().mockResolvedValue({

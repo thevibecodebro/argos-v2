@@ -39,7 +39,8 @@ type GeneratedRoleplayPreviewCall = Pick<
   | "solutionScore"
 >;
 
-type GeneratedRoleplayCreateCall = GeneratedRoleplayPreviewCall & Pick<CallDetail, "id">;
+type GeneratedRoleplayCreateCall = GeneratedRoleplayPreviewCall &
+  Pick<CallDetail, "id" | "status">;
 
 type GeneratedRoleplayPreviewInput = {
   call: GeneratedRoleplayPreviewCall;
@@ -54,7 +55,7 @@ type GeneratedRoleplaySessionInput = GeneratedRoleplayPreviewInput & {
 
 type GeneratedRoleplayResult<T> =
   | { ok: true; data: T }
-  | { ok: false; status: 403; error: string };
+  | { ok: false; code?: string; status: 400 | 403 | 409; error: string };
 
 const GENERATED_ROLEPLAY_DEFAULT_OPENING =
   "Keep this practical for me. Why does this matter now, and what changes if I say yes?";
@@ -239,6 +240,30 @@ function normalizeFocusCategorySlug(focusCategorySlug: string | null) {
   return trimmed;
 }
 
+function resolveGeneratedRoleplayFocusCategory(
+  activeRubric: RubricWithCategories | null,
+  focusCategorySlug: string | null,
+): GeneratedRoleplayResult<string | null> {
+  const normalizedFocusCategorySlug = normalizeFocusCategorySlug(focusCategorySlug);
+
+  if (!normalizedFocusCategorySlug) {
+    return { ok: true, data: null };
+  }
+
+  if (
+    !activeRubric?.categories.some((category) => category.slug === normalizedFocusCategorySlug)
+  ) {
+    return {
+      ok: false,
+      status: 400,
+      code: "invalid_focus_category",
+      error: "Focus category is not part of the active rubric.",
+    };
+  }
+
+  return { ok: true, data: normalizedFocusCategorySlug };
+}
+
 function buildAssistantOpeningLine(focusCategorySlug: string | null) {
   const normalizedFocusCategorySlug = normalizeFocusCategorySlug(focusCategorySlug);
 
@@ -364,8 +389,29 @@ export async function createGeneratedRoleplaySession(
     };
   }
 
+  if (input.call.status !== "complete") {
+    return {
+      ok: false,
+      status: 409,
+      code: "call_not_complete",
+      error: "Generated roleplay sessions require a completed call.",
+    };
+  }
+
+  const focusCategoryResult = resolveGeneratedRoleplayFocusCategory(
+    input.activeRubric,
+    input.focusCategorySlug,
+  );
+
+  if (!focusCategoryResult.ok) {
+    return focusCategoryResult;
+  }
+
   const session = await repository.createSession(
-    buildGeneratedRoleplaySessionCreateInput(viewer.id, viewer.org.id, input),
+    buildGeneratedRoleplaySessionCreateInput(viewer.id, viewer.org.id, {
+      ...input,
+      focusCategorySlug: focusCategoryResult.data,
+    }),
   );
 
   return {
