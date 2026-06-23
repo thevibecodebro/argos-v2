@@ -1161,4 +1161,47 @@ describe("getRoleplaySession", () => {
     if (result.ok) throw new Error("Expected roleplay access to be denied");
     expect(result.status).toBe(403);
   });
+
+  it("blocks admin access to roleplay sessions from another organization", async () => {
+    mockAccessRepository({
+      actor: { id: "admin-1", orgId: "org-1", role: "admin" },
+      memberships: [],
+      grants: [],
+    });
+
+    const repository = createRepository({
+      findSessionById: vi.fn().mockResolvedValue({
+        id: "session-cross-tenant",
+        repId: "rep-2",
+        orgId: "org-2",
+        persona: "price-sensitive-smb",
+        industry: "Professional Services",
+        difficulty: "beginner",
+        overallScore: 72,
+        origin: "manual",
+        sourceCallId: null,
+        rubricId: null,
+        focusMode: "all",
+        focusCategorySlug: null,
+        scenarioSummary: null,
+        scenarioBrief: null,
+        transcript: [
+          {
+            role: "assistant",
+            content:
+              "Thanks for making time. We're watching spend carefully this quarter, so keep it straightforward for me.",
+          },
+        ],
+        scorecard: null,
+        status: "active",
+        createdAt: new Date("2026-04-03T00:00:00.000Z"),
+      }),
+    });
+
+    const result = await getRoleplaySession(repository, "admin-1", "session-cross-tenant");
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("Expected cross-tenant roleplay access to be denied");
+    expect(result.status).toBe(403);
+  });
 });
