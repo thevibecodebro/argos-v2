@@ -19,27 +19,28 @@ function getDatabaseUrl(env: NodeJS.ProcessEnv = process.env): string {
   return databaseUrl;
 }
 
-function resolvePgSsl(connectionString: string) {
+export function resolvePgSsl(connectionString: string) {
   try {
     const url = new URL(connectionString);
     const sslMode = url.searchParams.get("sslmode");
+    const hostname = url.hostname.replace(/^\[|\]$/g, "");
 
     if (sslMode === "disable") {
       return false;
     }
 
     if (sslMode) {
-      return { rejectUnauthorized: false };
+      return { rejectUnauthorized: true };
     }
 
-    if (url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "::1") {
+    if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1") {
       return false;
     }
   } catch {
     // Fall through to the hosted-database default.
   }
 
-  return { rejectUnauthorized: false };
+  return { rejectUnauthorized: true };
 }
 
 export function createDb(connectionString = getDatabaseUrl()): ArgosDb {
