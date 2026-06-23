@@ -232,7 +232,7 @@ describe("requirePlatformStaffAccess", () => {
     expect(redirect).toHaveBeenCalledWith("/platform/mfa/setup");
   });
 
-  it("allows trusted active platform owners through without AAL2", async () => {
+  it("requires AAL2 for trusted active platform owners on platform pages", async () => {
     vi.stubEnv(
       "ARGOS_PLATFORM_TRUSTED_OWNER_EMAILS",
       "jaredalannewman@gmail.com,email@jasonbrentking.com",
@@ -247,14 +247,11 @@ describe("requirePlatformStaffAccess", () => {
 
     await expect(
       requirePlatformStaffAccess({ repository, pathname: "/platform" }),
-    ).resolves.toEqual({
-      user,
-      staff: activeStaff,
-    });
+    ).rejects.toThrow("NEXT_REDIRECT:/platform/mfa/setup");
 
-    expect(mfa.getAuthenticatorAssuranceLevel).not.toHaveBeenCalled();
-    expect(mfa.listFactors).not.toHaveBeenCalled();
-    expect(redirect).not.toHaveBeenCalled();
+    expect(mfa.getAuthenticatorAssuranceLevel).toHaveBeenCalled();
+    expect(mfa.listFactors).toHaveBeenCalled();
+    expect(redirect).toHaveBeenCalledWith("/platform/mfa/setup");
   });
 
   it("does not bypass MFA for trusted emails unless the staff role is owner", async () => {
@@ -304,18 +301,18 @@ describe("requirePlatformStaffAccess", () => {
     expect(redirect).not.toHaveBeenCalled();
   });
 
-  it("allows trusted active platform owners to call platform APIs without AAL2", async () => {
+  it("requires AAL2 for trusted active platform owners on platform APIs", async () => {
     vi.stubEnv("ARGOS_PLATFORM_TRUSTED_OWNER_EMAILS", "email@jasonbrentking.com");
     const user = { id: "auth-user-1", email: "email@jasonbrentking.com" };
     const mfa = mockSupabaseSession({ user, currentLevel: "aal1" });
     const repository = createRepository(activeStaff);
 
     await expect(getPlatformApiAccess({ repository })).resolves.toEqual({
-      ok: true,
-      user,
-      staff: activeStaff,
+      ok: false,
+      status: 403,
+      error: "Platform multi-factor authentication required",
     });
 
-    expect(mfa.getAuthenticatorAssuranceLevel).not.toHaveBeenCalled();
+    expect(mfa.getAuthenticatorAssuranceLevel).toHaveBeenCalled();
   });
 });
