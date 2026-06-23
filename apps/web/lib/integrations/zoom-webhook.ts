@@ -42,6 +42,7 @@ export interface ZoomWebhookRepository {
   ): Promise<{ id: string; status: CallStatus; jobStatus: CallProcessingJobStatus | null } | null>;
   findPreferredCallOwner(orgId: string): Promise<{ id: string } | null>;
   findZoomIntegrationByAccountId(accountId: string): Promise<{
+    id: string;
     orgId: string;
     webhookToken: string | null;
     accessToken: string;
@@ -51,7 +52,7 @@ export interface ZoomWebhookRepository {
   updateCallRecording(callId: string, recordingUrl: string | null): Promise<void>;
   updateCallRecordingStorage(callId: string, recording: CallRecordingStorage): Promise<void>;
   updateCallStatus(callId: string, status: CallStatus): Promise<void>;
-  updateZoomTokens(orgId: string, tokens: { accessToken: string; refreshToken: string; tokenExpiresAt: Date }): Promise<void>;
+  updateZoomTokens(integrationId: string, tokens: { accessToken: string; refreshToken: string; tokenExpiresAt: Date }): Promise<void>;
 }
 
 type ZoomWebhookRequest = {
@@ -249,7 +250,7 @@ export async function processZoomWebhookRequest(
   if (integration.tokenExpiresAt <= new Date()) {
     try {
       const refreshed = await refreshZoomToken(integration.refreshToken, env as Record<string, string | undefined>);
-      await repository.updateZoomTokens(integration.orgId, refreshed);
+      await repository.updateZoomTokens(integration.id, refreshed);
       accessToken = refreshed.accessToken;
     } catch {
       // Continue with the current token if refresh fails; the download may still succeed.

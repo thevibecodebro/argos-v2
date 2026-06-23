@@ -110,6 +110,7 @@ describe("processZoomWebhookRequest", () => {
   it("does not look up integrations for attacker-controlled account IDs before signature verification", async () => {
     const repository = createRepository({
       findZoomIntegrationByAccountId: vi.fn().mockResolvedValue({
+        id: "zoom-integration-1",
         orgId: "org-1",
         webhookToken: null,
         accessToken: "zoom-access",
@@ -147,6 +148,7 @@ describe("processZoomWebhookRequest", () => {
       findCallByZoomRecordingId: vi.fn().mockResolvedValue(null),
       findPreferredCallOwner: vi.fn().mockResolvedValue(null),
       findZoomIntegrationByAccountId: vi.fn().mockResolvedValue({
+        id: "zoom-integration-1",
         orgId: "org-1",
         webhookToken: "stale-integration-secret",
         accessToken: "zoom-access",
@@ -191,6 +193,7 @@ describe("processZoomWebhookRequest", () => {
   it("rejects signatures made with a legacy per-row webhook token when the global secret is missing", async () => {
     const repository = createRepository({
       findZoomIntegrationByAccountId: vi.fn().mockResolvedValue({
+        id: "zoom-integration-1",
         orgId: "org-1",
         webhookToken: "legacy-row-secret",
         accessToken: "zoom-access",
@@ -242,6 +245,7 @@ describe("processZoomWebhookRequest", () => {
     const repository = createRepository({
       findCallByZoomRecordingId: vi.fn(),
       findZoomIntegrationByAccountId: vi.fn().mockResolvedValue({
+        id: "zoom-integration-1",
         orgId: "org-1",
         webhookToken: null,
         accessToken: "zoom-access",
@@ -328,6 +332,7 @@ describe("processZoomWebhookRequest", () => {
       findCallByZoomRecordingId: vi.fn().mockResolvedValue(null),
       findPreferredCallOwner: vi.fn().mockResolvedValue({ id: "user-1" }),
       findZoomIntegrationByAccountId: vi.fn().mockResolvedValue({
+        id: "zoom-integration-1",
         orgId: "org-1",
         webhookToken: null,
         accessToken: "zoom-access",
@@ -453,6 +458,7 @@ describe("processZoomWebhookRequest", () => {
       findCallByZoomRecordingId: vi.fn().mockResolvedValue(null),
       findPreferredCallOwner: vi.fn().mockResolvedValue({ id: "user-1" }),
       findZoomIntegrationByAccountId: vi.fn().mockResolvedValue({
+        id: "zoom-integration-1",
         orgId: "org-1",
         webhookToken: null,
         accessToken: "zoom-access",
@@ -533,6 +539,7 @@ describe("processZoomWebhookRequest", () => {
       findCallByZoomRecordingId: vi.fn().mockResolvedValue(null),
       findPreferredCallOwner: vi.fn().mockResolvedValue({ id: "user-1" }),
       findZoomIntegrationByAccountId: vi.fn().mockResolvedValue({
+        id: "zoom-integration-1",
         orgId: "org-1",
         webhookToken: null,
         accessToken: "zoom-access",
@@ -602,6 +609,7 @@ describe("processZoomWebhookRequest", () => {
         jobStatus: "running",
       }),
       findZoomIntegrationByAccountId: vi.fn().mockResolvedValue({
+        id: "zoom-integration-1",
         orgId: "org-1",
         webhookToken: null,
         accessToken: "zoom-access",
@@ -664,6 +672,7 @@ describe("processZoomWebhookRequest", () => {
       }),
       findPreferredCallOwner: vi.fn().mockResolvedValue({ id: "user-1" }),
       findZoomIntegrationByAccountId: vi.fn().mockResolvedValue({
+        id: "zoom-integration-1",
         orgId: "org-1",
         webhookToken: null,
         accessToken: "zoom-access",

@@ -28,7 +28,9 @@ describe("integration connect routes", () => {
     vi.unstubAllEnvs();
   });
 
-  it("rejects manager-initiated Zoom OAuth connects", async () => {
+  it("allows manager-initiated Zoom OAuth connects for user-owned accounts", async () => {
+    vi.stubEnv("ZOOM_CLIENT_ID", "zoom-client");
+    vi.stubEnv("ZOOM_CLIENT_SECRET", "zoom-secret");
     createIntegrationsRepository.mockReturnValue({
       findCurrentUserByAuthId: vi.fn().mockResolvedValue({
         id: "manager-1",
@@ -40,8 +42,10 @@ describe("integration connect routes", () => {
 
     const route = await import("../app/api/integrations/zoom/connect/route");
     const response = await route.GET(new Request("https://app.argos.ai/api/integrations/zoom/connect"));
+    const location = new URL(response.headers.get("location") ?? "");
 
-    expect(response.headers.get("location")).toBe("https://app.argos.ai/settings?zoom_error=forbidden");
+    expect(location.origin + location.pathname).toBe("https://zoom.us/oauth/authorize");
+    expect(location.searchParams.get("client_id")).toBe("zoom-client");
   });
 
   it("rejects executive-initiated GHL OAuth connects", async () => {
@@ -93,9 +97,11 @@ describe("integration connect routes", () => {
     );
   });
 
-  it("does not use an untrusted host for Zoom connect error redirects in production", async () => {
+  it("does not use an untrusted host for Zoom OAuth redirects in production", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://app.argos.ai");
+    vi.stubEnv("ZOOM_CLIENT_ID", "zoom-client");
+    vi.stubEnv("ZOOM_CLIENT_SECRET", "zoom-secret");
 
     createIntegrationsRepository.mockReturnValue({
       findCurrentUserByAuthId: vi.fn().mockResolvedValue({
@@ -116,8 +122,8 @@ describe("integration connect routes", () => {
       }),
     );
 
-    expect(response.headers.get("location")).toBe(
-      "https://app.argos.ai/settings?zoom_error=forbidden",
+    expect(new URL(response.headers.get("location") ?? "").searchParams.get("redirect_uri")).toBe(
+      "https://app.argos.ai/api/integrations/zoom/callback",
     );
   });
 

@@ -87,6 +87,7 @@ describe("zoom callback route", () => {
     const savedIntegration = repository.upsertZoomIntegration.mock.calls[0]?.[0];
     expect(savedIntegration).toMatchObject({
       accessToken: "zoom-access",
+      connectedUserId: "user-1",
       orgId: "org-1",
       refreshToken: "zoom-refresh",
       webhookId: null,

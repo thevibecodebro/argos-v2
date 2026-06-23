@@ -89,6 +89,7 @@ export class DrizzleZoomWebhookRepository implements ZoomWebhookRepository {
   async findZoomIntegrationByAccountId(accountId: string) {
     const [integration] = await this.db
       .select({
+        id: zoomIntegrationsTable.id,
         orgId: zoomIntegrationsTable.orgId,
         webhookToken: zoomIntegrationsTable.webhookToken,
         accessToken: zoomIntegrationsTable.accessToken,
@@ -129,7 +130,7 @@ export class DrizzleZoomWebhookRepository implements ZoomWebhookRepository {
     await this.callsRepository.updateCallStatus(callId, status);
   }
 
-  async updateZoomTokens(orgId: string, tokens: { accessToken: string; refreshToken: string; tokenExpiresAt: Date }) {
+  async updateZoomTokens(integrationId: string, tokens: { accessToken: string; refreshToken: string; tokenExpiresAt: Date }) {
     await this.db
       .update(zoomIntegrationsTable)
       .set({
@@ -138,6 +139,6 @@ export class DrizzleZoomWebhookRepository implements ZoomWebhookRepository {
         tokenExpiresAt: tokens.tokenExpiresAt,
         updatedAt: new Date(),
       })
-      .where(eq(zoomIntegrationsTable.orgId, orgId));
+      .where(eq(zoomIntegrationsTable.id, integrationId));
   }
 }

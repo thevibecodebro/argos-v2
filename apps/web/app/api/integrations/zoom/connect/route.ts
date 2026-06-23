@@ -35,10 +35,6 @@ export async function GET(request: Request) {
     return settingsRedirect(request, "not_provisioned");
   }
 
-  if (viewer.role !== "admin") {
-    return settingsRedirect(request, "forbidden");
-  }
-
   if (!process.env.ZOOM_CLIENT_ID || !process.env.ZOOM_CLIENT_SECRET) {
     return settingsRedirect(request, "not_configured");
   }

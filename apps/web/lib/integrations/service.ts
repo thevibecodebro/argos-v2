@@ -58,7 +58,7 @@ export type IntegrationStatusData = {
 
 export type IntegrationsRepository = {
   deleteGhlIntegration(orgId: string): Promise<boolean>;
-  deleteZoomIntegration(orgId: string): Promise<boolean>;
+  deleteZoomIntegration(orgId: string, connectedUserId: string): Promise<boolean>;
   acknowledgeGhlRecordingConsent(orgId: string, userId: string): Promise<void>;
   findCurrentUserByAuthId(authUserId: string): Promise<DashboardUserRecord | null>;
   findGhlStatus(orgId: string): Promise<{
@@ -74,12 +74,23 @@ export type IntegrationsRepository = {
     mappedUsersCount: number;
     syncEnabled: boolean;
   }>;
-  findZoomIntegrationForDisconnect(orgId: string): Promise<{ accessToken: string; refreshToken: string; tokenExpiresAt: Date; webhookId: string | null } | null>;
-  findZoomStatus(orgId: string): Promise<{ connected: boolean; connectedAt: Date | null; zoomUserId: string | null }>;
+  findZoomIntegrationForDisconnect(orgId: string, connectedUserId: string): Promise<{ accessToken: string; refreshToken: string; tokenExpiresAt: Date; webhookId: string | null } | null>;
+  findZoomStatus(orgId: string, connectedUserId: string): Promise<{ connected: boolean; connectedAt: Date | null; zoomUserId: string | null }>;
   listGhlUserMappings(orgId: string): Promise<GhlUserMapping[]>;
   requestGhlSync(orgId: string): Promise<void>;
   setGhlDefaultRep(orgId: string, repId: string | null): Promise<void>;
-  updateZoomTokens(orgId: string, tokens: { accessToken: string; refreshToken: string; tokenExpiresAt: Date }): Promise<void>;
+  updateZoomTokens(orgId: string, connectedUserId: string, tokens: { accessToken: string; refreshToken: string; tokenExpiresAt: Date }): Promise<void>;
+  upsertZoomIntegration(input: {
+    accessToken: string;
+    connectedUserId: string;
+    orgId: string;
+    refreshToken: string;
+    tokenExpiresAt: Date;
+    webhookId?: string | null;
+    webhookToken?: string | null;
+    zoomAccountId: string | null;
+    zoomUserId: string | null;
+  }): Promise<void>;
   upsertGhlUserMappings(input: {
     orgId: string;
     locationId: string;
@@ -179,7 +190,7 @@ export async function getIntegrationStatuses(
     syncEnabled: false,
   };
   const [zoom, ghl] = await Promise.all([
-    repository.findZoomStatus(viewer.org.id),
+    repository.findZoomStatus(viewer.org.id, viewer.id),
     availability.ghl ? repository.findGhlStatus(viewer.org.id) : Promise.resolve(unavailableGhl),
   ]);
 
@@ -230,7 +241,7 @@ export async function disconnectIntegration(
     };
   }
 
-  if (!canManage(viewer.role)) {
+  if (provider !== "zoom" && !canManage(viewer.role)) {
     return {
       ok: false,
       status: 403,
@@ -246,7 +257,7 @@ export async function disconnectIntegration(
   }
 
   if (provider === "zoom") {
-    const integration = await repository.findZoomIntegrationForDisconnect(viewer.org.id);
+    const integration = await repository.findZoomIntegrationForDisconnect(viewer.org.id, viewer.id);
 
     if (integration?.webhookId) {
       try {
@@ -254,7 +265,7 @@ export async function disconnectIntegration(
 
         if (integration.tokenExpiresAt <= new Date()) {
           const refreshed = await refreshZoomToken(integration.refreshToken);
-          await repository.updateZoomTokens(viewer.org.id, refreshed);
+          await repository.updateZoomTokens(viewer.org.id, viewer.id, refreshed);
           accessToken = refreshed.accessToken;
         }
 
@@ -264,7 +275,7 @@ export async function disconnectIntegration(
       }
     }
 
-    await repository.deleteZoomIntegration(viewer.org.id);
+    await repository.deleteZoomIntegration(viewer.org.id, viewer.id);
   } else {
     await repository.deleteGhlIntegration(viewer.org.id);
   }
