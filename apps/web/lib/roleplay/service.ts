@@ -643,6 +643,14 @@ async function getAuthorizedSession(
     };
   }
 
+  if (session.orgId !== accessResult.data.actor.orgId) {
+    return {
+      ok: false,
+      status: 403,
+      error: "You do not have access to this roleplay session",
+    };
+  }
+
   if (!canActorViewRep(accessResult.data, session.repId)) {
     return {
       ok: false,
