@@ -4,7 +4,6 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createPlatformRepository } from "./create-repository";
 import { getVerifiedTotpFactors } from "./mfa";
 import {
-  isTrustedPlatformOwner,
   isTrustedPlatformOwnerEmail,
   normalizePlatformEmail,
 } from "./trusted-owner";
@@ -106,19 +105,6 @@ export async function requirePlatformStaffAccess(options: {
     redirect("/onboarding");
   }
 
-  if (
-    isTrustedPlatformOwner({
-      email: user.email,
-      role: staff.role,
-      status: staff.status,
-    })
-  ) {
-    return {
-      user,
-      staff,
-    };
-  }
-
   const { data: assurance, error: assuranceError } =
     await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
 
@@ -177,20 +163,6 @@ export async function getPlatformApiAccess(options: {
 
   if (staff?.status !== "active") {
     return { ok: false, status: 403, error: "Platform access required" };
-  }
-
-  if (
-    isTrustedPlatformOwner({
-      email: user.email,
-      role: staff.role,
-      status: staff.status,
-    })
-  ) {
-    return {
-      ok: true,
-      user,
-      staff,
-    };
   }
 
   const { data: assurance, error: assuranceError } =
