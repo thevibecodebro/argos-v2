@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { foreignKey, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { organizationsTable } from "./organizations";
 import { usersTable } from "./users";
 
@@ -25,5 +25,10 @@ export const ghlUserMappingsTable = pgTable(
       table.locationId,
       table.ghlUserId,
     ),
+    foreignKey({
+      name: "ghl_user_mappings_argos_user_org_id_users_id_org_id_fkey",
+      columns: [table.argosUserId, table.orgId],
+      foreignColumns: [usersTable.id, usersTable.orgId],
+    }).onDelete("cascade"),
   ],
 );
