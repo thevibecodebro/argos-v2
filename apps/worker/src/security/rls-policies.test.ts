@@ -107,6 +107,15 @@ async function readGhlMigrationSql() {
   return normalizeWhitespace(await readFile(migrationPath, "utf8"));
 }
 
+async function readRoleplaySessionReferenceMigrationSql() {
+  const migrationPath = join(
+    process.cwd(),
+    "../../supabase/migrations/202606230001_roleplay_session_reference_rls.sql",
+  );
+
+  return normalizeWhitespace(await readFile(migrationPath, "utf8"));
+}
+
 describe("RLS policy hardening migration", () => {
   it("defines the expected rubric and call score policies", async () => {
     const migrationSql = await readMigrationSql();
@@ -151,6 +160,25 @@ describe("RLS policy hardening migration", () => {
         new RegExp(`create policy "[^"]+" on public\\.${table} .* to (${broadClientRoles.join("|")})`),
       );
     }
+  });
+
+  it("binds roleplay session source call and rubric references to the caller organization", async () => {
+    const migrationSql = await readRoleplaySessionReferenceMigrationSql();
+
+    expect(migrationSql).toContain('drop policy if exists "roleplay_sessions_can_write_team_scope"');
+    expect(migrationSql).toContain('create policy "roleplay_sessions_can_write_team_scope"');
+    expect(migrationSql).toContain("on public.roleplay_sessions");
+    expect(migrationSql).toContain("for insert to authenticated");
+    expect(migrationSql).toContain("org_id = public.current_user_org_id()");
+    expect(migrationSql).toContain("rep_id = auth.uid()");
+    expect(migrationSql).toContain("source_call_id is null or exists");
+    expect(migrationSql).toContain("from public.calls");
+    expect(migrationSql).toContain("calls.id = roleplay_sessions.source_call_id");
+    expect(migrationSql).toContain("calls.org_id = public.current_user_org_id()");
+    expect(migrationSql).toContain("rubric_id is null or exists");
+    expect(migrationSql).toContain("from public.rubrics");
+    expect(migrationSql).toContain("rubrics.id = roleplay_sessions.rubric_id");
+    expect(migrationSql).toContain("rubrics.org_id = public.current_user_org_id()");
   });
 });
 
