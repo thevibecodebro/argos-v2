@@ -56,6 +56,7 @@ describe("SupabaseIntegrationsRepository token encryption", () => {
 
     await repository.upsertZoomIntegration({
       accessToken: "zoom-access",
+      connectedUserId: "user-1",
       orgId: "org-1",
       refreshToken: "zoom-refresh",
       tokenExpiresAt: new Date("2026-04-04T12:00:00.000Z"),
@@ -77,6 +78,7 @@ describe("SupabaseIntegrationsRepository token encryption", () => {
     const ghlPayload = supabase.state.upsertPayloads[1];
 
     expect(zoomPayload.access_token).not.toBe("zoom-access");
+    expect(zoomPayload.connected_user_id).toBe("user-1");
     expect(zoomPayload.refresh_token).not.toBe("zoom-refresh");
     expect(zoomPayload.webhook_token).not.toBe("zoom-webhook-token");
     expect(isEncryptedIntegrationToken(zoomPayload.access_token as string)).toBe(true);
@@ -101,7 +103,7 @@ describe("SupabaseIntegrationsRepository token encryption", () => {
       webhook_id: "webhook-1",
     };
 
-    const integration = await repository.findZoomIntegrationForDisconnect("org-1");
+    const integration = await repository.findZoomIntegrationForDisconnect("org-1", "user-1");
 
     expect(integration).toMatchObject({
       accessToken: "zoom-access",
@@ -120,7 +122,7 @@ describe("SupabaseIntegrationsRepository token encryption", () => {
       webhook_id: null,
     };
 
-    const integration = await repository.findZoomIntegrationForDisconnect("org-1");
+    const integration = await repository.findZoomIntegrationForDisconnect("org-1", "user-1");
 
     expect(integration).toMatchObject({
       accessToken: "legacy-access",
@@ -133,7 +135,7 @@ describe("SupabaseIntegrationsRepository token encryption", () => {
     const supabase = createSupabaseMock();
     const repository = new SupabaseIntegrationsRepository(supabase.client as any);
 
-    await repository.updateZoomTokens("org-1", {
+    await repository.updateZoomTokens("org-1", "user-1", {
       accessToken: "new-access",
       refreshToken: "new-refresh",
       tokenExpiresAt: new Date("2026-04-04T12:00:00.000Z"),

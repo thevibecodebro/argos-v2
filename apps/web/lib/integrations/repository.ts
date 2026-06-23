@@ -1,4 +1,4 @@
-import { count, eq, sql } from "drizzle-orm";
+import { and, count, eq, sql } from "drizzle-orm";
 import {
   getDb,
   ghlUserMappingsTable,
@@ -28,10 +28,15 @@ export class DrizzleIntegrationsRepository implements IntegrationsRepository {
     return deleted.length > 0;
   }
 
-  async deleteZoomIntegration(orgId: string) {
+  async deleteZoomIntegration(orgId: string, connectedUserId: string) {
     const deleted = await this.db
       .delete(zoomIntegrationsTable)
-      .where(eq(zoomIntegrationsTable.orgId, orgId))
+      .where(
+        and(
+          eq(zoomIntegrationsTable.orgId, orgId),
+          eq(zoomIntegrationsTable.connectedUserId, connectedUserId),
+        ),
+      )
       .returning({ id: zoomIntegrationsTable.id });
 
     return deleted.length > 0;
@@ -85,6 +90,7 @@ export class DrizzleIntegrationsRepository implements IntegrationsRepository {
 
   async upsertZoomIntegration(input: {
     accessToken: string;
+    connectedUserId: string;
     orgId: string;
     refreshToken: string;
     tokenExpiresAt: Date;
@@ -108,7 +114,7 @@ export class DrizzleIntegrationsRepository implements IntegrationsRepository {
         webhookToken: encryptedWebhookToken,
       })
       .onConflictDoUpdate({
-        target: zoomIntegrationsTable.orgId,
+        target: [zoomIntegrationsTable.orgId, zoomIntegrationsTable.connectedUserId],
         set: {
           accessToken: encryptedAccessToken,
           refreshToken: encryptedRefreshToken,
@@ -152,7 +158,7 @@ export class DrizzleIntegrationsRepository implements IntegrationsRepository {
     };
   }
 
-  async findZoomIntegrationForDisconnect(orgId: string) {
+  async findZoomIntegrationForDisconnect(orgId: string, connectedUserId: string) {
     const [integration] = await this.db
       .select({
         accessToken: zoomIntegrationsTable.accessToken,
@@ -161,7 +167,12 @@ export class DrizzleIntegrationsRepository implements IntegrationsRepository {
         webhookId: zoomIntegrationsTable.webhookId,
       })
       .from(zoomIntegrationsTable)
-      .where(eq(zoomIntegrationsTable.orgId, orgId))
+      .where(
+        and(
+          eq(zoomIntegrationsTable.orgId, orgId),
+          eq(zoomIntegrationsTable.connectedUserId, connectedUserId),
+        ),
+      )
       .limit(1);
 
     if (!integration) {
@@ -175,7 +186,7 @@ export class DrizzleIntegrationsRepository implements IntegrationsRepository {
     };
   }
 
-  async updateZoomTokens(orgId: string, tokens: { accessToken: string; refreshToken: string; tokenExpiresAt: Date }) {
+  async updateZoomTokens(orgId: string, connectedUserId: string, tokens: { accessToken: string; refreshToken: string; tokenExpiresAt: Date }) {
     await this.db
       .update(zoomIntegrationsTable)
       .set({
@@ -184,7 +195,12 @@ export class DrizzleIntegrationsRepository implements IntegrationsRepository {
         tokenExpiresAt: tokens.tokenExpiresAt,
         updatedAt: new Date(),
       })
-      .where(eq(zoomIntegrationsTable.orgId, orgId));
+      .where(
+        and(
+          eq(zoomIntegrationsTable.orgId, orgId),
+          eq(zoomIntegrationsTable.connectedUserId, connectedUserId),
+        ),
+      );
   }
 
   async listGhlUserMappings(orgId: string) {
@@ -303,14 +319,19 @@ export class DrizzleIntegrationsRepository implements IntegrationsRepository {
     };
   }
 
-  async findZoomStatus(orgId: string) {
+  async findZoomStatus(orgId: string, connectedUserId: string) {
     const [integration] = await this.db
       .select({
         connectedAt: zoomIntegrationsTable.connectedAt,
         zoomUserId: zoomIntegrationsTable.zoomUserId,
       })
       .from(zoomIntegrationsTable)
-      .where(eq(zoomIntegrationsTable.orgId, orgId))
+      .where(
+        and(
+          eq(zoomIntegrationsTable.orgId, orgId),
+          eq(zoomIntegrationsTable.connectedUserId, connectedUserId),
+        ),
+      )
       .limit(1);
 
     return {

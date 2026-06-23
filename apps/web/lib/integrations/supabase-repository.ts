@@ -24,12 +24,13 @@ export class SupabaseIntegrationsRepository implements IntegrationsRepository {
     return Boolean(data?.length);
   }
 
-  async deleteZoomIntegration(orgId: string) {
+  async deleteZoomIntegration(orgId: string, connectedUserId: string) {
     const supabase: any = this.supabase;
     const { data, error } = await supabase
       .from("zoom_integrations")
       .delete()
       .eq("org_id", orgId)
+      .eq("connected_user_id", connectedUserId)
       .select("id");
 
     if (error) {
@@ -87,6 +88,7 @@ export class SupabaseIntegrationsRepository implements IntegrationsRepository {
 
   async upsertZoomIntegration(input: {
     accessToken: string;
+    connectedUserId: string;
     orgId: string;
     refreshToken: string;
     tokenExpiresAt: Date;
@@ -99,6 +101,7 @@ export class SupabaseIntegrationsRepository implements IntegrationsRepository {
     const { error } = await supabase.from("zoom_integrations").upsert(
       {
         org_id: input.orgId,
+        connected_user_id: input.connectedUserId,
         access_token: encryptIntegrationToken(input.accessToken),
         refresh_token: encryptIntegrationToken(input.refreshToken),
         token_expires_at: input.tokenExpiresAt.toISOString(),
@@ -109,7 +112,7 @@ export class SupabaseIntegrationsRepository implements IntegrationsRepository {
         connected_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },
-      { onConflict: "org_id" },
+      { onConflict: "org_id,connected_user_id" },
     );
 
     if (error) {
@@ -117,12 +120,13 @@ export class SupabaseIntegrationsRepository implements IntegrationsRepository {
     }
   }
 
-  async findZoomIntegrationForDisconnect(orgId: string) {
+  async findZoomIntegrationForDisconnect(orgId: string, connectedUserId: string) {
     const supabase: any = this.supabase;
     const { data, error } = await supabase
       .from("zoom_integrations")
       .select("access_token, refresh_token, token_expires_at, webhook_id")
       .eq("org_id", orgId)
+      .eq("connected_user_id", connectedUserId)
       .maybeSingle();
 
     if (error) {
@@ -141,7 +145,7 @@ export class SupabaseIntegrationsRepository implements IntegrationsRepository {
     };
   }
 
-  async updateZoomTokens(orgId: string, tokens: { accessToken: string; refreshToken: string; tokenExpiresAt: Date }) {
+  async updateZoomTokens(orgId: string, connectedUserId: string, tokens: { accessToken: string; refreshToken: string; tokenExpiresAt: Date }) {
     const supabase: any = this.supabase;
     const { error } = await supabase
       .from("zoom_integrations")
@@ -151,7 +155,8 @@ export class SupabaseIntegrationsRepository implements IntegrationsRepository {
         token_expires_at: tokens.tokenExpiresAt.toISOString(),
         updated_at: new Date().toISOString(),
       })
-      .eq("org_id", orgId);
+      .eq("org_id", orgId)
+      .eq("connected_user_id", connectedUserId);
 
     if (error) {
       throw new Error(error.message);
@@ -305,12 +310,13 @@ export class SupabaseIntegrationsRepository implements IntegrationsRepository {
     };
   }
 
-  async findZoomStatus(orgId: string) {
+  async findZoomStatus(orgId: string, connectedUserId: string) {
     const supabase: any = this.supabase;
     const { data, error } = await supabase
       .from("zoom_integrations")
       .select("connected_at, zoom_user_id")
       .eq("org_id", orgId)
+      .eq("connected_user_id", connectedUserId)
       .maybeSingle();
 
     if (error) {

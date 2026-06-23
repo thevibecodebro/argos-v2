@@ -125,6 +125,15 @@ async function readCallsTeamScopeMigrationSql() {
   return normalizeWhitespace(await readFile(migrationPath, "utf8"));
 }
 
+async function readIntegrationTokenSelectMigrationSql() {
+  const migrationPath = join(
+    process.cwd(),
+    "../../supabase/migrations/202606230003_integration_token_select_rls.sql",
+  );
+
+  return normalizeWhitespace(await readFile(migrationPath, "utf8"));
+}
+
 describe("RLS policy hardening migration", () => {
   it("defines the expected rubric and call score policies", async () => {
     const migrationSql = await readMigrationSql();
@@ -203,6 +212,25 @@ describe("RLS policy hardening migration", () => {
       "public.current_user_can_read_rep_with_permissions( rep_id, ARRAY['view_team_calls']::text[] )",
     );
     expect(migrationSql).not.toContain("using (org_id = public.current_user_org_id())");
+  });
+
+  it("requires admin role for direct integration token table reads", async () => {
+    const migrationSql = await readIntegrationTokenSelectMigrationSql();
+
+    for (const table of ["zoom_integrations", "ghl_integrations"]) {
+      expect(migrationSql).toContain(`drop policy if exists "org_members_can_read_${table}"`);
+      expect(migrationSql).toContain(`drop policy if exists "${table}_can_read_admin_scope"`);
+      expect(migrationSql).toContain(`create policy "${table}_can_read_admin_scope"`);
+      expect(migrationSql).toContain(`on public.${table}`);
+    }
+
+    expect(migrationSql).toContain("for select to authenticated");
+    expect(migrationSql).toContain("org_id = public.current_user_org_id()");
+    expect(migrationSql).toContain("and public.current_user_role() = 'admin'");
+    expect(migrationSql).toContain("add column if not exists connected_user_id uuid");
+    expect(migrationSql).toContain("drop constraint if exists zoom_integrations_org_id_unique");
+    expect(migrationSql).toContain("zoom_integrations_org_connected_user_unique");
+    expect(migrationSql).not.toContain("using ( org_id = public.current_user_org_id() );");
   });
 });
 

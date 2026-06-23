@@ -62,10 +62,6 @@ export async function GET(request: Request) {
     return settingsRedirect(request, "zoom_error", "not_provisioned");
   }
 
-  if (viewer.role !== "admin") {
-    return settingsRedirect(request, "zoom_error", "forbidden", true);
-  }
-
   const decoded = decodeIntegrationOAuthState(state);
 
   if (!decoded) {
@@ -93,6 +89,7 @@ export async function GET(request: Request) {
 
     await repository.upsertZoomIntegration({
       accessToken: tokens.accessToken,
+      connectedUserId: viewer.id,
       orgId: viewer.org.id,
       refreshToken: tokens.refreshToken,
       tokenExpiresAt: tokens.tokenExpiresAt,

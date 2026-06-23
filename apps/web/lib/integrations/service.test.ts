@@ -21,6 +21,7 @@ function createRepository(
     setGhlDefaultRep: vi.fn(),
     updateZoomTokens: vi.fn(),
     upsertGhlUserMappings: vi.fn(),
+    upsertZoomIntegration: vi.fn(),
     ...overrides,
   };
 }
@@ -66,6 +67,7 @@ describe("getIntegrationStatuses", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("Expected integration statuses");
     expect(result.data.canManage).toBe(false);
+    expect(repository.findZoomStatus).toHaveBeenCalledWith("org-1", "manager-1");
     expect(result.data.zoom).toMatchObject({
       available: true,
       connectPath: "/api/integrations/zoom/connect",
@@ -247,8 +249,9 @@ describe("getIntegrationStatuses", () => {
 });
 
 describe("disconnectIntegration", () => {
-  it("rejects disconnect attempts from non-admins", async () => {
+  it("allows non-admins to disconnect their own Zoom integration", async () => {
     const repository = createRepository({
+      deleteZoomIntegration: vi.fn().mockResolvedValue(true),
       findCurrentUserByAuthId: vi.fn().mockResolvedValue({
         id: "manager-1",
         email: "manager@argos.ai",
@@ -260,6 +263,27 @@ describe("disconnectIntegration", () => {
     });
 
     const result = await disconnectIntegration(repository, "manager-1", "zoom");
+
+    expect(result).toEqual({
+      ok: true,
+      data: { provider: "zoom", success: true },
+    });
+    expect(repository.deleteZoomIntegration).toHaveBeenCalledWith("org-1", "manager-1");
+  });
+
+  it("rejects non-admin GHL disconnect attempts", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "manager-1",
+        email: "manager@argos.ai",
+        role: "manager",
+        firstName: "Morgan",
+        lastName: "Lane",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+    });
+
+    const result = await disconnectIntegration(repository, "manager-1", "ghl");
 
     expect(result).toEqual({
       ok: false,
@@ -287,6 +311,6 @@ describe("disconnectIntegration", () => {
       ok: true,
       data: { provider: "zoom", success: true },
     });
-    expect(repository.deleteZoomIntegration).toHaveBeenCalledWith("org-1");
+    expect(repository.deleteZoomIntegration).toHaveBeenCalledWith("org-1", "admin-1");
   });
 });
