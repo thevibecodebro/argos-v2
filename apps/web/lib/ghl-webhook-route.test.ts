@@ -51,7 +51,7 @@ describe("GHL webhook route", () => {
     });
   });
 
-  it("accepts the shared webhook token from the Marketplace URL query string", async () => {
+  it("rejects webhook tokens supplied in the URL query string", async () => {
     const route = await import("../app/api/webhooks/ghl/route");
     const response = await route.POST(
       new Request("http://localhost:3100/api/webhooks/leadconnector?token=secret-token", {
@@ -68,7 +68,7 @@ describe("GHL webhook route", () => {
     expect(processGhlWebhookRequest).toHaveBeenCalledWith(
       {},
       {
-        headers: { token: "secret-token" },
+        headers: { token: null },
         rawBody: JSON.stringify({ type: "InboundMessage" }),
       },
     );
@@ -76,5 +76,73 @@ describe("GHL webhook route", () => {
       type: "ip",
       id: "198.51.100.22",
     });
+  });
+
+  it("rejects alternate query credential names", async () => {
+    const route = await import("../app/api/webhooks/ghl/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/webhooks/leadconnector?auth=secret-token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ type: "InboundMessage" }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(processGhlWebhookRequest).toHaveBeenCalledWith(
+      {},
+      {
+        headers: { token: null },
+        rawBody: JSON.stringify({ type: "InboundMessage" }),
+      },
+    );
+  });
+
+  it("passes the webhook token from the dedicated header", async () => {
+    const route = await import("../app/api/webhooks/ghl/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/webhooks/leadconnector", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-ghl-webhook-token": "secret-token",
+        },
+        body: JSON.stringify({ type: "InboundMessage" }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(processGhlWebhookRequest).toHaveBeenCalledWith(
+      {},
+      {
+        headers: { token: "secret-token" },
+        rawBody: JSON.stringify({ type: "InboundMessage" }),
+      },
+    );
+  });
+
+  it("passes the token from the LeadConnector Marketplace path-token route", async () => {
+    const route = await import("../app/api/webhooks/leadconnector/[token]/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/webhooks/leadconnector/secret-token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ type: "InboundMessage" }),
+      }),
+      { params: Promise.resolve({ token: "secret-token" }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(processGhlWebhookRequest).toHaveBeenCalledWith(
+      {},
+      {
+        headers: { token: "secret-token" },
+        rawBody: JSON.stringify({ type: "InboundMessage" }),
+      },
+    );
   });
 });
