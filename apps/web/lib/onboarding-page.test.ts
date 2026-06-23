@@ -102,13 +102,15 @@ describe("OnboardingPage", () => {
     expect(html).toContain("Set up the first Argos workspace for your company.");
   });
 
-  it("keeps create and join available only when invite-only mode is explicitly disabled", async () => {
+  it("keeps organization creation available without exposing slug-only joins when invite-only mode is explicitly disabled", async () => {
     vi.stubEnv("ARGOS_INVITE_ONLY", "false");
 
     const html = renderToStaticMarkup(await OnboardingPage());
 
     expect(html).toContain("Create Organization");
-    expect(html).toContain("Join Organization");
+    expect(html).toContain("Create a new workspace, then invite your team to unlock the Argos workspace.");
+    expect(html).toContain("Invite required for existing organizations");
+    expect(html).not.toContain("Join Organization");
   });
 
   it("announces auth and onboarding async feedback", () => {
