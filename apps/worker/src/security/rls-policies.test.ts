@@ -116,6 +116,15 @@ async function readRoleplaySessionReferenceMigrationSql() {
   return normalizeWhitespace(await readFile(migrationPath, "utf8"));
 }
 
+async function readCallsTeamScopeMigrationSql() {
+  const migrationPath = join(
+    process.cwd(),
+    "../../supabase/migrations/202606230002_calls_team_scope_rls.sql",
+  );
+
+  return normalizeWhitespace(await readFile(migrationPath, "utf8"));
+}
+
 describe("RLS policy hardening migration", () => {
   it("defines the expected rubric and call score policies", async () => {
     const migrationSql = await readMigrationSql();
@@ -179,6 +188,21 @@ describe("RLS policy hardening migration", () => {
     expect(migrationSql).toContain("from public.rubrics");
     expect(migrationSql).toContain("rubrics.id = roleplay_sessions.rubric_id");
     expect(migrationSql).toContain("rubrics.org_id = public.current_user_org_id()");
+  });
+
+  it("replaces org-wide call reads with team-scoped call reads", async () => {
+    const migrationSql = await readCallsTeamScopeMigrationSql();
+
+    expect(migrationSql).toContain('drop policy if exists "org_members_can_read_calls"');
+    expect(migrationSql).toContain('drop policy if exists "calls_can_read_team_scope"');
+    expect(migrationSql).toContain('create policy "calls_can_read_team_scope"');
+    expect(migrationSql).toContain("on public.calls");
+    expect(migrationSql).toContain("for select to authenticated");
+    expect(migrationSql).toContain("org_id = public.current_user_org_id()");
+    expect(migrationSql).toContain(
+      "public.current_user_can_read_rep_with_permissions( rep_id, ARRAY['view_team_calls']::text[] )",
+    );
+    expect(migrationSql).not.toContain("using (org_id = public.current_user_org_id())");
   });
 });
 
