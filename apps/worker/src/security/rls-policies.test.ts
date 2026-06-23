@@ -134,6 +134,15 @@ async function readIntegrationTokenSelectMigrationSql() {
   return normalizeWhitespace(await readFile(migrationPath, "utf8"));
 }
 
+async function readCallChildWriteRlsMigrationSql() {
+  const migrationPath = join(
+    process.cwd(),
+    "../../supabase/migrations/202606230004_call_child_write_rls.sql",
+  );
+
+  return normalizeWhitespace(await readFile(migrationPath, "utf8"));
+}
+
 describe("RLS policy hardening migration", () => {
   it("defines the expected rubric and call score policies", async () => {
     const migrationSql = await readMigrationSql();
@@ -231,6 +240,30 @@ describe("RLS policy hardening migration", () => {
     expect(migrationSql).toContain("drop constraint if exists zoom_integrations_org_id_unique");
     expect(migrationSql).toContain("zoom_integrations_org_connected_user_unique");
     expect(migrationSql).not.toContain("using ( org_id = public.current_user_org_id() );");
+  });
+
+  it("binds call child table writes to calls in the caller organization", async () => {
+    const migrationSql = await readCallChildWriteRlsMigrationSql();
+
+    for (const policy of [
+      "call_moments_can_write_team_scope",
+      "call_moments_can_update_team_scope",
+      "call_moments_can_delete_team_scope",
+      "call_annotations_can_write_team_scope",
+      "call_annotations_can_update_team_scope",
+      "call_annotations_can_delete_team_scope",
+    ]) {
+      expect(migrationSql).toContain(`drop policy if exists "${policy}"`);
+      expect(migrationSql).toContain(`create policy "${policy}"`);
+    }
+
+    expect(migrationSql).toContain("public.current_user_can_write_call_with_permissions(call_id, ARRAY['manage_call_highlights']::text[])");
+    expect(migrationSql).toContain("public.current_user_can_write_call_with_permissions(call_id, ARRAY['coach_team_calls']::text[])");
+    expect(migrationSql).toContain("from public.calls");
+    expect(migrationSql).toContain("calls.id = call_annotations.call_id");
+    expect(migrationSql).toContain("calls.org_id = public.current_user_org_id()");
+    expect(migrationSql).not.toContain("public.current_user_role() = 'admin' or");
+    expect(migrationSql).not.toContain("author_id = auth.uid() or");
   });
 });
 
