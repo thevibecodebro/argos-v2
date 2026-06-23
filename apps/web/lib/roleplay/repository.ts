@@ -229,11 +229,17 @@ export class DrizzleRoleplayRepository implements RoleplayRepository {
     return rows.map(normalizeSessionRecord);
   }
 
-  async markVoiceStarted(sessionId: string, startedAt: Date) {
+  async markVoiceStarted(
+    sessionId: string,
+    startedAt: Date,
+    input: { reservedMinutesSettled?: number } = {},
+  ) {
+    const reservedMinutesSettled = Math.max(0, Math.ceil(input.reservedMinutesSettled ?? 0));
     const [session] = await this.db
       .update(roleplaySessionsTable)
       .set({
         voiceStartedAt: startedAt,
+        ...(reservedMinutesSettled > 0 ? { voiceMinutesSettled: reservedMinutesSettled } : {}),
       })
       .where(
         and(eq(roleplaySessionsTable.id, sessionId), isNull(roleplaySessionsTable.voiceStartedAt)),

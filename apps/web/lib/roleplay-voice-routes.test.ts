@@ -254,13 +254,22 @@ describe("roleplay voice routes", () => {
       "session-1",
     );
     expect(getVoiceEntitlementStatus).toHaveBeenCalledWith({ billing: true }, "auth-user-1");
+    expect(consumeVoiceMinutes).toHaveBeenCalledWith({ billing: true }, "auth-user-1", {
+      idempotencyKey: "roleplay:session-1:start",
+      minutes: 1,
+      sessionId: "session-1",
+      source: "roleplay_realtime",
+    });
+    expect(consumeVoiceMinutes.mock.invocationCallOrder[0]).toBeLessThan(
+      fetchMock.mock.invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER,
+    );
     expect(markRoleplayVoiceStarted).toHaveBeenCalledWith(
       {},
       "auth-user-1",
       "session-1",
       expect.any(Date),
+      { reservedMinutesSettled: 1 },
     );
-    expect(consumeVoiceMinutes).not.toHaveBeenCalled();
   });
 
   it("settles realtime voice usage after completing and scoring a roleplay", async () => {

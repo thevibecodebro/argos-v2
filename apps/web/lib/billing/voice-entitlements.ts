@@ -10,6 +10,9 @@ export type VoiceEntitlementsRepository = {
     orgId: string | null;
     userId: string;
   }): Promise<VoiceCreditGrant[]>;
+  findVoiceUsageEventByIdempotencyKey?(
+    idempotencyKey: string,
+  ): Promise<{ minutesDebited: number } | null>;
   findUserBillingScope(authUserId: string): Promise<{
     orgId: string | null;
     userId: string;
@@ -86,6 +89,19 @@ export async function consumeVoiceMinutes(
   }
 
   const minutes = Math.max(1, Math.ceil(input.minutes));
+  const existingUsage = await repository.findVoiceUsageEventByIdempotencyKey?.(
+    input.idempotencyKey,
+  );
+
+  if (existingUsage) {
+    return {
+      ok: true as const,
+      data: {
+        minutesDebited: existingUsage.minutesDebited,
+      },
+    };
+  }
+
   const grants = await repository.findActiveVoiceCreditGrants(scope);
   const sortedGrants = grants
     .filter((grant) => grant.minutesRemaining > 0)

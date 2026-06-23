@@ -140,11 +140,21 @@ export class SupabaseRoleplayRepository implements RoleplayRepository {
     return (data ?? []).map(normalizeSessionRecord);
   }
 
-  async markVoiceStarted(sessionId: string, startedAt: Date) {
+  async markVoiceStarted(
+    sessionId: string,
+    startedAt: Date,
+    input: { reservedMinutesSettled?: number } = {},
+  ) {
     const supabase: any = this.supabase;
+    const reservedMinutesSettled = Math.max(0, Math.ceil(input.reservedMinutesSettled ?? 0));
     const { data, error } = await supabase
       .from("roleplay_sessions")
-      .update({ voice_started_at: startedAt.toISOString() })
+      .update({
+        voice_started_at: startedAt.toISOString(),
+        ...(reservedMinutesSettled > 0
+          ? { voice_minutes_settled: reservedMinutesSettled }
+          : {}),
+      })
       .eq("id", sessionId)
       .is("voice_started_at", null)
       .select("*")

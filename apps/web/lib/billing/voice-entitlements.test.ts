@@ -54,6 +54,41 @@ describe("getVoiceEntitlementStatus", () => {
 });
 
 describe("consumeVoiceMinutes", () => {
+  it("returns an existing usage event without debiting grants again", async () => {
+    const findVoiceUsageEventByIdempotencyKey = vi
+      .fn()
+      .mockResolvedValue({ minutesDebited: 1 });
+    const repository = {
+      ...makeRepository({
+        findActiveVoiceCreditGrants: vi.fn().mockResolvedValue([
+          {
+            id: "included",
+            minutesRemaining: 2,
+            sourceType: "subscription_included",
+          },
+        ]),
+      }),
+      findVoiceUsageEventByIdempotencyKey,
+    } as VoiceEntitlementsRepository & {
+      findVoiceUsageEventByIdempotencyKey: typeof findVoiceUsageEventByIdempotencyKey;
+    };
+
+    await expect(
+      consumeVoiceMinutes(repository, "auth-user-1", {
+        idempotencyKey: "roleplay:session-1:start",
+        minutes: 1,
+        source: "roleplay_realtime",
+        sessionId: "session-1",
+      }),
+    ).resolves.toEqual({ ok: true, data: { minutesDebited: 1 } });
+
+    expect(findVoiceUsageEventByIdempotencyKey).toHaveBeenCalledWith(
+      "roleplay:session-1:start",
+    );
+    expect(repository.consumeVoiceCreditGrant).not.toHaveBeenCalled();
+    expect(repository.insertVoiceUsageEvent).not.toHaveBeenCalled();
+  });
+
   it("debits included minutes before extra packs and records usage", async () => {
     const repository = makeRepository({
       findActiveVoiceCreditGrants: vi.fn().mockResolvedValue([
