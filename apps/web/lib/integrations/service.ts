@@ -76,6 +76,7 @@ export type IntegrationsRepository = {
   }>;
   findZoomIntegrationForDisconnect(orgId: string, connectedUserId: string): Promise<{ accessToken: string; refreshToken: string; tokenExpiresAt: Date; webhookId: string | null } | null>;
   findZoomStatus(orgId: string, connectedUserId: string): Promise<{ connected: boolean; connectedAt: Date | null; zoomUserId: string | null }>;
+  findOrgUserIds(orgId: string, userIds: string[]): Promise<string[]>;
   listGhlUserMappings(orgId: string): Promise<GhlUserMapping[]>;
   requestGhlSync(orgId: string): Promise<void>;
   setGhlDefaultRep(orgId: string, repId: string | null): Promise<void>;
@@ -392,6 +393,27 @@ export async function updateGhlUserMappings(
       status: 404,
       error: "GoHighLevel is not connected",
     };
+  }
+
+  const selectedArgosUserIds = [
+    ...(input.defaultRepId ? [input.defaultRepId] : []),
+    ...(input.mappings?.map((mapping) => mapping.argosUserId) ?? []),
+  ];
+  const uniqueSelectedArgosUserIds = [...new Set(selectedArgosUserIds)];
+
+  if (uniqueSelectedArgosUserIds.length) {
+    const orgUserIds = new Set(
+      await repository.findOrgUserIds(viewer.data.org.id, uniqueSelectedArgosUserIds),
+    );
+    const hasCrossTenantUserId = uniqueSelectedArgosUserIds.some((userId) => !orgUserIds.has(userId));
+
+    if (hasCrossTenantUserId) {
+      return {
+        ok: false,
+        status: 400,
+        error: "GHL mappings can only reference users in this organization",
+      };
+    }
   }
 
   if (input.defaultRepId !== undefined) {

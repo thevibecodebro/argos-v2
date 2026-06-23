@@ -1,4 +1,4 @@
-import { and, count, eq, sql } from "drizzle-orm";
+import { and, count, eq, inArray, sql } from "drizzle-orm";
 import {
   getDb,
   ghlUserMappingsTable,
@@ -339,5 +339,18 @@ export class DrizzleIntegrationsRepository implements IntegrationsRepository {
       connectedAt: integration?.connectedAt ?? null,
       zoomUserId: integration?.zoomUserId ?? null,
     };
+  }
+
+  async findOrgUserIds(orgId: string, userIds: string[]) {
+    if (!userIds.length) {
+      return [];
+    }
+
+    const rows = await this.db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(and(eq(usersTable.orgId, orgId), inArray(usersTable.id, userIds)));
+
+    return rows.map((row) => row.id);
   }
 }

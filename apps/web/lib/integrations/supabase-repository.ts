@@ -329,4 +329,23 @@ export class SupabaseIntegrationsRepository implements IntegrationsRepository {
       zoomUserId: data?.zoom_user_id ?? null,
     };
   }
+
+  async findOrgUserIds(orgId: string, userIds: string[]) {
+    if (!userIds.length) {
+      return [];
+    }
+
+    const supabase: any = this.supabase;
+    const { data, error } = await supabase
+      .from("users")
+      .select("id")
+      .eq("org_id", orgId)
+      .in("id", userIds);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return (data ?? []).map((row: any) => row.id as string);
+  }
 }

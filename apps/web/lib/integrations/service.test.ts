@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   disconnectIntegration,
   getIntegrationStatuses,
+  updateGhlUserMappings,
   type IntegrationsRepository,
 } from "./service";
 
@@ -14,6 +15,7 @@ function createRepository(
     deleteZoomIntegration: vi.fn(),
     findCurrentUserByAuthId: vi.fn(),
     findGhlStatus: vi.fn(),
+    findOrgUserIds: vi.fn(),
     findZoomIntegrationForDisconnect: vi.fn().mockResolvedValue(null),
     findZoomStatus: vi.fn(),
     listGhlUserMappings: vi.fn(),
@@ -312,5 +314,99 @@ describe("disconnectIntegration", () => {
       data: { provider: "zoom", success: true },
     });
     expect(repository.deleteZoomIntegration).toHaveBeenCalledWith("org-1", "admin-1");
+  });
+});
+
+describe("updateGhlUserMappings", () => {
+  function createConnectedGhlRepository(overrides: Partial<IntegrationsRepository> = {}) {
+    return createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "admin-1",
+        email: "admin@argos.ai",
+        role: "admin",
+        firstName: "Jared",
+        lastName: "Newman",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      findGhlStatus: vi.fn().mockResolvedValue({
+        connected: true,
+        connectedAt: new Date("2026-06-18T12:00:00.000Z"),
+        locationId: "loc-1",
+        locationName: "North Team",
+        syncEnabled: true,
+        consentConfirmedAt: null,
+        defaultRepId: null,
+        mappedUsersCount: 0,
+        lastSyncStartedAt: null,
+        lastSyncCompletedAt: null,
+        lastSyncError: null,
+      }),
+      findOrgUserIds: vi.fn().mockResolvedValue(["rep-1", "rep-2"]),
+      setGhlDefaultRep: vi.fn().mockResolvedValue(undefined),
+      upsertGhlUserMappings: vi.fn().mockResolvedValue(undefined),
+      ...overrides,
+    });
+  }
+
+  it("rejects default reps and mappings that reference users outside the viewer org", async () => {
+    const repository = createConnectedGhlRepository({
+      findOrgUserIds: vi.fn().mockResolvedValue(["rep-1"]),
+    });
+
+    const result = await updateGhlUserMappings(repository, "admin-1", {
+      defaultRepId: "rep-1",
+      mappings: [
+        {
+          argosUserId: "cross-tenant-user",
+          ghlUserId: "ghl-user-1",
+          ghlUserEmail: "rep@example.com",
+          ghlUserName: "Rep One",
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      status: 400,
+      error: "GHL mappings can only reference users in this organization",
+    });
+    expect(repository.findOrgUserIds).toHaveBeenCalledWith("org-1", [
+      "rep-1",
+      "cross-tenant-user",
+    ]);
+    expect(repository.setGhlDefaultRep).not.toHaveBeenCalled();
+    expect(repository.upsertGhlUserMappings).not.toHaveBeenCalled();
+  });
+
+  it("persists GHL mappings when all selected Argos users belong to the viewer org", async () => {
+    const repository = createConnectedGhlRepository();
+
+    const result = await updateGhlUserMappings(repository, "admin-1", {
+      defaultRepId: "rep-1",
+      mappings: [
+        {
+          argosUserId: "rep-2",
+          ghlUserId: "ghl-user-2",
+          ghlUserEmail: "rep2@example.com",
+          ghlUserName: "Rep Two",
+        },
+      ],
+    });
+
+    expect(result).toEqual({ ok: true, data: { success: true } });
+    expect(repository.findOrgUserIds).toHaveBeenCalledWith("org-1", ["rep-1", "rep-2"]);
+    expect(repository.setGhlDefaultRep).toHaveBeenCalledWith("org-1", "rep-1");
+    expect(repository.upsertGhlUserMappings).toHaveBeenCalledWith({
+      orgId: "org-1",
+      locationId: "loc-1",
+      mappings: [
+        {
+          argosUserId: "rep-2",
+          ghlUserId: "ghl-user-2",
+          ghlUserEmail: "rep2@example.com",
+          ghlUserName: "Rep Two",
+        },
+      ],
+    });
   });
 });
