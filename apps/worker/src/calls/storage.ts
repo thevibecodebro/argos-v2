@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
-import { assertSafeStorageFileName } from "@argos-v2/call-processing";
+import { assertSafeStorageFileName, readBlobArrayBufferWithLimit } from "@argos-v2/call-processing";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getWorkerEnv, type WorkerEnv } from "../env";
 
@@ -51,8 +51,10 @@ export async function downloadSourceAsset(
     throw new Error(`Failed to download source asset: ${error?.message ?? "missing blob"}`);
   }
 
+  const bytes = Buffer.from(await readBlobArrayBufferWithLimit(data, env.maxSourceBytes));
+
   await mkdir(dirname(input.targetPath), { recursive: true });
-  await persistFile(input.targetPath, Buffer.from(await data.arrayBuffer()));
+  await persistFile(input.targetPath, bytes);
 
   return input.targetPath;
 }

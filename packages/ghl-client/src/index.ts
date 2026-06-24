@@ -1,7 +1,10 @@
+import { readResponseArrayBufferWithLimit } from "@argos-v2/call-processing";
+
 export const LEADCONNECTOR_BASE_URL = "https://services.leadconnectorhq.com";
 export const LEADCONNECTOR_API_VERSION = "2021-07-28";
 export const DEFAULT_LEADCONNECTOR_TIMEOUT_MS = 30_000;
 export const LEADCONNECTOR_RECORDING_TIMEOUT_MS = 120_000;
+export const LEADCONNECTOR_RECORDING_MAX_BYTES = 500 * 1024 * 1024;
 
 export type LeadConnectorMessage = {
   id: string;
@@ -23,12 +26,14 @@ type LeadConnectorClientInput = {
   accessToken: string;
   baseUrl?: string;
   fetcher?: typeof fetch;
+  maxRecordingBytes?: number;
   timeoutMs?: number;
 };
 
 type RequestOptions = {
   method?: "GET" | "POST";
   query?: Record<string, string | number | boolean | null | undefined>;
+  maxBytes?: number;
   timeoutMs?: number;
 };
 
@@ -45,6 +50,7 @@ export class LeadConnectorApiError extends Error {
 export function createLeadConnectorClient(input: LeadConnectorClientInput) {
   const baseUrl = input.baseUrl ?? LEADCONNECTOR_BASE_URL;
   const fetcher = input.fetcher ?? fetch;
+  const maxRecordingBytes = input.maxRecordingBytes ?? LEADCONNECTOR_RECORDING_MAX_BYTES;
   const timeoutMs = input.timeoutMs ?? DEFAULT_LEADCONNECTOR_TIMEOUT_MS;
 
   async function requestJson<T>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -71,7 +77,9 @@ export function createLeadConnectorClient(input: LeadConnectorClientInput) {
     }
 
     return {
-      arrayBuffer: await response.arrayBuffer(),
+      arrayBuffer: options.maxBytes
+        ? await readResponseArrayBufferWithLimit(response, options.maxBytes)
+        : await response.arrayBuffer(),
       contentType: response.headers.get("content-type"),
       contentDisposition: response.headers.get("content-disposition"),
     };
@@ -114,7 +122,10 @@ export function createLeadConnectorClient(input: LeadConnectorClientInput) {
     }): Promise<LeadConnectorRecording> => {
       const recording = await requestArrayBuffer(
         `/conversations/messages/${encodeURIComponent(recordingInput.messageId)}/locations/${encodeURIComponent(recordingInput.locationId)}/recording`,
-        { timeoutMs: LEADCONNECTOR_RECORDING_TIMEOUT_MS },
+        {
+          maxBytes: maxRecordingBytes,
+          timeoutMs: LEADCONNECTOR_RECORDING_TIMEOUT_MS,
+        },
       );
 
       return {

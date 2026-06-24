@@ -1,4 +1,6 @@
 import crypto from "node:crypto";
+import { readResponseArrayBufferWithLimit } from "@argos-v2/call-processing";
+import { CALL_UPLOAD_MAX_BYTES } from "@/lib/calls/upload-contract";
 import { storeZoomCallSource, type SourceAsset } from "@/lib/calls/ingestion-service";
 import type { CallRecordingStorage } from "@/lib/calls/service";
 import { checkRateLimitForPolicy, type RateLimitResult } from "@/lib/rate-limit/service";
@@ -385,7 +387,7 @@ async function fetchTrustedZoomRecordingDownload(input: {
       (response) =>
         isRedirectResponse(response) || !response.ok || !response.body
           ? Promise.resolve(null)
-          : response.arrayBuffer(),
+          : readResponseArrayBufferWithLimit(response, CALL_UPLOAD_MAX_BYTES),
     );
 
     if (!isRedirectResponse(result.response)) {

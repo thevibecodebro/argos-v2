@@ -11,6 +11,7 @@ import {
   processZoomWebhookRequest,
   type ZoomWebhookRepository,
 } from "./zoom-webhook";
+import { CALL_UPLOAD_MAX_BYTES } from "../calls/upload-contract";
 import type { RubricsRepository } from "../rubrics/service";
 
 function createRepository(
@@ -430,6 +431,107 @@ describe("processZoomWebhookRequest", () => {
         sourceContentType: "audio/mp4",
         sourceSizeBytes: 10,
       });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("rejects oversized Zoom recording downloads before buffering the provider body", async () => {
+    const readBody = vi.fn().mockResolvedValue(new ArrayBuffer(0));
+    const oversizedResponse = {
+      ok: true,
+      status: 200,
+      body: {},
+      headers: new Headers({
+        "Content-Length": String(CALL_UPLOAD_MAX_BYTES + 1),
+        "Content-Type": "audio/mp4",
+      }),
+      arrayBuffer: readBody,
+    } as unknown as Response;
+    const fetchMock = vi.fn().mockResolvedValue(oversizedResponse);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const storeSourceAsset = vi.fn().mockResolvedValue({
+      storageBucket: "call-recordings",
+      storagePath: "recordings/call-1/source/recording-1.m4a",
+      contentType: "audio/mp4",
+      fileSizeBytes: 0,
+    });
+    const rubricsRepository = createRubricsRepository({
+      findActiveRubricByOrgId: vi.fn().mockResolvedValue({
+        id: "rubric-1",
+        orgId: "org-1",
+        name: "Revenue Scorecard",
+        description: null,
+        sourceType: "manual",
+        status: "active",
+        version: 1,
+        createdAt: new Date("2026-04-17T00:00:00.000Z"),
+        publishedAt: new Date("2026-04-17T00:00:00.000Z"),
+      }),
+    });
+    const repository = createRepository({
+      createCall: vi.fn().mockResolvedValue({ id: "call-1" }),
+      createOrResetCallProcessingJob: vi.fn().mockResolvedValue(undefined),
+      findCallByZoomRecordingId: vi.fn().mockResolvedValue(null),
+      findPreferredCallOwner: vi.fn().mockResolvedValue({ id: "user-1" }),
+      findZoomIntegrationByAccountId: vi.fn().mockResolvedValue({
+        id: "zoom-integration-1",
+        orgId: "org-1",
+        webhookToken: null,
+        accessToken: "zoom-access",
+        refreshToken: "zoom-refresh",
+        tokenExpiresAt: new Date("2026-04-18T00:00:00.000Z"),
+      }),
+      updateCallRecording: vi.fn().mockResolvedValue(undefined),
+      updateCallRecordingStorage: vi.fn().mockResolvedValue(undefined),
+      updateCallStatus: vi.fn().mockResolvedValue(undefined),
+    });
+    const rawBody = JSON.stringify({
+      event: "recording.completed",
+      payload: {
+        account_id: "zoom-account-1",
+        object: {
+          id: "meeting-1",
+          topic: "Discovery call",
+          duration: 12,
+          recording_files: [
+            {
+              id: "recording-1",
+              recording_type: "audio_only",
+              download_url: "https://us02web.zoom.us/rec/download/audio.m4a",
+              file_extension: "m4a",
+              file_type: "M4A",
+            },
+          ],
+        },
+      },
+    });
+    const { signature, timestamp } = sign("webhook-secret", rawBody);
+
+    try {
+      await expect(
+        processZoomWebhookRequest(
+          repository,
+          {
+            headers: { signature, timestamp },
+            rawBody,
+            env: {
+              ZOOM_WEBHOOK_SECRET_TOKEN: "webhook-secret",
+            },
+          },
+          {
+            rubricsRepository,
+            storeSourceAsset,
+          },
+        ),
+      ).rejects.toThrow("Response body exceeds");
+
+      expect(readBody).not.toHaveBeenCalled();
+      expect(storeSourceAsset).not.toHaveBeenCalled();
+      expect(repository.updateCallRecordingStorage).not.toHaveBeenCalled();
+      expect(repository.createOrResetCallProcessingJob).not.toHaveBeenCalled();
+      expect(repository.updateCallStatus).toHaveBeenCalledWith("call-1", "failed");
     } finally {
       vi.unstubAllGlobals();
     }
