@@ -165,7 +165,7 @@ describe("processZoomWebhookRequest", () => {
           recording_files: [
             {
               id: "recording-1",
-              download_url: "https://zoom.example/download",
+              download_url: "https://us02web.zoom.us/rec/download/recording-1.m4a",
               file_extension: "M4A",
               file_type: "M4A",
               recording_type: "audio_only",
@@ -210,7 +210,7 @@ describe("processZoomWebhookRequest", () => {
           recording_files: [
             {
               id: "recording-1",
-              download_url: "https://example.com/audio.m4a",
+              download_url: "https://us02web.zoom.us/rec/download/audio.m4a",
               file_extension: "m4a",
               recording_type: "audio_only",
             },
@@ -262,7 +262,7 @@ describe("processZoomWebhookRequest", () => {
           recording_files: [
             {
               id: "recording-1",
-              download_url: "https://example.com/audio.m4a",
+              download_url: "https://us02web.zoom.us/rec/download/audio.m4a",
               file_extension: "m4a",
               recording_type: "audio_only",
             },
@@ -354,14 +354,14 @@ describe("processZoomWebhookRequest", () => {
             {
               id: "recording-1",
               recording_type: "shared_screen_with_speaker_view",
-              download_url: "https://example.com/video.mp4",
+              download_url: "https://us02web.zoom.us/rec/download/video.mp4",
               file_extension: "mp4",
               file_type: "MP4",
             },
             {
               id: "recording-1",
               recording_type: "audio_only",
-              download_url: "https://example.com/audio.m4a",
+              download_url: "https://us02web.zoom.us/rec/download/audio.m4a",
               file_extension: "m4a",
               file_type: "M4A",
             },
@@ -403,8 +403,9 @@ describe("processZoomWebhookRequest", () => {
         zoomMeetingId: "meeting-1",
         zoomRecordingId: "recording-1",
       });
-      expect(fetchMock).toHaveBeenCalledWith("https://example.com/audio.m4a", {
+      expect(fetchMock).toHaveBeenCalledWith("https://us02web.zoom.us/rec/download/audio.m4a", {
         headers: { Authorization: "Bearer zoom-access" },
+        redirect: "manual",
         signal: expect.any(AbortSignal),
       });
       expect(storeSourceAsset).toHaveBeenCalledWith({
@@ -429,6 +430,204 @@ describe("processZoomWebhookRequest", () => {
         sourceContentType: "audio/mp4",
         sourceSizeBytes: 10,
       });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("does not fetch or store provider recording URLs outside trusted Zoom hosts", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(Buffer.from("attacker-audio"), {
+        status: 200,
+        headers: {
+          "Content-Type": "audio/mp4",
+        },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const storeSourceAsset = vi.fn().mockResolvedValue({
+      storageBucket: "call-recordings",
+      storagePath: "recordings/call-1/source/recording-1.m4a",
+      contentType: "audio/mp4",
+      fileSizeBytes: 14,
+    });
+    const rubricsRepository = createRubricsRepository();
+    const repository = createRepository({
+      createCall: vi.fn().mockResolvedValue({ id: "call-1" }),
+      createOrResetCallProcessingJob: vi.fn().mockResolvedValue(undefined),
+      findCallByZoomRecordingId: vi.fn().mockResolvedValue(null),
+      findPreferredCallOwner: vi.fn().mockResolvedValue({ id: "user-1" }),
+      findZoomIntegrationByAccountId: vi.fn().mockResolvedValue({
+        id: "zoom-integration-1",
+        orgId: "org-1",
+        webhookToken: null,
+        accessToken: "zoom-access",
+        refreshToken: "zoom-refresh",
+        tokenExpiresAt: new Date("2026-04-18T00:00:00.000Z"),
+      }),
+      updateCallRecording: vi.fn().mockResolvedValue(undefined),
+      updateCallRecordingStorage: vi.fn().mockResolvedValue(undefined),
+      updateCallStatus: vi.fn().mockResolvedValue(undefined),
+    });
+    const rawBody = JSON.stringify({
+      event: "recording.completed",
+      payload: {
+        account_id: "zoom-account-1",
+        object: {
+          id: "meeting-1",
+          topic: "Discovery call",
+          duration: 12,
+          recording_files: [
+            {
+              id: "recording-1",
+              recording_type: "audio_only",
+              download_url: "https://attacker.example/audio.m4a",
+              file_extension: "m4a",
+              file_type: "M4A",
+            },
+          ],
+        },
+      },
+    });
+    const { signature, timestamp } = sign("webhook-secret", rawBody);
+
+    try {
+      const result = await processZoomWebhookRequest(
+        repository,
+        {
+          headers: { signature, timestamp },
+          rawBody,
+          env: {
+            ZOOM_WEBHOOK_SECRET_TOKEN: "webhook-secret",
+          },
+        },
+        {
+          rubricsRepository,
+          storeSourceAsset,
+        },
+      );
+
+      expect(result).toEqual({
+        status: 200,
+        body: { received: true },
+      });
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(repository.findCallByZoomRecordingId).not.toHaveBeenCalled();
+      expect(repository.createCall).not.toHaveBeenCalled();
+      expect(storeSourceAsset).not.toHaveBeenCalled();
+      expect(repository.updateCallRecordingStorage).not.toHaveBeenCalled();
+      expect(repository.createOrResetCallProcessingJob).not.toHaveBeenCalled();
+      expect(repository.updateCallStatus).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("follows trusted Zoom recording redirects without leaving the allowlist", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(null, {
+          status: 302,
+          headers: {
+            Location: "/rec/download/final-audio.m4a",
+          },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(Buffer.from("zoom-audio"), {
+          status: 200,
+          headers: {
+            "Content-Type": "audio/mp4",
+          },
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const storeSourceAsset = vi.fn().mockResolvedValue({
+      storageBucket: "call-recordings",
+      storagePath: "recordings/call-1/source/recording-1.m4a",
+      contentType: "audio/mp4",
+      fileSizeBytes: 10,
+    });
+    const rubricsRepository = createRubricsRepository();
+    const repository = createRepository({
+      createCall: vi.fn().mockResolvedValue({ id: "call-1" }),
+      createOrResetCallProcessingJob: vi.fn().mockResolvedValue(undefined),
+      findCallByZoomRecordingId: vi.fn().mockResolvedValue(null),
+      findPreferredCallOwner: vi.fn().mockResolvedValue({ id: "user-1" }),
+      findZoomIntegrationByAccountId: vi.fn().mockResolvedValue({
+        id: "zoom-integration-1",
+        orgId: "org-1",
+        webhookToken: null,
+        accessToken: "zoom-access",
+        refreshToken: "zoom-refresh",
+        tokenExpiresAt: new Date("2026-04-18T00:00:00.000Z"),
+      }),
+      updateCallRecording: vi.fn().mockResolvedValue(undefined),
+      updateCallRecordingStorage: vi.fn().mockResolvedValue(undefined),
+      updateCallStatus: vi.fn().mockResolvedValue(undefined),
+    });
+    const rawBody = JSON.stringify({
+      event: "recording.completed",
+      payload: {
+        account_id: "zoom-account-1",
+        object: {
+          id: "meeting-1",
+          topic: "Discovery call",
+          duration: 12,
+          recording_files: [
+            {
+              id: "recording-1",
+              recording_type: "audio_only",
+              download_url: "https://us02web.zoom.us/rec/download/audio.m4a",
+              file_extension: "m4a",
+              file_type: "M4A",
+            },
+          ],
+        },
+      },
+    });
+    const { signature, timestamp } = sign("webhook-secret", rawBody);
+
+    try {
+      const result = await processZoomWebhookRequest(
+        repository,
+        {
+          headers: { signature, timestamp },
+          rawBody,
+          env: {
+            ZOOM_WEBHOOK_SECRET_TOKEN: "webhook-secret",
+          },
+        },
+        {
+          rubricsRepository,
+          storeSourceAsset,
+        },
+      );
+
+      expect(result).toEqual({
+        status: 200,
+        body: { received: true },
+      });
+      expect(fetchMock).toHaveBeenNthCalledWith(1, "https://us02web.zoom.us/rec/download/audio.m4a", {
+        headers: { Authorization: "Bearer zoom-access" },
+        redirect: "manual",
+        signal: expect.any(AbortSignal),
+      });
+      expect(fetchMock).toHaveBeenNthCalledWith(2, "https://us02web.zoom.us/rec/download/final-audio.m4a", {
+        headers: { Authorization: "Bearer zoom-access" },
+        redirect: "manual",
+        signal: expect.any(AbortSignal),
+      });
+      expect(storeSourceAsset).toHaveBeenCalledWith({
+        bytes: Buffer.from("zoom-audio"),
+        callId: "call-1",
+        contentType: "audio/mp4",
+        fileName: "recording-1.m4a",
+      });
+      expect(repository.updateCallStatus).not.toHaveBeenCalled();
     } finally {
       vi.unstubAllGlobals();
     }
@@ -480,7 +679,7 @@ describe("processZoomWebhookRequest", () => {
             {
               id: "recording-1",
               recording_type: "audio_only",
-              download_url: "https://example.com/audio.m4a",
+              download_url: "https://us02web.zoom.us/rec/download/audio.m4a",
               file_extension: "m4a",
             },
           ],
@@ -515,7 +714,7 @@ describe("processZoomWebhookRequest", () => {
     }
   });
 
-  it("skips undownloadable fallback recordings when a later file can be fetched", async () => {
+  it("skips untrusted fallback recordings when a later trusted file can be fetched", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(Buffer.from("zoom-audio"), {
         status: 200,
@@ -561,12 +760,13 @@ describe("processZoomWebhookRequest", () => {
             {
               id: "recording-1",
               recording_type: "shared_screen_with_speaker_view",
+              download_url: "https://attacker.example/video.mp4",
               file_type: "MP4",
             },
             {
               id: "recording-1",
               recording_type: "speaker_view",
-              download_url: "https://example.com/video.mp4",
+              download_url: "https://us02web.zoom.us/rec/download/video.mp4",
               file_extension: "mp4",
               file_type: "MP4",
             },
@@ -592,8 +792,9 @@ describe("processZoomWebhookRequest", () => {
         },
       );
 
-      expect(fetchMock).toHaveBeenCalledWith("https://example.com/video.mp4", {
+      expect(fetchMock).toHaveBeenCalledWith("https://us02web.zoom.us/rec/download/video.mp4", {
         headers: { Authorization: "Bearer zoom-access" },
+        redirect: "manual",
         signal: expect.any(AbortSignal),
       });
     } finally {
@@ -622,7 +823,7 @@ describe("processZoomWebhookRequest", () => {
       payload: {
         account_id: "zoom-account-1",
         object: {
-          recording_files: [{ id: "recording-1", download_url: "https://example.com/audio.m4a" }],
+          recording_files: [{ id: "recording-1", download_url: "https://us02web.zoom.us/rec/download/audio.m4a" }],
         },
       },
     });
@@ -694,7 +895,7 @@ describe("processZoomWebhookRequest", () => {
             {
               id: "recording-1",
               recording_type: "audio_only",
-              download_url: "https://example.com/audio.m4a",
+              download_url: "https://us02web.zoom.us/rec/download/audio.m4a",
               file_extension: "m4a",
             },
           ],

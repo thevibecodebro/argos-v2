@@ -122,6 +122,11 @@ const COMPLETED_OR_ACTIVE_JOB_STATUSES: ReadonlySet<CallProcessingJobStatus> = n
   "complete",
 ]);
 const ZOOM_RECORDING_DOWNLOAD_TIMEOUT_MS = 120_000;
+const ZOOM_RECORDING_DOWNLOAD_MAX_REDIRECTS = 3;
+const TRUSTED_ZOOM_RECORDING_DOWNLOAD_HOSTS = [
+  "zoom.us",
+  "zoomgov.com",
+] as const;
 
 function rateLimitResultToWebhookResponse(result: RateLimitResult): ZoomWebhookResponse {
   return {
@@ -338,17 +343,16 @@ async function downloadRecording(input: {
     throw new Error("Zoom recording is missing a download URL");
   }
 
-  const { response, body: arrayBuffer } = await fetchWithTimeout<ArrayBuffer | null>(
-    input.downloadUrl,
-    {
-      headers: { Authorization: `Bearer ${input.accessToken}` },
-    },
-    ZOOM_RECORDING_DOWNLOAD_TIMEOUT_MS,
-    (response) =>
-      response.ok && response.body
-        ? response.arrayBuffer()
-        : Promise.resolve(null),
-  );
+  const downloadUrl = parseTrustedZoomRecordingDownloadUrl(input.downloadUrl);
+
+  if (!downloadUrl) {
+    throw new Error("Zoom recording download URL is not trusted");
+  }
+
+  const { response, body: arrayBuffer } = await fetchTrustedZoomRecordingDownload({
+    accessToken: input.accessToken,
+    downloadUrl,
+  });
 
   if (!response.ok || !response.body) {
     throw new Error(`Zoom recording download failed with status ${response.status}`);
@@ -364,6 +368,53 @@ async function downloadRecording(input: {
   };
 }
 
+async function fetchTrustedZoomRecordingDownload(input: {
+  accessToken: string;
+  downloadUrl: URL;
+}) {
+  let downloadUrl = input.downloadUrl;
+
+  for (let redirectCount = 0; redirectCount <= ZOOM_RECORDING_DOWNLOAD_MAX_REDIRECTS; redirectCount += 1) {
+    const result = await fetchWithTimeout<ArrayBuffer | null>(
+      downloadUrl.href,
+      {
+        headers: { Authorization: `Bearer ${input.accessToken}` },
+        redirect: "manual",
+      },
+      ZOOM_RECORDING_DOWNLOAD_TIMEOUT_MS,
+      (response) =>
+        isRedirectResponse(response) || !response.ok || !response.body
+          ? Promise.resolve(null)
+          : response.arrayBuffer(),
+    );
+
+    if (!isRedirectResponse(result.response)) {
+      return result;
+    }
+
+    if (redirectCount === ZOOM_RECORDING_DOWNLOAD_MAX_REDIRECTS) {
+      throw new Error("Zoom recording download redirected too many times");
+    }
+
+    const nextUrl = parseTrustedZoomRecordingDownloadRedirect(
+      result.response.headers.get("location"),
+      downloadUrl,
+    );
+
+    if (!nextUrl) {
+      throw new Error("Zoom recording download redirect URL is not trusted");
+    }
+
+    downloadUrl = nextUrl;
+  }
+
+  throw new Error("Zoom recording download redirected too many times");
+}
+
+function isRedirectResponse(response: Response) {
+  return response.status >= 300 && response.status < 400;
+}
+
 function safeParseJson(value: string): ZoomWebhookPayload | null {
   try {
     return JSON.parse(value) as ZoomWebhookPayload;
@@ -376,11 +427,61 @@ function pickPreferredRecording(
   files: ZoomRecordingFile[],
 ) {
   return (
-    files.find((file) => file.recording_type === "audio_only" && file.file_extension?.toLowerCase() === "m4a" && file.download_url) ??
-    files.find((file) => file.file_extension?.toLowerCase() === "m4a" && file.download_url) ??
-    files.find((file) => file.file_type?.toLowerCase() === "mp4" && file.download_url) ??
-    files.find((file) => file.download_url)
+    files.find((file) => file.recording_type === "audio_only" && file.file_extension?.toLowerCase() === "m4a" && hasTrustedZoomRecordingDownloadUrl(file)) ??
+    files.find((file) => file.file_extension?.toLowerCase() === "m4a" && hasTrustedZoomRecordingDownloadUrl(file)) ??
+    files.find((file) => file.file_type?.toLowerCase() === "mp4" && hasTrustedZoomRecordingDownloadUrl(file)) ??
+    files.find((file) => hasTrustedZoomRecordingDownloadUrl(file))
   );
+}
+
+function hasTrustedZoomRecordingDownloadUrl(file: ZoomRecordingFile) {
+  return Boolean(parseTrustedZoomRecordingDownloadUrl(file.download_url ?? null));
+}
+
+function parseTrustedZoomRecordingDownloadUrl(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return null;
+  }
+
+  if (
+    url.protocol !== "https:" ||
+    url.username ||
+    url.password ||
+    url.port
+  ) {
+    return null;
+  }
+
+  const hostname = url.hostname.toLowerCase();
+  const isTrustedHost = TRUSTED_ZOOM_RECORDING_DOWNLOAD_HOSTS.some(
+    (host) => hostname === host || hostname.endsWith(`.${host}`),
+  );
+
+  return isTrustedHost ? url : null;
+}
+
+function parseTrustedZoomRecordingDownloadRedirect(
+  location: string | null,
+  currentUrl: URL,
+) {
+  if (!location) {
+    return null;
+  }
+
+  try {
+    return parseTrustedZoomRecordingDownloadUrl(
+      new URL(location, currentUrl).href,
+    );
+  } catch {
+    return null;
+  }
 }
 
 function verifyZoomWebhookSignature(input: {
