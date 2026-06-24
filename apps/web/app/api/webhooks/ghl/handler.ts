@@ -8,13 +8,17 @@ import {
 import { readRequestTextWithLimit } from "@/lib/security/request-body";
 
 const MAX_GHL_WEBHOOK_BODY_BYTES = 128 * 1024;
+const PUBLIC_WEBHOOK_RATE_LIMIT_SUBJECT = {
+  type: "route",
+  id: "public",
+} as const;
 
 export async function processGhlWebhookPost(request: Request, token: string | null) {
   try {
-    const rateLimit = await checkRateLimitForPolicy("ghlWebhook", {
-      type: "ip",
-      id: getWebhookClientIp(request),
-    });
+    const rateLimit = await checkRateLimitForPolicy(
+      "ghlWebhook",
+      PUBLIC_WEBHOOK_RATE_LIMIT_SUBJECT,
+    );
 
     if (!rateLimit.allowed) {
       return rateLimitExceededResponse(rateLimit);
@@ -45,28 +49,4 @@ export async function processGhlWebhookPost(request: Request, token: string | nu
       { status: 500 },
     );
   }
-}
-
-function getWebhookClientIp(request: Request) {
-  const vercelForwardedFor = request.headers.get("x-vercel-forwarded-for");
-  const vercelIp = vercelForwardedFor?.split(",")[0]?.trim();
-
-  if (vercelIp) {
-    return vercelIp;
-  }
-
-  const realIp = request.headers.get("x-real-ip")?.trim();
-
-  if (realIp) {
-    return realIp;
-  }
-
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  const forwardedIp = forwardedFor?.split(",")[0]?.trim();
-
-  if (forwardedIp) {
-    return forwardedIp;
-  }
-
-  return "unknown";
 }

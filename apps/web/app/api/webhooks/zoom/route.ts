@@ -10,37 +10,17 @@ import { readRequestTextWithLimit } from "@/lib/security/request-body";
 export const dynamic = "force-dynamic";
 
 const MAX_ZOOM_WEBHOOK_BODY_BYTES = 128 * 1024;
-
-function getWebhookClientIp(request: Request) {
-  const vercelForwardedFor = request.headers.get("x-vercel-forwarded-for");
-  const vercelIp = vercelForwardedFor?.split(",")[0]?.trim();
-
-  if (vercelIp) {
-    return vercelIp;
-  }
-
-  const realIp = request.headers.get("x-real-ip")?.trim();
-
-  if (realIp) {
-    return realIp;
-  }
-
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  const forwardedIp = forwardedFor?.split(",")[0]?.trim();
-
-  if (forwardedIp) {
-    return forwardedIp;
-  }
-
-  return "unknown";
-}
+const PUBLIC_WEBHOOK_RATE_LIMIT_SUBJECT = {
+  type: "route",
+  id: "public",
+} as const;
 
 export async function POST(request: Request) {
   try {
-    const rateLimit = await checkRateLimitForPolicy("zoomWebhook", {
-      type: "ip",
-      id: getWebhookClientIp(request),
-    });
+    const rateLimit = await checkRateLimitForPolicy(
+      "zoomWebhook",
+      PUBLIC_WEBHOOK_RATE_LIMIT_SUBJECT,
+    );
 
     if (!rateLimit.allowed) {
       return rateLimitExceededResponse(rateLimit);

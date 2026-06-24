@@ -73,8 +73,49 @@ describe("GHL webhook route", () => {
       },
     );
     expect(checkRateLimitForPolicy).toHaveBeenCalledWith("ghlWebhook", {
-      type: "ip",
-      id: "198.51.100.22",
+      type: "route",
+      id: "public",
+    });
+  });
+
+  it("does not derive the pre-auth rate-limit subject from forwarding headers", async () => {
+    const route = await import("../app/api/webhooks/ghl/route");
+    const body = JSON.stringify({ type: "InboundMessage" });
+
+    const firstResponse = await route.POST(
+      new Request("http://localhost:3100/api/webhooks/leadconnector", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-forwarded-for": "203.0.113.10, 10.0.0.1",
+          "x-real-ip": "198.51.100.1",
+          "x-vercel-forwarded-for": "198.51.100.22, 10.0.0.2",
+        },
+        body,
+      }),
+    );
+    const secondResponse = await route.POST(
+      new Request("http://localhost:3100/api/webhooks/leadconnector", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-forwarded-for": "203.0.113.250, 10.0.0.1",
+          "x-real-ip": "198.51.100.99",
+          "x-vercel-forwarded-for": "198.51.100.44, 10.0.0.2",
+        },
+        body,
+      }),
+    );
+
+    expect(firstResponse.status).toBe(200);
+    expect(secondResponse.status).toBe(200);
+    expect(checkRateLimitForPolicy).toHaveBeenNthCalledWith(1, "ghlWebhook", {
+      type: "route",
+      id: "public",
+    });
+    expect(checkRateLimitForPolicy).toHaveBeenNthCalledWith(2, "ghlWebhook", {
+      type: "route",
+      id: "public",
     });
   });
 

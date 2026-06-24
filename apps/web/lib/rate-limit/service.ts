@@ -22,7 +22,7 @@ export type RateLimitPolicyName =
   | "roleplayRealtime";
 
 export type RateLimitSubject = {
-  type: "org" | "user" | "ip";
+  type: "org" | "user" | "ip" | "route";
   id: string;
 };
 
