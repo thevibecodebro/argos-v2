@@ -70,6 +70,31 @@ describe("storeManualCallSource", () => {
       ),
     ).rejects.toThrow("Failed to store source recording: bucket unavailable");
   });
+
+  it("rejects path-like filenames before storing source recordings", async () => {
+    const upload = vi.fn().mockResolvedValue({ error: null });
+    const from = vi.fn().mockReturnValue({ upload });
+
+    await expect(
+      storeManualCallSource(
+        {
+          callId: "call-1",
+          bytes: Buffer.from("audio"),
+          contentType: "audio/mpeg",
+          fileName: "../demo.mp3",
+        },
+        {
+          supabase: {
+            storage: {
+              from,
+            },
+          } as any,
+        },
+      ),
+    ).rejects.toThrow("Invalid recording filename.");
+
+    expect(upload).not.toHaveBeenCalled();
+  });
 });
 
 describe("createManualCallUploadTarget", () => {
@@ -134,5 +159,32 @@ describe("createManualCallUploadTarget", () => {
         },
       ),
     ).rejects.toThrow("Failed to create source upload target: signing unavailable");
+  });
+
+  it("rejects path-like filenames before creating signed upload targets", async () => {
+    const createSignedUploadUrl = vi.fn().mockResolvedValue({
+      data: { token: "signed-token" },
+      error: null,
+    });
+    const from = vi.fn().mockReturnValue({ createSignedUploadUrl });
+
+    await expect(
+      createManualCallUploadTarget(
+        {
+          authUserId: "auth-user-1",
+          fileName: "nested/demo.mp3",
+        },
+        {
+          createId: () => "upload-1",
+          supabase: {
+            storage: {
+              from,
+            },
+          } as any,
+        },
+      ),
+    ).rejects.toThrow("Invalid recording filename.");
+
+    expect(createSignedUploadUrl).not.toHaveBeenCalled();
   });
 });

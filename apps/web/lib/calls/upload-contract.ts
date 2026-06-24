@@ -1,3 +1,5 @@
+import { isSafeStorageFileName } from "@argos-v2/call-processing";
+
 export const CALL_UPLOAD_MAX_BYTES = 500 * 1024 * 1024;
 
 export const CALL_UPLOAD_ACCEPTED_TYPES = [
@@ -58,6 +60,10 @@ export function formatUploadLimit(bytes: number) {
 }
 
 export function isAcceptedUploadFile(file: UploadFileLike) {
+  if (!isSafeStorageFileName(file.name)) {
+    return false;
+  }
+
   if (CALL_UPLOAD_ACCEPTED_TYPES.includes(file.type as (typeof CALL_UPLOAD_ACCEPTED_TYPES)[number])) {
     return true;
   }
@@ -67,6 +73,14 @@ export function isAcceptedUploadFile(file: UploadFileLike) {
 }
 
 export function validateUploadFile(file: UploadFileLike): UploadErrorPayload | null {
+  if (!isSafeStorageFileName(file.name)) {
+    return createUploadError("invalid_upload", {
+      error: "The recording filename is not supported.",
+      retryable: true,
+      action: "Rename the recording file and try again.",
+    });
+  }
+
   if (!isAcceptedUploadFile(file)) {
     return {
       code: "unsupported_file_type",

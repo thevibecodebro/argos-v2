@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { assertSafeStorageFileName } from "@argos-v2/call-processing";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export type SourceAsset = {
@@ -33,7 +34,8 @@ export async function storeCallSourceAsset(
   dependencies: StoreCallSourceDependencies = {},
 ): Promise<SourceAsset> {
   const supabase = dependencies.supabase ?? createSupabaseAdminClient();
-  const storagePath = `recordings/${input.callId}/source/${input.fileName}`;
+  const fileName = assertSafeStorageFileName(input.fileName);
+  const storagePath = `recordings/${input.callId}/source/${fileName}`;
 
   const { error } = await supabase.storage.from("call-recordings").upload(storagePath, input.bytes, {
     contentType: input.contentType ?? "application/octet-stream",
@@ -61,7 +63,8 @@ export async function createManualCallUploadTarget(
 ): Promise<ManualCallUploadTarget> {
   const supabase = dependencies.supabase ?? createSupabaseAdminClient();
   const createId = dependencies.createId ?? randomUUID;
-  const storagePath = `recordings/manual-uploads/${input.authUserId}/${createId()}/${input.fileName}`;
+  const fileName = assertSafeStorageFileName(input.fileName);
+  const storagePath = `recordings/manual-uploads/${input.authUserId}/${createId()}/${fileName}`;
   const bucket = supabase.storage.from("call-recordings");
   const { data, error } = await bucket.createSignedUploadUrl(storagePath, {
     upsert: true,

@@ -157,4 +157,63 @@ describe("processGhlCallImport", () => {
       reason: "consent_missing",
     });
   });
+
+  it("skips imports with path-like provider recording filenames before creating calls", async () => {
+    const repository = createRepository({
+      findGhlIntegrationForImport: vi.fn().mockResolvedValue({
+        orgId: "org-1",
+        locationId: "loc-1",
+        accessToken: "ghl-access",
+        refreshToken: "ghl-refresh",
+        tokenExpiresAt: new Date("2026-06-18T13:00:00.000Z"),
+        syncEnabled: true,
+        consentConfirmedAt: new Date("2026-06-18T12:00:00.000Z"),
+        defaultRepId: "fallback-rep-1",
+      }),
+      findArgosUserIdForGhlUser: vi.fn().mockResolvedValue("rep-1"),
+      createCallForGhlImport: vi.fn().mockResolvedValue({ id: "call-1" }),
+    });
+    const storeSourceAsset = vi.fn();
+
+    await processGhlCallImport({
+      importRecord: {
+        id: "import-1",
+        orgId: "org-1",
+        locationId: "loc-1",
+        messageId: "msg-1",
+        conversationId: "conv-1",
+        contactId: null,
+        ghlUserId: "ghl-user-1",
+        callId: null,
+        status: "running",
+        attemptCount: 1,
+        maxAttempts: 3,
+      },
+      repository,
+      leadConnector: {
+        getMessage: vi.fn().mockResolvedValue({
+          id: "msg-1",
+          conversationId: "conv-1",
+          contactId: "contact-1",
+          userId: "ghl-user-1",
+          direction: "outbound",
+          type: "CALL",
+          dateAdded: "2026-06-18T12:00:00.000Z",
+        }),
+        downloadMessageRecording: vi.fn().mockResolvedValue({
+          bytes: Buffer.from("wav audio"),
+          contentType: "audio/x-wav",
+          fileName: "../msg-1.wav",
+        }),
+      },
+      storeSourceAsset,
+      getActiveRubricId: vi.fn().mockResolvedValue("rubric-1"),
+    });
+
+    expect(repository.markGhlCallImportSkipped).toHaveBeenCalledWith("import-1", {
+      reason: "invalid_recording_filename",
+    });
+    expect(repository.createCallForGhlImport).not.toHaveBeenCalled();
+    expect(storeSourceAsset).not.toHaveBeenCalled();
+  });
 });
