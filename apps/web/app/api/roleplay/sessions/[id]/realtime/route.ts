@@ -1,6 +1,6 @@
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { DrizzleBillingRepository } from "@/lib/billing/repository";
-import { getVoiceEntitlementStatus } from "@/lib/billing/voice-entitlements";
+import { consumeVoiceMinutes, getVoiceEntitlementStatus } from "@/lib/billing/voice-entitlements";
 import { unauthorizedJson } from "@/lib/http";
 import {
   checkRateLimitForPolicy,
@@ -136,6 +136,24 @@ export async function POST(
     return Response.json({ error: sessionResult.error }, { status: sessionResult.status });
   }
 
+  let reservedMinutesSettled = 0;
+  const firstVoiceStart = !sessionResult.data.voiceStartedAt;
+
+  if (firstVoiceStart) {
+    const reservation = await consumeVoiceMinutes(billingRepository, authUser.id, {
+      idempotencyKey: `roleplay:${id}:start`,
+      minutes: 1,
+      sessionId: id,
+      source: "roleplay_realtime",
+    });
+
+    if (!reservation.ok) {
+      return serviceErrorResponse(reservation);
+    }
+
+    reservedMinutesSettled = reservation.data.minutesDebited;
+  }
+
   try {
     const realtime = await createRealtimeCall({
       instructions: buildRoleplayRealtimeInstructions(sessionResult.data),
@@ -148,6 +166,7 @@ export async function POST(
       authUser.id,
       id,
       new Date(),
+      { reservedMinutesSettled },
     );
 
     if (!markStartedResult.ok) {

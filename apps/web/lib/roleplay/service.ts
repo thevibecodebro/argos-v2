@@ -42,7 +42,13 @@ export type RoleplayRepository = {
   findSessionById(sessionId: string): Promise<RoleplaySessionRecord | null>;
   findSessionsByOrgId(orgId: string): Promise<RoleplaySessionRecord[]>;
   findSessionsByRepId(repId: string): Promise<RoleplaySessionRecord[]>;
-  markVoiceStarted(sessionId: string, startedAt: Date): Promise<RoleplaySessionRecord>;
+  markVoiceStarted(
+    sessionId: string,
+    startedAt: Date,
+    input?: {
+      reservedMinutesSettled?: number;
+    },
+  ): Promise<RoleplaySessionRecord>;
   settleVoiceUsage(
     sessionId: string,
     input: {
@@ -996,6 +1002,9 @@ export async function markRoleplayVoiceStarted(
   authUserId: string,
   sessionId: string,
   startedAt: Date = new Date(),
+  input: {
+    reservedMinutesSettled?: number;
+  } = {},
 ): Promise<ServiceResult<RoleplaySession>> {
   const sessionResult = await getAuthorizedSession(repository, authUserId, sessionId);
 
@@ -1018,7 +1027,10 @@ export async function markRoleplayVoiceStarted(
     };
   }
 
-  const updated = await repository.markVoiceStarted(sessionId, startedAt);
+  const reservedMinutesSettled = Math.max(0, Math.ceil(input.reservedMinutesSettled ?? 0));
+  const updated = reservedMinutesSettled > 0
+    ? await repository.markVoiceStarted(sessionId, startedAt, { reservedMinutesSettled })
+    : await repository.markVoiceStarted(sessionId, startedAt);
 
   return {
     ok: true,
@@ -1073,26 +1085,34 @@ export async function settleRoleplayVoiceUsage(
 
   const completedAt = input.now?.() ?? new Date();
   const elapsedMs = completedAt.getTime() - session.voiceStartedAt.getTime();
-  const minutesSettled = Math.max(1, Math.ceil(elapsedMs / 60_000));
-  const consumption = await input.consumeVoiceMinutes(authUserId, {
-    idempotencyKey: `roleplay:${sessionId}:complete`,
-    minutes: minutesSettled,
-    sessionId,
-    source: "roleplay_realtime",
-  });
+  const elapsedMinutes = Math.max(1, Math.ceil(elapsedMs / 60_000));
+  const alreadySettledMinutes = Math.max(0, Math.ceil(session.voiceMinutesSettled ?? 0));
+  const additionalMinutes = Math.max(0, elapsedMinutes - alreadySettledMinutes);
+  let totalMinutesSettled = Math.max(alreadySettledMinutes, elapsedMinutes);
 
-  if (!consumption.ok) {
-    return {
-      ok: false,
-      status: consumption.status,
-      code: consumption.code,
-      error: consumption.error,
-    };
+  if (additionalMinutes > 0) {
+    const consumption = await input.consumeVoiceMinutes(authUserId, {
+      idempotencyKey: `roleplay:${sessionId}:complete`,
+      minutes: additionalMinutes,
+      sessionId,
+      source: "roleplay_realtime",
+    });
+
+    if (!consumption.ok) {
+      return {
+        ok: false,
+        status: consumption.status,
+        code: consumption.code,
+        error: consumption.error,
+      };
+    }
+
+    totalMinutesSettled = alreadySettledMinutes + consumption.data.minutesDebited;
   }
 
   const updated = await repository.settleVoiceUsage(sessionId, {
     completedAt,
-    minutesSettled: consumption.data.minutesDebited,
+    minutesSettled: totalMinutesSettled,
   });
 
   return {

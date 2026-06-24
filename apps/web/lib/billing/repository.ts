@@ -196,6 +196,18 @@ export class DrizzleBillingRepository implements BillingWebhookRepository, Voice
       .where(eq(voiceCreditGrantsTable.id, grantId));
   }
 
+  async findVoiceUsageEventByIdempotencyKey(idempotencyKey: string) {
+    const [event] = await this.db
+      .select({
+        minutesDebited: voiceUsageEventsTable.minutesDebited,
+      })
+      .from(voiceUsageEventsTable)
+      .where(eq(voiceUsageEventsTable.idempotencyKey, idempotencyKey))
+      .limit(1);
+
+    return event ?? null;
+  }
+
   async insertVoiceUsageEvent(input: {
     idempotencyKey: string;
     minutesDebited: number;
