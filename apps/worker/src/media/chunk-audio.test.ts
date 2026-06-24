@@ -48,6 +48,8 @@ describe("chunkAudioFile", () => {
         "300",
         "-acodec",
         "copy",
+        "-fs",
+        String(24 * 1024 * 1024),
         "/tmp/call.mp3.part-0.mp3",
       ],
     );

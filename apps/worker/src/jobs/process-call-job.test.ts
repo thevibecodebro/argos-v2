@@ -70,6 +70,14 @@ describe("processCallJob", () => {
     });
 
     expect(repository.updateCallStatus).toHaveBeenNthCalledWith(1, "call-1", "transcribing");
+    expect(normalizeAudio).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ffmpegBinary: expect.any(String),
+        inputPath: "/tmp/source.mp4",
+        maxOutputBytes: 500 * 1024 * 1024,
+        outputPath: expect.stringMatching(/normalized\.mp3$/),
+      }),
+    );
     expect(repository.updateCallStatus).toHaveBeenNthCalledWith(2, "call-1", "evaluating");
     expect(repository.setCallEvaluation).toHaveBeenCalledWith(
       "call-1",

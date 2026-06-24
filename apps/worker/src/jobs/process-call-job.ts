@@ -216,6 +216,7 @@ export async function processCallJob(input: ProcessCallJobInput) {
       inputPath: downloadedSourcePath,
       outputPath: normalizedPath,
       ffmpegBinary,
+      maxOutputBytes: env.maxSourceBytes,
     });
 
     const transcription = await transcribeNormalizedAudio({
