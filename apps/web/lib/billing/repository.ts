@@ -11,7 +11,11 @@ import {
   type ArgosDb,
 } from "@argos-v2/db";
 import type { BillingWebhookRepository, StripeWebhookEvent } from "./webhook-service";
-import type { VoiceEntitlementsRepository } from "./voice-entitlements";
+import type {
+  ConsumeVoiceMinutesInput,
+  ConsumeVoiceMinutesResult,
+  VoiceEntitlementsRepository,
+} from "./voice-entitlements";
 
 function buildFullName(firstName: string | null, lastName: string | null, email: string) {
   return [firstName, lastName].filter(Boolean).join(" ").trim() || email;
@@ -196,8 +200,145 @@ export class DrizzleBillingRepository implements BillingWebhookRepository, Voice
       .where(eq(voiceCreditGrantsTable.id, grantId));
   }
 
+  async consumeVoiceMinutesAtomically(
+    input: ConsumeVoiceMinutesInput,
+  ): Promise<ConsumeVoiceMinutesResult> {
+    return this.db.transaction(async (tx) => {
+      const existingUsage = await this.findVoiceUsageEventByIdempotencyKeyIn(
+        tx,
+        input.idempotencyKey,
+      );
+
+      if (existingUsage) {
+        return {
+          ok: true as const,
+          data: {
+            minutesDebited: existingUsage.minutesDebited,
+          },
+        };
+      }
+
+      const ownerCondition = input.orgId
+        ? eq(voiceCreditGrantsTable.orgId, input.orgId)
+        : and(eq(voiceCreditGrantsTable.userId, input.userId), isNull(voiceCreditGrantsTable.orgId));
+
+      const grants = await tx
+        .select({
+          id: voiceCreditGrantsTable.id,
+          minutesRemaining: voiceCreditGrantsTable.minutesRemaining,
+          sourceType: voiceCreditGrantsTable.sourceType,
+        })
+        .from(voiceCreditGrantsTable)
+        .where(
+          and(
+            ownerCondition,
+            eq(voiceCreditGrantsTable.status, "active"),
+            gt(voiceCreditGrantsTable.minutesRemaining, 0),
+            or(isNull(voiceCreditGrantsTable.expiresAt), gt(voiceCreditGrantsTable.expiresAt, new Date())),
+          ),
+        )
+        .orderBy(
+          sql`case when ${voiceCreditGrantsTable.sourceType} = 'extra_pack' then 1 else 0 end`,
+          desc(voiceCreditGrantsTable.createdAt),
+        )
+        .for("update");
+
+      const usageAfterGrantLock = await this.findVoiceUsageEventByIdempotencyKeyIn(
+        tx,
+        input.idempotencyKey,
+      );
+
+      if (usageAfterGrantLock) {
+        return {
+          ok: true as const,
+          data: {
+            minutesDebited: usageAfterGrantLock.minutesDebited,
+          },
+        };
+      }
+
+      const availableMinutes = grants.reduce(
+        (sum, grant) => sum + Math.max(0, grant.minutesRemaining),
+        0,
+      );
+
+      if (availableMinutes < input.minutes) {
+        return {
+          ok: false as const,
+          status: 402,
+          code: "voice_minutes_exhausted",
+          error: "No live voice minutes are available for this workspace.",
+        };
+      }
+
+      const [usageEvent] = await tx
+        .insert(voiceUsageEventsTable)
+        .values({
+          idempotencyKey: input.idempotencyKey,
+          minutesDebited: input.minutes,
+          orgId: input.orgId,
+          sessionId: input.sessionId,
+          source: input.source,
+          userId: input.userId,
+        })
+        .onConflictDoNothing()
+        .returning({ minutesDebited: voiceUsageEventsTable.minutesDebited });
+
+      if (!usageEvent) {
+        const duplicateUsage = await this.findVoiceUsageEventByIdempotencyKeyIn(
+          tx,
+          input.idempotencyKey,
+        );
+
+        if (duplicateUsage) {
+          return {
+            ok: true as const,
+            data: {
+              minutesDebited: duplicateUsage.minutesDebited,
+            },
+          };
+        }
+
+        throw new Error("Voice usage event conflict could not be resolved.");
+      }
+
+      let remaining = input.minutes;
+      for (const grant of grants) {
+        if (remaining <= 0) {
+          break;
+        }
+
+        const debit = Math.min(remaining, grant.minutesRemaining);
+        await tx
+          .update(voiceCreditGrantsTable)
+          .set({
+            minutesRemaining: sql`greatest(${voiceCreditGrantsTable.minutesRemaining} - ${debit}, 0)`,
+            status: sql`case when ${voiceCreditGrantsTable.minutesRemaining} - ${debit} <= 0 then 'depleted' else ${voiceCreditGrantsTable.status} end`,
+            updatedAt: new Date(),
+          })
+          .where(eq(voiceCreditGrantsTable.id, grant.id));
+
+        remaining -= debit;
+      }
+
+      return {
+        ok: true as const,
+        data: {
+          minutesDebited: input.minutes,
+        },
+      };
+    });
+  }
+
   async findVoiceUsageEventByIdempotencyKey(idempotencyKey: string) {
-    const [event] = await this.db
+    return this.findVoiceUsageEventByIdempotencyKeyIn(this.db, idempotencyKey);
+  }
+
+  private async findVoiceUsageEventByIdempotencyKeyIn(
+    db: Pick<ArgosDb, "select">,
+    idempotencyKey: string,
+  ) {
+    const [event] = await db
       .select({
         minutesDebited: voiceUsageEventsTable.minutesDebited,
       })

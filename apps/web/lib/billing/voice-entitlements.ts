@@ -4,27 +4,41 @@ export type VoiceCreditGrant = {
   sourceType?: "subscription_included" | "extra_pack";
 };
 
+type VoiceUsageSource = "roleplay_realtime" | "roleplay_tts";
+
+export type ConsumeVoiceMinutesInput = {
+  idempotencyKey: string;
+  minutes: number;
+  orgId: string | null;
+  sessionId: string | null;
+  source: VoiceUsageSource;
+  userId: string;
+};
+
+export type ConsumeVoiceMinutesResult =
+  | {
+      ok: true;
+      data: {
+        minutesDebited: number;
+      };
+    }
+  | {
+      ok: false;
+      status: 402;
+      code: "voice_minutes_exhausted";
+      error: string;
+    };
+
 export type VoiceEntitlementsRepository = {
-  consumeVoiceCreditGrant(grantId: string, minutes: number): Promise<void>;
+  consumeVoiceMinutesAtomically(input: ConsumeVoiceMinutesInput): Promise<ConsumeVoiceMinutesResult>;
   findActiveVoiceCreditGrants(input: {
     orgId: string | null;
     userId: string;
   }): Promise<VoiceCreditGrant[]>;
-  findVoiceUsageEventByIdempotencyKey?(
-    idempotencyKey: string,
-  ): Promise<{ minutesDebited: number } | null>;
   findUserBillingScope(authUserId: string): Promise<{
     orgId: string | null;
     userId: string;
   } | null>;
-  insertVoiceUsageEvent(input: {
-    idempotencyKey: string;
-    minutesDebited: number;
-    orgId: string | null;
-    sessionId: string | null;
-    source: "roleplay_realtime" | "roleplay_tts";
-    userId: string;
-  }): Promise<void>;
 };
 
 export async function getVoiceEntitlementStatus(
@@ -74,7 +88,7 @@ export async function consumeVoiceMinutes(
     idempotencyKey: string;
     minutes: number;
     sessionId?: string | null;
-    source: "roleplay_realtime" | "roleplay_tts";
+    source: VoiceUsageSource;
   },
 ) {
   const scope = await repository.findUserBillingScope(authUserId);
@@ -89,62 +103,12 @@ export async function consumeVoiceMinutes(
   }
 
   const minutes = Math.max(1, Math.ceil(input.minutes));
-  const existingUsage = await repository.findVoiceUsageEventByIdempotencyKey?.(
-    input.idempotencyKey,
-  );
-
-  if (existingUsage) {
-    return {
-      ok: true as const,
-      data: {
-        minutesDebited: existingUsage.minutesDebited,
-      },
-    };
-  }
-
-  const grants = await repository.findActiveVoiceCreditGrants(scope);
-  const sortedGrants = grants
-    .filter((grant) => grant.minutesRemaining > 0)
-    .sort((a, b) => getGrantPriority(a) - getGrantPriority(b));
-  const availableMinutes = sortedGrants.reduce((sum, grant) => sum + grant.minutesRemaining, 0);
-
-  if (availableMinutes < minutes) {
-    return {
-      ok: false as const,
-      status: 402,
-      code: "voice_minutes_exhausted",
-      error: "No live voice minutes are available for this workspace.",
-    };
-  }
-
-  let remaining = minutes;
-  for (const grant of sortedGrants) {
-    if (remaining <= 0) {
-      break;
-    }
-
-    const debit = Math.min(remaining, grant.minutesRemaining);
-    await repository.consumeVoiceCreditGrant(grant.id, debit);
-    remaining -= debit;
-  }
-
-  await repository.insertVoiceUsageEvent({
+  return repository.consumeVoiceMinutesAtomically({
     idempotencyKey: input.idempotencyKey,
-    minutesDebited: minutes,
+    minutes,
     orgId: scope.orgId,
     sessionId: input.sessionId ?? null,
     source: input.source,
     userId: scope.userId,
   });
-
-  return {
-    ok: true as const,
-    data: {
-      minutesDebited: minutes,
-    },
-  };
-}
-
-function getGrantPriority(grant: VoiceCreditGrant) {
-  return grant.sourceType === "extra_pack" ? 1 : 0;
 }
