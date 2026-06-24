@@ -134,6 +134,47 @@ describe("getWorkerEnv", () => {
     }).openaiApiKey).toBe("call-processing-openai-key");
   });
 
+  it("requires production identity labels before enabling privileged worker clients", () => {
+    expect(() =>
+      getWorkerEnv({
+        ...callProcessingEnv,
+        APP_ENV: "production",
+        CALL_PROCESSING_ENABLED: "true",
+        DATABASE_ENVIRONMENT: "preview",
+        OPENAI_ENVIRONMENT: "production",
+        SUPABASE_ENVIRONMENT: "production",
+      }),
+    ).toThrow("DATABASE_ENVIRONMENT=production");
+
+    expect(() =>
+      getWorkerEnv({
+        ...callProcessingEnv,
+        APP_ENV: "production",
+        CALL_PROCESSING_ENABLED: "true",
+        DATABASE_ENVIRONMENT: "production",
+        OPENAI_ENVIRONMENT: "preview",
+        SUPABASE_ENVIRONMENT: "production",
+      }),
+    ).toThrow("OPENAI_ENVIRONMENT=production");
+  });
+
+  it("accepts declared production identities for privileged worker clients", () => {
+    expect(getWorkerEnv({
+      ...callProcessingEnv,
+      APP_ENV: "production",
+      CALL_PROCESSING_ENABLED: "true",
+      DATABASE_ENVIRONMENT: "production",
+      OPENAI_ENVIRONMENT: "production",
+      SUPABASE_ENVIRONMENT: "production",
+    })).toMatchObject({
+      callProcessingEnabled: true,
+      databaseUrl: callProcessingEnv.DATABASE_URL,
+      openaiApiKey: callProcessingEnv.OPENAI_API_KEY,
+      supabaseServiceRoleKey: callProcessingEnv.SUPABASE_SERVICE_ROLE_KEY,
+      supabaseUrl: callProcessingEnv.SUPABASE_URL,
+    });
+  });
+
   it("enables GHL import with database and Supabase credentials but without OpenAI", () => {
     expect(getWorkerEnv({
       GHL_IMPORT_ENABLED: "true",

@@ -163,6 +163,14 @@ describe("scoreCallRecording", () => {
     expect(resolveCallScoringConfig().apiKey).toBe("call-processing-openai-key");
   });
 
+  it("requires the production OpenAI identity label before resolving provider credentials", () => {
+    vi.stubEnv("APP_ENV", "production");
+    vi.stubEnv("OPENAI_CALL_PROCESSING_API_KEY", "call-processing-openai-key");
+    vi.stubEnv("OPENAI_ENVIRONMENT", "preview");
+
+    expect(() => resolveCallScoringConfig()).toThrow("OPENAI_ENVIRONMENT=production");
+  });
+
   it("transcribes audio with diarization and scores the call against the rubric", async () => {
     fetchMock
       .mockResolvedValueOnce(

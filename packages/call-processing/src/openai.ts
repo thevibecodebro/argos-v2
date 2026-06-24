@@ -1,3 +1,4 @@
+import { assertPrivilegedRuntimeIdentity } from "@argos-v2/runtime-identity";
 import {
   DEFAULT_CALL_SCORING_RUBRIC,
   buildCallScoringSystemPrompt,
@@ -81,6 +82,12 @@ export function resolveCallScoringConfig(
       "Missing required environment variable: OPENAI_CALL_PROCESSING_API_KEY or OPENAI_API_KEY",
     );
   }
+
+  assertPrivilegedRuntimeIdentity({
+    env: process.env,
+    openaiApiKey: apiKey,
+    requireOpenAi: true,
+  });
 
   const baseUrl = (
     config.baseUrl?.trim() ||

@@ -44,6 +44,10 @@ For local development, `apps/worker/src/index.ts` automatically loads `apps/web/
 
 Required worker env vars when processing is enabled:
 
+- `APP_ENV`
+- `DATABASE_ENVIRONMENT`
+- `SUPABASE_ENVIRONMENT`
+- `OPENAI_ENVIRONMENT`
 - `DATABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_URL`
@@ -78,6 +82,10 @@ Use these settings for the web app project:
 
 Set these Vercel environment variables for `apps/web`:
 
+- `APP_ENV`
+- `SUPABASE_ENVIRONMENT`
+- `DATABASE_ENVIRONMENT`
+- `OPENAI_ENVIRONMENT`
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
@@ -114,6 +122,7 @@ Set these Vercel environment variables for `apps/web`:
 
 Recommended environment scoping:
 
+- Production: set `APP_ENV`, `SUPABASE_ENVIRONMENT`, `DATABASE_ENVIRONMENT`, and `OPENAI_ENVIRONMENT` to `production` before privileged clients can boot.
 - Production: set `NEXT_PUBLIC_SITE_URL` to the exact production URL, `https://argosrevenuecommand.com`
 - Production: set `GHL_REDIRECT_URI=https://argosrevenuecommand.com/api/integrations/leadconnector/callback` so the GoHighLevel Marketplace app uses the white-label-safe callback alias
 - Production: set `ARGOS_ONBOARDING_FROM` to `Argos Revenue Command <onboarding@hello.argosrevenuecommand.com>` after the `hello.argosrevenuecommand.com` sending domain is verified in Resend

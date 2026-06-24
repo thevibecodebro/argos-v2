@@ -116,6 +116,28 @@ describe("roleplay content policy", () => {
     });
   });
 
+  it("fails closed when production OpenAI identity is mismatched", async () => {
+    const fetchImpl = vi.fn();
+
+    const result = await assertRoleplayContentAllowed({
+      content: "This is a normal roleplay line.",
+      env: {
+        APP_ENV: "production",
+        OPENAI_ENVIRONMENT: "preview",
+        OPENAI_ROLEPLAY_API_KEY: "roleplay-key",
+      },
+      fetchImpl,
+      surface: "roleplay_message",
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      code: "roleplay_content_policy_unavailable",
+      status: 503,
+    });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
   it("builds a stable hashed safety identifier without exposing the raw user id", () => {
     const first = buildRoleplaySafetyIdentifier("auth-user-1", "session-1", {
       ARGOS_RATE_LIMIT_HASH_SECRET: "secret",

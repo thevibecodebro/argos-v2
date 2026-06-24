@@ -154,12 +154,14 @@ Supabase:
 Vercel:
 
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SITE_URL`, `ARGOS_ALLOWED_ORIGINS`, `ARGOS_INVITE_ONLY`, `ARGOS_TOKEN_ENCRYPTION_KEY`, `ARGOS_RATE_LIMIT_HASH_SECRET`, and integration secrets are present in the intended environments.
+- `APP_ENV`, `SUPABASE_ENVIRONMENT`, `DATABASE_ENVIRONMENT`, and `OPENAI_ENVIRONMENT` are set to `production` before production privileged web clients can boot.
 - Preview envs either use explicit trusted origins or intentionally omit integration secrets.
 - Production deploy health check returns 200.
 
 Fly worker:
 
 - `DATABASE_URL`, `SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`, and call processing env are present as Fly secrets.
+- `APP_ENV`, `SUPABASE_ENVIRONMENT`, `DATABASE_ENVIRONMENT`, and `OPENAI_ENVIRONMENT` are set to `production` before the production worker can boot privileged clients.
 - `CALL_PROCESSING_ENABLED` is set intentionally for the target worker app.
 - Worker `/health` returns 200 after deploy.
 

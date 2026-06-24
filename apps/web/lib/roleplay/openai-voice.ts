@@ -1,3 +1,4 @@
+import { assertPrivilegedRuntimeIdentity } from "@argos-v2/runtime-identity";
 import type { RoleplaySession } from "@/lib/roleplay/service";
 import { getRoleplaySessionVoice } from "@/lib/roleplay/types";
 import { fetchWithTimeout } from "@/lib/security/fetch-timeout";
@@ -19,11 +20,29 @@ function getOpenAiVoiceApiKey(env: OpenAiVoiceEnvSource) {
   return env.OPENAI_ROLEPLAY_API_KEY?.trim() || env.OPENAI_API_KEY?.trim() || null;
 }
 
+function assertOpenAiVoiceIdentity(env: OpenAiVoiceEnvSource, apiKey: string) {
+  assertPrivilegedRuntimeIdentity({
+    env,
+    openaiApiKey: apiKey,
+    requireOpenAi: true,
+  });
+}
+
 export function getOpenAiVoiceConfigurationError(
   env: OpenAiVoiceEnvSource = process.env,
 ) {
-  if (!getOpenAiVoiceApiKey(env)) {
+  const apiKey = getOpenAiVoiceApiKey(env);
+
+  if (!apiKey) {
     return "Voice features are not configured. Missing: OPENAI_ROLEPLAY_API_KEY or OPENAI_API_KEY.";
+  }
+
+  try {
+    assertOpenAiVoiceIdentity(env, apiKey);
+  } catch (error) {
+    return error instanceof Error
+      ? error.message
+      : "OpenAI environment identity guard failed";
   }
 
   return null;
@@ -39,6 +58,8 @@ export function getOpenAiVoiceEnv(
       "Missing required environment variable: OPENAI_ROLEPLAY_API_KEY or OPENAI_API_KEY",
     );
   }
+
+  assertOpenAiVoiceIdentity(env, apiKey);
 
   return {
     apiKey,
