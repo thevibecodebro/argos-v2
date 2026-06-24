@@ -1,15 +1,31 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { StripeCheckoutConfigurationError } from "./billing/stripe-checkout";
+import type { CurrentUserDetails } from "./users/service";
 
-const { createStripeCheckoutSession, getAuthenticatedSupabaseUser } = vi.hoisted(() => ({
+const {
+  createStripeCheckoutSession,
+  createUsersRepository,
+  getAuthenticatedSupabaseUser,
+  getCurrentUserDetails,
+} = vi.hoisted(() => ({
   createStripeCheckoutSession: vi.fn(),
+  createUsersRepository: vi.fn(),
   getAuthenticatedSupabaseUser: vi.fn(),
+  getCurrentUserDetails: vi.fn(),
 }));
 
 const checkRateLimitForPolicy = vi.fn();
 
 vi.mock("@/lib/auth/get-authenticated-user", () => ({
   getAuthenticatedSupabaseUser,
+}));
+
+vi.mock("@/lib/users/create-repository", () => ({
+  createUsersRepository,
+}));
+
+vi.mock("@/lib/users/service", () => ({
+  getCurrentUserDetails,
 }));
 
 vi.mock("@/lib/billing/stripe-checkout", async () => {
@@ -45,8 +61,15 @@ describe("billing checkout route", () => {
     vi.restoreAllMocks();
     vi.unstubAllEnvs();
     getAuthenticatedSupabaseUser.mockReset();
+    createUsersRepository.mockReset();
+    getCurrentUserDetails.mockReset();
     createStripeCheckoutSession.mockReset();
     checkRateLimitForPolicy.mockReset();
+    createUsersRepository.mockReturnValue({ usersRepository: true });
+    getCurrentUserDetails.mockResolvedValue({
+      ok: true,
+      data: currentUser(),
+    });
     checkRateLimitForPolicy.mockResolvedValue({
       allowed: true,
       bucketKey: "billingCheckout:user:hash",
@@ -121,6 +144,34 @@ describe("billing checkout route", () => {
     );
   });
 
+  it("blocks non-admin organization members before rate limiting or Stripe checkout", async () => {
+    getAuthenticatedSupabaseUser.mockResolvedValue({
+      email: "rep@argos.ai",
+      id: "auth-user-2",
+    });
+    getCurrentUserDetails.mockResolvedValue({
+      ok: true,
+      data: currentUser({
+        email: "rep@argos.ai",
+        id: "auth-user-2",
+        role: "rep",
+      }),
+    });
+    createStripeCheckoutSession.mockResolvedValue({
+      id: "cs_live",
+      url: "https://checkout.stripe.com/c/live-session",
+    });
+
+    const route = await import("../app/billing/checkout/route");
+    const response = await route.GET(new Request("https://argos.ai/billing/checkout?plan=team&seats=8"));
+
+    expect(response.headers.get("location")).toBe(
+      "https://argos.ai/?checkout_error=admin_required&plan=team#access",
+    );
+    expect(checkRateLimitForPolicy).not.toHaveBeenCalled();
+    expect(createStripeCheckoutSession).not.toHaveBeenCalled();
+  });
+
   it("rate limits checkout session creation per authenticated user before calling Stripe", async () => {
     getAuthenticatedSupabaseUser.mockResolvedValue({
       email: "founder@argos.ai",
@@ -174,3 +225,26 @@ describe("billing checkout route", () => {
     );
   });
 });
+
+function currentUser(overrides: Partial<CurrentUserDetails> = {}): CurrentUserDetails {
+  return {
+    id: "auth-user-1",
+    email: "founder@argos.ai",
+    firstName: "Jared",
+    lastName: "Newman",
+    profileImageUrl: null,
+    role: "admin",
+    orgId: "org-1",
+    displayNameSet: true,
+    org: {
+      id: "org-1",
+      name: "Argos",
+      slug: "argos",
+      plan: "team",
+      logoUrl: null,
+      workspaceTheme: null,
+      createdAt: "2026-04-03T00:00:00.000Z",
+    },
+    ...overrides,
+  };
+}
