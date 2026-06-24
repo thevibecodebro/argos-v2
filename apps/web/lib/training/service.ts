@@ -1167,6 +1167,17 @@ export async function submitTrainingProgress(
     };
   }
 
+  const repProgress = await repository.findProgressByRepId(access.actor.id);
+  const assignedProgress = repProgress.find((entry) => entry.moduleId === moduleId);
+
+  if (!assignedProgress) {
+    return {
+      ok: false,
+      status: 403,
+      error: "Training module is not assigned to this rep",
+    };
+  }
+
   let score: number | null = null;
   let status: "assigned" | "in_progress" | "passed" | "failed" = "in_progress";
 
