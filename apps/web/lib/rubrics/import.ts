@@ -5,6 +5,48 @@ import type {
   RubricInput,
 } from "./types";
 
+export type RubricImportLimits = {
+  maxContentBytes: number;
+  maxCsvRows: number;
+  maxCategories: number;
+  maxLookForItems: number;
+};
+
+export const RUBRIC_IMPORT_LIMITS: RubricImportLimits = {
+  maxContentBytes: 256 * 1024,
+  maxCsvRows: 101,
+  maxCategories: 50,
+  maxLookForItems: 25,
+};
+
+export type RubricImportLimitOptions = Partial<RubricImportLimits>;
+
+function resolvePositiveInteger(value: number | undefined, fallback: number) {
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : fallback;
+}
+
+function resolveImportLimits(options: RubricImportLimitOptions = {}): RubricImportLimits {
+  return {
+    maxContentBytes: resolvePositiveInteger(
+      options.maxContentBytes,
+      RUBRIC_IMPORT_LIMITS.maxContentBytes,
+    ),
+    maxCsvRows: resolvePositiveInteger(options.maxCsvRows, RUBRIC_IMPORT_LIMITS.maxCsvRows),
+    maxCategories: resolvePositiveInteger(
+      options.maxCategories,
+      RUBRIC_IMPORT_LIMITS.maxCategories,
+    ),
+    maxLookForItems: resolvePositiveInteger(
+      options.maxLookForItems,
+      RUBRIC_IMPORT_LIMITS.maxLookForItems,
+    ),
+  };
+}
+
+function getUtf8ByteLength(value: string) {
+  return new TextEncoder().encode(value).byteLength;
+}
+
 function normalizeSlug(value: string) {
   return value
     .trim()
@@ -57,6 +99,14 @@ function buildIssue(row: number | null, field: string, message: string): RubricI
   return { row, field, message };
 }
 
+function buildContentLimitIssue(kind: "CSV" | "JSON", maxContentBytes: number) {
+  return buildIssue(null, "file", `${kind} imports must be at most ${maxContentBytes} bytes`);
+}
+
+function buildCategoryLimitIssue(maxCategories: number) {
+  return buildIssue(null, "categories", `Rubric imports support at most ${maxCategories} categories`);
+}
+
 function parseWeight(value: unknown) {
   const numeric = typeof value === "number" ? value : Number(value);
   return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
@@ -66,11 +116,13 @@ function normalizeImportedCategory(
   candidate: Record<string, unknown>,
   row: number,
   sortOrder: number,
+  limits: ReturnType<typeof resolveImportLimits>,
 ) {
   const issues: RubricImportIssue[] = [];
   const name = toString(candidate.name);
   const slug = normalizeSlug(toString(candidate.slug) || name);
   const weight = parseWeight(candidate.weight);
+  const lookFor = toStringArray(candidate.lookFor);
 
   if (!slug) {
     issues.push(buildIssue(row, "slug", "Slug is required"));
@@ -82,6 +134,12 @@ function normalizeImportedCategory(
 
   if (weight === null) {
     issues.push(buildIssue(row, "weight", "Weight must be a positive number"));
+  }
+
+  if (lookFor.length > limits.maxLookForItems) {
+    issues.push(
+      buildIssue(row, "lookFor", `lookFor supports at most ${limits.maxLookForItems} items`),
+    );
   }
 
   if (issues.length) {
@@ -98,7 +156,7 @@ function normalizeImportedCategory(
       excellent: toString(candidate.excellent),
       proficient: toString(candidate.proficient),
       developing: toString(candidate.developing),
-      lookFor: toStringArray(candidate.lookFor),
+      lookFor,
     },
     sortOrder,
   };
@@ -138,7 +196,7 @@ function splitCsvLine(line: string) {
   return cells.map((cell) => cell.trim());
 }
 
-function parseCsvRows(content: string) {
+function parseCsvRows(content: string, maxRows: number) {
   const rows: string[][] = [];
   let currentLine = "";
   let inQuotes = false;
@@ -165,6 +223,10 @@ function parseCsvRows(content: string) {
 
       if (currentLine.trim()) {
         rows.push(splitCsvLine(currentLine));
+
+        if (rows.length > maxRows) {
+          return { rows, exceededLimit: true };
+        }
       }
 
       currentLine = "";
@@ -178,13 +240,39 @@ function parseCsvRows(content: string) {
     rows.push(splitCsvLine(currentLine));
   }
 
-  return rows;
+  return { rows, exceededLimit: rows.length > maxRows };
 }
 
-export function parseCsvRubricImport(content: string, fallbackName: string): RubricImportResult {
-  const rows = parseCsvRows(content);
+export function parseCsvRubricImport(
+  content: string,
+  fallbackName: string,
+  options?: RubricImportLimitOptions,
+): RubricImportResult {
+  const limits = resolveImportLimits(options);
   const rubric = createEmptyRubric(fallbackName);
   const issues: RubricImportIssue[] = [];
+
+  if (getUtf8ByteLength(content) > limits.maxContentBytes) {
+    return {
+      rubric,
+      issues: [buildContentLimitIssue("CSV", limits.maxContentBytes)],
+    };
+  }
+
+  const { rows, exceededLimit } = parseCsvRows(content, limits.maxCsvRows);
+
+  if (exceededLimit) {
+    return {
+      rubric,
+      issues: [
+        buildIssue(
+          null,
+          "file",
+          `CSV imports support at most ${limits.maxCsvRows} rows including the header`,
+        ),
+      ],
+    };
+  }
 
   if (!rows.length) {
     return {
@@ -194,6 +282,14 @@ export function parseCsvRubricImport(content: string, fallbackName: string): Rub
   }
 
   const [header, ...entries] = rows;
+
+  if (entries.length > limits.maxCategories) {
+    return {
+      rubric,
+      issues: [buildCategoryLimitIssue(limits.maxCategories)],
+    };
+  }
+
   const headerMap = new Map(
     header.map((column, index) => [column.replace(/^\uFEFF/, "").trim().toLowerCase(), index]),
   );
@@ -218,7 +314,7 @@ export function parseCsvRubricImport(content: string, fallbackName: string): Rub
       lookFor: row[headerMap.get("lookfor") ?? -1] ?? row[headerMap.get("lookFor") ?? -1] ?? "",
     };
 
-    const normalized = normalizeImportedCategory(record, rowNumber, rubric.categories.length);
+    const normalized = normalizeImportedCategory(record, rowNumber, rubric.categories.length, limits);
     issues.push(...normalized.issues);
 
     if (normalized.category) {
@@ -229,8 +325,20 @@ export function parseCsvRubricImport(content: string, fallbackName: string): Rub
   return { rubric, issues };
 }
 
-export function parseJsonRubricImport(content: string, fallbackName: string): RubricImportResult {
+export function parseJsonRubricImport(
+  content: string,
+  fallbackName: string,
+  options?: RubricImportLimitOptions,
+): RubricImportResult {
+  const limits = resolveImportLimits(options);
   const rubric = createEmptyRubric(fallbackName);
+
+  if (getUtf8ByteLength(content) > limits.maxContentBytes) {
+    return {
+      rubric,
+      issues: [buildContentLimitIssue("JSON", limits.maxContentBytes)],
+    };
+  }
 
   let parsed: unknown;
   try {
@@ -260,6 +368,13 @@ export function parseJsonRubricImport(content: string, fallbackName: string): Ru
     };
   }
 
+  if (candidate.categories.length > limits.maxCategories) {
+    return {
+      rubric,
+      issues: [buildCategoryLimitIssue(limits.maxCategories)],
+    };
+  }
+
   const issues: RubricImportIssue[] = [];
 
   for (const [index, entry] of candidate.categories.entries()) {
@@ -284,6 +399,7 @@ export function parseJsonRubricImport(content: string, fallbackName: string): Ru
       },
       index + 1,
       rubric.categories.length,
+      limits,
     );
 
     issues.push(...normalized.issues);

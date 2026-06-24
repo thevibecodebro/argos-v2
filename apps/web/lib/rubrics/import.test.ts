@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { parseCsvRubricImport, parseJsonRubricImport } from "./import";
+import {
+  RUBRIC_IMPORT_LIMITS,
+  parseCsvRubricImport,
+  parseJsonRubricImport,
+} from "./import";
 
 describe("parseCsvRubricImport", () => {
   it("keeps valid rows and reports invalid rows separately", () => {
@@ -50,6 +54,43 @@ describe("parseCsvRubricImport", () => {
       weight: 10,
     });
   });
+
+  it("rejects csv content before parsing when the file is over the byte limit", () => {
+    const result = parseCsvRubricImport(
+      "x".repeat(RUBRIC_IMPORT_LIMITS.maxContentBytes + 1),
+      "oversized.csv",
+    );
+
+    expect(result.rubric.categories).toHaveLength(0);
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        row: null,
+        field: "file",
+        message: expect.stringContaining("at most"),
+      }),
+    ]);
+  });
+
+  it("rejects csv imports that exceed the row cap before normalizing entries", () => {
+    const result = parseCsvRubricImport(
+      [
+        "name,slug,description,weight,excellent,proficient,developing,lookFor",
+        "Discovery,discovery,,10,Great,Good,Weak,Pain",
+        "Close,close,,10,Great,Good,Weak,Urgency",
+      ].join("\n"),
+      "rows.csv",
+      { maxCsvRows: 2 },
+    );
+
+    expect(result.rubric.categories).toHaveLength(0);
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        row: null,
+        field: "file",
+        message: expect.stringContaining("at most 2 rows"),
+      }),
+    ]);
+  });
 });
 
 describe("parseJsonRubricImport", () => {
@@ -89,6 +130,90 @@ describe("parseJsonRubricImport", () => {
       expect.objectContaining({ row: 2, field: "slug" }),
       expect.objectContaining({ row: 2, field: "name" }),
       expect.objectContaining({ row: 2, field: "weight" }),
+    ]);
+  });
+
+  it("rejects json content before parsing when the payload is over the byte limit", () => {
+    const result = parseJsonRubricImport(
+      "x".repeat(RUBRIC_IMPORT_LIMITS.maxContentBytes + 1),
+      "oversized.json",
+    );
+
+    expect(result.rubric.categories).toHaveLength(0);
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        row: null,
+        field: "file",
+        message: expect.stringContaining("at most"),
+      }),
+    ]);
+  });
+
+  it("rejects json imports that exceed the category cap before normalizing categories", () => {
+    const result = parseJsonRubricImport(
+      JSON.stringify({
+        name: "Too many categories",
+        categories: [
+          {
+            slug: "one",
+            name: "One",
+            description: "",
+            weight: 1,
+            scoringCriteria: {},
+          },
+          {
+            slug: "two",
+            name: "Two",
+            description: "",
+            weight: 1,
+            scoringCriteria: {},
+          },
+        ],
+      }),
+      "too-many.json",
+      { maxCategories: 1 },
+    );
+
+    expect(result.rubric.categories).toHaveLength(0);
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        row: null,
+        field: "categories",
+        message: expect.stringContaining("at most 1 categories"),
+      }),
+    ]);
+  });
+
+  it("rejects imported categories that exceed the lookFor item cap", () => {
+    const result = parseJsonRubricImport(
+      JSON.stringify({
+        name: "Too many look-fors",
+        categories: [
+          {
+            slug: "discovery",
+            name: "Discovery",
+            description: "",
+            weight: 1,
+            scoringCriteria: {
+              excellent: "Great",
+              proficient: "Good",
+              developing: "Weak",
+              lookFor: ["Pain", "Urgency"],
+            },
+          },
+        ],
+      }),
+      "too-many-look-fors.json",
+      { maxLookForItems: 1 },
+    );
+
+    expect(result.rubric.categories).toHaveLength(0);
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        row: 1,
+        field: "lookFor",
+        message: expect.stringContaining("at most 1 items"),
+      }),
     ]);
   });
 });

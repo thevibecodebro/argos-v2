@@ -34,6 +34,12 @@ vi.mock("@/lib/rubrics/service", () => ({
 }));
 
 vi.mock("@/lib/rubrics/import", () => ({
+  RUBRIC_IMPORT_LIMITS: {
+    maxContentBytes: 256 * 1024,
+    maxCsvRows: 101,
+    maxCategories: 50,
+    maxLookForItems: 25,
+  },
   parseCsvRubricImport,
   parseJsonRubricImport,
 }));
@@ -157,6 +163,30 @@ describe("rubrics routes", () => {
       "name,slug,weight\nBuild Rapport,rapport,5",
       "rubric.csv",
     );
+    expect(createDraftRubric).not.toHaveBeenCalled();
+  });
+
+  it("rejects oversized import previews before invoking rubric parsers", async () => {
+    const route = await import("../../app/api/rubrics/route");
+    const response = await route.POST(
+      new Request("http://localhost:3000/api/rubrics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          preview: true,
+          sourceType: "json_import",
+          fileName: "oversized.json",
+          content: "x".repeat(300 * 1024),
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(413);
+    await expect(response.json()).resolves.toEqual({
+      error: "Rubric import preview is too large",
+    });
+    expect(parseCsvRubricImport).not.toHaveBeenCalled();
+    expect(parseJsonRubricImport).not.toHaveBeenCalled();
     expect(createDraftRubric).not.toHaveBeenCalled();
   });
 
