@@ -267,7 +267,7 @@ export async function createOrganizationForUser(
 export async function joinOrganizationForUser(
   repository: OnboardingRepository,
   authUserId: string,
-  input: { slug?: string },
+  _input: { slug?: string },
 ): Promise<OnboardingResult<OnboardingOrganization>> {
   const eligibleUser = await loadEligibleUser(repository, authUserId);
 
@@ -275,51 +275,9 @@ export async function joinOrganizationForUser(
     return eligibleUser;
   }
 
-  if (isInviteOnlyAccessEnabled()) {
-    return {
-      ok: false,
-      status: 403,
-      error: "Organization joins require an invite",
-    };
-  }
-
-  const slug = input.slug?.trim().toLowerCase() ?? "";
-  const slugError = validateSlug(slug);
-
-  if (slugError) {
-    return {
-      ok: false,
-      status: 400,
-      error: slugError,
-    };
-  }
-
-  const organization = await repository.findOrganizationBySlug(slug);
-
-  if (!organization) {
-    return {
-      ok: false,
-      status: 404,
-      error: "Organization not found",
-    };
-  }
-
-  const claimedUser = await repository.assignUserToOrganization({
-    orgId: organization.id,
-    role: "rep",
-    userId: eligibleUser.data.id,
-  });
-
-  if (!claimedUser) {
-    return {
-      ok: false,
-      status: 409,
-      error: "User already belongs to an organization",
-    };
-  }
-
   return {
-    ok: true,
-    data: serializeOrganization(organization),
+    ok: false,
+    status: 403,
+    error: "Organization joins require an invite",
   };
 }

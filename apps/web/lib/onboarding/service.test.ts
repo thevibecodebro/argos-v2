@@ -366,7 +366,7 @@ describe("joinOrganizationForUser", () => {
     expect(repository.assignUserToOrganization).not.toHaveBeenCalled();
   });
 
-  it("joins an existing organization as a rep when invite-only is disabled", async () => {
+  it("requires an invite before resolving a public slug when invite-only is disabled", async () => {
     vi.stubEnv("ARGOS_INVITE_ONLY", "false");
 
     const repository = createRepository({
@@ -392,20 +392,12 @@ describe("joinOrganizationForUser", () => {
     });
 
     expect(result).toEqual({
-      ok: true,
-      data: {
-        id: "org-1",
-        name: "Argos",
-        slug: "argos",
-        plan: "trial",
-        createdAt: "2026-04-03T00:00:00.000Z",
-      },
+      ok: false,
+      status: 403,
+      error: "Organization joins require an invite",
     });
-    expect(repository.assignUserToOrganization).toHaveBeenCalledWith({
-      orgId: "org-1",
-      role: "rep",
-      userId: "user-1",
-    });
+    expect(repository.findOrganizationBySlug).not.toHaveBeenCalled();
+    expect(repository.assignUserToOrganization).not.toHaveBeenCalled();
   });
 
   it("keeps invite-only enabled when ARGOS_INVITE_ONLY is uppercase FALSE", async () => {
@@ -460,7 +452,7 @@ describe("joinOrganizationForUser", () => {
     expect(repository.findOrganizationBySlug).not.toHaveBeenCalled();
   });
 
-  it("rejects missing organizations", async () => {
+  it("does not reveal whether a slug exists when invite-only is disabled", async () => {
     vi.stubEnv("ARGOS_INVITE_ONLY", "false");
 
     const repository = createRepository({
@@ -481,12 +473,14 @@ describe("joinOrganizationForUser", () => {
 
     expect(result).toEqual({
       ok: false,
-      status: 404,
-      error: "Organization not found",
+      status: 403,
+      error: "Organization joins require an invite",
     });
+    expect(repository.findOrganizationBySlug).not.toHaveBeenCalled();
+    expect(repository.assignUserToOrganization).not.toHaveBeenCalled();
   });
 
-  it("returns conflict when the user was claimed before joining", async () => {
+  it("returns conflict for users who already belong to an organization before checking invites", async () => {
     vi.stubEnv("ARGOS_INVITE_ONLY", "false");
 
     const repository = createRepository({
@@ -497,7 +491,12 @@ describe("joinOrganizationForUser", () => {
         role: null,
         firstName: "Jared",
         lastName: "Newman",
-        org: null,
+        org: {
+          id: "org-existing",
+          name: "Existing Org",
+          slug: "existing-org",
+          plan: "trial",
+        },
       }),
       findOrganizationBySlug: vi.fn().mockResolvedValue({
         id: "org-1",
@@ -517,5 +516,7 @@ describe("joinOrganizationForUser", () => {
       status: 409,
       error: "User already belongs to an organization",
     });
+    expect(repository.findOrganizationBySlug).not.toHaveBeenCalled();
+    expect(repository.assignUserToOrganization).not.toHaveBeenCalled();
   });
 });

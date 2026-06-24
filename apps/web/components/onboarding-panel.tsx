@@ -60,7 +60,7 @@ export function OnboardingPanel({
 }: OnboardingPanelProps) {
   const router = useRouter();
   const canCreateOrganization = accessMode === "open" || accessMode === "bootstrap-admin";
-  const canJoinBySlug = accessMode === "open";
+  const canJoinBySlug = false;
   const initialStep: Step = canCreateOrganization ? "create" : canJoinBySlug ? "join" : "choose";
   const [step, setStep] = useState<Step>(initialStep);
   const [name, setName] = useState("");
@@ -132,7 +132,7 @@ export function OnboardingPanel({
       ? "Existing workspace access starts with an admin invite. Organization owners can choose a plan to create a workspace."
       : accessMode === "bootstrap-admin"
         ? "Set up the first Argos workspace for your company."
-        : (note ?? "Create a new team or join your existing one to unlock the Argos workspace.");
+        : (note ?? "Create a new workspace, then invite your team to unlock the Argos workspace.");
 
   function showCreateStep() {
     setError(null);

@@ -28,7 +28,7 @@ export default async function OnboardingPage() {
   const note =
     accessMode === "invite-only"
       ? "Argos workspaces are opened through admin invitations."
-      : "Create a new team or join your existing one to unlock the Argos workspace.";
+      : "Create a new workspace, then invite your team to unlock the Argos workspace.";
 
   return (
     <main
