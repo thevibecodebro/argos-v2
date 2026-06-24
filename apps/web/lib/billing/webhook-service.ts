@@ -135,7 +135,10 @@ export async function processStripeWebhookEvent(
     return { action: "processed" as const };
   }
 
-  if (event.type === "checkout.session.completed") {
+  if (
+    event.type === "checkout.session.completed" ||
+    event.type === "checkout.session.async_payment_succeeded"
+  ) {
     await processCheckoutCompletedEvent(repository, event.data.object, { sendOnboardingEmail });
     return { action: "processed" as const };
   }
@@ -215,8 +218,15 @@ async function processCheckoutCompletedEvent(
   const authUserId = metadata.auth_user_id ?? getString(object.client_reference_id);
   const plan = getBillingPlan(metadata.plan ?? null);
   const stripeCustomerId = getString(object.customer);
+  const paidPaymentIntentId = plan?.mode === "payment"
+    ? getPaidOneTimePaymentIntentId(object)
+    : null;
 
   if (!authUserId || !plan || !stripeCustomerId) {
+    return;
+  }
+
+  if (plan.mode === "payment" && !paidPaymentIntentId) {
     return;
   }
 
@@ -247,6 +257,10 @@ async function processCheckoutCompletedEvent(
     return;
   }
 
+  if (!paidPaymentIntentId) {
+    return;
+  }
+
   const minutes = Number(plan.metadata.extra_live_voice_minutes ?? 0);
 
   if (minutes <= 0) {
@@ -260,7 +274,7 @@ async function processCheckoutCompletedEvent(
     orgId: scope.orgId,
     periodEnd: null,
     periodStart: null,
-    sourceId: getString(object.payment_intent) ?? getString(object.id) ?? `${authUserId}:${plan.id}`,
+    sourceId: paidPaymentIntentId,
     sourceType: "extra_pack",
     userId: scope.userId,
   });
@@ -310,6 +324,22 @@ function getMetadata(object: Record<string, unknown>): StripeMetadata {
   return object.metadata && typeof object.metadata === "object"
     ? (object.metadata as StripeMetadata)
     : {};
+}
+
+function getPaidOneTimePaymentIntentId(object: Record<string, unknown>) {
+  if (getString(object.mode) !== "payment") {
+    return null;
+  }
+
+  if (getString(object.status) !== "complete") {
+    return null;
+  }
+
+  if (getString(object.payment_status) !== "paid") {
+    return null;
+  }
+
+  return getString(object.payment_intent);
 }
 
 function getUnixDate(value: unknown) {

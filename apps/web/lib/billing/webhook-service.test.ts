@@ -197,7 +197,7 @@ describe("processStripeWebhookEvent", () => {
     }
   });
 
-  it("grants one-time extra voice packs from checkout completion", async () => {
+  it("grants one-time extra voice packs from paid checkout completion", async () => {
     const repository = makeRepository();
     const sendOnboardingEmail = vi.fn();
     const event: StripeWebhookEvent = {
@@ -210,6 +210,8 @@ describe("processStripeWebhookEvent", () => {
           client_reference_id: "auth-user-1",
           mode: "payment",
           metadata: { auth_user_id: "auth-user-1", plan: "extra-500" },
+          payment_status: "paid",
+          status: "complete",
           payment_intent: "pi_1",
         },
       },
@@ -226,5 +228,90 @@ describe("processStripeWebhookEvent", () => {
       }),
     );
     expect(sendOnboardingEmail).not.toHaveBeenCalled();
+  });
+
+  it("does not grant one-time extra voice packs from unpaid checkout completion", async () => {
+    const repository = makeRepository();
+    const event: StripeWebhookEvent = {
+      id: "evt_unpaid_extra_pack",
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          id: "cs_1",
+          customer: "cus_1",
+          client_reference_id: "auth-user-1",
+          mode: "payment",
+          metadata: { auth_user_id: "auth-user-1", plan: "extra-500" },
+          payment_status: "unpaid",
+          payment_intent: "pi_1",
+          status: "complete",
+        },
+      },
+    };
+
+    await expect(processStripeWebhookEvent(repository, event)).resolves.toEqual({
+      action: "processed",
+    });
+    expect(repository.findUserBillingScope).not.toHaveBeenCalled();
+    expect(repository.upsertBillingCustomer).not.toHaveBeenCalled();
+    expect(repository.createVoiceCreditGrant).not.toHaveBeenCalled();
+  });
+
+  it("does not grant one-time extra voice packs without a settled payment intent", async () => {
+    const repository = makeRepository();
+    const event: StripeWebhookEvent = {
+      id: "evt_missing_payment_intent",
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          id: "cs_1",
+          customer: "cus_1",
+          client_reference_id: "auth-user-1",
+          mode: "payment",
+          metadata: { auth_user_id: "auth-user-1", plan: "extra-500" },
+          payment_status: "paid",
+          status: "complete",
+        },
+      },
+    };
+
+    await expect(processStripeWebhookEvent(repository, event)).resolves.toEqual({
+      action: "processed",
+    });
+    expect(repository.findUserBillingScope).not.toHaveBeenCalled();
+    expect(repository.upsertBillingCustomer).not.toHaveBeenCalled();
+    expect(repository.createVoiceCreditGrant).not.toHaveBeenCalled();
+  });
+
+  it("grants one-time extra voice packs after asynchronous payment succeeds", async () => {
+    const repository = makeRepository();
+    const event: StripeWebhookEvent = {
+      id: "evt_async_paid_extra_pack",
+      type: "checkout.session.async_payment_succeeded",
+      data: {
+        object: {
+          id: "cs_1",
+          customer: "cus_1",
+          client_reference_id: "auth-user-1",
+          mode: "payment",
+          metadata: { auth_user_id: "auth-user-1", plan: "extra-250" },
+          payment_status: "paid",
+          payment_intent: "pi_async_1",
+          status: "complete",
+        },
+      },
+    };
+
+    await expect(processStripeWebhookEvent(repository, event)).resolves.toEqual({
+      action: "processed",
+    });
+    expect(repository.createVoiceCreditGrant).toHaveBeenCalledWith(
+      expect.objectContaining({
+        billingPlanId: "extra-250",
+        minutesGranted: Number(billingPlans["extra-250"].metadata.extra_live_voice_minutes),
+        sourceId: "pi_async_1",
+        sourceType: "extra_pack",
+      }),
+    );
   });
 });
