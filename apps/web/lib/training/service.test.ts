@@ -608,6 +608,20 @@ describe("submitTrainingProgress", () => {
           createdAt: new Date("2026-04-03T00:00:00.000Z"),
         },
       ]),
+      findProgressByRepId: vi.fn().mockResolvedValue([
+        {
+          id: "progress-assigned",
+          repId: "rep-1",
+          moduleId: "module-1",
+          status: "assigned",
+          score: null,
+          attempts: 0,
+          completedAt: null,
+          assignedBy: "mgr-1",
+          assignedAt: new Date("2026-04-02T00:00:00.000Z"),
+          dueDate: null,
+        },
+      ]),
       upsertProgress: vi.fn().mockResolvedValue({
         id: "progress-1",
         repId: "rep-1",
@@ -629,6 +643,63 @@ describe("submitTrainingProgress", () => {
     expect(result.data.status).toBe("passed");
     expect(result.data.score).toBe(100);
     expect(result.data.attempts).toBe(1);
+  });
+
+  it("blocks reps from submitting progress for unassigned org modules", async () => {
+    mockAccessRepository({
+      actor: { id: "rep-1", orgId: "org-1", role: "rep" },
+      memberships: [
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ],
+      grants: [],
+    });
+
+    const repository = createRepository({
+      countModulesByOrgId: vi.fn().mockResolvedValue(1),
+      findModulesByOrgId: vi.fn().mockResolvedValue([
+        {
+          id: "module-1",
+          orgId: "org-1",
+          title: "Module One",
+          skillCategory: "Discovery",
+          videoUrl: null,
+          description: "Module description",
+          quizData: {
+            questions: [
+              {
+                question: "Q1",
+                options: ["A", "B"],
+                correctIndex: 0,
+              },
+            ],
+          },
+          orderIndex: 1,
+          createdAt: new Date("2026-04-03T00:00:00.000Z"),
+        },
+      ]),
+      findProgressByRepId: vi.fn().mockResolvedValue([]),
+      upsertProgress: vi.fn().mockResolvedValue({
+        id: "forged-progress",
+        repId: "rep-1",
+        moduleId: "module-1",
+        status: "passed",
+        score: 100,
+        attempts: 1,
+        completedAt: new Date("2026-04-03T00:00:00.000Z"),
+        assignedBy: null,
+        assignedAt: null,
+        dueDate: null,
+      }),
+    });
+
+    const result = await submitTrainingProgress(repository, "rep-1", "module-1", [0]);
+
+    expect(result).toEqual({
+      ok: false,
+      status: 403,
+      error: "Training module is not assigned to this rep",
+    });
+    expect(repository.upsertProgress).not.toHaveBeenCalled();
   });
 });
 

@@ -12,6 +12,7 @@ const normalizeTrainingModuleGenerationInput = vi.fn();
 const normalizeTrainingModuleDraftGenerationInput = vi.fn();
 const assignTrainingModule = vi.fn();
 const unassignTrainingModule = vi.fn();
+const submitTrainingProgress = vi.fn();
 
 vi.mock("@/lib/auth/get-authenticated-user", () => ({
   getAuthenticatedSupabaseUser,
@@ -32,6 +33,7 @@ vi.mock("@/lib/training/service", () => ({
   normalizeTrainingModuleDraftGenerationInput,
   assignTrainingModule,
   unassignTrainingModule,
+  submitTrainingProgress,
 }));
 
 describe("training routes", () => {
@@ -50,6 +52,7 @@ describe("training routes", () => {
     normalizeTrainingModuleDraftGenerationInput.mockReset();
     assignTrainingModule.mockReset();
     unassignTrainingModule.mockReset();
+    submitTrainingProgress.mockReset();
     createTrainingRepository.mockReturnValue({});
     getAuthenticatedSupabaseUser.mockResolvedValue({ id: "auth-user-1" });
     getTrainingAiStatus.mockReturnValue({ available: true, reason: null });
@@ -306,6 +309,30 @@ describe("training routes", () => {
     await expect(response.json()).resolves.toMatchObject({
       rows: [{ repId: "rep-1" }],
       progress: { modules: [{ id: "module-1" }] },
+    });
+  });
+
+  it("returns forbidden when the service rejects progress for an unassigned module", async () => {
+    submitTrainingProgress.mockResolvedValueOnce({
+      ok: false,
+      status: 403,
+      error: "Training module is not assigned to this rep",
+    });
+
+    const route = await import("../../app/api/training/modules/[id]/progress/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/training/modules/module-1/progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quizAnswers: [0] }),
+      }),
+      { params: Promise.resolve({ id: "module-1" }) },
+    );
+
+    expect(submitTrainingProgress).toHaveBeenCalledWith({}, "auth-user-1", "module-1", [0]);
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      error: "Training module is not assigned to this rep",
     });
   });
 
