@@ -1,6 +1,7 @@
 import { isSafeStorageFileName } from "@argos-v2/call-processing";
 
 export const CALL_UPLOAD_MAX_BYTES = 500 * 1024 * 1024;
+export const CALL_UPLOAD_MAX_REQUEST_BYTES = CALL_UPLOAD_MAX_BYTES + 1024 * 1024;
 
 export const CALL_UPLOAD_ACCEPTED_TYPES = [
   "audio/mpeg",

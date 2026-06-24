@@ -3,6 +3,7 @@ import { createCallsRepository } from "@/lib/calls/create-repository";
 import {
   CALL_UPLOAD_ACCEPTED_TYPES,
   CALL_UPLOAD_MAX_BYTES,
+  CALL_UPLOAD_MAX_REQUEST_BYTES,
   isAcceptedUploadFile,
 } from "@/lib/calls/upload-contract";
 import {
@@ -17,6 +18,7 @@ import {
   checkRateLimitForPolicy,
   rateLimitExceededResponse,
 } from "@/lib/rate-limit/service";
+import { readRequestFormDataWithLimit } from "@/lib/security/request-body";
 
 export const dynamic = "force-dynamic";
 
@@ -37,9 +39,25 @@ export async function POST(request: Request) {
       return rateLimitExceededResponse(rateLimit);
     }
 
-    const formData = await request.formData().catch(() => null);
+    const formDataResult = await readRequestFormDataWithLimit(
+      request,
+      CALL_UPLOAD_MAX_REQUEST_BYTES,
+    );
 
-    if (!formData) {
+    if (!formDataResult.ok) {
+      if (formDataResult.reason === "too_large") {
+        return uploadCallErrorJson(
+          UPLOAD_CALL_ERROR_CODES.fileTooLarge,
+          "Call recordings must be 500 MB or smaller.",
+          413,
+          {
+            details: {
+              maxBytes: CALL_UPLOAD_MAX_BYTES,
+            },
+          },
+        );
+      }
+
       return uploadCallErrorJson(
         UPLOAD_CALL_ERROR_CODES.invalidUpload,
         "The upload request could not be read.",
@@ -47,6 +65,7 @@ export async function POST(request: Request) {
       );
     }
 
+    const formData = formDataResult.formData;
     const recording = formData.get("recording");
     const consentConfirmed = formData.get("consentConfirmed");
     const callTopic = formData.get("callTopic");

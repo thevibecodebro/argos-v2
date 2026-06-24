@@ -141,6 +141,27 @@ describe("organization logo route", () => {
     expect(updateOrganizationLogo).not.toHaveBeenCalled();
   });
 
+  it("rejects oversized multipart logo requests before parsing form data", async () => {
+    const formData = vi.fn().mockRejectedValue(new Error("formData should not be read"));
+    const route = await import("../app/api/organizations/logo/route");
+
+    const response = await route.POST({
+      headers: new Headers({
+        "Content-Length": String(3 * 1024 * 1024),
+        "Content-Type": "multipart/form-data; boundary=logo-boundary",
+      }),
+      formData,
+    } as unknown as Request);
+
+    expect(response.status).toBe(413);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "Logo must be 2 MB or smaller.",
+    });
+    expect(formData).not.toHaveBeenCalled();
+    expect(createSupabaseAdminClient).not.toHaveBeenCalled();
+    expect(updateOrganizationLogo).not.toHaveBeenCalled();
+  });
+
   it("removes the current logo asset and clears the organization logo URL", async () => {
     getCurrentUserDetails.mockResolvedValueOnce({
       ok: true,

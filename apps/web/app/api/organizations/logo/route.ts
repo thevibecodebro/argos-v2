@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { fromServiceResult, unauthorizedJson } from "@/lib/http";
 import { createEffectiveTenantUsersRepository } from "@/lib/platform/effective-request";
+import { readRequestFormDataWithLimit } from "@/lib/security/request-body";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createUsersRepository } from "@/lib/users/create-repository";
 import {
@@ -11,6 +12,7 @@ import {
 
 const LOGO_BUCKET = "org-assets";
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
+const MAX_LOGO_REQUEST_BYTES = MAX_LOGO_BYTES + 64 * 1024;
 const LOGO_MIME_EXTENSIONS = new Map([
   ["image/png", "png"],
   ["image/jpeg", "jpg"],
@@ -100,7 +102,15 @@ export async function POST(request: Request) {
       return admin.response;
     }
 
-    const formData = await request.formData();
+    const formDataResult = await readRequestFormDataWithLimit(request, MAX_LOGO_REQUEST_BYTES);
+
+    if (!formDataResult.ok) {
+      return formDataResult.reason === "too_large"
+        ? errorJson("Logo must be 2 MB or smaller.", 413)
+        : errorJson("Choose a logo file to upload.");
+    }
+
+    const formData = formDataResult.formData;
     const logo = formData.get("logo");
 
     if (!isLogoFile(logo)) {
