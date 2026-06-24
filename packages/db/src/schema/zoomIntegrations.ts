@@ -20,5 +20,8 @@ export const zoomIntegrationsTable = pgTable(
     connectedAt: timestamp("connected_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [unique("zoom_integrations_org_connected_user_unique").on(table.orgId, table.connectedUserId)],
+  (table) => [
+    unique("zoom_integrations_org_connected_user_unique").on(table.orgId, table.connectedUserId),
+    unique("zoom_integrations_account_id_unique").on(table.zoomAccountId),
+  ],
 );
