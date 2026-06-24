@@ -4,6 +4,7 @@ import {
   createStripeBillingPortalSession,
   StripeBillingPortalConfigurationError,
 } from "@/lib/billing/stripe-portal";
+import { DrizzleBillingRepository } from "@/lib/billing/repository";
 import { getRequestOrigin } from "@/lib/integrations/oauth";
 import { createUsersRepository } from "@/lib/users/create-repository";
 import { getCurrentUserDetails, type CurrentUserDetails } from "@/lib/users/service";
@@ -37,9 +38,21 @@ export async function GET(request: Request) {
       });
     }
 
+    const billingRepository = new DrizzleBillingRepository();
+    const billingCustomer = await billingRepository.findBillingCustomerForScope({
+      orgId: currentUser.data.orgId,
+      userId: currentUser.data.id,
+    });
+
+    if (!billingCustomer) {
+      return settingsRedirect(origin, {
+        billing_error: "portal_not_available",
+      });
+    }
+
     const returnUrl = new URL("/settings", origin);
     const session = await createStripeBillingPortalSession({
-      customerEmail: currentUser.data.email,
+      customerId: billingCustomer.stripeCustomerId,
       returnUrl: returnUrl.toString(),
     });
 
