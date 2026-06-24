@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { fromServiceResult, unauthorizedJson } from "@/lib/http";
-import { parseCsvRubricImport, parseJsonRubricImport } from "@/lib/rubrics/import";
+import {
+  RUBRIC_IMPORT_LIMITS,
+  parseCsvRubricImport,
+  parseJsonRubricImport,
+} from "@/lib/rubrics/import";
 import { createRubricsRepository } from "@/lib/rubrics/create-repository";
 import {
   createDraftRubric,
@@ -15,8 +19,14 @@ import { createUsersRepository } from "@/lib/users/create-repository";
 
 export const dynamic = "force-dynamic";
 
+const MAX_RUBRIC_POST_BODY_BYTES = RUBRIC_IMPORT_LIMITS.maxContentBytes + 64 * 1024;
+
 type AdminContext =
   | { ok: true; authUserId: string; orgId: string }
+  | { ok: false; response: Response };
+
+type JsonBodyResult =
+  | { ok: true; body: unknown }
   | { ok: false; response: Response };
 
 async function requireAdminContext(): Promise<AdminContext> {
@@ -58,6 +68,70 @@ function noStoreJson(body: unknown, init?: ResponseInit) {
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function getUtf8ByteLength(value: string) {
+  return new TextEncoder().encode(value).byteLength;
+}
+
+function requestBodyTooLargeJson() {
+  return NextResponse.json({ error: "Rubric request body is too large" }, { status: 413 });
+}
+
+function importPreviewTooLargeJson() {
+  return NextResponse.json({ error: "Rubric import preview is too large" }, { status: 413 });
+}
+
+async function readBoundedJsonBody(request: Request): Promise<JsonBodyResult> {
+  const contentLength = request.headers.get("content-length");
+  if (contentLength) {
+    const bodyBytes = Number(contentLength);
+    if (Number.isFinite(bodyBytes) && bodyBytes > MAX_RUBRIC_POST_BODY_BYTES) {
+      return { ok: false, response: requestBodyTooLargeJson() };
+    }
+  }
+
+  if (!request.body) {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: "Invalid JSON body" }, { status: 400 }),
+    };
+  }
+
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+
+    totalBytes += value.byteLength;
+    if (totalBytes > MAX_RUBRIC_POST_BODY_BYTES) {
+      await reader.cancel().catch(() => undefined);
+      return { ok: false, response: requestBodyTooLargeJson() };
+    }
+
+    chunks.push(value);
+  }
+
+  const bytes = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  try {
+    return { ok: true, body: JSON.parse(new TextDecoder().decode(bytes)) as unknown };
+  } catch {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: "Invalid JSON body" }, { status: 400 }),
+    };
+  }
 }
 
 export async function GET(request: Request) {
@@ -107,12 +181,12 @@ export async function POST(request: Request) {
       return admin.response;
     }
 
-    let parsedBody: unknown;
-    try {
-      parsedBody = (await request.json()) as unknown;
-    } catch {
-      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    const parsed = await readBoundedJsonBody(request);
+    if (!parsed.ok) {
+      return parsed.response;
     }
+
+    const parsedBody = parsed.body;
 
     if (!isObjectRecord(parsedBody)) {
       return NextResponse.json({ error: "JSON body must be an object" }, { status: 400 });
@@ -137,6 +211,10 @@ export async function POST(request: Request) {
 
       if (!content.trim()) {
         return NextResponse.json({ error: "content is required for import previews" }, { status: 400 });
+      }
+
+      if (getUtf8ByteLength(content) > RUBRIC_IMPORT_LIMITS.maxContentBytes) {
+        return importPreviewTooLargeJson();
       }
 
       const result =
