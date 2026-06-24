@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { CALL_UPLOAD_MAX_BYTES } from "./calls/upload-contract";
 
 const getAuthenticatedSupabaseUser = vi.fn();
 const createCallsRepository = vi.fn();
@@ -98,6 +99,30 @@ describe("calls upload route", () => {
         maxBytes: 500 * 1024 * 1024,
       },
     });
+    expect(uploadCall).not.toHaveBeenCalled();
+  });
+
+  it("rejects oversized multipart requests before parsing upload form data", async () => {
+    const route = await import("../app/api/calls/upload/route");
+    const formData = vi.fn().mockRejectedValue(new Error("formData should not be read"));
+
+    const response = await route.POST({
+      headers: new Headers({
+        "Content-Length": String(CALL_UPLOAD_MAX_BYTES + 1024 * 1024 + 1),
+        "Content-Type": "multipart/form-data; boundary=upload-boundary",
+      }),
+      formData,
+    } as unknown as Request);
+
+    expect(response.status).toBe(413);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "file_too_large",
+      retryable: true,
+      details: {
+        maxBytes: CALL_UPLOAD_MAX_BYTES,
+      },
+    });
+    expect(formData).not.toHaveBeenCalled();
     expect(uploadCall).not.toHaveBeenCalled();
   });
 
