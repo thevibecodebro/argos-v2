@@ -12,6 +12,7 @@ export const GHL_CALL_IMPORT_STATUSES = [
 ] as const;
 
 export const GHL_CALL_IMPORT_SKIPPED_REASONS = [
+  "billing_inactive",
   "no_connected_integration",
   "consent_missing",
   "no_recording",

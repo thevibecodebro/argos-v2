@@ -360,6 +360,11 @@ describe("processing job recovery", () => {
       "admin-1",
       "call-1",
       adminAccessRepository() as never,
+      {
+        callProcessingEntitlementsRepository: {
+          findActiveCallProcessingSubscription: vi.fn().mockResolvedValue({ id: "sub-1" }),
+        },
+      },
     );
 
     expect(result.ok).toBe(true);
@@ -371,6 +376,49 @@ describe("processing job recovery", () => {
       attemptCount: 0,
       lastError: null,
     });
+  });
+
+  it("blocks retrying failed processing jobs when billing is inactive", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue(adminViewer),
+      findCallById: vi.fn().mockResolvedValue({
+        ...baseCallRecord,
+        status: "failed",
+      }),
+      findCallProcessingJobByCallId: vi.fn().mockResolvedValue({
+        id: "job-1",
+        status: "failed",
+        attemptCount: 3,
+        maxAttempts: 3,
+        nextRunAt: new Date("2026-04-03T00:00:00.000Z"),
+        lastStage: "score",
+        lastError: "Scoring failed",
+        updatedAt: new Date("2026-04-03T00:00:00.000Z"),
+      }),
+      retryCallProcessingJob: vi.fn(),
+    });
+    const callProcessingEntitlementsRepository = {
+      findActiveCallProcessingSubscription: vi.fn().mockResolvedValue(null),
+    };
+
+    const result = await retryCallProcessingJob(
+      repository,
+      "admin-1",
+      "call-1",
+      adminAccessRepository() as never,
+      { callProcessingEntitlementsRepository },
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      status: 402,
+      code: "payment_required",
+    });
+    expect(callProcessingEntitlementsRepository.findActiveCallProcessingSubscription).toHaveBeenCalledWith({
+      orgId: "org-1",
+      userId: "admin-1",
+    });
+    expect(repository.retryCallProcessingJob).not.toHaveBeenCalled();
   });
 
   it("blocks managers from requeueing processing jobs", async () => {

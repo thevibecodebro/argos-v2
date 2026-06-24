@@ -7,6 +7,7 @@ function createRepository(
   return {
     createCallForGhlImport: vi.fn(),
     createOrResetCallProcessingJob: vi.fn(),
+    findActiveCallProcessingSubscription: vi.fn().mockResolvedValue({ id: "sub-1" }),
     findArgosUserIdForGhlUser: vi.fn(),
     findGhlIntegrationForImport: vi.fn(),
     markGhlCallImportFailed: vi.fn(),
@@ -114,6 +115,60 @@ describe("processGhlCallImport", () => {
     expect(repository.markGhlCallImportImported).toHaveBeenCalledWith("import-1", {
       callId: "call-1",
     });
+  });
+
+  it("skips imports before downloading recordings when the org has no active processing entitlement", async () => {
+    const repository = createRepository({
+      findActiveCallProcessingSubscription: vi.fn().mockResolvedValue(null),
+      findGhlIntegrationForImport: vi.fn().mockResolvedValue({
+        orgId: "org-1",
+        locationId: "loc-1",
+        accessToken: "ghl-access",
+        refreshToken: "ghl-refresh",
+        tokenExpiresAt: new Date("2026-06-18T13:00:00.000Z"),
+        syncEnabled: true,
+        consentConfirmedAt: new Date("2026-06-18T12:00:00.000Z"),
+        defaultRepId: "fallback-rep-1",
+      }),
+    });
+    const leadConnector = {
+      getMessage: vi.fn(),
+      downloadMessageRecording: vi.fn(),
+    };
+    const storeSourceAsset = vi.fn();
+
+    await processGhlCallImport({
+      importRecord: {
+        id: "import-1",
+        orgId: "org-1",
+        locationId: "loc-1",
+        messageId: "msg-1",
+        conversationId: "conv-1",
+        contactId: "contact-1",
+        ghlUserId: "ghl-user-1",
+        callId: null,
+        status: "running",
+        attemptCount: 1,
+        maxAttempts: 3,
+      },
+      repository,
+      leadConnector,
+      storeSourceAsset,
+      getActiveRubricId: vi.fn(),
+    });
+
+    expect(repository.findActiveCallProcessingSubscription).toHaveBeenCalledWith({
+      orgId: "org-1",
+      userId: null,
+    });
+    expect(repository.markGhlCallImportSkipped).toHaveBeenCalledWith("import-1", {
+      reason: "billing_inactive",
+    });
+    expect(leadConnector.getMessage).not.toHaveBeenCalled();
+    expect(leadConnector.downloadMessageRecording).not.toHaveBeenCalled();
+    expect(repository.createCallForGhlImport).not.toHaveBeenCalled();
+    expect(storeSourceAsset).not.toHaveBeenCalled();
+    expect(repository.createOrResetCallProcessingJob).not.toHaveBeenCalled();
   });
 
   it("skips imports when consent has not been acknowledged", async () => {

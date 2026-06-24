@@ -2,6 +2,7 @@ import { and, desc, eq, gt, isNull, or, sql } from "drizzle-orm";
 import {
   billingCustomersTable,
   billingSubscriptionsTable,
+  findActiveCallProcessingSubscription,
   getDb,
   organizationsTable,
   stripeWebhookEventsTable,
@@ -16,13 +17,21 @@ import type {
   ConsumeVoiceMinutesResult,
   VoiceEntitlementsRepository,
 } from "./voice-entitlements";
+import type { CallProcessingEntitlementsRepository } from "./call-processing-entitlements";
 
 function buildFullName(firstName: string | null, lastName: string | null, email: string) {
   return [firstName, lastName].filter(Boolean).join(" ").trim() || email;
 }
 
-export class DrizzleBillingRepository implements BillingWebhookRepository, VoiceEntitlementsRepository {
+export class DrizzleBillingRepository implements BillingWebhookRepository, VoiceEntitlementsRepository, CallProcessingEntitlementsRepository {
   constructor(private readonly db: ArgosDb = getDb()) {}
+
+  async findActiveCallProcessingSubscription(input: {
+    orgId: string | null;
+    userId: string | null;
+  }) {
+    return findActiveCallProcessingSubscription(this.db, input);
+  }
 
   async findUserBillingScope(authUserId: string) {
     const [user] = await this.db

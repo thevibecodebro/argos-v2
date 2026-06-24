@@ -45,6 +45,57 @@ function createRubricsRepository(
 }
 
 describe("uploadCall", () => {
+  it("blocks unpaid workspaces before storing source assets or queueing processing", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "rep-1",
+        email: "rep@argos.ai",
+        role: "rep",
+        firstName: "Riley",
+        lastName: "Stone",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      createCall: vi.fn(),
+      createOrResetCallProcessingJob: vi.fn(),
+    });
+    const storeSourceAsset = vi.fn();
+    const callProcessingEntitlementsRepository = {
+      findActiveCallProcessingSubscription: vi.fn().mockResolvedValue(null),
+    };
+
+    const result = await uploadCall(
+      repository,
+      "rep-1",
+      {
+        fileName: "demo.mp3",
+        fileSizeBytes: 12_000_000,
+        callTopic: "Discovery",
+        recording: {
+          bytes: Buffer.from("fake audio"),
+          contentType: "audio/mpeg",
+        },
+      },
+      {
+        callProcessingEntitlementsRepository,
+        rubricsRepository: createRubricsRepository(),
+        storeSourceAsset,
+      },
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      status: 402,
+      code: "payment_required",
+    });
+    expect(callProcessingEntitlementsRepository.findActiveCallProcessingSubscription).toHaveBeenCalledWith({
+      orgId: "org-1",
+      userId: "rep-1",
+    });
+    expect(repository.createCall).not.toHaveBeenCalled();
+    expect(storeSourceAsset).not.toHaveBeenCalled();
+    expect(repository.createOrResetCallProcessingJob).not.toHaveBeenCalled();
+  });
+
   it("stores the source asset and queues a processing job instead of scoring inline", async () => {
     const repository = createRepository({
       findCurrentUserByAuthId: vi.fn().mockResolvedValue({
@@ -97,6 +148,9 @@ describe("uploadCall", () => {
         },
       },
       {
+        callProcessingEntitlementsRepository: {
+          findActiveCallProcessingSubscription: vi.fn().mockResolvedValue({ id: "sub-1" }),
+        },
         rubricsRepository,
         storeSourceAsset,
       },
@@ -162,6 +216,9 @@ describe("uploadCall", () => {
           },
         },
         {
+          callProcessingEntitlementsRepository: {
+            findActiveCallProcessingSubscription: vi.fn().mockResolvedValue({ id: "sub-1" }),
+          },
           rubricsRepository,
           storeSourceAsset,
         },
@@ -207,6 +264,9 @@ describe("uploadCall", () => {
           },
         },
         {
+          callProcessingEntitlementsRepository: {
+            findActiveCallProcessingSubscription: vi.fn().mockResolvedValue({ id: "sub-1" }),
+          },
           rubricsRepository,
           storeSourceAsset,
         },
@@ -219,6 +279,56 @@ describe("uploadCall", () => {
 });
 
 describe("completeUploadedCall", () => {
+  it("blocks unpaid workspaces before creating queued calls from pre-uploaded assets", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "rep-1",
+        email: "rep@argos.ai",
+        role: "rep",
+        firstName: "Riley",
+        lastName: "Stone",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      createCall: vi.fn(),
+      createOrResetCallProcessingJob: vi.fn(),
+    });
+    const callProcessingEntitlementsRepository = {
+      findActiveCallProcessingSubscription: vi.fn().mockResolvedValue(null),
+    };
+
+    const result = await completeUploadedCall(
+      repository,
+      "rep-1",
+      {
+        fileName: "demo.mp3",
+        fileSizeBytes: 12_000_000,
+        callTopic: "Discovery",
+        sourceAsset: {
+          storageBucket: "call-recordings",
+          storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
+          contentType: "audio/mpeg",
+          fileSizeBytes: 12_000_000,
+        },
+      },
+      {
+        callProcessingEntitlementsRepository,
+        rubricsRepository: createRubricsRepository(),
+      },
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      status: 402,
+      code: "payment_required",
+    });
+    expect(callProcessingEntitlementsRepository.findActiveCallProcessingSubscription).toHaveBeenCalledWith({
+      orgId: "org-1",
+      userId: "rep-1",
+    });
+    expect(repository.createCall).not.toHaveBeenCalled();
+    expect(repository.createOrResetCallProcessingJob).not.toHaveBeenCalled();
+  });
+
   it("creates a queued call from a pre-uploaded source asset", async () => {
     const repository = createRepository({
       findCurrentUserByAuthId: vi.fn().mockResolvedValue({
@@ -266,6 +376,9 @@ describe("completeUploadedCall", () => {
         },
       },
       {
+        callProcessingEntitlementsRepository: {
+          findActiveCallProcessingSubscription: vi.fn().mockResolvedValue({ id: "sub-1" }),
+        },
         rubricsRepository,
       },
     );
@@ -329,6 +442,9 @@ describe("completeUploadedCall", () => {
           },
         },
         {
+          callProcessingEntitlementsRepository: {
+            findActiveCallProcessingSubscription: vi.fn().mockResolvedValue({ id: "sub-1" }),
+          },
           rubricsRepository,
         },
       ),
