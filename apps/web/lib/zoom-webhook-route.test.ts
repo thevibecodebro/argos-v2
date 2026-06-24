@@ -82,16 +82,18 @@ describe("Zoom webhook route", () => {
       retryAfterSeconds: 18,
     });
     expect(checkRateLimitForPolicy).toHaveBeenCalledWith("zoomWebhook", {
-      type: "ip",
-      id: "198.51.100.1",
+      type: "route",
+      id: "public",
     });
     expect(createZoomWebhookRepository).not.toHaveBeenCalled();
     expect(processZoomWebhookRequest).not.toHaveBeenCalled();
   });
 
-  it("prefers trusted platform IP headers over spoofable x-forwarded-for values", async () => {
+  it("does not derive the pre-auth rate-limit subject from forwarding headers", async () => {
     const route = await import("../app/api/webhooks/zoom/route");
-    const response = await route.POST(
+    const body = JSON.stringify({ event: "recording.completed" });
+
+    const firstResponse = await route.POST(
       new Request("http://localhost:3100/api/webhooks/zoom", {
         method: "POST",
         headers: {
@@ -100,14 +102,31 @@ describe("Zoom webhook route", () => {
           "x-real-ip": "198.51.100.9",
           "x-vercel-forwarded-for": "198.51.100.22, 10.0.0.2",
         },
-        body: JSON.stringify({ event: "recording.completed" }),
+        body,
+      }),
+    );
+    const secondResponse = await route.POST(
+      new Request("http://localhost:3100/api/webhooks/zoom", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-forwarded-for": "203.0.113.10, 10.0.0.1",
+          "x-real-ip": "198.51.100.1",
+          "x-vercel-forwarded-for": "198.51.100.44, 10.0.0.2",
+        },
+        body,
       }),
     );
 
-    expect(response.status).toBe(200);
-    expect(checkRateLimitForPolicy).toHaveBeenCalledWith("zoomWebhook", {
-      type: "ip",
-      id: "198.51.100.22",
+    expect(firstResponse.status).toBe(200);
+    expect(secondResponse.status).toBe(200);
+    expect(checkRateLimitForPolicy).toHaveBeenNthCalledWith(1, "zoomWebhook", {
+      type: "route",
+      id: "public",
+    });
+    expect(checkRateLimitForPolicy).toHaveBeenNthCalledWith(2, "zoomWebhook", {
+      type: "route",
+      id: "public",
     });
   });
 
