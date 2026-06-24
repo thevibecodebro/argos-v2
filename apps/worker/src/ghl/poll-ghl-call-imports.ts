@@ -26,7 +26,10 @@ export async function pollGhlCallImports(input: PollGhlCallImportsInput) {
 
     if (claimed) {
       try {
-        let integration = await input.repository.findGhlIntegrationForImport(claimed.locationId);
+        let integration = await input.repository.findGhlIntegrationForImport({
+          orgId: claimed.orgId,
+          locationId: claimed.locationId,
+        });
         let accessToken = integration?.accessToken ?? "";
 
         if (integration && integration.tokenExpiresAt <= new Date()) {
