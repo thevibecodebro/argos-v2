@@ -43,7 +43,7 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const state = searchParams.get("state");
 
-  if (!code) {
+  if (!code || !state) {
     return settingsRedirect(request, "ghl_error", "missing_params");
   }
 
@@ -78,17 +78,14 @@ export async function GET(request: Request) {
     return settingsRedirect(request, "ghl_error", "session_expired", true);
   }
 
-  const decoded = state
-    ? decodeIntegrationOAuthState(state)
-    : decodeIntegrationOAuthState(cookieValue);
+  const decoded = decodeIntegrationOAuthState(state);
 
   if (!decoded) {
     return settingsRedirect(request, "ghl_error", "invalid_state");
   }
 
-  const cookieMatchesReturnedState = state
-    ? timingSafeNonceMatch(cookieValue, state) || timingSafeNonceMatch(cookieValue, decoded.nonce)
-    : true;
+  const cookieMatchesReturnedState =
+    timingSafeNonceMatch(cookieValue, state) || timingSafeNonceMatch(cookieValue, decoded.nonce);
 
   if (!cookieMatchesReturnedState || decoded.userId !== viewer.id || decoded.orgId !== viewer.org.id) {
     return settingsRedirect(request, "ghl_error", "state_mismatch", true);
