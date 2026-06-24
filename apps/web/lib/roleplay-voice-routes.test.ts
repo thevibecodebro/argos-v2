@@ -582,6 +582,41 @@ describe("roleplay voice routes", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("returns an entitlement error instead of generated TTS audio when debit fails", async () => {
+    process.env.OPENAI_API_KEY = "legacy-openai-key";
+    process.env.OPENAI_ROLEPLAY_API_KEY = "roleplay-openai-key";
+    consumeVoiceMinutes.mockResolvedValueOnce({
+      ok: false,
+      status: 402,
+      code: "voice_minutes_exhausted",
+      error: "No live voice minutes are available for this workspace.",
+    });
+
+    const audioBytes = new Uint8Array([1, 2, 3, 4]);
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(audioBytes, {
+        status: 200,
+        headers: { "Content-Type": "audio/mpeg" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const route = await import("../app/api/roleplay/tts/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/roleplay/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: "Listen back to the coaching note." }),
+      }),
+    );
+
+    expect(response.status).toBe(402);
+    expect(response.headers.get("Content-Type")).toContain("application/json");
+    await expect(response.json()).resolves.toMatchObject({
+      code: "voice_minutes_exhausted",
+    });
+  });
+
   it("blocks unsafe TTS content before contacting OpenAI or debiting minutes", async () => {
     process.env.OPENAI_API_KEY = "test-openai-key";
     assertRoleplayContentAllowed.mockResolvedValueOnce({

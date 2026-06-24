@@ -121,12 +121,16 @@ export async function POST(request: Request) {
       text,
       voice: body?.voice?.trim() || undefined,
     });
-    await consumeVoiceMinutes(billingRepository, authUser.id, {
+    const consumption = await consumeVoiceMinutes(billingRepository, authUser.id, {
       idempotencyKey: `roleplay-tts:${authUser.id}:${Date.now()}`,
       minutes: 1,
       sessionId: null,
       source: "roleplay_tts",
     });
+
+    if (!consumption.ok) {
+      return serviceErrorResponse(consumption);
+    }
 
     return new Response(audio.arrayBuffer, {
       status: 200,
