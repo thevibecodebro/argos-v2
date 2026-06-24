@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit --incremental false"
   },
   "dependencies": {
+    "@argos-v2/runtime-identity": "*",
     "drizzle-orm": "^0.45.1",
     "pg": "^8.13.3"
   },

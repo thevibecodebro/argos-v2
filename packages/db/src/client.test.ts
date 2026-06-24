@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolvePgSsl } from "./client";
+import { getDatabaseUrl, resolvePgSsl } from "./client";
 
 describe("resolvePgSsl", () => {
   it("does not use TLS for local Postgres without sslmode", () => {
@@ -36,5 +36,27 @@ describe("resolvePgSsl", () => {
     expect(resolvePgSsl("postgresql://postgres:postgres@db.example.com:5432/argos?sslmode=verify-full")).toEqual({
       rejectUnauthorized: true,
     });
+  });
+});
+
+describe("getDatabaseUrl", () => {
+  it("requires a production database identity label before returning a production database URL", () => {
+    expect(() =>
+      getDatabaseUrl({
+        APP_ENV: "production",
+        DATABASE_URL: "postgresql://postgres:postgres@db.mlluqkmmcfqjmjqoparf.supabase.co:5432/postgres",
+        DATABASE_ENVIRONMENT: "preview",
+      }),
+    ).toThrow("DATABASE_ENVIRONMENT=production");
+  });
+
+  it("accepts a declared production database identity", () => {
+    expect(
+      getDatabaseUrl({
+        APP_ENV: "production",
+        DATABASE_URL: "postgresql://postgres:postgres@db.mlluqkmmcfqjmjqoparf.supabase.co:5432/postgres",
+        DATABASE_ENVIRONMENT: "production",
+      }),
+    ).toBe("postgresql://postgres:postgres@db.mlluqkmmcfqjmjqoparf.supabase.co:5432/postgres");
   });
 });

@@ -1,4 +1,5 @@
 import { createHmac } from "node:crypto";
+import { assertPrivilegedRuntimeIdentity } from "@argos-v2/runtime-identity";
 
 const OPENAI_MODERATION_TIMEOUT_MS = 15_000;
 const OPENAI_MODERATION_URL = "https://api.openai.com/v1/moderations";
@@ -150,6 +151,16 @@ export async function assertRoleplayContentAllowed({
   const apiKey = getOpenAiModerationApiKey(env);
 
   if (!apiKey) {
+    return unavailablePolicyResult();
+  }
+
+  try {
+    assertPrivilegedRuntimeIdentity({
+      env,
+      openaiApiKey: apiKey,
+      requireOpenAi: true,
+    });
+  } catch {
     return unavailablePolicyResult();
   }
 

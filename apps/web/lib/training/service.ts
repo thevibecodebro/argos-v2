@@ -1,3 +1,4 @@
+import { assertPrivilegedRuntimeIdentity } from "@argos-v2/runtime-identity";
 import { createAccessRepository } from "@/lib/access/create-repository";
 import type { TeamPermissionKey } from "@/lib/access/permissions";
 import {
@@ -123,7 +124,17 @@ export type TrainingAiStatus = {
 };
 
 function getTrainingOpenAiApiKey(env: NodeJS.ProcessEnv = process.env) {
-  return env.OPENAI_TRAINING_API_KEY?.trim() || env.OPENAI_API_KEY?.trim() || null;
+  const apiKey = env.OPENAI_TRAINING_API_KEY?.trim() || env.OPENAI_API_KEY?.trim() || null;
+
+  if (apiKey) {
+    assertPrivilegedRuntimeIdentity({
+      env,
+      openaiApiKey: apiKey,
+      requireOpenAi: true,
+    });
+  }
+
+  return apiKey;
 }
 
 type ServiceResult<T> =
@@ -1339,7 +1350,19 @@ export async function updateTrainingModule(
 }
 
 export function getTrainingAiStatus(): TrainingAiStatus {
-  const apiKey = getTrainingOpenAiApiKey();
+  let apiKey: string | null;
+
+  try {
+    apiKey = getTrainingOpenAiApiKey();
+  } catch (error) {
+    return {
+      available: false,
+      reason:
+        error instanceof Error
+          ? error.message
+          : "OpenAI environment identity guard failed",
+    };
+  }
 
   if (!apiKey) {
     return {

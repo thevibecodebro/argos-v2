@@ -849,6 +849,18 @@ describe("getTrainingAiStatus", () => {
 
     expect(result.available).toBe(true);
   });
+
+  it("reports AI as unavailable when production OpenAI identity is mismatched", () => {
+    vi.stubEnv("APP_ENV", "production");
+    vi.stubEnv("OPENAI_API_KEY", "");
+    vi.stubEnv("OPENAI_TRAINING_API_KEY", "training-openai-key");
+    vi.stubEnv("OPENAI_ENVIRONMENT", "preview");
+
+    const result = getTrainingAiStatus();
+
+    expect(result.available).toBe(false);
+    expect(result.reason).toContain("OPENAI_ENVIRONMENT=production");
+  });
 });
 
 describe("generateTrainingModules", () => {

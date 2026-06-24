@@ -13,6 +13,7 @@
     "@argos-v2/call-processing": "*",
     "@argos-v2/db": "*",
     "@argos-v2/ghl-client": "*",
+    "@argos-v2/runtime-identity": "*",
     "@argos-v2/ui": "*",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.2",

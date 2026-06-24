@@ -7,9 +7,13 @@ kill_timeout = "30s"
   dockerfile = "Dockerfile.worker"
 
 [env]
+  APP_ENV = "production"
   HOST = "0.0.0.0"
   PORT = "8787"
   NODE_ENV = "production"
+  DATABASE_ENVIRONMENT = "production"
+  OPENAI_ENVIRONMENT = "production"
+  SUPABASE_ENVIRONMENT = "production"
   CALL_PROCESSING_ENABLED = "true"
 
 [checks]

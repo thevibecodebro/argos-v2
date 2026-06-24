@@ -1,3 +1,5 @@
+import { assertPrivilegedRuntimeIdentity } from "@argos-v2/runtime-identity";
+
 type WorkerEnvSource = Partial<Record<string, string | undefined>>;
 
 export type WorkerEnv = {
@@ -137,6 +139,16 @@ export function getWorkerEnv(env: WorkerEnvSource = process.env): WorkerEnv {
       );
     }
   }
+
+  assertPrivilegedRuntimeIdentity({
+    databaseUrl,
+    env,
+    openaiApiKey,
+    requireDatabase: callProcessingEnabled || ghlImportEnabled,
+    requireOpenAi: callProcessingEnabled,
+    requireSupabase: callProcessingEnabled || ghlImportEnabled,
+    supabaseUrl,
+  });
 
   return {
     callProcessingEnabled,

@@ -1,5 +1,6 @@
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
+import { assertPrivilegedRuntimeIdentity } from "@argos-v2/runtime-identity";
 import * as schema from "./schema";
 
 export type ArgosDb = NodePgDatabase<typeof schema>;
@@ -33,12 +34,18 @@ CMTyZKG3XEu5Ghl1LEnI3QmEKsqaCLv12BnVjbkSeZsMnevJPs1Ye6TjjJwdik5P
 o/bKiIz+Fq8=
 -----END CERTIFICATE-----`;
 
-function getDatabaseUrl(env: NodeJS.ProcessEnv = process.env): string {
+export function getDatabaseUrl(env: NodeJS.ProcessEnv = process.env): string {
   const databaseUrl = env.DATABASE_URL;
 
   if (!databaseUrl) {
     throw new Error("Missing required environment variable: DATABASE_URL");
   }
+
+  assertPrivilegedRuntimeIdentity({
+    databaseUrl,
+    env,
+    requireDatabase: true,
+  });
 
   return databaseUrl;
 }
