@@ -101,7 +101,7 @@ export class GhlImportRepository implements GhlCallImportRepository {
     return row ? mapImport(row) : null;
   }
 
-  async findGhlIntegrationForImport(locationId: string) {
+  async findGhlIntegrationForImport(input: { orgId: string; locationId: string }) {
     const [integration] = await this.db
       .select({
         orgId: ghlIntegrationsTable.orgId,
@@ -114,7 +114,12 @@ export class GhlImportRepository implements GhlCallImportRepository {
         defaultRepId: ghlIntegrationsTable.defaultRepId,
       })
       .from(ghlIntegrationsTable)
-      .where(eq(ghlIntegrationsTable.locationId, locationId))
+      .where(
+        and(
+          eq(ghlIntegrationsTable.orgId, input.orgId),
+          eq(ghlIntegrationsTable.locationId, input.locationId),
+        ),
+      )
       .limit(1);
 
     if (!integration) {

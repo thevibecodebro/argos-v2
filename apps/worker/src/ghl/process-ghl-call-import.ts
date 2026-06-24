@@ -54,7 +54,10 @@ export type GhlCallImportRepository = {
     locationId: string;
     ghlUserId: string | null;
   }): Promise<string | null>;
-  findGhlIntegrationForImport(locationId: string): Promise<{
+  findGhlIntegrationForImport(input: {
+    orgId: string;
+    locationId: string;
+  }): Promise<{
     orgId: string;
     locationId: string;
     accessToken: string;
@@ -112,9 +115,16 @@ const CALL_MESSAGE_TYPES = new Set(["CALL", "call", "TYPE_CALL"]);
 
 export async function processGhlCallImport(input: ProcessGhlCallImportInput) {
   const importRecord = input.importRecord;
-  const integration = await input.repository.findGhlIntegrationForImport(importRecord.locationId);
+  const integration = await input.repository.findGhlIntegrationForImport({
+    orgId: importRecord.orgId,
+    locationId: importRecord.locationId,
+  });
 
-  if (!integration) {
+  if (
+    !integration ||
+    integration.orgId !== importRecord.orgId ||
+    integration.locationId !== importRecord.locationId
+  ) {
     await input.repository.markGhlCallImportSkipped(importRecord.id, {
       reason: "no_connected_integration",
     });
