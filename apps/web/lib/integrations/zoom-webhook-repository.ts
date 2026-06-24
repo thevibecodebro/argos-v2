@@ -2,6 +2,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import {
   callProcessingJobsTable,
   callsTable,
+  findActiveCallProcessingSubscription,
   getDb,
   usersTable,
   zoomIntegrationsTable,
@@ -49,6 +50,13 @@ export class DrizzleZoomWebhookRepository implements ZoomWebhookRepository {
     input: Parameters<DrizzleCallsRepository["createOrResetCallProcessingJob"]>[0],
   ) {
     await this.callsRepository.createOrResetCallProcessingJob(input);
+  }
+
+  async findActiveCallProcessingSubscription(input: {
+    orgId: string | null;
+    userId: string | null;
+  }) {
+    return findActiveCallProcessingSubscription(this.db, input);
   }
 
   async findCallByZoomRecordingId(zoomRecordingId: string) {

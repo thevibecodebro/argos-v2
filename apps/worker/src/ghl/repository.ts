@@ -2,6 +2,7 @@ import { and, eq, sql } from "drizzle-orm";
 import {
   callProcessingJobsTable,
   callsTable,
+  findActiveCallProcessingSubscription,
   getDb,
   ghlCallImportsTable,
   ghlIntegrationsTable,
@@ -157,6 +158,13 @@ export class GhlImportRepository implements GhlCallImportRepository {
       .limit(1);
 
     return mapping?.argosUserId ?? null;
+  }
+
+  async findActiveCallProcessingSubscription(input: {
+    orgId: string | null;
+    userId: string | null;
+  }) {
+    return findActiveCallProcessingSubscription(this.db, input);
   }
 
   async createCallForGhlImport(input: {

@@ -6,6 +6,11 @@ import {
   type AccessContext,
 } from "@/lib/access/service";
 import type { AccessRepository } from "@/lib/access/repository.types";
+import {
+  getCallProcessingEntitlementStatus,
+  type CallProcessingEntitlementsRepository,
+} from "@/lib/billing/call-processing-entitlements";
+import { DrizzleBillingRepository } from "@/lib/billing/repository";
 import type { DashboardUserRecord } from "@/lib/dashboard/service";
 import { createRubricsRepository } from "@/lib/rubrics/create-repository";
 import { getActiveRubric, type RubricsRepository } from "@/lib/rubrics/service";
@@ -224,6 +229,7 @@ type StoreSourceAssetFunction = (input: {
 }) => Promise<SourceAsset>;
 
 type UploadCallDependencies = {
+  callProcessingEntitlementsRepository?: CallProcessingEntitlementsRepository;
   rubricsRepository?: RubricsRepository;
   storeSourceAsset?: StoreSourceAssetFunction;
 };
@@ -236,7 +242,12 @@ type CompleteUploadedCallInput = {
 };
 
 type CompleteUploadedCallDependencies = {
+  callProcessingEntitlementsRepository?: CallProcessingEntitlementsRepository;
   rubricsRepository?: RubricsRepository;
+};
+
+type RetryCallProcessingJobDependencies = {
+  callProcessingEntitlementsRepository?: CallProcessingEntitlementsRepository;
 };
 
 type CallRecordingSignedUrlDependencies = {
@@ -251,11 +262,11 @@ type UploadCallResult = {
   createdAt: string;
 };
 
-type ServiceErrorCode = "forbidden" | "invalid_state" | "not_found" | "unprovisioned";
+type ServiceErrorCode = "forbidden" | "invalid_state" | "not_found" | "payment_required" | "unprovisioned";
 
 export type ServiceResult<T> =
   | { ok: true; data: T }
-  | { ok: false; status: 400 | 403 | 404; error: string; code: ServiceErrorCode };
+  | { ok: false; status: 400 | 402 | 403 | 404; error: string; code: ServiceErrorCode };
 
 export type CallsRepository = {
   createCall(input: {
@@ -773,6 +784,7 @@ export async function retryCallProcessingJob(
   authUserId: string,
   callId: string,
   accessRepository: AccessRepository = createAccessRepository(),
+  dependencies: RetryCallProcessingJobDependencies = {},
 ): Promise<ServiceResult<{ processingJob: CallProcessingJob }>> {
   const viewerResult = await getViewer(repository, authUserId);
 
@@ -839,6 +851,18 @@ export async function retryCallProcessingJob(
       code: "invalid_state",
       error: "Only failed processing jobs can be retried",
     };
+  }
+
+  const entitlement = await getCallProcessingEntitlementStatus(
+    dependencies.callProcessingEntitlementsRepository ?? new DrizzleBillingRepository(),
+    {
+      orgId: call.orgId,
+      userId: viewer.id,
+    },
+  );
+
+  if (!entitlement.ok) {
+    return entitlement;
   }
 
   const processingJob = await repository.retryCallProcessingJob(callId);
@@ -1534,6 +1558,18 @@ export async function uploadCall(
     };
   }
 
+  const entitlement = await getCallProcessingEntitlementStatus(
+    dependencies.callProcessingEntitlementsRepository ?? new DrizzleBillingRepository(),
+    {
+      orgId: viewer.org.id,
+      userId: viewer.id,
+    },
+  );
+
+  if (!entitlement.ok) {
+    return entitlement;
+  }
+
   const topic = input.callTopic?.trim() || deriveCallTopicFromFileName(input.fileName);
   const storeSourceAsset = dependencies.storeSourceAsset ?? storeManualCallSource;
   const rubricsRepository = dependencies.rubricsRepository ?? createRubricsRepository();
@@ -1611,6 +1647,18 @@ export async function completeUploadedCall(
       code: "forbidden",
       error: "User must belong to an organization to upload calls",
     };
+  }
+
+  const entitlement = await getCallProcessingEntitlementStatus(
+    dependencies.callProcessingEntitlementsRepository ?? new DrizzleBillingRepository(),
+    {
+      orgId: viewer.org.id,
+      userId: viewer.id,
+    },
+  );
+
+  if (!entitlement.ok) {
+    return entitlement;
   }
 
   const topic = input.callTopic?.trim() || deriveCallTopicFromFileName(input.fileName);

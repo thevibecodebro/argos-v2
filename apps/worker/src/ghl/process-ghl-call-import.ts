@@ -4,6 +4,7 @@ import type { LeadConnectorMessage, LeadConnectorRecording } from "../../../../p
 export type GhlCallImportStatus = "pending" | "running" | "retrying" | "imported" | "skipped" | "failed";
 
 export type GhlSkippedReason =
+  | "billing_inactive"
   | "no_connected_integration"
   | "consent_missing"
   | "no_recording"
@@ -49,6 +50,10 @@ export type GhlCallImportRepository = {
     sourceContentType: string | null;
     sourceSizeBytes: number | null;
   }): Promise<void>;
+  findActiveCallProcessingSubscription(input: {
+    orgId: string | null;
+    userId: string | null;
+  }): Promise<{ id: string } | null>;
   findArgosUserIdForGhlUser(input: {
     orgId: string;
     locationId: string;
@@ -134,6 +139,18 @@ export async function processGhlCallImport(input: ProcessGhlCallImportInput) {
   if (!integration.syncEnabled || !integration.consentConfirmedAt) {
     await input.repository.markGhlCallImportSkipped(importRecord.id, {
       reason: "consent_missing",
+    });
+    return;
+  }
+
+  const entitlement = await input.repository.findActiveCallProcessingSubscription({
+    orgId: integration.orgId,
+    userId: null,
+  });
+
+  if (!entitlement) {
+    await input.repository.markGhlCallImportSkipped(importRecord.id, {
+      reason: "billing_inactive",
     });
     return;
   }

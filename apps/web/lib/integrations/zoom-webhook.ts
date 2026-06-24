@@ -1,5 +1,9 @@
 import crypto from "node:crypto";
 import { readResponseArrayBufferWithLimit } from "@argos-v2/call-processing";
+import {
+  getCallProcessingEntitlementStatus,
+  type CallProcessingEntitlementsRepository,
+} from "@/lib/billing/call-processing-entitlements";
 import { CALL_UPLOAD_MAX_BYTES } from "@/lib/calls/upload-contract";
 import { storeZoomCallSource, type SourceAsset } from "@/lib/calls/ingestion-service";
 import type { CallRecordingStorage } from "@/lib/calls/service";
@@ -39,6 +43,7 @@ export interface ZoomWebhookRepository {
     sourceContentType: string | null;
     sourceSizeBytes: number | null;
   }): Promise<void>;
+  findActiveCallProcessingSubscription: CallProcessingEntitlementsRepository["findActiveCallProcessingSubscription"];
   findCallByZoomRecordingId(
     zoomRecordingId: string,
   ): Promise<{ id: string; status: CallStatus; jobStatus: CallProcessingJobStatus | null } | null>;
@@ -108,6 +113,7 @@ type DownloadedRecordingAsset = {
 };
 
 type ZoomWebhookDependencies = {
+  callProcessingEntitlementsRepository?: CallProcessingEntitlementsRepository;
   rubricsRepository?: RubricsRepository;
   storeSourceAsset?: (input: {
     callId: string;
@@ -238,6 +244,21 @@ export async function processZoomWebhookRequest(
   }
 
   if (existing && existing.status !== "failed" && existing.jobStatus !== "failed") {
+    return {
+      status: 200,
+      body: { received: true },
+    };
+  }
+
+  const entitlement = await getCallProcessingEntitlementStatus(
+    dependencies.callProcessingEntitlementsRepository ?? repository,
+    {
+      orgId: integration.orgId,
+      userId: null,
+    },
+  );
+
+  if (!entitlement.ok) {
     return {
       status: 200,
       body: { received: true },
