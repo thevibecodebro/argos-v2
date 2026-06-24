@@ -10,12 +10,6 @@ type StripeErrorPayload = {
   };
 };
 
-type StripeCustomerListPayload = StripeErrorPayload & {
-  data?: Array<{
-    id?: string;
-  }>;
-};
-
 type StripeBillingPortalSessionPayload = StripeErrorPayload & {
   id?: string;
   url?: string;
@@ -47,25 +41,20 @@ export class StripeBillingPortalRequestError extends Error {
 }
 
 export type CreateStripeBillingPortalSessionInput = {
-  customerEmail: string;
+  customerId: string;
   env?: EnvSource;
   fetcher?: StripeFetch;
   returnUrl: string;
 };
 
 export async function createStripeBillingPortalSession({
-  customerEmail,
+  customerId,
   env = process.env,
   fetcher = fetch,
   returnUrl,
 }: CreateStripeBillingPortalSessionInput) {
   const secretKey = getStripeSecretKey(env);
   const configurationId = getStripePortalConfigurationId(env);
-  const customerId = await resolveStripeCustomerId({
-    customerEmail,
-    fetcher,
-    secretKey,
-  });
 
   await assertStripePortalConfigurationIsSafe({
     configurationId,
@@ -154,34 +143,6 @@ async function assertStripePortalConfigurationIsSafe({
       `Stripe customer portal configuration ${configurationId} must invoice prorated subscription updates.`,
     );
   }
-}
-
-async function resolveStripeCustomerId({
-  customerEmail,
-  fetcher,
-  secretKey,
-}: {
-  customerEmail: string;
-  fetcher: StripeFetch;
-  secretKey: string;
-}) {
-  const query = new URLSearchParams();
-  query.set("email", customerEmail);
-  query.set("limit", "1");
-
-  const payload = await stripeRequest<StripeCustomerListPayload>({
-    fetcher,
-    method: "GET",
-    path: `/v1/customers?${query.toString()}`,
-    secretKey,
-  });
-  const customerId = payload.data?.[0]?.id;
-
-  if (!customerId) {
-    throw new StripeBillingPortalConfigurationError(`No Stripe customer found for ${customerEmail}`);
-  }
-
-  return customerId;
 }
 
 async function stripeRequest<TPayload extends StripeErrorPayload>({

@@ -92,6 +92,26 @@ export class DrizzleBillingRepository implements BillingWebhookRepository, Voice
       });
   }
 
+  async findBillingCustomerForScope(input: {
+    orgId: string | null;
+    userId: string;
+  }) {
+    const ownerCondition = input.orgId
+      ? eq(billingCustomersTable.orgId, input.orgId)
+      : and(eq(billingCustomersTable.userId, input.userId), isNull(billingCustomersTable.orgId));
+
+    const [customer] = await this.db
+      .select({
+        stripeCustomerId: billingCustomersTable.stripeCustomerId,
+      })
+      .from(billingCustomersTable)
+      .where(ownerCondition)
+      .orderBy(desc(billingCustomersTable.updatedAt))
+      .limit(1);
+
+    return customer ?? null;
+  }
+
   async upsertBillingSubscription(input: {
     billingPlanId: string;
     cancelAtPeriodEnd: boolean;
