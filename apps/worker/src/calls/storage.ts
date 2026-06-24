@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
+import { assertSafeStorageFileName } from "@argos-v2/call-processing";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getWorkerEnv, type WorkerEnv } from "../env";
 
@@ -76,7 +77,8 @@ export async function storeCallSourceAsset(
   }
 
   const supabase = dependencies.supabase ?? createClient(supabaseUrl, supabaseServiceRoleKey);
-  const storagePath = `recordings/${input.callId}/source/${input.fileName}`;
+  const fileName = assertSafeStorageFileName(input.fileName);
+  const storagePath = `recordings/${input.callId}/source/${fileName}`;
   const { error } = await supabase.storage.from("call-recordings").upload(storagePath, input.bytes, {
     contentType: input.contentType ?? "application/octet-stream",
     upsert: true,

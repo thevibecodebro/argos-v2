@@ -1,3 +1,4 @@
+import { isSafeStorageFileName } from "@argos-v2/call-processing";
 import type { LeadConnectorMessage, LeadConnectorRecording } from "../../../../packages/ghl-client/src/index";
 
 export type GhlCallImportStatus = "pending" | "running" | "retrying" | "imported" | "skipped" | "failed";
@@ -8,6 +9,7 @@ export type GhlSkippedReason =
   | "no_recording"
   | "no_owner_mapping"
   | "wrong_message_type"
+  | "invalid_recording_filename"
   | "unauthorized_after_refresh";
 
 export type GhlCallImportRecord = {
@@ -165,6 +167,13 @@ export async function processGhlCallImport(input: ProcessGhlCallImportInput) {
     }
 
     throw error;
+  }
+
+  if (!isSafeStorageFileName(recording.fileName)) {
+    await input.repository.markGhlCallImportSkipped(importRecord.id, {
+      reason: "invalid_recording_filename",
+    });
+    return;
   }
 
   const rubricId = await input.getActiveRubricId(integration.orgId);

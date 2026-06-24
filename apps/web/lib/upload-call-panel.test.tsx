@@ -86,6 +86,9 @@ describe("UploadCallPanel forge step flow", () => {
     expect(validateUploadFile({ name: "call.pdf", size: 42_000, type: "application/pdf" })?.code).toBe(
       "unsupported_file_type",
     );
+    expect(validateUploadFile({ name: "../call.mp3", size: 42_000, type: "audio/mpeg" })?.code).toBe(
+      "invalid_upload",
+    );
     expect(validateUploadFile({ name: "call.mp3", size: MAX_UPLOAD_BYTES + 1, type: "audio/mpeg" })?.code).toBe(
       "file_too_large",
     );
