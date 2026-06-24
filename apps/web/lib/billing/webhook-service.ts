@@ -31,6 +31,8 @@ type ProcessStripeWebhookEventOptions = {
   sendOnboardingEmail?: BillingOnboardingEmailSender;
 };
 
+const STRIPE_WEBHOOK_SIGNATURE_TOLERANCE_SECONDS = 5 * 60;
+
 export type BillingWebhookRepository = {
   createVoiceCreditGrant(input: {
     billingPlanId: BillingPlanId;
@@ -93,6 +95,10 @@ export const verifyStripeWebhookSignature = Object.assign(
       return false;
     }
 
+    if (!isStripeWebhookTimestampFresh(timestamp)) {
+      return false;
+    }
+
     const expected = createStripeSignature(payload, timestamp, secret);
     const expectedBuffer = Buffer.from(expected, "hex");
     const signatureBuffer = Buffer.from(signature, "hex");
@@ -108,6 +114,19 @@ export const verifyStripeWebhookSignature = Object.assign(
     },
   },
 );
+
+function isStripeWebhookTimestampFresh(timestamp: string) {
+  const timestampSeconds = Number(timestamp);
+
+  if (!Number.isSafeInteger(timestampSeconds) || timestampSeconds <= 0) {
+    return false;
+  }
+
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const skewSeconds = Math.abs(nowSeconds - timestampSeconds);
+
+  return skewSeconds <= STRIPE_WEBHOOK_SIGNATURE_TOLERANCE_SECONDS;
+}
 
 export async function processStripeWebhookEvent(
   repository: BillingWebhookRepository,
