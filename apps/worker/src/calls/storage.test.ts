@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { storeCallSourceAsset } from "./storage";
+import { downloadSourceAsset, storeCallSourceAsset } from "./storage";
 
 describe("storeCallSourceAsset", () => {
   it("rejects path-like filenames before worker storage upload", async () => {
@@ -29,5 +29,45 @@ describe("storeCallSourceAsset", () => {
     ).rejects.toThrow("Invalid recording filename.");
 
     expect(upload).not.toHaveBeenCalled();
+  });
+});
+
+describe("downloadSourceAsset", () => {
+  it("rejects oversized stored source assets before buffering the blob", async () => {
+    const readBody = vi.fn().mockResolvedValue(new ArrayBuffer(0));
+    const download = vi.fn().mockResolvedValue({
+      data: {
+        size: 11,
+        arrayBuffer: readBody,
+      },
+      error: null,
+    });
+    const from = vi.fn().mockReturnValue({ download });
+    const writeFile = vi.fn().mockResolvedValue(undefined);
+
+    await expect(
+      downloadSourceAsset(
+        {
+          storagePath: "recordings/call-1/source/demo.wav",
+          targetPath: "/tmp/argos-v2-demo.wav",
+        },
+        {
+          env: {
+            maxSourceBytes: 10,
+            supabaseServiceRoleKey: "service-role",
+            supabaseUrl: "https://supabase.local",
+          } as any,
+          supabase: {
+            storage: {
+              from,
+            },
+          } as any,
+          writeFile: writeFile as any,
+        },
+      ),
+    ).rejects.toThrow("Response body exceeds 10 bytes");
+
+    expect(readBody).not.toHaveBeenCalled();
+    expect(writeFile).not.toHaveBeenCalled();
   });
 });
