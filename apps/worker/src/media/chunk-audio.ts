@@ -40,6 +40,8 @@ export async function chunkAudioFile(
       String(chunk.endSeconds - chunk.startSeconds),
       "-acodec",
       "copy",
+      "-fs",
+      String(input.maxChunkBytes),
       chunk.filePath,
     ]);
   }

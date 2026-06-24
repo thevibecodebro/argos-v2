@@ -11,6 +11,7 @@ describe("normalizeAudio", () => {
         inputPath: "/tmp/source.mp4",
         outputPath: "/tmp/normalized.mp3",
         ffmpegBinary: "/usr/local/bin/ffmpeg",
+        maxOutputBytes: 64 * 1024 * 1024,
       },
       { spawn, stat },
     );
@@ -24,6 +25,8 @@ describe("normalizeAudio", () => {
         "16000",
         "-b:a",
         "32k",
+        "-fs",
+        String(64 * 1024 * 1024),
         "/tmp/normalized.mp3",
       ]),
     );
@@ -33,5 +36,22 @@ describe("normalizeAudio", () => {
       sizeBytes: 7_200_000,
       durationSeconds: 1800,
     });
+  });
+
+  it("rejects normalized audio that exceeds the configured output cap", async () => {
+    const spawn = vi.fn().mockResolvedValue(undefined);
+    const stat = vi.fn().mockResolvedValue({ size: 65 * 1024 * 1024 });
+
+    await expect(
+      normalizeAudio(
+        {
+          inputPath: "/tmp/source.mp4",
+          outputPath: "/tmp/normalized.mp3",
+          ffmpegBinary: "/usr/local/bin/ffmpeg",
+          maxOutputBytes: 64 * 1024 * 1024,
+        },
+        { spawn, stat },
+      ),
+    ).rejects.toThrow("exceeds the configured output limit");
   });
 });
