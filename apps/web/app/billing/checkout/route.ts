@@ -10,6 +10,8 @@ import {
   checkRateLimitForPolicy,
   rateLimitExceededResponse,
 } from "@/lib/rate-limit/service";
+import { createUsersRepository } from "@/lib/users/create-repository";
+import { getCurrentUserDetails, type CurrentUserDetails } from "@/lib/users/service";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +35,22 @@ export async function GET(request: Request) {
       return NextResponse.redirect(loginUrl);
     }
 
+    const currentUser = await getCurrentUserDetails(createUsersRepository(), authUser.id);
+
+    if (!currentUser.ok) {
+      return landingRedirect(origin, {
+        checkout_error: "billing_not_available",
+        plan: plan.id,
+      });
+    }
+
+    if (!canStartBillingCheckout(currentUser.data)) {
+      return landingRedirect(origin, {
+        checkout_error: "admin_required",
+        plan: plan.id,
+      });
+    }
+
     const rateLimit = await checkRateLimitForPolicy("billingCheckout", {
       type: "user",
       id: authUser.id,
@@ -54,7 +72,7 @@ export async function GET(request: Request) {
     const session = await createStripeCheckoutSession({
       authUserId: authUser.id,
       cancelUrl: cancelUrl.toString(),
-      customerEmail: authUser.email,
+      customerEmail: currentUser.data.email,
       plan,
       quantity: getBillingPlanQuantity(
         plan,
@@ -88,6 +106,10 @@ function parseSeatQuantity(value: string | null) {
 
   const quantity = Number(value);
   return Number.isFinite(quantity) ? quantity : null;
+}
+
+function canStartBillingCheckout(user: CurrentUserDetails) {
+  return !user.org || user.role === "admin";
 }
 
 function landingRedirect(origin: string, params: Record<string, string>) {

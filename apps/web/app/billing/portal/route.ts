@@ -5,6 +5,8 @@ import {
   StripeBillingPortalConfigurationError,
 } from "@/lib/billing/stripe-portal";
 import { getRequestOrigin } from "@/lib/integrations/oauth";
+import { createUsersRepository } from "@/lib/users/create-repository";
+import { getCurrentUserDetails, type CurrentUserDetails } from "@/lib/users/service";
 
 export const dynamic = "force-dynamic";
 
@@ -21,15 +23,23 @@ export async function GET(request: Request) {
       return NextResponse.redirect(loginUrl);
     }
 
-    if (!authUser.email) {
+    const currentUser = await getCurrentUserDetails(createUsersRepository(), authUser.id);
+
+    if (!currentUser.ok || !currentUser.data.org) {
       return settingsRedirect(origin, {
         billing_error: "portal_not_available",
       });
     }
 
+    if (!canOpenBillingPortal(currentUser.data)) {
+      return settingsRedirect(origin, {
+        billing_error: "admin_required",
+      });
+    }
+
     const returnUrl = new URL("/settings", origin);
     const session = await createStripeBillingPortalSession({
-      customerEmail: authUser.email,
+      customerEmail: currentUser.data.email,
       returnUrl: returnUrl.toString(),
     });
 
@@ -57,4 +67,8 @@ function settingsRedirect(origin: string, params: Record<string, string>) {
   }
 
   return NextResponse.redirect(url);
+}
+
+function canOpenBillingPortal(user: CurrentUserDetails) {
+  return Boolean(user.org) && user.role === "admin";
 }

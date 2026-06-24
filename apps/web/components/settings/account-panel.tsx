@@ -52,6 +52,7 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
         .trim() || currentUser.email,
     [currentUser],
   );
+  const canManageBilling = Boolean(currentUser.org) && currentUser.role === "admin";
 
   async function saveProfile() {
     if (!firstName.trim() && !lastName.trim()) {
@@ -377,7 +378,7 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
         )}
       </ForgeSurface>
 
-      {currentUser.org ? (
+      {canManageBilling ? (
         <ForgeSurface
           as="section"
           className="overflow-hidden p-0"

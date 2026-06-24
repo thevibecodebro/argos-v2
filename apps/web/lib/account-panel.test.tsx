@@ -23,9 +23,20 @@ describe("AccountPanel", () => {
     expect(html).toContain('href="/billing/portal"');
     expect(html).toContain("Team subscriptions can adjust paid seat quantity from Stripe billing.");
   });
+
+  it("does not expose billing management to non-admin organization members", () => {
+    const html = renderToStaticMarkup(
+      createElement(AccountPanel, {
+        initialUser: currentUser({ role: "manager" }),
+      }),
+    );
+
+    expect(html).not.toContain("Manage billing and seats");
+    expect(html).not.toContain('href="/billing/portal"');
+  });
 });
 
-function currentUser(): CurrentUserDetails {
+function currentUser(overrides: Partial<CurrentUserDetails> = {}): CurrentUserDetails {
   return {
     id: "user-1",
     email: "founder@argos.ai",
@@ -44,5 +55,6 @@ function currentUser(): CurrentUserDetails {
       workspaceTheme: null,
       createdAt: "2026-04-03T00:00:00.000Z",
     },
+    ...overrides,
   };
 }
