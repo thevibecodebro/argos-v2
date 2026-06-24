@@ -33,6 +33,7 @@ describe("Stripe webhook route", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllEnvs();
   });
 
@@ -49,6 +50,37 @@ describe("Stripe webhook route", () => {
     );
 
     expect(response.status).toBe(400);
+    expect(processStripeWebhookEvent).not.toHaveBeenCalled();
+  });
+
+  it("rejects stale valid signatures before processing", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(1770000301 * 1000));
+
+    const payload = JSON.stringify({ id: "evt_stale", type: "checkout.session.completed", data: { object: {} } });
+    const timestamp = "1770000000";
+    const signature = verifyStripeWebhookSignature.createTestSignature({
+      payload,
+      secret: "whsec_test_secret",
+      timestamp,
+    });
+    processStripeWebhookEvent.mockResolvedValue({ action: "processed" });
+
+    const route = await import("../app/api/webhooks/stripe/route");
+    const response = await route.POST(
+      new Request("https://argos.ai/api/webhooks/stripe", {
+        method: "POST",
+        headers: {
+          "stripe-signature": `t=${timestamp},v1=${signature}`,
+        },
+        body: payload,
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Invalid Stripe signature.",
+    });
     expect(processStripeWebhookEvent).not.toHaveBeenCalled();
   });
 
@@ -76,7 +108,7 @@ describe("Stripe webhook route", () => {
 
   it("processes valid Stripe webhook events", async () => {
     const payload = JSON.stringify({ id: "evt_1", type: "checkout.session.completed", data: { object: {} } });
-    const timestamp = "1770000000";
+    const timestamp = `${Math.floor(Date.now() / 1000)}`;
     const signature = verifyStripeWebhookSignature.createTestSignature({
       payload,
       secret: "whsec_test_secret",

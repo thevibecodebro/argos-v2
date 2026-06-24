@@ -35,7 +35,34 @@ describe("verifyStripeWebhookSignature", () => {
       timestamp,
     });
 
-    expect(verifyStripeWebhookSignature(payload, `t=${timestamp},v1=${signature}`, secret)).toBe(true);
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(1770000300 * 1000));
+
+    try {
+      expect(verifyStripeWebhookSignature(payload, `t=${timestamp},v1=${signature}`, secret)).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("rejects a valid Stripe HMAC signature outside the replay tolerance", () => {
+    const payload = JSON.stringify({ id: "evt_stale", type: "checkout.session.completed" });
+    const secret = "whsec_test_secret";
+    const timestamp = "1770000000";
+    const signature = verifyStripeWebhookSignature.createTestSignature({
+      payload,
+      secret,
+      timestamp,
+    });
+
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(1770000301 * 1000));
+
+    try {
+      expect(verifyStripeWebhookSignature(payload, `t=${timestamp},v1=${signature}`, secret)).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("rejects an invalid Stripe HMAC signature", () => {
