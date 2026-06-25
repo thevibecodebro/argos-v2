@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import {
   getDb,
   ghlCallImportsTable,
@@ -68,6 +68,7 @@ export class DrizzleGhlWebhookRepository implements GhlWebhookRepository {
           ghlCallImportsTable.locationId,
           ghlCallImportsTable.messageId,
         ],
+        setWhere: inArray(ghlCallImportsTable.status, ["pending", "running", "retrying"]),
         set: {
           conversationId: input.conversationId,
           contactId: input.contactId,

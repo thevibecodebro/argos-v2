@@ -1,6 +1,12 @@
 import { eq, sql } from "drizzle-orm";
-import { createDb, ghlCallImportsTable, organizationsTable, type ArgosDb } from "@argos-v2/db";
-import { describe, expect, it } from "vitest";
+import {
+  callProcessingJobsTable,
+  createDb,
+  ghlCallImportsTable,
+  organizationsTable,
+  type ArgosDb,
+} from "@argos-v2/db";
+import { describe, expect, it, vi } from "vitest";
 import { GhlImportRepository } from "./repository";
 import { discoverWorkerTestDatabaseUrl } from "../test-support/database-env";
 
@@ -10,6 +16,16 @@ const workerTestDb = workerTestDatabaseUrl ? createDb(workerTestDatabaseUrl) : n
 const describeWithDatabase = workerTestDatabaseUrl ? describe : describe.skip;
 
 class RollbackSignal extends Error {}
+
+function createInsertBuilder() {
+  const builder = {
+    onConflictDoNothing: vi.fn(async () => undefined),
+    onConflictDoUpdate: vi.fn(async () => undefined),
+    values: vi.fn(() => builder),
+  };
+
+  return builder;
+}
 
 async function ensureGhlCallImportsTable(db: ArgosDb) {
   await db.execute(sql`
@@ -153,5 +169,30 @@ describeWithDatabase("GhlImportRepository", () => {
 
       expect(claimed).toBeNull();
     });
+  });
+});
+
+describe("GhlImportRepository job enqueue idempotency", () => {
+  it("does not reset an existing call-processing job for a replayed GHL import", async () => {
+    const insertBuilder = createInsertBuilder();
+    const db = {
+      insert: vi.fn(() => insertBuilder),
+    };
+    const repository = new GhlImportRepository(db as never);
+
+    await repository.createOrResetCallProcessingJob({
+      callId: "00000000-0000-4000-8000-000000000001",
+      rubricId: "00000000-0000-4000-8000-000000000002",
+      sourceOrigin: "ghl_recording",
+      sourceStoragePath: "recordings/call-1/source/msg-1.wav",
+      sourceFileName: "msg-1.wav",
+      sourceContentType: "audio/x-wav",
+      sourceSizeBytes: 9,
+    });
+
+    expect(insertBuilder.onConflictDoNothing).toHaveBeenCalledWith({
+      target: callProcessingJobsTable.callId,
+    });
+    expect(insertBuilder.onConflictDoUpdate).not.toHaveBeenCalled();
   });
 });

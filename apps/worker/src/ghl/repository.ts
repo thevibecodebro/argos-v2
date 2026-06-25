@@ -270,24 +270,8 @@ export class GhlImportRepository implements GhlCallImportRepository {
         sourceSizeBytes: input.sourceSizeBytes,
         status: "pending",
       })
-      .onConflictDoUpdate({
+      .onConflictDoNothing({
         target: callProcessingJobsTable.callId,
-        set: {
-          rubricId: input.rubricId ?? null,
-          sourceOrigin: input.sourceOrigin,
-          sourceStoragePath: input.sourceStoragePath,
-          sourceFileName: input.sourceFileName,
-          sourceContentType: input.sourceContentType,
-          sourceSizeBytes: input.sourceSizeBytes,
-          status: "pending",
-          attemptCount: 0,
-          nextRunAt: new Date(),
-          lockedAt: null,
-          lockExpiresAt: null,
-          lastStage: null,
-          lastError: null,
-          updatedAt: new Date(),
-        },
       });
   }
 
