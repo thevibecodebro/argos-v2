@@ -35,9 +35,12 @@ site_url = "https://argosrevenuecommand.com"
 additional_redirect_urls = [
   "http://127.0.0.1:3000/**",
   "http://localhost:3000/**",
-  "https://argosrevenuecommand.com/**",
-  "https://www.argosrevenuecommand.com/**",
-  "https://**.vercel.app/**"
+  "https://argosrevenuecommand.com/auth/callback",
+  "https://www.argosrevenuecommand.com/auth/callback",
+  "https://argos-v2-nine.vercel.app/auth/callback",
+  "https://argos-v2-thevibecodebro.vercel.app/auth/callback",
+  "https://argos-v2-git-main-thevibecodebro.vercel.app/auth/callback",
+  "https://*-thevibecodebro.vercel.app/auth/callback"
 ]
 jwt_expiry = 3600
 enable_signup = true
