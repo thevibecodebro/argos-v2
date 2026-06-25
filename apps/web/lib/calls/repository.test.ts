@@ -32,4 +32,46 @@ describe("calls repositories", () => {
     });
     expect(supabase.from).not.toHaveBeenCalled();
   });
+
+  it("preserves attempt count when manually requeueing failed processing jobs", async () => {
+    const processingUpdate = {
+      set: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      returning: vi.fn().mockResolvedValue([
+        {
+          id: "job-1",
+          callId: "call-1",
+          status: "pending",
+          attemptCount: 2,
+          maxAttempts: 3,
+          nextRunAt: new Date("2026-04-03T00:15:00.000Z"),
+          lockedAt: null,
+          lockExpiresAt: null,
+          lastStage: null,
+          lastError: null,
+          createdAt: new Date("2026-04-03T00:00:00.000Z"),
+          updatedAt: new Date("2026-04-03T00:15:00.000Z"),
+        },
+      ]),
+    };
+    const callUpdate = {
+      set: vi.fn().mockReturnThis(),
+      where: vi.fn().mockResolvedValue(undefined),
+    };
+    const tx = {
+      update: vi.fn()
+        .mockReturnValueOnce(processingUpdate)
+        .mockReturnValueOnce(callUpdate),
+    };
+    const db = {
+      transaction: vi.fn((callback) => callback(tx)),
+    };
+    const repository = new DrizzleCallsRepository(db as never);
+
+    const job = await repository.retryCallProcessingJob("call-1");
+
+    expect(job?.attemptCount).toBe(2);
+    expect(processingUpdate.set).toHaveBeenCalled();
+    expect(processingUpdate.set.mock.calls[0]?.[0]).not.toHaveProperty("attemptCount");
+  });
 });

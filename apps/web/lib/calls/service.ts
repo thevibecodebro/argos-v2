@@ -262,7 +262,13 @@ type UploadCallResult = {
   createdAt: string;
 };
 
-type ServiceErrorCode = "forbidden" | "invalid_state" | "not_found" | "payment_required" | "unprovisioned";
+type ServiceErrorCode =
+  | "forbidden"
+  | "invalid_state"
+  | "not_found"
+  | "payment_required"
+  | "retry_budget_exhausted"
+  | "unprovisioned";
 
 export type ServiceResult<T> =
   | { ok: true; data: T }
@@ -850,6 +856,15 @@ export async function retryCallProcessingJob(
       status: 400,
       code: "invalid_state",
       error: "Only failed processing jobs can be retried",
+    };
+  }
+
+  if (existingJob.attemptCount >= existingJob.maxAttempts) {
+    return {
+      ok: false,
+      status: 400,
+      code: "retry_budget_exhausted",
+      error: "Processing job retry budget is exhausted",
     };
   }
 

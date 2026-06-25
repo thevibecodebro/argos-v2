@@ -140,7 +140,6 @@ export class DrizzleCallsRepository implements CallsRepository {
         .update(callProcessingJobsTable)
         .set({
           status: "pending",
-          attemptCount: 0,
           nextRunAt: now,
           lockedAt: null,
           lockExpiresAt: null,
@@ -148,7 +147,11 @@ export class DrizzleCallsRepository implements CallsRepository {
           lastError: null,
           updatedAt: now,
         })
-        .where(and(eq(callProcessingJobsTable.callId, callId), eq(callProcessingJobsTable.status, "failed")))
+        .where(and(
+          eq(callProcessingJobsTable.callId, callId),
+          eq(callProcessingJobsTable.status, "failed"),
+          sql`${callProcessingJobsTable.attemptCount} < ${callProcessingJobsTable.maxAttempts}`,
+        ))
         .returning(callProcessingJobSelection);
 
       if (!job) {

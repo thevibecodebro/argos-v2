@@ -69,9 +69,18 @@ export class GhlImportRepository implements GhlCallImportRepository {
         where id = (
           select id
           from ghl_call_imports
-          where status in ('pending', 'retrying')
-            and next_run_at <= ${now}
-            and (lock_expires_at is null or lock_expires_at <= ${now})
+          where attempt_count < max_attempts
+            and (
+              (
+                status in ('pending', 'retrying')
+                and next_run_at <= ${now}
+                and (lock_expires_at is null or lock_expires_at <= ${now})
+              )
+              or (
+                status = 'running'
+                and lock_expires_at <= ${now}
+              )
+            )
           order by next_run_at asc, created_at asc
           limit 1
           for update skip locked
