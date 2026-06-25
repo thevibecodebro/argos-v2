@@ -79,6 +79,7 @@ describe("Platform organization detail route", () => {
         name: "Acme Health",
         plan: "trial",
         slug: "acme-health",
+        status: "active",
       },
       roleplayStats: { lastRoleplayAt: null, roleplaySessions: 0 },
       summary: {
@@ -99,6 +100,7 @@ describe("Platform organization detail route", () => {
         name: "Acme Health",
         plan: "trial",
         slug: "acme-health",
+        status: "active",
       },
     ]);
   });
@@ -123,6 +125,8 @@ describe("Platform organization detail route", () => {
     expect(html).toContain("Billing");
     expect(html).toContain("Access");
     expect(html).toContain("Audit events");
+    expect(html).toContain('data-platform-organization-archive="org-1"');
+    expect(html).toContain("Archive organization");
     expect(html).not.toContain("Sub-account");
   });
 

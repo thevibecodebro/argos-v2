@@ -30,12 +30,14 @@ type PlatformOrganizationsPageProps = {
   activeSession: PlatformConsoleActiveSession | null;
   organizations: PlatformConsoleOrganization[];
   query: string;
+  statusFilter?: "active" | "archived" | "all";
 };
 
 export function PlatformOrganizationsPage({
   activeSession,
   organizations,
   query,
+  statusFilter = "active",
 }: PlatformOrganizationsPageProps) {
   const [session, setSession] = useState(activeSession);
   const [sessionStatus, setSessionStatus] = useState<string | null>(null);
@@ -154,12 +156,29 @@ export function PlatformOrganizationsPage({
               <p className="forge-page-eyebrow">Organization list</p>
               <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">Organizations</h2>
             </div>
+            <div className="flex flex-wrap gap-2" data-platform-organization-status-filters="true">
+              {(["active", "archived", "all"] as const).map((status) => (
+                <a
+                  className={
+                    statusFilter === status
+                      ? "forge-button forge-button-primary forge-focus-ring min-h-10 rounded-lg px-3 py-2 text-xs"
+                      : "forge-button forge-button-ghost forge-focus-ring min-h-10 rounded-lg px-3 py-2 text-xs"
+                  }
+                  data-platform-organization-status-filter={status}
+                  href={buildStatusHref(status, query)}
+                  key={status}
+                >
+                  {status === "all" ? "All" : status === "archived" ? "Archived" : "Active"}
+                </a>
+              ))}
+            </div>
             <form
               action="/platform/organizations"
               className="flex min-w-0 flex-1 flex-col gap-2 sm:max-w-xl sm:flex-row lg:flex-initial"
               data-platform-organization-filters="true"
               method="get"
             >
+              <input name="status" type="hidden" value={statusFilter} />
               <label className="sr-only" htmlFor="platform-org-search">Search organizations</label>
               <input
                 className="min-h-10 w-full rounded-lg border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
@@ -193,6 +212,7 @@ export function PlatformOrganizationsPage({
                         <ForgeChip tone="gold">{formatPlan(org.plan)}</ForgeChip>
                         <OpenOrganizationAction
                           isActive={isActiveOrganization(session, org)}
+                          isArchived={org.status === "archived"}
                           isOpening={switchingOrgId === org.id}
                           onOpen={() => handleOpenOrganization(org)}
                           organizationId={org.id}
@@ -239,6 +259,7 @@ export function PlatformOrganizationsPage({
                       <td className="px-4 py-3 text-right">
                         <OpenOrganizationAction
                           isActive={isActiveOrganization(session, org)}
+                          isArchived={org.status === "archived"}
                           isOpening={switchingOrgId === org.id}
                           onOpen={() => handleOpenOrganization(org)}
                           organizationId={org.id}
@@ -267,6 +288,21 @@ export function PlatformOrganizationsPage({
   );
 }
 
+function buildStatusHref(status: "active" | "archived" | "all", query: string) {
+  const params = new URLSearchParams();
+
+  if (status !== "active") {
+    params.set("status", status);
+  }
+
+  if (query) {
+    params.set("q", query);
+  }
+
+  const search = params.toString();
+  return search ? `/platform/organizations?${search}` : "/platform/organizations";
+}
+
 function isActiveOrganization(
   session: PlatformConsoleActiveSession | null,
   organization: PlatformConsoleOrganization,
@@ -276,11 +312,13 @@ function isActiveOrganization(
 
 function OpenOrganizationAction({
   isActive,
+  isArchived,
   isOpening,
   onOpen,
   organizationId,
 }: {
   isActive: boolean;
+  isArchived: boolean;
   isOpening: boolean;
   onOpen: () => void;
   organizationId: string;
@@ -297,6 +335,17 @@ function OpenOrganizationAction({
       >
         Open Organization
       </a>
+    );
+  }
+
+  if (isArchived) {
+    return (
+      <span
+        className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--forge-muted)]"
+        data-platform-open-organization={organizationId}
+      >
+        Archived
+      </span>
     );
   }
 

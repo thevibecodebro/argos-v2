@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const createPlatformRepository = vi.fn();
+const archiveOrganizationForPlatform = vi.fn();
 const createPlatformOrganizationWithAdminInvite = vi.fn();
 const getPlatformApiAccess = vi.fn();
 
@@ -16,11 +17,16 @@ vi.mock("@/lib/platform/organizations", () => ({
   createPlatformOrganizationWithAdminInvite,
 }));
 
+vi.mock("@/lib/organizations/archive", () => ({
+  archiveOrganizationForPlatform,
+}));
+
 describe("platform organizations route", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.restoreAllMocks();
     createPlatformRepository.mockReset();
+    archiveOrganizationForPlatform.mockReset();
     createPlatformOrganizationWithAdminInvite.mockReset();
     getPlatformApiAccess.mockReset();
 
@@ -53,6 +59,16 @@ describe("platform organizations route", () => {
           token: "server-only-token",
         },
         organization: { id: "org-1" },
+      },
+    });
+    archiveOrganizationForPlatform.mockResolvedValue({
+      ok: true,
+      data: {
+        archived: true,
+        auditEvent: { id: "audit-2" },
+        detachedUserCount: 3,
+        endedSessionCount: 1,
+        organization: { id: "org-1", status: "archived" },
       },
     });
   });
@@ -124,6 +140,68 @@ describe("platform organizations route", () => {
         name: "Acme",
         reason: "Customer onboarding request",
         slug: "acme",
+      },
+    );
+  });
+
+  it("denies nonstaff platform organization archival", async () => {
+    getPlatformApiAccess.mockResolvedValueOnce({
+      ok: false,
+      status: 403,
+      error: "Platform access required",
+    });
+
+    const route = await import("../app/api/platform/organizations/route");
+    const response = await route.DELETE(
+      new Request("http://localhost:3000/api/platform/organizations", {
+        method: "DELETE",
+        body: JSON.stringify({
+          confirmationSlug: "acme",
+          orgId: "org-1",
+          reason: "Duplicate workspace",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      error: "Platform access required",
+    });
+    expect(archiveOrganizationForPlatform).not.toHaveBeenCalled();
+  });
+
+  it("delegates platform organization archival to active platform staff", async () => {
+    const route = await import("../app/api/platform/organizations/route");
+    const response = await route.DELETE(
+      new Request("http://localhost:3000/api/platform/organizations", {
+        method: "DELETE",
+        body: JSON.stringify({
+          confirmationSlug: "acme",
+          orgId: "org-1",
+          reason: "Duplicate workspace",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      archived: true,
+      auditEvent: { id: "audit-2" },
+      detachedUserCount: 3,
+      endedSessionCount: 1,
+      organization: { id: "org-1", status: "archived" },
+    });
+    expect(archiveOrganizationForPlatform).toHaveBeenCalledWith(
+      { name: "platform-repository" },
+      {
+        email: "operator@argos.ai",
+        role: "operator",
+        userId: "staff-1",
+      },
+      {
+        confirmationSlug: "acme",
+        orgId: "org-1",
+        reason: "Duplicate workspace",
       },
     );
   });

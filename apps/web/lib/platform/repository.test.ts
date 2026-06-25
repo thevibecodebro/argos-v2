@@ -1,5 +1,6 @@
 import { and, eq, gt } from "drizzle-orm";
 import {
+  organizationsTable,
   platformAccessSessionsTable,
   platformStaffTable,
 } from "@argos-v2/db";
@@ -614,11 +615,13 @@ describe("DrizzlePlatformRepository", () => {
     expect(eq).toHaveBeenCalledWith(platformAccessSessionsTable.id, "session-1");
     expect(eq).toHaveBeenCalledWith(platformAccessSessionsTable.staffUserId, "staff-1");
     expect(eq).toHaveBeenCalledWith(platformAccessSessionsTable.status, "active");
+    expect(eq).toHaveBeenCalledWith(organizationsTable.status, "active");
     expect(gt).toHaveBeenCalledWith(platformAccessSessionsTable.expiresAt, expect.any(Date));
     expect(and).toHaveBeenCalledWith(
       { left: platformAccessSessionsTable.id, op: "eq", right: "session-1" },
       { left: platformAccessSessionsTable.staffUserId, op: "eq", right: "staff-1" },
       { left: platformAccessSessionsTable.status, op: "eq", right: "active" },
+      { left: organizationsTable.status, op: "eq", right: "active" },
       { left: platformAccessSessionsTable.expiresAt, op: "gt", right: expect.any(Date) },
     );
     expect(operations[0]).toMatchObject({
@@ -630,6 +633,7 @@ describe("DrizzlePlatformRepository", () => {
             { left: platformAccessSessionsTable.id, op: "eq", right: "session-1" },
             { left: platformAccessSessionsTable.staffUserId, op: "eq", right: "staff-1" },
             { left: platformAccessSessionsTable.status, op: "eq", right: "active" },
+            { left: organizationsTable.status, op: "eq", right: "active" },
             { left: platformAccessSessionsTable.expiresAt, op: "gt", right: expect.any(Date) },
           ],
           op: "and",

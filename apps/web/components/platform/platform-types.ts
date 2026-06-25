@@ -2,11 +2,13 @@ export type PlatformRole = "owner" | "operator";
 export type PlatformStaffStatus = "active" | "revoked";
 
 export type PlatformConsoleOrganization = {
+  archivedAt?: string | null;
   createdAt: string;
   id: string;
   name: string;
   plan: string;
   slug: string;
+  status?: "active" | "archived";
 };
 
 export type PlatformConsoleStaffMember = {

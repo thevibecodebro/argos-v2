@@ -7,13 +7,14 @@ const mutationMethodPattern = /export\s+async\s+function\s+(POST|PATCH|PUT|DELET
 const protectedRoutePattern =
   /getAuthenticatedSupabaseUser|getCachedAuthenticatedSupabaseUser|getPlatformApiAccess|createSupabaseServerClient/;
 const platformAuditPattern =
-  /auditPlatformWorkspaceMutation|getPlatformApiAccess|createPlatformOrganizationWithAdminInvite|createPlatformSwitchSession|endPlatformSwitchSession|grantPlatformStaffAccess|revokePlatformStaffAccess/;
+  /auditPlatformWorkspaceMutation|getPlatformApiAccess|archiveOrganizationForCurrentAdmin|archiveOrganizationForPlatform|createPlatformOrganizationWithAdminInvite|createPlatformSwitchSession|endPlatformSwitchSession|grantPlatformStaffAccess|revokePlatformStaffAccess/;
 
 const platformAuditCoveredRoutes = new Set([
   "integrations/ghl/consent/route.ts",
   "integrations/ghl/mappings/route.ts",
   "integrations/ghl/sync/route.ts",
   "invites/route.ts",
+  "organizations/route.ts",
   "organizations/branding/route.ts",
   "platform/organizations/route.ts",
   "platform/sessions/route.ts",
@@ -43,7 +44,6 @@ const platformAuditDeferredRoutes = new Set([
   "organizations/logo/route.ts",
   "organizations/members/[userId]/primary-manager/route.ts",
   "organizations/members/[userId]/route.ts",
-  "organizations/route.ts",
   "roleplay/sessions/[id]/complete/route.ts",
   "roleplay/sessions/[id]/messages/route.ts",
   "roleplay/sessions/[id]/realtime/route.ts",
