@@ -207,6 +207,7 @@ export async function processCallJob(input: ProcessCallJobInput) {
 
     currentStage = "download";
     const downloadedSourcePath = await downloadSourceAssetImpl({
+      expectedSizeBytes: input.job.sourceSizeBytes,
       storagePath: input.job.sourceStoragePath,
       targetPath: sourcePath,
     });

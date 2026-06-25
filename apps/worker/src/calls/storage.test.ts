@@ -33,6 +33,45 @@ describe("storeCallSourceAsset", () => {
 });
 
 describe("downloadSourceAsset", () => {
+  it("rejects stored source assets whose current size no longer matches the queued size", async () => {
+    const readBody = vi.fn().mockResolvedValue(new ArrayBuffer(11));
+    const download = vi.fn().mockResolvedValue({
+      data: {
+        size: 11,
+        arrayBuffer: readBody,
+      },
+      error: null,
+    });
+    const from = vi.fn().mockReturnValue({ download });
+    const writeFile = vi.fn().mockResolvedValue(undefined);
+
+    await expect(
+      downloadSourceAsset(
+        {
+          expectedSizeBytes: 10,
+          storagePath: "recordings/call-1/source/demo.wav",
+          targetPath: "/tmp/argos-v2-demo.wav",
+        },
+        {
+          env: {
+            maxSourceBytes: 500,
+            supabaseServiceRoleKey: "service-role",
+            supabaseUrl: "https://supabase.local",
+          } as any,
+          supabase: {
+            storage: {
+              from,
+            },
+          } as any,
+          writeFile: writeFile as any,
+        },
+      ),
+    ).rejects.toThrow("Stored source asset changed after upload completion.");
+
+    expect(readBody).not.toHaveBeenCalled();
+    expect(writeFile).not.toHaveBeenCalled();
+  });
+
   it("rejects oversized stored source assets before buffering the blob", async () => {
     const readBody = vi.fn().mockResolvedValue(new ArrayBuffer(0));
     const download = vi.fn().mockResolvedValue({

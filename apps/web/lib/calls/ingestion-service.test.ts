@@ -126,7 +126,7 @@ describe("createManualCallUploadTarget", () => {
     expect(from).toHaveBeenCalledWith("call-recordings");
     expect(createSignedUploadUrl).toHaveBeenCalledWith(
       "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
-      { upsert: true },
+      { upsert: false },
     );
     expect(result).toEqual({
       storageBucket: "call-recordings",

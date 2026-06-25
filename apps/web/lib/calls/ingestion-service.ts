@@ -67,7 +67,7 @@ export async function createManualCallUploadTarget(
   const storagePath = `recordings/manual-uploads/${input.authUserId}/${createId()}/${fileName}`;
   const bucket = supabase.storage.from("call-recordings");
   const { data, error } = await bucket.createSignedUploadUrl(storagePath, {
-    upsert: true,
+    upsert: false,
   });
 
   if (error || !data?.token) {

@@ -60,6 +60,7 @@ describe("processCallJob", () => {
         attemptCount: 1,
         maxAttempts: 3,
         sourceStoragePath: "recordings/call-1/source/demo.mp3",
+        sourceSizeBytes: 12345,
       } as never,
       repository: repository as never,
       downloadSourceAsset,
@@ -70,6 +71,13 @@ describe("processCallJob", () => {
     });
 
     expect(repository.updateCallStatus).toHaveBeenNthCalledWith(1, "call-1", "transcribing");
+    expect(downloadSourceAsset).toHaveBeenCalledWith(
+      expect.objectContaining({
+        expectedSizeBytes: 12345,
+        storagePath: "recordings/call-1/source/demo.mp3",
+        targetPath: expect.stringMatching(/source\.mp3$/),
+      }),
+    );
     expect(normalizeAudio).toHaveBeenCalledWith(
       expect.objectContaining({
         ffmpegBinary: expect.any(String),

@@ -9,6 +9,7 @@ type StorageClient = Pick<SupabaseClient, "storage">;
 type DownloadSourceAssetInput = {
   storagePath: string;
   bucket?: string;
+  expectedSizeBytes?: number | null;
   targetPath: string;
 };
 
@@ -49,6 +50,16 @@ export async function downloadSourceAsset(
 
   if (error || !data) {
     throw new Error(`Failed to download source asset: ${error?.message ?? "missing blob"}`);
+  }
+
+  if (input.expectedSizeBytes !== null && input.expectedSizeBytes !== undefined) {
+    if (!Number.isSafeInteger(input.expectedSizeBytes) || input.expectedSizeBytes < 0) {
+      throw new Error("Queued source asset size is invalid.");
+    }
+
+    if (data.size !== input.expectedSizeBytes) {
+      throw new Error("Stored source asset changed after upload completion.");
+    }
   }
 
   const bytes = Buffer.from(await readBlobArrayBufferWithLimit(data, env.maxSourceBytes));
