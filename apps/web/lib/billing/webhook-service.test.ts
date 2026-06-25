@@ -18,6 +18,7 @@ function makeRepository(overrides: Partial<BillingWebhookRepository> = {}): Bill
       userId: "auth-user-1",
     }),
     insertStripeWebhookEvent: vi.fn().mockResolvedValue(true),
+    reconcileSubscriptionVoiceCreditGrants: vi.fn().mockResolvedValue(undefined),
     upsertBillingCustomer: vi.fn().mockResolvedValue(undefined),
     upsertBillingSubscription: vi.fn().mockResolvedValue(undefined),
     ...overrides,
@@ -136,14 +137,51 @@ describe("processStripeWebhookEvent", () => {
         stripeSubscriptionId: "sub_1",
       }),
     );
-    expect(repository.createVoiceCreditGrant).toHaveBeenCalledWith(
+    expect(repository.reconcileSubscriptionVoiceCreditGrants).toHaveBeenCalledWith(
       expect.objectContaining({
         billingPlanId: "team",
         minutesGranted: 480,
+        periodEnd: new Date(1772592000 * 1000),
+        periodStart: new Date(1770000000 * 1000),
         sourceId: "sub_1:1770000000",
-        sourceType: "subscription_included",
+        stripeSubscriptionId: "sub_1",
       }),
     );
+    expect(repository.createVoiceCreditGrant).not.toHaveBeenCalled();
+  });
+
+  it("expires subscription-included voice grants when Stripe marks the subscription inactive", async () => {
+    const repository = makeRepository();
+    const event: StripeWebhookEvent = {
+      id: "evt_subscription_canceled",
+      type: "customer.subscription.deleted",
+      data: {
+        object: {
+          id: "sub_1",
+          customer: "cus_1",
+          current_period_end: 1772592000,
+          current_period_start: 1770000000,
+          metadata: { auth_user_id: "auth-user-1", plan: "team" },
+          status: "canceled",
+          cancel_at_period_end: false,
+          items: { data: [{ quantity: 4 }] },
+        },
+      },
+    };
+
+    await expect(processStripeWebhookEvent(repository, event)).resolves.toEqual({
+      action: "processed",
+    });
+    expect(repository.reconcileSubscriptionVoiceCreditGrants).toHaveBeenCalledWith(
+      expect.objectContaining({
+        active: false,
+        minutesGranted: 0,
+        orgId: "org-1",
+        stripeSubscriptionId: "sub_1",
+        userId: "auth-user-1",
+      }),
+    );
+    expect(repository.createVoiceCreditGrant).not.toHaveBeenCalled();
   });
 
   it("sends onboarding email to the billing owner after subscription checkout completes", async () => {

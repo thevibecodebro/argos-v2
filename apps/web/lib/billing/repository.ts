@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, isNull, or, sql } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, ne, or, sql } from "drizzle-orm";
 import {
   billingCustomersTable,
   billingSubscriptionsTable,
@@ -21,6 +21,10 @@ import type { CallProcessingEntitlementsRepository } from "./call-processing-ent
 
 function buildFullName(firstName: string | null, lastName: string | null, email: string) {
   return [firstName, lastName].filter(Boolean).join(" ").trim() || email;
+}
+
+function escapeSqlLikePattern(value: string) {
+  return value.replace(/[\\%_]/g, (character) => `\\${character}`);
 }
 
 export class DrizzleBillingRepository implements BillingWebhookRepository, VoiceEntitlementsRepository, CallProcessingEntitlementsRepository {
@@ -190,6 +194,82 @@ export class DrizzleBillingRepository implements BillingWebhookRepository, Voice
         userId: input.userId,
       })
       .onConflictDoNothing();
+  }
+
+  async reconcileSubscriptionVoiceCreditGrants(input: {
+    active: boolean;
+    billingPlanId: string;
+    expiresAt: Date | null;
+    minutesGranted: number;
+    orgId: string | null;
+    periodEnd: Date | null;
+    periodStart: Date | null;
+    sourceId: string;
+    stripeSubscriptionId: string;
+    userId: string;
+  }) {
+    const ownerCondition = input.orgId
+      ? eq(voiceCreditGrantsTable.orgId, input.orgId)
+      : and(eq(voiceCreditGrantsTable.userId, input.userId), isNull(voiceCreditGrantsTable.orgId));
+    const now = new Date();
+    const subscriptionSourcePattern = `${escapeSqlLikePattern(input.stripeSubscriptionId)}:%`;
+    const staleGrantConditions = [
+      ownerCondition,
+      eq(voiceCreditGrantsTable.sourceType, "subscription_included" as const),
+      sql`${voiceCreditGrantsTable.sourceId} like ${subscriptionSourcePattern} escape '\\'`,
+      eq(voiceCreditGrantsTable.status, "active" as const),
+    ];
+
+    if (input.active) {
+      staleGrantConditions.push(ne(voiceCreditGrantsTable.sourceId, input.sourceId));
+    }
+
+    await this.db.transaction(async (tx) => {
+      await tx
+        .update(voiceCreditGrantsTable)
+        .set({
+          expiresAt: now,
+          minutesRemaining: 0,
+          status: "expired",
+          updatedAt: now,
+        })
+        .where(and(...staleGrantConditions));
+
+      if (!input.active) {
+        return;
+      }
+
+      const consumedMinutes = sql`greatest(${voiceCreditGrantsTable.minutesGranted} - ${voiceCreditGrantsTable.minutesRemaining}, 0)`;
+      const reconciledRemainingMinutes = sql`greatest(${input.minutesGranted} - ${consumedMinutes}, 0)`;
+
+      await tx
+        .insert(voiceCreditGrantsTable)
+        .values({
+          billingPlanId: input.billingPlanId,
+          expiresAt: input.expiresAt,
+          minutesGranted: input.minutesGranted,
+          minutesRemaining: input.minutesGranted,
+          orgId: input.orgId,
+          periodEnd: input.periodEnd,
+          periodStart: input.periodStart,
+          sourceId: input.sourceId,
+          sourceType: "subscription_included",
+          userId: input.userId,
+        })
+        .onConflictDoUpdate({
+          target: [voiceCreditGrantsTable.sourceType, voiceCreditGrantsTable.sourceId],
+          set: {
+            billingPlanId: input.billingPlanId,
+            expiresAt: input.expiresAt,
+            minutesGranted: input.minutesGranted,
+            minutesRemaining: reconciledRemainingMinutes,
+            periodEnd: input.periodEnd,
+            periodStart: input.periodStart,
+            status: sql`case when ${reconciledRemainingMinutes} <= 0 then 'depleted' else 'active' end`,
+            updatedAt: now,
+          },
+        });
+    });
   }
 
   async findActiveVoiceCreditGrants(input: {

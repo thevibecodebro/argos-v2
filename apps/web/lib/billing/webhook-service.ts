@@ -51,6 +51,18 @@ export type BillingWebhookRepository = {
     eventType: string;
     payload: StripeWebhookEvent;
   }): Promise<boolean>;
+  reconcileSubscriptionVoiceCreditGrants(input: {
+    active: boolean;
+    billingPlanId: BillingPlanId;
+    expiresAt: Date | null;
+    minutesGranted: number;
+    orgId: string | null;
+    periodEnd: Date | null;
+    periodStart: Date | null;
+    sourceId: string;
+    stripeSubscriptionId: string;
+    userId: string;
+  }): Promise<void>;
   upsertBillingCustomer(input: {
     orgId: string | null;
     stripeCustomerId: string;
@@ -209,23 +221,21 @@ async function processSubscriptionEvent(
     userId: scope.userId,
   });
 
-  if (status === "active" || status === "trialing") {
-    const minutes = getIncludedVoiceMinutes(plan.id, seatCount);
+  const subscriptionIsActive = status === "active" || status === "trialing";
+  const minutes = subscriptionIsActive ? getIncludedVoiceMinutes(plan.id, seatCount) : 0;
 
-    if (minutes > 0) {
-      await repository.createVoiceCreditGrant({
-        billingPlanId: plan.id,
-        expiresAt: periodEnd,
-        minutesGranted: minutes,
-        orgId: scope.orgId,
-        periodEnd,
-        periodStart,
-        sourceId: `${stripeSubscriptionId}:${object.current_period_start ?? "current"}`,
-        sourceType: "subscription_included",
-        userId: scope.userId,
-      });
-    }
-  }
+  await repository.reconcileSubscriptionVoiceCreditGrants({
+    active: subscriptionIsActive && minutes > 0,
+    billingPlanId: plan.id,
+    expiresAt: periodEnd,
+    minutesGranted: minutes,
+    orgId: scope.orgId,
+    periodEnd,
+    periodStart,
+    sourceId: `${stripeSubscriptionId}:${object.current_period_start ?? "current"}`,
+    stripeSubscriptionId,
+    userId: scope.userId,
+  });
 }
 
 async function processCheckoutCompletedEvent(
