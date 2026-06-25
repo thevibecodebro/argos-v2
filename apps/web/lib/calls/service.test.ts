@@ -326,7 +326,7 @@ describe("processing job recovery", () => {
     expect(repository.findCallProcessingJobByCallId).not.toHaveBeenCalled();
   });
 
-  it("lets admins requeue failed processing jobs", async () => {
+  it("lets admins requeue failed processing jobs that still have retry budget", async () => {
     const repository = createRepository({
       findCurrentUserByAuthId: vi.fn().mockResolvedValue(adminViewer),
       findCallById: vi.fn().mockResolvedValue({
@@ -336,7 +336,7 @@ describe("processing job recovery", () => {
       findCallProcessingJobByCallId: vi.fn().mockResolvedValue({
         id: "job-1",
         status: "failed",
-        attemptCount: 3,
+        attemptCount: 2,
         maxAttempts: 3,
         nextRunAt: new Date("2026-04-03T00:00:00.000Z"),
         lastStage: "score",
@@ -346,7 +346,7 @@ describe("processing job recovery", () => {
       retryCallProcessingJob: vi.fn().mockResolvedValue({
         id: "job-1",
         status: "pending",
-        attemptCount: 0,
+        attemptCount: 2,
         maxAttempts: 3,
         nextRunAt: new Date("2026-04-03T00:15:00.000Z"),
         lastStage: null,
@@ -373,9 +373,49 @@ describe("processing job recovery", () => {
     expect(result.data.processingJob).toMatchObject({
       id: "job-1",
       status: "pending",
-      attemptCount: 0,
+      attemptCount: 2,
       lastError: null,
     });
+  });
+
+  it("blocks admins from requeueing failed processing jobs that exhausted retry budget", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue(adminViewer),
+      findCallById: vi.fn().mockResolvedValue({
+        ...baseCallRecord,
+        status: "failed",
+      }),
+      findCallProcessingJobByCallId: vi.fn().mockResolvedValue({
+        id: "job-1",
+        status: "failed",
+        attemptCount: 3,
+        maxAttempts: 3,
+        nextRunAt: new Date("2026-04-03T00:00:00.000Z"),
+        lastStage: "score",
+        lastError: "Scoring failed",
+        updatedAt: new Date("2026-04-03T00:00:00.000Z"),
+      }),
+      retryCallProcessingJob: vi.fn(),
+    });
+    const callProcessingEntitlementsRepository = {
+      findActiveCallProcessingSubscription: vi.fn().mockResolvedValue({ id: "sub-1" }),
+    };
+
+    const result = await retryCallProcessingJob(
+      repository,
+      "admin-1",
+      "call-1",
+      adminAccessRepository() as never,
+      { callProcessingEntitlementsRepository },
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      status: 400,
+      code: "retry_budget_exhausted",
+    });
+    expect(callProcessingEntitlementsRepository.findActiveCallProcessingSubscription).not.toHaveBeenCalled();
+    expect(repository.retryCallProcessingJob).not.toHaveBeenCalled();
   });
 
   it("blocks retrying failed processing jobs when billing is inactive", async () => {
@@ -388,7 +428,7 @@ describe("processing job recovery", () => {
       findCallProcessingJobByCallId: vi.fn().mockResolvedValue({
         id: "job-1",
         status: "failed",
-        attemptCount: 3,
+        attemptCount: 2,
         maxAttempts: 3,
         nextRunAt: new Date("2026-04-03T00:00:00.000Z"),
         lastStage: "score",

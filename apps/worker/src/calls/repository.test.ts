@@ -188,6 +188,92 @@ describeWithDatabase("CallProcessingRepository", () => {
     });
   });
 
+  it("reclaims expired running jobs as a new leased attempt", async () => {
+    await withRepositoryTransaction(async ({ db, repository }) => {
+      const seeded = await seedCall(db);
+      const job = await repository.insertJob({
+        callId: seeded.callId,
+        sourceOrigin: "manual_upload",
+        sourceStoragePath: "recordings/call-expired/source/audio.mp3",
+        sourceFileName: "audio.mp3",
+        status: "running",
+      });
+
+      await db
+        .update(callProcessingJobsTable)
+        .set({
+          attemptCount: 1,
+          lockedAt: new Date("2026-04-18T09:40:00.000Z"),
+          lockExpiresAt: new Date("2026-04-18T09:55:00.000Z"),
+          nextRunAt: new Date("2026-04-18T09:40:00.000Z"),
+        })
+        .where(eq(callProcessingJobsTable.id, job.id));
+
+      const claimed = await repository.claimNextJob(new Date("2026-04-18T10:00:00.000Z"));
+
+      expect(claimed?.id).toBe(job.id);
+      expect(claimed?.status).toBe("running");
+      expect(claimed?.attemptCount).toBe(2);
+      expect(claimed?.lockedAt).toEqual(new Date("2026-04-18T10:00:00.000Z"));
+      expect(claimed?.lockExpiresAt).toEqual(new Date("2026-04-18T10:15:00.000Z"));
+    });
+  });
+
+  it("does not reclaim running jobs while their lease is still active", async () => {
+    await withRepositoryTransaction(async ({ db, repository }) => {
+      const seeded = await seedCall(db);
+      await repository.insertJob({
+        callId: seeded.callId,
+        sourceOrigin: "manual_upload",
+        sourceStoragePath: "recordings/call-active/source/audio.mp3",
+        sourceFileName: "audio.mp3",
+        status: "running",
+      });
+
+      await db
+        .update(callProcessingJobsTable)
+        .set({
+          attemptCount: 1,
+          lockedAt: new Date("2026-04-18T09:55:00.000Z"),
+          lockExpiresAt: new Date("2026-04-18T10:10:00.000Z"),
+          nextRunAt: new Date("2026-04-18T09:55:00.000Z"),
+        })
+        .where(eq(callProcessingJobsTable.callId, seeded.callId));
+
+      const claimed = await repository.claimNextJob(new Date("2026-04-18T10:00:00.000Z"));
+
+      expect(claimed).toBeNull();
+    });
+  });
+
+  it("does not reclaim jobs that have exhausted the retry budget", async () => {
+    await withRepositoryTransaction(async ({ db, repository }) => {
+      const seeded = await seedCall(db);
+      await repository.insertJob({
+        callId: seeded.callId,
+        sourceOrigin: "manual_upload",
+        sourceStoragePath: "recordings/call-exhausted/source/audio.mp3",
+        sourceFileName: "audio.mp3",
+        status: "running",
+      });
+
+      await db
+        .update(callProcessingJobsTable)
+        .set({
+          attemptCount: 3,
+          maxAttempts: 3,
+          lockedAt: new Date("2026-04-18T09:40:00.000Z"),
+          lockExpiresAt: new Date("2026-04-18T09:55:00.000Z"),
+          nextRunAt: new Date("2026-04-18T09:40:00.000Z"),
+        })
+        .where(eq(callProcessingJobsTable.callId, seeded.callId));
+
+      const claimed = await repository.claimNextJob(new Date("2026-04-18T10:00:00.000Z"));
+
+      expect(claimed).toBeNull();
+    });
+  });
+
   it("schedules the next retry with backoff", async () => {
     await withRepositoryTransaction(async ({ db, repository }) => {
       const seeded = await seedCall(db);
