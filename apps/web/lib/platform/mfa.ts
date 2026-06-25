@@ -21,6 +21,9 @@ type PlatformMfaClient = {
       enroll(input: {
         factorType: "totp";
       }): Promise<{ data: PlatformTotpEnrollment | null; error: { message: string } | null }>;
+      unenroll(input: {
+        factorId: string;
+      }): Promise<{ data: { id: string } | null; error: { message: string } | null }>;
       listFactors(): Promise<{
         data: { totp?: PlatformTotpFactor[] | null } | null;
         error: { message: string } | null;
@@ -42,7 +45,21 @@ export async function getVerifiedTotpFactors(supabase: PlatformMfaClient) {
   return (data?.totp ?? []).filter((factor) => factor.status === "verified");
 }
 
+async function removeUnverifiedTotpFactors(supabase: PlatformMfaClient) {
+  const { data, error } = await supabase.auth.mfa.listFactors();
+  assertNoMfaError(error, "list platform MFA factors");
+
+  const unverifiedFactors = (data?.totp ?? []).filter((factor) => factor.status === "unverified");
+
+  for (const factor of unverifiedFactors) {
+    const { error: unenrollError } = await supabase.auth.mfa.unenroll({ factorId: factor.id });
+    assertNoMfaError(unenrollError, "remove stale platform TOTP MFA factor");
+  }
+}
+
 export async function enrollPlatformTotp(supabase: PlatformMfaClient) {
+  await removeUnverifiedTotpFactors(supabase);
+
   const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp" });
   assertNoMfaError(error, "enroll platform TOTP MFA");
 

@@ -20,6 +20,10 @@ function createMfaClient() {
           },
           error: null,
         }),
+        unenroll: vi.fn().mockResolvedValue({
+          data: { id: "factor-2" },
+          error: null,
+        }),
         listFactors: vi.fn().mockResolvedValue({
           data: {
             totp: [
@@ -56,6 +60,22 @@ describe("platform MFA helpers", () => {
       },
     });
 
+    expect(supabase.auth.mfa.enroll).toHaveBeenCalledWith({ factorType: "totp" });
+  });
+
+  it("removes stale unverified TOTP factors before enrolling a fresh setup factor", async () => {
+    const supabase = createMfaClient();
+
+    await expect(enrollPlatformTotp(supabase)).resolves.toEqual({
+      id: "factor-1",
+      totp: {
+        qr_code: "otpauth://totp/Argos:owner@argos.ai",
+        secret: "SECRET123",
+      },
+    });
+
+    expect(supabase.auth.mfa.listFactors).toHaveBeenCalled();
+    expect(supabase.auth.mfa.unenroll).toHaveBeenCalledWith({ factorId: "factor-2" });
     expect(supabase.auth.mfa.enroll).toHaveBeenCalledWith({ factorType: "totp" });
   });
 
