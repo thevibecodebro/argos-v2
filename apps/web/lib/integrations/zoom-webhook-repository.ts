@@ -4,6 +4,7 @@ import {
   callsTable,
   findActiveCallProcessingSubscription,
   getDb,
+  organizationsTable,
   usersTable,
   zoomIntegrationsTable,
   type ArgosDb,
@@ -105,7 +106,13 @@ export class DrizzleZoomWebhookRepository implements ZoomWebhookRepository {
         tokenExpiresAt: zoomIntegrationsTable.tokenExpiresAt,
       })
       .from(zoomIntegrationsTable)
-      .where(eq(zoomIntegrationsTable.zoomAccountId, accountId))
+      .innerJoin(organizationsTable, eq(organizationsTable.id, zoomIntegrationsTable.orgId))
+      .where(
+        and(
+          eq(zoomIntegrationsTable.zoomAccountId, accountId),
+          eq(organizationsTable.status, "active"),
+        ),
+      )
       .limit(1);
 
     if (!integration) {

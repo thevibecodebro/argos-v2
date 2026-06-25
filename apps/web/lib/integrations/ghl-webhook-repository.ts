@@ -1,8 +1,9 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import {
   getDb,
   ghlCallImportsTable,
   ghlIntegrationsTable,
+  organizationsTable,
   type ArgosDb,
 } from "@argos-v2/db";
 import type { GhlWebhookRepository } from "./ghl-webhook";
@@ -26,7 +27,13 @@ export class DrizzleGhlWebhookRepository implements GhlWebhookRepository {
         locationId: ghlIntegrationsTable.locationId,
       })
       .from(ghlIntegrationsTable)
-      .where(eq(ghlIntegrationsTable.locationId, locationId))
+      .innerJoin(organizationsTable, eq(organizationsTable.id, ghlIntegrationsTable.orgId))
+      .where(
+        and(
+          eq(ghlIntegrationsTable.locationId, locationId),
+          eq(organizationsTable.status, "active"),
+        ),
+      )
       .limit(1);
 
     return integration ?? null;

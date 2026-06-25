@@ -7,6 +7,7 @@ import {
   ghlCallImportsTable,
   ghlIntegrationsTable,
   ghlUserMappingsTable,
+  organizationsTable,
   rubricsTable,
   type ArgosDb,
 } from "@argos-v2/db";
@@ -115,10 +116,12 @@ export class GhlImportRepository implements GhlCallImportRepository {
         defaultRepId: ghlIntegrationsTable.defaultRepId,
       })
       .from(ghlIntegrationsTable)
+      .innerJoin(organizationsTable, eq(organizationsTable.id, ghlIntegrationsTable.orgId))
       .where(
         and(
           eq(ghlIntegrationsTable.orgId, input.orgId),
           eq(ghlIntegrationsTable.locationId, input.locationId),
+          eq(organizationsTable.status, "active"),
         ),
       )
       .limit(1);
@@ -378,9 +381,11 @@ export class GhlImportRepository implements GhlCallImportRepository {
         lastSyncCursor: ghlIntegrationsTable.lastSyncCursor,
       })
       .from(ghlIntegrationsTable)
+      .innerJoin(organizationsTable, eq(organizationsTable.id, ghlIntegrationsTable.orgId))
       .where(
         and(
           eq(ghlIntegrationsTable.syncEnabled, true),
+          eq(organizationsTable.status, "active"),
           sql`${ghlIntegrationsTable.consentConfirmedAt} is not null`,
         ),
       )

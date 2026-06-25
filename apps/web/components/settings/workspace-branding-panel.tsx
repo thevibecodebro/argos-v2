@@ -3,6 +3,7 @@
 import { useMemo, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { ForgeIcon } from "@/components/forge";
+import { submitArchiveOrganization } from "@/components/platform/platform-console-actions";
 import { OrgLogoUploader } from "@/components/settings/org-logo-uploader";
 import {
   DEFAULT_WORKSPACE_THEME,
@@ -21,6 +22,7 @@ type WorkspaceBrandingPanelProps = {
   initialLogoUrl?: string | null;
   initialTheme: WorkspaceTheme | null;
   organizationName: string;
+  organizationSlug?: string | null;
 };
 
 type ColorField = keyof WorkspaceThemeColors;
@@ -98,6 +100,7 @@ export function WorkspaceBrandingPanel({
   initialLogoUrl = null,
   initialTheme,
   organizationName,
+  organizationSlug = null,
 }: WorkspaceBrandingPanelProps) {
   const router = useRouter();
   const [savedTheme, setSavedTheme] = useState<WorkspaceTheme | null>(initialTheme);
@@ -108,7 +111,10 @@ export function WorkspaceBrandingPanel({
     getInitialTheme(initialTheme).activeMode,
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
   const [isRestoreOpen, setIsRestoreOpen] = useState(false);
+  const [archiveReason, setArchiveReason] = useState("");
+  const [archiveSlug, setArchiveSlug] = useState("");
   const [message, setMessage] = useState<string | null>(null);
 
   const parsedTheme = useMemo(
@@ -266,6 +272,27 @@ export function WorkspaceBrandingPanel({
       setMessage(error instanceof Error ? error.message : "Unable to restore workspace branding.");
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function archiveOrganization() {
+    setIsArchiving(true);
+    setMessage(null);
+
+    try {
+      await submitArchiveOrganization(
+        fetch,
+        {
+          confirmationSlug: archiveSlug,
+          reason: archiveReason,
+        },
+        { selfService: true },
+      );
+      window.location.assign("/onboarding");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to remove organization.");
+    } finally {
+      setIsArchiving(false);
     }
   }
 
@@ -438,6 +465,56 @@ export function WorkspaceBrandingPanel({
               />
             </div>
           </details>
+
+          {organizationSlug ? (
+            <section
+              className="rounded-lg border border-[color-mix(in_srgb,var(--forge-danger)_28%,var(--forge-border))] bg-[var(--forge-panel-muted-bg)] p-3"
+              data-organization-self-archive="true"
+            >
+              <div>
+                <h2 className="text-sm font-semibold text-[var(--forge-text)]">
+                  Remove organization
+                </h2>
+                <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">
+                  Archive this workspace, detach all members, and preserve historical records.
+                </p>
+              </div>
+              <div className="mt-3 grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
+                <label className="grid gap-1 text-xs font-semibold text-[var(--forge-text)]">
+                  Reason
+                  <input
+                    className="min-h-10 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
+                    disabled={isArchiving}
+                    onChange={(event) => setArchiveReason(event.currentTarget.value)}
+                    placeholder="Closing account"
+                    value={archiveReason}
+                  />
+                </label>
+                <label className="grid gap-1 text-xs font-semibold text-[var(--forge-text)]">
+                  Type slug to confirm
+                  <input
+                    className="min-h-10 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
+                    disabled={isArchiving}
+                    onChange={(event) => setArchiveSlug(event.currentTarget.value)}
+                    placeholder={organizationSlug}
+                    value={archiveSlug}
+                  />
+                </label>
+                <button
+                  className="forge-button forge-button-primary forge-focus-ring min-h-10 rounded-lg px-4 py-2 text-sm"
+                  disabled={
+                    isArchiving ||
+                    !archiveReason.trim() ||
+                    archiveSlug.trim() !== organizationSlug
+                  }
+                  onClick={archiveOrganization}
+                  type="button"
+                >
+                  Remove organization
+                </button>
+              </div>
+            </section>
+          ) : null}
         </section>
       </div>
 

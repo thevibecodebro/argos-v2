@@ -1,11 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   CREATE_ORGANIZATION_ENDPOINT,
+  ORGANIZATION_ENDPOINT,
   PLATFORM_SESSION_ENDPOINT,
   PLATFORM_STAFF_ENDPOINT,
+  buildArchiveOrganizationPayload,
   buildCreateOrganizationPayload,
   buildGrantStaffPayload,
   buildRevokeStaffPayload,
+  submitArchiveOrganization,
   buildSessionPayload,
   submitCreateOrganization,
   submitCreateSession,
@@ -83,6 +86,79 @@ describe("platform console actions", () => {
         body: JSON.stringify({ orgId: "org-1" }),
         headers: { "Content-Type": "application/json" },
         method: "POST",
+      }),
+    );
+  });
+
+  it("posts organization archive requests with trimmed confirmation fields", async () => {
+    const fetcher = vi.fn().mockResolvedValue(
+      Response.json({
+        archived: true,
+        detachedUserCount: 2,
+        endedSessionCount: 1,
+        organization: { id: "org-1" },
+      }),
+    );
+
+    await expect(
+      submitArchiveOrganization(fetcher, {
+        confirmationSlug: " acme ",
+        orgId: "org-1",
+        reason: " Duplicate workspace ",
+      }),
+    ).resolves.toMatchObject({
+      archived: true,
+      organization: { id: "org-1" },
+    });
+
+    expect(
+      buildArchiveOrganizationPayload({
+        confirmationSlug: " acme ",
+        orgId: "org-1",
+        reason: " Duplicate workspace ",
+      }),
+    ).toEqual({
+      confirmationSlug: "acme",
+      orgId: "org-1",
+      reason: "Duplicate workspace",
+    });
+    expect(fetcher).toHaveBeenCalledWith(
+      CREATE_ORGANIZATION_ENDPOINT,
+      expect.objectContaining({
+        body: JSON.stringify({
+          confirmationSlug: "acme",
+          orgId: "org-1",
+          reason: "Duplicate workspace",
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "DELETE",
+      }),
+    );
+  });
+
+  it("posts self-service organization archive requests without an org id", async () => {
+    const fetcher = vi.fn().mockResolvedValue(Response.json({ archived: true }));
+
+    await expect(
+      submitArchiveOrganization(
+        fetcher,
+        {
+          confirmationSlug: " acme ",
+          reason: " Closing account ",
+        },
+        { selfService: true },
+      ),
+    ).resolves.toMatchObject({ archived: true });
+
+    expect(fetcher).toHaveBeenCalledWith(
+      ORGANIZATION_ENDPOINT,
+      expect.objectContaining({
+        body: JSON.stringify({
+          confirmationSlug: "acme",
+          reason: "Closing account",
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "DELETE",
       }),
     );
   });

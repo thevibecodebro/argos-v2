@@ -49,6 +49,10 @@ export type PlatformSessionRepository = {
     session: PlatformSessionRecord;
   }>;
   endAccessSession(sessionId: string, staffUserId: string): Promise<boolean>;
+  findOrganizationForArchive(orgId: string): Promise<{
+    id: string;
+    status: "active" | "archived";
+  } | null>;
 };
 
 type PlatformSessionActor = {
@@ -84,6 +88,12 @@ export async function createPlatformSwitchSession(
 
   if (!orgId) {
     return { ok: false, status: 400, error: "orgId is required" };
+  }
+
+  const organization = await repository.findOrganizationForArchive(orgId);
+
+  if (!organization || organization.status !== "active") {
+    return { ok: false, status: 404, error: "Organization not found" };
   }
 
   const reason = getTrimmedString(input.reason);

@@ -37,6 +37,10 @@ function createRepository(overrides: Partial<PlatformSessionRepository> = {}) {
   return {
     createAccessSessionWithAuditEvent: vi.fn().mockResolvedValue({ auditEvent, session }),
     endAccessSession: vi.fn().mockResolvedValue(true),
+    findOrganizationForArchive: vi.fn().mockResolvedValue({
+      id: "org-1",
+      status: "active",
+    }),
     ...overrides,
   } satisfies PlatformSessionRepository;
 }
@@ -101,6 +105,29 @@ describe("createPlatformSwitchSession", () => {
       staffUserId: "staff-1",
       targetOrgId: "org-1",
     });
+  });
+
+  it("rejects archived target organizations", async () => {
+    const repository = createRepository({
+      findOrganizationForArchive: vi.fn().mockResolvedValue({
+        id: "org-1",
+        status: "archived",
+      }),
+    });
+
+    await expect(
+      createPlatformSwitchSession(
+        repository,
+        { userId: "staff-1", role: "operator" },
+        { orgId: "org-1", reason: "Support request" },
+      ),
+    ).resolves.toEqual({
+      ok: false,
+      status: 404,
+      error: "Organization not found",
+    });
+
+    expect(repository.createAccessSessionWithAuditEvent).not.toHaveBeenCalled();
   });
 });
 

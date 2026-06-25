@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, gte, ilike, inArray, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, ilike, inArray, lte, or, sql, type SQL } from "drizzle-orm";
 import {
   billingSubscriptionsTable,
   callsTable,
@@ -15,6 +15,7 @@ import {
   type ArgosDb,
 } from "@argos-v2/db";
 import { coerceStoredWorkspaceTheme } from "@/lib/organizations/workspace-theme";
+import type { AppUserRole } from "@/lib/users/roles";
 import {
   buildPlatformDashboardSnapshot,
   type PlatformDashboardFilters,
@@ -70,10 +71,14 @@ const auditEventSelection = {
 };
 
 const organizationSelection = {
+  archiveReason: organizationsTable.archiveReason,
+  archivedAt: organizationsTable.archivedAt,
+  archivedBy: organizationsTable.archivedBy,
   id: organizationsTable.id,
   name: organizationsTable.name,
   slug: organizationsTable.slug,
   plan: organizationsTable.plan,
+  status: organizationsTable.status,
   createdAt: organizationsTable.createdAt,
 };
 
@@ -267,6 +272,7 @@ export class DrizzlePlatformRepository {
         and(
           eq(platformStaffTable.userId, input.staffUserId),
           eq(platformStaffTable.status, "active"),
+          eq(organizationsTable.status, "active"),
         ),
       )
       .limit(1);
@@ -334,6 +340,7 @@ export class DrizzlePlatformRepository {
           eq(platformAccessSessionsTable.id, sessionId),
           eq(platformAccessSessionsTable.staffUserId, staffUserId),
           eq(platformAccessSessionsTable.status, "active"),
+          eq(organizationsTable.status, "active"),
           gt(platformAccessSessionsTable.expiresAt, new Date()),
         ),
       )
@@ -427,20 +434,43 @@ export class DrizzlePlatformRepository {
     return event;
   }
 
-  async listOrganizations(input?: { query?: string; limit?: number }) {
+  async listOrganizations(input?: {
+    query?: string;
+    limit?: number;
+    status?: "active" | "archived" | "all";
+  }) {
     const limit = input?.limit ?? 50;
     const query = input?.query?.trim();
+    const status = input?.status ?? "active";
+    const conditions: SQL[] = [];
+
+    if (status !== "all") {
+      conditions.push(eq(organizationsTable.status, status));
+    }
 
     if (query) {
+      const queryCondition = or(
+        ilike(organizationsTable.name, `%${query}%`),
+        ilike(organizationsTable.slug, `%${query}%`),
+      );
+
+      if (queryCondition) {
+        conditions.push(queryCondition);
+      }
+    }
+
+    const whereCondition =
+      conditions.length > 1
+        ? and(...conditions)
+        : conditions.length === 1
+          ? conditions[0]
+          : null;
+
+    if (whereCondition) {
       return this.db
         .select(organizationSelection)
         .from(organizationsTable)
-        .where(
-          or(
-            ilike(organizationsTable.name, `%${query}%`),
-            ilike(organizationsTable.slug, `%${query}%`),
-          ),
-        )
+        .where(whereCondition)
         .orderBy(asc(organizationsTable.name))
         .limit(limit);
     }
@@ -588,7 +618,7 @@ export class DrizzlePlatformRepository {
       return this.db
         .select(organizationSelection)
         .from(organizationsTable)
-        .where(and(queryCondition, planCondition))
+        .where(and(queryCondition, planCondition, eq(organizationsTable.status, "active")))
         .orderBy(asc(organizationsTable.name));
     }
 
@@ -596,7 +626,7 @@ export class DrizzlePlatformRepository {
       return this.db
         .select(organizationSelection)
         .from(organizationsTable)
-        .where(queryCondition)
+        .where(and(queryCondition, eq(organizationsTable.status, "active")))
         .orderBy(asc(organizationsTable.name));
     }
 
@@ -604,13 +634,14 @@ export class DrizzlePlatformRepository {
       return this.db
         .select(organizationSelection)
         .from(organizationsTable)
-        .where(planCondition)
+        .where(and(planCondition, eq(organizationsTable.status, "active")))
         .orderBy(asc(organizationsTable.name));
     }
 
     return this.db
       .select(organizationSelection)
       .from(organizationsTable)
+      .where(eq(organizationsTable.status, "active"))
       .orderBy(asc(organizationsTable.name));
   }
 
@@ -705,6 +736,113 @@ export class DrizzlePlatformRepository {
       .limit(1);
 
     return organization ?? null;
+  }
+
+  async findOrganizationForArchive(orgId: string) {
+    const [organization] = await this.db
+      .select(organizationSelection)
+      .from(organizationsTable)
+      .where(eq(organizationsTable.id, orgId))
+      .limit(1);
+
+    return organization ?? null;
+  }
+
+  async archiveOrganizationWithAudit(input: {
+    action: "organization.archive" | "platform.organization.archive";
+    archivedAt: Date;
+    archivedBy: string;
+    actor: {
+      email?: string | null;
+      kind: "organization" | "platform";
+      role: AppUserRole | PlatformStaffRole;
+      userId: string;
+    };
+    metadata: Record<string, unknown>;
+    organization: {
+      id: string;
+      name: string;
+      slug: string;
+    };
+    reason: string;
+  }) {
+    return this.db.transaction(async (tx) => {
+      const transactionDb = tx as ArgosDb;
+      const [organization] = await transactionDb
+        .update(organizationsTable)
+        .set({
+          archiveReason: input.reason,
+          archivedAt: input.archivedAt,
+          archivedBy: input.archivedBy,
+          status: "archived",
+        })
+        .where(
+          and(
+            eq(organizationsTable.id, input.organization.id),
+            eq(organizationsTable.status, "active"),
+          ),
+        )
+        .returning(organizationSelection);
+
+      if (!organization) {
+        throw new Error("Failed to archive organization");
+      }
+
+      const detachedUsers = await transactionDb
+        .update(usersTable)
+        .set({
+          orgId: null,
+          role: null,
+          updatedAt: input.archivedAt,
+        })
+        .where(eq(usersTable.orgId, input.organization.id))
+        .returning({ id: usersTable.id });
+
+      const endedSessions = await transactionDb
+        .update(platformAccessSessionsTable)
+        .set({
+          endedAt: input.archivedAt,
+          status: "ended",
+        })
+        .where(
+          and(
+            eq(platformAccessSessionsTable.targetOrgId, input.organization.id),
+            eq(platformAccessSessionsTable.status, "active"),
+          ),
+        )
+        .returning({ id: platformAccessSessionsTable.id });
+
+      const detachedUserCount = detachedUsers.length;
+      const endedSessionCount = endedSessions.length;
+      const auditEvent = await this.insertAuditEvent(transactionDb, {
+        staffUserId: input.actor.kind === "platform" ? input.actor.userId : null,
+        targetOrgId: input.organization.id,
+        staffEmailSnapshot: input.actor.kind === "platform" ? input.actor.email ?? null : null,
+        staffRoleSnapshot:
+          input.actor.kind === "platform" ? (input.actor.role as PlatformStaffRole) : null,
+        targetOrgNameSnapshot: input.organization.name,
+        targetOrgSlugSnapshot: input.organization.slug,
+        action: input.action,
+        resourceType: "organization",
+        resourceId: input.organization.id,
+        reason: input.reason,
+        metadata: {
+          ...input.metadata,
+          detachedUserCount,
+          endedSessionCount,
+          targetOrgName: input.organization.name,
+          targetOrgSlug: input.organization.slug,
+        },
+      });
+
+      return {
+        archived: true as const,
+        auditEvent,
+        detachedUserCount,
+        endedSessionCount,
+        organization,
+      };
+    });
   }
 
   async getOrganizationDetailSnapshot(slug: string) {

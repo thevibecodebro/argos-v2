@@ -33,19 +33,23 @@ export function serializeDate(value: Date) {
 
 export function serializeOrganization(
   organization: {
+    archivedAt?: Date | null;
     createdAt: Date;
     id: string;
     name: string;
     plan: string;
     slug: string;
+    status?: "active" | "archived";
   },
 ): PlatformConsoleOrganization {
   return {
+    archivedAt: organization.archivedAt ? serializeDate(organization.archivedAt) : null,
     createdAt: serializeDate(organization.createdAt),
     id: organization.id,
     name: organization.name,
     plan: organization.plan,
     slug: organization.slug,
+    status: organization.status ?? "active",
   };
 }
 

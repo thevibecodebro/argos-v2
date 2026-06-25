@@ -5,6 +5,7 @@ import type {
 } from "./platform-types";
 
 export const CREATE_ORGANIZATION_ENDPOINT = "/api/platform/organizations";
+export const ORGANIZATION_ENDPOINT = "/api/organizations";
 export const PLATFORM_SESSION_ENDPOINT = "/api/platform/sessions";
 export const PLATFORM_STAFF_ENDPOINT = "/api/platform/staff";
 
@@ -30,6 +31,13 @@ export type CreateSessionResponse = {
 
 export type GrantStaffResponse = {
   staff: PlatformConsoleStaffMember;
+};
+
+export type ArchiveOrganizationResponse = {
+  archived: true;
+  detachedUserCount: number;
+  endedSessionCount: number;
+  organization: PlatformConsoleOrganization;
 };
 
 function normalizeSlug(value: FormDataEntryValue | null) {
@@ -89,6 +97,18 @@ export function buildGrantStaffPayload(formData: FormData) {
   };
 }
 
+export function buildArchiveOrganizationPayload(input: {
+  confirmationSlug: string;
+  orgId?: string;
+  reason: string;
+}) {
+  return {
+    confirmationSlug: input.confirmationSlug.trim(),
+    ...(input.orgId ? { orgId: input.orgId } : {}),
+    reason: input.reason.trim(),
+  };
+}
+
 export function buildRevokeStaffPayload(userId: string, reason: string) {
   return {
     reason: reason.trim(),
@@ -117,6 +137,31 @@ export function submitCreateSession(
     PLATFORM_SESSION_ENDPOINT,
     buildSessionPayload(formData, fallbackOrgId),
   );
+}
+
+export async function submitArchiveOrganization(
+  fetcher: PlatformConsoleFetcher,
+  input: {
+    confirmationSlug: string;
+    orgId?: string;
+    reason: string;
+  },
+  options: { selfService?: boolean } = {},
+) {
+  const response = await fetcher(
+    options.selfService ? ORGANIZATION_ENDPOINT : CREATE_ORGANIZATION_ENDPOINT,
+    {
+      body: JSON.stringify(buildArchiveOrganizationPayload(input)),
+      headers: { "Content-Type": "application/json" },
+      method: "DELETE",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await readJsonError(response));
+  }
+
+  return (await response.json()) as ArchiveOrganizationResponse;
 }
 
 export async function submitEndSession(fetcher: PlatformConsoleFetcher) {

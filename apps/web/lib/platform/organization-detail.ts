@@ -1,9 +1,11 @@
 export type PlatformOrganizationDetailOrganization = {
+  archivedAt?: string | null;
   createdAt: string;
   id: string;
   name: string;
   plan: string;
   slug: string;
+  status?: "active" | "archived";
 };
 
 export type PlatformOrganizationDetailMember = {

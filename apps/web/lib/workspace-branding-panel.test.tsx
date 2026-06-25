@@ -15,6 +15,7 @@ describe("WorkspaceBrandingPanel", () => {
       createElement(WorkspaceBrandingPanel, {
         initialTheme: null,
         organizationName: "Argos Team",
+        organizationSlug: "argos-team",
       }),
     );
 
@@ -38,6 +39,8 @@ describe("WorkspaceBrandingPanel", () => {
     expect(html).toContain("Advanced colors");
     expect(html).toContain("Safety checks");
     expect(html).toContain("Save branding");
+    expect(html).toContain('data-organization-self-archive="true"');
+    expect(html).toContain("Remove organization");
     expect(html).toContain("Cancel");
     expect(html).not.toContain("var(--forge-shadow)_72%");
     expect(html).not.toContain("var(--forge-shadow)_88%");
@@ -52,6 +55,7 @@ describe("WorkspaceBrandingPanel", () => {
         initialLogoUrl: "https://assets.example/org-logo.png",
         initialTheme: null,
         organizationName: "Argos Team",
+        organizationSlug: "argos-team",
       }),
     );
 

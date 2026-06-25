@@ -8,6 +8,7 @@ import {
 type PlatformOrganizationsRouteProps = {
   searchParams?: Promise<{
     q?: string | string[];
+    status?: string | string[];
   }>;
 };
 
@@ -23,9 +24,11 @@ export default async function PlatformOrganizationsRoute({
   });
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const query = firstValue(resolvedSearchParams?.q)?.trim() ?? "";
+  const status = parseStatus(firstValue(resolvedSearchParams?.status));
   const organizations = await context.repository.listOrganizations({
     limit: 100,
     query,
+    status,
   });
   const serializedOrganizations = organizations.map(serializeOrganization);
 
@@ -43,7 +46,12 @@ export default async function PlatformOrganizationsRoute({
         activeSession={context.activeSession}
         organizations={serializedOrganizations}
         query={query}
+        statusFilter={status}
       />
     </PlatformShell>
   );
+}
+
+function parseStatus(value: string | undefined): "active" | "archived" | "all" {
+  return value === "archived" || value === "all" ? value : "active";
 }

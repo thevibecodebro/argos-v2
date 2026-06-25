@@ -210,6 +210,8 @@ describe("platform page components", () => {
     expect(html).toContain('data-platform-organizations-page="true"');
     expect(html).toContain('data-platform-primary-table="organizations"');
     expect(html).toContain('data-platform-session-endpoint="/api/platform/sessions"');
+    expect(html).toContain('data-platform-organization-status-filter="active"');
+    expect(html).toContain('href="/platform/organizations?status=archived"');
     expect(html).toContain('data-platform-open-organization="org-1"');
     expect(html).toContain("Acme Health");
     expect(html).toContain('href="/platform/organizations/acme-health"');
