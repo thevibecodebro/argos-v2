@@ -1,4 +1,5 @@
-import { index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { index, integer, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { callsTable } from "./calls";
 import { rubricsTable } from "./rubrics";
 
@@ -48,5 +49,8 @@ export const callProcessingJobsTable = pgTable(
     index("call_processing_jobs_status_next_run_idx").on(table.status, table.nextRunAt),
     index("call_processing_jobs_lock_expires_idx").on(table.lockExpiresAt),
     index("call_processing_jobs_rubric_id_idx").on(table.rubricId),
+    uniqueIndex("call_processing_jobs_manual_source_storage_path_uq")
+      .on(table.sourceStoragePath)
+      .where(sql`${table.sourceOrigin} = 'manual_upload'`),
   ],
 );

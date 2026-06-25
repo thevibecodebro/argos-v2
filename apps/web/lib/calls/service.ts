@@ -272,7 +272,7 @@ type ServiceErrorCode =
 
 export type ServiceResult<T> =
   | { ok: true; data: T }
-  | { ok: false; status: 400 | 402 | 403 | 404; error: string; code: ServiceErrorCode };
+  | { ok: false; status: 400 | 402 | 403 | 404 | 409; error: string; code: ServiceErrorCode };
 
 export type CallsRepository = {
   createCall(input: {
@@ -306,6 +306,7 @@ export type CallsRepository = {
   findAnnotations(callId: string): Promise<CallAnnotationRecord[]>;
   findCallById(callId: string): Promise<CallDetailRecord | null>;
   findCallProcessingJobByCallId(callId: string): Promise<CallProcessingJobRecord | null>;
+  findCallProcessingJobBySourceStoragePath(sourceStoragePath: string): Promise<CallProcessingJobRecord | null>;
   findCallRecordingReference(callId: string): Promise<CallRecordingReference | null>;
   findCallsByOrgId(
     orgId: string,
@@ -1676,6 +1677,14 @@ export async function completeUploadedCall(
     return entitlement;
   }
 
+  const existingSourceJob = await repository.findCallProcessingJobBySourceStoragePath(
+    input.sourceAsset.storagePath,
+  );
+
+  if (existingSourceJob) {
+    return manualUploadSourceAlreadyQueuedResult();
+  }
+
   const topic = input.callTopic?.trim() || deriveCallTopicFromFileName(input.fileName);
   const rubricsRepository = dependencies.rubricsRepository ?? createRubricsRepository();
   const activeRubric = await getActiveRubric(rubricsRepository, viewer.org.id);
@@ -1724,8 +1733,26 @@ export async function completeUploadedCall(
       "Failed to mark direct upload as failed",
     );
 
+    if (isManualUploadSourceAlreadyQueuedError(error)) {
+      return manualUploadSourceAlreadyQueuedResult();
+    }
+
     throw error;
   }
+}
+
+function manualUploadSourceAlreadyQueuedResult(): ServiceResult<UploadCallResult> {
+  return {
+    ok: false,
+    status: 409,
+    code: "invalid_state",
+    error: "This uploaded recording has already been queued for processing.",
+  };
+}
+
+function isManualUploadSourceAlreadyQueuedError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes("call_processing_jobs_manual_source_storage_path_uq");
 }
 
 function deriveCallTopicFromFileName(fileName: string) {
