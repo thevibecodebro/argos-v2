@@ -132,6 +132,16 @@ export class DrizzleCallsRepository implements CallsRepository {
     return job ?? null;
   }
 
+  async findCallProcessingJobBySourceStoragePath(sourceStoragePath: string) {
+    const [job] = await this.db
+      .select(callProcessingJobSelection)
+      .from(callProcessingJobsTable)
+      .where(eq(callProcessingJobsTable.sourceStoragePath, sourceStoragePath))
+      .limit(1);
+
+    return job ?? null;
+  }
+
   async retryCallProcessingJob(callId: string) {
     const now = new Date();
 

@@ -16,6 +16,7 @@ function createRepository(
     findCallsByOrgId: vi.fn(),
     findCallsByRepId: vi.fn(),
     findCallsByRepIds: vi.fn(),
+    findCallProcessingJobBySourceStoragePath: vi.fn().mockResolvedValue(null),
     findCurrentUserByAuthId: vi.fn(),
     findHighlightsByOrgId: vi.fn(),
     findHighlightsByRepId: vi.fn(),
@@ -404,6 +405,121 @@ describe("completeUploadedCall", () => {
         sourceStoragePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
       }),
     );
+  });
+
+  it("rejects a replayed pre-uploaded source asset before creating another queued call", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "rep-1",
+        email: "rep@argos.ai",
+        role: "rep",
+        firstName: "Riley",
+        lastName: "Stone",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      findCallProcessingJobBySourceStoragePath: vi.fn().mockResolvedValue({
+        id: "job-1",
+        status: "pending",
+        attemptCount: 0,
+        maxAttempts: 3,
+        nextRunAt: new Date("2026-04-17T00:00:00.000Z"),
+        lastStage: null,
+        lastError: null,
+        updatedAt: new Date("2026-04-17T00:00:00.000Z"),
+      }),
+      createCall: vi.fn(),
+      createOrResetCallProcessingJob: vi.fn(),
+      updateCallRecordingStorage: vi.fn(),
+    });
+
+    const result = await completeUploadedCall(
+      repository,
+      "rep-1",
+      {
+        fileName: "demo.mp3",
+        fileSizeBytes: 12_000_000,
+        callTopic: "Discovery",
+        sourceAsset: {
+          storageBucket: "call-recordings",
+          storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
+          contentType: "audio/mpeg",
+          fileSizeBytes: 12_000_000,
+        },
+      },
+      {
+        callProcessingEntitlementsRepository: {
+          findActiveCallProcessingSubscription: vi.fn().mockResolvedValue({ id: "sub-1" }),
+        },
+        rubricsRepository: createRubricsRepository(),
+      },
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      status: 409,
+      code: "invalid_state",
+    });
+    expect(repository.findCallProcessingJobBySourceStoragePath).toHaveBeenCalledWith(
+      "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
+    );
+    expect(repository.createCall).not.toHaveBeenCalled();
+    expect(repository.updateCallRecordingStorage).not.toHaveBeenCalled();
+    expect(repository.createOrResetCallProcessingJob).not.toHaveBeenCalled();
+  });
+
+  it("returns a conflict when concurrent replay is rejected by the source asset uniqueness guard", async () => {
+    const duplicateSourceError = new Error(
+      'duplicate key value violates unique constraint "call_processing_jobs_manual_source_storage_path_uq"',
+    );
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "rep-1",
+        email: "rep@argos.ai",
+        role: "rep",
+        firstName: "Riley",
+        lastName: "Stone",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      findCallProcessingJobBySourceStoragePath: vi.fn().mockResolvedValue(null),
+      createCall: vi.fn().mockResolvedValue({
+        id: "call-2",
+        status: "uploaded",
+        createdAt: new Date("2026-04-17T00:00:00.000Z"),
+      }),
+      updateCallRecordingStorage: vi.fn().mockResolvedValue(undefined),
+      createOrResetCallProcessingJob: vi.fn().mockRejectedValue(duplicateSourceError),
+      updateCallStatus: vi.fn().mockResolvedValue(undefined),
+    });
+
+    const result = await completeUploadedCall(
+      repository,
+      "rep-1",
+      {
+        fileName: "demo.mp3",
+        fileSizeBytes: 12_000_000,
+        callTopic: "Discovery",
+        sourceAsset: {
+          storageBucket: "call-recordings",
+          storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
+          contentType: "audio/mpeg",
+          fileSizeBytes: 12_000_000,
+        },
+      },
+      {
+        callProcessingEntitlementsRepository: {
+          findActiveCallProcessingSubscription: vi.fn().mockResolvedValue({ id: "sub-1" }),
+        },
+        rubricsRepository: createRubricsRepository(),
+      },
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      status: 409,
+      code: "invalid_state",
+    });
+    expect(repository.createCall).toHaveBeenCalledOnce();
+    expect(repository.updateCallStatus).toHaveBeenCalledWith("call-2", "failed");
   });
 
   it("marks the call failed if queueing the pre-uploaded source asset crashes", async () => {

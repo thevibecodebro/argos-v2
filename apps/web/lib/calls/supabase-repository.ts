@@ -202,6 +202,21 @@ export class SupabaseCallsRepository implements CallsRepository {
     return data ? mapProcessingJob(data) : null;
   }
 
+  async findCallProcessingJobBySourceStoragePath(sourceStoragePath: string) {
+    const supabase: any = this.supabase;
+    const { data, error } = await supabase
+      .from("call_processing_jobs")
+      .select("id, status, attempt_count, max_attempts, next_run_at, last_stage, last_error, updated_at")
+      .eq("source_storage_path", sourceStoragePath)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data ? mapProcessingJob(data) : null;
+  }
+
   async retryCallProcessingJob(callId: string) {
     const supabase: any = this.supabase;
     const now = new Date().toISOString();
