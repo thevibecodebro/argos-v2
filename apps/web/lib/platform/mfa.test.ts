@@ -26,6 +26,10 @@ function createMfaClient() {
         }),
         listFactors: vi.fn().mockResolvedValue({
           data: {
+            all: [
+              { id: "factor-1", factor_type: "totp", status: "verified" },
+              { id: "factor-2", factor_type: "totp", status: "unverified" },
+            ],
             totp: [
               { id: "factor-1", status: "verified" },
               { id: "factor-2", status: "unverified" },
@@ -76,6 +80,30 @@ describe("platform MFA helpers", () => {
 
     expect(supabase.auth.mfa.listFactors).toHaveBeenCalled();
     expect(supabase.auth.mfa.unenroll).toHaveBeenCalledWith({ factorId: "factor-2" });
+    expect(supabase.auth.mfa.enroll).toHaveBeenCalledWith({ factorType: "totp" });
+  });
+
+  it("removes stale unverified TOTP factors from all listed factors before enrolling", async () => {
+    const supabase = createMfaClient();
+    supabase.auth.mfa.listFactors.mockResolvedValueOnce({
+      data: {
+        all: [
+          { id: "factor-stale", factor_type: "totp", status: "unverified" },
+        ],
+        totp: [],
+      },
+      error: null,
+    });
+
+    await expect(enrollPlatformTotp(supabase)).resolves.toEqual({
+      id: "factor-1",
+      totp: {
+        qr_code: "otpauth://totp/Argos:owner@argos.ai",
+        secret: "SECRET123",
+      },
+    });
+
+    expect(supabase.auth.mfa.unenroll).toHaveBeenCalledWith({ factorId: "factor-stale" });
     expect(supabase.auth.mfa.enroll).toHaveBeenCalledWith({ factorType: "totp" });
   });
 

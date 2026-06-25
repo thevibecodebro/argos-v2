@@ -1,5 +1,6 @@
 export type PlatformTotpFactor = {
   id: string;
+  factor_type?: string | null;
   status?: string | null;
 };
 
@@ -25,7 +26,10 @@ type PlatformMfaClient = {
         factorId: string;
       }): Promise<{ data: { id: string } | null; error: { message: string } | null }>;
       listFactors(): Promise<{
-        data: { totp?: PlatformTotpFactor[] | null } | null;
+        data: {
+          all?: PlatformTotpFactor[] | null;
+          totp?: PlatformTotpFactor[] | null;
+        } | null;
         error: { message: string } | null;
       }>;
     };
@@ -49,7 +53,9 @@ async function removeUnverifiedTotpFactors(supabase: PlatformMfaClient) {
   const { data, error } = await supabase.auth.mfa.listFactors();
   assertNoMfaError(error, "list platform MFA factors");
 
-  const unverifiedFactors = (data?.totp ?? []).filter((factor) => factor.status === "unverified");
+  const unverifiedFactors = (data?.all ?? data?.totp ?? []).filter(
+    (factor) => factor.status === "unverified" && (factor.factor_type ?? "totp") === "totp",
+  );
 
   for (const factor of unverifiedFactors) {
     const { error: unenrollError } = await supabase.auth.mfa.unenroll({ factorId: factor.id });
