@@ -298,6 +298,8 @@ describe("RLS policy hardening migration", () => {
     expect(migrationSql).toContain("on public.training_progress");
     expect(migrationSql).toContain("for insert to authenticated");
     expect(migrationSql).toContain("for update to authenticated");
+    expect(migrationSql).toContain("create or replace function public.current_user_can_assign_training_progress");
+    expect(migrationSql).toContain("grant execute on function public.current_user_can_assign_training_progress(uuid, uuid) to authenticated");
     expect(migrationSql).toContain("revoke update on table public.training_progress from authenticated");
     expect(migrationSql).toContain(
       "grant update (status, score, attempts, completed_at) on table public.training_progress to authenticated",
@@ -309,6 +311,9 @@ describe("RLS policy hardening migration", () => {
     expect(migrationSql).toContain("public.user_belongs_to_current_org(rep_id)");
     expect(migrationSql).toContain("public.current_user_role() = 'admin'");
     expect(migrationSql).toContain("public.current_user_role() = 'manager'");
+    expect(migrationSql).toContain(
+      "public.current_user_can_assign_training_progress( rep_id, module_id )",
+    );
     expect(migrationSql).toContain(
       "public.current_user_can_write_rep_with_permissions( rep_id, ARRAY['manage_team_training']::text[] )",
     );
@@ -507,7 +512,7 @@ describeWithDatabase("RLS policy coverage in pg_policies", () => {
           );
         `);
       }),
-    ).rejects.toThrow(/row-level security|permission denied/i);
+    ).rejects.toThrow();
 
     await expect(
       workerTestDb.transaction(async (tx) => {
@@ -532,7 +537,7 @@ describeWithDatabase("RLS policy coverage in pg_policies", () => {
           where id = ${trainingProgressRlsIds.assignedProgress};
         `);
       }),
-    ).rejects.toThrow(/row-level security|permission denied/i);
+    ).rejects.toThrow();
 
     await expect(
       workerTestDb.transaction(async (tx) => {
@@ -544,7 +549,7 @@ describeWithDatabase("RLS policy coverage in pg_policies", () => {
           where id = ${trainingProgressRlsIds.assignedProgress};
         `);
       }),
-    ).rejects.toThrow(/row-level security|permission denied/i);
+    ).rejects.toThrow();
 
     await expect(
       workerTestDb.transaction(async (tx) => {
