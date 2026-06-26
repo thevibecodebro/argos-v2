@@ -27,6 +27,19 @@ type DirectTableGrantRow = {
   privilege_type: string;
 };
 
+const trainingProgressRlsIds = {
+  adminUser: "00000000-0000-4000-8000-000000000043",
+  assignedModule: "00000000-0000-4000-8000-000000000044",
+  assignedProgress: "00000000-0000-4000-8000-000000000045",
+  forbiddenInsertProgress: "00000000-0000-4000-8000-000000000046",
+  forbiddenUpdateProgress: "00000000-0000-4000-8000-000000000047",
+  org: "00000000-0000-4000-8000-000000000040",
+  otherOrg: "00000000-0000-4000-8000-000000000041",
+  otherOrgModule: "00000000-0000-4000-8000-000000000048",
+  repUser: "00000000-0000-4000-8000-000000000042",
+  unassignedModule: "00000000-0000-4000-8000-000000000049",
+} as const;
+
 const expectedPolicies = [
   {
     tablename: "rubrics",
@@ -138,6 +151,15 @@ async function readCallChildWriteRlsMigrationSql() {
   const migrationPath = join(
     process.cwd(),
     "../../supabase/migrations/202606230004_call_child_write_rls.sql",
+  );
+
+  return normalizeWhitespace(await readFile(migrationPath, "utf8"));
+}
+
+async function readTrainingProgressModuleAssignmentRlsMigrationSql() {
+  const migrationPath = join(
+    process.cwd(),
+    "../../supabase/migrations/20260626041647_training_progress_module_assignment_rls.sql",
   );
 
   return normalizeWhitespace(await readFile(migrationPath, "utf8"));
@@ -265,6 +287,49 @@ describe("RLS policy hardening migration", () => {
     expect(migrationSql).not.toContain("public.current_user_role() = 'admin' or");
     expect(migrationSql).not.toContain("author_id = auth.uid() or");
   });
+
+  it("binds training progress writes to assigned same-org modules", async () => {
+    const migrationSql = await readTrainingProgressModuleAssignmentRlsMigrationSql();
+
+    expect(migrationSql).toContain('drop policy if exists "training_progress_can_read_team_scope"');
+    expect(migrationSql).toContain('drop policy if exists "training_progress_can_write_team_scope"');
+    expect(migrationSql).toContain('drop policy if exists "training_progress_can_update_team_scope"');
+    expect(migrationSql).toContain('create policy "training_progress_can_read_team_scope"');
+    expect(migrationSql).toContain('create policy "training_progress_can_write_team_scope"');
+    expect(migrationSql).toContain('create policy "training_progress_can_update_team_scope"');
+    expect(migrationSql).toContain("on public.training_progress");
+    expect(migrationSql).toContain("for select to authenticated");
+    expect(migrationSql).toContain("for insert to authenticated");
+    expect(migrationSql).toContain("for update to authenticated");
+    expect(migrationSql).toContain("create or replace function public.current_user_can_assign_training_progress");
+    expect(migrationSql).toContain("create or replace function public.current_user_can_update_training_progress");
+    expect(migrationSql).toContain("create or replace function public.current_user_can_read_training_progress");
+    expect(migrationSql).toContain("grant execute on function public.current_user_can_assign_training_progress(uuid, uuid) to authenticated");
+    expect(migrationSql).toContain("grant execute on function public.current_user_can_update_training_progress(uuid, uuid) to authenticated");
+    expect(migrationSql).toContain("grant execute on function public.current_user_can_read_training_progress(uuid, uuid) to authenticated");
+    expect(migrationSql).toContain("grant select on table public.team_memberships to authenticated");
+    expect(migrationSql).toContain("grant select on table public.team_permission_grants to authenticated");
+    expect(migrationSql).toContain("revoke update on table public.training_progress from authenticated");
+    expect(migrationSql).toContain(
+      "grant update (status, score, attempts, completed_at) on table public.training_progress to authenticated",
+    );
+    expect(migrationSql).toContain("status = 'assigned'");
+    expect(migrationSql).toContain("from public.training_modules modules");
+    expect(migrationSql).toContain("modules.id = training_progress.module_id");
+    expect(migrationSql).toContain("modules.org_id = public.current_user_org_id()");
+    expect(migrationSql).toContain("public.user_belongs_to_current_org(rep_id)");
+    expect(migrationSql).toContain("public.current_user_role() = 'admin'");
+    expect(migrationSql).toContain("public.current_user_role() = 'manager'");
+    expect(migrationSql).toContain(
+      "public.current_user_can_read_training_progress( rep_id, module_id )",
+    );
+    expect(migrationSql).toContain(
+      "public.current_user_can_assign_training_progress( rep_id, module_id )",
+    );
+    expect(migrationSql).toContain(
+      "public.current_user_can_update_training_progress( rep_id, module_id )",
+    );
+  });
 });
 
 const workerTestDatabaseUrl = await discoverWorkerTestDatabaseUrl();
@@ -272,6 +337,77 @@ const workerTestDb = workerTestDatabaseUrl ? createDb(workerTestDatabaseUrl) : n
 const describeWithDatabase = workerTestDatabaseUrl ? describe : describe.skip;
 
 describeWithDatabase("RLS policy coverage in pg_policies", () => {
+  async function seedTrainingProgressRlsScenario() {
+    if (!workerTestDb) {
+      throw new Error("Missing WORKER_TEST_DATABASE_URL or DATABASE_URL for RLS policy tests");
+    }
+
+    await workerTestDb.execute(sql`
+      grant select, insert on table public.training_progress to authenticated;
+    `);
+    await workerTestDb.execute(sql`
+      grant update (status, score, attempts, completed_at) on table public.training_progress to authenticated;
+    `);
+    await workerTestDb.execute(sql`
+      grant select on table public.training_modules to authenticated;
+    `);
+    await workerTestDb.execute(sql`
+      delete from public.training_progress
+      where id in (
+        ${trainingProgressRlsIds.assignedProgress},
+        ${trainingProgressRlsIds.forbiddenInsertProgress},
+        ${trainingProgressRlsIds.forbiddenUpdateProgress}
+      )
+        or rep_id in (${trainingProgressRlsIds.repUser});
+    `);
+    await workerTestDb.execute(sql`
+      delete from public.training_modules
+      where id in (
+        ${trainingProgressRlsIds.assignedModule},
+        ${trainingProgressRlsIds.otherOrgModule},
+        ${trainingProgressRlsIds.unassignedModule}
+      );
+    `);
+    await workerTestDb.execute(sql`
+      delete from public.users
+      where id in (${trainingProgressRlsIds.adminUser}, ${trainingProgressRlsIds.repUser});
+    `);
+    await workerTestDb.execute(sql`
+      delete from public.organizations
+      where id in (${trainingProgressRlsIds.org}, ${trainingProgressRlsIds.otherOrg});
+    `);
+    await workerTestDb.execute(sql`
+      insert into public.organizations (id, name, slug)
+      values
+        (${trainingProgressRlsIds.org}, 'Training RLS Org', 'training-rls-org'),
+        (${trainingProgressRlsIds.otherOrg}, 'Training RLS Other Org', 'training-rls-other-org');
+    `);
+    await workerTestDb.execute(sql`
+      insert into public.users (id, org_id, role, email)
+      values
+        (${trainingProgressRlsIds.adminUser}, ${trainingProgressRlsIds.org}, 'admin', 'training-rls-admin@example.com'),
+        (${trainingProgressRlsIds.repUser}, ${trainingProgressRlsIds.org}, 'rep', 'training-rls-rep@example.com');
+    `);
+    await workerTestDb.execute(sql`
+      insert into public.training_modules (id, org_id, title, order_index)
+      values
+        (${trainingProgressRlsIds.assignedModule}, ${trainingProgressRlsIds.org}, 'Assigned module', 4301),
+        (${trainingProgressRlsIds.unassignedModule}, ${trainingProgressRlsIds.org}, 'Unassigned module', 4302),
+        (${trainingProgressRlsIds.otherOrgModule}, ${trainingProgressRlsIds.otherOrg}, 'Other org module', 4301);
+    `);
+    await workerTestDb.execute(sql`
+      insert into public.training_progress (id, rep_id, module_id, status, assigned_by, assigned_at)
+      values (
+        ${trainingProgressRlsIds.assignedProgress},
+        ${trainingProgressRlsIds.repUser},
+        ${trainingProgressRlsIds.assignedModule},
+        'assigned',
+        ${trainingProgressRlsIds.adminUser},
+        now()
+      );
+    `);
+  }
+
   it("has expected policies and service-only RLS coverage", async () => {
     if (!workerTestDb) {
       throw new Error("Missing WORKER_TEST_DATABASE_URL or DATABASE_URL for RLS policy tests");
@@ -365,5 +501,71 @@ describeWithDatabase("RLS policy coverage in pg_policies", () => {
     ]) {
       expect(rlsRows).toContainEqual({ relname: tableName, relrowsecurity: true });
     }
+  });
+
+  it("blocks reps from writing training progress for arbitrary module ids", async () => {
+    if (!workerTestDb) {
+      throw new Error("Missing WORKER_TEST_DATABASE_URL or DATABASE_URL for RLS policy tests");
+    }
+
+    await seedTrainingProgressRlsScenario();
+
+    await expect(
+      workerTestDb.transaction(async (tx) => {
+        await tx.execute(sql`set local role authenticated`);
+        await tx.execute(sql`select set_config('request.jwt.claim.sub', ${trainingProgressRlsIds.repUser}, true)`);
+        await tx.execute(sql`
+          insert into public.training_progress (id, rep_id, module_id, status)
+          values (
+            ${trainingProgressRlsIds.forbiddenInsertProgress},
+            ${trainingProgressRlsIds.repUser},
+            ${trainingProgressRlsIds.unassignedModule},
+            'in_progress'
+          );
+        `);
+      }),
+    ).rejects.toThrow();
+
+    await expect(
+      workerTestDb.transaction(async (tx) => {
+        await tx.execute(sql`set local role authenticated`);
+        await tx.execute(sql`select set_config('request.jwt.claim.sub', ${trainingProgressRlsIds.repUser}, true)`);
+        await tx.execute(sql`
+          update public.training_progress
+          set module_id = ${trainingProgressRlsIds.unassignedModule}
+          where id = ${trainingProgressRlsIds.assignedProgress};
+        `);
+      }),
+    ).rejects.toThrow();
+
+    await expect(
+      workerTestDb.transaction(async (tx) => {
+        await tx.execute(sql`set local role authenticated`);
+        await tx.execute(sql`select set_config('request.jwt.claim.sub', ${trainingProgressRlsIds.repUser}, true)`);
+        await tx.execute(sql`
+          update public.training_progress
+          set module_id = ${trainingProgressRlsIds.otherOrgModule}
+          where id = ${trainingProgressRlsIds.assignedProgress};
+        `);
+      }),
+    ).rejects.toThrow();
+
+    await expect(
+      workerTestDb.transaction(async (tx) => {
+        await tx.execute(sql`set local role authenticated`);
+        await tx.execute(sql`select set_config('request.jwt.claim.sub', ${trainingProgressRlsIds.adminUser}, true)`);
+        await tx.execute(sql`
+          insert into public.training_progress (id, rep_id, module_id, status, assigned_by, assigned_at)
+          values (
+            ${trainingProgressRlsIds.forbiddenUpdateProgress},
+            ${trainingProgressRlsIds.repUser},
+            ${trainingProgressRlsIds.unassignedModule},
+            'assigned',
+            ${trainingProgressRlsIds.adminUser},
+            now()
+          );
+        `);
+      }),
+    ).resolves.toBeUndefined();
   });
 });
