@@ -15,8 +15,16 @@ import {
   type TrainingRepository,
 } from "./service";
 
+const billingRepositoryMocks = vi.hoisted(() => ({
+  findActiveTrainingAiSubscription: vi.fn(),
+}));
+
 vi.mock("@/lib/access/create-repository", () => ({
   createAccessRepository: vi.fn(),
+}));
+
+vi.mock("@/lib/billing/repository", () => ({
+  DrizzleBillingRepository: vi.fn(() => billingRepositoryMocks),
 }));
 
 vi.mock("@/lib/rate-limit/service", () => ({
@@ -52,6 +60,9 @@ afterEach(() => {
 });
 
 beforeEach(() => {
+  billingRepositoryMocks.findActiveTrainingAiSubscription.mockResolvedValue({
+    id: "sub-training-ai",
+  });
   vi.mocked(checkRateLimitForPolicy).mockResolvedValue({
     allowed: true,
     bucketKey: "trainingAi:org:hash",
@@ -1089,6 +1100,44 @@ describe("generateTrainingModules", () => {
     ]);
   });
 
+  it("requires a paid subscription before checking training AI quota or calling OpenAI", async () => {
+    mockAccessRepository({
+      actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
+      memberships: [{ orgId: "org-1", teamId: "team-a", userId: "mgr-1", membershipType: "manager" }],
+      grants: [
+        {
+          orgId: "org-1",
+          teamId: "team-a",
+          userId: "mgr-1",
+          permissionKey: "manage_team_training",
+        },
+      ],
+    });
+    billingRepositoryMocks.findActiveTrainingAiSubscription.mockResolvedValueOnce(null);
+    vi.stubEnv("OPENAI_API_KEY", "test-openai-key");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await generateTrainingModules("mgr-1", {
+      topic: "Discovery",
+      targetRole: "Account Executive",
+      moduleCount: 1,
+      skillFocus: "Root-cause questioning",
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("Expected unpaid training generation to be blocked");
+    expect(result.status).toBe(402);
+    expect(result.code).toBe("payment_required");
+    expect(result.error).toBe("An active paid Argos subscription is required to generate AI training content.");
+    expect(billingRepositoryMocks.findActiveTrainingAiSubscription).toHaveBeenCalledWith({
+      orgId: "org-1",
+      userId: "mgr-1",
+    });
+    expect(vi.mocked(checkRateLimitForPolicy)).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("returns 429 for authorized admins when org training AI quota is exceeded before fetch", async () => {
     mockAccessRepository({
       actor: { id: "admin-1", orgId: "org-1", role: "admin" },
@@ -1258,6 +1307,56 @@ describe("generateTrainingModuleDraft", () => {
         ],
       },
     });
+  });
+
+  it("requires a paid subscription before checking quota or generating module drafts", async () => {
+    mockAccessRepository({
+      actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
+      memberships: [{ orgId: "org-1", teamId: "team-a", userId: "mgr-1", membershipType: "manager" }],
+      grants: [
+        {
+          orgId: "org-1",
+          teamId: "team-a",
+          userId: "mgr-1",
+          permissionKey: "manage_team_training",
+        },
+      ],
+    });
+    billingRepositoryMocks.findActiveTrainingAiSubscription.mockResolvedValueOnce(null);
+    vi.stubEnv("OPENAI_API_KEY", "test-openai-key");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const repository = createRepository({
+      findModuleById: vi.fn().mockResolvedValue({
+        id: "module-1",
+        orgId: "org-1",
+        title: "Discovery That Finds the Real Pain",
+        skillCategory: "Discovery",
+        videoUrl: null,
+        description: "Learn how to uncover operational pain.",
+        quizData: null,
+        orderIndex: 1,
+        createdAt: new Date("2026-04-08T00:00:00.000Z"),
+      }),
+    });
+
+    const result = await generateTrainingModuleDraft(repository, "mgr-1", "module-1", {
+      mode: "quiz",
+      contextNotes: "Focus on uncovering hidden pain.",
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("Expected unpaid module draft generation to be blocked");
+    expect(result.status).toBe(402);
+    expect(result.code).toBe("payment_required");
+    expect(result.error).toBe("An active paid Argos subscription is required to generate AI training content.");
+    expect(billingRepositoryMocks.findActiveTrainingAiSubscription).toHaveBeenCalledWith({
+      orgId: "org-1",
+      userId: "mgr-1",
+    });
+    expect(vi.mocked(checkRateLimitForPolicy)).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("returns 429 for authorized managers before fetching module draft content when org quota is exceeded", async () => {
