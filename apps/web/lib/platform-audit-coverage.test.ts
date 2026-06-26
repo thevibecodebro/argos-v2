@@ -7,7 +7,9 @@ const mutationMethodPattern = /export\s+async\s+function\s+(POST|PATCH|PUT|DELET
 const protectedRoutePattern =
   /getAuthenticatedSupabaseUser|getCachedAuthenticatedSupabaseUser|getPlatformApiAccess|createSupabaseServerClient/;
 const platformAuditPattern =
-  /auditPlatformWorkspaceMutation|getPlatformApiAccess|archiveOrganizationForCurrentAdmin|archiveOrganizationForPlatform|createPlatformOrganizationWithAdminInvite|createPlatformSwitchSession|endPlatformSwitchSession|grantPlatformStaffAccess|revokePlatformStaffAccess/;
+  /auditPlatformWorkspaceMutation|createEffectiveTenant(?:Access|TeamAccess|Users)?Repository|getPlatformApiAccess|archiveOrganizationForCurrentAdmin|archiveOrganizationForPlatform|createPlatformOrganizationWithAdminInvite|createPlatformSwitchSession|endPlatformSwitchSession|grantPlatformStaffAccess|revokePlatformStaffAccess/;
+const effectiveTenantRepositoryPattern =
+  /createEffectiveTenant(?:Access|TeamAccess|Users)?Repository/;
 
 const platformAuditCoveredRoutes = new Set([
   "integrations/ghl/consent/route.ts",
@@ -22,47 +24,16 @@ const platformAuditCoveredRoutes = new Set([
 ]);
 
 const platformAuditDeferredRoutes = new Set([
-  "calls/[id]/annotations/[annotationId]/route.ts",
-  "calls/[id]/annotations/route.ts",
-  "calls/[id]/generate-roleplay/route.ts",
-  "calls/[id]/moments/[momentId]/highlight/route.ts",
-  "calls/[id]/route.ts",
-  "calls/[id]/status/route.ts",
-  "calls/upload/complete/route.ts",
   "calls/upload/prepare/route.ts",
-  "calls/upload/route.ts",
   "compliance/consent/route.ts",
-  "feedback/route.ts",
-  "integrations/ghl/disconnect/route.ts",
-  "integrations/zoom/disconnect/route.ts",
   "invites/[token]/accept/route.ts",
   "invites/[token]/route.ts",
   "me/route.ts",
-  "notifications/[id]/read/route.ts",
-  "notifications/read-all/route.ts",
   "organizations/join/route.ts",
-  "organizations/logo/route.ts",
-  "organizations/members/[userId]/primary-manager/route.ts",
-  "organizations/members/[userId]/route.ts",
-  "roleplay/sessions/[id]/complete/route.ts",
-  "roleplay/sessions/[id]/messages/route.ts",
   "roleplay/sessions/[id]/realtime/route.ts",
-  "roleplay/sessions/[id]/transcript/route.ts",
-  "roleplay/sessions/route.ts",
   "roleplay/tts/route.ts",
-  "rubrics/[id]/publish/route.ts",
-  "rubrics/route.ts",
-  "teams/[teamId]/grants/route.ts",
-  "teams/[teamId]/members/route.ts",
-  "teams/[teamId]/route.ts",
-  "teams/route.ts",
-  "training/modules/[id]/assign/[repId]/route.ts",
-  "training/modules/[id]/assign/route.ts",
   "training/modules/[id]/generate/route.ts",
-  "training/modules/[id]/progress/route.ts",
-  "training/modules/[id]/route.ts",
   "training/modules/generate/route.ts",
-  "training/modules/route.ts",
 ]);
 
 function findRouteFiles(directory: string): string[] {
@@ -101,7 +72,9 @@ describe("platform audit coverage for mutating API routes", () => {
     expect(protectedMutatingRoutes.length).toBeGreaterThan(0);
 
     for (const route of protectedMutatingRoutes) {
-      const isCovered = platformAuditCoveredRoutes.has(route.route);
+      const isCovered =
+        platformAuditCoveredRoutes.has(route.route) ||
+        effectiveTenantRepositoryPattern.test(route.source);
       const isDeferred = platformAuditDeferredRoutes.has(route.route);
 
       expect(
@@ -111,6 +84,13 @@ describe("platform audit coverage for mutating API routes", () => {
 
       if (isCovered) {
         expect(route.source, `${route.route} must call the platform audit path`).toMatch(platformAuditPattern);
+      }
+
+      if (isDeferred) {
+        expect(
+          route.source,
+          `${route.route} uses effective tenant access and must not stay deferred from platform audit coverage`,
+        ).not.toMatch(effectiveTenantRepositoryPattern);
       }
     }
   });
