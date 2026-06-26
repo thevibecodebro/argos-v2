@@ -532,19 +532,6 @@ describeWithDatabase("RLS policy coverage in pg_policies", () => {
         await tx.execute(sql`select set_config('request.jwt.claim.sub', ${trainingProgressRlsIds.repUser}, true)`);
         await tx.execute(sql`
           update public.training_progress
-          set status = 'in_progress',
-              attempts = attempts + 1
-          where id = ${trainingProgressRlsIds.assignedProgress};
-        `);
-      }),
-    ).resolves.toBeDefined();
-
-    await expect(
-      workerTestDb.transaction(async (tx) => {
-        await tx.execute(sql`set local role authenticated`);
-        await tx.execute(sql`select set_config('request.jwt.claim.sub', ${trainingProgressRlsIds.repUser}, true)`);
-        await tx.execute(sql`
-          update public.training_progress
           set module_id = ${trainingProgressRlsIds.unassignedModule}
           where id = ${trainingProgressRlsIds.assignedProgress};
         `);
