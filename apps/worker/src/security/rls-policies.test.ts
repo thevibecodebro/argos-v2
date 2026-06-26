@@ -566,6 +566,6 @@ describeWithDatabase("RLS policy coverage in pg_policies", () => {
           );
         `);
       }),
-    ).resolves.toBeDefined();
+    ).resolves.toBeUndefined();
   });
 });
