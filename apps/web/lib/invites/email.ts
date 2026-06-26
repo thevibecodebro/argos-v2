@@ -9,6 +9,14 @@ function getResend() {
   return new Resend(apiKey);
 }
 
+function getInviteFrom() {
+  return (
+    process.env.ARGOS_ONBOARDING_FROM?.trim() ||
+    process.env.ARGOS_FEEDBACK_FROM?.trim() ||
+    "Argos <onboarding@resend.dev>"
+  );
+}
+
 export async function sendInviteEmail(
   to: string,
   inviteUrl: string,
@@ -17,7 +25,7 @@ export async function sendInviteEmail(
 ): Promise<void> {
   const resend = getResend();
   const { error } = await resend.emails.send({
-    from: "Argos <onboarding@resend.dev>",
+    from: getInviteFrom(),
     to,
     subject: `You've been invited to join ${orgName} on Argos`,
     html: `

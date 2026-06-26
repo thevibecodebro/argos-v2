@@ -3,10 +3,12 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { PlatformCreateOrganizationPage } from "../components/platform/platform-create-organization-page";
 import { PlatformDashboardPage } from "../components/platform/platform-dashboard-page";
+import { PlatformOrganizationDetailPage } from "../components/platform/platform-organization-detail-page";
 import { PlatformOrganizationsPage } from "../components/platform/platform-organizations-page";
 import { PlatformSessionsPage } from "../components/platform/platform-sessions-page";
 import { PlatformShell } from "../components/platform/platform-shell";
 import { PlatformStaffPage } from "../components/platform/platform-staff-page";
+import type { PlatformOrganizationDetailSnapshot } from "./platform/organization-detail";
 import type {
   PlatformConsoleActiveSession,
   PlatformConsoleOrganization,
@@ -53,6 +55,60 @@ const shellProps = {
   staffRole: "owner" as const,
   staffStatus: "active" as const,
 };
+
+function makeOrganizationDetail(
+  overrides: Partial<PlatformOrganizationDetailSnapshot> = {},
+): PlatformOrganizationDetailSnapshot {
+  return {
+    access: { activeSessionCount: 0, recentSessions: [] },
+    adminInviteResend: {
+      email: "admin@acme.test",
+      expiresAt: "2026-06-21T15:00:00.000Z",
+    },
+    alerts: [{ label: "No active admin", severity: "critical" }],
+    auditEvents: [],
+    billing: { activeSubscriptionCount: 0, seats: 0, subscriptions: [] },
+    callStats: {
+      averageScore: null,
+      failedCalls: 0,
+      lastCallAt: null,
+      processingCalls: 0,
+      reviewedCalls: 0,
+      totalCalls: 0,
+    },
+    invites: [
+      {
+        acceptedAt: null,
+        createdAt: "2026-06-14T15:00:00.000Z",
+        email: "admin@acme.test",
+        expiresAt: "2026-06-21T15:00:00.000Z",
+        id: "invite-1",
+        role: "admin",
+      },
+    ],
+    members: [],
+    organization: {
+      createdAt: "2026-06-01T15:00:00.000Z",
+      id: "org-1",
+      name: "Acme Health",
+      plan: "trial",
+      slug: "acme-health",
+      status: "active",
+    },
+    roleplayStats: { lastRoleplayAt: null, roleplaySessions: 0 },
+    summary: {
+      admins: 0,
+      members: 0,
+      pendingInvites: 1,
+      trainingCompletionRate: null,
+    },
+    trainingStats: {
+      completedTrainingAssignments: 0,
+      totalTrainingAssignments: 0,
+    },
+    ...overrides,
+  };
+}
 
 describe("PlatformShell", () => {
   it("renders real platform routes in the left rail", () => {
@@ -294,5 +350,54 @@ describe("platform page components", () => {
     expect(staffHtml).toContain('data-platform-staff-endpoint="/api/platform/staff"');
     expect(staffHtml).toContain("Agency staff");
     expect(staffHtml).not.toContain("Platform staff");
+  });
+
+  it("renders an admin invite resend action on eligible organization detail pages", () => {
+    const html = renderToStaticMarkup(
+      createElement(PlatformOrganizationDetailPage, {
+        organization: makeOrganizationDetail(),
+      }),
+    );
+
+    expect(html).toContain('data-platform-admin-invite-resend="true"');
+    expect(html).toContain('data-platform-admin-invite-resend-endpoint="/api/platform/organizations/acme-health/admin-invite/resend"');
+    expect(html).toContain("Resend admin invite");
+    expect(html).toContain("admin@acme.test");
+  });
+
+  it("hides or disables the admin invite resend action when ineligible", () => {
+    const withAdminHtml = renderToStaticMarkup(
+      createElement(PlatformOrganizationDetailPage, {
+        organization: makeOrganizationDetail({
+          adminInviteResend: null,
+          alerts: [],
+          members: [{ email: "admin@acme.test", id: "user-1", role: "admin" }],
+          summary: {
+            admins: 1,
+            members: 1,
+            pendingInvites: 0,
+            trainingCompletionRate: null,
+          },
+        }),
+      }),
+    );
+    const archivedHtml = renderToStaticMarkup(
+      createElement(PlatformOrganizationDetailPage, {
+        organization: makeOrganizationDetail({
+          organization: {
+            createdAt: "2026-06-01T15:00:00.000Z",
+            id: "org-1",
+            name: "Acme Health",
+            plan: "trial",
+            slug: "acme-health",
+            status: "archived",
+          },
+        }),
+      }),
+    );
+
+    expect(withAdminHtml).not.toContain('data-platform-admin-invite-resend="true"');
+    expect(archivedHtml).toContain('data-platform-admin-invite-resend="true"');
+    expect(archivedHtml).toContain("disabled");
   });
 });

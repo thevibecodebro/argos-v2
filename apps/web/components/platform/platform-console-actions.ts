@@ -40,6 +40,15 @@ export type ArchiveOrganizationResponse = {
   organization: PlatformConsoleOrganization;
 };
 
+export type ResendAdminInviteResponse = {
+  auditEvent: { id: string };
+  invite: {
+    email: string;
+    expiresAt: string;
+    extended: boolean;
+  };
+};
+
 function normalizeSlug(value: FormDataEntryValue | null) {
   return String(value ?? "")
     .trim()
@@ -109,6 +118,10 @@ export function buildArchiveOrganizationPayload(input: {
   };
 }
 
+export function buildResendAdminInviteEndpoint(slug: string) {
+  return `/api/platform/organizations/${encodeURIComponent(slug)}/admin-invite/resend`;
+}
+
 export function buildRevokeStaffPayload(userId: string, reason: string) {
   return {
     reason: reason.trim(),
@@ -162,6 +175,21 @@ export async function submitArchiveOrganization(
   }
 
   return (await response.json()) as ArchiveOrganizationResponse;
+}
+
+export async function submitResendAdminInvite(
+  fetcher: PlatformConsoleFetcher,
+  slug: string,
+) {
+  const response = await fetcher(buildResendAdminInviteEndpoint(slug), {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    throw new Error(await readJsonError(response));
+  }
+
+  return (await response.json()) as ResendAdminInviteResponse;
 }
 
 export async function submitEndSession(fetcher: PlatformConsoleFetcher) {

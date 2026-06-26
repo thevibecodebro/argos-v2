@@ -133,6 +133,9 @@ describe("createPlatformOrganizationWithAdminInvite", () => {
 
   it("creates an organization, initial admin invite, and audit event without attaching staff to the org", async () => {
     const repository = createRepository();
+    const generateAuthInviteLink = vi.fn().mockResolvedValue("https://auth.example.com/invite-link");
+    const sendInviteEmail = vi.fn().mockResolvedValue(undefined);
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://app.argos.ai");
 
     await expect(
       createPlatformOrganizationWithAdminInvite(
@@ -147,7 +150,9 @@ describe("createPlatformOrganizationWithAdminInvite", () => {
         },
         {
           createToken: () => "invite-token-1",
+          generateAuthInviteLink,
           now: () => new Date("2026-06-11T10:00:00.000Z"),
+          sendInviteEmail,
         },
       ),
     ).resolves.toEqual({
@@ -171,6 +176,21 @@ describe("createPlatformOrganizationWithAdminInvite", () => {
     });
     expect(repository.createOrganizationWithAdminInviteAndAudit).not.toHaveBeenCalledWith(
       expect.objectContaining({ userId: "staff-1" }),
+    );
+    expect(generateAuthInviteLink).toHaveBeenCalledWith({
+      email: "admin@acme.com",
+      redirectTo: "https://app.argos.ai/invite/invite-token-1",
+      metadata: {
+        argosInviteToken: "invite-token-1",
+        argosOrganizationId: "org-1",
+        argosRole: "admin",
+      },
+    });
+    expect(sendInviteEmail).toHaveBeenCalledWith(
+      "admin@acme.com",
+      "https://auth.example.com/invite-link",
+      "Acme",
+      "admin",
     );
   });
 });

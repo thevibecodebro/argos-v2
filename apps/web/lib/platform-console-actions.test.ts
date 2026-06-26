@@ -7,6 +7,7 @@ import {
   buildArchiveOrganizationPayload,
   buildCreateOrganizationPayload,
   buildGrantStaffPayload,
+  buildResendAdminInviteEndpoint,
   buildRevokeStaffPayload,
   submitArchiveOrganization,
   buildSessionPayload,
@@ -14,6 +15,7 @@ import {
   submitCreateSession,
   submitEndSession,
   submitGrantStaff,
+  submitResendAdminInvite,
   submitRevokeStaff,
 } from "../components/platform/platform-console-actions";
 
@@ -133,6 +135,45 @@ describe("platform console actions", () => {
         headers: { "Content-Type": "application/json" },
         method: "DELETE",
       }),
+    );
+  });
+
+  it("posts platform admin invite resend requests to the slug-scoped endpoint", async () => {
+    const fetcher = vi.fn().mockResolvedValue(
+      Response.json({
+        auditEvent: { id: "audit-1" },
+        invite: {
+          email: "admin@acme.com",
+          expiresAt: "2026-07-02T15:00:00.000Z",
+          extended: false,
+        },
+      }),
+    );
+
+    await expect(submitResendAdminInvite(fetcher, "acme-health")).resolves.toEqual({
+      auditEvent: { id: "audit-1" },
+      invite: {
+        email: "admin@acme.com",
+        expiresAt: "2026-07-02T15:00:00.000Z",
+        extended: false,
+      },
+    });
+    expect(buildResendAdminInviteEndpoint("acme-health")).toBe(
+      "/api/platform/organizations/acme-health/admin-invite/resend",
+    );
+    expect(fetcher).toHaveBeenCalledWith(
+      "/api/platform/organizations/acme-health/admin-invite/resend",
+      { method: "POST" },
+    );
+  });
+
+  it("surfaces platform admin invite resend API errors", async () => {
+    const fetcher = vi.fn().mockResolvedValue(
+      Response.json({ error: "Pending admin invite not found" }, { status: 404 }),
+    );
+
+    await expect(submitResendAdminInvite(fetcher, "acme-health")).rejects.toThrow(
+      "Pending admin invite not found",
     );
   });
 

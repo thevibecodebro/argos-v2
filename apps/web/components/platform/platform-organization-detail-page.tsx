@@ -14,7 +14,11 @@ import {
   OperationalWorkspace,
 } from "@/components/operational-workspace";
 import type { PlatformOrganizationDetailSnapshot } from "@/lib/platform/organization-detail";
-import { submitArchiveOrganization } from "./platform-console-actions";
+import {
+  buildResendAdminInviteEndpoint,
+  submitArchiveOrganization,
+  submitResendAdminInvite,
+} from "./platform-console-actions";
 import { formatAccessSessionStatus, formatDate, formatPercent, formatPlan } from "./platform-format";
 
 type PlatformOrganizationDetailPageProps = {
@@ -28,10 +32,26 @@ export function PlatformOrganizationDetailPage({
   const [reason, setReason] = useState("");
   const [archiveMessage, setArchiveMessage] = useState<string | null>(null);
   const [isArchiving, setIsArchiving] = useState(false);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
+  const [isResendingInvite, setIsResendingInvite] = useState(false);
   const alertStatus = organization.alerts.length
     ? `${organization.alerts.length} alerts`
     : "Healthy";
   const isArchived = organization.organization.status === "archived";
+
+  async function resendAdminInvite() {
+    setResendMessage(null);
+    setIsResendingInvite(true);
+
+    try {
+      const result = await submitResendAdminInvite(fetch, organization.organization.slug);
+      setResendMessage(`Invite resent to ${result.invite.email}.`);
+    } catch (error) {
+      setResendMessage(error instanceof Error ? error.message : "Unable to resend admin invite.");
+    } finally {
+      setIsResendingInvite(false);
+    }
+  }
 
   async function archiveOrganization() {
     setArchiveMessage(null);
@@ -112,6 +132,45 @@ export function PlatformOrganizationDetailPage({
           },
         ]}
       />
+
+      {organization.adminInviteResend ? (
+        <ForgeSurface
+          className="p-4"
+          data-platform-admin-invite-resend="true"
+          data-platform-admin-invite-resend-endpoint={buildResendAdminInviteEndpoint(
+            organization.organization.slug,
+          )}
+          variant="panel"
+        >
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <p className="forge-page-eyebrow">Admin invite</p>
+              <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">
+                Initial admin has not accepted yet
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-[var(--forge-muted)]">
+                Pending invite for {organization.adminInviteResend.email} expires{" "}
+                {formatDate(organization.adminInviteResend.expiresAt)}.
+              </p>
+            </div>
+            <ForgeButton
+              disabled={isArchived || isResendingInvite}
+              icon="mark_email_read"
+              onClick={resendAdminInvite}
+              size="sm"
+              type="button"
+              variant="primary"
+            >
+              {isResendingInvite ? "Resending" : "Resend admin invite"}
+            </ForgeButton>
+          </div>
+          {resendMessage ? (
+            <p className="mt-3 text-sm text-[var(--forge-muted)]" role="status">
+              {resendMessage}
+            </p>
+          ) : null}
+        </ForgeSurface>
+      ) : null}
 
       <section className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
         <ForgeSurface className="min-w-0 p-4" data-platform-org-health="true" variant="panel">

@@ -7,7 +7,7 @@ const mutationMethodPattern = /export\s+async\s+function\s+(POST|PATCH|PUT|DELET
 const protectedRoutePattern =
   /getAuthenticatedSupabaseUser|getCachedAuthenticatedSupabaseUser|getPlatformApiAccess|createSupabaseServerClient/;
 const platformAuditPattern =
-  /auditPlatformWorkspaceMutation|createEffectiveTenant(?:Access|TeamAccess|Users)?Repository|getPlatformApiAccess|archiveOrganizationForCurrentAdmin|archiveOrganizationForPlatform|createPlatformOrganizationWithAdminInvite|createPlatformSwitchSession|endPlatformSwitchSession|grantPlatformStaffAccess|revokePlatformStaffAccess/;
+  /auditPlatformWorkspaceMutation|createEffectiveTenant(?:Access|TeamAccess|Users)?Repository|getPlatformApiAccess|archiveOrganizationForCurrentAdmin|archiveOrganizationForPlatform|createPlatformOrganizationWithAdminInvite|createPlatformSwitchSession|endPlatformSwitchSession|grantPlatformStaffAccess|resendPlatformAdminInvite|revokePlatformStaffAccess/;
 const effectiveTenantRepositoryPattern =
   /createEffectiveTenant(?:Access|TeamAccess|Users)?Repository/;
 
@@ -18,6 +18,7 @@ const platformAuditCoveredRoutes = new Set([
   "invites/route.ts",
   "organizations/route.ts",
   "organizations/branding/route.ts",
+  "platform/organizations/[slug]/admin-invite/resend/route.ts",
   "platform/organizations/route.ts",
   "platform/sessions/route.ts",
   "platform/staff/route.ts",
