@@ -3,6 +3,7 @@ import type { ArgosDb } from "./client";
 import { billingSubscriptionsTable } from "./schema";
 
 const ACTIVE_PROCESSING_SUBSCRIPTION_STATUSES = ["active", "trialing"] as const;
+const ACTIVE_PAID_SUBSCRIPTION_STATUSES = ["active"] as const;
 
 export type ActiveCallProcessingSubscription = {
   id: string;
@@ -18,6 +19,31 @@ export async function findActiveCallProcessingSubscription(
   db: ArgosDb,
   input: CallProcessingSubscriptionScope,
 ): Promise<ActiveCallProcessingSubscription | null> {
+  return findActiveSubscription(db, input, ACTIVE_PROCESSING_SUBSCRIPTION_STATUSES);
+}
+
+export type ActiveTrainingAiSubscription = {
+  id: string;
+};
+
+export type TrainingAiSubscriptionScope = {
+  orgId: string | null;
+  userId: string | null;
+  now?: Date;
+};
+
+export async function findActiveTrainingAiSubscription(
+  db: ArgosDb,
+  input: TrainingAiSubscriptionScope,
+): Promise<ActiveTrainingAiSubscription | null> {
+  return findActiveSubscription(db, input, ACTIVE_PAID_SUBSCRIPTION_STATUSES);
+}
+
+async function findActiveSubscription(
+  db: ArgosDb,
+  input: CallProcessingSubscriptionScope | TrainingAiSubscriptionScope,
+  statuses: readonly string[],
+): Promise<{ id: string } | null> {
   const ownerCondition = input.orgId
     ? eq(billingSubscriptionsTable.orgId, input.orgId)
     : input.userId
@@ -37,7 +63,7 @@ export async function findActiveCallProcessingSubscription(
     .where(
       and(
         ownerCondition,
-        inArray(billingSubscriptionsTable.status, ACTIVE_PROCESSING_SUBSCRIPTION_STATUSES),
+        inArray(billingSubscriptionsTable.status, statuses),
         or(
           isNull(billingSubscriptionsTable.currentPeriodEnd),
           gt(billingSubscriptionsTable.currentPeriodEnd, now),

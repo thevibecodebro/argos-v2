@@ -6,6 +6,11 @@ import {
   canActorUsePermissionForRep,
   type AccessContext,
 } from "@/lib/access/service";
+import { DrizzleBillingRepository } from "@/lib/billing/repository";
+import {
+  getTrainingAiEntitlementStatus,
+  type TrainingAiEntitlementsRepository,
+} from "@/lib/billing/training-ai-entitlements";
 import type { DashboardUserRecord } from "@/lib/dashboard/service";
 import { checkRateLimitForPolicy, type RateLimitResult } from "@/lib/rate-limit/service";
 import { fetchWithTimeout } from "@/lib/security/fetch-timeout";
@@ -149,11 +154,15 @@ type ServiceResult<T> =
   | { ok: true; data: T }
   | {
       ok: false;
-      status: 403 | 404 | 409 | 422 | 429 | 501;
+      status: 402 | 403 | 404 | 409 | 422 | 429 | 501;
       error: string;
       code?: string;
       retryAfterSeconds?: number;
     };
+
+type TrainingAiEntitlementDependencies = {
+  trainingAiEntitlementsRepository?: TrainingAiEntitlementsRepository;
+};
 
 export type TrainingModuleGenerationInput = {
   topic: string;
@@ -533,6 +542,25 @@ function rateLimitResultToServiceResult(
   };
 }
 
+async function requireTrainingAiEntitlement(input: {
+  orgId: string;
+  userId: string;
+  dependencies?: TrainingAiEntitlementDependencies;
+}): Promise<ServiceResult<{ subscriptionId: string }>> {
+  const repository =
+    input.dependencies?.trainingAiEntitlementsRepository ?? new DrizzleBillingRepository();
+  const entitlement = await getTrainingAiEntitlementStatus(repository, {
+    orgId: input.orgId,
+    userId: input.userId,
+  });
+
+  if (!entitlement.ok) {
+    return entitlement;
+  }
+
+  return entitlement;
+}
+
 function getAllRepIds(access: AccessContext) {
   const repIds = new Set<string>();
 
@@ -863,6 +891,7 @@ export async function generateTrainingModuleDraft(
   authUserId: string,
   moduleId: string,
   input: TrainingModuleDraftGenerationInput,
+  dependencies: TrainingAiEntitlementDependencies = {},
 ): Promise<ServiceResult<TrainingModuleDraftResult>> {
   const normalized = normalizeTrainingModuleDraftGenerationInput(input);
   if (!normalized.ok) {
@@ -916,6 +945,16 @@ export async function generateTrainingModuleDraft(
           ? "Add course context before generating quiz content"
           : "Add course context before generating lesson content",
     };
+  }
+
+  const entitlement = await requireTrainingAiEntitlement({
+    dependencies,
+    orgId,
+    userId: access.actor.id,
+  });
+
+  if (!entitlement.ok) {
+    return entitlement;
   }
 
   const rateLimit = await checkRateLimitForPolicy("trainingAi", {
@@ -1388,6 +1427,7 @@ export function getTrainingAiStatus(): TrainingAiStatus {
 export async function generateTrainingModules(
   authUserId: string,
   input: TrainingModuleGenerationInput,
+  dependencies: TrainingAiEntitlementDependencies = {},
 ): Promise<ServiceResult<{ modules: TrainingGeneratedModule[] }>> {
   const validation = normalizeTrainingModuleGenerationInput(input);
   if (!validation.ok) {
@@ -1422,6 +1462,16 @@ export async function generateTrainingModules(
       status: 403,
       error: "User must belong to an organization",
     };
+  }
+
+  const entitlement = await requireTrainingAiEntitlement({
+    dependencies,
+    orgId,
+    userId: accessResult.data.actor.id,
+  });
+
+  if (!entitlement.ok) {
+    return entitlement;
   }
 
   const rateLimit = await checkRateLimitForPolicy("trainingAi", {

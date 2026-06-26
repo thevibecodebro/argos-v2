@@ -3,6 +3,7 @@ import {
   billingCustomersTable,
   billingSubscriptionsTable,
   findActiveCallProcessingSubscription,
+  findActiveTrainingAiSubscription,
   getDb,
   organizationsTable,
   stripeWebhookEventsTable,
@@ -18,6 +19,7 @@ import type {
   VoiceEntitlementsRepository,
 } from "./voice-entitlements";
 import type { CallProcessingEntitlementsRepository } from "./call-processing-entitlements";
+import type { TrainingAiEntitlementsRepository } from "./training-ai-entitlements";
 
 function buildFullName(firstName: string | null, lastName: string | null, email: string) {
   return [firstName, lastName].filter(Boolean).join(" ").trim() || email;
@@ -27,7 +29,13 @@ function escapeSqlLikePattern(value: string) {
   return value.replace(/[\\%_]/g, (character) => `\\${character}`);
 }
 
-export class DrizzleBillingRepository implements BillingWebhookRepository, VoiceEntitlementsRepository, CallProcessingEntitlementsRepository {
+export class DrizzleBillingRepository
+  implements
+    BillingWebhookRepository,
+    VoiceEntitlementsRepository,
+    CallProcessingEntitlementsRepository,
+    TrainingAiEntitlementsRepository
+{
   constructor(private readonly db: ArgosDb = getDb()) {}
 
   async findActiveCallProcessingSubscription(input: {
@@ -35,6 +43,13 @@ export class DrizzleBillingRepository implements BillingWebhookRepository, Voice
     userId: string | null;
   }) {
     return findActiveCallProcessingSubscription(this.db, input);
+  }
+
+  async findActiveTrainingAiSubscription(input: {
+    orgId: string | null;
+    userId: string | null;
+  }) {
+    return findActiveTrainingAiSubscription(this.db, input);
   }
 
   async findUserBillingScope(authUserId: string) {
