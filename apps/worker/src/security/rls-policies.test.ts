@@ -299,7 +299,9 @@ describe("RLS policy hardening migration", () => {
     expect(migrationSql).toContain("for insert to authenticated");
     expect(migrationSql).toContain("for update to authenticated");
     expect(migrationSql).toContain("create or replace function public.current_user_can_assign_training_progress");
+    expect(migrationSql).toContain("create or replace function public.current_user_can_update_training_progress");
     expect(migrationSql).toContain("grant execute on function public.current_user_can_assign_training_progress(uuid, uuid) to authenticated");
+    expect(migrationSql).toContain("grant execute on function public.current_user_can_update_training_progress(uuid, uuid) to authenticated");
     expect(migrationSql).toContain("revoke update on table public.training_progress from authenticated");
     expect(migrationSql).toContain(
       "grant update (status, score, attempts, completed_at) on table public.training_progress to authenticated",
@@ -315,7 +317,7 @@ describe("RLS policy hardening migration", () => {
       "public.current_user_can_assign_training_progress( rep_id, module_id )",
     );
     expect(migrationSql).toContain(
-      "public.current_user_can_write_rep_with_permissions( rep_id, ARRAY['manage_team_training']::text[] )",
+      "public.current_user_can_update_training_progress( rep_id, module_id )",
     );
   });
 });
