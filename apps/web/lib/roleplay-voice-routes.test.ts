@@ -762,6 +762,10 @@ describe("roleplay voice routes", () => {
         { role: "assistant", content: "I still need a clear next step before I commit." },
       ]),
     });
+    expect(checkRateLimitForPolicy).toHaveBeenCalledWith("roleplayTranscript", {
+      type: "user",
+      id: "auth-user-1",
+    });
     expect(appendRoleplayTranscriptMessage).toHaveBeenCalledWith(
       {},
       "auth-user-1",
@@ -799,6 +803,86 @@ describe("roleplay voice routes", () => {
     await expect(response.json()).resolves.toMatchObject({
       code: "roleplay_prompt_injection_blocked",
     });
+    expect(appendRoleplayTranscriptMessage).not.toHaveBeenCalled();
+  });
+
+  it("rate limits realtime transcript turns before moderation or persistence", async () => {
+    checkRateLimitForPolicy.mockResolvedValueOnce({
+      allowed: false,
+      bucketKey: "roleplayTranscript:user:hash",
+      limit: 60,
+      remaining: 0,
+      requestCount: 61,
+      retryAfterSeconds: 120,
+      resetAt: new Date("2026-04-28T11:00:00.000Z"),
+    });
+
+    const route = await import("../app/api/roleplay/sessions/[id]/transcript/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/roleplay/sessions/session-1/transcript", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: "user",
+          content: "We cut onboarding time by 32%.",
+        }),
+      }),
+      { params: Promise.resolve({ id: "session-1" }) },
+    );
+
+    expect(response.status).toBe(429);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "rate_limit_exceeded",
+    });
+    expect(assertRoleplayContentAllowed).not.toHaveBeenCalled();
+    expect(appendRoleplayTranscriptMessage).not.toHaveBeenCalled();
+  });
+
+  it("rejects oversized realtime transcript bodies before auth or JSON parsing", async () => {
+    const route = await import("../app/api/roleplay/sessions/[id]/transcript/route");
+    const request = new Request("http://localhost:3100/api/roleplay/sessions/session-1/transcript", {
+      method: "POST",
+      headers: {
+        "Content-Length": "20000",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ role: "assistant", content: "Short line." }),
+    });
+    const jsonSpy = vi.spyOn(request, "json");
+
+    const response = await route.POST(request, {
+      params: Promise.resolve({ id: "session-1" }),
+    });
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: expect.stringContaining("request body is too large"),
+    });
+    expect(jsonSpy).not.toHaveBeenCalled();
+    expect(getAuthenticatedSupabaseUser).not.toHaveBeenCalled();
+    expect(assertRoleplayContentAllowed).not.toHaveBeenCalled();
+    expect(appendRoleplayTranscriptMessage).not.toHaveBeenCalled();
+  });
+
+  it("rejects oversized realtime transcript content before moderation or persistence", async () => {
+    const route = await import("../app/api/roleplay/sessions/[id]/transcript/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/roleplay/sessions/session-1/transcript", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: "user",
+          content: "a".repeat(4_097),
+        }),
+      }),
+      { params: Promise.resolve({ id: "session-1" }) },
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: expect.stringContaining("content must be"),
+    });
+    expect(assertRoleplayContentAllowed).not.toHaveBeenCalled();
     expect(appendRoleplayTranscriptMessage).not.toHaveBeenCalled();
   });
 });

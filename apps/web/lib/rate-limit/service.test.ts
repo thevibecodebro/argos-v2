@@ -119,6 +119,8 @@ describe("rate limit service", () => {
     ["organizationCreate", 5, 60 * 60],
     ["organizationJoin", 10, 60 * 60],
     ["inviteAccept", 20, 60 * 60],
+    ["roleplayMessage", 60, 60 * 60],
+    ["roleplayTranscript", 60, 60 * 60],
   ] as const)("sets a conservative user throttle for %s", async (policy, limit, windowSeconds) => {
     const repository = makeRepository(limit + 1);
 

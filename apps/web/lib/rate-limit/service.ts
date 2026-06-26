@@ -18,6 +18,8 @@ export type RateLimitPolicyName =
   | "zoomWebhook"
   | "zoomWebhookAccount"
   | "trainingAi"
+  | "roleplayMessage"
+  | "roleplayTranscript"
   | "roleplayTts"
   | "roleplayRealtime";
 
@@ -67,6 +69,8 @@ export const RATE_LIMIT_POLICIES = {
   zoomWebhook: { limit: 300, window: "minute" },
   zoomWebhookAccount: { limit: 300, window: "minute" },
   trainingAi: { limit: 20, window: "day" },
+  roleplayMessage: { limit: 60, window: "hour" },
+  roleplayTranscript: { limit: 60, window: "hour" },
   roleplayTts: { limit: 60, window: "hour" },
   roleplayRealtime: { limit: 60, window: "hour" },
 } satisfies Record<RateLimitPolicyName, { limit: number; window: RateLimitWindow }>;
