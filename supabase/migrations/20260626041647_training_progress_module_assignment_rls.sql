@@ -129,6 +129,9 @@ grant execute on function public.current_user_can_update_training_progress(uuid,
 revoke all on function public.current_user_can_read_training_progress(uuid, uuid) from public;
 grant execute on function public.current_user_can_read_training_progress(uuid, uuid) to authenticated;
 
+grant select on table public.team_memberships to authenticated;
+grant select on table public.team_permission_grants to authenticated;
+
 drop policy if exists "training_progress_can_read_team_scope" on public.training_progress;
 create policy "training_progress_can_read_team_scope" on public.training_progress
 for select to authenticated

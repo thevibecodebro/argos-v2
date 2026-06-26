@@ -307,6 +307,8 @@ describe("RLS policy hardening migration", () => {
     expect(migrationSql).toContain("grant execute on function public.current_user_can_assign_training_progress(uuid, uuid) to authenticated");
     expect(migrationSql).toContain("grant execute on function public.current_user_can_update_training_progress(uuid, uuid) to authenticated");
     expect(migrationSql).toContain("grant execute on function public.current_user_can_read_training_progress(uuid, uuid) to authenticated");
+    expect(migrationSql).toContain("grant select on table public.team_memberships to authenticated");
+    expect(migrationSql).toContain("grant select on table public.team_permission_grants to authenticated");
     expect(migrationSql).toContain("revoke update on table public.training_progress from authenticated");
     expect(migrationSql).toContain(
       "grant update (status, score, attempts, completed_at) on table public.training_progress to authenticated",
