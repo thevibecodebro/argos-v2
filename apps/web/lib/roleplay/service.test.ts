@@ -15,6 +15,7 @@ import {
   normalizeRoleplaySessionCreateInput,
   settleRoleplayVoiceUsage,
   type RoleplayRepository,
+  type RoleplaySessionRecord,
 } from "./service";
 import { getRoleplaySessionVoice, type RoleplaySession } from "./types";
 
@@ -104,6 +105,39 @@ function mockAccessRepository(input: {
     findMembershipsByOrgId: vi.fn().mockResolvedValue(input.memberships),
     findGrantsByUserId: vi.fn().mockResolvedValue(input.grants),
   } as never);
+}
+
+function createRoleplaySessionRecord(
+  overrides: Partial<RoleplaySessionRecord> = {},
+): RoleplaySessionRecord {
+  return {
+    id: "session-1",
+    repId: "rep-1",
+    orgId: "org-1",
+    persona: "stalling-vp",
+    industry: "SaaS",
+    difficulty: "intermediate",
+    overallScore: null,
+    origin: "manual",
+    sourceCallId: null,
+    rubricId: null,
+    focusMode: "all",
+    focusCategorySlug: null,
+    scenarioSummary: null,
+    scenarioBrief: null,
+    status: "active",
+    transcript: [
+      { role: "assistant", content: "Timing is tough right now." },
+      { role: "user", content: "Let's schedule a pilot review next Tuesday." },
+    ],
+    scorecard: null,
+    voiceStartedAt: null,
+    voiceCompletedAt: null,
+    voiceMinutesSettled: 0,
+    voiceSettledAt: null,
+    createdAt: new Date("2026-04-03T00:00:00.000Z"),
+    ...overrides,
+  };
 }
 
 describe("roleplay personas", () => {
@@ -276,6 +310,92 @@ describe("normalizeRoleplaySessionCreateInput", () => {
 });
 
 describe("appendRoleplayMessage", () => {
+  it("blocks managers with only view_team_calls from mutating a rep roleplay transcript", async () => {
+    mockAccessRepository({
+      actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
+      memberships: [
+        { orgId: "org-1", teamId: "team-a", userId: "mgr-1", membershipType: "manager" },
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ],
+      grants: [
+        {
+          orgId: "org-1",
+          teamId: "team-a",
+          userId: "mgr-1",
+          permissionKey: "view_team_calls",
+        },
+      ],
+    });
+
+    const updateSession = vi.fn();
+    const repository = createRepository({
+      findSessionById: vi.fn().mockResolvedValue(createRoleplaySessionRecord()),
+      updateSession,
+    });
+
+    const result = await appendRoleplayMessage(repository, "mgr-1", "session-1", {
+      content: "Injected transcript update",
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      status: 403,
+      error: "You do not have permission to modify this roleplay session",
+    });
+    expect(updateSession).not.toHaveBeenCalled();
+  });
+
+  it("allows managers with coach_team_calls to mutate a rep roleplay transcript", async () => {
+    mockAccessRepository({
+      actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
+      memberships: [
+        { orgId: "org-1", teamId: "team-a", userId: "mgr-1", membershipType: "manager" },
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ],
+      grants: [
+        {
+          orgId: "org-1",
+          teamId: "team-a",
+          userId: "mgr-1",
+          permissionKey: "view_team_calls",
+        },
+        {
+          orgId: "org-1",
+          teamId: "team-a",
+          userId: "mgr-1",
+          permissionKey: "coach_team_calls",
+        },
+      ],
+    });
+
+    const updateSession = vi.fn().mockImplementation(async (_sessionId, patch) =>
+      createRoleplaySessionRecord({
+        status: patch.status ?? "active",
+        transcript: patch.transcript ?? [],
+      }),
+    );
+    const repository = createRepository({
+      findSessionById: vi.fn().mockResolvedValue(createRoleplaySessionRecord()),
+      updateSession,
+    });
+
+    const result = await appendRoleplayMessage(repository, "mgr-1", "session-1", {
+      content: "Let's schedule a pilot review next Tuesday.",
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected updated session");
+    expect(updateSession).toHaveBeenCalledWith(
+      "session-1",
+      expect.objectContaining({
+        status: "active",
+        transcript: expect.arrayContaining([
+          { role: "user", content: "Let's schedule a pilot review next Tuesday." },
+        ]),
+      }),
+    );
+  });
+
   it("appends the rep message and a generated assistant reply", async () => {
     mockAccessRepository({
       actor: { id: "rep-1", orgId: "org-1", role: "rep" },
@@ -504,6 +624,44 @@ describe("appendRoleplayTranscriptMessage", () => {
 });
 
 describe("completeRoleplaySession", () => {
+  it("blocks managers with only view_team_calls from completing a rep roleplay session", async () => {
+    mockAccessRepository({
+      actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
+      memberships: [
+        { orgId: "org-1", teamId: "team-a", userId: "mgr-1", membershipType: "manager" },
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ],
+      grants: [
+        {
+          orgId: "org-1",
+          teamId: "team-a",
+          userId: "mgr-1",
+          permissionKey: "view_team_calls",
+        },
+      ],
+    });
+
+    const updateSession = vi.fn();
+    const repository = createRepository({
+      findSessionById: vi.fn().mockResolvedValue(createRoleplaySessionRecord()),
+      updateSession,
+    });
+
+    const result = await completeRoleplaySession(
+      repository,
+      "mgr-1",
+      "session-1",
+      createRubricsRepositoryStub() as never,
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      status: 403,
+      error: "You do not have permission to modify this roleplay session",
+    });
+    expect(updateSession).not.toHaveBeenCalled();
+  });
+
   it("scores a short off-topic exchange as low confidence instead of passing it as mediocre", async () => {
     mockAccessRepository({
       actor: { id: "rep-1", orgId: "org-1", role: "rep" },
@@ -684,6 +842,85 @@ describe("completeRoleplaySession", () => {
 });
 
 describe("roleplay voice usage settlement", () => {
+  it("blocks managers with only view_team_calls from starting voice on a rep roleplay session", async () => {
+    mockAccessRepository({
+      actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
+      memberships: [
+        { orgId: "org-1", teamId: "team-a", userId: "mgr-1", membershipType: "manager" },
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ],
+      grants: [
+        {
+          orgId: "org-1",
+          teamId: "team-a",
+          userId: "mgr-1",
+          permissionKey: "view_team_calls",
+        },
+      ],
+    });
+
+    const markVoiceStarted = vi.fn();
+    const repository = createRepository({
+      findSessionById: vi.fn().mockResolvedValue(createRoleplaySessionRecord()),
+      markVoiceStarted,
+    });
+
+    const result = await markRoleplayVoiceStarted(repository, "mgr-1", "session-1");
+
+    expect(result).toEqual({
+      ok: false,
+      status: 403,
+      error: "You do not have permission to modify this roleplay session",
+    });
+    expect(markVoiceStarted).not.toHaveBeenCalled();
+  });
+
+  it("blocks managers with only view_team_calls from settling voice usage on a rep roleplay session", async () => {
+    mockAccessRepository({
+      actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
+      memberships: [
+        { orgId: "org-1", teamId: "team-a", userId: "mgr-1", membershipType: "manager" },
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ],
+      grants: [
+        {
+          orgId: "org-1",
+          teamId: "team-a",
+          userId: "mgr-1",
+          permissionKey: "view_team_calls",
+        },
+      ],
+    });
+
+    const consumeVoiceMinutes = vi.fn();
+    const settleVoiceUsage = vi.fn();
+    const repository = createRepository({
+      findSessionById: vi.fn().mockResolvedValue(
+        createRoleplaySessionRecord({
+          status: "complete",
+          overallScore: 82,
+          voiceStartedAt: new Date("2026-05-11T20:00:00.000Z"),
+          voiceCompletedAt: null,
+          voiceSettledAt: null,
+        }),
+      ),
+      settleVoiceUsage,
+    });
+
+    const result = await settleRoleplayVoiceUsage(repository, "mgr-1", "session-1", {
+      consumeVoiceMinutes,
+      now: () => new Date("2026-05-11T20:08:10.000Z"),
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      status: 403,
+      error: "You do not have permission to modify this roleplay session",
+    });
+    expect(consumeVoiceMinutes).not.toHaveBeenCalled();
+    expect(settleVoiceUsage).not.toHaveBeenCalled();
+  });
+
   it("marks the first successful realtime voice start on the session", async () => {
     mockAccessRepository({
       actor: { id: "rep-1", orgId: "org-1", role: "rep" },

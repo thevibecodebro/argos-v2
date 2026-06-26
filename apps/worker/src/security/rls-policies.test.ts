@@ -129,6 +129,15 @@ async function readRoleplaySessionReferenceMigrationSql() {
   return normalizeWhitespace(await readFile(migrationPath, "utf8"));
 }
 
+async function readRoleplayMutationAuthzMigrationSql() {
+  const migrationPath = join(
+    process.cwd(),
+    "../../supabase/migrations/20260626070500_roleplay_mutation_authz.sql",
+  );
+
+  return normalizeWhitespace(await readFile(migrationPath, "utf8"));
+}
+
 async function readCallsTeamScopeMigrationSql() {
   const migrationPath = join(
     process.cwd(),
@@ -228,6 +237,20 @@ describe("RLS policy hardening migration", () => {
     expect(migrationSql).toContain("from public.rubrics");
     expect(migrationSql).toContain("rubrics.id = roleplay_sessions.rubric_id");
     expect(migrationSql).toContain("rubrics.org_id = public.current_user_org_id()");
+  });
+
+  it("requires coaching write permission for roleplay session updates", async () => {
+    const migrationSql = await readRoleplayMutationAuthzMigrationSql();
+
+    expect(migrationSql).toContain('drop policy if exists "roleplay_sessions_can_update_team_scope"');
+    expect(migrationSql).toContain('create policy "roleplay_sessions_can_update_team_scope"');
+    expect(migrationSql).toContain("on public.roleplay_sessions");
+    expect(migrationSql).toContain("for update to authenticated");
+    expect(migrationSql).toContain("org_id = public.current_user_org_id()");
+    expect(migrationSql).toContain(
+      "public.current_user_can_write_rep_with_permissions( rep_id, ARRAY['coach_team_calls']::text[] )",
+    );
+    expect(migrationSql).not.toContain("ARRAY['view_team_calls']::text[]");
   });
 
   it("replaces org-wide call reads with team-scoped call reads", async () => {

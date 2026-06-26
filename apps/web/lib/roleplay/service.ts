@@ -1,5 +1,10 @@
 import "server-only";
-import { buildAccessContext, canActorViewRep, type AccessContext } from "@/lib/access/service";
+import {
+  buildAccessContext,
+  canActorUsePermissionForRep,
+  canActorViewRep,
+  type AccessContext,
+} from "@/lib/access/service";
 import type { DashboardUserRecord } from "@/lib/dashboard/service";
 import { createRubricsRepository } from "@/lib/rubrics/create-repository";
 import { loadActiveRubric, type RubricsRepository } from "@/lib/rubrics/service";
@@ -668,6 +673,58 @@ async function getAuthorizedSession(
   return { ok: true, data: session };
 }
 
+function canActorMutateRoleplaySession(access: AccessContext, repId: string) {
+  if (access.actor.role === "admin") {
+    return true;
+  }
+
+  if (access.actor.role === "rep") {
+    return access.actor.id === repId;
+  }
+
+  return canActorUsePermissionForRep(access, "coach_team_calls", repId);
+}
+
+async function getAuthorizedMutableSession(
+  repository: RoleplayRepository,
+  authUserId: string,
+  sessionId: string,
+): Promise<ServiceResult<RoleplaySessionRecord>> {
+  const accessResult = await getViewer(authUserId);
+
+  if (!accessResult.ok) {
+    return accessResult;
+  }
+
+  const session = await repository.findSessionById(sessionId);
+
+  if (!session) {
+    return {
+      ok: false,
+      status: 404,
+      error: "Roleplay session not found",
+    };
+  }
+
+  if (session.orgId !== accessResult.data.actor.orgId) {
+    return {
+      ok: false,
+      status: 403,
+      error: "You do not have access to this roleplay session",
+    };
+  }
+
+  if (!canActorMutateRoleplaySession(accessResult.data, session.repId)) {
+    return {
+      ok: false,
+      status: 403,
+      error: "You do not have permission to modify this roleplay session",
+    };
+  }
+
+  return { ok: true, data: session };
+}
+
 function getAllRepIds(access: AccessContext) {
   const repIds = new Set<string>();
 
@@ -888,7 +945,7 @@ export async function appendRoleplayMessage(
   sessionId: string,
   input: { content: string },
 ): Promise<ServiceResult<RoleplaySession>> {
-  const sessionResult = await getAuthorizedSession(repository, authUserId, sessionId);
+  const sessionResult = await getAuthorizedMutableSession(repository, authUserId, sessionId);
 
   if (!sessionResult.ok) {
     return sessionResult;
@@ -946,7 +1003,7 @@ export async function appendRoleplayTranscriptMessage(
   sessionId: string,
   input: RoleplayMessage,
 ): Promise<ServiceResult<RoleplaySession>> {
-  const sessionResult = await getAuthorizedSession(repository, authUserId, sessionId);
+  const sessionResult = await getAuthorizedMutableSession(repository, authUserId, sessionId);
 
   if (!sessionResult.ok) {
     return sessionResult;
@@ -1006,7 +1063,7 @@ export async function markRoleplayVoiceStarted(
     reservedMinutesSettled?: number;
   } = {},
 ): Promise<ServiceResult<RoleplaySession>> {
-  const sessionResult = await getAuthorizedSession(repository, authUserId, sessionId);
+  const sessionResult = await getAuthorizedMutableSession(repository, authUserId, sessionId);
 
   if (!sessionResult.ok) {
     return sessionResult;
@@ -1060,7 +1117,7 @@ export async function settleRoleplayVoiceUsage(
     now?: () => Date;
   },
 ): Promise<ServiceResult<RoleplaySession>> {
-  const sessionResult = await getAuthorizedSession(repository, authUserId, sessionId);
+  const sessionResult = await getAuthorizedMutableSession(repository, authUserId, sessionId);
 
   if (!sessionResult.ok) {
     return sessionResult;
@@ -1127,7 +1184,7 @@ export async function completeRoleplaySession(
   sessionId: string,
   rubricsRepository: RubricsRepository = createRubricsRepository(),
 ): Promise<ServiceResult<RoleplaySession>> {
-  const sessionResult = await getAuthorizedSession(repository, authUserId, sessionId);
+  const sessionResult = await getAuthorizedMutableSession(repository, authUserId, sessionId);
 
   if (!sessionResult.ok) {
     return sessionResult;
