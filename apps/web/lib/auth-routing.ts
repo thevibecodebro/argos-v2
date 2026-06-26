@@ -44,3 +44,26 @@ export function getAuthenticatedEntryHref(
 
   return hasOrganization ? "/dashboard" : "/onboarding";
 }
+
+export function getOrglessProtectedDestination(
+  next: string,
+  isActivePlatformStaff: boolean,
+) {
+  if (isActivePlatformStaff && (next === "/platform" || next.startsWith("/platform/"))) {
+    return next === "/platform" ? "/platform/dashboard" : next;
+  }
+
+  return getAuthenticatedEntryHref(false, { isActivePlatformStaff });
+}
+
+export function getPlatformStaffDestination(next: string) {
+  if (next === "/platform") {
+    return "/platform/dashboard";
+  }
+
+  if (next.startsWith("/platform/")) {
+    return next;
+  }
+
+  return "/platform/dashboard";
+}

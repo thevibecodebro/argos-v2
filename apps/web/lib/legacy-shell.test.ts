@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
+  getAuthenticatedSupabaseUserMock,
   getCachedAuthenticatedSupabaseUserMock,
   createDashboardRepositoryMock,
   getCachedCurrentUserProfileMock,
@@ -12,6 +13,7 @@ const {
   getRepDashboardMock,
   getSetupStatusMock,
 } = vi.hoisted(() => ({
+  getAuthenticatedSupabaseUserMock: vi.fn(),
   getCachedAuthenticatedSupabaseUserMock: vi.fn(),
   createDashboardRepositoryMock: vi.fn(),
   getCachedCurrentUserProfileMock: vi.fn(),
@@ -21,6 +23,10 @@ const {
   getRepBadgesMock: vi.fn(),
   getRepDashboardMock: vi.fn(),
   getSetupStatusMock: vi.fn(),
+}));
+
+vi.mock("@/lib/auth/get-authenticated-user", () => ({
+  getAuthenticatedSupabaseUser: getAuthenticatedSupabaseUserMock,
 }));
 
 vi.mock("@/lib/auth/request-user", () => ({
@@ -55,6 +61,7 @@ describe("legacy UI shell", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     createDashboardRepositoryMock.mockReturnValue({});
+    getAuthenticatedSupabaseUserMock.mockResolvedValue(null);
   });
 
   it("renders the landing page ahead of the login flow", async () => {

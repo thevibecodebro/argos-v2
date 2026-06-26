@@ -5,32 +5,14 @@ import { isRetryableSupabaseAuthError } from "@/lib/supabase/auth-errors";
 import { logAuthTransportFailure } from "@/lib/supabase/auth-observability";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSafeRequestOrigin } from "@/lib/security/trusted-origins";
-import { getAuthenticatedEntryHref, getSafeNextPath, isProtectedPath } from "@/lib/auth-routing";
+import {
+  getOrglessProtectedDestination,
+  getPlatformStaffDestination,
+  getSafeNextPath,
+  isProtectedPath,
+} from "@/lib/auth-routing";
 import { getPlatformStaffAfterProvisioning } from "@/lib/platform/auth";
 import { createPlatformRepository } from "@/lib/platform/create-repository";
-
-function getOrglessProtectedDestination(
-  next: string,
-  isActivePlatformStaff: boolean,
-) {
-  if (isActivePlatformStaff && (next === "/platform" || next.startsWith("/platform/"))) {
-    return next === "/platform" ? "/platform/dashboard" : next;
-  }
-
-  return getAuthenticatedEntryHref(false, { isActivePlatformStaff });
-}
-
-function getPlatformStaffDestination(next: string) {
-  if (next === "/platform") {
-    return "/platform/dashboard";
-  }
-
-  if (next.startsWith("/platform/")) {
-    return next;
-  }
-
-  return "/platform/dashboard";
-}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

@@ -17,17 +17,45 @@ const loginFormSource = readFileSync(new URL("../components/auth/login-form.tsx"
 const {
   checkRateLimitForPolicyMock,
   createSupabaseServerClientMock,
+  createPlatformRepositoryMock,
+  redirectMock,
   findInviteByTokenMock,
+  getPlatformStaffAfterProvisioningMock,
   headersMock,
+  ensureUserProvisionedMock,
+  SupabaseProvisioningRepositoryMock,
 } = vi.hoisted(() => ({
   checkRateLimitForPolicyMock: vi.fn(),
   createSupabaseServerClientMock: vi.fn(),
+  createPlatformRepositoryMock: vi.fn(),
+  redirectMock: vi.fn((href: string) => {
+    throw new Error(`NEXT_REDIRECT:${href}`);
+  }),
   findInviteByTokenMock: vi.fn(),
+  getPlatformStaffAfterProvisioningMock: vi.fn(),
   headersMock: vi.fn(),
+  ensureUserProvisionedMock: vi.fn(),
+  SupabaseProvisioningRepositoryMock: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient: createSupabaseServerClientMock,
+}));
+
+vi.mock("@/lib/platform/create-repository", () => ({
+  createPlatformRepository: createPlatformRepositoryMock,
+}));
+
+vi.mock("@/lib/platform/auth", () => ({
+  getPlatformStaffAfterProvisioning: getPlatformStaffAfterProvisioningMock,
+}));
+
+vi.mock("@/lib/provisioning/repository", () => ({
+  SupabaseProvisioningRepository: SupabaseProvisioningRepositoryMock,
+}));
+
+vi.mock("@/lib/provisioning/service", () => ({
+  ensureUserProvisioned: ensureUserProvisionedMock,
 }));
 
 vi.mock("next/headers", () => ({
@@ -35,6 +63,7 @@ vi.mock("next/headers", () => ({
 }));
 
 vi.mock("next/navigation", () => ({
+  redirect: redirectMock,
   useRouter: () => ({
     push: vi.fn(),
     refresh: vi.fn(),
@@ -69,6 +98,24 @@ describe("legacy auth shell", () => {
       requestCount: 1,
       resetAt: new Date("2026-04-28T11:00:00.000Z"),
       retryAfterSeconds: 2670,
+    });
+    createSupabaseServerClientMock.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: null },
+          error: null,
+        }),
+      },
+    });
+    createPlatformRepositoryMock.mockReturnValue({
+      findStaffByUserId: vi.fn(),
+      upsertStaff: vi.fn(),
+    });
+    getPlatformStaffAfterProvisioningMock.mockResolvedValue(null);
+    ensureUserProvisionedMock.mockResolvedValue({
+      created: false,
+      orgId: "org-1",
+      userId: "auth-user-1",
     });
   });
 
@@ -192,6 +239,53 @@ describe("legacy auth shell", () => {
     expect(html).not.toContain("Terms of Access");
     expect(html).not.toContain("#74b1ff");
     expect(html).not.toContain("#6dddff");
+  });
+
+  it("sends already-authenticated active platform admins back to the platform dashboard", async () => {
+    const authUser = {
+      email: "owner@argos.ai",
+      id: "auth-user-platform-owner",
+    };
+    const getUser = vi.fn().mockResolvedValue({
+      data: { user: authUser },
+      error: null,
+    });
+    createSupabaseServerClientMock.mockResolvedValue({
+      auth: {
+        getUser,
+      },
+    });
+    ensureUserProvisionedMock.mockResolvedValue({
+      created: false,
+      orgId: "org-1",
+      userId: authUser.id,
+    });
+    getPlatformStaffAfterProvisioningMock.mockResolvedValue({
+      createdAt: new Date("2026-06-11T10:00:00.000Z"),
+      createdBy: null,
+      revokedAt: null,
+      revokedBy: null,
+      role: "owner",
+      status: "active",
+      updatedAt: new Date("2026-06-11T10:00:00.000Z"),
+      userId: authUser.id,
+    });
+
+    await expect(
+      LoginPage({
+        searchParams: Promise.resolve({}),
+      }),
+    ).rejects.toThrow("NEXT_REDIRECT:/platform/dashboard");
+
+    expect(redirectMock).toHaveBeenCalledWith("/platform/dashboard");
+    expect(ensureUserProvisionedMock).toHaveBeenCalledWith(
+      expect.any(SupabaseProvisioningRepositoryMock),
+      authUser,
+    );
+    expect(getPlatformStaffAfterProvisioningMock).toHaveBeenCalledWith(
+      createPlatformRepositoryMock.mock.results[0]?.value,
+      authUser,
+    );
   });
 
   it("keeps decorative auth shell icons non-interactive", async () => {

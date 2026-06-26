@@ -127,7 +127,7 @@ describe("updateSession", () => {
     expect(getUserMock).not.toHaveBeenCalled();
   });
 
-  it("preserves platform next destinations for users who are already authenticated on login", async () => {
+  it("lets the login page resolve destinations for users who are already authenticated", async () => {
     getUserMock.mockResolvedValue({
       data: { user: { id: "auth-user-1" } },
       error: null,
@@ -139,13 +139,11 @@ describe("updateSession", () => {
 
     const response = await updateSession(request);
 
-    expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe(
-      "http://localhost:3000/platform/dashboard",
-    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("location")).toBeNull();
   });
 
-  it("does not redirect authenticated login users to external next destinations", async () => {
+  it("does not resolve external next destinations in middleware for authenticated login users", async () => {
     getUserMock.mockResolvedValue({
       data: { user: { id: "auth-user-1" } },
       error: null,
@@ -157,7 +155,7 @@ describe("updateSession", () => {
 
     const response = await updateSession(request);
 
-    expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe("http://localhost:3000/dashboard");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("location")).toBeNull();
   });
 });
