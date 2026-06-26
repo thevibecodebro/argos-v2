@@ -291,17 +291,22 @@ describe("RLS policy hardening migration", () => {
   it("binds training progress writes to assigned same-org modules", async () => {
     const migrationSql = await readTrainingProgressModuleAssignmentRlsMigrationSql();
 
+    expect(migrationSql).toContain('drop policy if exists "training_progress_can_read_team_scope"');
     expect(migrationSql).toContain('drop policy if exists "training_progress_can_write_team_scope"');
     expect(migrationSql).toContain('drop policy if exists "training_progress_can_update_team_scope"');
+    expect(migrationSql).toContain('create policy "training_progress_can_read_team_scope"');
     expect(migrationSql).toContain('create policy "training_progress_can_write_team_scope"');
     expect(migrationSql).toContain('create policy "training_progress_can_update_team_scope"');
     expect(migrationSql).toContain("on public.training_progress");
+    expect(migrationSql).toContain("for select to authenticated");
     expect(migrationSql).toContain("for insert to authenticated");
     expect(migrationSql).toContain("for update to authenticated");
     expect(migrationSql).toContain("create or replace function public.current_user_can_assign_training_progress");
     expect(migrationSql).toContain("create or replace function public.current_user_can_update_training_progress");
+    expect(migrationSql).toContain("create or replace function public.current_user_can_read_training_progress");
     expect(migrationSql).toContain("grant execute on function public.current_user_can_assign_training_progress(uuid, uuid) to authenticated");
     expect(migrationSql).toContain("grant execute on function public.current_user_can_update_training_progress(uuid, uuid) to authenticated");
+    expect(migrationSql).toContain("grant execute on function public.current_user_can_read_training_progress(uuid, uuid) to authenticated");
     expect(migrationSql).toContain("revoke update on table public.training_progress from authenticated");
     expect(migrationSql).toContain(
       "grant update (status, score, attempts, completed_at) on table public.training_progress to authenticated",
@@ -313,6 +318,9 @@ describe("RLS policy hardening migration", () => {
     expect(migrationSql).toContain("public.user_belongs_to_current_org(rep_id)");
     expect(migrationSql).toContain("public.current_user_role() = 'admin'");
     expect(migrationSql).toContain("public.current_user_role() = 'manager'");
+    expect(migrationSql).toContain(
+      "public.current_user_can_read_training_progress( rep_id, module_id )",
+    );
     expect(migrationSql).toContain(
       "public.current_user_can_assign_training_progress( rep_id, module_id )",
     );
