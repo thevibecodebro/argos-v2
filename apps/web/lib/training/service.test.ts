@@ -138,6 +138,129 @@ describe("getTrainingModules", () => {
     expect(result.data.modules[0].id).toBe("module-1");
   });
 
+  it("keeps answer keys visible to managers who can edit training modules", async () => {
+    mockAccessRepository({
+      actor: { id: "mgr-1", orgId: "org-1", role: "manager" },
+      memberships: [
+        { orgId: "org-1", teamId: "team-a", userId: "mgr-1", membershipType: "manager" },
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ],
+      grants: [
+        {
+          orgId: "org-1",
+          teamId: "team-a",
+          userId: "mgr-1",
+          permissionKey: "manage_team_training",
+        },
+      ],
+    });
+
+    const repository = createRepository({
+      countModulesByOrgId: vi.fn().mockResolvedValue(1),
+      findModulesByOrgId: vi.fn().mockResolvedValue([
+        {
+          id: "module-1",
+          orgId: "org-1",
+          title: "Module One",
+          skillCategory: "Discovery",
+          videoUrl: null,
+          description: "Module description",
+          quizData: {
+            questions: [
+              {
+                question: "Q1",
+                options: ["A", "B"],
+                correctIndex: 1,
+              },
+            ],
+          },
+          orderIndex: 1,
+          createdAt: new Date("2026-04-03T00:00:00.000Z"),
+        },
+      ]),
+      findProgressByRepId: vi.fn().mockResolvedValue([]),
+    });
+
+    const result = await getTrainingModules(repository, "mgr-1");
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected training modules");
+    expect(result.data.canManage).toBe(true);
+    expect(result.data.modules[0].quizData).toEqual({
+      questions: [
+        {
+          question: "Q1",
+          options: ["A", "B"],
+          correctIndex: 1,
+        },
+      ],
+    });
+  });
+
+  it("redacts answer keys from learner-facing training modules", async () => {
+    mockAccessRepository({
+      actor: { id: "rep-1", orgId: "org-1", role: "rep" },
+      memberships: [
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ],
+      grants: [],
+    });
+
+    const repository = createRepository({
+      countModulesByOrgId: vi.fn().mockResolvedValue(1),
+      findModulesByOrgId: vi.fn().mockResolvedValue([
+        {
+          id: "module-1",
+          orgId: "org-1",
+          title: "Module One",
+          skillCategory: "Discovery",
+          videoUrl: null,
+          description: "Module description",
+          quizData: {
+            questions: [
+              {
+                question: "Q1",
+                options: ["A", "B"],
+                correctIndex: 1,
+              },
+            ],
+          },
+          orderIndex: 1,
+          createdAt: new Date("2026-04-03T00:00:00.000Z"),
+        },
+      ]),
+      findProgressByRepId: vi.fn().mockResolvedValue([
+        {
+          id: "progress-1",
+          repId: "rep-1",
+          moduleId: "module-1",
+          status: "assigned",
+          score: null,
+          attempts: 0,
+          completedAt: null,
+          assignedBy: "mgr-1",
+          assignedAt: new Date("2026-04-02T00:00:00.000Z"),
+          dueDate: null,
+        },
+      ]),
+    });
+
+    const result = await getTrainingModules(repository, "rep-1");
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected training modules");
+    expect(result.data.canManage).toBe(false);
+    expect(result.data.modules[0].quizData).toEqual({
+      questions: [
+        {
+          question: "Q1",
+          options: ["A", "B"],
+        },
+      ],
+    });
+    expect(result.data.modules[0].quizData?.questions[0]).not.toHaveProperty("correctIndex");
+  });
+
   it("keeps executives read-only on training modules by default", async () => {
     mockAccessRepository({
       actor: { id: "exec-1", orgId: "org-1", role: "executive" },

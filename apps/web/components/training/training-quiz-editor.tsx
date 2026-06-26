@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@argos-v2/ui";
-import type { TrainingModuleRecord } from "@/lib/training/service";
+import type { TrainingModuleRecord, TrainingModuleSummaryQuizData } from "@/lib/training/service";
 
 export type TrainingQuizQuestionDraft = {
   prompt: string;
@@ -29,12 +29,13 @@ export function createEmptyTrainingQuizQuestionDraft(): TrainingQuizQuestionDraf
 }
 
 export function quizDataToTrainingQuizQuestionDrafts(
-  quizData: TrainingModuleRecord["quizData"],
+  quizData: TrainingModuleSummaryQuizData | null,
 ): TrainingQuizQuestionDraft[] {
   return quizData?.questions.map((question) => ({
     prompt: question.question,
     options: [...question.options],
-    correctOptionIndex: question.correctIndex,
+    correctOptionIndex:
+      "correctIndex" in question && typeof question.correctIndex === "number" ? question.correctIndex : 0,
   })) ?? [];
 }
 
