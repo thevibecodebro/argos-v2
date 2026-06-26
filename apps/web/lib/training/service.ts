@@ -24,6 +24,14 @@ export type TrainingModuleRecord = {
   createdAt: Date;
 };
 
+export type TrainingModuleAnswerKeyQuizData = NonNullable<TrainingModuleRecord["quizData"]>;
+
+export type TrainingModuleLearnerQuizData = {
+  questions: Array<{ question: string; options: string[] }>;
+};
+
+export type TrainingModuleSummaryQuizData = TrainingModuleAnswerKeyQuizData | TrainingModuleLearnerQuizData;
+
 export type TrainingProgressRecord = {
   id: string;
   repId: string;
@@ -45,7 +53,7 @@ export type TrainingModuleSummary = {
   videoUrl: string | null;
   description: string | null;
   hasQuiz: boolean;
-  quizData: TrainingModuleRecord["quizData"];
+  quizData: TrainingModuleSummaryQuizData | null;
   orderIndex: number;
   createdAt: string;
   progress: {
@@ -663,6 +671,39 @@ function isQuizData(value: unknown): value is TrainingModuleRecord["quizData"] {
   });
 }
 
+function redactTrainingQuizData(quizData: TrainingModuleRecord["quizData"]): TrainingModuleLearnerQuizData | null {
+  if (!quizData) {
+    return null;
+  }
+
+  return {
+    questions: quizData.questions.map((question) => ({
+      question: question.question,
+      options: [...question.options],
+    })),
+  };
+}
+
+function serializeTrainingModuleSummary(
+  module: TrainingModuleRecord,
+  progress: TrainingProgressRecord | undefined | null,
+  options: { includeAnswerKey: boolean },
+): TrainingModuleSummary {
+  return {
+    id: module.id,
+    orgId: module.orgId,
+    title: module.title ?? "",
+    skillCategory: module.skillCategory ?? "",
+    videoUrl: module.videoUrl,
+    description: module.description,
+    hasQuiz: !!module.quizData,
+    quizData: options.includeAnswerKey ? module.quizData : redactTrainingQuizData(module.quizData),
+    orderIndex: module.orderIndex ?? 0,
+    createdAt: module.createdAt.toISOString(),
+    progress: serializeProgress(progress),
+  };
+}
+
 function parseGeneratedModulesContent(
   content: string,
   moduleCount: number,
@@ -1028,24 +1069,15 @@ export async function getTrainingModules(
   ]);
 
   const progressByModuleId = new Map(progress.map((entry) => [entry.moduleId, entry]));
+  const canManage = canManageTrainingModule(access);
 
   return {
     ok: true,
     data: {
-      modules: modules.map((module) => ({
-        id: module.id,
-        orgId: module.orgId,
-        title: module.title ?? "",
-        skillCategory: module.skillCategory ?? "",
-        videoUrl: module.videoUrl,
-        description: module.description,
-        hasQuiz: !!module.quizData,
-        quizData: module.quizData,
-        orderIndex: module.orderIndex ?? 0,
-        createdAt: module.createdAt.toISOString(),
-        progress: serializeProgress(progressByModuleId.get(module.id)),
-      })),
-      canManage: canManageTrainingModule(access),
+      modules: modules.map((module) =>
+        serializeTrainingModuleSummary(module, progressByModuleId.get(module.id), { includeAnswerKey: canManage }),
+      ),
+      canManage,
     },
   };
 }
@@ -1264,19 +1296,7 @@ export async function createTrainingModule(
   return {
     ok: true,
     data: {
-      module: {
-        id: module.id,
-        orgId: module.orgId,
-        title: module.title ?? "",
-        skillCategory: module.skillCategory ?? "",
-        videoUrl: module.videoUrl,
-        description: module.description,
-        hasQuiz: !!module.quizData,
-        quizData: module.quizData,
-        orderIndex: module.orderIndex ?? 0,
-        createdAt: module.createdAt.toISOString(),
-        progress: null,
-      },
+      module: serializeTrainingModuleSummary(module, null, { includeAnswerKey: true }),
     },
   };
 }
@@ -1332,19 +1352,7 @@ export async function updateTrainingModule(
   return {
     ok: true,
     data: {
-      module: {
-        id: updatedModule.id,
-        orgId: updatedModule.orgId,
-        title: updatedModule.title ?? "",
-        skillCategory: updatedModule.skillCategory ?? "",
-        videoUrl: updatedModule.videoUrl,
-        description: updatedModule.description,
-        hasQuiz: !!updatedModule.quizData,
-        quizData: updatedModule.quizData,
-        orderIndex: updatedModule.orderIndex ?? 0,
-        createdAt: updatedModule.createdAt.toISOString(),
-        progress: null,
-      },
+      module: serializeTrainingModuleSummary(updatedModule, null, { includeAnswerKey: true }),
     },
   };
 }
