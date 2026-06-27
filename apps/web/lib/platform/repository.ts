@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, gte, ilike, inArray, lte, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, ilike, inArray, isNull, lte, or, sql, type SQL } from "drizzle-orm";
 import {
   billingSubscriptionsTable,
   callsTable,
@@ -736,6 +736,41 @@ export class DrizzlePlatformRepository {
       .limit(1);
 
     return organization ?? null;
+  }
+
+  async countAdminMembersForOrganization(orgId: string) {
+    const [result] = await this.db
+      .select({
+        adminCount: sql<number>`count(*)::int`,
+      })
+      .from(usersTable)
+      .where(and(eq(usersTable.orgId, orgId), eq(usersTable.role, "admin")));
+
+    return toNumber(result?.adminCount);
+  }
+
+  async findLatestAdminInviteForOrganization(orgId: string) {
+    const [invite] = await this.db
+      .select(inviteSelection)
+      .from(invitesTable)
+      .where(
+        and(
+          eq(invitesTable.orgId, orgId),
+          eq(invitesTable.role, "admin"),
+          isNull(invitesTable.acceptedAt),
+        ),
+      )
+      .orderBy(desc(invitesTable.createdAt))
+      .limit(1);
+
+    return invite ?? null;
+  }
+
+  async extendInviteExpiration(inviteId: string, expiresAt: Date) {
+    await this.db
+      .update(invitesTable)
+      .set({ expiresAt })
+      .where(eq(invitesTable.id, inviteId));
   }
 
   async findOrganizationForArchive(orgId: string) {

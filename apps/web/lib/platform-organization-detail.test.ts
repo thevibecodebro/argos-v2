@@ -53,6 +53,10 @@ describe("buildPlatformOrganizationDetailSnapshot", () => {
     expect(snapshot.summary.admins).toBe(0);
     expect(snapshot.summary.pendingInvites).toBe(1);
     expect(snapshot.summary.trainingCompletionRate).toBe(25);
+    expect(snapshot.adminInviteResend).toEqual({
+      email: "admin@acme.test",
+      expiresAt: "2026-06-21T15:00:00.000Z",
+    });
   });
 
   it("summarizes billing and active access without adding nav jobs", () => {
@@ -104,6 +108,7 @@ describe("buildPlatformOrganizationDetailSnapshot", () => {
     expect(snapshot.billing.subscriptions).toHaveLength(1);
     expect(snapshot.access.activeSessionCount).toBe(1);
     expect(snapshot.summary.members).toBe(2);
+    expect(snapshot.adminInviteResend).toBeNull();
   });
 
   it("normalizes expired active access sessions for display", () => {

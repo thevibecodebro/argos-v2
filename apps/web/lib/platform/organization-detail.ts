@@ -78,6 +78,10 @@ export type PlatformOrganizationDetailSnapshot = {
     activeSessionCount: number;
     recentSessions: PlatformOrganizationDetailAccessSession[];
   };
+  adminInviteResend: {
+    email: string;
+    expiresAt: string;
+  } | null;
   alerts: PlatformOrganizationDetailAlert[];
   auditEvents: PlatformOrganizationDetailAuditEvent[];
   billing: {
@@ -165,6 +169,7 @@ export function buildPlatformOrganizationDetailSnapshot({
     (invite) => invite.acceptedAt === null && isAfterNow(invite.expiresAt, now),
   );
   const adminCount = members.filter((member) => member.role === "admin").length;
+  const pendingAdminInvite = pendingInvites.find((invite) => invite.role === "admin") ?? null;
   const trainingCompletionRate =
     trainingStats.totalTrainingAssignments > 0
       ? Math.round(
@@ -214,6 +219,13 @@ export function buildPlatformOrganizationDetailSnapshot({
         status: normalizeAccessSessionStatus(session, now),
       })),
     },
+    adminInviteResend:
+      adminCount === 0 && pendingAdminInvite
+        ? {
+            email: pendingAdminInvite.email,
+            expiresAt: pendingAdminInvite.expiresAt,
+          }
+        : null,
     alerts,
     auditEvents,
     billing: {
