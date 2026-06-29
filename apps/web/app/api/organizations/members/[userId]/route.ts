@@ -4,6 +4,7 @@ import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user"
 import { createEffectiveTenantUsersRepository } from "@/lib/platform/effective-request";
 import { createUsersRepository } from "@/lib/users/create-repository";
 import { removeOrganizationMember, updateOrganizationMemberRole } from "@/lib/users/service";
+import { SupabaseAuthSessionRevoker } from "@/lib/users/session-revocation";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   );
 }
 
-export async function DELETE(_request: Request, context: RouteContext) {
+export async function DELETE(request: Request, context: RouteContext) {
   try {
     const authUser = await getAuthenticatedSupabaseUser();
 
@@ -41,20 +42,27 @@ export async function DELETE(_request: Request, context: RouteContext) {
     }
 
     const { userId } = await context.params;
+    const payload = request.headers.get("content-type")?.includes("application/json")
+      ? ((await request.json()) as { reason?: unknown; ticketId?: unknown })
+      : {};
     const repository = await createEffectiveTenantUsersRepository(
       createUsersRepository(),
       authUser.id,
     );
 
     return fromServiceResult(
-      await removeOrganizationMember(repository, authUser.id, userId),
+      await removeOrganizationMember(repository, authUser.id, userId, {
+        reason: payload.reason,
+        ticketId: payload.ticketId,
+        sessionRevoker: new SupabaseAuthSessionRevoker(),
+      }),
     );
   } catch (error) {
     console.error("Failed to remove organization member", error);
 
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Internal server error",
+        error: "Internal server error",
       },
       { status: 500 },
     );

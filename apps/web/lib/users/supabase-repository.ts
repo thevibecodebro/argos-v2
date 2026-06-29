@@ -110,6 +110,129 @@ export class SupabaseUsersRepository implements UsersRepository {
     return Boolean(data?.id);
   }
 
+  async deprovisionOrganizationMember(input: {
+    actorId: string;
+    orgId: string;
+    reason: string;
+    targetUserId: string;
+    ticketId: string | null;
+  }) {
+    const supabase: any = this.supabase;
+    const { data: member, error: memberError } = await supabase
+      .from("users")
+      .select("id, email, role")
+      .eq("id", input.targetUserId)
+      .eq("org_id", input.orgId)
+      .maybeSingle();
+
+    if (memberError) {
+      throw new Error(memberError.message);
+    }
+
+    if (!member?.id) {
+      return false;
+    }
+
+    await this.deleteSupabaseRows(
+      "team_permission_grants",
+      input.orgId,
+      "user_id",
+      input.targetUserId,
+    );
+    await this.deleteSupabaseRows(
+      "team_permission_grants",
+      input.orgId,
+      "granted_by",
+      input.targetUserId,
+    );
+    await this.deleteSupabaseRows(
+      "rep_manager_assignments",
+      input.orgId,
+      "rep_id",
+      input.targetUserId,
+    );
+    await this.deleteSupabaseRows(
+      "rep_manager_assignments",
+      input.orgId,
+      "manager_id",
+      input.targetUserId,
+    );
+    await this.deleteSupabaseRows(
+      "team_memberships",
+      input.orgId,
+      "user_id",
+      input.targetUserId,
+    );
+
+    const { error: inviteError } = await supabase
+      .from("invites")
+      .delete()
+      .eq("org_id", input.orgId)
+      .eq("email", member.email);
+
+    if (inviteError) {
+      throw new Error(inviteError.message);
+    }
+
+    const { data: updated, error: updateError } = await supabase
+      .from("users")
+      .update({
+        org_id: null,
+        role: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", input.targetUserId)
+      .eq("org_id", input.orgId)
+      .select("id")
+      .maybeSingle();
+
+    if (updateError) {
+      throw new Error(updateError.message);
+    }
+
+    if (!updated?.id) {
+      return false;
+    }
+
+    const { error: auditError } = await supabase.from("audit_events").insert({
+      org_id: input.orgId,
+      actor_id: input.actorId,
+      event_type: "member_removed",
+      resource_type: "user",
+      resource_id: input.targetUserId,
+      metadata: {
+        reason: input.reason,
+        ticketId: input.ticketId,
+        removedUserEmail: member.email,
+        removedUserRole: member.role,
+      },
+    });
+
+    if (auditError) {
+      throw new Error(auditError.message);
+    }
+
+    return true;
+  }
+
+  private async deleteSupabaseRows(
+    table: string,
+    orgId: string,
+    column: string,
+    value: string,
+  ) {
+    const supabase: any = this.supabase;
+    const { error } = await supabase
+      .from(table)
+      .delete()
+      .eq("org_id", orgId)
+      .eq(column, value);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
   async updateCurrentUserProfile(
     userId: string,
     patch: {

@@ -1,9 +1,13 @@
-import { and, count, eq } from "drizzle-orm";
+import { and, count, eq, or } from "drizzle-orm";
 import {
+  auditEventsTable,
   callsTable,
   getDb,
+  invitesTable,
   organizationsTable,
   repManagerAssignmentsTable,
+  teamMembershipsTable,
+  teamPermissionGrantsTable,
   usersTable,
   type ArgosDb,
 } from "@argos-v2/db";
@@ -153,6 +157,104 @@ export class DrizzleUsersRepository implements UsersRepository {
       .returning({ id: usersTable.id });
 
     return removed.length > 0;
+  }
+
+  async deprovisionOrganizationMember(input: {
+    actorId: string;
+    orgId: string;
+    reason: string;
+    targetUserId: string;
+    ticketId: string | null;
+  }) {
+    return this.db.transaction(async (tx) => {
+      const [member] = await tx
+        .select({
+          id: usersTable.id,
+          email: usersTable.email,
+          role: usersTable.role,
+        })
+        .from(usersTable)
+        .where(
+          and(
+            eq(usersTable.id, input.targetUserId),
+            eq(usersTable.orgId, input.orgId),
+          ),
+        )
+        .limit(1);
+
+      if (!member) {
+        return false;
+      }
+
+      await tx
+        .delete(teamPermissionGrantsTable)
+        .where(
+          and(
+            eq(teamPermissionGrantsTable.orgId, input.orgId),
+            or(
+              eq(teamPermissionGrantsTable.userId, input.targetUserId),
+              eq(teamPermissionGrantsTable.grantedBy, input.targetUserId),
+            ),
+          ),
+        );
+
+      await tx
+        .delete(repManagerAssignmentsTable)
+        .where(
+          and(
+            eq(repManagerAssignmentsTable.orgId, input.orgId),
+            or(
+              eq(repManagerAssignmentsTable.repId, input.targetUserId),
+              eq(repManagerAssignmentsTable.managerId, input.targetUserId),
+            ),
+          ),
+        );
+
+      await tx
+        .delete(teamMembershipsTable)
+        .where(
+          and(
+            eq(teamMembershipsTable.orgId, input.orgId),
+            eq(teamMembershipsTable.userId, input.targetUserId),
+          ),
+        );
+
+      await tx
+        .delete(invitesTable)
+        .where(
+          and(eq(invitesTable.orgId, input.orgId), eq(invitesTable.email, member.email)),
+        );
+
+      await tx
+        .update(usersTable)
+        .set({
+          orgId: null,
+          role: null,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(usersTable.id, input.targetUserId),
+            eq(usersTable.orgId, input.orgId),
+          ),
+        );
+
+      await tx.insert(auditEventsTable).values({
+        orgId: input.orgId,
+        actorId: input.actorId,
+        eventType: "member_removed",
+        resourceType: "user",
+        resourceId: input.targetUserId,
+        metadata: {
+          reason: input.reason,
+          ticketId: input.ticketId,
+          removedUserEmail: member.email,
+          removedUserRole: member.role,
+        },
+      });
+
+      return true;
+    });
   }
 
   async updateCurrentUserProfile(

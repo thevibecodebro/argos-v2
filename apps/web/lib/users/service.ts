@@ -3,6 +3,7 @@ import {
   type WorkspaceTheme,
 } from "@/lib/organizations/workspace-theme";
 import type { AppUserRole } from "./roles";
+import type { AuthSessionRevoker } from "./session-revocation";
 
 type OrganizationRecord = {
   id: string;
@@ -81,6 +82,13 @@ export type OrganizationMember = {
 };
 
 export interface UsersRepository {
+  deprovisionOrganizationMember(input: {
+    actorId: string;
+    orgId: string;
+    reason: string;
+    targetUserId: string;
+    ticketId: string | null;
+  }): Promise<boolean>;
   findCurrentUserByAuthId(
     authUserId: string,
   ): Promise<CurrentUserRecord | null>;
@@ -439,6 +447,11 @@ export async function removeOrganizationMember(
   repository: UsersRepository,
   authUserId: string,
   targetUserId: string,
+  options: {
+    reason?: unknown;
+    sessionRevoker?: AuthSessionRevoker;
+    ticketId?: unknown;
+  } = {},
 ): Promise<ServiceResult<{ success: true }>> {
   const viewer = await repository.findCurrentUserByAuthId(authUserId);
 
@@ -487,7 +500,34 @@ export async function removeOrganizationMember(
     };
   }
 
-  await repository.removeOrganizationMember(targetUserId, viewer.orgId);
+  const reason =
+    typeof options.reason === "string" && options.reason.trim()
+      ? options.reason.trim()
+      : "Organization admin removed member";
+  const ticketId =
+    typeof options.ticketId === "string" && options.ticketId.trim()
+      ? options.ticketId.trim()
+      : null;
+
+  const removed = await repository.deprovisionOrganizationMember({
+    actorId: viewer.id,
+    orgId: viewer.orgId,
+    reason,
+    targetUserId,
+    ticketId,
+  });
+
+  if (!removed) {
+    return {
+      ok: false,
+      status: 404,
+      error: "Member not found in your organization",
+    };
+  }
+
+  if (options.sessionRevoker) {
+    await options.sessionRevoker.revokeUserSessions(targetUserId);
+  }
 
   return {
     ok: true,

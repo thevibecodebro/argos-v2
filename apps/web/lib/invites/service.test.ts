@@ -86,6 +86,7 @@ function makeUsersRepo(
   overrides: Partial<UsersRepository> = {},
 ): UsersRepository {
   return {
+    deprovisionOrganizationMember: vi.fn().mockResolvedValue(true),
     findCurrentUserByAuthId: vi.fn().mockResolvedValue(makeUser()),
     findOrganizationMember: vi.fn().mockResolvedValue(null),
     findOrganizationMembers: vi.fn().mockResolvedValue([]),
