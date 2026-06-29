@@ -48,16 +48,20 @@ function isProductionRuntime(env: RuntimeIdentityEnv) {
   );
 }
 
-function getHostname(value: string | null | undefined) {
+function getParsedUrl(value: string | null | undefined) {
   if (!value) {
     return null;
   }
 
   try {
-    return new URL(value).hostname.toLowerCase();
+    return new URL(value);
   } catch {
     return null;
   }
+}
+
+function getHostname(value: string | null | undefined) {
+  return getParsedUrl(value)?.hostname.toLowerCase() ?? null;
 }
 
 function getSupabaseProjectRef(value: string | null | undefined) {
@@ -65,6 +69,42 @@ function getSupabaseProjectRef(value: string | null | undefined) {
   const match = hostname?.match(/^([^.]+)\.supabase\.co$/);
 
   return match?.[1] ?? null;
+}
+
+function getDecodedUsername(url: URL) {
+  try {
+    return decodeURIComponent(url.username);
+  } catch {
+    return url.username;
+  }
+}
+
+function getDatabaseSupabaseProjectRef(value: string | null | undefined) {
+  const url = getParsedUrl(value);
+  const hostname = url?.hostname.toLowerCase();
+
+  if (!url || !hostname) {
+    return null;
+  }
+
+  const directHostMatch = hostname.match(/^db\.([^.]+)\.supabase\.co$/);
+
+  if (directHostMatch) {
+    return directHostMatch[1];
+  }
+
+  const isSupabasePoolerHost =
+    hostname.endsWith(".pooler.supabase.com") ||
+    (hostname.endsWith(".supabase.com") && hostname.includes("pooler"));
+
+  if (!isSupabasePoolerHost) {
+    return null;
+  }
+
+  const username = getDecodedUsername(url).toLowerCase();
+  const poolerUsernameMatch = username.match(/^postgres\.([^.]+)$/);
+
+  return poolerUsernameMatch?.[1] ?? null;
 }
 
 function usesProductionSupabaseResource(
@@ -83,12 +123,19 @@ function usesProductionDatabaseResource(
   env: RuntimeIdentityEnv,
   databaseUrl: string | null | undefined,
 ) {
+  const productionProjectRef = normalizeEnvValue(
+    readEnvValue(env, "ARGOS_PRODUCTION_SUPABASE_PROJECT_REF"),
+  );
   const productionDatabaseHost = normalizeEnvValue(
     readEnvValue(env, "ARGOS_PRODUCTION_DATABASE_HOST"),
   );
   const currentDatabaseHost = normalizeEnvValue(getHostname(databaseUrl));
+  const currentDatabaseProjectRef = normalizeEnvValue(getDatabaseSupabaseProjectRef(databaseUrl));
 
-  return Boolean(productionDatabaseHost && currentDatabaseHost === productionDatabaseHost);
+  return Boolean(
+    (productionDatabaseHost && currentDatabaseHost === productionDatabaseHost) ||
+      (productionProjectRef && currentDatabaseProjectRef === productionProjectRef),
+  );
 }
 
 function assertProductionLabel(env: RuntimeIdentityEnv, key: string) {

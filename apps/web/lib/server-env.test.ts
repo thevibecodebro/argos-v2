@@ -94,6 +94,56 @@ describe("getServerEnv", () => {
     ).toThrow("production database resource requires APP_ENV=production");
   });
 
+  it("rejects production direct database resources by Supabase project ref", () => {
+    expect(() =>
+      getServerEnv({
+        APP_ENV: "development",
+        NEXT_PUBLIC_SUPABASE_URL: "https://preview-project.supabase.co",
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
+        NEXT_PUBLIC_SITE_URL: "http://localhost:3000",
+        SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
+        SUPABASE_ENVIRONMENT: "development",
+        DATABASE_URL: "postgres://postgres:postgres@db.mlluqkmmcfqjmjqoparf.supabase.co:5432/postgres",
+        DATABASE_ENVIRONMENT: "development",
+        ARGOS_PRODUCTION_SUPABASE_PROJECT_REF: "mlluqkmmcfqjmjqoparf",
+      }),
+    ).toThrow("production database resource requires APP_ENV=production");
+  });
+
+  it("rejects production Supabase pooler database resources when the runtime is labeled development", () => {
+    expect(() =>
+      getServerEnv({
+        APP_ENV: "development",
+        NEXT_PUBLIC_SUPABASE_URL: "https://preview-project.supabase.co",
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
+        NEXT_PUBLIC_SITE_URL: "http://localhost:3000",
+        SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
+        SUPABASE_ENVIRONMENT: "development",
+        DATABASE_URL: "postgres://postgres.mlluqkmmcfqjmjqoparf:password@aws-0-us-east-1.pooler.supabase.com:6543/postgres",
+        DATABASE_ENVIRONMENT: "development",
+        ARGOS_PRODUCTION_SUPABASE_PROJECT_REF: "mlluqkmmcfqjmjqoparf",
+      }),
+    ).toThrow("production database resource requires APP_ENV=production");
+  });
+
+  it("accepts production resource identifiers when all labels are production", () => {
+    expect(() =>
+      getServerEnv({
+        APP_ENV: "production",
+        VERCEL_ENV: "production",
+        NEXT_PUBLIC_SUPABASE_URL: "https://mlluqkmmcfqjmjqoparf.supabase.co",
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
+        NEXT_PUBLIC_SITE_URL: "https://argosrevenuecommand.com",
+        SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
+        SUPABASE_ENVIRONMENT: "production",
+        DATABASE_URL: "postgres://postgres.mlluqkmmcfqjmjqoparf:password@aws-0-us-east-1.pooler.supabase.com:6543/postgres",
+        DATABASE_ENVIRONMENT: "production",
+        ARGOS_PRODUCTION_SUPABASE_PROJECT_REF: "mlluqkmmcfqjmjqoparf",
+        ARGOS_PRODUCTION_DATABASE_HOST: "db.mlluqkmmcfqjmjqoparf.supabase.co",
+      }),
+    ).not.toThrow();
+  });
+
   it("throws when the service role key is missing", () => {
     expect(() =>
       getServerEnv({
