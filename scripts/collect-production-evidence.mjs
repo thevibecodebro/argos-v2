@@ -3,10 +3,37 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-const repoRoot = process.cwd();
+const repoRoot = resolveRepoRoot();
 const evidenceDir = path.join(repoRoot, "docs", "compliance", "soc2", "evidence");
 const now = new Date();
-const stamp = now.toISOString().slice(0, 10);
+const stamp = formatTimestamp(now);
+
+function resolveRepoRoot() {
+  try {
+    return execFileSync("git", ["rev-parse", "--show-toplevel"], {
+      cwd: process.cwd(),
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+  } catch (error) {
+    const stderr = error && typeof error === "object" && "stderr" in error
+      ? String(error.stderr).trim()
+      : "";
+    console.error(`Unable to resolve repository root${stderr ? `: ${stderr}` : ""}`);
+    process.exit(1);
+  }
+}
+
+function formatTimestamp(date) {
+  const iso = date.toISOString();
+  return `${iso.slice(0, 10)}T${iso.slice(11, 13)}${iso.slice(14, 16)}${iso.slice(17, 19)}Z`;
+}
+
+function markdownTableCell(value) {
+  return String(value)
+    .replaceAll("|", "\\|")
+    .replace(/\r?\n/g, "<br>");
+}
 
 function run(command, args) {
   try {
@@ -43,9 +70,11 @@ function readPackageScripts() {
 
 const gitBranch = run("git", ["branch", "--show-current"]);
 const gitCommit = run("git", ["rev-parse", "HEAD"]);
+const gitShortCommit = run("git", ["rev-parse", "--short=7", "HEAD"]);
 const gitStatus = run("git", ["status", "--short"]);
 const packageScripts = readPackageScripts();
 const latestMigrations = listLatestMigrations();
+const gitStatusSummary = gitStatus ? `Non-empty: ${gitStatus}` : "Clean";
 
 const output = `# Production Release Evidence Packet
 
@@ -57,9 +86,9 @@ Control IDs: ARGOS-CC-002, ARGOS-CC-003, ARGOS-CC-004
 
 | Evidence | Result |
 | --- | --- |
-| Git branch | ${gitBranch || "UNAVAILABLE"} |
-| Git commit | ${gitCommit || "UNAVAILABLE"} |
-| Git status | ${gitStatus ? `Non-empty: ${gitStatus.replaceAll("\n", "; ")}` : "Clean"} |
+| Git branch | ${markdownTableCell(gitBranch || "UNAVAILABLE")} |
+| Git commit | ${markdownTableCell(gitCommit || "UNAVAILABLE")} |
+| Git status | ${markdownTableCell(gitStatusSummary)} |
 
 ## Verification Scripts Present
 
@@ -67,7 +96,7 @@ Control IDs: ARGOS-CC-002, ARGOS-CC-003, ARGOS-CC-004
 | --- | --- |
 ${Object.entries(packageScripts)
   .filter(([name]) => name.startsWith("verify") || name.startsWith("test") || name.startsWith("typecheck") || name === "build:web")
-  .map(([name, command]) => `| ${name} | \`${command}\` |`)
+  .map(([name, command]) => `| ${markdownTableCell(name)} | \`${markdownTableCell(command)}\` |`)
   .join("\n")}
 
 ## Latest Supabase Migrations In Repo
@@ -105,6 +134,13 @@ Reviewer:
 `;
 
 mkdirSync(evidenceDir, { recursive: true });
-const outputPath = path.join(evidenceDir, `${stamp}-ARGOS-CC-002-production-release.md`);
+const shortSha = gitShortCommit && !gitShortCommit.startsWith("UNAVAILABLE:")
+  ? gitShortCommit
+  : "unknown";
+const outputPath = path.join(evidenceDir, `${stamp}-${shortSha}-ARGOS-CC-002-production-release.md`);
+if (existsSync(outputPath)) {
+  console.error(`Refusing to overwrite existing evidence packet: ${outputPath}`);
+  process.exit(1);
+}
 writeFileSync(outputPath, output);
 console.log(outputPath);
