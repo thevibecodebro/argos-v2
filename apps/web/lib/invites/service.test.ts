@@ -71,6 +71,7 @@ function makeInvitesRepo(
     createInvite: vi.fn().mockResolvedValue(makeInvite()),
     findInviteByToken: vi.fn().mockResolvedValue(null),
     findPendingInviteByOrgAndEmail: vi.fn().mockResolvedValue(null),
+    findPendingInviteByEmail: vi.fn().mockResolvedValue(null),
     findPendingInvitesByOrg: vi.fn().mockResolvedValue([]),
     markInviteAccepted: vi.fn().mockResolvedValue(true),
     deleteInviteByToken: vi.fn().mockResolvedValue(undefined),

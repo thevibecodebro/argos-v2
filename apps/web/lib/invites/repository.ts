@@ -34,6 +34,8 @@ export interface InvitesRepository {
     email: string,
   ): Promise<InviteRecord | null>;
 
+  findPendingInviteByEmail(email: string): Promise<InviteRecord | null>;
+
   findPendingInvitesByOrg(orgId: string): Promise<InviteRecord[]>;
 
   markInviteAccepted(id: string): Promise<boolean>;
