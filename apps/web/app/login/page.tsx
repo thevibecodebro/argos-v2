@@ -10,8 +10,10 @@ import {
 } from "@/lib/auth-routing";
 import { getPlatformStaffAfterProvisioning } from "@/lib/platform/auth";
 import { createPlatformRepository } from "@/lib/platform/create-repository";
+import { InviteOnlyProvisioningError } from "@/lib/provisioning/invite-only";
 import { SupabaseProvisioningRepository } from "@/lib/provisioning/repository";
 import { ensureUserProvisioned } from "@/lib/provisioning/service";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type LoginPageProps = {
   searchParams?: Promise<{
@@ -44,10 +46,23 @@ async function getAuthenticatedLoginDestination(
   authenticatedUser: AuthenticatedLoginUser,
   nextPath: string,
 ) {
-  const provisionedUser = await ensureUserProvisioned(
-    new SupabaseProvisioningRepository(),
-    authenticatedUser,
-  );
+  let provisionedUser;
+
+  try {
+    provisionedUser = await ensureUserProvisioned(
+      new SupabaseProvisioningRepository(),
+      authenticatedUser,
+    );
+  } catch (error) {
+    if (error instanceof InviteOnlyProvisioningError) {
+      const supabase = await createSupabaseServerClient();
+      await supabase.auth.signOut();
+      return "/auth/error?reason=invite_required";
+    }
+
+    throw error;
+  }
+
   const platformRepository = createPlatformRepository();
   const platformStaff = await getPlatformStaffAfterProvisioning(
     platformRepository,

@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import HomePage from "../app/page";
 import InvitePage from "../app/invite/[token]/page";
 import LoginPage from "../app/login/page";
+import { InviteOnlyProvisioningError } from "./provisioning/invite-only";
 
 function getAriaHiddenSvgClasses(html: string) {
   return Array.from(
@@ -286,6 +287,39 @@ describe("legacy auth shell", () => {
       createPlatformRepositoryMock.mock.results[0]?.value,
       authUser,
     );
+  });
+
+  it("signs out and redirects already-authenticated users when login resume requires an invite", async () => {
+    const authUser = {
+      email: "blocked@argos.ai",
+      id: "auth-user-blocked",
+    };
+    const signOut = vi.fn().mockResolvedValue({ error: null });
+    createSupabaseServerClientMock.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: authUser },
+          error: null,
+        }),
+        signOut,
+      },
+    });
+    ensureUserProvisionedMock.mockRejectedValue(
+      new InviteOnlyProvisioningError("blocked@argos.ai"),
+    );
+
+    await expect(
+      LoginPage({
+        searchParams: Promise.resolve({ next: "/dashboard" }),
+      }),
+    ).rejects.toThrow("NEXT_REDIRECT:/auth/error?reason=invite_required");
+
+    expect(signOut).toHaveBeenCalledOnce();
+    expect(redirectMock).toHaveBeenCalledWith(
+      "/auth/error?reason=invite_required",
+    );
+    expect(createPlatformRepositoryMock).not.toHaveBeenCalled();
+    expect(getPlatformStaffAfterProvisioningMock).not.toHaveBeenCalled();
   });
 
   it("keeps decorative auth shell icons non-interactive", async () => {
