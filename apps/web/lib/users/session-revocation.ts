@@ -1,27 +1,24 @@
-import { getServerEnv } from "@/lib/server-env";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export interface AuthSessionRevoker {
   revokeUserSessions(userId: string): Promise<void>;
 }
 
 export class SupabaseAuthSessionRevoker implements AuthSessionRevoker {
-  async revokeUserSessions(userId: string) {
-    const { supabaseUrl, supabaseServiceRoleKey } = getServerEnv();
-    const response = await fetch(
-      `${supabaseUrl}/auth/v1/admin/users/${encodeURIComponent(userId)}/logout`,
-      {
-        method: "POST",
-        headers: {
-          apikey: supabaseServiceRoleKey,
-          authorization: `Bearer ${supabaseServiceRoleKey}`,
-        },
-      },
-    );
+  constructor(
+    private readonly supabase = createSupabaseAdminClient(),
+  ) {}
 
-    if (!response.ok) {
-      const body = await response.text();
+  async revokeUserSessions(userId: string) {
+    // Supabase JS exposes user-id access suspension, not user-id refresh-token revocation.
+    // App-side org detachment removes tenant access immediately; this blocks future refresh/sign-in.
+    const { error } = await this.supabase.auth.admin.updateUserById(userId, {
+      ban_duration: "876000h",
+    });
+
+    if (error) {
       throw new Error(
-        `Failed to revoke Supabase sessions for ${userId}: ${response.status} ${body.slice(0, 200)}`,
+        `Failed to suspend Supabase auth access for ${userId}: ${error.message}`,
       );
     }
   }

@@ -163,6 +163,12 @@ export class SupabaseUsersRepository implements UsersRepository {
       "user_id",
       input.targetUserId,
     );
+    await this.deleteSupabaseRows(
+      "ghl_user_mappings",
+      input.orgId,
+      "argos_user_id",
+      input.targetUserId,
+    );
 
     const { error: inviteError } = await supabase
       .from("invites")

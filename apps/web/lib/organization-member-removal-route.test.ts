@@ -87,4 +87,72 @@ describe("organization member removal route", () => {
       },
     );
   });
+
+  it("accepts an empty JSON delete body", async () => {
+    const route = await import(
+      "../app/api/organizations/members/[userId]/route"
+    );
+
+    const response = await route.DELETE(
+      new Request("http://localhost:3000/api/organizations/members/user-2", {
+        headers: { "Content-Type": "application/json" },
+        method: "DELETE",
+      }),
+      { params: Promise.resolve({ userId: "user-2" }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(removeOrganizationMember).toHaveBeenCalledWith(
+      effectiveRepository,
+      "admin-1",
+      "user-2",
+      {
+        reason: undefined,
+        ticketId: undefined,
+        sessionRevoker: revokerInstance,
+      },
+    );
+  });
+
+  it("returns 400 for malformed JSON delete bodies", async () => {
+    const route = await import(
+      "../app/api/organizations/members/[userId]/route"
+    );
+
+    const response = await route.DELETE(
+      new Request("http://localhost:3000/api/organizations/members/user-2", {
+        body: "{",
+        headers: { "Content-Type": "application/json" },
+        method: "DELETE",
+      }),
+      { params: Promise.resolve({ userId: "user-2" }) },
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Invalid JSON body",
+    });
+    expect(removeOrganizationMember).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 for non-object JSON delete bodies", async () => {
+    const route = await import(
+      "../app/api/organizations/members/[userId]/route"
+    );
+
+    const response = await route.DELETE(
+      new Request("http://localhost:3000/api/organizations/members/user-2", {
+        body: "null",
+        headers: { "Content-Type": "application/json" },
+        method: "DELETE",
+      }),
+      { params: Promise.resolve({ userId: "user-2" }) },
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "JSON body must be an object",
+    });
+    expect(removeOrganizationMember).not.toHaveBeenCalled();
+  });
 });

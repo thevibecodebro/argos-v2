@@ -526,7 +526,14 @@ export async function removeOrganizationMember(
   }
 
   if (options.sessionRevoker) {
-    await options.sessionRevoker.revokeUserSessions(targetUserId);
+    try {
+      await options.sessionRevoker.revokeUserSessions(targetUserId);
+    } catch (error) {
+      console.error("Failed to revoke removed member sessions", {
+        error,
+        targetUserId,
+      });
+    }
   }
 
   return {

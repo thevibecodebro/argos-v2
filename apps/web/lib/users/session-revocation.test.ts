@@ -1,58 +1,47 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SupabaseAuthSessionRevoker } from "./session-revocation";
 
-const { getServerEnv } = vi.hoisted(() => ({
-  getServerEnv: vi.fn(),
+const { createSupabaseAdminClient, updateUserById } = vi.hoisted(() => ({
+  createSupabaseAdminClient: vi.fn(),
+  updateUserById: vi.fn(),
 }));
 
-vi.mock("@/lib/server-env", () => ({
-  getServerEnv,
+vi.mock("@/lib/supabase/admin", () => ({
+  createSupabaseAdminClient,
 }));
 
 describe("SupabaseAuthSessionRevoker", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    vi.unstubAllGlobals();
-    getServerEnv.mockReturnValue({
-      supabaseUrl: "https://project.supabase.co",
-      supabaseServiceRoleKey: "service-role-key",
-    });
-  });
-
-  it("posts to the Supabase admin user logout endpoint with service role headers", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-    });
-    vi.stubGlobal("fetch", fetchMock);
-
-    await new SupabaseAuthSessionRevoker().revokeUserSessions(
-      "user/id with spaces",
-    );
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      "https://project.supabase.co/auth/v1/admin/users/user%2Fid%20with%20spaces/logout",
-      {
-        method: "POST",
-        headers: {
-          apikey: "service-role-key",
-          authorization: "Bearer service-role-key",
+    createSupabaseAdminClient.mockReset();
+    updateUserById.mockReset();
+    createSupabaseAdminClient.mockReturnValue({
+      auth: {
+        admin: {
+          updateUserById,
         },
       },
-    );
+    });
   });
 
-  it("throws with status and truncated response body when Supabase rejects logout", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 500,
-      text: vi.fn().mockResolvedValue("x".repeat(250)),
+  it("suspends Supabase auth access through the supported admin user API", async () => {
+    updateUserById.mockResolvedValue({ data: { user: { id: "user-1" } }, error: null });
+
+    await new SupabaseAuthSessionRevoker().revokeUserSessions("user-1");
+
+    expect(updateUserById).toHaveBeenCalledWith("user-1", {
+      ban_duration: "876000h",
     });
-    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  it("throws when Supabase rejects auth access suspension", async () => {
+    updateUserById.mockResolvedValue({
+      data: { user: null },
+      error: { message: "auth service unavailable" },
+    });
 
     await expect(
       new SupabaseAuthSessionRevoker().revokeUserSessions("user-1"),
-    ).rejects.toThrow(
-      `Failed to revoke Supabase sessions for user-1: 500 ${"x".repeat(200)}`,
-    );
+    ).rejects.toThrow("Failed to suspend Supabase auth access for user-1: auth service unavailable");
   });
 });

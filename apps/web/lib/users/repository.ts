@@ -2,6 +2,7 @@ import { and, count, eq, or } from "drizzle-orm";
 import {
   auditEventsTable,
   callsTable,
+  ghlUserMappingsTable,
   getDb,
   invitesTable,
   organizationsTable,
@@ -220,12 +221,21 @@ export class DrizzleUsersRepository implements UsersRepository {
         );
 
       await tx
+        .delete(ghlUserMappingsTable)
+        .where(
+          and(
+            eq(ghlUserMappingsTable.orgId, input.orgId),
+            eq(ghlUserMappingsTable.argosUserId, input.targetUserId),
+          ),
+        );
+
+      await tx
         .delete(invitesTable)
         .where(
           and(eq(invitesTable.orgId, input.orgId), eq(invitesTable.email, member.email)),
         );
 
-      await tx
+      const detachedUsers = await tx
         .update(usersTable)
         .set({
           orgId: null,
@@ -237,7 +247,12 @@ export class DrizzleUsersRepository implements UsersRepository {
             eq(usersTable.id, input.targetUserId),
             eq(usersTable.orgId, input.orgId),
           ),
-        );
+        )
+        .returning({ id: usersTable.id });
+
+      if (detachedUsers.length === 0) {
+        return false;
+      }
 
       await tx.insert(auditEventsTable).values({
         orgId: input.orgId,

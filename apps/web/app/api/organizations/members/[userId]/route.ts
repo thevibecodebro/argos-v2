@@ -14,6 +14,45 @@ type RouteContext = {
   }>;
 };
 
+async function readOptionalJsonBody(request: Request) {
+  if (!request.headers.get("content-type")?.includes("application/json")) {
+    return { ok: true as const, data: {} };
+  }
+
+  const body = await request.text();
+
+  if (!body.trim()) {
+    return { ok: true as const, data: {} };
+  }
+
+  try {
+    const parsed = JSON.parse(body) as unknown;
+
+    if (parsed === null || Array.isArray(parsed) || typeof parsed !== "object") {
+      return {
+        ok: false as const,
+        response: NextResponse.json(
+          { error: "JSON body must be an object" },
+          { status: 400 },
+        ),
+      };
+    }
+
+    return {
+      ok: true as const,
+      data: parsed as { reason?: unknown; ticketId?: unknown },
+    };
+  } catch {
+    return {
+      ok: false as const,
+      response: NextResponse.json(
+        { error: "Invalid JSON body" },
+        { status: 400 },
+      ),
+    };
+  }
+}
+
 export async function PATCH(request: Request, context: RouteContext) {
   const authUser = await getAuthenticatedSupabaseUser();
 
@@ -42,9 +81,13 @@ export async function DELETE(request: Request, context: RouteContext) {
     }
 
     const { userId } = await context.params;
-    const payload = request.headers.get("content-type")?.includes("application/json")
-      ? ((await request.json()) as { reason?: unknown; ticketId?: unknown })
-      : {};
+    const payloadResult = await readOptionalJsonBody(request);
+
+    if (!payloadResult.ok) {
+      return payloadResult.response;
+    }
+
+    const payload = payloadResult.data;
     const repository = await createEffectiveTenantUsersRepository(
       createUsersRepository(),
       authUser.id,

@@ -545,6 +545,46 @@ describe("removeOrganizationMember", () => {
     expect(sessionRevoker.revokeUserSessions).toHaveBeenCalledWith("user-2");
   });
 
+  it("still succeeds when post-deprovision session revocation fails", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    const sessionRevoker = {
+      revokeUserSessions: vi.fn().mockRejectedValue(new Error("auth down")),
+    };
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue(adminUser),
+      findOrganizationMember: vi.fn().mockResolvedValue({
+        id: "user-2",
+        orgId: "org-1",
+        role: "rep",
+      }),
+      deprovisionOrganizationMember: vi.fn().mockResolvedValue(true),
+    });
+
+    const result = await removeOrganizationMember(
+      repository,
+      "user-1",
+      "user-2",
+      {
+        sessionRevoker,
+      },
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      data: { success: true },
+    });
+    expect(consoleError).toHaveBeenCalledWith(
+      "Failed to revoke removed member sessions",
+      {
+        error: expect.any(Error),
+        targetUserId: "user-2",
+      },
+    );
+    consoleError.mockRestore();
+  });
+
   it("does not revoke sessions when deprovisioning finds no matching member", async () => {
     const sessionRevoker = {
       revokeUserSessions: vi.fn().mockResolvedValue(undefined),
