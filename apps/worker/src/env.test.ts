@@ -175,6 +175,24 @@ describe("getWorkerEnv", () => {
     });
   });
 
+  it("rejects production worker resources when APP_ENV is not production", () => {
+    expect(() =>
+      getWorkerEnv({
+        CALL_PROCESSING_ENABLED: "true",
+        APP_ENV: "development",
+        DATABASE_URL: "postgres://postgres:postgres@db.mlluqkmmcfqjmjqoparf.supabase.co:5432/postgres",
+        DATABASE_ENVIRONMENT: "development",
+        OPENAI_API_KEY: "openai-key",
+        OPENAI_ENVIRONMENT: "development",
+        SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
+        SUPABASE_URL: "https://mlluqkmmcfqjmjqoparf.supabase.co",
+        SUPABASE_ENVIRONMENT: "development",
+        ARGOS_PRODUCTION_SUPABASE_PROJECT_REF: "mlluqkmmcfqjmjqoparf",
+        ARGOS_PRODUCTION_DATABASE_HOST: "db.mlluqkmmcfqjmjqoparf.supabase.co",
+      }),
+    ).toThrow("production Supabase resource requires APP_ENV=production");
+  });
+
   it("enables GHL import with database and Supabase credentials but without OpenAI", () => {
     expect(getWorkerEnv({
       GHL_IMPORT_ENABLED: "true",

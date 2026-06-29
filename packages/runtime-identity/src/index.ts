@@ -48,6 +48,49 @@ function isProductionRuntime(env: RuntimeIdentityEnv) {
   );
 }
 
+function getHostname(value: string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return new URL(value).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+function getSupabaseProjectRef(value: string | null | undefined) {
+  const hostname = getHostname(value);
+  const match = hostname?.match(/^([^.]+)\.supabase\.co$/);
+
+  return match?.[1] ?? null;
+}
+
+function usesProductionSupabaseResource(
+  env: RuntimeIdentityEnv,
+  supabaseUrl: string | null | undefined,
+) {
+  const productionProjectRef = normalizeEnvValue(
+    readEnvValue(env, "ARGOS_PRODUCTION_SUPABASE_PROJECT_REF"),
+  );
+  const currentProjectRef = normalizeEnvValue(getSupabaseProjectRef(supabaseUrl));
+
+  return Boolean(productionProjectRef && currentProjectRef === productionProjectRef);
+}
+
+function usesProductionDatabaseResource(
+  env: RuntimeIdentityEnv,
+  databaseUrl: string | null | undefined,
+) {
+  const productionDatabaseHost = normalizeEnvValue(
+    readEnvValue(env, "ARGOS_PRODUCTION_DATABASE_HOST"),
+  );
+  const currentDatabaseHost = normalizeEnvValue(getHostname(databaseUrl));
+
+  return Boolean(productionDatabaseHost && currentDatabaseHost === productionDatabaseHost);
+}
+
 function assertProductionLabel(env: RuntimeIdentityEnv, key: string) {
   const value = normalizeEnvValue(readEnvValue(env, key));
 
@@ -89,7 +132,31 @@ export function assertPrivilegedRuntimeIdentity({
   requireSupabase = false,
   supabaseUrl,
 }: PrivilegedRuntimeIdentityOptions) {
-  if (!isProductionRuntime(env)) {
+  const productionRuntime = isProductionRuntime(env);
+  const usesProductionSupabase = usesProductionSupabaseResource(env, supabaseUrl);
+  const usesProductionDatabase = usesProductionDatabaseResource(env, databaseUrl);
+
+  if (usesProductionSupabase) {
+    const appEnv = normalizeEnvValue(readEnvValue(env, "APP_ENV"));
+
+    if (appEnv !== PRODUCTION_ENVIRONMENT) {
+      throw new Error(
+        "Production environment identity guard failed: production Supabase resource requires APP_ENV=production.",
+      );
+    }
+  }
+
+  if (usesProductionDatabase) {
+    const appEnv = normalizeEnvValue(readEnvValue(env, "APP_ENV"));
+
+    if (appEnv !== PRODUCTION_ENVIRONMENT) {
+      throw new Error(
+        "Production environment identity guard failed: production database resource requires APP_ENV=production.",
+      );
+    }
+  }
+
+  if (!productionRuntime && !usesProductionSupabase && !usesProductionDatabase) {
     return;
   }
 
