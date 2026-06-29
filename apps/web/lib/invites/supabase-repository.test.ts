@@ -88,4 +88,20 @@ describe("DrizzleInvitesRepository", () => {
 
     expect(eq).toHaveBeenCalledWith("invites.email", "rep@acme.com");
   });
+
+  it("finds pending invites by email only when unaccepted and unexpired", async () => {
+    const limit = vi.fn().mockResolvedValue([]);
+    const where = vi.fn(() => ({ limit }));
+    const from = vi.fn(() => ({ where }));
+    const select = vi.fn(() => ({ from }));
+    const { DrizzleInvitesRepository } = await import("./supabase-repository");
+    const repository = new DrizzleInvitesRepository({ select } as never);
+
+    await repository.findPendingInviteByEmail("  Rep@Acme.COM  ");
+
+    expect(eq).toHaveBeenCalledWith("invites.email", "rep@acme.com");
+    expect(isNull).toHaveBeenCalledWith("invites.acceptedAt");
+    expect(gt).toHaveBeenCalledWith("invites.expiresAt", expect.any(Date));
+    expect(eq).not.toHaveBeenCalledWith("invites.orgId", expect.anything());
+  });
 });
