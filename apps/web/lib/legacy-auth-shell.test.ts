@@ -289,7 +289,7 @@ describe("legacy auth shell", () => {
     );
   });
 
-  it("signs out and redirects already-authenticated users when login resume requires an invite", async () => {
+  it("redirects already-authenticated users through invite-required signout when login resume requires an invite", async () => {
     const authUser = {
       email: "blocked@argos.ai",
       id: "auth-user-blocked",
@@ -312,12 +312,10 @@ describe("legacy auth shell", () => {
       LoginPage({
         searchParams: Promise.resolve({ next: "/dashboard" }),
       }),
-    ).rejects.toThrow("NEXT_REDIRECT:/auth/error?reason=invite_required");
+    ).rejects.toThrow("NEXT_REDIRECT:/auth/invite-required");
 
-    expect(signOut).toHaveBeenCalledOnce();
-    expect(redirectMock).toHaveBeenCalledWith(
-      "/auth/error?reason=invite_required",
-    );
+    expect(signOut).not.toHaveBeenCalled();
+    expect(redirectMock).toHaveBeenCalledWith("/auth/invite-required");
     expect(createPlatformRepositoryMock).not.toHaveBeenCalled();
     expect(getPlatformStaffAfterProvisioningMock).not.toHaveBeenCalled();
   });

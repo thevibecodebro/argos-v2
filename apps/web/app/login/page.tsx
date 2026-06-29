@@ -13,7 +13,6 @@ import { createPlatformRepository } from "@/lib/platform/create-repository";
 import { InviteOnlyProvisioningError } from "@/lib/provisioning/invite-only";
 import { SupabaseProvisioningRepository } from "@/lib/provisioning/repository";
 import { ensureUserProvisioned } from "@/lib/provisioning/service";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type LoginPageProps = {
   searchParams?: Promise<{
@@ -55,9 +54,7 @@ async function getAuthenticatedLoginDestination(
     );
   } catch (error) {
     if (error instanceof InviteOnlyProvisioningError) {
-      const supabase = await createSupabaseServerClient();
-      await supabase.auth.signOut();
-      return "/auth/error?reason=invite_required";
+      return "/auth/invite-required";
     }
 
     throw error;
