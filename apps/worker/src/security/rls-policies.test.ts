@@ -21,6 +21,17 @@ type RlsRow = {
   relrowsecurity: boolean;
 };
 
+type HelperFunctionRow = {
+  proname: string;
+  authenticated_can_execute: boolean;
+  anon_can_execute: boolean;
+};
+
+type PolicyExpressionCountRow = {
+  public_helper_references: string | number | bigint;
+  private_helper_references: string | number | bigint;
+};
+
 type DirectTableGrantRow = {
   table_name: string;
   grantee: string;
@@ -169,6 +180,15 @@ async function readTrainingProgressModuleAssignmentRlsMigrationSql() {
   const migrationPath = join(
     process.cwd(),
     "../../supabase/migrations/20260626041647_training_progress_module_assignment_rls.sql",
+  );
+
+  return normalizeWhitespace(await readFile(migrationPath, "utf8"));
+}
+
+async function readPrivateRlsHelpersMigrationSql() {
+  const migrationPath = join(
+    process.cwd(),
+    "../../supabase/migrations/20260702220402_move_rls_helpers_to_private_schema.sql",
   );
 
   return normalizeWhitespace(await readFile(migrationPath, "utf8"));
@@ -353,6 +373,25 @@ describe("RLS policy hardening migration", () => {
       "public.current_user_can_update_training_progress( rep_id, module_id )",
     );
   });
+
+  it("moves SECURITY DEFINER RLS helpers into a non-exposed private schema", async () => {
+    const migrationSql = await readPrivateRlsHelpersMigrationSql();
+
+    expect(migrationSql).toContain("create schema if not exists private");
+    expect(migrationSql).toContain("grant usage on schema private to authenticated");
+    expect(migrationSql).toContain("create or replace function private.current_user_org_id()");
+    expect(migrationSql).toContain("create or replace function private.current_user_role()");
+    expect(migrationSql).toContain("create or replace function private.user_belongs_to_current_org");
+    expect(migrationSql).toContain("create or replace function private.call_belongs_to_current_org");
+    expect(migrationSql).toContain("create or replace function private.current_user_can_read_call_with_permissions");
+    expect(migrationSql).toContain("create or replace function private.current_user_can_assign_training_progress");
+    expect(migrationSql).toContain("set search_path = ''");
+    expect(migrationSql).toContain("private.current_user_org_id()");
+    expect(migrationSql).toContain("replace(using_expr, 'public.' || helper_name || '(', 'private.' || helper_name || '(')");
+    expect(migrationSql).toContain("drop function if exists public.current_user_org_id()");
+    expect(migrationSql).toContain("drop function if exists public.current_user_can_assign_training_progress(uuid, uuid)");
+    expect(migrationSql).toContain("alter default privileges for role postgres in schema public");
+  });
 });
 
 const workerTestDatabaseUrl = await discoverWorkerTestDatabaseUrl();
@@ -524,6 +563,87 @@ describeWithDatabase("RLS policy coverage in pg_policies", () => {
     ]) {
       expect(rlsRows).toContainEqual({ relname: tableName, relrowsecurity: true });
     }
+  });
+
+  it("keeps SECURITY DEFINER RLS helpers outside the exposed public RPC schema", async () => {
+    if (!workerTestDb) {
+      throw new Error("Missing WORKER_TEST_DATABASE_URL or DATABASE_URL for RLS policy tests");
+    }
+
+    const helperNames = [
+      "call_belongs_to_current_org",
+      "current_user_can_assign_training_progress",
+      "current_user_can_read_call_with_permissions",
+      "current_user_can_read_rep_with_permissions",
+      "current_user_can_read_training_progress",
+      "current_user_can_see_team",
+      "current_user_can_update_training_progress",
+      "current_user_can_write_call_with_permissions",
+      "current_user_can_write_rep_with_permissions",
+      "current_user_is_org_wide",
+      "current_user_org_id",
+      "current_user_role",
+      "user_belongs_to_current_org",
+    ];
+    const helperNameSqlList = sql.join(
+      helperNames.map((helperName) => sql`${helperName}`),
+      sql`, `,
+    );
+
+    const publicHelperResult = await workerTestDb.execute(sql`
+      select proname
+      from pg_proc
+      join pg_namespace on pg_namespace.oid = pg_proc.pronamespace
+      where pg_namespace.nspname = 'public'
+        and proname in (${helperNameSqlList})
+      order by proname;
+    `);
+    expect(publicHelperResult.rows).toEqual([]);
+
+    const privateHelperResult = await workerTestDb.execute(sql`
+      select
+        proname,
+        has_function_privilege('authenticated', pg_proc.oid, 'EXECUTE') as authenticated_can_execute,
+        has_function_privilege('anon', pg_proc.oid, 'EXECUTE') as anon_can_execute
+      from pg_proc
+      join pg_namespace on pg_namespace.oid = pg_proc.pronamespace
+      where pg_namespace.nspname = 'private'
+        and proname in (${helperNameSqlList})
+      order by proname;
+    `);
+    const privateHelpers = privateHelperResult.rows as HelperFunctionRow[];
+
+    expect(privateHelpers.map((row) => row.proname).sort()).toEqual(helperNames.sort());
+    for (const helper of privateHelpers) {
+      expect(helper.authenticated_can_execute).toBe(true);
+      expect(helper.anon_can_execute).toBe(false);
+    }
+
+    const policyExpressionResult = await workerTestDb.execute(sql`
+      select
+        count(*) filter (
+          where coalesce(qual, '') like '%public.call_belongs_to_current_org(%'
+             or coalesce(qual, '') like '%public.current_user_%'
+             or coalesce(qual, '') like '%public.user_belongs_to_current_org(%'
+             or coalesce(with_check, '') like '%public.call_belongs_to_current_org(%'
+             or coalesce(with_check, '') like '%public.current_user_%'
+             or coalesce(with_check, '') like '%public.user_belongs_to_current_org(%'
+        ) as public_helper_references,
+        count(*) filter (
+          where coalesce(qual, '') like '%private.call_belongs_to_current_org(%'
+             or coalesce(qual, '') like '%private.current_user_%'
+             or coalesce(qual, '') like '%private.user_belongs_to_current_org(%'
+             or coalesce(with_check, '') like '%private.call_belongs_to_current_org(%'
+             or coalesce(with_check, '') like '%private.current_user_%'
+             or coalesce(with_check, '') like '%private.user_belongs_to_current_org(%'
+        ) as private_helper_references
+      from pg_policies
+      where schemaname = 'public';
+    `);
+    const [policyExpressionCounts] = policyExpressionResult.rows as PolicyExpressionCountRow[];
+
+    expect(Number(policyExpressionCounts.public_helper_references)).toBe(0);
+    expect(Number(policyExpressionCounts.private_helper_references)).toBeGreaterThan(0);
   });
 
   it("blocks reps from writing training progress for arbitrary module ids", async () => {
