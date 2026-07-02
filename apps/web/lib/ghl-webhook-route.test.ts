@@ -32,6 +32,10 @@ describe("GHL webhook route", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+    vi.stubEnv("ARGOS_GHL_ENABLED", "true");
+    vi.stubEnv("GHL_CLIENT_ID", "client-id");
+    vi.stubEnv("GHL_CLIENT_SECRET", "client-secret");
     createGhlWebhookRepository.mockReset();
     processGhlWebhookRequest.mockReset();
     checkRateLimitForPolicy.mockReset();
@@ -49,6 +53,60 @@ describe("GHL webhook route", () => {
       resetAt: new Date("2026-06-18T10:16:00.000Z"),
       bucketKey: "ghlWebhook:ip:hash",
     });
+  });
+
+  it("rejects GHL webhooks before processing when the integration is disabled", async () => {
+    vi.stubEnv("ARGOS_GHL_ENABLED", "false");
+    vi.stubEnv("GHL_CLIENT_ID", "client-id");
+    vi.stubEnv("GHL_CLIENT_SECRET", "client-secret");
+
+    const route = await import("../app/api/webhooks/ghl/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/webhooks/leadconnector", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-ghl-webhook-token": "secret-token",
+        },
+        body: JSON.stringify({ type: "InboundMessage" }),
+      }),
+    );
+
+    await expect(response.json()).resolves.toEqual({
+      code: "not_configured",
+      error: "GoHighLevel integration is not configured",
+    });
+    expect(response.status).toBe(503);
+    expect(checkRateLimitForPolicy).not.toHaveBeenCalled();
+    expect(createGhlWebhookRepository).not.toHaveBeenCalled();
+    expect(processGhlWebhookRequest).not.toHaveBeenCalled();
+  });
+
+  it("rejects tokenized LeadConnector webhooks before processing when the integration is disabled", async () => {
+    vi.stubEnv("ARGOS_GHL_ENABLED", "false");
+    vi.stubEnv("GHL_CLIENT_ID", "client-id");
+    vi.stubEnv("GHL_CLIENT_SECRET", "client-secret");
+
+    const route = await import("../app/api/webhooks/leadconnector/[token]/route");
+    const response = await route.POST(
+      new Request("http://localhost:3100/api/webhooks/leadconnector/secret-token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ type: "InboundMessage" }),
+      }),
+      { params: Promise.resolve({ token: "secret-token" }) },
+    );
+
+    await expect(response.json()).resolves.toEqual({
+      code: "not_configured",
+      error: "GoHighLevel integration is not configured",
+    });
+    expect(response.status).toBe(503);
+    expect(checkRateLimitForPolicy).not.toHaveBeenCalled();
+    expect(createGhlWebhookRepository).not.toHaveBeenCalled();
+    expect(processGhlWebhookRequest).not.toHaveBeenCalled();
   });
 
   it("rejects webhook tokens supplied in the URL query string", async () => {

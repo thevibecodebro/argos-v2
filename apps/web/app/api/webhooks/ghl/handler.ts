@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createGhlWebhookRepository } from "@/lib/integrations/create-ghl-webhook-repository";
 import { processGhlWebhookRequest } from "@/lib/integrations/ghl-webhook";
+import { isGhlIntegrationConfigured } from "@/lib/integrations/service";
 import {
   checkRateLimitForPolicy,
   rateLimitExceededResponse,
@@ -15,6 +16,16 @@ const PUBLIC_WEBHOOK_RATE_LIMIT_SUBJECT = {
 
 export async function processGhlWebhookPost(request: Request, token: string | null) {
   try {
+    if (!isGhlIntegrationConfigured()) {
+      return NextResponse.json(
+        {
+          code: "not_configured",
+          error: "GoHighLevel integration is not configured",
+        },
+        { status: 503 },
+      );
+    }
+
     const rateLimit = await checkRateLimitForPolicy(
       "ghlWebhook",
       PUBLIC_WEBHOOK_RATE_LIMIT_SUBJECT,
