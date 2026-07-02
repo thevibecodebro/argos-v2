@@ -651,7 +651,7 @@ describe("primary route hero removal", () => {
       complianceHtml,
     ] = await Promise.all([
       renderRoute(SettingsAccountPage()),
-      renderRoute(SettingsPeoplePage()),
+      renderRoute(SettingsPeoplePage({})),
       renderRoute(SettingsTeamsPage()),
       renderRoute(SettingsTeamsManagePage()),
       renderRoute(SettingsPermissionsPage()),
@@ -674,6 +674,7 @@ describe("primary route hero removal", () => {
     expect(peopleHtml).toContain(
       "Manage users, invitations, and account access.",
     );
+    expect(peopleHtml).toContain('href="/settings/people?invite=rep#people-invite"');
 
     expect(teamsHtml).toContain('data-teams-route="overview"');
     expect(teamsHtml).toContain('href="/settings/teams/manage"');
@@ -1188,7 +1189,7 @@ describe("primary route hero removal", () => {
       rubricBuilderHtml,
       complianceHtml,
     ] = await Promise.all([
-      renderRoute(SettingsPeoplePage()),
+      renderRoute(SettingsPeoplePage({})),
       renderRoute(SettingsTeamsPage()),
       renderRoute(SettingsTeamsManagePage()),
       renderRoute(SettingsPermissionsPage()),

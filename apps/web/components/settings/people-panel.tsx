@@ -38,6 +38,7 @@ function formatDate(value: string | null) {
 
 type PeoplePanelProps = {
   currentUserId: string;
+  initialInviteRole?: "rep" | "manager" | "executive" | "admin";
   initialMembers: OrganizationMember[];
   initialPendingInvites: InviteRecord[];
   initialTeams: Array<{ id: string; name: string }>;
@@ -45,6 +46,7 @@ type PeoplePanelProps = {
 
 export function PeoplePanel({
   currentUserId,
+  initialInviteRole,
   initialMembers,
   initialPendingInvites,
   initialTeams,
@@ -64,11 +66,11 @@ export function PeoplePanel({
     "all" | "rep" | "manager" | "executive" | "admin"
   >("all");
 
-  const [showInviteForm, setShowInviteForm] = useState(false);
+  const [showInviteForm, setShowInviteForm] = useState(Boolean(initialInviteRole));
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<
     "rep" | "manager" | "executive" | "admin"
-  >("rep");
+  >(initialInviteRole ?? "rep");
   const [inviteTeamIds, setInviteTeamIds] = useState<string[]>([]);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSending, setInviteSending] = useState(false);
@@ -206,7 +208,7 @@ export function PeoplePanel({
   }
 
   const inviteControls = (
-    <SettingsEditorDrawer data-people-invite-drawer="">
+    <SettingsEditorDrawer data-people-invite-drawer="" id="people-invite">
       <div className="space-y-5">
         <div className="space-y-3">
           <div className="flex items-start justify-between gap-3">
@@ -247,7 +249,10 @@ export function PeoplePanel({
         </div>
 
         {showInviteForm ? (
-          <div className="space-y-4 rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4">
+          <div
+            className="space-y-4 rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4"
+            data-people-invite-form="true"
+          >
             <label className="block">
               <span className="text-xs font-medium text-[var(--forge-muted)]">
                 Email

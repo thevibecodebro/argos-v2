@@ -77,4 +77,22 @@ describe("PeoplePanel", () => {
     expect(html).toContain("Remove");
     expect(html).not.toContain("Invite teammates from the rail to add the first member.");
   });
+
+  it("can render the invite form open for the page-level invite action", () => {
+    const html = renderToStaticMarkup(
+      createElement(PeoplePanel, {
+        currentUserId: "user-admin",
+        initialInviteRole: "rep",
+        initialMembers: [],
+        initialPendingInvites: [],
+        initialTeams: [{ id: "team-a", name: "Closers" }],
+      }),
+    );
+
+    expect(html).toContain('id="people-invite"');
+    expect(html).toContain('data-people-invite-form="true"');
+    expect(html).toContain('value="rep" selected=""');
+    expect(html).toContain("Invite rep");
+    expect(html).toContain("Email");
+  });
 });

@@ -16,7 +16,30 @@ import { createUsersRepository } from "@/lib/users/create-repository";
 import { listOrganizationMembers } from "@/lib/users/service";
 import { SettingsOperationalLayout } from "../settings-operational-layout";
 
-export default async function SettingsPeoplePage() {
+type SettingsPeoplePageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+type InviteRole = "rep" | "manager" | "executive" | "admin";
+
+const INVITE_ROLES: InviteRole[] = ["rep", "manager", "executive", "admin"];
+
+function firstValue(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function parseInitialInviteRole(
+  searchParams: Record<string, string | string[] | undefined>,
+): InviteRole | undefined {
+  const role = firstValue(searchParams.invite);
+  return INVITE_ROLES.includes(role as InviteRole) ? (role as InviteRole) : undefined;
+}
+
+export default async function SettingsPeoplePage({
+  searchParams,
+}: SettingsPeoplePageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const initialInviteRole = parseInitialInviteRole(resolvedSearchParams);
   const authUser = await getCachedAuthenticatedSupabaseUser();
   if (!authUser) redirect("/login");
 
@@ -36,13 +59,14 @@ export default async function SettingsPeoplePage() {
 
   return (
     <SettingsOperationalLayout
-      actions={[{ href: "/settings/people", icon: "person_add", label: "Invite user", variant: "primary" }]}
+      actions={[{ href: "/settings/people?invite=rep#people-invite", icon: "person_add", label: "Invite user", variant: "primary" }]}
       description="Manage users, invitations, and account access."
       route="people"
       title="People"
     >
       <PeoplePanel
         currentUserId={authUser.id}
+        initialInviteRole={initialInviteRole}
         initialMembers={membersResult?.ok ? membersResult.data : []}
         initialPendingInvites={pendingInvitesResult?.ok ? pendingInvitesResult.data : []}
         initialTeams={teamAccessResult?.ok ? teamAccessResult.data.teams : []}
