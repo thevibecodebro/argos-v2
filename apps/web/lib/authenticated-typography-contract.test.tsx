@@ -4,14 +4,21 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-const { interMock, geistMonoMock, geistMock, sourceSansMock, spaceGroteskMock } =
-  vi.hoisted(() => ({
-    interMock: vi.fn(() => ({ variable: "font-ui-variable" })),
-    geistMonoMock: vi.fn(() => ({ variable: "font-mono-variable" })),
-    geistMock: vi.fn(() => ({ variable: "font-geist-variable" })),
-    sourceSansMock: vi.fn(() => ({ variable: "font-body-variable" })),
-    spaceGroteskMock: vi.fn(() => ({ variable: "font-display-variable" })),
-  }));
+const {
+  interMock,
+  geistMonoMock,
+  geistMock,
+  sourceSansMock,
+  spaceGroteskMock,
+  cormorantGaramondMock,
+} = vi.hoisted(() => ({
+  interMock: vi.fn(() => ({ variable: "font-ui-variable" })),
+  geistMonoMock: vi.fn(() => ({ variable: "font-mono-variable" })),
+  geistMock: vi.fn(() => ({ variable: "font-geist-variable" })),
+  sourceSansMock: vi.fn(() => ({ variable: "font-body-variable" })),
+  spaceGroteskMock: vi.fn(() => ({ variable: "font-display-variable" })),
+  cormorantGaramondMock: vi.fn(() => ({ variable: "font-argos-display-variable" })),
+}));
 
 vi.mock("next/font/google", () => ({
   Inter: interMock,
@@ -19,6 +26,7 @@ vi.mock("next/font/google", () => ({
   Geist: geistMock,
   Source_Sans_3: sourceSansMock,
   Space_Grotesk: spaceGroteskMock,
+  Cormorant_Garamond: cormorantGaramondMock,
 }));
 
 vi.mock("@/lib/env", () => ({

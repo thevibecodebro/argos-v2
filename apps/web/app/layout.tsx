@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Inter } from "next/font/google";
+import { Cormorant_Garamond, Geist_Mono, Inter } from "next/font/google";
 import { getDevelopmentStartupEnvError } from "@/lib/env";
 import { getPublicSiteUrl, HOME_DESCRIPTION, SITE_NAME } from "@/lib/seo/site";
 import "./globals.css";
@@ -16,6 +16,16 @@ const monoFont = Geist_Mono({
   display: "swap",
   subsets: ["latin"],
   variable: "--font-mono",
+});
+
+// Cormorant Garamond is the brand-board display serif for public pages.
+// Registered globally, but browsers only fetch faces that actually render.
+const displayFont = Cormorant_Garamond({
+  display: "swap",
+  style: ["normal", "italic"],
+  subsets: ["latin"],
+  variable: "--font-argos-display",
+  weight: ["300", "400", "500"],
 });
 
 export const metadata: Metadata = {
@@ -36,7 +46,7 @@ export default function RootLayout({
 
   return (
     <html
-      className={`${uiFont.variable} ${monoFont.variable}`}
+      className={`${uiFont.variable} ${monoFont.variable} ${displayFont.variable}`}
       lang="en"
     >
       <body>

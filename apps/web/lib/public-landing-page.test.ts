@@ -7,24 +7,23 @@ import { PRODUCT_DEFINITION } from "./seo/site";
 describe("LandingPage", () => {
   it("renders the public landing page narrative, access model, and legal footer", () => {
     const html = renderToStaticMarkup(createElement(LandingPage));
-    const coachingCardCount = Array.from(html.matchAll(/data-scene-key=/g)).length;
-    const deprecatedSalesTeamsChanged = ["Sales teams", "changed"].join(" ");
-    const deprecatedDemoCopy = ["Video", "placeholder"].join(" ");
-    const deprecatedDemoFlag = ["data-demo-video", "placeholder"].join("-");
-    const deprecatedDemoAria = ["Argos product demo video", "placeholder"].join(" ");
 
-    expect(coachingCardCount).toBe(6);
+    // Brand shell
     expect(html).toContain("argos-3d-page");
-    expect(html).toContain("text-[var(--forge-text)]");
-    expect(html).toContain("Argos");
     expect(html).toContain('data-argos-logo="homepage-nav"');
     expect(html).toContain('data-argos-logo="homepage-footer"');
     expect(html).toContain('src="/argos_logo_background.png"');
-    expect(html).not.toContain("Sales standard installation + Argos platform");
-    expect(html).toContain("Build a sales team that actually follows the playbook.");
-    expect(html).toContain("We Install The Sales Standard In Your Organization");
-    expect(html).toContain("Argos makes it visible in the work: calls reviewed, reps scored");
-    expect(html).toContain("training assigned, and roleplay tracked.");
+
+    // Hero — commanding, editorial, conversion-focused
+    expect(html).toContain("Argos Revenue Command");
+    expect(html).toContain("The system <em>reveals all.</em>");
+    expect(html).toContain("We install the sales standard in your organization");
+    expect(html).toContain("Every call reviewed. Every rep scored.");
+    expect(html).toContain("Your revenue. Running without you.");
+    expect(html).toContain("Book the demo");
+    expect(html).toContain("See the system");
+
+    // SEO answer block stays intact for crawlers and AI assistants
     expect(html).toContain(PRODUCT_DEFINITION);
     expect(html).toContain('aria-label="What Argos makes explicit"');
     expect(html).toContain("Who it is for");
@@ -37,208 +36,82 @@ describe("LandingPage", () => {
     expect(html).toContain(
       "The transcript, scorecard evidence, training assignment, and behavior trend stay connected.",
     );
-    expect(html).not.toContain(deprecatedSalesTeamsChanged);
-    expect(html).toContain("Book Demo");
-    expect(html).not.toContain("Book the coaching walkthrough");
-    expect(html).toContain("See how Argos supports the system");
-    expect(html).not.toContain("Call review -&gt; Rubrics scored -&gt; Training assigned -&gt; Roleplay tracked -&gt; Manager dashboard");
-    expect(html).not.toContain("SALES_PLAYBOOK // ARGOS_OPERATIONS");
-    expect(html).not.toContain("coaching becomes operating rhythm");
-    expect(html).not.toContain("argos-hero-terminal");
-    expect(html).toContain('aria-label="Argos product coaching walkthrough"');
-    expect(html).not.toContain("Every call should become the next coaching move.");
-    expect(html).toContain('aria-label="Argos product showcase"');
-    expect(html).toContain('data-product-showcase="product-screenshot-carousel"');
-    expect(Array.from(html.matchAll(/data-showcase-slide=/g))).toHaveLength(8);
-    expect(html).toContain('data-showcase-slide="dashboard-attention"');
-    expect(html).toContain('data-showcase-slide="call-library"');
-    expect(html).toContain('data-showcase-slide="scorecard"');
-    expect(html).toContain('data-showcase-slide="coaching-highlight"');
-    expect(html).toContain('data-showcase-slide="training-assignment"');
-    expect(html).toContain('data-showcase-slide="roleplay-practice"');
-    expect(html).toContain('data-showcase-slide="team-visibility"');
-    expect(html).toContain('data-showcase-slide="leaderboard"');
-    expect(html).toContain("/homepage-product/argos-dashboard.png");
-    expect(html).toContain("/homepage-product/argos-calls.png");
-    expect(html).toContain("/homepage-product/argos-scorecard.png");
-    expect(html).toContain("/homepage-product/argos-highlights.png");
-    expect(html).toContain("/homepage-product/argos-training.png");
-    expect(html).toContain("/homepage-product/argos-roleplay.png");
-    expect(html).toContain("/homepage-product/argos-team.png");
-    expect(html).toContain("/homepage-product/argos-leaderboard.png");
-    expect(html).not.toContain("/homepage-product/argos-dashboard-workspace.png");
-    expect(html).not.toContain("/homepage-product/argos-dashboard-queue.png");
-    expect(html).not.toContain("/homepage-product/argos-dashboard-selected.png");
-    expect(html).not.toContain("/homepage-product/argos-dashboard-actions.png");
-    expect(html).not.toContain("Argos turns reviewed sales calls into visible coaching moves");
-    expect(html).not.toContain("what to practice before the next live call");
-    expect(html).toContain("Previous product view");
-    expect(html).toContain("Next product view");
-    expect(html).toContain("Show Dashboard");
-    expect(html).toContain("Show Calls");
-    expect(html).toContain("Show Scorecards");
-    expect(html).toContain("Show Highlights");
-    expect(html).toContain("Show Training");
-    expect(html).toContain("Show Roleplay");
-    expect(html).toContain("Show Team");
-    expect(html).toContain("Show Leaderboard");
-    expect(html).not.toContain("Operating feed");
-    expect(html).not.toContain("Animated operating feed cards");
-    expect(html).not.toContain("Animated operating feed carousel");
-    expect(html).not.toContain('data-operating-card="true"');
-    expect(html).not.toContain("One call becomes five visible handoffs.");
-    expect(html).not.toContain("Product in motion");
-    expect(html).not.toContain("Argos operating preview");
-    expect(html).not.toContain("Live operating loop");
-    expect(html).not.toContain("Watch one call become the next coaching action.");
-    expect(html).not.toContain("Sample workflow, not customer data.");
-    expect(html).toContain("Dashboard");
-    expect(html).toContain("Calls");
-    expect(html).toContain("Call review");
-    expect(html).toContain("Scorecards");
-    expect(html).toContain("Highlights");
-    expect(html).toContain("Training");
-    expect(html).toContain("Roleplay");
-    expect(html).toContain("Team");
-    expect(html).toContain("Leaderboard");
-    expect(html).toContain("Know where to coach");
-    expect(html).toContain("before the week gets away.");
-    expect(html).toContain("Start with the conversations");
-    expect(html).toContain("your team actually had.");
-    expect(html).toContain("Score the moments");
-    expect(html).toContain("that make or break the sale.");
-    expect(html).toContain("Pull out the moment");
-    expect(html).toContain("every manager should coach.");
-    expect(html).toContain("Assign the fix");
-    expect(html).toContain("while the call is still fresh.");
-    expect(html).toContain("Practice the pushback");
-    expect(html).toContain("before the next live call.");
-    expect(html).toContain("See who needs help");
-    expect(html).toContain("without hunting through calls.");
-    expect(html).toContain("Track whether the standard");
-    expect(html).toContain("is spreading across the team.");
-    expect(html).not.toContain("Find the gap");
-    expect(html).not.toContain("Score the behavior");
-    expect(html).not.toContain("Track follow-through");
-    expect(html).not.toContain("Managers see who needs help without hunting through recordings.");
-    expect(html).not.toContain("One reviewed call becomes a clear coaching signal.");
-    expect(html).not.toContain("Managers know who needs help");
-    expect(html).not.toContain("See who needs coaching");
-    expect(html).not.toContain("A reviewed call becomes");
-    expect(html).not.toContain("a clear coaching signal.");
-    expect(html).not.toContain("The next step is attached to the coaching gap.");
-    expect(html).not.toContain("The standard keeps showing up before the next call.");
-    expect(html).not.toContain("Authenticated product screenshot");
-    expect(html).not.toContain("Dashboard workspace");
-    expect(html).not.toContain("Work queue");
-    expect(html).not.toContain("Selected item");
-    expect(html).not.toContain("Manager action");
-    expect(html).toContain("Coaching only counts if it changes the next call.");
+
+    // 01 — the ceiling
+    expect(html).toContain("The ceiling isn’t effort");
+    expect(html).toContain("it’s architecture.");
     expect(html).toContain("Most teams leave the meeting nodding.");
     expect(html).toContain("managers are stuck guessing what actually changed.");
-    expect(html).not.toContain("Most sales coaching dies between meetings.");
-    expect(html).not.toContain("A team hears the advice, nods along");
     expect(html).toContain("The coaching sets the standard. Argos reinforces it in the work.");
-    expect(html).toContain("How The Standard Gets Installed");
-    expect(html).toContain("Install the sales standard");
-    expect(html).toContain("Argos scores real calls against it");
-    expect(html).toContain("Managers reinforce it every week");
-    expect(html).toContain("The operating system");
-    expect(html).toContain("Teach the playbook. Track the behavior.");
+    expect(html).toContain("a sales team that actually follows the");
+    expect(html).toContain("playbook");
+
+    // 02 — command surface: all eight real product views
+    expect(html).toContain("Every revenue function.");
+    expect(html).toContain('aria-label="Argos product areas"');
+    expect(html).toContain("argos-dashboard.png");
+    expect(html).toContain("argos-calls.png");
+    expect(html).toContain("argos-scorecard.png");
+    expect(html).toContain("argos-highlights.png");
+    expect(html).toContain("argos-training.png");
+    expect(html).toContain("argos-roleplay.png");
+    expect(html).toContain("argos-team.png");
+    expect(html).toContain("argos-leaderboard.png");
+    expect(html).toContain('aria-label="Show Dashboard"');
+    expect(html).toContain('aria-label="Show Calls"');
+    expect(html).toContain('aria-label="Show Scorecards"');
+    expect(html).toContain('aria-label="Show Highlights"');
+    expect(html).toContain('aria-label="Show Training"');
+    expect(html).toContain('aria-label="Show Roleplay"');
+    expect(html).toContain('aria-label="Show Team"');
+    expect(html).toContain('aria-label="Show Leaderboard"');
+    expect(html).toContain("Previous product view");
+    expect(html).toContain("Next product view");
+    expect(html).toContain("Know where to coach");
+
+    // 03 — the operating loop: six steps, verbatim system copy
+    expect(Array.from(html.matchAll(/argos-feature-card/g))).toHaveLength(6);
+    expect(html).toContain("Teach the playbook.");
+    expect(html).toContain("Track the behavior.");
     expect(html).toContain("Call review");
     expect(html).toContain("Scorecards and rubrics");
+    expect(html).toContain("Team coaching flags");
     expect(html).toContain("Training assignments");
     expect(html).toContain("Roleplay practice");
     expect(html).toContain("Manager dashboards");
-    expect(html).toContain("Team coaching flags");
-    expect(html).not.toContain("Zoom and GoHighLevel");
-    expect(html).not.toContain('id="integrations"');
-    expect(html).not.toContain('data-scene-key="integrations"');
     expect(html).toContain("Turn real conversations into coaching context.");
-    expect(html).toContain("Upload recordings or connect Zoom so real conversations become reviewable records for managers and reps.");
+    expect(html).toContain(
+      "Upload recordings or connect Zoom so real conversations become reviewable records for managers and reps.",
+    );
     expect(html).toContain("Make the playbook measurable.");
     expect(html).toContain("Score calls against the sales standard");
     expect(html).toContain("Show managers where to focus.");
     expect(html).toContain("Managers see who needs attention");
-    expect(html).not.toContain("Transcript highlight:");
-    expect(html).not.toContain("Score movement:");
-    expect(html).not.toContain("Manager flag:");
-    expect(html).not.toContain("Assignment status:");
-    expect(html).not.toContain("Roleplay queue:");
-    expect(html).not.toContain("Dashboard signal:");
-    expect(html).not.toContain("Scored evidence");
-    expect(html).not.toContain("Coaching moment");
-    expect(html).not.toContain("Roleplay drill");
-    expect(html).not.toContain("Next call");
-    expect(html).not.toContain("Progress signal");
-    expect(html).not.toContain("Score the conversation against the team");
-    expect(html).not.toContain("Turn the gap into a focused practice drill");
-    expect(html).not.toContain("See whether the coaching changed the next call.");
-    expect(html).not.toContain("Argos carries the last focus area forward");
-    expect(html).toContain("Roleplay");
-    expect(html).not.toContain("Sales standard system");
-    expect(html).not.toContain("Install the standard once. Keep the team honest every week.");
-    expect(html).not.toContain("CALL REVIEW // SCORECARDS AND RUBRICS");
-    expect(html).not.toContain("argos-signal-strip");
-    expect(html).not.toContain("argos-metric-row");
-    expect(html).not.toContain("Reviewed</strong>");
-    expect(html).not.toContain("Scored</strong>");
-    expect(html).not.toContain("Queued</strong>");
+
+    // 04 — the installation
+    expect(html).toContain("Coaching becomes visible");
+    expect(html).toContain("Install the sales standard");
+    expect(html).toContain("Argos scores real calls against it");
+    expect(html).toContain("Managers reinforce it every week");
+
+    // 05 — roles
     expect(html).toContain("For Owners");
     expect(html).toContain("For Managers");
     expect(html).toContain("For Reps");
-    expect(html).toContain('id="role-outcomes"');
-    expect(html).toContain("Want to see how the coaching system works inside Argos?");
-    expect(html).toContain("Walk through the sales coaching model, the scorecards");
-    expect(html).toContain("Demo walkthrough");
-    expect(html).toContain("Call review, scorecard, and roleplay walkthrough");
-    expect(html).toContain('aria-label="Argos demo walkthrough summary"');
-    expect(html).not.toContain(deprecatedDemoCopy);
-    expect(html).toContain("Call review");
+
+    // 06 — access
+    expect(html).toContain("See the system <em>running.</em>");
+    expect(html).toContain("The live product, walked through the way your team would use it every week.");
+    expect(html).toContain("The walkthrough covers");
     expect(html).toContain("Custom scorecards");
     expect(html).toContain("Training workflow");
-    expect(html).toContain("Roleplay practice");
+    expect(html).toContain('href="https://calendar.app.google/RSBtSGHYRSxmcs717"');
+
+    // Navigation — anchor order mirrors the page narrative
     expect(html).toContain(">Log in</a>");
-    expect(html).toContain('aria-label="Book an Argos demo"');
-    expect(html).toContain(">Book Demo</a>");
-    expect(html).not.toContain(">Access</a>");
-    expect(html).not.toContain(">Sign in</a>");
-    expect(html).not.toContain("Next-gen sales intelligence");
-    expect(html).not.toContain("Forge a sharper sales force with call intelligence.");
-    expect(html).not.toContain("Watch the system");
-    expect(html).not.toContain("See the evolution");
-    expect(html).not.toContain("Launch platform");
-    expect(html).not.toContain(["Sales teams", "changed. Coaching should have too."].join(" "));
-    expect(html).not.toContain("Your next coaching session is hiding in your last sales call.");
-    expect(html).not.toContain("We review it with Argos");
-    expect(html).not.toContain("Founder review");
-    expect(html).not.toContain("1:1 founder review");
-    expect(html).not.toContain("Argos with founder review");
-    expect(html).not.toContain("Want to know what your next coaching session should be about?");
-    expect(html).not.toContain("Coaching by memory");
-    expect(html).not.toContain("Pipeline goes digital");
-    expect(html).not.toContain("Recording overload");
-    expect(html).not.toContain("AI tool sprawl");
-    expect(html).not.toContain("The manager could only coach what they heard.");
-    expect(html).not.toContain("Turn every sales call into the next coaching loop.");
-    expect(html.toLowerCase()).not.toContain("fathom");
-    expect(html).not.toContain("AI notetaking");
-    expect(html).not.toContain("AI note-taking");
-    expect(html).not.toContain("Founder-led sales coaching + Argos platform");
-    expect(html).not.toContain("Founder-led system");
-    expect(html).not.toContain("The coaching happens with the founder. The reinforcement happens inside Argos.");
-    expect(html).not.toContain("Founder teaches the standard");
-    expect(html).not.toContain("The founder teaches the standard");
-    expect(html).not.toContain("For Founders");
-    expect(html).not.toContain("Founder reviews calls");
-    expect(html).not.toContain("The founder reviews your calls");
-    expect(html).toContain("Privacy Policy");
     const navOrder = [
       'href="#product-in-motion"',
       'href="#coaching-system"',
-      'href="#standard-installation"',
-      'href="#coaching-loop"',
-      'href="#role-outcomes"',
       'href="#access"',
     ];
     let lastNavIndex = -1;
@@ -247,71 +120,48 @@ describe("LandingPage", () => {
       expect(navIndex).toBeGreaterThan(lastNavIndex);
       lastNavIndex = navIndex;
     }
-    expect(html).toContain('href="#coaching-loop"');
-    expect(html).toContain(">System</a>");
-    expect(html).toContain('href="#coaching-system"');
-    expect(html).toContain(">Coaching</a>");
-    expect(html).toContain('href="#product-in-motion"');
     expect(html).toContain(">Product</a>");
-    expect(html).toContain('href="#standard-installation"');
-    expect(html).toContain(">Standard</a>");
-    expect(html).toContain('href="#role-outcomes"');
-    expect(html).toContain(">Roles</a>");
-    expect(html).not.toContain('href="#sales-standard"');
-    expect(html).not.toContain('href="#platform-features"');
-    expect(html).not.toContain(">Platform</a>");
-    expect(html).toContain('href="#access"');
-    expect(html).toContain(">Demo</a>");
+    expect(html).toContain(">System</a>");
+    // The nav stays minimal: no jargon anchors, no duplicate demo link.
+    expect(html).not.toContain(">Loop</a>");
+    expect(html).not.toContain(">Installation</a>");
+    expect(html).not.toContain(">Roles</a>");
+    expect(html).not.toContain(">Demo</a>");
+
+    // Section anchors used by nav and by the auth shell deep links
     expect(html).toContain('id="platform"');
+    expect(html).toContain('id="product-in-motion"');
     expect(html).toContain('id="coaching-system"');
     expect(html).toContain('id="coaching-loop"');
     expect(html).toContain('id="platform-features"');
-    expect(html).not.toContain('id="sales-standard"');
+    expect(html).toContain('id="standard-installation"');
     expect(html).toContain('id="role-outcomes"');
-    expect(html).not.toContain('id="argos-command"');
-    expect(html).not.toContain('id="next-call"');
-    expect(html).not.toContain('id="progress-signal"');
     expect(html).toContain('id="access"');
+
+    // Footer + legal
+    expect(html).toContain("From founder-dependent to founder-free.");
+    expect(html).toContain("Est. 2024");
+    expect(html).toContain("Privacy Policy");
     expect(html).toContain('href="/privacy-policy"');
     expect(html).toContain('href="/terms-of-service"');
     expect(html).toContain('href="/security-policy"');
-    expect(html).toContain("2026 Argos Revenue Command. All rights reserved.");
-    expect(html).toContain('href="https://calendar.app.google/RSBtSGHYRSxmcs717"');
-    expect(html).toContain(">Book Demo</a>");
-    expect(html).not.toContain(">Book The Coaching Walkthrough</a>");
-    expect(html).not.toContain(deprecatedDemoFlag);
-    expect(html).not.toContain(deprecatedDemoAria);
-    expect(html).not.toContain("Solo");
+
+    // Guardrails — retired concepts must not resurface
+    expect(html).not.toContain("Founder review");
+    expect(html).not.toContain("1:1 founder review");
+    expect(html).not.toContain("For Founders");
+    expect(html.toLowerCase()).not.toContain("fathom");
+    expect(html).not.toContain("AI notetaking");
+    expect(html).not.toContain("AI note-taking");
     expect(html).not.toContain("$79/month");
-    expect(html).not.toContain("$853.20/year");
-    expect(html).not.toContain("120 live voice minutes/month");
-    expect(html).not.toContain("Save 10% annually");
-    expect(html).not.toContain("Team gives managers shared visibility");
     expect(html).not.toContain("$50/seat/month");
-    expect(html).not.toContain("$540/seat/year");
-    expect(html).not.toContain("3-seat minimum");
-    expect(html).not.toContain("Enterprise");
     expect(html).not.toContain("Custom pricing");
-    expect(html).not.toContain("Unlimited seats");
     expect(html).not.toContain('action="/billing/checkout"');
-    expect(html).not.toContain('name="seats"');
     expect(html).not.toContain("Billing cadence");
-    expect(html).not.toContain("Monthly");
-    expect(html).not.toContain("Annual");
-    expect(html).not.toContain("argos-billing-segments");
     expect(html).not.toContain("Continue to checkout");
-    expect(html).not.toContain('type="radio"');
-    expect(html).not.toContain('value="solo"');
-    expect(html).not.toContain('value="team"');
-    expect(html).not.toContain("250 extra minutes");
-    expect(html).not.toContain("$125");
-    expect(html).not.toContain("500 extra minutes");
-    expect(html).not.toContain("$175");
-    expect(html).not.toContain("2,000 extra minutes");
-    expect(html).not.toContain("$600");
-    expect(html).not.toContain('href="/billing/checkout?plan=extra-250"');
     expect(html).not.toContain(">Trial<");
-    expect(html).not.toContain("Intelligent Readiness");
     expect(html).not.toContain("Ready Score");
+    expect(html).not.toContain("Video placeholder");
+    expect(html).not.toContain("hustle");
   });
 });

@@ -1,185 +1,149 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { HOMEPAGE_PRODUCT_CAPTURE_ROUTES } from "@/lib/homepage-product-capture";
 import styles from "./landing-page.module.css";
 
-const productShowcaseSlides = HOMEPAGE_PRODUCT_CAPTURE_ROUTES;
+const slides = HOMEPAGE_PRODUCT_CAPTURE_ROUTES;
+const ADVANCE_INTERVAL_MS = 6000;
 
 export function LandingProductShowcase() {
   const [activeIndex, setActiveIndex] = useState(0);
-  const hasInteractedRef = useRef(false);
-  const slideRefs = useRef<Array<HTMLElement | null>>([]);
-  const trackRef = useRef<HTMLDivElement | null>(null);
+  const [autoAdvance, setAutoAdvance] = useState(false);
+  const isPausedRef = useRef(false);
+  const railRef = useRef<HTMLDivElement | null>(null);
 
+  // Auto-advance is a progressive enhancement: it only starts after mount,
+  // never for reduced-motion users, and any interaction hands over control.
   useEffect(() => {
-    const track = trackRef.current;
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
-    if (!track) {
+    if (prefersReducedMotion.matches) {
       return;
     }
 
-    let animationFrame = 0;
-
-    function syncActiveSlide() {
-      const trackNode = trackRef.current;
-
-      if (!trackNode) {
-        return;
+    setAutoAdvance(true);
+    const timer = window.setInterval(() => {
+      if (!isPausedRef.current) {
+        setActiveIndex((index) => (index + 1) % slides.length);
       }
+    }, ADVANCE_INTERVAL_MS);
 
-      const trackRect = trackNode.getBoundingClientRect();
-      const trackCenter = trackRect.left + trackRect.width / 2;
-      let closestIndex = activeIndex;
-      let closestDistance = Number.POSITIVE_INFINITY;
+    return () => window.clearInterval(timer);
+  }, []);
 
-      slideRefs.current.forEach((slide, index) => {
-        if (!slide) {
-          return;
-        }
-
-        const slideRect = slide.getBoundingClientRect();
-        const slideCenter = slideRect.left + slideRect.width / 2;
-        const distance = Math.abs(trackCenter - slideCenter);
-
-        if (distance < closestDistance) {
-          closestDistance = distance;
-          closestIndex = index;
-        }
-      });
-
-      setActiveIndex((currentIndex) => (
-        currentIndex === closestIndex ? currentIndex : closestIndex
-      ));
-    }
-
-    function scheduleSync() {
-      window.cancelAnimationFrame(animationFrame);
-      animationFrame = window.requestAnimationFrame(syncActiveSlide);
-    }
-
-    scheduleSync();
-    track.addEventListener("scroll", scheduleSync, { passive: true });
-    window.addEventListener("resize", scheduleSync);
-
-    return () => {
-      window.cancelAnimationFrame(animationFrame);
-      track.removeEventListener("scroll", scheduleSync);
-      window.removeEventListener("resize", scheduleSync);
-    };
-  }, [activeIndex]);
+  const selectSlide = useCallback((index: number) => {
+    isPausedRef.current = true;
+    setAutoAdvance(false);
+    setActiveIndex(((index % slides.length) + slides.length) % slides.length);
+  }, []);
 
   useEffect(() => {
-    if (!hasInteractedRef.current) {
-      return;
+    const rail = railRef.current;
+    const activeButton = rail?.querySelector<HTMLButtonElement>('[data-active="true"]');
+
+    if (rail && activeButton) {
+      const railRect = rail.getBoundingClientRect();
+      const buttonRect = activeButton.getBoundingClientRect();
+
+      if (buttonRect.left < railRect.left || buttonRect.right > railRect.right) {
+        activeButton.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+      }
     }
-
-    const activeSlide = slideRefs.current[activeIndex];
-    const track = trackRef.current;
-
-    if (!activeSlide || !track) {
-      return;
-    }
-
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const trackRect = track.getBoundingClientRect();
-    const slideRect = activeSlide.getBoundingClientRect();
-    const targetLeft =
-      track.scrollLeft + slideRect.left - trackRect.left - (trackRect.width - slideRect.width) / 2;
-
-    track.scrollTo({
-      left: targetLeft,
-      behavior: reduceMotion ? "auto" : "smooth",
-    });
   }, [activeIndex]);
 
-  function showSlide(index: number) {
-    const nextIndex = (index + productShowcaseSlides.length) % productShowcaseSlides.length;
-    hasInteractedRef.current = true;
-    setActiveIndex(nextIndex);
-  }
+  const activeSlide = slides[activeIndex];
 
   return (
-    <section
-      aria-label="Argos product coaching walkthrough"
-      className={styles["argos-product-preview"]}
-      data-product-showcase="product-screenshot-carousel"
-      id="product-in-motion"
+    <div
+      className={styles["argos-product-showcase"]}
+      data-auto={autoAdvance ? "true" : "false"}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          isPausedRef.current = false;
+        }
+      }}
+      onFocus={() => {
+        isPausedRef.current = true;
+      }}
+      onPointerEnter={() => {
+        isPausedRef.current = true;
+      }}
+      onPointerLeave={() => {
+        isPausedRef.current = false;
+      }}
     >
-      <div aria-label="Argos product showcase" className={styles["argos-product-showcase"]}>
-        <div className={styles["argos-product-showcase-viewport"]}>
-          <div className={styles["argos-product-showcase-track"]} ref={trackRef}>
-            {productShowcaseSlides.map((slide, index) => {
-              const isActive = index === activeIndex;
-
-              return (
-                <article
-                  aria-label={`${index + 1} of ${productShowcaseSlides.length}: ${slide.label}`}
-                  className={styles["argos-product-showcase-slide"]}
-                  data-active={isActive ? "true" : "false"}
-                  data-showcase-slide={slide.id}
-                  key={slide.id}
-                  ref={(node) => {
-                    slideRefs.current[index] = node;
-                  }}
-                >
-                  <div className={styles["argos-product-showcase-text"]}>
-                    <span className={styles["argos-product-showcase-kicker"]}>{slide.label}</span>
-                    <h3>
-                      <span>{slide.headline}</span>
-                      <strong>{slide.emphasis}</strong>
-                    </h3>
-                  </div>
-
-                  <figure className={styles["argos-product-showcase-frame"]}>
-                    <img
-                      alt={slide.alt}
-                      decoding="async"
-                      loading={index === 0 ? "eager" : "lazy"}
-                      src={slide.image}
-                    />
-                  </figure>
-                </article>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className={styles["argos-product-showcase-controls"]}>
+      <div
+        aria-label="Argos product areas"
+        className={styles["argos-product-showcase-rail"]}
+        ref={railRef}
+      >
+        {slides.map((slide, index) => (
           <button
-            aria-label="Previous product view"
-            className={styles["argos-product-showcase-arrow"]}
-            onClick={() => showSlide(activeIndex - 1)}
+            aria-controls="argos-showcase-frame"
+            aria-current={index === activeIndex}
+            aria-label={`Show ${slide.label}`}
+            className={styles["argos-product-showcase-tab"]}
+            data-active={index === activeIndex ? "true" : "false"}
+            key={slide.id}
+            onClick={() => selectSlide(index)}
             type="button"
           >
-            <ArrowIcon direction="left" />
+            <span className={styles["argos-product-showcase-tab-index"]} aria-hidden="true">
+              {String(index + 1).padStart(2, "0")}
+            </span>
+            <span className={styles["argos-product-showcase-tab-label"]}>{slide.label}</span>
+            <span className={styles["argos-product-showcase-tab-track"]} aria-hidden="true">
+              <span key={`${slide.id}-${index === activeIndex ? "active" : "idle"}`} />
+            </span>
           </button>
-
-          <div className={styles["argos-product-showcase-dots"]} role="tablist" aria-label="Product views">
-            {productShowcaseSlides.map((slide, index) => (
-              <button
-                aria-current={index === activeIndex ? "true" : undefined}
-                aria-label={`Show ${slide.label}`}
-                className={styles["argos-product-showcase-dot"]}
-                data-active={index === activeIndex ? "true" : "false"}
-                key={slide.id}
-                onClick={() => showSlide(index)}
-                type="button"
-              />
-            ))}
-          </div>
-
-          <button
-            aria-label="Next product view"
-            className={styles["argos-product-showcase-arrow"]}
-            onClick={() => showSlide(activeIndex + 1)}
-            type="button"
-          >
-            <ArrowIcon direction="right" />
-          </button>
-        </div>
+        ))}
       </div>
-    </section>
+
+      <figure className={styles["argos-product-showcase-frame"]} id="argos-showcase-frame" data-sheen>
+        <div className={styles["argos-product-showcase-viewport"]}>
+          {slides.map((slide, index) => (
+            <Image
+              alt={slide.alt}
+              className={styles["argos-product-showcase-image"]}
+              data-active={index === activeIndex ? "true" : "false"}
+              height={800}
+              key={slide.id}
+              loading={index === 0 ? "eager" : "lazy"}
+              sizes="(max-width: 1024px) 94vw, 900px"
+              src={slide.image}
+              width={1280}
+            />
+          ))}
+        </div>
+        <figcaption aria-live="polite" className={styles["argos-product-showcase-caption"]}>
+          <strong>{activeSlide.headline}</strong> <em>{activeSlide.emphasis}</em>
+        </figcaption>
+      </figure>
+
+      <div className={styles["argos-product-showcase-controls"]}>
+        <button
+          aria-label="Previous product view"
+          className={styles["argos-product-showcase-arrow"]}
+          onClick={() => selectSlide(activeIndex - 1)}
+          type="button"
+        >
+          <ArrowIcon direction="left" />
+        </button>
+        <span className={styles["argos-product-showcase-count"]}>
+          {String(activeIndex + 1).padStart(2, "0")} / {String(slides.length).padStart(2, "0")}
+        </span>
+        <button
+          aria-label="Next product view"
+          className={styles["argos-product-showcase-arrow"]}
+          onClick={() => selectSlide(activeIndex + 1)}
+          type="button"
+        >
+          <ArrowIcon direction="right" />
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -188,16 +152,16 @@ function ArrowIcon({ direction }: { direction: "left" | "right" }) {
     <svg
       aria-hidden="true"
       className={styles["argos-product-showcase-arrow-icon"]}
-      focusable="false"
-      viewBox="0 0 24 24"
+      fill="none"
+      style={direction === "left" ? { transform: "scaleX(-1)" } : undefined}
+      viewBox="0 0 20 20"
     >
       <path
-        d={direction === "left" ? "M15 6l-6 6 6 6" : "M9 6l6 6-6 6"}
-        fill="none"
+        d="M3 10h13m0 0-4.5-4.5M16 10l-4.5 4.5"
         stroke="currentColor"
-        strokeLinecap="square"
-        strokeLinejoin="miter"
-        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.25"
       />
     </svg>
   );

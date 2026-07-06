@@ -16,6 +16,9 @@ vi.mock("next/font/google", () => ({
   Source_Sans_3: () => ({
     variable: "--font-body",
   }),
+  Cormorant_Garamond: () => ({
+    variable: "--font-argos-display",
+  }),
 }));
 
 vi.mock("next/font/local", () => ({

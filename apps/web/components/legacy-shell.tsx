@@ -9,11 +9,7 @@ type AuthShellProps = {
 
 const homepageNavLinks = [
   { label: "Product", href: "/#product-in-motion" },
-  { label: "Coaching", href: "/#coaching-system" },
-  { label: "Standard", href: "/#standard-installation" },
-  { label: "System", href: "/#coaching-loop" },
-  { label: "Roles", href: "/#role-outcomes" },
-  { label: "Demo", href: "/#access" },
+  { label: "System", href: "/#coaching-system" },
 ] as const;
 
 export function AuthShell({ children }: AuthShellProps) {

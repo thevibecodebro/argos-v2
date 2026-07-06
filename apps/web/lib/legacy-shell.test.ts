@@ -68,22 +68,22 @@ describe("legacy UI shell", () => {
     const html = renderToStaticMarkup(await HomePage());
 
     expect(html).not.toContain("Sales standard installation + Argos platform");
-    expect(html).toContain("Build a sales team that actually follows the playbook.");
-    expect(html).toContain("We Install The Sales Standard In Your Organization");
-    expect(html).toContain("Argos makes it visible in the work: calls reviewed, reps scored");
+    expect(html).toContain("The system <em>reveals all.</em>");
+    expect(html).toContain("We install the sales standard in your organization");
+    expect(html).toContain("Every call reviewed. Every rep scored.");
     expect(html).not.toContain("Call review -&gt; Rubrics scored -&gt; Training assigned -&gt; Roleplay tracked -&gt; Manager dashboard");
-    expect(html).toContain('aria-label="Argos product coaching walkthrough"');
+    expect(html).toContain('aria-labelledby="argos-loop-heading"');
     expect(html).not.toContain("Every call should become the next coaching move.");
-    expect(html).toContain('aria-label="Argos product showcase"');
-    expect(Array.from(html.matchAll(/data-showcase-slide=/g))).toHaveLength(8);
-    expect(html).toContain("/homepage-product/argos-dashboard.png");
-    expect(html).toContain("/homepage-product/argos-calls.png");
-    expect(html).toContain("/homepage-product/argos-scorecard.png");
-    expect(html).toContain("/homepage-product/argos-highlights.png");
-    expect(html).toContain("/homepage-product/argos-training.png");
-    expect(html).toContain("/homepage-product/argos-roleplay.png");
-    expect(html).toContain("/homepage-product/argos-team.png");
-    expect(html).toContain("/homepage-product/argos-leaderboard.png");
+    expect(html).toContain('aria-label="Argos product areas"');
+    expect(Array.from(html.matchAll(/argos-product-showcase-tab-label/g))).toHaveLength(8);
+    expect(html).toContain("argos-dashboard.png");
+    expect(html).toContain("argos-calls.png");
+    expect(html).toContain("argos-scorecard.png");
+    expect(html).toContain("argos-highlights.png");
+    expect(html).toContain("argos-training.png");
+    expect(html).toContain("argos-roleplay.png");
+    expect(html).toContain("argos-team.png");
+    expect(html).toContain("argos-leaderboard.png");
     expect(html).not.toContain("/homepage-product/argos-dashboard-workspace.png");
     expect(html).toContain("Dashboard");
     expect(html).toContain("Calls");
@@ -95,8 +95,7 @@ describe("legacy UI shell", () => {
     expect(html).toContain("Team");
     expect(html).toContain("Leaderboard");
     expect(html).toContain("Know where to coach");
-    expect(html).toContain("Start with the conversations");
-    expect(html).toContain("your team actually had.");
+    expect(html).toContain("before the week gets away.");
     expect(html).not.toContain("Authenticated product screenshot");
     expect(html).not.toContain("Dashboard workspace");
     expect(html).not.toContain("Work queue");
@@ -110,10 +109,11 @@ describe("legacy UI shell", () => {
     expect(html).not.toContain("One call becomes five visible handoffs.");
     expect(html).not.toContain("Product in motion");
     expect(html).not.toContain("Live operating loop");
-    expect(html).toContain("How The Standard Gets Installed");
-    expect(html).toContain("Teach the playbook. Track the behavior.");
+    expect(html).toContain("Coaching becomes visible");
+    expect(html).toContain("Teach the playbook.");
+    expect(html).toContain("Track the behavior.");
     expect(html).toContain("For Managers");
-    expect(html).toContain("Book Demo");
+    expect(html).toContain("Book the demo");
     expect(html).not.toContain("Book the coaching walkthrough");
     expect(html).not.toContain("Book The Coaching Walkthrough");
     expect(html).toContain('href="/login"');
@@ -143,9 +143,6 @@ describe("legacy UI shell", () => {
     const navOrder = [
       'href="/#product-in-motion"',
       'href="/#coaching-system"',
-      'href="/#standard-installation"',
-      'href="/#coaching-loop"',
-      'href="/#role-outcomes"',
       'href="/#access"',
     ];
     let lastNavIndex = -1;
@@ -155,11 +152,11 @@ describe("legacy UI shell", () => {
       lastNavIndex = navIndex;
     }
     expect(html).toContain(">Product</a>");
-    expect(html).toContain(">Coaching</a>");
-    expect(html).toContain(">Standard</a>");
     expect(html).toContain(">System</a>");
-    expect(html).toContain(">Roles</a>");
-    expect(html).toContain(">Demo</a>");
+    expect(html).not.toContain(">Coaching</a>");
+    expect(html).not.toContain(">Standard</a>");
+    expect(html).not.toContain(">Roles</a>");
+    expect(html).not.toContain(">Demo</a>");
     expect(html).toContain(">Log in</a>");
     expect(html).toContain(">Book Demo</a>");
     expect(html).not.toContain("View plans");
