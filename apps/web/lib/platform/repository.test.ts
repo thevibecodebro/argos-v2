@@ -591,6 +591,7 @@ describe("DrizzlePlatformRepository", () => {
           endedAt: null,
           targetOrgName: "Acme",
           targetOrgSlug: "acme",
+          targetOrgLogoUrl: "https://assets.example/acme-logo.png",
         },
       ],
     ]);
@@ -610,6 +611,7 @@ describe("DrizzlePlatformRepository", () => {
       targetOrgSlugSnapshot: "acme",
       targetOrgName: "Acme",
       targetOrgSlug: "acme",
+      targetOrgLogoUrl: "https://assets.example/acme-logo.png",
       targetOrgWorkspaceTheme: null,
     });
     expect(eq).toHaveBeenCalledWith(platformAccessSessionsTable.id, "session-1");
@@ -626,6 +628,10 @@ describe("DrizzlePlatformRepository", () => {
     );
     expect(operations[0]).toMatchObject({
       kind: "select",
+      selection: expect.objectContaining({
+        targetOrgLogoUrl: organizationsTable.logoUrl,
+        targetOrgWorkspaceTheme: organizationsTable.workspaceTheme,
+      }),
       joins: expect.any(Array),
       whereArgs: [
         {

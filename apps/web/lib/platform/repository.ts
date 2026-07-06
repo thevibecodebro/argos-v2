@@ -329,6 +329,7 @@ export class DrizzlePlatformRepository {
     const [session] = await this.db
       .select({
         ...accessSessionSelection,
+        targetOrgLogoUrl: organizationsTable.logoUrl,
         targetOrgName: organizationsTable.name,
         targetOrgSlug: organizationsTable.slug,
         targetOrgWorkspaceTheme: organizationsTable.workspaceTheme,
