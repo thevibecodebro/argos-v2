@@ -304,7 +304,7 @@ function TodayDashboardView({
             className="rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface)] p-4"
             key={stat.label}
           >
-            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.07em] text-[var(--forge-faint)]">
+            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.07em] text-[var(--forge-muted)]">
               {stat.label}
             </p>
             <p
