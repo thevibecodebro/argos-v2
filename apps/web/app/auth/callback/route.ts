@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { InviteOnlyProvisioningError } from "@/lib/provisioning/invite-only";
 import { SupabaseProvisioningRepository } from "@/lib/provisioning/repository";
 import { ensureUserProvisioned } from "@/lib/provisioning/service";
 import { isRetryableSupabaseAuthError } from "@/lib/supabase/auth-errors";
@@ -66,10 +67,24 @@ export async function GET(request: Request) {
       }
 
       if (user) {
-        const provisionedUser = await ensureUserProvisioned(
-          new SupabaseProvisioningRepository(),
-          user,
-        );
+        let provisionedUser;
+
+        try {
+          provisionedUser = await ensureUserProvisioned(
+            new SupabaseProvisioningRepository(),
+            user,
+          );
+        } catch (error) {
+          if (error instanceof InviteOnlyProvisioningError) {
+            await supabase.auth.signOut();
+            return NextResponse.redirect(
+              `${origin}/auth/error?reason=invite_required`,
+            );
+          }
+
+          throw error;
+        }
+
         let isActivePlatformStaff = false;
         const platformRepository = createPlatformRepository();
         const platformStaff = await getPlatformStaffAfterProvisioning(

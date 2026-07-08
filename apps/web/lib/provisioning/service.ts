@@ -1,4 +1,10 @@
 import type { AppUserRole } from "@/lib/users/roles";
+import {
+  canBypassInviteOnlyProvisioning,
+  InviteOnlyProvisioningError,
+  isInviteOnlyProvisioningEnabled,
+  normalizeProvisioningEmail,
+} from "./invite-only";
 
 type ExistingProvisionedUser = {
   id: string;
@@ -15,6 +21,9 @@ type SupabaseAuthUser = {
 
 export interface ProvisioningRepository {
   findUserById(userId: string): Promise<ExistingProvisionedUser | null>;
+  findPendingInviteByEmail(
+    email: string,
+  ): Promise<{ id: string; orgId: string; email: string } | null>;
   createUser(input: {
     id: string;
     orgId: string | null;
@@ -65,12 +74,26 @@ export async function ensureUserProvisioned(
     };
   }
 
+  const normalizedEmail = normalizeProvisioningEmail(user.email);
+
+  if (
+    isInviteOnlyProvisioningEnabled() &&
+    !canBypassInviteOnlyProvisioning(normalizedEmail)
+  ) {
+    const pendingInvite =
+      await repository.findPendingInviteByEmail(normalizedEmail);
+
+    if (!pendingInvite) {
+      throw new InviteOnlyProvisioningError(normalizedEmail);
+    }
+  }
+
   const { firstName, lastName } = getNameParts(user);
 
   await repository.createUser({
     id: user.id,
     orgId: null,
-    email: user.email,
+    email: normalizedEmail,
     role: null,
     firstName,
     lastName,

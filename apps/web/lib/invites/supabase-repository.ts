@@ -82,6 +82,23 @@ export class DrizzleInvitesRepository implements InvitesRepository {
     return row ? mapInvite(row) : null;
   }
 
+  async findPendingInviteByEmail(email: string): Promise<InviteRecord | null> {
+    const now = new Date();
+    const normalizedEmail = normalizeInviteRepositoryEmail(email);
+    const [row] = await this.db
+      .select()
+      .from(invitesTable)
+      .where(
+        and(
+          eq(invitesTable.email, normalizedEmail),
+          isNull(invitesTable.acceptedAt),
+          gt(invitesTable.expiresAt, now),
+        ),
+      )
+      .limit(1);
+    return row ? mapInvite(row) : null;
+  }
+
   async findPendingInvitesByOrg(orgId: string): Promise<InviteRecord[]> {
     const now = new Date();
     const rows = await this.db

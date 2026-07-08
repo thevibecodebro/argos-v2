@@ -4,6 +4,7 @@ import { parseAppUserRole } from "@/lib/users/roles";
 import type { ProvisioningRepository } from "./service";
 
 type ExistingUserRow = Pick<Tables<"users">, "id" | "org_id" | "email" | "role">;
+type PendingInviteRow = Pick<Tables<"invites">, "id" | "org_id" | "email">;
 type UserInsert = TablesInsert<"users">;
 
 export class SupabaseProvisioningRepository implements ProvisioningRepository {
@@ -57,5 +58,30 @@ export class SupabaseProvisioningRepository implements ProvisioningRepository {
     if (error) {
       throw new Error(error.message);
     }
+  }
+
+  async findPendingInviteByEmail(email: string) {
+    const { data, error } = await this.supabase
+      .from("invites")
+      .select("id, org_id, email")
+      .eq("email", email.trim().toLowerCase())
+      .is("accepted_at", null)
+      .gt("expires_at", new Date().toISOString())
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const invite = data as PendingInviteRow | null;
+
+    return invite
+      ? {
+          id: invite.id,
+          orgId: invite.org_id,
+          email: invite.email,
+        }
+      : null;
   }
 }

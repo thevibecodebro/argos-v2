@@ -152,6 +152,46 @@ describe("auth callback route", () => {
     expect(response.headers.get("location")).toBe("https://app.argos.ai/onboarding");
   });
 
+  it("signs out and redirects to invite-required when provisioning requires an invite", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://app.argos.ai");
+
+    const signOut = vi.fn().mockResolvedValue({ error: null });
+    createSupabaseServerClient.mockResolvedValue({
+      auth: {
+        exchangeCodeForSession: vi.fn().mockResolvedValue({ error: null }),
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              email: "blocked@argos.ai",
+              id: "auth-user-8",
+            },
+          },
+          error: null,
+        }),
+        signOut,
+      },
+    });
+    const { InviteOnlyProvisioningError } = await import(
+      "./provisioning/invite-only"
+    );
+    ensureUserProvisioned.mockRejectedValue(
+      new InviteOnlyProvisioningError("blocked@argos.ai"),
+    );
+
+    const route = await import("../app/auth/callback/route");
+    const response = await route.GET(
+      new Request("https://app.argos.ai/auth/callback?code=auth-code&next=/dashboard"),
+    );
+
+    expect(signOut).toHaveBeenCalledOnce();
+    expect(response.headers.get("location")).toBe(
+      "https://app.argos.ai/auth/error?reason=invite_required",
+    );
+    expect(createPlatformRepository).not.toHaveBeenCalled();
+    expect(getPlatformStaffAfterProvisioning).not.toHaveBeenCalled();
+  });
+
   it("sends orgless active platform staff to the platform entry point after provisioning", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://app.argos.ai");

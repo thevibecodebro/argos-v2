@@ -15,6 +15,7 @@ function createRepository(
   overrides: Partial<UsersRepository> = {},
 ): UsersRepository {
   return {
+    deprovisionOrganizationMember: vi.fn(),
     findCurrentUserByAuthId: vi.fn(),
     findOrganizationMember: vi.fn(),
     findOrganizationMembers: vi.fn(),
@@ -483,7 +484,7 @@ describe("removeOrganizationMember", () => {
         orgId: "org-1",
         role: "rep",
       }),
-      removeOrganizationMember: vi.fn().mockResolvedValue(true),
+      deprovisionOrganizationMember: vi.fn().mockResolvedValue(true),
     });
 
     const result = await removeOrganizationMember(
@@ -496,9 +497,147 @@ describe("removeOrganizationMember", () => {
       ok: true,
       data: { success: true },
     });
-    expect(repository.removeOrganizationMember).toHaveBeenCalledWith(
+    expect(repository.deprovisionOrganizationMember).toHaveBeenCalledWith({
+      actorId: "user-1",
+      orgId: "org-1",
+      reason: "Organization admin removed member",
+      targetUserId: "user-2",
+      ticketId: null,
+    });
+  });
+
+  it("deprovisions a member with reason, ticket, cleanup, and session revocation", async () => {
+    const sessionRevoker = {
+      revokeUserSessions: vi.fn().mockResolvedValue(undefined),
+    };
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue(adminUser),
+      findOrganizationMember: vi.fn().mockResolvedValue({
+        id: "user-2",
+        orgId: "org-1",
+        role: "rep",
+      }),
+      deprovisionOrganizationMember: vi.fn().mockResolvedValue(true),
+    });
+
+    const result = await removeOrganizationMember(
+      repository,
+      "user-1",
       "user-2",
-      "org-1",
+      {
+        reason: "Employee left customer account",
+        ticketId: "SUP-123",
+        sessionRevoker,
+      },
     );
+
+    expect(result).toEqual({
+      ok: true,
+      data: { success: true },
+    });
+    expect(repository.deprovisionOrganizationMember).toHaveBeenCalledWith({
+      actorId: "user-1",
+      orgId: "org-1",
+      reason: "Employee left customer account",
+      targetUserId: "user-2",
+      ticketId: "SUP-123",
+    });
+    expect(sessionRevoker.revokeUserSessions).toHaveBeenCalledWith("user-2");
+  });
+
+  it("still succeeds when post-deprovision session revocation fails", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    const sessionRevoker = {
+      revokeUserSessions: vi.fn().mockRejectedValue(new Error("auth down")),
+    };
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue(adminUser),
+      findOrganizationMember: vi.fn().mockResolvedValue({
+        id: "user-2",
+        orgId: "org-1",
+        role: "rep",
+      }),
+      deprovisionOrganizationMember: vi.fn().mockResolvedValue(true),
+    });
+
+    const result = await removeOrganizationMember(
+      repository,
+      "user-1",
+      "user-2",
+      {
+        sessionRevoker,
+      },
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      data: { success: true },
+    });
+    expect(consoleError).toHaveBeenCalledWith(
+      "Failed to revoke removed member sessions",
+      {
+        error: expect.any(Error),
+        targetUserId: "user-2",
+      },
+    );
+    consoleError.mockRestore();
+  });
+
+  it("does not revoke sessions when deprovisioning finds no matching member", async () => {
+    const sessionRevoker = {
+      revokeUserSessions: vi.fn().mockResolvedValue(undefined),
+    };
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue(adminUser),
+      findOrganizationMember: vi.fn().mockResolvedValue({
+        id: "user-2",
+        orgId: "org-1",
+        role: "rep",
+      }),
+      deprovisionOrganizationMember: vi.fn().mockResolvedValue(false),
+    });
+
+    const result = await removeOrganizationMember(
+      repository,
+      "user-1",
+      "user-2",
+      {
+        sessionRevoker,
+      },
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      status: 404,
+      error: "Member not found in your organization",
+    });
+    expect(sessionRevoker.revokeUserSessions).not.toHaveBeenCalled();
+  });
+
+  it("trims reason and ticket before deprovisioning", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue(adminUser),
+      findOrganizationMember: vi.fn().mockResolvedValue({
+        id: "user-2",
+        orgId: "org-1",
+        role: "rep",
+      }),
+      deprovisionOrganizationMember: vi.fn().mockResolvedValue(true),
+    });
+
+    await removeOrganizationMember(repository, "user-1", "user-2", {
+      reason: "  Account closed  ",
+      ticketId: "  SUP-456  ",
+    });
+
+    expect(repository.deprovisionOrganizationMember).toHaveBeenCalledWith({
+      actorId: "user-1",
+      orgId: "org-1",
+      reason: "Account closed",
+      targetUserId: "user-2",
+      ticketId: "SUP-456",
+    });
   });
 });
