@@ -1,5 +1,10 @@
 import crypto from "node:crypto";
-import { readResponseArrayBufferWithLimit } from "@argos-v2/call-processing";
+import {
+  evaluateIngestionTitleFilter,
+  readResponseArrayBufferWithLimit,
+  type IngestionTitleDecisionReason,
+  type IngestionTitleFilterConfig,
+} from "@argos-v2/call-processing";
 import {
   getCallProcessingEntitlementStatus,
   type CallProcessingEntitlementsRepository,
@@ -14,7 +19,10 @@ import { fetchWithTimeout } from "@/lib/security/fetch-timeout";
 import { refreshZoomToken } from "./oauth";
 
 type ZoomWebhookEnv = Partial<Record<
-  "ZOOM_WEBHOOK_SECRET_TOKEN" | "ZOOM_CLIENT_ID" | "ZOOM_CLIENT_SECRET",
+  | "ARGOS_INGESTION_TITLE_FILTERS_ENFORCED"
+  | "ZOOM_WEBHOOK_SECRET_TOKEN"
+  | "ZOOM_CLIENT_ID"
+  | "ZOOM_CLIENT_SECRET",
   string | undefined
 >>;
 
@@ -47,6 +55,7 @@ export interface ZoomWebhookRepository {
   findCallByZoomRecordingId(
     zoomRecordingId: string,
   ): Promise<{ id: string; status: CallStatus; jobStatus: CallProcessingJobStatus | null } | null>;
+  findIngestionTitleFilterConfig(orgId: string): Promise<IngestionTitleFilterConfig>;
   findPreferredCallOwner(orgId: string): Promise<{ id: string } | null>;
   findZoomIntegrationByAccountId(accountId: string): Promise<{
     id: string;
@@ -112,8 +121,18 @@ type DownloadedRecordingAsset = {
   fileName: string;
 };
 
+export type ZoomIngestionTitleDecisionEvent = {
+  accepted: boolean;
+  orgId: string;
+  reason: IngestionTitleDecisionReason;
+  recordingId: string;
+};
+
 type ZoomWebhookDependencies = {
   callProcessingEntitlementsRepository?: CallProcessingEntitlementsRepository;
+  recordIngestionTitleDecision?: (
+    event: ZoomIngestionTitleDecisionEvent,
+  ) => Promise<void> | void;
   rubricsRepository?: RubricsRepository;
   storeSourceAsset?: (input: {
     callId: string;
@@ -234,6 +253,30 @@ export async function processZoomWebhookRequest(
     };
   }
 
+  if (env.ARGOS_INGESTION_TITLE_FILTERS_ENFORCED === "true") {
+    const config = await repository.findIngestionTitleFilterConfig(integration.orgId);
+    const decision = evaluateIngestionTitleFilter(
+      parsed.payload?.object?.topic,
+      config,
+    );
+    const recordDecision = dependencies.recordIngestionTitleDecision
+      ?? recordIngestionTitleDecision;
+
+    await recordDecision({
+      accepted: decision.accepted,
+      orgId: integration.orgId,
+      reason: decision.reason,
+      recordingId: recording.id,
+    });
+
+    if (!decision.accepted) {
+      return {
+        status: 200,
+        body: { received: true },
+      };
+    }
+  }
+
   const existing = await repository.findCallByZoomRecordingId(recording.id);
 
   if (existing?.jobStatus && COMPLETED_OR_ACTIVE_JOB_STATUSES.has(existing.jobStatus)) {
@@ -351,6 +394,10 @@ export async function processZoomWebhookRequest(
     status: 200,
     body: { received: true },
   };
+}
+
+function recordIngestionTitleDecision(event: ZoomIngestionTitleDecisionEvent) {
+  console.info("zoom_ingestion_title_filter_decision", event);
 }
 
 async function downloadRecording(input: {

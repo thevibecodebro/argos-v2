@@ -10,6 +10,12 @@ export type WorkerEnv = {
   ghlImportPollIntervalMs: number;
   ghlSyncIntervalMs: number;
   ghlSyncPollIntervalMs: number;
+  googleMeetClientId: string | null;
+  googleMeetClientSecret: string | null;
+  googleMeetImportEnabled: boolean;
+  googleMeetImportPollIntervalMs: number;
+  googleMeetSyncIntervalMs: number;
+  googleMeetSyncPollIntervalMs: number;
   host: string;
   maxSourceBytes: number;
   openaiApiKey: string | null;
@@ -101,6 +107,27 @@ export function getWorkerEnv(env: WorkerEnvSource = process.env): WorkerEnv {
     60_000,
     "GHL_SYNC_POLL_INTERVAL_MS",
   );
+  const googleMeetClientId = readEnv(env, "GOOGLE_MEET_CLIENT_ID");
+  const googleMeetClientSecret = readEnv(env, "GOOGLE_MEET_CLIENT_SECRET");
+  const googleMeetImportEnabled = parseBoolean(
+    env.GOOGLE_MEET_IMPORT_ENABLED,
+    false,
+  );
+  const googleMeetImportPollIntervalMs = parseInteger(
+    env.GOOGLE_MEET_IMPORT_POLL_INTERVAL_MS,
+    5_000,
+    "GOOGLE_MEET_IMPORT_POLL_INTERVAL_MS",
+  );
+  const googleMeetSyncIntervalMs = parseInteger(
+    env.GOOGLE_MEET_SYNC_INTERVAL_MS,
+    15 * 60 * 1000,
+    "GOOGLE_MEET_SYNC_INTERVAL_MS",
+  );
+  const googleMeetSyncPollIntervalMs = parseInteger(
+    env.GOOGLE_MEET_SYNC_POLL_INTERVAL_MS,
+    60_000,
+    "GOOGLE_MEET_SYNC_POLL_INTERVAL_MS",
+  );
   const openaiApiKey = readEnv(env, "OPENAI_CALL_PROCESSING_API_KEY", "OPENAI_API_KEY");
   const supabaseServiceRoleKey = readEnv(env, "SUPABASE_SERVICE_ROLE_KEY");
   const supabaseUrl = readEnv(env, "SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL");
@@ -120,7 +147,10 @@ export function getWorkerEnv(env: WorkerEnvSource = process.env): WorkerEnv {
     "CALL_PROCESSING_TRANSCRIBE_CONCURRENCY",
   );
 
-  if (callProcessingEnabled || ghlImportEnabled) {
+  const privilegedIngestionEnabled =
+    callProcessingEnabled || ghlImportEnabled || googleMeetImportEnabled;
+
+  if (privilegedIngestionEnabled) {
     if (!databaseUrl) {
       throw new Error("Missing required environment variable: DATABASE_URL");
     }
@@ -138,15 +168,25 @@ export function getWorkerEnv(env: WorkerEnvSource = process.env): WorkerEnv {
         "Missing required environment variable: OPENAI_CALL_PROCESSING_API_KEY or OPENAI_API_KEY",
       );
     }
+
+    if (googleMeetImportEnabled && !googleMeetClientId) {
+      throw new Error("Missing required environment variable: GOOGLE_MEET_CLIENT_ID");
+    }
+
+    if (googleMeetImportEnabled && !googleMeetClientSecret) {
+      throw new Error(
+        "Missing required environment variable: GOOGLE_MEET_CLIENT_SECRET",
+      );
+    }
   }
 
   assertPrivilegedRuntimeIdentity({
     databaseUrl,
     env,
     openaiApiKey,
-    requireDatabase: callProcessingEnabled || ghlImportEnabled,
+    requireDatabase: privilegedIngestionEnabled,
     requireOpenAi: callProcessingEnabled,
-    requireSupabase: callProcessingEnabled || ghlImportEnabled,
+    requireSupabase: privilegedIngestionEnabled,
     supabaseUrl,
   });
 
@@ -158,6 +198,12 @@ export function getWorkerEnv(env: WorkerEnvSource = process.env): WorkerEnv {
     ghlImportPollIntervalMs,
     ghlSyncIntervalMs,
     ghlSyncPollIntervalMs,
+    googleMeetClientId,
+    googleMeetClientSecret,
+    googleMeetImportEnabled,
+    googleMeetImportPollIntervalMs,
+    googleMeetSyncIntervalMs,
+    googleMeetSyncPollIntervalMs,
     host: env.HOST || "0.0.0.0",
     maxSourceBytes,
     openaiApiKey,

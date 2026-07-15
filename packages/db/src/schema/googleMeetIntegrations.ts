@@ -1,0 +1,39 @@
+import { boolean, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { organizationsTable } from "./organizations";
+import { usersTable } from "./users";
+
+export const googleMeetIntegrationsTable = pgTable(
+  "google_meet_integrations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .unique()
+      .references(() => organizationsTable.id, { onDelete: "cascade" }),
+    connectedUserId: uuid("connected_user_id").references(() => usersTable.id, {
+      onDelete: "set null",
+    }),
+    googleUserId: text("google_user_id"),
+    googleEmail: text("google_email"),
+    accessToken: text("access_token").notNull(),
+    refreshToken: text("refresh_token").notNull(),
+    tokenExpiresAt: timestamp("token_expires_at", { withTimezone: true }).notNull(),
+    syncEnabled: boolean("sync_enabled").notNull().default(false),
+    consentConfirmedAt: timestamp("consent_confirmed_at", { withTimezone: true }),
+    consentConfirmedBy: uuid("consent_confirmed_by").references(() => usersTable.id, {
+      onDelete: "set null",
+    }),
+    defaultRepId: uuid("default_rep_id").references(() => usersTable.id, {
+      onDelete: "set null",
+    }),
+    lastSyncStartedAt: timestamp("last_sync_started_at", { withTimezone: true }),
+    lastSyncCompletedAt: timestamp("last_sync_completed_at", { withTimezone: true }),
+    lastSyncCursor: timestamp("last_sync_cursor", { withTimezone: true }),
+    lastSyncError: text("last_sync_error"),
+    connectedAt: timestamp("connected_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    unique("google_meet_integrations_google_user_unique").on(table.googleUserId),
+  ],
+);

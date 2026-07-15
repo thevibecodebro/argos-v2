@@ -6,10 +6,12 @@ import {
   deleteZoomWebhook,
   encodeIntegrationOAuthState,
   exchangeZoomCode,
+  integrationOAuthCookieNames,
   refreshGhlToken,
   refreshZoomToken,
   registerZoomWebhook,
   resolveGhlRedirectUri,
+  resolveGoogleMeetRedirectUri,
   resolveZoomRedirectUri,
 } from "./oauth";
 
@@ -30,6 +32,13 @@ describe("integration oauth helpers", () => {
         GHL_REDIRECT_URI: "https://argos.ai/api/integrations/ghl/callback",
       }),
     ).toBe("https://argos.ai/api/integrations/ghl/callback");
+
+    expect(
+      resolveGoogleMeetRedirectUri("http://localhost:3100", {
+        GOOGLE_MEET_REDIRECT_URI:
+          "https://argos.ai/api/integrations/google-meet/callback",
+      }),
+    ).toBe("https://argos.ai/api/integrations/google-meet/callback");
   });
 
   it("falls back to callback paths on the current origin", () => {
@@ -38,6 +47,12 @@ describe("integration oauth helpers", () => {
     );
     expect(resolveGhlRedirectUri("https://app.argos.ai", {})).toBe(
       "https://app.argos.ai/api/integrations/leadconnector/callback",
+    );
+    expect(resolveGoogleMeetRedirectUri("https://app.argos.ai", {})).toBe(
+      "https://app.argos.ai/api/integrations/google-meet/callback",
+    );
+    expect(integrationOAuthCookieNames.google_meet).toBe(
+      "argos_google_meet_oauth_nonce",
     );
   });
 

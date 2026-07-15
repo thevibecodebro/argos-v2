@@ -24,6 +24,21 @@ export class SupabaseIntegrationsRepository implements IntegrationsRepository {
     return Boolean(data?.length);
   }
 
+  async deleteGoogleMeetIntegration(orgId: string) {
+    const supabase: any = this.supabase;
+    const { data, error } = await supabase
+      .from("google_meet_integrations")
+      .delete()
+      .eq("org_id", orgId)
+      .select("id");
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return Boolean(data?.length);
+  }
+
   async deleteZoomIntegration(orgId: string, connectedUserId: string) {
     const supabase: any = this.supabase;
     const { data, error } = await supabase
@@ -49,6 +64,24 @@ export class SupabaseIntegrationsRepository implements IntegrationsRepository {
         consent_confirmed_by: userId,
         sync_enabled: true,
         last_sync_error: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("org_id", orgId);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  async acknowledgeGoogleMeetRecordingConsent(orgId: string, userId: string) {
+    const supabase: any = this.supabase;
+    const { error } = await supabase
+      .from("google_meet_integrations")
+      .update({
+        consent_confirmed_at: new Date().toISOString(),
+        consent_confirmed_by: userId,
+        last_sync_error: null,
+        sync_enabled: true,
         updated_at: new Date().toISOString(),
       })
       .eq("org_id", orgId);
@@ -113,6 +146,44 @@ export class SupabaseIntegrationsRepository implements IntegrationsRepository {
         updated_at: new Date().toISOString(),
       },
       { onConflict: "org_id,connected_user_id" },
+    );
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  async upsertGoogleMeetIntegration(input: {
+    accessToken: string;
+    connectedUserId: string;
+    googleEmail: string | null;
+    googleUserId: string | null;
+    orgId: string;
+    refreshToken: string;
+    tokenExpiresAt: Date;
+  }) {
+    const supabase: any = this.supabase;
+    const now = new Date().toISOString();
+    const { error } = await supabase.from("google_meet_integrations").upsert(
+      {
+        access_token: encryptIntegrationToken(input.accessToken),
+        connected_at: now,
+        connected_user_id: input.connectedUserId,
+        consent_confirmed_at: null,
+        consent_confirmed_by: null,
+        google_email: input.googleEmail,
+        google_user_id: input.googleUserId,
+        last_sync_completed_at: null,
+        last_sync_cursor: null,
+        last_sync_error: null,
+        last_sync_started_at: null,
+        org_id: input.orgId,
+        refresh_token: encryptIntegrationToken(input.refreshToken),
+        sync_enabled: false,
+        token_expires_at: input.tokenExpiresAt.toISOString(),
+        updated_at: now,
+      },
+      { onConflict: "org_id" },
     );
 
     if (error) {
@@ -200,12 +271,52 @@ export class SupabaseIntegrationsRepository implements IntegrationsRepository {
     }
   }
 
+  async requestGoogleMeetSync(orgId: string) {
+    const supabase: any = this.supabase;
+    const { error } = await supabase
+      .from("google_meet_integrations")
+      .update({
+        last_sync_completed_at: null,
+        last_sync_cursor: null,
+        last_sync_error: null,
+        last_sync_started_at: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("org_id", orgId);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
   async setGhlDefaultRep(orgId: string, repId: string | null) {
     const supabase: any = this.supabase;
     const { error } = await supabase
       .from("ghl_integrations")
       .update({
         default_rep_id: repId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("org_id", orgId);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  async setGoogleMeetDefaultRep(orgId: string, repId: string | null) {
+    const supabase: any = this.supabase;
+    const { error } = await supabase
+      .from("google_meet_integrations")
+      .update({
+        default_rep_id: repId,
+        ...(repId
+          ? {}
+          : {
+              consent_confirmed_at: null,
+              consent_confirmed_by: null,
+              sync_enabled: false,
+            }),
         updated_at: new Date().toISOString(),
       })
       .eq("org_id", orgId);
@@ -308,6 +419,46 @@ export class SupabaseIntegrationsRepository implements IntegrationsRepository {
       mappedUsersCount: mappedUsersCount ?? 0,
       syncEnabled: Boolean(data?.sync_enabled),
     };
+  }
+
+  async findGoogleMeetStatus(orgId: string) {
+    const supabase: any = this.supabase;
+    const { data, error } = await supabase
+      .from("google_meet_integrations")
+      .select("connected_at, consent_confirmed_at, default_rep_id, google_email, last_sync_completed_at, last_sync_error, last_sync_started_at, sync_enabled")
+      .eq("org_id", orgId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return {
+      connected: Boolean(data),
+      connectedAt: toDate(data?.connected_at),
+      consentConfirmedAt: toDate(data?.consent_confirmed_at),
+      defaultRepId: data?.default_rep_id ?? null,
+      googleEmail: data?.google_email ?? null,
+      lastSyncCompletedAt: toDate(data?.last_sync_completed_at),
+      lastSyncError: data?.last_sync_error ?? null,
+      lastSyncStartedAt: toDate(data?.last_sync_started_at),
+      syncEnabled: Boolean(data?.sync_enabled),
+    };
+  }
+
+  async hasConfiguredIngestionTitleFilters(orgId: string) {
+    const supabase: any = this.supabase;
+    const { count, error } = await supabase
+      .from("organization_ingestion_title_filters")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", orgId)
+      .eq("kind", "include");
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return (count ?? 0) > 0;
   }
 
   async findZoomStatus(orgId: string, connectedUserId: string) {

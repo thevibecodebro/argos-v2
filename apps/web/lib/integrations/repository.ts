@@ -1,8 +1,10 @@
 import { and, count, eq, inArray, sql } from "drizzle-orm";
 import {
   getDb,
+  googleMeetIntegrationsTable,
   ghlUserMappingsTable,
   ghlIntegrationsTable,
+  organizationIngestionTitleFiltersTable,
   organizationsTable,
   usersTable,
   zoomIntegrationsTable,
@@ -24,6 +26,15 @@ export class DrizzleIntegrationsRepository implements IntegrationsRepository {
       .delete(ghlIntegrationsTable)
       .where(eq(ghlIntegrationsTable.orgId, orgId))
       .returning({ id: ghlIntegrationsTable.id });
+
+    return deleted.length > 0;
+  }
+
+  async deleteGoogleMeetIntegration(orgId: string) {
+    const deleted = await this.db
+      .delete(googleMeetIntegrationsTable)
+      .where(eq(googleMeetIntegrationsTable.orgId, orgId))
+      .returning({ id: googleMeetIntegrationsTable.id });
 
     return deleted.length > 0;
   }
@@ -53,6 +64,19 @@ export class DrizzleIntegrationsRepository implements IntegrationsRepository {
         updatedAt: new Date(),
       })
       .where(eq(ghlIntegrationsTable.orgId, orgId));
+  }
+
+  async acknowledgeGoogleMeetRecordingConsent(orgId: string, userId: string) {
+    await this.db
+      .update(googleMeetIntegrationsTable)
+      .set({
+        consentConfirmedAt: new Date(),
+        consentConfirmedBy: userId,
+        lastSyncError: null,
+        syncEnabled: true,
+        updatedAt: new Date(),
+      })
+      .where(eq(googleMeetIntegrationsTable.orgId, orgId));
   }
 
   async upsertGhlIntegration(input: {
@@ -124,6 +148,50 @@ export class DrizzleIntegrationsRepository implements IntegrationsRepository {
           zoomAccountId: input.zoomAccountId,
           zoomUserId: input.zoomUserId,
           updatedAt: new Date(),
+        },
+      });
+  }
+
+  async upsertGoogleMeetIntegration(input: {
+    accessToken: string;
+    connectedUserId: string;
+    googleEmail: string | null;
+    googleUserId: string | null;
+    orgId: string;
+    refreshToken: string;
+    tokenExpiresAt: Date;
+  }) {
+    const accessToken = encryptIntegrationToken(input.accessToken);
+    const refreshToken = encryptIntegrationToken(input.refreshToken);
+    const connectedAt = new Date();
+
+    await this.db
+      .insert(googleMeetIntegrationsTable)
+      .values({
+        ...input,
+        accessToken,
+        connectedAt,
+        refreshToken,
+        updatedAt: connectedAt,
+      })
+      .onConflictDoUpdate({
+        target: googleMeetIntegrationsTable.orgId,
+        set: {
+          accessToken,
+          connectedAt,
+          connectedUserId: input.connectedUserId,
+          consentConfirmedAt: null,
+          consentConfirmedBy: null,
+          googleEmail: input.googleEmail,
+          googleUserId: input.googleUserId,
+          lastSyncCompletedAt: null,
+          lastSyncCursor: null,
+          lastSyncError: null,
+          lastSyncStartedAt: null,
+          refreshToken,
+          syncEnabled: false,
+          tokenExpiresAt: input.tokenExpiresAt,
+          updatedAt: connectedAt,
         },
       });
   }
@@ -228,6 +296,19 @@ export class DrizzleIntegrationsRepository implements IntegrationsRepository {
       .where(eq(ghlIntegrationsTable.orgId, orgId));
   }
 
+  async requestGoogleMeetSync(orgId: string) {
+    await this.db
+      .update(googleMeetIntegrationsTable)
+      .set({
+        lastSyncCompletedAt: null,
+        lastSyncCursor: null,
+        lastSyncError: null,
+        lastSyncStartedAt: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(googleMeetIntegrationsTable.orgId, orgId));
+  }
+
   async setGhlDefaultRep(orgId: string, repId: string | null) {
     await this.db
       .update(ghlIntegrationsTable)
@@ -236,6 +317,23 @@ export class DrizzleIntegrationsRepository implements IntegrationsRepository {
         updatedAt: new Date(),
       })
       .where(eq(ghlIntegrationsTable.orgId, orgId));
+  }
+
+  async setGoogleMeetDefaultRep(orgId: string, repId: string | null) {
+    await this.db
+      .update(googleMeetIntegrationsTable)
+      .set({
+        defaultRepId: repId,
+        ...(repId
+          ? {}
+          : {
+              consentConfirmedAt: null,
+              consentConfirmedBy: null,
+              syncEnabled: false,
+            }),
+        updatedAt: new Date(),
+      })
+      .where(eq(googleMeetIntegrationsTable.orgId, orgId));
   }
 
   async upsertGhlUserMappings(input: {
@@ -317,6 +415,49 @@ export class DrizzleIntegrationsRepository implements IntegrationsRepository {
       mappedUsersCount: Number(mappingCount?.count ?? 0),
       syncEnabled: integration?.syncEnabled ?? false,
     };
+  }
+
+  async findGoogleMeetStatus(orgId: string) {
+    const [integration] = await this.db
+      .select({
+        connectedAt: googleMeetIntegrationsTable.connectedAt,
+        consentConfirmedAt: googleMeetIntegrationsTable.consentConfirmedAt,
+        defaultRepId: googleMeetIntegrationsTable.defaultRepId,
+        googleEmail: googleMeetIntegrationsTable.googleEmail,
+        lastSyncCompletedAt: googleMeetIntegrationsTable.lastSyncCompletedAt,
+        lastSyncError: googleMeetIntegrationsTable.lastSyncError,
+        lastSyncStartedAt: googleMeetIntegrationsTable.lastSyncStartedAt,
+        syncEnabled: googleMeetIntegrationsTable.syncEnabled,
+      })
+      .from(googleMeetIntegrationsTable)
+      .where(eq(googleMeetIntegrationsTable.orgId, orgId))
+      .limit(1);
+
+    return {
+      connected: Boolean(integration),
+      connectedAt: integration?.connectedAt ?? null,
+      consentConfirmedAt: integration?.consentConfirmedAt ?? null,
+      defaultRepId: integration?.defaultRepId ?? null,
+      googleEmail: integration?.googleEmail ?? null,
+      lastSyncCompletedAt: integration?.lastSyncCompletedAt ?? null,
+      lastSyncError: integration?.lastSyncError ?? null,
+      lastSyncStartedAt: integration?.lastSyncStartedAt ?? null,
+      syncEnabled: integration?.syncEnabled ?? false,
+    };
+  }
+
+  async hasConfiguredIngestionTitleFilters(orgId: string) {
+    const [result] = await this.db
+      .select({ count: count() })
+      .from(organizationIngestionTitleFiltersTable)
+      .where(
+        and(
+          eq(organizationIngestionTitleFiltersTable.orgId, orgId),
+          eq(organizationIngestionTitleFiltersTable.kind, "include"),
+        ),
+      );
+
+    return Number(result?.count ?? 0) > 0;
   }
 
   async findZoomStatus(orgId: string, connectedUserId: string) {

@@ -18,6 +18,12 @@ describe("getWorkerEnv", () => {
       ghlImportPollIntervalMs: 5_000,
       ghlSyncIntervalMs: 15 * 60 * 1000,
       ghlSyncPollIntervalMs: 60_000,
+      googleMeetClientId: null,
+      googleMeetClientSecret: null,
+      googleMeetImportEnabled: false,
+      googleMeetImportPollIntervalMs: 5_000,
+      googleMeetSyncIntervalMs: 15 * 60 * 1000,
+      googleMeetSyncPollIntervalMs: 60_000,
       host: "0.0.0.0",
       maxSourceBytes: 500 * 1024 * 1024,
       openaiApiKey: null,
@@ -48,6 +54,12 @@ describe("getWorkerEnv", () => {
       ghlImportPollIntervalMs: 5_000,
       ghlSyncIntervalMs: 15 * 60 * 1000,
       ghlSyncPollIntervalMs: 60_000,
+      googleMeetClientId: null,
+      googleMeetClientSecret: null,
+      googleMeetImportEnabled: false,
+      googleMeetImportPollIntervalMs: 5_000,
+      googleMeetSyncIntervalMs: 15 * 60 * 1000,
+      googleMeetSyncPollIntervalMs: 60_000,
       host: "0.0.0.0",
       maxSourceBytes: 1_048_576,
       openaiApiKey: "openai-key",
@@ -111,6 +123,12 @@ describe("getWorkerEnv", () => {
       ghlImportPollIntervalMs: 5_000,
       ghlSyncIntervalMs: 15 * 60 * 1000,
       ghlSyncPollIntervalMs: 60_000,
+      googleMeetClientId: null,
+      googleMeetClientSecret: null,
+      googleMeetImportEnabled: false,
+      googleMeetImportPollIntervalMs: 5_000,
+      googleMeetSyncIntervalMs: 15 * 60 * 1000,
+      googleMeetSyncPollIntervalMs: 60_000,
       host: "0.0.0.0",
       maxSourceBytes: 2_097_152,
       openaiApiKey: "openai-key",
@@ -190,6 +208,40 @@ describe("getWorkerEnv", () => {
       ghlImportPollIntervalMs: 7_000,
       ghlSyncIntervalMs: 120_000,
       ghlSyncPollIntervalMs: 30_000,
+      openaiApiKey: null,
+    });
+  });
+
+  it("enables Google Meet import only with OAuth, database, and Supabase credentials", () => {
+    expect(() =>
+      getWorkerEnv({
+        DATABASE_URL: callProcessingEnv.DATABASE_URL,
+        GOOGLE_MEET_IMPORT_ENABLED: "true",
+        SUPABASE_SERVICE_ROLE_KEY: callProcessingEnv.SUPABASE_SERVICE_ROLE_KEY,
+        SUPABASE_URL: callProcessingEnv.SUPABASE_URL,
+      }),
+    ).toThrow("Missing required environment variable: GOOGLE_MEET_CLIENT_ID");
+
+    expect(
+      getWorkerEnv({
+        DATABASE_URL: callProcessingEnv.DATABASE_URL,
+        GOOGLE_MEET_CLIENT_ID: "google-client",
+        GOOGLE_MEET_CLIENT_SECRET: "google-secret",
+        GOOGLE_MEET_IMPORT_ENABLED: "true",
+        GOOGLE_MEET_IMPORT_POLL_INTERVAL_MS: "7000",
+        GOOGLE_MEET_SYNC_INTERVAL_MS: "120000",
+        GOOGLE_MEET_SYNC_POLL_INTERVAL_MS: "30000",
+        SUPABASE_SERVICE_ROLE_KEY: callProcessingEnv.SUPABASE_SERVICE_ROLE_KEY,
+        SUPABASE_URL: callProcessingEnv.SUPABASE_URL,
+      }),
+    ).toMatchObject({
+      callProcessingEnabled: false,
+      googleMeetClientId: "google-client",
+      googleMeetClientSecret: "google-secret",
+      googleMeetImportEnabled: true,
+      googleMeetImportPollIntervalMs: 7_000,
+      googleMeetSyncIntervalMs: 120_000,
+      googleMeetSyncPollIntervalMs: 30_000,
       openaiApiKey: null,
     });
   });

@@ -22,6 +22,7 @@ function createRepository(
     createOrResetCallProcessingJob: vi.fn(),
     findActiveCallProcessingSubscription: vi.fn().mockResolvedValue({ id: "sub-1" }),
     findCallByZoomRecordingId: vi.fn(),
+    findIngestionTitleFilterConfig: vi.fn(),
     findPreferredCallOwner: vi.fn(),
     findZoomIntegrationByAccountId: vi.fn(),
     updateCallRecording: vi.fn(),
@@ -298,6 +299,248 @@ describe("processZoomWebhookRequest", () => {
     expect(repository.findCallByZoomRecordingId).not.toHaveBeenCalled();
   });
 
+  it.each([
+    {
+      config: {
+        configured: false,
+        excludePhrases: [],
+        includePhrases: [],
+      },
+      reason: "unconfigured",
+      topic: "Customer discovery",
+    },
+    {
+      config: {
+        configured: true,
+        excludePhrases: [],
+        includePhrases: ["Weekly review"],
+      },
+      reason: "missing_title",
+      topic: undefined,
+    },
+    {
+      config: {
+        configured: true,
+        excludePhrases: ["Internal calibration"],
+        includePhrases: ["Weekly review"],
+      },
+      reason: "excluded",
+      topic: "Weekly review - Internal calibration",
+    },
+    {
+      config: {
+        configured: true,
+        excludePhrases: [],
+        includePhrases: ["Weekly review"],
+      },
+      reason: "no_include_match",
+      topic: "Customer discovery",
+    },
+  ])(
+    "rejects $reason before entitlement, owner, token refresh, download, storage, call creation, and queueing",
+    async ({ config, reason, topic }) => {
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
+      const recordIngestionTitleDecision = vi.fn();
+      const storeSourceAsset = vi.fn();
+      const rubricsRepository = createRubricsRepository();
+      const repository = createRepository({
+        findCallByZoomRecordingId: vi.fn().mockResolvedValue(null),
+        findIngestionTitleFilterConfig: vi.fn().mockResolvedValue(config),
+        findPreferredCallOwner: vi.fn().mockResolvedValue({ id: "user-1" }),
+        findZoomIntegrationByAccountId: vi.fn().mockResolvedValue({
+          id: "zoom-integration-1",
+          orgId: "org-1",
+          webhookToken: null,
+          accessToken: "zoom-access",
+          refreshToken: "zoom-refresh",
+          tokenExpiresAt: new Date("2020-01-01T00:00:00.000Z"),
+        }),
+      });
+      const rawBody = JSON.stringify({
+        event: "recording.completed",
+        payload: {
+          account_id: "zoom-account-1",
+          object: {
+            id: "meeting-1",
+            topic,
+            recording_files: [
+              {
+                id: "recording-1",
+                recording_type: "audio_only",
+                download_url: "https://us02web.zoom.us/rec/download/audio.m4a",
+                file_extension: "m4a",
+              },
+            ],
+          },
+        },
+      });
+      const { signature, timestamp } = sign("webhook-secret", rawBody);
+
+      try {
+        const result = await processZoomWebhookRequest(
+          repository,
+          {
+            headers: { signature, timestamp },
+            rawBody,
+            env: {
+              ARGOS_INGESTION_TITLE_FILTERS_ENFORCED: "true",
+              ZOOM_WEBHOOK_SECRET_TOKEN: "webhook-secret",
+            },
+          },
+          {
+            recordIngestionTitleDecision,
+            rubricsRepository,
+            storeSourceAsset,
+          },
+        );
+
+        expect(result).toEqual({
+          status: 200,
+          body: { received: true },
+        });
+        expect(repository.findIngestionTitleFilterConfig).toHaveBeenCalledWith("org-1");
+        expect(recordIngestionTitleDecision).toHaveBeenCalledWith({
+          accepted: false,
+          orgId: "org-1",
+          reason,
+          recordingId: "recording-1",
+        });
+        expect(repository.findActiveCallProcessingSubscription).not.toHaveBeenCalled();
+        expect(repository.findPreferredCallOwner).not.toHaveBeenCalled();
+        expect(repository.updateZoomTokens).not.toHaveBeenCalled();
+        expect(rubricsRepository.findActiveRubricByOrgId).not.toHaveBeenCalled();
+        expect(fetchMock).not.toHaveBeenCalled();
+        expect(storeSourceAsset).not.toHaveBeenCalled();
+        expect(repository.createCall).not.toHaveBeenCalled();
+        expect(repository.updateCallRecordingStorage).not.toHaveBeenCalled();
+        expect(repository.createOrResetCallProcessingJob).not.toHaveBeenCalled();
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    },
+  );
+
+  it("logs only safe title decision fields with the default recorder", async () => {
+    const consoleInfo = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const repository = createRepository({
+      findCallByZoomRecordingId: vi.fn().mockResolvedValue(null),
+      findIngestionTitleFilterConfig: vi.fn().mockResolvedValue({
+        configured: true,
+        excludePhrases: ["Private phrase"],
+        includePhrases: ["Sensitive customer"],
+      }),
+      findZoomIntegrationByAccountId: vi.fn().mockResolvedValue({
+        id: "zoom-integration-1",
+        orgId: "org-1",
+        webhookToken: null,
+        accessToken: "zoom-access",
+        refreshToken: "zoom-refresh",
+        tokenExpiresAt: new Date("2020-01-01T00:00:00.000Z"),
+      }),
+    });
+    const rawBody = JSON.stringify({
+      event: "recording.completed",
+      payload: {
+        account_id: "zoom-account-1",
+        object: {
+          topic: "Sensitive customer - Private phrase",
+          recording_files: [
+            {
+              id: "recording-1",
+              recording_type: "audio_only",
+              download_url: "https://us02web.zoom.us/rec/download/audio.m4a",
+              file_extension: "m4a",
+            },
+          ],
+        },
+      },
+    });
+    const { signature, timestamp } = sign("webhook-secret", rawBody);
+
+    try {
+      await processZoomWebhookRequest(repository, {
+        headers: { signature, timestamp },
+        rawBody,
+        env: {
+          ARGOS_INGESTION_TITLE_FILTERS_ENFORCED: "true",
+          ZOOM_WEBHOOK_SECRET_TOKEN: "webhook-secret",
+        },
+      });
+
+      expect(consoleInfo).toHaveBeenCalledWith("zoom_ingestion_title_filter_decision", {
+        accepted: false,
+        orgId: "org-1",
+        reason: "excluded",
+        recordingId: "recording-1",
+      });
+      expect(JSON.stringify(consoleInfo.mock.calls)).not.toContain("Sensitive customer");
+      expect(JSON.stringify(consoleInfo.mock.calls)).not.toContain("Private phrase");
+    } finally {
+      consoleInfo.mockRestore();
+    }
+  });
+
+  it("preserves the existing import path without reading title config when rollout is off", async () => {
+    const recordIngestionTitleDecision = vi.fn();
+    const repository = createRepository({
+      findCallByZoomRecordingId: vi.fn().mockResolvedValue(null),
+      findIngestionTitleFilterConfig: vi.fn().mockResolvedValue({
+        configured: false,
+        excludePhrases: [],
+        includePhrases: [],
+      }),
+      findPreferredCallOwner: vi.fn().mockResolvedValue(null),
+      findZoomIntegrationByAccountId: vi.fn().mockResolvedValue({
+        id: "zoom-integration-1",
+        orgId: "org-1",
+        webhookToken: null,
+        accessToken: "zoom-access",
+        refreshToken: "zoom-refresh",
+        tokenExpiresAt: new Date("2026-04-18T00:00:00.000Z"),
+      }),
+    });
+    const rawBody = JSON.stringify({
+      event: "recording.completed",
+      payload: {
+        account_id: "zoom-account-1",
+        object: {
+          topic: "Customer discovery",
+          recording_files: [
+            {
+              id: "recording-1",
+              recording_type: "audio_only",
+              download_url: "https://us02web.zoom.us/rec/download/audio.m4a",
+              file_extension: "m4a",
+            },
+          ],
+        },
+      },
+    });
+    const { signature, timestamp } = sign("webhook-secret", rawBody);
+
+    const result = await processZoomWebhookRequest(
+      repository,
+      {
+        headers: { signature, timestamp },
+        rawBody,
+        env: {
+          ZOOM_WEBHOOK_SECRET_TOKEN: "webhook-secret",
+        },
+      },
+      { recordIngestionTitleDecision },
+    );
+
+    expect(result).toEqual({ status: 200, body: { received: true } });
+    expect(repository.findIngestionTitleFilterConfig).not.toHaveBeenCalled();
+    expect(recordIngestionTitleDecision).not.toHaveBeenCalled();
+    expect(repository.findActiveCallProcessingSubscription).toHaveBeenCalledWith({
+      orgId: "org-1",
+      userId: null,
+    });
+    expect(repository.findPreferredCallOwner).toHaveBeenCalledWith("org-1");
+  });
+
   it("stores the preferred Zoom asset and enqueues processing without scoring inline", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(Buffer.from("zoom-audio"), {
@@ -332,6 +575,11 @@ describe("processZoomWebhookRequest", () => {
       createCall: vi.fn().mockResolvedValue({ id: "call-1" }),
       createOrResetCallProcessingJob: vi.fn().mockResolvedValue(undefined),
       findCallByZoomRecordingId: vi.fn().mockResolvedValue(null),
+      findIngestionTitleFilterConfig: vi.fn().mockResolvedValue({
+        configured: true,
+        excludePhrases: [],
+        includePhrases: ["Discovery"],
+      }),
       findPreferredCallOwner: vi.fn().mockResolvedValue({ id: "user-1" }),
       findZoomIntegrationByAccountId: vi.fn().mockResolvedValue({
         id: "zoom-integration-1",
@@ -372,6 +620,7 @@ describe("processZoomWebhookRequest", () => {
       },
     });
     const { signature, timestamp } = sign("webhook-secret", rawBody);
+    const recordIngestionTitleDecision = vi.fn();
 
     try {
       const result = await processZoomWebhookRequest(
@@ -380,10 +629,12 @@ describe("processZoomWebhookRequest", () => {
           headers: { signature, timestamp },
           rawBody,
           env: {
+            ARGOS_INGESTION_TITLE_FILTERS_ENFORCED: "true",
             ZOOM_WEBHOOK_SECRET_TOKEN: "webhook-secret",
           },
         },
         {
+          recordIngestionTitleDecision,
           rubricsRepository,
           storeSourceAsset,
         },
@@ -392,6 +643,12 @@ describe("processZoomWebhookRequest", () => {
       expect(result).toEqual({
         status: 200,
         body: { received: true },
+      });
+      expect(recordIngestionTitleDecision).toHaveBeenCalledWith({
+        accepted: true,
+        orgId: "org-1",
+        reason: "included",
+        recordingId: "recording-1",
       });
       expect(repository.createCall).toHaveBeenCalledWith({
         callTopic: "Discovery call",

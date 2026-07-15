@@ -1,0 +1,20 @@
+{
+  "name": "@argos-v2/google-workspace-client",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit --incremental false"
+  },
+  "dependencies": {
+    "@argos-v2/call-processing": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "typescript": "^5.7.3",
+    "vitest": "^3.2.6"
+  }
+}

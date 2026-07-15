@@ -7,6 +7,9 @@ import { getWorkerEnv } from "./env";
 import { pollGhlCallImports } from "./ghl/poll-ghl-call-imports";
 import { pollGhlSync } from "./ghl/poll-ghl-sync";
 import { GhlImportRepository } from "./ghl/repository";
+import { pollGoogleMeetImports } from "./google-meet/poll-google-meet-imports";
+import { pollGoogleMeetSync } from "./google-meet/poll-google-meet-sync";
+import { GoogleMeetImportRepository } from "./google-meet/repository";
 import { pollCallProcessingJobs } from "./jobs/poll-call-processing-jobs";
 import { processCallJob } from "./jobs/process-call-job";
 
@@ -70,6 +73,36 @@ if (env.ghlImportEnabled) {
     pollIntervalMs: env.ghlSyncPollIntervalMs,
   }).catch((error) => {
     console.error("GHL sync poll loop stopped", error);
+  });
+}
+
+if (env.googleMeetImportEnabled) {
+  const repository = new GoogleMeetImportRepository();
+  const clientId = env.googleMeetClientId;
+  const clientSecret = env.googleMeetClientSecret;
+
+  if (!clientId || !clientSecret) {
+    throw new Error("Google Meet importer OAuth configuration is missing");
+  }
+
+  void pollGoogleMeetImports({
+    clientId,
+    clientSecret,
+    maxSourceBytes: env.maxSourceBytes,
+    pollIntervalMs: env.googleMeetImportPollIntervalMs,
+    repository,
+  }).catch((error) => {
+    console.error("Google Meet import poll loop stopped", error);
+  });
+
+  void pollGoogleMeetSync({
+    clientId,
+    clientSecret,
+    minIntervalMs: env.googleMeetSyncIntervalMs,
+    pollIntervalMs: env.googleMeetSyncPollIntervalMs,
+    repository,
+  }).catch((error) => {
+    console.error("Google Meet sync poll loop stopped", error);
   });
 }
 

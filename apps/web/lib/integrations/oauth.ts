@@ -4,7 +4,7 @@ import { getSafeRequestOrigin } from "../security/trusted-origins";
 
 type EnvSource = Partial<Record<string, string | undefined>>;
 
-export type IntegrationOAuthProvider = "zoom" | "ghl";
+export type IntegrationOAuthProvider = "zoom" | "ghl" | "google_meet";
 
 export type IntegrationOAuthState = {
   orgId: string;
@@ -15,6 +15,7 @@ export type IntegrationOAuthState = {
 export const integrationOAuthCookieNames: Record<IntegrationOAuthProvider, string> = {
   zoom: "argos_zoom_oauth_nonce",
   ghl: "argos_ghl_oauth_nonce",
+  google_meet: "argos_google_meet_oauth_nonce",
 };
 
 const ZOOM_OAUTH_FETCH_TIMEOUT_MS = 30_000;
@@ -120,6 +121,16 @@ export function resolveZoomWebhookUrl(origin: string, env: EnvSource = process.e
 
 export function resolveGhlRedirectUri(origin: string, env: EnvSource = process.env) {
   return env.GHL_REDIRECT_URI ?? `${origin}/api/integrations/leadconnector/callback`;
+}
+
+export function resolveGoogleMeetRedirectUri(
+  origin: string,
+  env: EnvSource = process.env,
+) {
+  return (
+    env.GOOGLE_MEET_REDIRECT_URI ??
+    `${origin}/api/integrations/google-meet/callback`
+  );
 }
 
 export function getRequestOrigin(request: Request) {
