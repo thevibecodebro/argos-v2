@@ -96,7 +96,7 @@ describe("IntegrationsPanel disconnect feedback", () => {
     expect(getDisconnectConfirmationCopy("zoom")).toBe("Disconnect Zoom from this workspace?");
     expect(getDisconnectConfirmationCopy("ghl")).toBe("Disconnect Go High Level from this workspace?");
     expect(getDisconnectConfirmationCopy("google_meet")).toBe(
-      "Disconnect Google Meet from this workspace?",
+      "Disconnect Google Meet, revoke Google access, and stop future imports? Existing Argos calls remain until an admin deletes them.",
     );
   });
 

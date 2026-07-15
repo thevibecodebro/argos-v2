@@ -21,6 +21,7 @@ function createRepository(
     findCurrentUserByAuthId: vi.fn(),
     findGhlStatus: vi.fn(),
     findGoogleMeetStatus: vi.fn(),
+    findGoogleMeetIntegrationForDisconnect: vi.fn().mockResolvedValue(null),
     hasConfiguredIngestionTitleFilters: vi.fn(),
     findOrgUserIds: vi.fn(),
     findZoomIntegrationForDisconnect: vi.fn().mockResolvedValue(null),
@@ -28,6 +29,7 @@ function createRepository(
     listGhlUserMappings: vi.fn(),
     requestGhlSync: vi.fn(),
     requestGoogleMeetSync: vi.fn(),
+    redactGoogleMeetImportsForDisconnect: vi.fn(),
     setGhlDefaultRep: vi.fn(),
     setGoogleMeetDefaultRep: vi.fn(),
     updateZoomTokens: vi.fn(),
@@ -336,6 +338,78 @@ describe("disconnectIntegration", () => {
       data: { provider: "zoom", success: true },
     });
     expect(repository.deleteZoomIntegration).toHaveBeenCalledWith("org-1", "admin-1");
+  });
+
+  it("revokes Google access before deleting the local integration", async () => {
+    const revokeGoogleToken = vi.fn().mockResolvedValue(undefined);
+    const repository = createRepository({
+      deleteGoogleMeetIntegration: vi.fn().mockResolvedValue(true),
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "admin-1",
+        email: "admin@argos.ai",
+        role: "admin",
+        firstName: "Jared",
+        lastName: "Newman",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      findGoogleMeetIntegrationForDisconnect: vi.fn().mockResolvedValue({
+        refreshToken: "google-refresh-token",
+      }),
+    });
+
+    const result = await disconnectIntegration(
+      repository,
+      "admin-1",
+      "google_meet",
+      { revokeGoogleToken },
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      data: { provider: "google_meet", success: true },
+    });
+    expect(revokeGoogleToken).toHaveBeenCalledWith({
+      token: "google-refresh-token",
+    });
+    expect(repository.redactGoogleMeetImportsForDisconnect).toHaveBeenCalledWith(
+      "org-1",
+    );
+    expect(repository.deleteGoogleMeetIntegration).toHaveBeenCalledWith("org-1");
+    expect(revokeGoogleToken.mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(repository.redactGoogleMeetImportsForDisconnect).mock
+        .invocationCallOrder[0]!,
+    );
+    expect(
+      vi.mocked(repository.redactGoogleMeetImportsForDisconnect).mock
+        .invocationCallOrder[0],
+    ).toBeLessThan(
+      vi.mocked(repository.deleteGoogleMeetIntegration).mock.invocationCallOrder[0]!,
+    );
+  });
+
+  it("keeps the Google integration when provider revocation fails", async () => {
+    const repository = createRepository({
+      deleteGoogleMeetIntegration: vi.fn().mockResolvedValue(true),
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "admin-1",
+        email: "admin@argos.ai",
+        role: "admin",
+        firstName: "Jared",
+        lastName: "Newman",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      findGoogleMeetIntegrationForDisconnect: vi.fn().mockResolvedValue({
+        refreshToken: "google-refresh-token",
+      }),
+    });
+
+    await expect(
+      disconnectIntegration(repository, "admin-1", "google_meet", {
+        revokeGoogleToken: vi.fn().mockRejectedValue(new Error("provider unavailable")),
+      }),
+    ).rejects.toThrow("provider unavailable");
+    expect(repository.redactGoogleMeetImportsForDisconnect).not.toHaveBeenCalled();
+    expect(repository.deleteGoogleMeetIntegration).not.toHaveBeenCalled();
   });
 });
 

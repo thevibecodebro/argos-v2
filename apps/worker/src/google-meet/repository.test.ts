@@ -1,8 +1,9 @@
 import { callProcessingJobsTable } from "@argos-v2/db";
+import { PgDialect } from "drizzle-orm/pg-core";
 import { describe, expect, it, vi } from "vitest";
 import { GoogleMeetImportRepository } from "./repository";
 
-describe("GoogleMeetImportRepository job enqueue idempotency", () => {
+describe("GoogleMeetImportRepository", () => {
   it("does not reset an existing processing job when an import is replayed", async () => {
     const builder = {
       onConflictDoNothing: vi.fn(async () => undefined),
@@ -60,5 +61,36 @@ describe("GoogleMeetImportRepository job enqueue idempotency", () => {
     expect(call).toEqual({ id: existing[0].callId });
     expect(selectBuilder.for).toHaveBeenCalledWith("update");
     expect(tx.insert).not.toHaveBeenCalled();
+  });
+
+  it("does not overwrite a deletion tombstone during discovery upserts", async () => {
+    const onConflictDoUpdate = vi.fn().mockResolvedValue(undefined);
+    const values = vi.fn(() => ({ onConflictDoUpdate }));
+    const db = {
+      insert: vi.fn(() => ({ values })),
+    };
+    const repository = new GoogleMeetImportRepository(db as never);
+
+    await repository.upsertGoogleMeetImport({
+      conferenceEndedAt: new Date("2026-07-15T11:00:00.000Z"),
+      conferenceRecordName: "conferenceRecords/record-1",
+      conferenceStartedAt: new Date("2026-07-15T10:00:00.000Z"),
+      driveFileId: "drive-file-1",
+      integrationId: "integration-1",
+      meetingCode: "abc-defg-hij",
+      meetingTitle: "Customer demo",
+      orgId: "org-1",
+      recordingName: "conferenceRecords/record-1/recordings/recording-1",
+      skippedReason: null,
+      status: "pending",
+      titleSource: "calendar",
+    });
+
+    const conflict = onConflictDoUpdate.mock.calls[0]?.[0];
+    expect(conflict?.setWhere).toBeDefined();
+    expect(new PgDialect().sqlToQuery(conflict.setWhere)).toMatchObject({
+      params: ["deleted"],
+      sql: '"google_meet_imports"."status" <> $1',
+    });
   });
 });

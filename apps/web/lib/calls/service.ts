@@ -302,6 +302,7 @@ export type CallsRepository = {
     userId: string;
   }): Promise<void>;
   deleteCall(callId: string): Promise<void>;
+  redactGoogleMeetImportForCall(callId: string): Promise<void>;
   deleteAnnotation(annotationId: string, callId: string): Promise<boolean>;
   findAnnotations(callId: string): Promise<CallAnnotationRecord[]>;
   findCallById(callId: string): Promise<CallDetailRecord | null>;
@@ -977,6 +978,7 @@ export async function deleteCallData(
     resourceType: "call",
   });
 
+  await repository.redactGoogleMeetImportForCall(callId);
   await repository.deleteCall(callId);
 
   return {

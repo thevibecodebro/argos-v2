@@ -7,6 +7,7 @@ import {
   callMomentsTable,
   callsTable,
   getDb,
+  googleMeetImportsTable,
   notificationsTable,
   organizationsTable,
   rubricCategoriesTable,
@@ -78,6 +79,13 @@ export class DrizzleCallsRepository implements CallsRepository {
 
   async deleteCall(callId: string) {
     await this.db.delete(callsTable).where(eq(callsTable.id, callId));
+  }
+
+  async redactGoogleMeetImportForCall(callId: string) {
+    await this.db
+      .update(googleMeetImportsTable)
+      .set(googleMeetImportRedaction({ callId: null }))
+      .where(eq(googleMeetImportsTable.callId, callId));
   }
 
   async createOrResetCallProcessingJob(input: {
@@ -772,4 +780,23 @@ export class DrizzleCallsRepository implements CallsRepository {
       total: Number(totalRows[0]?.count ?? 0),
     };
   }
+}
+
+function googleMeetImportRedaction(overrides: { callId: null }) {
+  return {
+    callId: overrides.callId,
+    conferenceEndedAt: null,
+    conferenceRecordName: null,
+    conferenceStartedAt: null,
+    driveFileId: null,
+    lastError: null,
+    lockedAt: null,
+    lockExpiresAt: null,
+    meetingCode: null,
+    meetingTitle: null,
+    skippedReason: null,
+    status: "deleted" as const,
+    titleSource: null,
+    updatedAt: new Date(),
+  };
 }

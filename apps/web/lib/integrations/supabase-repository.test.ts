@@ -146,6 +146,19 @@ describe("SupabaseIntegrationsRepository token encryption", () => {
     });
   });
 
+  it("decrypts the Google refresh token used for provider revocation", async () => {
+    vi.stubEnv("ARGOS_TOKEN_ENCRYPTION_KEY", key);
+    const supabase = createSupabaseMock();
+    const repository = new SupabaseIntegrationsRepository(supabase.client as any);
+    supabase.state.maybeSingleData = {
+      refresh_token: encryptForTest("google-refresh"),
+    };
+
+    await expect(
+      repository.findGoogleMeetIntegrationForDisconnect("org-1"),
+    ).resolves.toEqual({ refreshToken: "google-refresh" });
+  });
+
   it("encrypts refreshed Zoom tokens before update persistence", async () => {
     vi.stubEnv("ARGOS_TOKEN_ENCRYPTION_KEY", key);
     const supabase = createSupabaseMock();
@@ -176,6 +189,31 @@ describe("SupabaseIntegrationsRepository token encryption", () => {
       default_rep_id: null,
       sync_enabled: false,
     });
+  });
+
+  it("redacts Google discovery metadata before disconnecting", async () => {
+    const supabase = createSupabaseMock();
+    const repository = new SupabaseIntegrationsRepository(supabase.client as any);
+
+    await repository.redactGoogleMeetImportsForDisconnect("org-1");
+
+    expect(supabase.state.updatePayloads[0]).toMatchObject({
+      conference_ended_at: null,
+      conference_record_name: null,
+      conference_started_at: null,
+      drive_file_id: null,
+      last_error: null,
+      locked_at: null,
+      lock_expires_at: null,
+      meeting_code: null,
+      meeting_title: null,
+      skipped_reason: null,
+      status: "deleted",
+      title_source: null,
+    });
+    expect(supabase.state.updatePayloads[0]).not.toHaveProperty("call_id");
+    expect(supabase.state.updatePayloads[0]).not.toHaveProperty("integration_id");
+    expect(supabase.state.updatePayloads[0]).not.toHaveProperty("recording_name");
   });
 });
 

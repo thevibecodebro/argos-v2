@@ -12,6 +12,7 @@ export const GOOGLE_MEET_IMPORT_STATUSES = [
   "imported",
   "skipped",
   "failed",
+  "deleted",
 ] as const;
 
 export const GOOGLE_MEET_IMPORT_SKIPPED_REASONS = [
@@ -36,9 +37,8 @@ export const googleMeetImportsTable = pgTable(
       .notNull()
       .references(() => organizationsTable.id, { onDelete: "cascade" }),
     integrationId: uuid("integration_id")
-      .notNull()
-      .references(() => googleMeetIntegrationsTable.id, { onDelete: "cascade" }),
-    conferenceRecordName: text("conference_record_name").notNull(),
+      .references(() => googleMeetIntegrationsTable.id, { onDelete: "set null" }),
+    conferenceRecordName: text("conference_record_name"),
     recordingName: text("recording_name").notNull(),
     driveFileId: text("drive_file_id"),
     meetingCode: text("meeting_code"),

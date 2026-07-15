@@ -264,7 +264,7 @@ export function getDisconnectConfirmationCopy(service: IntegrationService) {
   }
   return service === "ghl"
     ? "Disconnect Go High Level from this workspace?"
-    : "Disconnect Google Meet from this workspace?";
+    : "Disconnect Google Meet, revoke Google access, and stop future imports? Existing Argos calls remain until an admin deletes them.";
 }
 
 export async function getDisconnectErrorMessage(

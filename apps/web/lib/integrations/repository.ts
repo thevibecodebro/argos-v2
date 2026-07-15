@@ -2,6 +2,7 @@ import { and, count, eq, inArray, sql } from "drizzle-orm";
 import {
   getDb,
   googleMeetIntegrationsTable,
+  googleMeetImportsTable,
   ghlUserMappingsTable,
   ghlIntegrationsTable,
   organizationIngestionTitleFiltersTable,
@@ -37,6 +38,27 @@ export class DrizzleIntegrationsRepository implements IntegrationsRepository {
       .returning({ id: googleMeetIntegrationsTable.id });
 
     return deleted.length > 0;
+  }
+
+  async redactGoogleMeetImportsForDisconnect(orgId: string) {
+    await this.db
+      .update(googleMeetImportsTable)
+      .set({
+        conferenceEndedAt: null,
+        conferenceRecordName: null,
+        conferenceStartedAt: null,
+        driveFileId: null,
+        lastError: null,
+        lockedAt: null,
+        lockExpiresAt: null,
+        meetingCode: null,
+        meetingTitle: null,
+        skippedReason: null,
+        status: "deleted",
+        titleSource: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(googleMeetImportsTable.orgId, orgId));
   }
 
   async deleteZoomIntegration(orgId: string, connectedUserId: string) {
@@ -250,6 +272,22 @@ export class DrizzleIntegrationsRepository implements IntegrationsRepository {
     return {
       ...integration,
       accessToken: decryptIntegrationToken(integration.accessToken),
+      refreshToken: decryptIntegrationToken(integration.refreshToken),
+    };
+  }
+
+  async findGoogleMeetIntegrationForDisconnect(orgId: string) {
+    const [integration] = await this.db
+      .select({ refreshToken: googleMeetIntegrationsTable.refreshToken })
+      .from(googleMeetIntegrationsTable)
+      .where(eq(googleMeetIntegrationsTable.orgId, orgId))
+      .limit(1);
+
+    if (!integration) {
+      return null;
+    }
+
+    return {
       refreshToken: decryptIntegrationToken(integration.refreshToken),
     };
   }
