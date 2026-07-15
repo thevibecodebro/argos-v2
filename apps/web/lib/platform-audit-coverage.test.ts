@@ -18,6 +18,7 @@ const platformAuditCoveredRoutes = new Set([
   "invites/route.ts",
   "organizations/route.ts",
   "organizations/branding/route.ts",
+  "platform/integration-token-rotation/route.ts",
   "platform/organizations/[slug]/admin-invite/resend/route.ts",
   "platform/organizations/route.ts",
   "platform/sessions/route.ts",
