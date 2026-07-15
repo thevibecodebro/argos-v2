@@ -13,6 +13,7 @@ import {
   listConferenceRecords,
   listPrimaryCalendarEvents,
   refreshGoogleToken,
+  revokeGoogleToken,
 } from "./index";
 
 const jsonResponse = (body: unknown, status = 200) =>
@@ -119,6 +120,43 @@ describe("Google OAuth", () => {
 
     expect(tokens.refreshToken).toBe("existing-refresh-token");
     expect(tokens.tokenExpiresAt).toEqual(new Date("2026-07-10T12:29:00.000Z"));
+  });
+
+  it("revokes a Google token without putting it in the request URL", async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
+
+    await revokeGoogleToken({ token: "refresh-token", fetcher });
+
+    const [url, init] = fetcher.mock.calls[0]!;
+    expect(url).toBe("https://oauth2.googleapis.com/revoke");
+    expect(init.method).toBe("POST");
+    expect(init.headers).toEqual({
+      "content-type": "application/x-www-form-urlencoded",
+    });
+    expect(String(init.body)).toBe("token=refresh-token");
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("treats an already-revoked Google token as successfully disconnected", async () => {
+    const fetcher = vi.fn().mockResolvedValue(
+      jsonResponse({ error: "invalid_token" }, 400),
+    );
+
+    await expect(
+      revokeGoogleToken({ token: "expired-token", fetcher }),
+    ).resolves.toBeUndefined();
+
+    await expect(
+      revokeGoogleToken({
+        token: "malformed-token",
+        fetcher: vi.fn().mockResolvedValue(
+          jsonResponse({ error: "invalid_request" }, 400),
+        ),
+      }),
+    ).rejects.toMatchObject({
+      operation: "OAuth token revocation",
+      status: 400,
+    });
   });
 
   it("normalizes the Google user profile", async () => {

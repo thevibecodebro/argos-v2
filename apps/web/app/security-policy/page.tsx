@@ -28,7 +28,7 @@ export default function SecurityPolicyPage() {
       <LegalPage
         eyebrow="Argos Security"
         intro="This Security Policy summarizes the operational safeguards Argos applies to protect customer workspaces, application access, and supporting infrastructure."
-        lastUpdated="April 22, 2026"
+        lastUpdated="July 15, 2026"
         sections={[
           {
             title: "Infrastructure safeguards",
@@ -41,7 +41,8 @@ export default function SecurityPolicyPage() {
             title: "Application protections",
             body: [
               "We apply authentication and authorization controls within the product to restrict workspace access by role and organization boundary. Sensitive operations are logged and monitored to support auditing and troubleshooting.",
-              "External integrations are scoped to the permissions needed for their intended function, and credentials are handled through secured configuration rather than embedded in client-facing code.",
+              "External integrations are scoped to the permissions needed for their intended function. OAuth access and refresh tokens are encrypted at rest, remain server-side, and are not embedded in client-facing code.",
+              "Imported call recordings are copied into private recording storage. Playback access requires an authenticated, organization-authorized request, and provider disconnects revoke access before local credentials are removed.",
             ],
           },
           {

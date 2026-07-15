@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import {
   callProcessingJobsTable,
   callsTable,
@@ -42,6 +42,10 @@ function extractRows<T>(result: unknown): T[] {
 }
 
 function mapImport(row: ClaimedImportRow): GoogleMeetImportRecord {
+  if (!row.integrationId) {
+    throw new Error("Claimed Google Meet import is missing an integration");
+  }
+
   return {
     attemptCount: row.attemptCount,
     callId: row.callId,
@@ -75,6 +79,7 @@ export class GoogleMeetImportRepository
           select id
           from google_meet_imports
           where attempt_count < max_attempts
+            and integration_id is not null
             and (
               (
                 status in ('pending', 'retrying')
@@ -232,6 +237,7 @@ export class GoogleMeetImportRepository
           titleSource: input.titleSource,
           updatedAt: now,
         },
+        setWhere: ne(googleMeetImportsTable.status, "deleted"),
       });
   }
 

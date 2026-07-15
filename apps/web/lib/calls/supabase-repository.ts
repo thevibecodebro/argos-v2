@@ -149,6 +149,33 @@ export class SupabaseCallsRepository implements CallsRepository {
     }
   }
 
+  async redactGoogleMeetImportForCall(callId: string) {
+    const supabase: any = this.supabase;
+    const { error } = await supabase
+      .from("google_meet_imports")
+      .update({
+        call_id: null,
+        conference_ended_at: null,
+        conference_record_name: null,
+        conference_started_at: null,
+        drive_file_id: null,
+        last_error: null,
+        locked_at: null,
+        lock_expires_at: null,
+        meeting_code: null,
+        meeting_title: null,
+        skipped_reason: null,
+        status: "deleted",
+        title_source: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("call_id", callId);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
   async createOrResetCallProcessingJob(input: {
     callId: string;
     rubricId?: string | null;

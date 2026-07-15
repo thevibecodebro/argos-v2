@@ -1,4 +1,5 @@
 import { deleteZoomWebhook, refreshZoomToken } from "./oauth";
+import { revokeGoogleToken } from "@argos-v2/google-workspace-client";
 import type { DashboardUserRecord } from "@/lib/dashboard/service";
 import type { AppUserRole } from "@/lib/users/roles";
 
@@ -106,6 +107,9 @@ export type IntegrationsRepository = {
     lastSyncStartedAt: Date | null;
     syncEnabled: boolean;
   }>;
+  findGoogleMeetIntegrationForDisconnect(orgId: string): Promise<{
+    refreshToken: string;
+  } | null>;
   hasConfiguredIngestionTitleFilters(orgId: string): Promise<boolean>;
   findZoomIntegrationForDisconnect(orgId: string, connectedUserId: string): Promise<{ accessToken: string; refreshToken: string; tokenExpiresAt: Date; webhookId: string | null } | null>;
   findZoomStatus(orgId: string, connectedUserId: string): Promise<{ connected: boolean; connectedAt: Date | null; zoomUserId: string | null }>;
@@ -113,6 +117,7 @@ export type IntegrationsRepository = {
   listGhlUserMappings(orgId: string): Promise<GhlUserMapping[]>;
   requestGhlSync(orgId: string): Promise<void>;
   requestGoogleMeetSync(orgId: string): Promise<void>;
+  redactGoogleMeetImportsForDisconnect(orgId: string): Promise<void>;
   setGhlDefaultRep(orgId: string, repId: string | null): Promise<void>;
   setGoogleMeetDefaultRep(orgId: string, repId: string | null): Promise<void>;
   updateZoomTokens(orgId: string, connectedUserId: string, tokens: { accessToken: string; refreshToken: string; tokenExpiresAt: Date }): Promise<void>;
@@ -338,6 +343,9 @@ export async function disconnectIntegration(
   repository: IntegrationsRepository,
   authUserId: string,
   provider: IntegrationProvider,
+  dependencies: {
+    revokeGoogleToken: typeof revokeGoogleToken;
+  } = { revokeGoogleToken },
 ): Promise<ServiceResult<{ provider: IntegrationProvider; success: true }>> {
   const viewer = await repository.findCurrentUserByAuthId(authUserId);
 
@@ -387,6 +395,13 @@ export async function disconnectIntegration(
   } else if (provider === "ghl") {
     await repository.deleteGhlIntegration(viewer.org.id);
   } else {
+    const integration = await repository.findGoogleMeetIntegrationForDisconnect(
+      viewer.org.id,
+    );
+    if (integration) {
+      await dependencies.revokeGoogleToken({ token: integration.refreshToken });
+    }
+    await repository.redactGoogleMeetImportsForDisconnect(viewer.org.id);
     await repository.deleteGoogleMeetIntegration(viewer.org.id);
   }
 

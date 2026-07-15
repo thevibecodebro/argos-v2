@@ -19,6 +19,10 @@ const migrationPath = join(
   __dirname,
   "../../../../supabase/migrations/202607100002_google_meet_ingestion.sql",
 );
+const lifecycleMigrationPath = join(
+  __dirname,
+  "../../../../supabase/migrations/202607150001_google_meet_data_lifecycle.sql",
+);
 
 describe("Google Meet ingestion schema", () => {
   it("defines and exports the integration and import Drizzle schemas", () => {
@@ -94,5 +98,19 @@ describe("Google Meet ingestion schema", () => {
       expect(imports).toContain(`"${reason}"`);
       expect(migration).toContain(`'${reason}'`);
     }
+  });
+
+  it("keeps deletion tombstones while redacting provider metadata", () => {
+    const imports = readFileSync(importsSchemaPath, "utf8");
+    const migration = readFileSync(lifecycleMigrationPath, "utf8");
+
+    expect(imports).toContain('"deleted"');
+    expect(imports).toMatch(
+      /integrationId:[\s\S]*references\(\(\) => googleMeetIntegrationsTable\.id, \{ onDelete: "set null" \}\)/,
+    );
+    expect(migration).toMatch(
+      /foreign key \(integration_id\)[\s\S]*on delete set null/i,
+    );
+    expect(migration).toMatch(/status in \([\s\S]*'deleted'[\s\S]*\)/i);
   });
 });

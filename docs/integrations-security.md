@@ -159,6 +159,13 @@ The Google OAuth client requests only these scopes:
 
 `drive.meet.readonly` is a restricted Google scope. Do not enable production organizer connections until the OAuth consent screen, app verification, privacy-policy disclosures, and any required security assessment are complete.
 
+Production OAuth requirements:
+
+- Keep a separate Google Cloud project and OAuth client for production. The testing project remains restricted to explicitly allowlisted, non-PHI pilot users.
+- Publish the production OAuth app and complete brand, sensitive-scope, and restricted-scope verification before placing its client credentials in production runtimes.
+- Because Argos downloads restricted-scope recording data through its servers, complete the Google-approved security assessment required for restricted data handling and maintain its renewal evidence.
+- Use `docs/google-meet-oauth-verification.md` as the submission and rollout checklist.
+
 Worker env when enabling the importer:
 
 - `GOOGLE_MEET_IMPORT_ENABLED=true`
@@ -177,10 +184,13 @@ Google Meet recording import is additionally gated in-app:
 - Discovery stores title-filtered artifacts as skipped metadata and does not download their Drive files.
 - Accepted MP4s are copied into private `call-recordings` storage and queued with `source_origin='google_meet_recording'`.
 - Sync now resets the cursor and re-evaluates the prior seven days, including title-filtered artifacts.
+- Disconnect revokes the Google refresh token before deleting the local integration, redacts provider discovery metadata, and stops future imports. Existing Argos calls remain until an admin deletes them.
+- Admin call deletion removes the private recording and derived call row, redacts Google metadata, and retains only the opaque recording resource name required to suppress re-import.
 
-Google Meet live verification:
+Google Meet pilot and live verification:
 
-- Keep `ARGOS_GOOGLE_MEET_ENABLED=false` and omit `GOOGLE_MEET_IMPORT_ENABLED` until Google verification is complete.
+- The testing OAuth project may be enabled only for explicitly allowlisted, non-PHI pilot organizations. Testing authorizations expire and are not a production substitute.
+- Keep production OAuth credentials out of Vercel and Fly until Google verification and the required security assessment are complete.
 - Pilot only with non-PHI organizations until the restricted-scope and compliance review is complete.
 - Confirm the Google OAuth redirect URI exactly matches `GOOGLE_MEET_REDIRECT_URI`.
 - Connect a test organizer, save an include rule, select a default rep, and confirm consent.

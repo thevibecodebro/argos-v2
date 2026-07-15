@@ -184,6 +184,41 @@ export async function refreshGoogleToken(input: {
   return buildTokenSet(accessToken, refreshToken, expiresIn, input.now);
 }
 
+export async function revokeGoogleToken(input: {
+  token: string;
+} & RequestRuntime): Promise<void> {
+  const token = readString(input.token);
+  if (!token) {
+    throw new Error("Google OAuth token revocation requires a token");
+  }
+
+  await request(
+    "OAuth token revocation",
+    "https://oauth2.googleapis.com/revoke",
+    {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ token }).toString(),
+    },
+    input,
+    DEFAULT_GOOGLE_OAUTH_TIMEOUT_MS,
+    async (response) => {
+      if (response.ok) {
+        await response.arrayBuffer();
+        return;
+      }
+
+      const payload = await response.json().catch(() => null) as unknown;
+      if (isRecord(payload) && readString(payload.error) === "invalid_token") {
+        return;
+      }
+
+      throw new GoogleWorkspaceApiError("OAuth token revocation", response.status);
+    },
+    (response) => response.ok || response.status === 400,
+  );
+}
+
 export async function getGoogleUserProfile(input: {
   accessToken: string;
 } & RequestRuntime): Promise<GoogleUserProfile> {
@@ -421,6 +456,7 @@ async function request<T>(
   runtime: RequestRuntime,
   defaultTimeoutMs: number,
   consumeResponse: (response: Response) => Promise<T>,
+  isAcceptedResponse: (response: Response) => boolean = (response) => response.ok,
 ): Promise<T> {
   const fetcher = runtime.fetcher ?? fetch;
   const timeoutMs = runtime.timeoutMs ?? defaultTimeoutMs;
@@ -442,7 +478,7 @@ async function request<T>(
       const response = await fetcher(url, { ...init, signal: controller.signal });
       responseReceived = true;
 
-      if (!response.ok) {
+      if (!isAcceptedResponse(response)) {
         throw new GoogleWorkspaceApiError(operation, response.status);
       }
 

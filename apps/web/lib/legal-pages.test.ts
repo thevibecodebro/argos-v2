@@ -10,8 +10,13 @@ describe("legal pages", () => {
     const html = renderToStaticMarkup(PrivacyPolicyPage());
 
     expect(html).toContain("Privacy Policy");
-    expect(html).toContain("Last updated April 22, 2026");
+    expect(html).toContain("Last updated July 15, 2026");
     expect(html).toContain("What we collect");
+    expect(html).toContain("Google Workspace data");
+    expect(html).toContain("Google API Services User Data Policy");
+    expect(html).toContain("does not use Google Workspace data for advertising");
+    expect(html).toContain("revokes Argos access at Google");
+    expect(html).toContain("prevent that recording from being imported again");
     expect(html).toContain('data-argos-logo="legal-header"');
     expect(html).toContain('src="/argos_logo_background.png"');
     expect(html).toContain("forge-shell");
@@ -37,8 +42,10 @@ describe("legal pages", () => {
     const html = renderToStaticMarkup(SecurityPolicyPage());
 
     expect(html).toContain("Security Policy");
-    expect(html).toContain("Last updated April 22, 2026");
+    expect(html).toContain("Last updated July 15, 2026");
     expect(html).toContain("Infrastructure safeguards");
+    expect(html).toContain("OAuth access and refresh tokens are encrypted");
+    expect(html).toContain("private recording storage");
     expect(html).toContain("forge-shell");
     expect(html).toContain('href="/privacy-policy"');
     expect(html).toContain('href="/terms-of-service"');

@@ -34,6 +34,7 @@ function createRepository(
     findScoreTrend: vi.fn(),
     insertAnnotation: vi.fn(),
     retryCallProcessingJob: vi.fn(),
+    redactGoogleMeetImportForCall: vi.fn(),
     setCallEvaluation: vi.fn(),
     updateCallTopic: vi.fn(),
     updateCallRecordingStorage: vi.fn(),
@@ -621,6 +622,7 @@ describe("recording and transcript lifecycle", () => {
   it("lets admins delete call data and remove private recording storage", async () => {
     const removeStorageObjects = vi.fn().mockResolvedValue(undefined);
     const createAuditEvent = vi.fn().mockResolvedValue(undefined);
+    const redactGoogleMeetImportForCall = vi.fn().mockResolvedValue(undefined);
     const repository = createRepository({
       createAuditEvent,
       findCurrentUserByAuthId: vi.fn().mockResolvedValue(adminViewer),
@@ -633,6 +635,7 @@ describe("recording and transcript lifecycle", () => {
         recordingUrl: null,
       }),
       deleteCall: vi.fn().mockResolvedValue(undefined),
+      redactGoogleMeetImportForCall,
     });
 
     const result = await deleteCallData(repository, "admin-1", "call-1", {
@@ -664,6 +667,10 @@ describe("recording and transcript lifecycle", () => {
       resourceType: "call",
     });
     expect(repository.deleteCall).toHaveBeenCalledWith("call-1");
+    expect(redactGoogleMeetImportForCall).toHaveBeenCalledWith("call-1");
+    expect(redactGoogleMeetImportForCall.mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(repository.deleteCall).mock.invocationCallOrder[0]!,
+    );
   });
 
   it("blocks managers from deleting call lifecycle data", async () => {

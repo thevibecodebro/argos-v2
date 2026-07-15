@@ -39,6 +39,32 @@ export class SupabaseIntegrationsRepository implements IntegrationsRepository {
     return Boolean(data?.length);
   }
 
+  async redactGoogleMeetImportsForDisconnect(orgId: string) {
+    const supabase: any = this.supabase;
+    const { error } = await supabase
+      .from("google_meet_imports")
+      .update({
+        conference_ended_at: null,
+        conference_record_name: null,
+        conference_started_at: null,
+        drive_file_id: null,
+        last_error: null,
+        locked_at: null,
+        lock_expires_at: null,
+        meeting_code: null,
+        meeting_title: null,
+        skipped_reason: null,
+        status: "deleted",
+        title_source: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("org_id", orgId);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
   async deleteZoomIntegration(orgId: string, connectedUserId: string) {
     const supabase: any = this.supabase;
     const { data, error } = await supabase
@@ -213,6 +239,27 @@ export class SupabaseIntegrationsRepository implements IntegrationsRepository {
       refreshToken: decryptIntegrationToken(data.refresh_token as string),
       tokenExpiresAt: new Date(data.token_expires_at as string),
       webhookId: (data.webhook_id as string | null) ?? null,
+    };
+  }
+
+  async findGoogleMeetIntegrationForDisconnect(orgId: string) {
+    const supabase: any = this.supabase;
+    const { data, error } = await supabase
+      .from("google_meet_integrations")
+      .select("refresh_token")
+      .eq("org_id", orgId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (!data) {
+      return null;
+    }
+
+    return {
+      refreshToken: decryptIntegrationToken(data.refresh_token as string),
     };
   }
 
