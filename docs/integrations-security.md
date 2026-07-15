@@ -46,7 +46,7 @@ Operational rules:
 
 ## Provider Token Encryption
 
-Zoom and GoHighLevel access and refresh tokens are stored with the versioned `argos:v1:` ciphertext prefix. Zoom `webhook_token` is encrypted when present. The server-only key is `ARGOS_TOKEN_ENCRYPTION_KEY`, encoded as either 32-byte base64 or 32-byte hex.
+Zoom, GoHighLevel, and Google Meet access and refresh tokens are stored with the versioned `argos:v1:` ciphertext prefix. Zoom `webhook_token` is encrypted when present. The server-only key is `ARGOS_TOKEN_ENCRYPTION_KEY`, encoded as either 32-byte base64 or 32-byte hex.
 
 Legacy plaintext rows are still readable so production can roll forward safely. New OAuth upserts and token refresh writes store encrypted values. Run the one-time rotation script in dry-run mode first:
 
@@ -140,6 +140,54 @@ GoHighLevel live verification:
 - Turn on `GHL_IMPORT_ENABLED=true` for the worker and confirm a test recording moves from `ghl_call_imports` to `calls` plus `call_processing_jobs`.
 - If HighLevel returns account or provisioning errors during Marketplace login, verify the HighLevel admin state before changing app code.
 
+## Google Meet Recording Import
+
+Google Meet remains unavailable unless all of these web-runtime values are present:
+
+- `ARGOS_GOOGLE_MEET_ENABLED=true`
+- `GOOGLE_MEET_CLIENT_ID`
+- `GOOGLE_MEET_CLIENT_SECRET`
+- `GOOGLE_MEET_REDIRECT_URI`, set to the exact hosted `/api/integrations/google-meet/callback` URL
+
+The Google OAuth client requests only these scopes:
+
+- `openid`
+- `email`
+- `https://www.googleapis.com/auth/meetings.space.readonly`
+- `https://www.googleapis.com/auth/calendar.events.readonly`
+- `https://www.googleapis.com/auth/drive.meet.readonly`
+
+`drive.meet.readonly` is a restricted Google scope. Do not enable production organizer connections until the OAuth consent screen, app verification, privacy-policy disclosures, and any required security assessment are complete.
+
+Worker env when enabling the importer:
+
+- `GOOGLE_MEET_IMPORT_ENABLED=true`
+- `GOOGLE_MEET_CLIENT_ID`
+- `GOOGLE_MEET_CLIENT_SECRET`
+- `GOOGLE_MEET_IMPORT_POLL_INTERVAL_MS` if the default 5 second import queue poll is not appropriate
+- `GOOGLE_MEET_SYNC_INTERVAL_MS` if the default 15 minute organizer poll is not appropriate
+- `GOOGLE_MEET_SYNC_POLL_INTERVAL_MS` if the default 60 second scheduler poll is not appropriate
+
+Google Meet recording import is additionally gated in-app:
+
+- One Google organizer account may be connected per Argos organization.
+- At least one organization include-title phrase must be saved. Exclude phrases always win.
+- An organization admin must select a default Argos rep and acknowledge recording-processing consent.
+- The connected organization must have active call-processing billing before an MP4 is downloaded.
+- Discovery stores title-filtered artifacts as skipped metadata and does not download their Drive files.
+- Accepted MP4s are copied into private `call-recordings` storage and queued with `source_origin='google_meet_recording'`.
+- Sync now resets the cursor and re-evaluates the prior seven days, including title-filtered artifacts.
+
+Google Meet live verification:
+
+- Keep `ARGOS_GOOGLE_MEET_ENABLED=false` and omit `GOOGLE_MEET_IMPORT_ENABLED` until Google verification is complete.
+- Pilot only with non-PHI organizations until the restricted-scope and compliance review is complete.
+- Confirm the Google OAuth redirect URI exactly matches `GOOGLE_MEET_REDIRECT_URI`.
+- Connect a test organizer, save an include rule, select a default rep, and confirm consent.
+- Record one included and one excluded meeting. Confirm the excluded artifact has skipped metadata and no stored MP4.
+- Enable the worker flag and confirm the included recording creates exactly one `calls` row and one `call_processing_jobs` row.
+- Run Sync now and confirm the imported recording remains deduplicated.
+
 ## Hosted Verification Checklist
 
 These checks require live provider access and were not locally verified by repo tests.
@@ -163,6 +211,7 @@ Fly worker:
 - `DATABASE_URL`, `SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`, and call processing env are present as Fly secrets.
 - `APP_ENV`, `SUPABASE_ENVIRONMENT`, `DATABASE_ENVIRONMENT`, and `OPENAI_ENVIRONMENT` are set to `production` before the production worker can boot privileged clients.
 - `CALL_PROCESSING_ENABLED` is set intentionally for the target worker app.
+- `GOOGLE_MEET_IMPORT_ENABLED` remains absent or false until the Google Meet pilot is approved; when enabled, the Google OAuth client credentials are also present.
 - Worker `/health` returns 200 after deploy.
 
 OpenAI:

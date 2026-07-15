@@ -6,7 +6,7 @@ type ServiceResult<T> =
   | { ok: true; data: T }
   | { ok: false; status: 400 | 403 | 404; error: string };
 
-type IntegrationProvider = "zoom" | "ghl";
+type IntegrationProvider = "zoom" | "ghl" | "google_meet";
 
 export type GhlUserMapping = {
   id: string;
@@ -21,6 +21,9 @@ type IntegrationAvailability = {
   ghlClientId: string | null | undefined;
   ghlClientSecret: string | null | undefined;
   ghlEnabled: string | null | undefined;
+  googleMeetClientId?: string | null | undefined;
+  googleMeetClientSecret?: string | null | undefined;
+  googleMeetEnabled?: string | null | undefined;
   zoomClientId: string | null | undefined;
 };
 
@@ -50,15 +53,33 @@ export type GhlIntegrationStatus = {
   syncEnabled: boolean;
 };
 
+export type GoogleMeetIntegrationStatus = {
+  available: boolean;
+  connectPath: string;
+  connected: boolean;
+  connectedAt: string | null;
+  consentConfirmedAt: string | null;
+  defaultRepId: string | null;
+  disconnectPath: string;
+  googleEmail: string | null;
+  lastSyncCompletedAt: string | null;
+  lastSyncError: string | null;
+  lastSyncStartedAt: string | null;
+  syncEnabled: boolean;
+};
+
 export type IntegrationStatusData = {
   canManage: boolean;
   ghl: GhlIntegrationStatus;
+  googleMeet: GoogleMeetIntegrationStatus;
   zoom: ZoomIntegrationStatus;
 };
 
 export type IntegrationsRepository = {
+  deleteGoogleMeetIntegration(orgId: string): Promise<boolean>;
   deleteGhlIntegration(orgId: string): Promise<boolean>;
   deleteZoomIntegration(orgId: string, connectedUserId: string): Promise<boolean>;
+  acknowledgeGoogleMeetRecordingConsent(orgId: string, userId: string): Promise<void>;
   acknowledgeGhlRecordingConsent(orgId: string, userId: string): Promise<void>;
   findCurrentUserByAuthId(authUserId: string): Promise<DashboardUserRecord | null>;
   findGhlStatus(orgId: string): Promise<{
@@ -74,12 +95,26 @@ export type IntegrationsRepository = {
     mappedUsersCount: number;
     syncEnabled: boolean;
   }>;
+  findGoogleMeetStatus(orgId: string): Promise<{
+    connected: boolean;
+    connectedAt: Date | null;
+    consentConfirmedAt: Date | null;
+    defaultRepId: string | null;
+    googleEmail: string | null;
+    lastSyncCompletedAt: Date | null;
+    lastSyncError: string | null;
+    lastSyncStartedAt: Date | null;
+    syncEnabled: boolean;
+  }>;
+  hasConfiguredIngestionTitleFilters(orgId: string): Promise<boolean>;
   findZoomIntegrationForDisconnect(orgId: string, connectedUserId: string): Promise<{ accessToken: string; refreshToken: string; tokenExpiresAt: Date; webhookId: string | null } | null>;
   findZoomStatus(orgId: string, connectedUserId: string): Promise<{ connected: boolean; connectedAt: Date | null; zoomUserId: string | null }>;
   findOrgUserIds(orgId: string, userIds: string[]): Promise<string[]>;
   listGhlUserMappings(orgId: string): Promise<GhlUserMapping[]>;
   requestGhlSync(orgId: string): Promise<void>;
+  requestGoogleMeetSync(orgId: string): Promise<void>;
   setGhlDefaultRep(orgId: string, repId: string | null): Promise<void>;
+  setGoogleMeetDefaultRep(orgId: string, repId: string | null): Promise<void>;
   updateZoomTokens(orgId: string, connectedUserId: string, tokens: { accessToken: string; refreshToken: string; tokenExpiresAt: Date }): Promise<void>;
   upsertZoomIntegration(input: {
     accessToken: string;
@@ -91,6 +126,15 @@ export type IntegrationsRepository = {
     webhookToken?: string | null;
     zoomAccountId: string | null;
     zoomUserId: string | null;
+  }): Promise<void>;
+  upsertGoogleMeetIntegration(input: {
+    accessToken: string;
+    connectedUserId: string;
+    googleEmail: string | null;
+    googleUserId: string | null;
+    orgId: string;
+    refreshToken: string;
+    tokenExpiresAt: Date;
   }): Promise<void>;
   upsertGhlUserMappings(input: {
     orgId: string;
@@ -112,10 +156,14 @@ function getAvailability(input: IntegrationAvailability = {
   ghlClientId: process.env.GHL_CLIENT_ID,
   ghlClientSecret: process.env.GHL_CLIENT_SECRET,
   ghlEnabled: process.env.ARGOS_GHL_ENABLED,
+  googleMeetClientId: process.env.GOOGLE_MEET_CLIENT_ID,
+  googleMeetClientSecret: process.env.GOOGLE_MEET_CLIENT_SECRET,
+  googleMeetEnabled: process.env.ARGOS_GOOGLE_MEET_ENABLED,
   zoomClientId: process.env.ZOOM_CLIENT_ID,
 }) {
   return {
     ghl: isGhlIntegrationConfigured(input),
+    googleMeet: isGoogleMeetIntegrationConfigured(input),
     zoom: Boolean(input.zoomClientId),
   };
 }
@@ -126,6 +174,20 @@ export function isGhlIntegrationConfigured(input: Partial<IntegrationAvailabilit
   ghlEnabled: process.env.ARGOS_GHL_ENABLED,
 }) {
   return input.ghlEnabled === "true" && Boolean(input.ghlClientId) && Boolean(input.ghlClientSecret);
+}
+
+export function isGoogleMeetIntegrationConfigured(
+  input: Partial<IntegrationAvailability> = {
+    googleMeetClientId: process.env.GOOGLE_MEET_CLIENT_ID,
+    googleMeetClientSecret: process.env.GOOGLE_MEET_CLIENT_SECRET,
+    googleMeetEnabled: process.env.ARGOS_GOOGLE_MEET_ENABLED,
+  },
+) {
+  return (
+    input.googleMeetEnabled === "true" &&
+    Boolean(input.googleMeetClientId) &&
+    Boolean(input.googleMeetClientSecret)
+  );
 }
 
 export async function getIntegrationStatuses(
@@ -165,6 +227,20 @@ export async function getIntegrationStatuses(
           mappedUsersCount: 0,
           syncEnabled: false,
         },
+        googleMeet: {
+          available: availability.googleMeet,
+          connectPath: "/api/integrations/google-meet/connect",
+          connected: false,
+          connectedAt: null,
+          consentConfirmedAt: null,
+          defaultRepId: null,
+          disconnectPath: "/api/integrations/google-meet/disconnect",
+          googleEmail: null,
+          lastSyncCompletedAt: null,
+          lastSyncError: null,
+          lastSyncStartedAt: null,
+          syncEnabled: false,
+        },
         zoom: {
           available: availability.zoom,
           connectPath: "/api/integrations/zoom/connect",
@@ -190,9 +266,23 @@ export async function getIntegrationStatuses(
     mappedUsersCount: 0,
     syncEnabled: false,
   };
-  const [zoom, ghl] = await Promise.all([
+  const unavailableGoogleMeet = {
+    connected: false,
+    connectedAt: null,
+    consentConfirmedAt: null,
+    defaultRepId: null,
+    googleEmail: null,
+    lastSyncCompletedAt: null,
+    lastSyncError: null,
+    lastSyncStartedAt: null,
+    syncEnabled: false,
+  };
+  const [zoom, ghl, googleMeet] = await Promise.all([
     repository.findZoomStatus(viewer.org.id, viewer.id),
     availability.ghl ? repository.findGhlStatus(viewer.org.id) : Promise.resolve(unavailableGhl),
+    availability.googleMeet
+      ? repository.findGoogleMeetStatus(viewer.org.id)
+      : Promise.resolve(unavailableGoogleMeet),
   ]);
 
   return {
@@ -222,6 +312,23 @@ export async function getIntegrationStatuses(
         locationName: ghl.locationName,
         mappedUsersCount: ghl.mappedUsersCount,
         syncEnabled: ghl.syncEnabled,
+      },
+      googleMeet: {
+        available: availability.googleMeet,
+        connectPath: "/api/integrations/google-meet/connect",
+        connected: googleMeet.connected,
+        connectedAt: googleMeet.connectedAt?.toISOString() ?? null,
+        consentConfirmedAt:
+          googleMeet.consentConfirmedAt?.toISOString() ?? null,
+        defaultRepId: googleMeet.defaultRepId,
+        disconnectPath: "/api/integrations/google-meet/disconnect",
+        googleEmail: googleMeet.googleEmail,
+        lastSyncCompletedAt:
+          googleMeet.lastSyncCompletedAt?.toISOString() ?? null,
+        lastSyncError: googleMeet.lastSyncError,
+        lastSyncStartedAt:
+          googleMeet.lastSyncStartedAt?.toISOString() ?? null,
+        syncEnabled: googleMeet.syncEnabled,
       },
     },
   };
@@ -277,8 +384,10 @@ export async function disconnectIntegration(
     }
 
     await repository.deleteZoomIntegration(viewer.org.id, viewer.id);
-  } else {
+  } else if (provider === "ghl") {
     await repository.deleteGhlIntegration(viewer.org.id);
+  } else {
+    await repository.deleteGoogleMeetIntegration(viewer.org.id);
   }
 
   return {
@@ -461,5 +570,138 @@ export async function requestGhlSync(
 
   await repository.requestGhlSync(viewer.data.org.id);
 
+  return { ok: true, data: { success: true } };
+}
+
+export async function updateGoogleMeetSettings(
+  repository: IntegrationsRepository,
+  authUserId: string,
+  input: { defaultRepId: string | null },
+): Promise<ServiceResult<{ success: true }>> {
+  const viewer = await getAdminViewer(repository, authUserId);
+
+  if (!viewer.ok) {
+    return viewer;
+  }
+
+  const googleMeet = await repository.findGoogleMeetStatus(viewer.data.org.id);
+  if (!googleMeet.connected) {
+    return {
+      ok: false,
+      status: 404,
+      error: "Google Meet is not connected",
+    };
+  }
+
+  if (input.defaultRepId) {
+    const orgUserIds = await repository.findOrgUserIds(viewer.data.org.id, [
+      input.defaultRepId,
+    ]);
+    if (!orgUserIds.includes(input.defaultRepId)) {
+      return {
+        ok: false,
+        status: 400,
+        error: "Google Meet owner must belong to this organization",
+      };
+    }
+  }
+
+  await repository.setGoogleMeetDefaultRep(
+    viewer.data.org.id,
+    input.defaultRepId,
+  );
+  return { ok: true, data: { success: true } };
+}
+
+export async function acknowledgeGoogleMeetRecordingConsent(
+  repository: IntegrationsRepository,
+  authUserId: string,
+): Promise<ServiceResult<{ success: true }>> {
+  const viewer = await getAdminViewer(repository, authUserId);
+
+  if (!viewer.ok) {
+    return viewer;
+  }
+
+  const orgId = viewer.data.org.id;
+  const googleMeet = await repository.findGoogleMeetStatus(orgId);
+  if (!googleMeet.connected) {
+    return {
+      ok: false,
+      status: 404,
+      error: "Google Meet is not connected",
+    };
+  }
+
+  if (!(await repository.hasConfiguredIngestionTitleFilters(orgId))) {
+    return {
+      ok: false,
+      status: 400,
+      error:
+        "Add at least one include title phrase before enabling Google Meet sync",
+    };
+  }
+
+  if (!googleMeet.defaultRepId) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Select a default Argos rep before enabling Google Meet sync",
+    };
+  }
+
+  await repository.acknowledgeGoogleMeetRecordingConsent(
+    orgId,
+    viewer.data.id,
+  );
+  return { ok: true, data: { success: true } };
+}
+
+export async function requestGoogleMeetSync(
+  repository: IntegrationsRepository,
+  authUserId: string,
+): Promise<ServiceResult<{ success: true }>> {
+  const viewer = await getAdminViewer(repository, authUserId);
+
+  if (!viewer.ok) {
+    return viewer;
+  }
+
+  const orgId = viewer.data.org.id;
+  const googleMeet = await repository.findGoogleMeetStatus(orgId);
+  if (!googleMeet.connected) {
+    return {
+      ok: false,
+      status: 404,
+      error: "Google Meet is not connected",
+    };
+  }
+
+  if (!(await repository.hasConfiguredIngestionTitleFilters(orgId))) {
+    return {
+      ok: false,
+      status: 400,
+      error:
+        "Add at least one include title phrase before syncing Google Meet recordings",
+    };
+  }
+
+  if (!googleMeet.defaultRepId) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Select a default Argos rep before syncing Google Meet recordings",
+    };
+  }
+
+  if (!googleMeet.consentConfirmedAt || !googleMeet.syncEnabled) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Confirm recording consent before syncing Google Meet recordings",
+    };
+  }
+
+  await repository.requestGoogleMeetSync(orgId);
   return { ok: true, data: { success: true } };
 }

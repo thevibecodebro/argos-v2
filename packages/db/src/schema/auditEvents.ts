@@ -11,10 +11,14 @@ export const auditEventsTable = pgTable(
       .references(() => organizationsTable.id, { onDelete: "cascade" }),
     actorId: uuid("actor_id").references(() => usersTable.id, { onDelete: "set null" }),
     eventType: text("event_type", {
-      enum: ["call_exported", "call_deleted"],
+      enum: [
+        "call_exported",
+        "call_deleted",
+        "ingestion_title_filters_updated",
+      ],
     }).notNull(),
     resourceType: text("resource_type", {
-      enum: ["call"],
+      enum: ["call", "organization"],
     }).notNull(),
     resourceId: uuid("resource_id"),
     metadata: jsonb("metadata").notNull().default({}),
@@ -26,4 +30,3 @@ export const auditEventsTable = pgTable(
     index("audit_events_resource_idx").on(table.resourceType, table.resourceId),
   ],
 );
-

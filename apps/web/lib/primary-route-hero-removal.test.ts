@@ -39,6 +39,8 @@ const {
   getTeamAccessSnapshotMock,
   createIntegrationsRepositoryMock,
   getIntegrationStatusesMock,
+  createIngestionTitleFiltersRepositoryMock,
+  getOrganizationIngestionTitleFiltersMock,
   createComplianceRepositoryMock,
   getComplianceStatusMock,
 } = vi.hoisted(() => ({
@@ -78,6 +80,8 @@ const {
   getTeamAccessSnapshotMock: vi.fn(),
   createIntegrationsRepositoryMock: vi.fn(),
   getIntegrationStatusesMock: vi.fn(),
+  createIngestionTitleFiltersRepositoryMock: vi.fn(),
+  getOrganizationIngestionTitleFiltersMock: vi.fn(),
   createComplianceRepositoryMock: vi.fn(),
   getComplianceStatusMock: vi.fn(),
 }));
@@ -274,6 +278,15 @@ vi.mock("@/lib/integrations/service", () => ({
   getIntegrationStatuses: getIntegrationStatusesMock,
 }));
 
+vi.mock("@/lib/ingestion-title-filters/create-repository", () => ({
+  createIngestionTitleFiltersRepository:
+    createIngestionTitleFiltersRepositoryMock,
+}));
+
+vi.mock("@/lib/ingestion-title-filters/service", () => ({
+  getOrganizationIngestionTitleFilters: getOrganizationIngestionTitleFiltersMock,
+}));
+
 vi.mock("@/lib/compliance/create-repository", () => ({
   createComplianceRepository: createComplianceRepositoryMock,
 }));
@@ -429,6 +442,15 @@ describe("primary route hero removal", () => {
       data: [],
     });
     createIntegrationsRepositoryMock.mockReturnValue({});
+    createIngestionTitleFiltersRepositoryMock.mockReturnValue({});
+    getOrganizationIngestionTitleFiltersMock.mockResolvedValue({
+      ok: true,
+      data: {
+        configured: false,
+        excludePhrases: [],
+        includePhrases: [],
+      },
+    });
     getIntegrationStatusesMock.mockResolvedValue({
       ok: true,
       data: {
@@ -448,6 +470,20 @@ describe("primary route hero removal", () => {
           disconnectPath: "/api/integrations/ghl/disconnect",
           locationId: null,
           locationName: null,
+        },
+        googleMeet: {
+          available: false,
+          connectPath: "/api/integrations/google-meet/connect",
+          connected: false,
+          connectedAt: null,
+          consentConfirmedAt: null,
+          defaultRepId: null,
+          disconnectPath: "/api/integrations/google-meet/disconnect",
+          googleEmail: null,
+          lastSyncCompletedAt: null,
+          lastSyncError: null,
+          lastSyncStartedAt: null,
+          syncEnabled: false,
         },
       },
     });

@@ -4,6 +4,7 @@ import {
   callsTable,
   findActiveCallProcessingSubscription,
   getDb,
+  organizationIngestionTitleFiltersTable,
   organizationsTable,
   usersTable,
   zoomIntegrationsTable,
@@ -73,6 +74,28 @@ export class DrizzleZoomWebhookRepository implements ZoomWebhookRepository {
       .limit(1);
 
     return call ?? null;
+  }
+
+  async findIngestionTitleFilterConfig(orgId: string) {
+    const rows = await this.db
+      .select({
+        kind: organizationIngestionTitleFiltersTable.kind,
+        phrase: organizationIngestionTitleFiltersTable.phrase,
+      })
+      .from(organizationIngestionTitleFiltersTable)
+      .where(eq(organizationIngestionTitleFiltersTable.orgId, orgId));
+    const includePhrases = rows
+      .filter((row) => row.kind === "include")
+      .map((row) => row.phrase);
+    const excludePhrases = rows
+      .filter((row) => row.kind === "exclude")
+      .map((row) => row.phrase);
+
+    return {
+      configured: includePhrases.length > 0,
+      excludePhrases,
+      includePhrases,
+    };
   }
 
   async findPreferredCallOwner(orgId: string) {

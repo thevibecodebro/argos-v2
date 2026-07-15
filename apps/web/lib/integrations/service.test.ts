@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  acknowledgeGoogleMeetRecordingConsent,
   disconnectIntegration,
   getIntegrationStatuses,
+  requestGoogleMeetSync,
+  updateGoogleMeetSettings,
   updateGhlUserMappings,
   type IntegrationsRepository,
 } from "./service";
@@ -10,23 +13,42 @@ function createRepository(
   overrides: Partial<IntegrationsRepository> = {},
 ): IntegrationsRepository {
   return {
+    acknowledgeGoogleMeetRecordingConsent: vi.fn(),
     acknowledgeGhlRecordingConsent: vi.fn(),
     deleteGhlIntegration: vi.fn(),
+    deleteGoogleMeetIntegration: vi.fn(),
     deleteZoomIntegration: vi.fn(),
     findCurrentUserByAuthId: vi.fn(),
     findGhlStatus: vi.fn(),
+    findGoogleMeetStatus: vi.fn(),
+    hasConfiguredIngestionTitleFilters: vi.fn(),
     findOrgUserIds: vi.fn(),
     findZoomIntegrationForDisconnect: vi.fn().mockResolvedValue(null),
     findZoomStatus: vi.fn(),
     listGhlUserMappings: vi.fn(),
     requestGhlSync: vi.fn(),
+    requestGoogleMeetSync: vi.fn(),
     setGhlDefaultRep: vi.fn(),
+    setGoogleMeetDefaultRep: vi.fn(),
     updateZoomTokens: vi.fn(),
     upsertGhlUserMappings: vi.fn(),
+    upsertGoogleMeetIntegration: vi.fn(),
     upsertZoomIntegration: vi.fn(),
     ...overrides,
   };
 }
+
+const unavailableGoogleMeetStatus = {
+  connected: false,
+  connectedAt: null,
+  consentConfirmedAt: null,
+  defaultRepId: null,
+  googleEmail: null,
+  lastSyncCompletedAt: null,
+  lastSyncError: null,
+  lastSyncStartedAt: null,
+  syncEnabled: false,
+};
 
 describe("getIntegrationStatuses", () => {
   it("exposes connection metadata but keeps org-level integration controls admin-only", async () => {
@@ -407,6 +429,187 @@ describe("updateGhlUserMappings", () => {
           ghlUserName: "Rep Two",
         },
       ],
+    });
+  });
+});
+
+describe("Google Meet integration controls", () => {
+  function createConnectedGoogleMeetRepository(
+    overrides: Partial<IntegrationsRepository> = {},
+  ) {
+    return createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "admin-1",
+        email: "admin@argos.ai",
+        role: "admin",
+        firstName: "Avery",
+        lastName: "Stone",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      findGoogleMeetStatus: vi.fn().mockResolvedValue({
+        connected: true,
+        connectedAt: new Date("2026-07-13T12:00:00.000Z"),
+        consentConfirmedAt: null,
+        defaultRepId: null,
+        googleEmail: "organizer@example.com",
+        lastSyncCompletedAt: null,
+        lastSyncError: null,
+        lastSyncStartedAt: null,
+        syncEnabled: false,
+      }),
+      findOrgUserIds: vi.fn().mockResolvedValue(["rep-1"]),
+      hasConfiguredIngestionTitleFilters: vi.fn().mockResolvedValue(true),
+      ...overrides,
+    });
+  }
+
+  it("feature-gates Google Meet status and exposes organizer metadata when enabled", async () => {
+    const findGoogleMeetStatus = vi.fn().mockResolvedValue({
+      ...unavailableGoogleMeetStatus,
+      connected: true,
+      connectedAt: new Date("2026-07-13T12:00:00.000Z"),
+      googleEmail: "organizer@example.com",
+    });
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "admin-1",
+        email: "admin@argos.ai",
+        role: "admin",
+        firstName: "Avery",
+        lastName: "Stone",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      findGoogleMeetStatus,
+      findZoomStatus: vi.fn().mockResolvedValue({
+        connected: false,
+        connectedAt: null,
+        zoomUserId: null,
+      }),
+    });
+
+    const disabled = await getIntegrationStatuses(repository, "admin-1", {
+      ghlClientId: null,
+      ghlClientSecret: null,
+      ghlEnabled: "false",
+      googleMeetClientId: "google-client",
+      googleMeetClientSecret: "google-secret",
+      googleMeetEnabled: "false",
+      zoomClientId: null,
+    });
+    const enabled = await getIntegrationStatuses(repository, "admin-1", {
+      ghlClientId: null,
+      ghlClientSecret: null,
+      ghlEnabled: "false",
+      googleMeetClientId: "google-client",
+      googleMeetClientSecret: "google-secret",
+      googleMeetEnabled: "true",
+      zoomClientId: null,
+    });
+
+    expect(disabled.ok && disabled.data.googleMeet.available).toBe(false);
+    expect(enabled.ok && enabled.data.googleMeet).toMatchObject({
+      available: true,
+      connectPath: "/api/integrations/google-meet/connect",
+      connected: true,
+      disconnectPath: "/api/integrations/google-meet/disconnect",
+      googleEmail: "organizer@example.com",
+    });
+    expect(findGoogleMeetStatus).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects a default rep from another organization", async () => {
+    const repository = createConnectedGoogleMeetRepository({
+      findOrgUserIds: vi.fn().mockResolvedValue([]),
+    });
+
+    const result = await updateGoogleMeetSettings(repository, "admin-1", {
+      defaultRepId: "cross-tenant-user",
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      status: 400,
+      error: "Google Meet owner must belong to this organization",
+    });
+    expect(repository.setGoogleMeetDefaultRep).not.toHaveBeenCalled();
+  });
+
+  it("requires saved title rules and a default rep before consent enables sync", async () => {
+    const noFilters = createConnectedGoogleMeetRepository({
+      hasConfiguredIngestionTitleFilters: vi.fn().mockResolvedValue(false),
+    });
+
+    await expect(
+      acknowledgeGoogleMeetRecordingConsent(noFilters, "admin-1"),
+    ).resolves.toEqual({
+      ok: false,
+      status: 400,
+      error: "Add at least one include title phrase before enabling Google Meet sync",
+    });
+
+    const noOwner = createConnectedGoogleMeetRepository();
+    await expect(
+      acknowledgeGoogleMeetRecordingConsent(noOwner, "admin-1"),
+    ).resolves.toEqual({
+      ok: false,
+      status: 400,
+      error: "Select a default Argos rep before enabling Google Meet sync",
+    });
+
+    const ready = createConnectedGoogleMeetRepository({
+      findGoogleMeetStatus: vi.fn().mockResolvedValue({
+        ...unavailableGoogleMeetStatus,
+        connected: true,
+        defaultRepId: "rep-1",
+        googleEmail: "organizer@example.com",
+      }),
+    });
+    await expect(
+      acknowledgeGoogleMeetRecordingConsent(ready, "admin-1"),
+    ).resolves.toEqual({ ok: true, data: { success: true } });
+    expect(ready.acknowledgeGoogleMeetRecordingConsent).toHaveBeenCalledWith(
+      "org-1",
+      "admin-1",
+    );
+  });
+
+  it("queues a seven-day resync only when all Google Meet prerequisites remain valid", async () => {
+    const repository = createConnectedGoogleMeetRepository({
+      findGoogleMeetStatus: vi.fn().mockResolvedValue({
+        ...unavailableGoogleMeetStatus,
+        connected: true,
+        consentConfirmedAt: new Date("2026-07-13T12:05:00.000Z"),
+        defaultRepId: "rep-1",
+        googleEmail: "organizer@example.com",
+        syncEnabled: true,
+      }),
+    });
+
+    await expect(requestGoogleMeetSync(repository, "admin-1")).resolves.toEqual({
+      ok: true,
+      data: { success: true },
+    });
+    expect(repository.requestGoogleMeetSync).toHaveBeenCalledWith("org-1");
+  });
+
+  it("requires admins for organization-owned Google Meet disconnects", async () => {
+    const repository = createConnectedGoogleMeetRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "manager-1",
+        email: "manager@argos.ai",
+        role: "manager",
+        firstName: "Morgan",
+        lastName: "Lee",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+    });
+
+    await expect(
+      disconnectIntegration(repository, "manager-1", "google_meet"),
+    ).resolves.toEqual({
+      ok: false,
+      status: 403,
+      error: "Only organization admins can manage integrations",
     });
   });
 });

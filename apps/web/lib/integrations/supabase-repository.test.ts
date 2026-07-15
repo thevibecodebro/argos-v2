@@ -49,7 +49,7 @@ function createSupabaseMock() {
 }
 
 describe("SupabaseIntegrationsRepository token encryption", () => {
-  it("encrypts Zoom and GHL tokens before upsert persistence", async () => {
+  it("encrypts Zoom, GHL, and Google Meet tokens before upsert persistence", async () => {
     vi.stubEnv("ARGOS_TOKEN_ENCRYPTION_KEY", key);
     const supabase = createSupabaseMock();
     const repository = new SupabaseIntegrationsRepository(supabase.client as any);
@@ -73,9 +73,19 @@ describe("SupabaseIntegrationsRepository token encryption", () => {
       refreshToken: "ghl-refresh",
       tokenExpiresAt: new Date("2026-04-04T12:00:00.000Z"),
     });
+    await repository.upsertGoogleMeetIntegration({
+      accessToken: "google-access",
+      connectedUserId: "user-1",
+      googleEmail: "organizer@example.com",
+      googleUserId: "google-user-1",
+      orgId: "org-1",
+      refreshToken: "google-refresh",
+      tokenExpiresAt: new Date("2026-04-04T12:00:00.000Z"),
+    });
 
     const zoomPayload = supabase.state.upsertPayloads[0];
     const ghlPayload = supabase.state.upsertPayloads[1];
+    const googlePayload = supabase.state.upsertPayloads[2];
 
     expect(zoomPayload.access_token).not.toBe("zoom-access");
     expect(zoomPayload.connected_user_id).toBe("user-1");
@@ -90,6 +100,12 @@ describe("SupabaseIntegrationsRepository token encryption", () => {
     expect(ghlPayload.refresh_token).not.toBe("ghl-refresh");
     expect(decryptIntegrationToken(ghlPayload.access_token as string)).toBe("ghl-access");
     expect(decryptIntegrationToken(ghlPayload.refresh_token as string)).toBe("ghl-refresh");
+
+    expect(googlePayload.access_token).not.toBe("google-access");
+    expect(googlePayload.refresh_token).not.toBe("google-refresh");
+    expect(googlePayload.google_email).toBe("organizer@example.com");
+    expect(decryptIntegrationToken(googlePayload.access_token as string)).toBe("google-access");
+    expect(decryptIntegrationToken(googlePayload.refresh_token as string)).toBe("google-refresh");
   });
 
   it("decrypts encrypted Zoom tokens before returning them to provider services", async () => {
@@ -146,6 +162,20 @@ describe("SupabaseIntegrationsRepository token encryption", () => {
     expect(updatePayload.refresh_token).not.toBe("new-refresh");
     expect(decryptIntegrationToken(updatePayload.access_token as string)).toBe("new-access");
     expect(decryptIntegrationToken(updatePayload.refresh_token as string)).toBe("new-refresh");
+  });
+
+  it("disables Google Meet sync and clears consent when its default rep is removed", async () => {
+    const supabase = createSupabaseMock();
+    const repository = new SupabaseIntegrationsRepository(supabase.client as any);
+
+    await repository.setGoogleMeetDefaultRep("org-1", null);
+
+    expect(supabase.state.updatePayloads[0]).toMatchObject({
+      consent_confirmed_at: null,
+      consent_confirmed_by: null,
+      default_rep_id: null,
+      sync_enabled: false,
+    });
   });
 });
 
