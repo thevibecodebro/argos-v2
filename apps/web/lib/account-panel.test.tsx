@@ -11,17 +11,15 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("AccountPanel", () => {
-  it("links organization admins to billing and seat management", () => {
+  it("keeps source-aware billing controls out of the profile panel", () => {
     const html = renderToStaticMarkup(
       createElement(AccountPanel, {
         initialUser: currentUser(),
       }),
     );
 
-    expect(html).toContain("Billing");
-    expect(html).toContain("Manage billing and seats");
-    expect(html).toContain('href="/billing/portal"');
-    expect(html).toContain("Team subscriptions can adjust paid seat quantity from Stripe billing.");
+    expect(html).not.toContain("Manage billing and seats");
+    expect(html).not.toContain('href="/billing/portal"');
   });
 
   it("does not expose billing management to non-admin organization members", () => {

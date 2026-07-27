@@ -68,6 +68,7 @@ function makeOrganizationDetail(
     alerts: [{ label: "No active admin", severity: "critical" }],
     auditEvents: [],
     billing: { activeSubscriptionCount: 0, seats: 0, subscriptions: [] },
+    coachingAccess: null,
     callStats: {
       averageScore: null,
       failedCalls: 0,

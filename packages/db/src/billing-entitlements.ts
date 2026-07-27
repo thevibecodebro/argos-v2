@@ -1,12 +1,13 @@
-import { and, desc, eq, gt, inArray, isNull, or } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNull, lte, or } from "drizzle-orm";
 import type { ArgosDb } from "./client";
-import { billingSubscriptionsTable } from "./schema";
+import { billingSubscriptionsTable, softwareAccessGrantsTable } from "./schema";
 
 const ACTIVE_PROCESSING_SUBSCRIPTION_STATUSES = ["active", "trialing"] as const;
 const ACTIVE_PAID_SUBSCRIPTION_STATUSES = ["active"] as const;
 
 export type ActiveCallProcessingSubscription = {
   id: string;
+  sourceType: "coaching_contract" | "stripe_subscription";
 };
 
 export type CallProcessingSubscriptionScope = {
@@ -24,6 +25,7 @@ export async function findActiveCallProcessingSubscription(
 
 export type ActiveTrainingAiSubscription = {
   id: string;
+  sourceType: "coaching_contract" | "stripe_subscription";
 };
 
 export type TrainingAiSubscriptionScope = {
@@ -43,7 +45,10 @@ async function findActiveSubscription(
   db: ArgosDb,
   input: CallProcessingSubscriptionScope | TrainingAiSubscriptionScope,
   statuses: readonly string[],
-): Promise<{ id: string } | null> {
+): Promise<{
+  id: string;
+  sourceType: "coaching_contract" | "stripe_subscription";
+} | null> {
   const ownerCondition = input.orgId
     ? eq(billingSubscriptionsTable.orgId, input.orgId)
     : input.userId
@@ -55,6 +60,31 @@ async function findActiveSubscription(
   }
 
   const now = input.now ?? new Date();
+  if (input.orgId) {
+    const [coachingGrant] = await db
+      .select({
+        id: softwareAccessGrantsTable.id,
+      })
+      .from(softwareAccessGrantsTable)
+      .where(
+        and(
+          eq(softwareAccessGrantsTable.orgId, input.orgId),
+          eq(softwareAccessGrantsTable.status, "active"),
+          lte(softwareAccessGrantsTable.startsAt, now),
+          gt(softwareAccessGrantsTable.endsAt, now),
+        ),
+      )
+      .orderBy(desc(softwareAccessGrantsTable.updatedAt))
+      .limit(1);
+
+    if (coachingGrant) {
+      return {
+        id: coachingGrant.id,
+        sourceType: "coaching_contract",
+      };
+    }
+  }
+
   const [subscription] = await db
     .select({
       id: billingSubscriptionsTable.id,
@@ -73,5 +103,10 @@ async function findActiveSubscription(
     .orderBy(desc(billingSubscriptionsTable.updatedAt))
     .limit(1);
 
-  return subscription ?? null;
+  return subscription
+    ? {
+        ...subscription,
+        sourceType: "stripe_subscription" as const,
+      }
+    : null;
 }

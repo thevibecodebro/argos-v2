@@ -5,11 +5,15 @@ import type { CurrentUserDetails } from "./users/service";
 const {
   createStripeCheckoutSession,
   createUsersRepository,
+  findActiveSoftwareAccess,
+  findBillingCustomerForScope,
   getAuthenticatedSupabaseUser,
   getCurrentUserDetails,
 } = vi.hoisted(() => ({
   createStripeCheckoutSession: vi.fn(),
   createUsersRepository: vi.fn(),
+  findActiveSoftwareAccess: vi.fn(),
+  findBillingCustomerForScope: vi.fn(),
   getAuthenticatedSupabaseUser: vi.fn(),
   getCurrentUserDetails: vi.fn(),
 }));
@@ -26,6 +30,13 @@ vi.mock("@/lib/users/create-repository", () => ({
 
 vi.mock("@/lib/users/service", () => ({
   getCurrentUserDetails,
+}));
+
+vi.mock("@/lib/billing/repository", () => ({
+  DrizzleBillingRepository: vi.fn(() => ({
+    findActiveSoftwareAccess,
+    findBillingCustomerForScope,
+  })),
 }));
 
 vi.mock("@/lib/billing/stripe-checkout", async () => {
@@ -63,6 +74,8 @@ describe("billing checkout route", () => {
     getAuthenticatedSupabaseUser.mockReset();
     createUsersRepository.mockReset();
     getCurrentUserDetails.mockReset();
+    findActiveSoftwareAccess.mockReset();
+    findBillingCustomerForScope.mockReset();
     createStripeCheckoutSession.mockReset();
     checkRateLimitForPolicy.mockReset();
     createUsersRepository.mockReturnValue({ usersRepository: true });
@@ -70,6 +83,8 @@ describe("billing checkout route", () => {
       ok: true,
       data: currentUser(),
     });
+    findActiveSoftwareAccess.mockResolvedValue(null);
+    findBillingCustomerForScope.mockResolvedValue(null);
     checkRateLimitForPolicy.mockResolvedValue({
       allowed: true,
       bucketKey: "billingCheckout:user:hash",
@@ -135,7 +150,7 @@ describe("billing checkout route", () => {
     expect(createStripeCheckoutSession).toHaveBeenCalledWith(
       expect.objectContaining({
         authUserId: "auth-user-1",
-        cancelUrl: "https://argos.ai/?checkout=cancelled&plan=team#access",
+        cancelUrl: "https://argos.ai/dashboard?checkout=cancelled&plan=team",
         customerEmail: "founder@argos.ai",
         plan: expect.objectContaining({ id: "team" }),
         quantity: 8,
@@ -170,6 +185,62 @@ describe("billing checkout route", () => {
     );
     expect(checkRateLimitForPolicy).not.toHaveBeenCalled();
     expect(createStripeCheckoutSession).not.toHaveBeenCalled();
+  });
+
+  it("blocks a second base subscription while coaching access is active", async () => {
+    getAuthenticatedSupabaseUser.mockResolvedValue({
+      email: "founder@argos.ai",
+      id: "auth-user-1",
+    });
+    findActiveSoftwareAccess.mockResolvedValue({
+      sourceType: "coaching_contract",
+    });
+
+    const route = await import("../app/billing/checkout/route");
+    const response = await route.GET(
+      new Request("https://argos.ai/billing/checkout?plan=solo"),
+    );
+
+    expect(response.headers.get("location")).toBe(
+      "https://argos.ai/?checkout_error=coaching_access_active&plan=solo#access",
+    );
+    expect(checkRateLimitForPolicy).not.toHaveBeenCalled();
+    expect(createStripeCheckoutSession).not.toHaveBeenCalled();
+  });
+
+  it("reuses the workspace Stripe customer for minute-pack checkout", async () => {
+    getAuthenticatedSupabaseUser.mockResolvedValue({
+      email: "founder@argos.ai",
+      id: "auth-user-1",
+    });
+    findActiveSoftwareAccess.mockResolvedValue({
+      sourceType: "coaching_contract",
+    });
+    findBillingCustomerForScope.mockResolvedValue({
+      stripeCustomerId: "cus_workspace",
+    });
+    createStripeCheckoutSession.mockResolvedValue({
+      id: "cs_live",
+      url: "https://checkout.stripe.com/c/minutes",
+    });
+
+    const route = await import("../app/billing/checkout/route");
+    const response = await route.GET(
+      new Request(
+        "https://argos.ai/billing/checkout?plan=extra-250&return_to=%2Froleplay",
+      ),
+    );
+
+    expect(response.headers.get("location")).toBe(
+      "https://checkout.stripe.com/c/minutes",
+    );
+    expect(createStripeCheckoutSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        customerId: "cus_workspace",
+        successUrl:
+          "https://argos.ai/roleplay?checkout=success&plan=extra-250",
+      }),
+    );
   });
 
   it("rate limits checkout session creation per authenticated user before calling Stripe", async () => {

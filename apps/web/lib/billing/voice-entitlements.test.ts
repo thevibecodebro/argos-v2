@@ -18,7 +18,19 @@ function makeRepository(
       .fn()
       .mockResolvedValue({ ok: true, data: { minutesDebited: 1 } }),
     consumeVoiceCreditGrant: vi.fn().mockResolvedValue(undefined),
+    ensureCoachingVoiceCreditGrant: vi.fn().mockResolvedValue(undefined),
+    findActiveSoftwareAccess: vi.fn().mockResolvedValue({
+      accessEndsAt: new Date("2026-08-01T00:00:00.000Z"),
+      accessStartsAt: new Date("2026-07-01T00:00:00.000Z"),
+      billingPlanId: "solo-monthly",
+      package: "solo",
+      seatCount: 1,
+      sourceId: "subscription-1",
+      sourceType: "stripe_subscription",
+      voiceMinutesPerSeat: 120,
+    }),
     findActiveVoiceCreditGrants: vi.fn().mockResolvedValue([]),
+    findVoiceBalanceGrants: vi.fn().mockResolvedValue([]),
     findUserBillingScope: vi.fn().mockResolvedValue({
       orgId: "org-1",
       userId: "auth-user-1",
@@ -29,6 +41,24 @@ function makeRepository(
 }
 
 describe("getVoiceEntitlementStatus", () => {
+  it("requires active base software access even when an old minute pack remains", async () => {
+    const findActiveVoiceCreditGrants = vi.fn().mockResolvedValue([
+      { id: "extra", minutesRemaining: 250, sourceType: "extra_pack" },
+    ]);
+    const repository = makeRepository({
+      findActiveSoftwareAccess: vi.fn().mockResolvedValue(null),
+      findActiveVoiceCreditGrants,
+    });
+
+    await expect(getVoiceEntitlementStatus(repository, "auth-user-1")).resolves.toEqual({
+      ok: false,
+      status: 402,
+      code: "software_access_required",
+      error: "Active Argos software access is required for live voice.",
+    });
+    expect(findActiveVoiceCreditGrants).not.toHaveBeenCalled();
+  });
+
   it("allows voice when active grants have remaining minutes", async () => {
     const repository = makeRepository({
       findActiveVoiceCreditGrants: vi.fn().mockResolvedValue([

@@ -20,6 +20,7 @@ import {
   ForgeStatusPanel,
 } from "./forge";
 import { OperationalPreviewDrawer } from "./operational-workspace";
+import { VoiceBalanceCard } from "./billing/voice-balance-card";
 
 type RoleplayPanelProps = {
   initialPersonas: RoleplayPersona[];
@@ -214,6 +215,8 @@ export function RoleplayPanel({
   const [isVoiceActive, setIsVoiceActive] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState<string | null>(null);
   const [speakingLine, setSpeakingLine] = useState<string | null>(null);
+  const [voiceAvailable, setVoiceAvailable] = useState<boolean | null>(null);
+  const [balanceRefreshKey, setBalanceRefreshKey] = useState(0);
   const displayedTranscript = activeSession?.transcript ?? [];
 
   useEffect(() => {
@@ -456,6 +459,7 @@ export function RoleplayPanel({
       );
 
       if (!res.ok) {
+        if (res.status === 402) setBalanceRefreshKey((value) => value + 1);
         const payload = (await res.json().catch(() => null)) as {
           error?: string;
         } | null;
@@ -463,6 +467,7 @@ export function RoleplayPanel({
       }
 
       await pc.setRemoteDescription({ type: "answer", sdp: await res.text() });
+      setBalanceRefreshKey((value) => value + 1);
     } catch (err) {
       cleanupVoiceSession();
       const msg =
@@ -478,6 +483,7 @@ export function RoleplayPanel({
 
   function stopVoicePractice() {
     stopActiveRoleplayAudio();
+    setBalanceRefreshKey((value) => value + 1);
   }
 
   async function flushPendingVoiceTranscriptPersistence() {
@@ -502,12 +508,14 @@ export function RoleplayPanel({
         }),
       });
       if (!res.ok) {
+        if (res.status === 402) setBalanceRefreshKey((value) => value + 1);
         const p = (await res.json().catch(() => null)) as {
           error?: string;
         } | null;
         throw new Error(p?.error ?? "Unable to synthesize voice.");
       }
       const blob = await res.blob();
+      setBalanceRefreshKey((value) => value + 1);
       if (activeAudioUrlRef.current)
         URL.revokeObjectURL(activeAudioUrlRef.current);
       const url = URL.createObjectURL(blob);
@@ -632,16 +640,26 @@ export function RoleplayPanel({
   const activeScorecard = activeSession?.scorecard ?? null;
   const activeSessionWithScorecard =
     activeSession && activeScorecard ? activeSession : null;
-  const isVoiceControlDisabled = isRoleplayVoiceControlDisabled({
+  const baseVoiceControlDisabled = isRoleplayVoiceControlDisabled({
     activeSessionStatus: activeSession?.status,
     isStartingVoice,
     isVoiceActive,
   });
+  const isVoiceControlDisabled = isVoiceActive
+    ? false
+    : baseVoiceControlDisabled || voiceAvailable !== true;
   const generatedActiveSession =
     activeSession?.origin === "generated_from_call" ? activeSession : null;
 
   return (
     <>
+      <div className="mb-3">
+        <VoiceBalanceCard
+          onVoiceAvailabilityChange={setVoiceAvailable}
+          refreshKey={balanceRefreshKey}
+          returnTo="/roleplay"
+        />
+      </div>
       <div className="mb-4 lg:hidden" data-roleplay-mobile-sections="true">
         <ForgeSegmentedTabs
           className="overflow-x-auto"

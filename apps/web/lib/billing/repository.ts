@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, isNull, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNull, lte, ne, or, sql } from "drizzle-orm";
 import {
   billingCustomersTable,
   billingSubscriptionsTable,
@@ -6,12 +6,18 @@ import {
   findActiveTrainingAiSubscription,
   getDb,
   organizationsTable,
+  softwareAccessGrantsTable,
   stripeWebhookEventsTable,
   usersTable,
   voiceCreditGrantsTable,
   voiceUsageEventsTable,
   type ArgosDb,
 } from "@argos-v2/db";
+import { billingPlans } from "./plans";
+import {
+  normalizeStripePackage,
+  type SoftwareAccessEntitlement,
+} from "./software-access";
 import type { BillingWebhookRepository, StripeWebhookEvent } from "./webhook-service";
 import type {
   ConsumeVoiceMinutesInput,
@@ -60,6 +66,7 @@ export class DrizzleBillingRepository
         lastName: usersTable.lastName,
         orgName: organizationsTable.name,
         orgId: usersTable.orgId,
+        role: usersTable.role,
         userId: usersTable.id,
       })
       .from(usersTable)
@@ -76,7 +83,101 @@ export class DrizzleBillingRepository
       fullName: buildFullName(user.firstName, user.lastName, user.email),
       orgName: user.orgName,
       orgId: user.orgId,
+      role: user.role,
       userId: user.userId,
+    };
+  }
+
+  async findActiveSoftwareAccess(input: {
+    orgId: string | null;
+    userId: string;
+  }): Promise<SoftwareAccessEntitlement | null> {
+    const now = new Date();
+
+    if (input.orgId) {
+      const [coaching] = await this.db
+        .select({
+          endsAt: softwareAccessGrantsTable.endsAt,
+          id: softwareAccessGrantsTable.id,
+          package: softwareAccessGrantsTable.package,
+          seatLimit: softwareAccessGrantsTable.seatLimit,
+          startsAt: softwareAccessGrantsTable.startsAt,
+          voiceMinutesPerSeat: softwareAccessGrantsTable.monthlyVoiceMinutesPerSeat,
+        })
+        .from(softwareAccessGrantsTable)
+        .where(
+          and(
+            eq(softwareAccessGrantsTable.orgId, input.orgId),
+            eq(softwareAccessGrantsTable.status, "active"),
+            lte(softwareAccessGrantsTable.startsAt, now),
+            gt(softwareAccessGrantsTable.endsAt, now),
+          ),
+        )
+        .orderBy(desc(softwareAccessGrantsTable.updatedAt))
+        .limit(1);
+
+      if (coaching) {
+        return {
+          accessEndsAt: coaching.endsAt,
+          accessStartsAt: coaching.startsAt,
+          billingPlanId: `coaching-${coaching.package}`,
+          package: coaching.package,
+          seatCount: coaching.seatLimit,
+          sourceId: coaching.id,
+          sourceType: "coaching_contract",
+          voiceMinutesPerSeat: coaching.voiceMinutesPerSeat,
+        };
+      }
+    }
+
+    const ownerCondition = input.orgId
+      ? eq(billingSubscriptionsTable.orgId, input.orgId)
+      : and(
+          eq(billingSubscriptionsTable.userId, input.userId),
+          isNull(billingSubscriptionsTable.orgId),
+        );
+    const [subscription] = await this.db
+      .select({
+        billingPlanId: billingSubscriptionsTable.billingPlanId,
+        currentPeriodEnd: billingSubscriptionsTable.currentPeriodEnd,
+        currentPeriodStart: billingSubscriptionsTable.currentPeriodStart,
+        id: billingSubscriptionsTable.id,
+        seatCount: billingSubscriptionsTable.seatCount,
+      })
+      .from(billingSubscriptionsTable)
+      .where(
+        and(
+          ownerCondition,
+          inArray(billingSubscriptionsTable.status, ["active", "trialing"]),
+          or(
+            isNull(billingSubscriptionsTable.currentPeriodEnd),
+            gt(billingSubscriptionsTable.currentPeriodEnd, now),
+          ),
+        ),
+      )
+      .orderBy(desc(billingSubscriptionsTable.updatedAt))
+      .limit(1);
+
+    if (!subscription) {
+      return null;
+    }
+
+    const plan = billingPlans[subscription.billingPlanId as keyof typeof billingPlans];
+    const voiceMinutesPerSeat = Number(
+      plan?.metadata.included_live_voice_minutes_per_seat ??
+        plan?.metadata.included_live_voice_minutes ??
+        120,
+    );
+
+    return {
+      accessEndsAt: subscription.currentPeriodEnd,
+      accessStartsAt: subscription.currentPeriodStart,
+      billingPlanId: subscription.billingPlanId,
+      package: normalizeStripePackage(subscription.billingPlanId),
+      seatCount: Math.max(1, subscription.seatCount),
+      sourceId: subscription.id,
+      sourceType: "stripe_subscription",
+      voiceMinutesPerSeat,
     };
   }
 
@@ -211,6 +312,49 @@ export class DrizzleBillingRepository
       .onConflictDoNothing();
   }
 
+  async ensureCoachingVoiceCreditGrant(input: {
+    billingPlanId: string;
+    expiresAt: Date;
+    minutesGranted: number;
+    orgId: string;
+    periodEnd: Date;
+    periodStart: Date;
+    sourceId: string;
+    userId: string;
+  }) {
+    const now = new Date();
+    const consumedMinutes = sql`greatest(${voiceCreditGrantsTable.minutesGranted} - ${voiceCreditGrantsTable.minutesRemaining}, 0)`;
+    const reconciledRemainingMinutes = sql`greatest(${input.minutesGranted} - ${consumedMinutes}, 0)`;
+
+    await this.db
+      .insert(voiceCreditGrantsTable)
+      .values({
+        billingPlanId: input.billingPlanId,
+        expiresAt: input.expiresAt,
+        minutesGranted: input.minutesGranted,
+        minutesRemaining: input.minutesGranted,
+        orgId: input.orgId,
+        periodEnd: input.periodEnd,
+        periodStart: input.periodStart,
+        sourceId: input.sourceId,
+        sourceType: "coaching_included",
+        userId: input.userId,
+      })
+      .onConflictDoUpdate({
+        target: [voiceCreditGrantsTable.sourceType, voiceCreditGrantsTable.sourceId],
+        set: {
+          billingPlanId: input.billingPlanId,
+          expiresAt: input.expiresAt,
+          minutesGranted: input.minutesGranted,
+          minutesRemaining: reconciledRemainingMinutes,
+          periodEnd: input.periodEnd,
+          periodStart: input.periodStart,
+          status: sql`case when ${reconciledRemainingMinutes} <= 0 then 'depleted' else 'active' end`,
+          updatedAt: now,
+        },
+      });
+  }
+
   async reconcileSubscriptionVoiceCreditGrants(input: {
     active: boolean;
     billingPlanId: string;
@@ -297,9 +441,15 @@ export class DrizzleBillingRepository
 
     return this.db
       .select({
+        billingPlanId: voiceCreditGrantsTable.billingPlanId,
+        expiresAt: voiceCreditGrantsTable.expiresAt,
         id: voiceCreditGrantsTable.id,
+        minutesGranted: voiceCreditGrantsTable.minutesGranted,
         minutesRemaining: voiceCreditGrantsTable.minutesRemaining,
+        periodEnd: voiceCreditGrantsTable.periodEnd,
+        periodStart: voiceCreditGrantsTable.periodStart,
         sourceType: voiceCreditGrantsTable.sourceType,
+        updatedAt: voiceCreditGrantsTable.updatedAt,
       })
       .from(voiceCreditGrantsTable)
       .where(
@@ -308,6 +458,61 @@ export class DrizzleBillingRepository
           eq(voiceCreditGrantsTable.status, "active"),
           gt(voiceCreditGrantsTable.minutesRemaining, 0),
           or(isNull(voiceCreditGrantsTable.expiresAt), gt(voiceCreditGrantsTable.expiresAt, new Date())),
+        ),
+      )
+      .orderBy(desc(voiceCreditGrantsTable.createdAt));
+  }
+
+  async findVoiceBalanceGrants(input: {
+    orgId: string | null;
+    userId: string;
+  }) {
+    const now = new Date();
+    const ownerCondition = input.orgId
+      ? eq(voiceCreditGrantsTable.orgId, input.orgId)
+      : and(
+          eq(voiceCreditGrantsTable.userId, input.userId),
+          isNull(voiceCreditGrantsTable.orgId),
+        );
+
+    return this.db
+      .select({
+        billingPlanId: voiceCreditGrantsTable.billingPlanId,
+        expiresAt: voiceCreditGrantsTable.expiresAt,
+        id: voiceCreditGrantsTable.id,
+        minutesGranted: voiceCreditGrantsTable.minutesGranted,
+        minutesRemaining: voiceCreditGrantsTable.minutesRemaining,
+        periodEnd: voiceCreditGrantsTable.periodEnd,
+        periodStart: voiceCreditGrantsTable.periodStart,
+        sourceType: voiceCreditGrantsTable.sourceType,
+        updatedAt: voiceCreditGrantsTable.updatedAt,
+      })
+      .from(voiceCreditGrantsTable)
+      .where(
+        and(
+          ownerCondition,
+          or(
+            and(
+              inArray(voiceCreditGrantsTable.sourceType, [
+                "subscription_included",
+                "coaching_included",
+              ]),
+              inArray(voiceCreditGrantsTable.status, ["active", "depleted"]),
+              or(
+                isNull(voiceCreditGrantsTable.expiresAt),
+                gt(voiceCreditGrantsTable.expiresAt, now),
+              ),
+            ),
+            and(
+              eq(voiceCreditGrantsTable.sourceType, "extra_pack"),
+              eq(voiceCreditGrantsTable.status, "active"),
+              gt(voiceCreditGrantsTable.minutesRemaining, 0),
+              or(
+                isNull(voiceCreditGrantsTable.expiresAt),
+                gt(voiceCreditGrantsTable.expiresAt, now),
+              ),
+            ),
+          ),
         ),
       )
       .orderBy(desc(voiceCreditGrantsTable.createdAt));

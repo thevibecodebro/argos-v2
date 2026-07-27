@@ -367,7 +367,8 @@ describe("RoleplayPanel", () => {
     expect(html).toContain("An anonymized buyer wants stronger proof and tighter next-step control.");
     expect(html).toContain("Anonymized buyer");
     expect(html).toContain('aria-label="Start voice practice"');
-    expect(html).not.toMatch(/aria-label="Start voice practice"[^>]*disabled=""/);
+    expect(html).toMatch(/aria-label="Start voice practice"[^>]*disabled=""/);
+    expect(html).toContain("Loading pooled voice-minute balance");
     expect(html).not.toContain(">videocam<");
     expect(html).not.toContain(">smart_toy<");
   });

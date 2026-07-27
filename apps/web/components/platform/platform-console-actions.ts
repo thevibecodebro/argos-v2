@@ -49,6 +49,21 @@ export type ResendAdminInviteResponse = {
   };
 };
 
+export type CoachingAccessResponse = {
+  grant: {
+    contractReference: string;
+    endsAt: string;
+    id: string;
+    monthlyVoiceMinutesPerSeat: number;
+    notes: string | null;
+    package: "solo" | "team";
+    seatLimit: number;
+    startsAt: string;
+    status: "active" | "expired" | "paused" | "revoked";
+    updatedAt: string;
+  };
+};
+
 function normalizeSlug(value: FormDataEntryValue | null) {
   return String(value ?? "")
     .trim()
@@ -122,6 +137,10 @@ export function buildResendAdminInviteEndpoint(slug: string) {
   return `/api/platform/organizations/${encodeURIComponent(slug)}/admin-invite/resend`;
 }
 
+export function buildCoachingAccessEndpoint(slug: string) {
+  return `/api/platform/organizations/${encodeURIComponent(slug)}/coaching-access`;
+}
+
 export function buildRevokeStaffPayload(userId: string, reason: string) {
   return {
     reason: reason.trim(),
@@ -190,6 +209,27 @@ export async function submitResendAdminInvite(
   }
 
   return (await response.json()) as ResendAdminInviteResponse;
+}
+
+export function submitCoachingAccess(
+  fetcher: PlatformConsoleFetcher,
+  slug: string,
+  payload: {
+    action: "pause" | "reactivate" | "revoke" | "save";
+    contractReference?: string;
+    endsAt?: string;
+    notes?: string;
+    package?: "solo" | "team";
+    reason: string;
+    seatLimit?: number;
+    startsAt?: string;
+  },
+) {
+  return postJson<CoachingAccessResponse>(
+    fetcher,
+    buildCoachingAccessEndpoint(slug),
+    payload,
+  );
 }
 
 export async function submitEndSession(fetcher: PlatformConsoleFetcher) {

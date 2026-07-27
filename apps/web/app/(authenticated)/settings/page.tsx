@@ -7,6 +7,7 @@ import {
   OperationalWorkspace,
 } from "@/components/operational-workspace";
 import { AccountPanel } from "@/components/panel-loaders/account-panel-loader";
+import { VoiceBalanceCard } from "@/components/billing/voice-balance-card";
 import { SettingsSecondaryRail } from "@/components/settings/settings-secondary-rail";
 import {
   getCachedAuthenticatedSupabaseUser,
@@ -116,6 +117,7 @@ export default async function SettingsAccountPage() {
         <SettingsSecondaryRail activeKey="account" items={settingsRailItems} />
 
         <div className="min-w-0 space-y-3">
+          <VoiceBalanceCard returnTo="/settings" />
           <section
             className="rounded-xl border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-4"
             data-settings-inline-detail="account"
