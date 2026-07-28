@@ -49,6 +49,7 @@ export class StripeCheckoutRequestError extends Error {
 export type CreateStripeCheckoutSessionInput = {
   authUserId: string;
   cancelUrl: string;
+  customerId?: string | null;
   customerEmail?: string | null;
   env?: EnvSource;
   fetcher?: StripeFetch;
@@ -60,6 +61,7 @@ export type CreateStripeCheckoutSessionInput = {
 export async function createStripeCheckoutSession({
   authUserId,
   cancelUrl,
+  customerId,
   customerEmail,
   env = process.env,
   fetcher = fetch,
@@ -86,7 +88,9 @@ export async function createStripeCheckoutSession({
   body.set("metadata[auth_user_id]", authUserId);
   body.set("metadata[plan]", plan.id);
 
-  if (customerEmail) {
+  if (customerId) {
+    body.set("customer", customerId);
+  } else if (customerEmail) {
     body.set("customer_email", customerEmail);
   }
 

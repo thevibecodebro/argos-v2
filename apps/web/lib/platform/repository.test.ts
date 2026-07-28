@@ -891,7 +891,7 @@ describe("DrizzlePlatformRepository", () => {
     expect(snapshot?.organization.slug).toBe("acme-health");
     expect(snapshot?.summary.admins).toBe(1);
     expect(snapshot?.billing.seats).toBe(4);
-    expect(operations.filter((operation) => operation.kind === "select")).toHaveLength(9);
+    expect(operations.filter((operation) => operation.kind === "select")).toHaveLength(10);
   });
 
   it("returns null when organization detail slug is missing", async () => {

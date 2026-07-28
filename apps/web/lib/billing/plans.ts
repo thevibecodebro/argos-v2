@@ -36,6 +36,7 @@ export type BillingPlan = {
 };
 
 type BillingCheckoutHrefOptions = {
+  returnTo?: "/roleplay" | "/settings";
   seats?: number;
 };
 
@@ -229,6 +230,9 @@ export function getBillingCheckoutHref(
   const plan = getBillingPlan(planId);
   if (plan?.adjustableQuantity && options.seats !== undefined) {
     params.set("seats", String(getBillingPlanQuantity(plan, options.seats)));
+  }
+  if (options.returnTo) {
+    params.set("return_to", options.returnTo);
   }
 
   return `/billing/checkout?${params.toString()}`;

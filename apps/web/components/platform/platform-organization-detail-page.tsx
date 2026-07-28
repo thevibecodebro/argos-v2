@@ -15,8 +15,10 @@ import {
 } from "@/components/operational-workspace";
 import type { PlatformOrganizationDetailSnapshot } from "@/lib/platform/organization-detail";
 import {
+  buildCoachingAccessEndpoint,
   buildResendAdminInviteEndpoint,
   submitArchiveOrganization,
+  submitCoachingAccess,
   submitResendAdminInvite,
 } from "./platform-console-actions";
 import { formatAccessSessionStatus, formatDate, formatPercent, formatPlan } from "./platform-format";
@@ -171,6 +173,8 @@ export function PlatformOrganizationDetailPage({
           ) : null}
         </ForgeSurface>
       ) : null}
+
+      <CoachingAccessPanel organization={organization} />
 
       <section className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
         <ForgeSurface className="min-w-0 p-4" data-platform-org-health="true" variant="panel">
@@ -403,6 +407,247 @@ export function PlatformOrganizationDetailPage({
         ) : null}
       </ForgeSurface>
     </OperationalWorkspace>
+  );
+}
+
+function CoachingAccessPanel({
+  organization,
+}: {
+  organization: PlatformOrganizationDetailSnapshot;
+}) {
+  const grant = organization.coachingAccess;
+  const [packageName, setPackageName] = useState<"solo" | "team">(
+    grant?.package ?? "team",
+  );
+  const [seatLimit, setSeatLimit] = useState(String(grant?.seatLimit ?? 2));
+  const [startsAt, setStartsAt] = useState(grant?.startsAt.slice(0, 10) ?? "");
+  const [endsAt, setEndsAt] = useState(grant?.endsAt.slice(0, 10) ?? "");
+  const [contractReference, setContractReference] = useState(
+    grant?.contractReference ?? "",
+  );
+  const [notes, setNotes] = useState(grant?.notes ?? "");
+  const [reason, setReason] = useState("");
+  const [message, setMessage] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const hasStripeAccess = organization.billing.activeSubscriptionCount > 0;
+  const canReactivate = grant?.status === "paused" && !hasStripeAccess;
+
+  async function mutate(action: "pause" | "reactivate" | "revoke" | "save") {
+    setMessage(null);
+    setIsSaving(true);
+
+    try {
+      const result = await submitCoachingAccess(
+        fetch,
+        organization.organization.slug,
+        action === "save"
+          ? {
+              action,
+              contractReference,
+              endsAt,
+              notes,
+              package: packageName,
+              reason,
+              seatLimit: Number(seatLimit),
+              startsAt,
+            }
+          : { action, reason },
+      );
+      setMessage(
+        action === "save"
+          ? "Coaching-included access saved."
+          : `Coaching access ${result.grant.status}.`,
+      );
+      window.location.reload();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to update coaching access.");
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <ForgeSurface
+      className="p-4"
+      data-platform-coaching-access={grant?.status ?? "none"}
+      data-platform-coaching-access-endpoint={buildCoachingAccessEndpoint(
+        organization.organization.slug,
+      )}
+      variant="panel"
+    >
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <p className="forge-page-eyebrow">Software access</p>
+          <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">
+            Coaching-included access
+          </h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--forge-muted)]">
+            Contract-backed access uses the same Solo or Team product and includes 120
+            pooled voice minutes per seat each month. Access ends automatically on the
+            contract end date.
+          </p>
+        </div>
+        <ForgeChip
+          tone={
+            grant?.status === "active"
+              ? "success"
+              : grant?.status === "paused"
+                ? "ember"
+                : "muted"
+          }
+        >
+          {grant ? grant.status : hasStripeAccess ? "Stripe active" : "Not configured"}
+        </ForgeChip>
+      </div>
+
+      {hasStripeAccess ? (
+        <p className="mt-3 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-muted)]">
+          This organization has an active Stripe subscription. Cancel it before enabling
+          coaching-included access so the two entitlement sources cannot overlap.
+        </p>
+      ) : null}
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <label className="grid gap-1 text-sm font-semibold text-[var(--forge-text)]">
+          Package
+          <select
+            className="min-h-10 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
+            disabled={isSaving}
+            onChange={(event) => {
+              const value = event.currentTarget.value as "solo" | "team";
+              setPackageName(value);
+              if (value === "solo") setSeatLimit("1");
+            }}
+            value={packageName}
+          >
+            <option value="solo">Solo</option>
+            <option value="team">Team</option>
+          </select>
+        </label>
+        <label className="grid gap-1 text-sm font-semibold text-[var(--forge-text)]">
+          Contract seats
+          <input
+            className="min-h-10 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
+            disabled={isSaving || packageName === "solo"}
+            min={packageName === "solo" ? 1 : 2}
+            onChange={(event) => setSeatLimit(event.currentTarget.value)}
+            type="number"
+            value={seatLimit}
+          />
+        </label>
+        <label className="grid gap-1 text-sm font-semibold text-[var(--forge-text)]">
+          Starts
+          <input
+            className="min-h-10 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
+            disabled={isSaving}
+            onChange={(event) => setStartsAt(event.currentTarget.value)}
+            type="date"
+            value={startsAt}
+          />
+        </label>
+        <label className="grid gap-1 text-sm font-semibold text-[var(--forge-text)]">
+          Ends
+          <input
+            className="min-h-10 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
+            disabled={isSaving}
+            onChange={(event) => setEndsAt(event.currentTarget.value)}
+            type="date"
+            value={endsAt}
+          />
+        </label>
+        <label className="grid gap-1 text-sm font-semibold text-[var(--forge-text)] md:col-span-2">
+          Contract reference
+          <input
+            className="min-h-10 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
+            disabled={isSaving}
+            onChange={(event) => setContractReference(event.currentTarget.value)}
+            placeholder="Coaching agreement or CRM reference"
+            value={contractReference}
+          />
+        </label>
+        <label className="grid gap-1 text-sm font-semibold text-[var(--forge-text)] md:col-span-2">
+          Internal notes
+          <input
+            className="min-h-10 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
+            disabled={isSaving}
+            onChange={(event) => setNotes(event.currentTarget.value)}
+            placeholder="Optional"
+            value={notes}
+          />
+        </label>
+      </div>
+
+      <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+        <label className="grid gap-1 text-sm font-semibold text-[var(--forge-text)]">
+          Audit reason
+          <input
+            className="min-h-10 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
+            disabled={isSaving}
+            onChange={(event) => setReason(event.currentTarget.value)}
+            placeholder="New coaching contract signed"
+            value={reason}
+          />
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {grant?.status === "active" ? (
+            <ForgeButton
+              disabled={isSaving || !reason.trim()}
+              onClick={() => mutate("pause")}
+              size="sm"
+              type="button"
+              variant="secondary"
+            >
+              Pause
+            </ForgeButton>
+          ) : null}
+          {canReactivate ? (
+            <ForgeButton
+              disabled={isSaving || !reason.trim()}
+              onClick={() => mutate("reactivate")}
+              size="sm"
+              type="button"
+              variant="secondary"
+            >
+              Reactivate
+            </ForgeButton>
+          ) : null}
+          {grant && grant.status !== "revoked" ? (
+            <ForgeButton
+              disabled={isSaving || !reason.trim()}
+              onClick={() => mutate("revoke")}
+              size="sm"
+              type="button"
+              variant="secondary"
+            >
+              Revoke
+            </ForgeButton>
+          ) : null}
+          <ForgeButton
+            disabled={
+              isSaving ||
+              hasStripeAccess ||
+              !reason.trim() ||
+              !contractReference.trim() ||
+              !startsAt ||
+              !endsAt
+            }
+            onClick={() => mutate("save")}
+            size="sm"
+            type="button"
+            variant="primary"
+          >
+            {isSaving ? "Saving" : grant ? "Save contract" : "Enable access"}
+          </ForgeButton>
+        </div>
+      </div>
+      <p className="mt-3 text-xs text-[var(--forge-muted)]">
+        Current monthly pool: {Math.max(0, Number(seatLimit) || 0) * 120} minutes.
+      </p>
+      {message ? (
+        <p className="mt-2 text-sm text-[var(--forge-muted)]" role="status">
+          {message}
+        </p>
+      ) : null}
+    </ForgeSurface>
   );
 }
 

@@ -26,7 +26,7 @@ export async function GET(request: Request) {
 
     const currentUser = await getCurrentUserDetails(createUsersRepository(), authUser.id);
 
-    if (!currentUser.ok || !currentUser.data.org) {
+    if (!currentUser.ok) {
       return settingsRedirect(origin, {
         billing_error: "portal_not_available",
       });
@@ -50,7 +50,11 @@ export async function GET(request: Request) {
       });
     }
 
-    const returnUrl = new URL("/settings", origin);
+    const returnPath =
+      requestUrl.searchParams.get("return_to") === "/roleplay"
+        ? "/roleplay"
+        : "/settings";
+    const returnUrl = new URL(returnPath, origin);
     const session = await createStripeBillingPortalSession({
       customerId: billingCustomer.stripeCustomerId,
       returnUrl: returnUrl.toString(),
@@ -83,5 +87,5 @@ function settingsRedirect(origin: string, params: Record<string, string>) {
 }
 
 function canOpenBillingPortal(user: CurrentUserDetails) {
-  return Boolean(user.org) && user.role === "admin";
+  return !user.org || user.role === "admin";
 }

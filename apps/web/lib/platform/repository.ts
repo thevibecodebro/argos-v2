@@ -9,11 +9,13 @@ import {
   platformAuditEventsTable,
   platformStaffTable,
   roleplaySessionsTable,
+  softwareAccessGrantsTable,
   trainingModulesTable,
   trainingProgressTable,
   usersTable,
   type ArgosDb,
 } from "@argos-v2/db";
+import type { CoachingAccessGrant } from "./coaching-access";
 import { coerceStoredWorkspaceTheme } from "@/lib/organizations/workspace-theme";
 import type { AppUserRole } from "@/lib/users/roles";
 import {
@@ -92,6 +94,20 @@ const inviteSelection = {
   expiresAt: invitesTable.expiresAt,
   acceptedAt: invitesTable.acceptedAt,
   createdAt: invitesTable.createdAt,
+};
+
+const coachingAccessSelection = {
+  contractReference: softwareAccessGrantsTable.contractReference,
+  endsAt: softwareAccessGrantsTable.endsAt,
+  id: softwareAccessGrantsTable.id,
+  monthlyVoiceMinutesPerSeat: softwareAccessGrantsTable.monthlyVoiceMinutesPerSeat,
+  notes: softwareAccessGrantsTable.notes,
+  orgId: softwareAccessGrantsTable.orgId,
+  package: softwareAccessGrantsTable.package,
+  seatLimit: softwareAccessGrantsTable.seatLimit,
+  startsAt: softwareAccessGrantsTable.startsAt,
+  status: softwareAccessGrantsTable.status,
+  updatedAt: softwareAccessGrantsTable.updatedAt,
 };
 
 type PlatformAccessContext = {
@@ -739,6 +755,153 @@ export class DrizzlePlatformRepository {
     return organization ?? null;
   }
 
+  async findActiveStripeSubscriptionForOrg(orgId: string) {
+    const [subscription] = await this.db
+      .select({ id: billingSubscriptionsTable.id })
+      .from(billingSubscriptionsTable)
+      .where(
+        and(
+          eq(billingSubscriptionsTable.orgId, orgId),
+          inArray(billingSubscriptionsTable.status, ["active", "trialing"]),
+          or(
+            isNull(billingSubscriptionsTable.currentPeriodEnd),
+            gt(billingSubscriptionsTable.currentPeriodEnd, new Date()),
+          ),
+        ),
+      )
+      .orderBy(desc(billingSubscriptionsTable.updatedAt))
+      .limit(1);
+
+    return subscription ?? null;
+  }
+
+  async findLatestCoachingAccessGrant(orgId: string): Promise<CoachingAccessGrant | null> {
+    const [grant] = await this.db
+      .select(coachingAccessSelection)
+      .from(softwareAccessGrantsTable)
+      .where(eq(softwareAccessGrantsTable.orgId, orgId))
+      .orderBy(desc(softwareAccessGrantsTable.updatedAt))
+      .limit(1);
+
+    return grant ?? null;
+  }
+
+  async mutateCoachingAccessWithAudit(input: {
+    actor: { email: string; role: PlatformStaffRole; userId: string };
+    action: "pause" | "reactivate" | "revoke" | "save";
+    contractReference?: string;
+    endsAt?: Date;
+    grant: CoachingAccessGrant | null;
+    notes?: string | null;
+    organization: { id: string; name: string; slug: string };
+    package?: "solo" | "team";
+    reason: string;
+    seatLimit?: number;
+    startsAt?: Date;
+  }) {
+    return this.db.transaction(async (tx) => {
+      const transactionDb = tx as ArgosDb;
+      const previous = input.grant
+        ? {
+            contractReference: input.grant.contractReference,
+            endsAt: input.grant.endsAt.toISOString(),
+            package: input.grant.package,
+            seatLimit: input.grant.seatLimit,
+            startsAt: input.grant.startsAt.toISOString(),
+            status: input.grant.status,
+          }
+        : null;
+      let grant: CoachingAccessGrant | undefined;
+      const shouldInsert =
+        input.action === "save" &&
+        (!input.grant ||
+          input.grant.status === "revoked" ||
+          input.grant.endsAt <= new Date());
+
+      if (shouldInsert) {
+        if (input.grant?.status === "active") {
+          await transactionDb
+            .update(softwareAccessGrantsTable)
+            .set({ status: "expired", updatedAt: new Date() })
+            .where(eq(softwareAccessGrantsTable.id, input.grant.id));
+        }
+
+        const [inserted] = await transactionDb
+          .insert(softwareAccessGrantsTable)
+          .values({
+            contractReference: input.contractReference!,
+            createdBy: input.actor.userId,
+            endsAt: input.endsAt!,
+            notes: input.notes ?? null,
+            orgId: input.organization.id,
+            package: input.package!,
+            seatLimit: input.seatLimit!,
+            sourceType: "coaching_contract",
+            startsAt: input.startsAt!,
+            status: "active",
+          })
+          .returning(coachingAccessSelection);
+        grant = inserted;
+      } else if (input.grant) {
+        const status =
+          input.action === "pause"
+            ? "paused"
+            : input.action === "revoke"
+              ? "revoked"
+              : "active";
+        const [updated] = await transactionDb
+          .update(softwareAccessGrantsTable)
+          .set({
+            ...(input.action === "save"
+              ? {
+                  contractReference: input.contractReference!,
+                  endsAt: input.endsAt!,
+                  notes: input.notes ?? null,
+                  package: input.package!,
+                  seatLimit: input.seatLimit!,
+                  startsAt: input.startsAt!,
+                }
+              : {}),
+            status,
+            updatedAt: new Date(),
+          })
+          .where(eq(softwareAccessGrantsTable.id, input.grant.id))
+          .returning(coachingAccessSelection);
+        grant = updated;
+      }
+
+      if (!grant) {
+        throw new Error("Failed to mutate coaching access");
+      }
+
+      await this.insertAuditEvent(transactionDb, {
+        action: `platform.coaching_access.${input.action}`,
+        metadata: {
+          current: {
+            contractReference: grant.contractReference,
+            endsAt: grant.endsAt.toISOString(),
+            package: grant.package,
+            seatLimit: grant.seatLimit,
+            startsAt: grant.startsAt.toISOString(),
+            status: grant.status,
+          },
+          previous,
+        },
+        reason: input.reason,
+        resourceId: grant.id,
+        resourceType: "software_access_grant",
+        staffEmailSnapshot: input.actor.email,
+        staffRoleSnapshot: input.actor.role,
+        staffUserId: input.actor.userId,
+        targetOrgId: input.organization.id,
+        targetOrgNameSnapshot: input.organization.name,
+        targetOrgSlugSnapshot: input.organization.slug,
+      });
+
+      return grant;
+    });
+  }
+
   async countAdminMembersForOrganization(orgId: string) {
     const [result] = await this.db
       .select({
@@ -896,6 +1059,7 @@ export class DrizzlePlatformRepository {
       roleplayRows,
       billingSubscriptions,
       accessSessions,
+      coachingAccessRows,
     ] = await Promise.all([
       this.db
         .select({
@@ -954,6 +1118,12 @@ export class DrizzlePlatformRepository {
         .where(eq(platformAccessSessionsTable.targetOrgId, organization.id))
         .orderBy(desc(platformAccessSessionsTable.startedAt))
         .limit(10),
+      this.db
+        .select(coachingAccessSelection)
+        .from(softwareAccessGrantsTable)
+        .where(eq(softwareAccessGrantsTable.orgId, organization.id))
+        .orderBy(desc(softwareAccessGrantsTable.updatedAt))
+        .limit(1),
     ]);
     const auditEvents = await this.listAuditEvents({ targetOrgId: organization.id, limit: 10 });
 
@@ -989,6 +1159,22 @@ export class DrizzlePlatformRepository {
         reviewedCalls: toNumber(callStats?.reviewedCalls),
         totalCalls: toNumber(callStats?.totalCalls),
       },
+      coachingAccess: coachingAccessRows[0]
+        ? {
+            contractReference: coachingAccessRows[0].contractReference,
+            endsAt: coachingAccessRows[0].endsAt.toISOString(),
+            id: coachingAccessRows[0].id,
+            monthlyVoiceMinutesPerSeat: toNumber(
+              coachingAccessRows[0].monthlyVoiceMinutesPerSeat,
+            ),
+            notes: coachingAccessRows[0].notes,
+            package: coachingAccessRows[0].package,
+            seatLimit: toNumber(coachingAccessRows[0].seatLimit),
+            startsAt: coachingAccessRows[0].startsAt.toISOString(),
+            status: coachingAccessRows[0].status,
+            updatedAt: coachingAccessRows[0].updatedAt.toISOString(),
+          }
+        : null,
       invites: invites.map((invite) => ({
         acceptedAt: invite.acceptedAt?.toISOString() ?? null,
         createdAt: invite.createdAt.toISOString(),

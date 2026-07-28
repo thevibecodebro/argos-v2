@@ -40,6 +40,19 @@ export type PlatformOrganizationDetailBillingSubscription = {
   stripeSubscriptionId: string | null;
 };
 
+export type PlatformOrganizationDetailCoachingAccess = {
+  contractReference: string;
+  endsAt: string;
+  id: string;
+  monthlyVoiceMinutesPerSeat: number;
+  notes: string | null;
+  package: "solo" | "team";
+  seatLimit: number;
+  startsAt: string;
+  status: "active" | "expired" | "paused" | "revoked";
+  updatedAt: string;
+};
+
 export type PlatformOrganizationDetailCallStats = {
   averageScore: number | null;
   failedCalls: number;
@@ -89,6 +102,7 @@ export type PlatformOrganizationDetailSnapshot = {
     seats: number;
     subscriptions: PlatformOrganizationDetailBillingSubscription[];
   };
+  coachingAccess: PlatformOrganizationDetailCoachingAccess | null;
   callStats: PlatformOrganizationDetailCallStats;
   invites: PlatformOrganizationDetailInvite[];
   members: PlatformOrganizationDetailMember[];
@@ -108,6 +122,7 @@ export type BuildPlatformOrganizationDetailSnapshotInput = {
   auditEvents: PlatformOrganizationDetailAuditEvent[];
   billingSubscriptions: PlatformOrganizationDetailBillingSubscription[];
   callStats: PlatformOrganizationDetailCallStats;
+  coachingAccess?: PlatformOrganizationDetailCoachingAccess | null;
   invites: PlatformOrganizationDetailInvite[];
   members: PlatformOrganizationDetailMember[];
   now?: Date;
@@ -155,6 +170,7 @@ export function buildPlatformOrganizationDetailSnapshot({
   auditEvents,
   billingSubscriptions,
   callStats,
+  coachingAccess = null,
   invites,
   members,
   now = new Date(),
@@ -237,6 +253,10 @@ export function buildPlatformOrganizationDetailSnapshot({
       subscriptions: billingSubscriptions,
     },
     callStats,
+    coachingAccess:
+      coachingAccess?.status === "active" && !isAfterNow(coachingAccess.endsAt, now)
+        ? { ...coachingAccess, status: "expired" }
+        : coachingAccess,
     invites: pendingInvites,
     members,
     organization,

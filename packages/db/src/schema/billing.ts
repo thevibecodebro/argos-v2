@@ -12,6 +12,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { organizationsTable } from "./organizations";
+import { platformStaffTable } from "./platform";
 import { roleplaySessionsTable } from "./roleplay";
 import { usersTable } from "./users";
 
@@ -61,6 +62,68 @@ export const billingSubscriptionsTable = pgTable(
   ],
 );
 
+export const softwareAccessGrantsTable = pgTable(
+  "software_access_grants",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizationsTable.id, { onDelete: "cascade" }),
+    sourceType: text("source_type", {
+      enum: ["coaching_contract"],
+    }).notNull(),
+    package: text("package", {
+      enum: ["solo", "team"],
+    }).notNull(),
+    seatLimit: integer("seat_limit").notNull(),
+    monthlyVoiceMinutesPerSeat: integer("monthly_voice_minutes_per_seat")
+      .notNull()
+      .default(120),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+    status: text("status", {
+      enum: ["active", "paused", "expired", "revoked"],
+    })
+      .notNull()
+      .default("active"),
+    contractReference: text("contract_reference").notNull(),
+    notes: text("notes"),
+    createdBy: uuid("created_by").references(() => platformStaffTable.userId, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("software_access_grants_org_status_dates_idx").on(
+      table.orgId,
+      table.status,
+      table.startsAt,
+      table.endsAt,
+    ),
+    index("software_access_grants_created_by_idx").on(table.createdBy),
+    uniqueIndex("software_access_grants_one_active_coaching_org_uq")
+      .on(table.orgId)
+      .where(sql`${table.status} = 'active'`),
+    check("software_access_grants_source_type_check", sql`${table.sourceType} = 'coaching_contract'`),
+    check("software_access_grants_package_check", sql`${table.package} in ('solo', 'team')`),
+    check(
+      "software_access_grants_status_check",
+      sql`${table.status} in ('active', 'paused', 'expired', 'revoked')`,
+    ),
+    check("software_access_grants_seat_limit_positive", sql`${table.seatLimit} > 0`),
+    check(
+      "software_access_grants_package_seats_check",
+      sql`(${table.package} = 'solo' and ${table.seatLimit} = 1) or (${table.package} = 'team' and ${table.seatLimit} > 1)`,
+    ),
+    check(
+      "software_access_grants_voice_minutes_positive",
+      sql`${table.monthlyVoiceMinutesPerSeat} > 0`,
+    ),
+    check("software_access_grants_dates_check", sql`${table.endsAt} > ${table.startsAt}`),
+  ],
+);
+
 export const stripeWebhookEventsTable = pgTable(
   "stripe_webhook_events",
   {
@@ -86,7 +149,7 @@ export const voiceCreditGrantsTable = pgTable(
       .references(() => usersTable.id, { onDelete: "cascade" }),
     billingPlanId: text("billing_plan_id").notNull(),
     sourceType: text("source_type", {
-      enum: ["subscription_included", "extra_pack"],
+      enum: ["subscription_included", "coaching_included", "extra_pack"],
     }).notNull(),
     sourceId: text("source_id").notNull(),
     minutesGranted: integer("minutes_granted").notNull(),

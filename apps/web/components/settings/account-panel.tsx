@@ -52,7 +52,6 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
         .trim() || currentUser.email,
     [currentUser],
   );
-  const canManageBilling = Boolean(currentUser.org) && currentUser.role === "admin";
 
   async function saveProfile() {
     if (!firstName.trim() && !lastName.trim()) {
@@ -378,30 +377,6 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
         )}
       </ForgeSurface>
 
-      {canManageBilling ? (
-        <ForgeSurface
-          as="section"
-          className="overflow-hidden p-0"
-          variant="panel"
-        >
-          <SettingsSectionHeader
-            actions={
-              <ForgeButton
-                href="/billing/portal"
-                icon="payments"
-                size="sm"
-                trailingIcon="open_in_new"
-                variant="primary"
-              >
-                Manage billing and seats
-              </ForgeButton>
-            }
-            description="Team subscriptions can adjust paid seat quantity from Stripe billing."
-            eyebrow="Billing"
-            title="Manage subscription"
-          />
-        </ForgeSurface>
-      ) : null}
     </div>
   );
 }
