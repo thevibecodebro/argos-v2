@@ -1279,6 +1279,10 @@ describe("processZoomWebhookRequest", () => {
       status: 200,
       body: { received: true },
     });
+    expect(repository.findCallByZoomRecordingId).toHaveBeenCalledWith({
+      orgId: "org-1",
+      zoomRecordingId: "recording-1",
+    });
     expect(repository.createCall).not.toHaveBeenCalled();
     expect(repository.createOrResetCallProcessingJob).not.toHaveBeenCalled();
     expect(repository.updateCallStatus).not.toHaveBeenCalled();

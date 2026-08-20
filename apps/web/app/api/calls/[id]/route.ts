@@ -1,7 +1,7 @@
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { deleteCallData, getCallDetail, renameCall } from "@/lib/calls/service";
-import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { fromServiceResult } from "@/lib/http";
 import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -12,11 +12,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const authUser = await getAuthenticatedSupabaseUser();
-
-    if (!authUser) {
-      return unauthorizedJson();
-    }
+    const capabilityAccess = await requireAuthenticatedManagedCapability("call_scoring");
+    if (!capabilityAccess.ok) return capabilityAccess.response;
+    const authUser = capabilityAccess.user;
 
     const { id } = await params;
     const repository = await createEffectiveTenantRepository(createCallsRepository(), authUser.id);
@@ -33,11 +31,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const authUser = await getAuthenticatedSupabaseUser();
-
-    if (!authUser) {
-      return unauthorizedJson();
-    }
+    const capabilityAccess = await requireAuthenticatedManagedCapability("call_scoring");
+    if (!capabilityAccess.ok) return capabilityAccess.response;
+    const authUser = capabilityAccess.user;
 
     const body = (await request.json()) as { callTopic?: unknown };
 
@@ -66,11 +62,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const authUser = await getAuthenticatedSupabaseUser();
-
-    if (!authUser) {
-      return unauthorizedJson();
-    }
+    const capabilityAccess = await requireAuthenticatedManagedCapability("call_scoring");
+    if (!capabilityAccess.ok) return capabilityAccess.response;
+    const authUser = capabilityAccess.user;
 
     const { id } = await params;
     const repository = await createEffectiveTenantRepository(createCallsRepository(), authUser.id);

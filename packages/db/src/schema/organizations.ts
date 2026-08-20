@@ -1,6 +1,9 @@
 import { jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const organizationsTable = pgTable("organizations", {
+  accessModel: text("access_model", { enum: ["legacy", "managed"] })
+    .notNull()
+    .default("legacy"),
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),

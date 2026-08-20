@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
-import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
+import { fromServiceResult } from "@/lib/http";
 import { createIntegrationsRepository } from "@/lib/integrations/create-repository";
 import {
   isGhlIntegrationConfigured,
@@ -31,11 +31,9 @@ type NormalizedMapping = {
 };
 
 export async function GET() {
-  const authUser = await getAuthenticatedSupabaseUser();
-
-  if (!authUser) {
-    return unauthorizedJson();
-  }
+  const capabilityAccess = await requireAuthenticatedManagedCapability("integration_ghl");
+  if (!capabilityAccess.ok) return capabilityAccess.response;
+  const authUser = capabilityAccess.user;
 
   if (!isGhlIntegrationConfigured()) {
     return notConfigured();
@@ -49,11 +47,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const authUser = await getAuthenticatedSupabaseUser();
-
-  if (!authUser) {
-    return unauthorizedJson();
-  }
+  const capabilityAccess = await requireAuthenticatedManagedCapability("integration_ghl");
+  if (!capabilityAccess.ok) return capabilityAccess.response;
+  const authUser = capabilityAccess.user;
 
   if (!isGhlIntegrationConfigured()) {
     return notConfigured();

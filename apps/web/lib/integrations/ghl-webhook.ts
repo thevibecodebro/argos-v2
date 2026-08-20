@@ -28,6 +28,10 @@ type GhlWebhookRequest = {
   rawBody: string;
 };
 
+type GhlWebhookDependencies = {
+  canIngestOrganization?: (orgId: string) => Promise<boolean>;
+};
+
 type GhlWebhookResponse = {
   status: number;
   body: Record<string, unknown>;
@@ -58,6 +62,7 @@ const UNINSTALL_EVENTS = new Set(["AppUninstalled", "UNINSTALL", "app.uninstalle
 export async function processGhlWebhookRequest(
   repository: GhlWebhookRepository,
   input: GhlWebhookRequest,
+  dependencies: GhlWebhookDependencies = {},
 ): Promise<GhlWebhookResponse> {
   const expectedToken = input.env?.GHL_WEBHOOK_TOKEN ?? process.env.GHL_WEBHOOK_TOKEN;
 
@@ -115,6 +120,16 @@ export async function processGhlWebhookRequest(
   const integration = await repository.findGhlIntegrationByLocationId(locationId);
 
   if (!integration) {
+    return {
+      status: 200,
+      body: { received: true },
+    };
+  }
+
+  if (
+    dependencies.canIngestOrganization &&
+    !(await dependencies.canIngestOrganization(integration.orgId))
+  ) {
     return {
       status: 200,
       body: { received: true },

@@ -10,6 +10,7 @@ import { getCachedAuthenticatedSupabaseUser } from "@/lib/auth/request-user";
 import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 import { createRoleplayRepository } from "@/lib/roleplay/create-repository";
 import { listRoleplaySessions } from "@/lib/roleplay/service";
+import { requireManagedCapabilityForPage } from "@/lib/access/managed-capabilities-server";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -32,6 +33,8 @@ export default async function RoleplayPage({
   if (!authUser) {
     notFound();
   }
+
+  await requireManagedCapabilityForPage(authUser.id, "roleplay");
 
   const repository = await createEffectiveTenantRepository(createRoleplayRepository(), authUser.id);
   const result = await listRoleplaySessions(repository, authUser.id);

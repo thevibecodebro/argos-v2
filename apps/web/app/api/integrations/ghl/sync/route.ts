@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
-import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
+import { fromServiceResult } from "@/lib/http";
 import { createIntegrationsRepository } from "@/lib/integrations/create-repository";
 import { isGhlIntegrationConfigured, requestGhlSync } from "@/lib/integrations/service";
 import {
@@ -13,11 +13,9 @@ import { createEffectiveTenantRepository } from "@/lib/platform/effective-reques
 export const dynamic = "force-dynamic";
 
 export async function POST() {
-  const authUser = await getAuthenticatedSupabaseUser();
-
-  if (!authUser) {
-    return unauthorizedJson();
-  }
+  const capabilityAccess = await requireAuthenticatedManagedCapability("integration_ghl");
+  if (!capabilityAccess.ok) return capabilityAccess.response;
+  const authUser = capabilityAccess.user;
 
   if (!isGhlIntegrationConfigured()) {
     return Response.json(

@@ -10,6 +10,7 @@ const {
   getIntegrationStatuses,
   getOrganizationIngestionTitleFilters,
   integrationsPanel,
+  requireAnyManagedCapabilityForPage,
 } = vi.hoisted(() => ({
   createEffectiveTenantRepository: vi.fn(),
   createIngestionTitleFiltersRepository: vi.fn(),
@@ -19,6 +20,7 @@ const {
   getIntegrationStatuses: vi.fn(),
   getOrganizationIngestionTitleFilters: vi.fn(),
   integrationsPanel: vi.fn((_props: Record<string, unknown>) => null),
+  requireAnyManagedCapabilityForPage: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -34,6 +36,10 @@ vi.mock("@/components/panel-loaders/integrations-panel-loader", () => ({
 vi.mock("@/lib/auth/request-user", () => ({
   getCachedAuthenticatedSupabaseUser: getAuthenticatedUser,
   getCachedCurrentUserDetails: getCurrentUserDetails,
+}));
+
+vi.mock("@/lib/access/managed-capabilities-server", () => ({
+  requireAnyManagedCapabilityForPage,
 }));
 
 vi.mock("@/lib/ingestion-title-filters/create-repository", () => ({
@@ -79,6 +85,10 @@ describe("SettingsIntegrationsPage", () => {
     getCurrentUserDetails.mockResolvedValue({
       data: { role: "admin" },
       ok: true,
+    });
+    requireAnyManagedCapabilityForPage.mockResolvedValue({
+      access: { capabilities: [], mode: "legacy" },
+      orgId: "org-1",
     });
     createIngestionTitleFiltersRepository.mockReturnValue({ type: "title-filters" });
     createIntegrationsRepository.mockReturnValue({ type: "integrations" });
@@ -147,6 +157,26 @@ describe("SettingsIntegrationsPage", () => {
     expect(integrationsPanel.mock.calls[0]?.[0]).toEqual(
       expect.objectContaining({
         titleFilterEnforcementEnabled: true,
+      }),
+    );
+  });
+
+  it("does not serialize disabled provider metadata into a managed tenant page", async () => {
+    requireAnyManagedCapabilityForPage.mockResolvedValueOnce({
+      access: {
+        capabilities: ["integration_google_meet"],
+        mode: "managed",
+      },
+      orgId: "org-1",
+    });
+
+    renderToStaticMarkup(await SettingsIntegrationsPage());
+
+    expect(integrationsPanel.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        googleMeet: expect.objectContaining({ connected: true }),
+        ghl: undefined,
+        zoom: undefined,
       }),
     );
   });

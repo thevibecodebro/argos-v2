@@ -8,6 +8,7 @@ const createdAt = new Date("2026-06-11T10:00:00.000Z");
 const expiresAt = new Date("2026-06-18T10:00:00.000Z");
 
 const organization = {
+  accessModel: "managed" as const,
   id: "org-1",
   name: "Acme",
   slug: "acme",
@@ -165,6 +166,7 @@ describe("createPlatformOrganizationWithAdminInvite", () => {
     });
 
     expect(repository.createOrganizationWithAdminInviteAndAudit).toHaveBeenCalledWith({
+      accessModel: "managed",
       adminEmail: "admin@acme.com",
       inviteExpiresAt: expiresAt,
       inviteToken: "invite-token-1",

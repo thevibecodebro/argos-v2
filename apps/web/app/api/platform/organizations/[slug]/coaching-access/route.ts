@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { mutateCoachingAccess } from "@/lib/platform/coaching-access";
 import { getPlatformApiAccess } from "@/lib/platform/auth";
 import { createPlatformRepository } from "@/lib/platform/create-repository";
+import { validatePlatformJsonMutation } from "@/lib/security/platform-mutation";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,11 @@ type RouteContext = {
 };
 
 export async function POST(request: Request, context: RouteContext) {
+  const mutation = validatePlatformJsonMutation(request);
+  if (!mutation.ok) {
+    return NextResponse.json({ error: mutation.error }, { status: mutation.status });
+  }
+
   const access = await getPlatformApiAccess();
 
   if (!access.ok) {
@@ -34,7 +40,10 @@ export async function POST(request: Request, context: RouteContext) {
   );
 
   if (!result.ok) {
-    return NextResponse.json({ error: result.error }, { status: result.status });
+    return NextResponse.json(
+      { error: result.error, ...("code" in result ? { code: result.code } : {}) },
+      { status: result.status },
+    );
   }
 
   return NextResponse.json(

@@ -1,7 +1,7 @@
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
 import { DrizzleBillingRepository } from "@/lib/billing/repository";
 import { consumeVoiceMinutes } from "@/lib/billing/voice-entitlements";
-import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { fromServiceResult } from "@/lib/http";
 import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 import { createRoleplayRepository } from "@/lib/roleplay/create-repository";
 import { completeRoleplaySession, settleRoleplayVoiceUsage } from "@/lib/roleplay/service";
@@ -12,11 +12,9 @@ export async function POST(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const authUser = await getAuthenticatedSupabaseUser();
-
-  if (!authUser) {
-    return unauthorizedJson();
-  }
+  const capabilityAccess = await requireAuthenticatedManagedCapability("roleplay");
+  if (!capabilityAccess.ok) return capabilityAccess.response;
+  const authUser = capabilityAccess.user;
 
   const { id } = await params;
   const roleplayRepository = await createEffectiveTenantRepository(createRoleplayRepository(), authUser.id);

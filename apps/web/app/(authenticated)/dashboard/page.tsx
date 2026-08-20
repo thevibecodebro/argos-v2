@@ -31,6 +31,7 @@ import {
   OperationalToolbar,
   OperationalWorkspace,
 } from "@/components/operational-workspace";
+import { requireManagedCapabilityForPage } from "@/lib/access/managed-capabilities-server";
 
 export default async function DashboardPage() {
   const authUser = await getCachedAuthenticatedSupabaseUser();
@@ -54,6 +55,8 @@ export default async function DashboardPage() {
       </AuthenticatedPageContainer>
     );
   }
+
+  await requireManagedCapabilityForPage(authUser.id, "call_scoring");
 
   const isExecutive = profile.role === "executive";
   const isManager = isExecutive || profile.role === "manager" || profile.role === "admin";

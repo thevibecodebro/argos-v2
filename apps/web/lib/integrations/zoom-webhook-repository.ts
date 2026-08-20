@@ -61,7 +61,10 @@ export class DrizzleZoomWebhookRepository implements ZoomWebhookRepository {
     return findActiveCallProcessingSubscription(this.db, input);
   }
 
-  async findCallByZoomRecordingId(zoomRecordingId: string) {
+  async findCallByZoomRecordingId(input: {
+    orgId: string;
+    zoomRecordingId: string;
+  }) {
     const [call] = await this.db
       .select({
         id: callsTable.id,
@@ -70,7 +73,12 @@ export class DrizzleZoomWebhookRepository implements ZoomWebhookRepository {
       })
       .from(callsTable)
       .leftJoin(callProcessingJobsTable, eq(callProcessingJobsTable.callId, callsTable.id))
-      .where(eq(callsTable.zoomRecordingId, zoomRecordingId))
+      .where(
+        and(
+          eq(callsTable.orgId, input.orgId),
+          eq(callsTable.zoomRecordingId, input.zoomRecordingId),
+        ),
+      )
       .limit(1);
 
     return call ?? null;

@@ -103,6 +103,40 @@ function normalizeCategoryInput(category: RubricCategoryInput) {
 export class SupabaseRubricsRepository implements RubricsRepository {
   constructor(private readonly supabase = getSupabaseAdminClient()) {}
 
+  private async findDefaultTrack(orgId: string) {
+    const supabase: any = this.supabase;
+    const { data, error } = await supabase
+      .from("rubric_tracks")
+      .select("id, org_id, name, is_default")
+      .eq("org_id", orgId)
+      .eq("is_default", true)
+      .maybeSingle();
+
+    if (error) throw new Error(error.message);
+    return data as { id: string; org_id: string; name: string; is_default: boolean } | null;
+  }
+
+  private async ensureDefaultTrack(orgId: string) {
+    const existing = await this.findDefaultTrack(orgId);
+    if (existing) return existing;
+
+    const supabase: any = this.supabase;
+    const { data, error } = await supabase
+      .from("rubric_tracks")
+      .insert({ org_id: orgId, name: "Default", is_default: true })
+      .select("id, org_id, name, is_default")
+      .single();
+
+    if (!error && data) return data as { id: string; org_id: string; name: string; is_default: boolean };
+
+    if (error?.code === "23505") {
+      const raced = await this.findDefaultTrack(orgId);
+      if (raced) return raced;
+    }
+
+    throw new Error(error?.message ?? "Failed to create default rubric track");
+  }
+
   private async fetchCategories(rubricId: string) {
     const supabase: any = this.supabase;
     const { data, error } = await supabase
@@ -126,10 +160,12 @@ export class SupabaseRubricsRepository implements RubricsRepository {
     sourceType: "manual" | "csv_import" | "json_import";
   }) {
     const supabase: any = this.supabase;
+    const track = await this.ensureDefaultTrack(input.orgId);
     const { data: existing, error: existingError } = await supabase
       .from("rubrics")
       .select("version")
       .eq("org_id", input.orgId)
+      .eq("track_id", track.id)
       .order("version", { ascending: false })
       .limit(1);
 
@@ -143,6 +179,7 @@ export class SupabaseRubricsRepository implements RubricsRepository {
       .from("rubrics")
       .insert({
         org_id: input.orgId,
+        track_id: track.id,
         version: nextVersion,
         name: input.input.name,
         description: input.input.description,
@@ -150,7 +187,7 @@ export class SupabaseRubricsRepository implements RubricsRepository {
         is_template: false,
         created_by: input.createdBy,
       })
-      .select("id, org_id, version, name, description, is_active, is_template, created_by, created_at, updated_at")
+      .select("id, org_id, track_id, version, name, description, is_active, is_template, created_by, created_at, updated_at")
       .single();
 
     if (rubricError) {
@@ -178,10 +215,13 @@ export class SupabaseRubricsRepository implements RubricsRepository {
 
   async findActiveRubricByOrgId(orgId: string) {
     const supabase: any = this.supabase;
+    const track = await this.findDefaultTrack(orgId);
+    if (!track) return null;
     const { data, error } = await supabase
       .from("rubrics")
-      .select("id, org_id, version, name, description, is_active, is_template, created_by, created_at, updated_at")
+      .select("id, org_id, track_id, version, name, description, is_active, is_template, created_by, created_at, updated_at")
       .eq("org_id", orgId)
+      .eq("track_id", track.id)
       .eq("is_active", true)
       .maybeSingle();
 
@@ -202,11 +242,14 @@ export class SupabaseRubricsRepository implements RubricsRepository {
 
   async findRubricById(orgId: string, rubricId: string) {
     const supabase: any = this.supabase;
+    const track = await this.findDefaultTrack(orgId);
+    if (!track) return null;
     const { data, error } = await supabase
       .from("rubrics")
-      .select("id, org_id, version, name, description, is_active, is_template, created_by, created_at, updated_at")
+      .select("id, org_id, track_id, version, name, description, is_active, is_template, created_by, created_at, updated_at")
       .eq("id", rubricId)
       .eq("org_id", orgId)
+      .eq("track_id", track.id)
       .maybeSingle();
 
     if (error) {
@@ -226,10 +269,13 @@ export class SupabaseRubricsRepository implements RubricsRepository {
 
   async findRubricHistoryByOrgId(orgId: string) {
     const supabase: any = this.supabase;
+    const track = await this.findDefaultTrack(orgId);
+    if (!track) return [];
     const { data, error } = await supabase
       .from("rubrics")
-      .select("id, org_id, version, name, description, is_active, is_template, created_by, created_at, updated_at")
+      .select("id, org_id, track_id, version, name, description, is_active, is_template, created_by, created_at, updated_at")
       .eq("org_id", orgId)
+      .eq("track_id", track.id)
       .order("version", { ascending: false });
 
     if (error) {
@@ -269,7 +315,7 @@ export class SupabaseRubricsRepository implements RubricsRepository {
     const supabase: any = this.supabase;
     const { data: rubric, error: rubricError } = await supabase
       .from("rubrics")
-      .select("id, org_id, version, name, description, is_active, is_template, created_by, created_at, updated_at")
+      .select("id, org_id, track_id, version, name, description, is_active, is_template, created_by, created_at, updated_at")
       .eq("id", input.rubricId)
       .eq("org_id", input.orgId)
       .maybeSingle();
@@ -285,7 +331,8 @@ export class SupabaseRubricsRepository implements RubricsRepository {
     const { error: resetError } = await supabase
       .from("rubrics")
       .update({ is_active: false, updated_at: new Date().toISOString() })
-      .eq("org_id", input.orgId);
+      .eq("org_id", input.orgId)
+      .eq("track_id", rubric.track_id);
 
     if (resetError) {
       throw new Error(resetError.message);
@@ -309,7 +356,7 @@ export class SupabaseRubricsRepository implements RubricsRepository {
     const categories = await this.fetchCategories(input.rubricId);
     const { data: publishedRubric, error: publishedError } = await supabase
       .from("rubrics")
-      .select("id, org_id, version, name, description, is_active, is_template, created_by, created_at, updated_at")
+      .select("id, org_id, track_id, version, name, description, is_active, is_template, created_by, created_at, updated_at")
       .eq("id", input.rubricId)
       .maybeSingle();
 

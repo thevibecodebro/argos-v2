@@ -9,13 +9,18 @@ import {
   platformAuditEventsTable,
   platformStaffTable,
   roleplaySessionsTable,
+  softwareAccessCapabilitiesTable,
   softwareAccessGrantsTable,
   trainingModulesTable,
   trainingProgressTable,
   usersTable,
   type ArgosDb,
 } from "@argos-v2/db";
-import type { CoachingAccessGrant } from "./coaching-access";
+import {
+  CoachingAccessVersionConflictError,
+  type CoachingAccessGrant,
+} from "./coaching-access";
+import type { ManagedCapabilityKey } from "@/lib/access/managed-capabilities";
 import { coerceStoredWorkspaceTheme } from "@/lib/organizations/workspace-theme";
 import type { AppUserRole } from "@/lib/users/roles";
 import {
@@ -73,6 +78,7 @@ const auditEventSelection = {
 };
 
 const organizationSelection = {
+  accessModel: organizationsTable.accessModel,
   archiveReason: organizationsTable.archiveReason,
   archivedAt: organizationsTable.archivedAt,
   archivedBy: organizationsTable.archivedBy,
@@ -97,6 +103,7 @@ const inviteSelection = {
 };
 
 const coachingAccessSelection = {
+  accessModel: softwareAccessGrantsTable.accessModel,
   contractReference: softwareAccessGrantsTable.contractReference,
   endsAt: softwareAccessGrantsTable.endsAt,
   id: softwareAccessGrantsTable.id,
@@ -108,6 +115,7 @@ const coachingAccessSelection = {
   startsAt: softwareAccessGrantsTable.startsAt,
   status: softwareAccessGrantsTable.status,
   updatedAt: softwareAccessGrantsTable.updatedAt,
+  version: softwareAccessGrantsTable.version,
 };
 
 type PlatformAccessContext = {
@@ -680,6 +688,7 @@ export class DrizzlePlatformRepository {
   }
 
   async createOrganizationWithAdminInviteAndAudit(input: {
+    accessModel: "managed";
     name: string;
     slug: string;
     plan: string;
@@ -694,6 +703,7 @@ export class DrizzlePlatformRepository {
       const [organization] = await transactionDb
         .insert(organizationsTable)
         .values({
+          accessModel: input.accessModel,
           name: input.name,
           slug: input.slug,
           plan: input.plan,
@@ -730,6 +740,7 @@ export class DrizzlePlatformRepository {
         resourceId: organization.id,
         reason: input.reason,
         metadata: {
+          accessModel: organization.accessModel,
           initialAdminEmail: input.adminEmail,
           inviteId: invite.id,
           plan: organization.plan,
@@ -783,14 +794,39 @@ export class DrizzlePlatformRepository {
       .orderBy(desc(softwareAccessGrantsTable.updatedAt))
       .limit(1);
 
-    return grant ?? null;
+    return grant ? this.attachCoachingAccessCapabilities(this.db, grant) : null;
+  }
+
+  private async attachCoachingAccessCapabilities(
+    db: ArgosDb,
+    grant: Omit<CoachingAccessGrant, "capabilities">,
+  ): Promise<CoachingAccessGrant> {
+    const capabilityRows = await db
+      .select({ capabilityKey: softwareAccessCapabilitiesTable.capabilityKey })
+      .from(softwareAccessCapabilitiesTable)
+      .where(
+        and(
+          eq(softwareAccessCapabilitiesTable.grantId, grant.id),
+          eq(softwareAccessCapabilitiesTable.orgId, grant.orgId),
+        ),
+      );
+
+    return {
+      ...grant,
+      capabilities: capabilityRows.map(
+        (row) => row.capabilityKey as ManagedCapabilityKey,
+      ),
+    };
   }
 
   async mutateCoachingAccessWithAudit(input: {
     actor: { email: string; role: PlatformStaffRole; userId: string };
     action: "pause" | "reactivate" | "revoke" | "save";
+    accessModel?: "managed_capabilities";
+    capabilities?: ManagedCapabilityKey[];
     contractReference?: string;
     endsAt?: Date;
+    expectedVersion: number;
     grant: CoachingAccessGrant | null;
     notes?: string | null;
     organization: { id: string; name: string; slug: string };
@@ -801,34 +837,58 @@ export class DrizzlePlatformRepository {
   }) {
     return this.db.transaction(async (tx) => {
       const transactionDb = tx as ArgosDb;
-      const previous = input.grant
+      const [lockedGrantRow] = input.grant
+        ? await transactionDb
+            .select(coachingAccessSelection)
+            .from(softwareAccessGrantsTable)
+            .where(eq(softwareAccessGrantsTable.id, input.grant.id))
+            .limit(1)
+            .for("update")
+        : [];
+      const lockedGrant = lockedGrantRow
+        ? await this.attachCoachingAccessCapabilities(transactionDb, lockedGrantRow)
+        : null;
+
+      if (
+        (input.grant &&
+          (!lockedGrant || lockedGrant.version !== input.expectedVersion)) ||
+        (!input.grant && input.expectedVersion !== 0)
+      ) {
+        throw new CoachingAccessVersionConflictError();
+      }
+
+      const previous = lockedGrant
         ? {
-            contractReference: input.grant.contractReference,
-            endsAt: input.grant.endsAt.toISOString(),
-            package: input.grant.package,
-            seatLimit: input.grant.seatLimit,
-            startsAt: input.grant.startsAt.toISOString(),
-            status: input.grant.status,
+            accessModel: lockedGrant.accessModel,
+            capabilities: lockedGrant.capabilities,
+            contractReference: lockedGrant.contractReference,
+            endsAt: lockedGrant.endsAt.toISOString(),
+            package: lockedGrant.package,
+            seatLimit: lockedGrant.seatLimit,
+            startsAt: lockedGrant.startsAt.toISOString(),
+            status: lockedGrant.status,
+            version: lockedGrant.version,
           }
         : null;
       let grant: CoachingAccessGrant | undefined;
       const shouldInsert =
         input.action === "save" &&
-        (!input.grant ||
-          input.grant.status === "revoked" ||
-          input.grant.endsAt <= new Date());
+        (!lockedGrant ||
+          lockedGrant.status === "revoked" ||
+          lockedGrant.endsAt <= new Date());
 
       if (shouldInsert) {
-        if (input.grant?.status === "active") {
+        if (lockedGrant?.status === "active") {
           await transactionDb
             .update(softwareAccessGrantsTable)
             .set({ status: "expired", updatedAt: new Date() })
-            .where(eq(softwareAccessGrantsTable.id, input.grant.id));
+            .where(eq(softwareAccessGrantsTable.id, lockedGrant.id));
         }
 
         const [inserted] = await transactionDb
           .insert(softwareAccessGrantsTable)
           .values({
+            accessModel: "managed_capabilities",
             contractReference: input.contractReference!,
             createdBy: input.actor.userId,
             endsAt: input.endsAt!,
@@ -839,10 +899,19 @@ export class DrizzlePlatformRepository {
             sourceType: "coaching_contract",
             startsAt: input.startsAt!,
             status: "active",
+            version: 1,
           })
           .returning(coachingAccessSelection);
-        grant = inserted;
-      } else if (input.grant) {
+        if (inserted) {
+          await this.replaceCoachingAccessCapabilities(
+            transactionDb,
+            inserted.id,
+            inserted.orgId,
+            input.capabilities ?? [],
+          );
+          grant = await this.attachCoachingAccessCapabilities(transactionDb, inserted);
+        }
+      } else if (lockedGrant) {
         const status =
           input.action === "pause"
             ? "paused"
@@ -854,6 +923,7 @@ export class DrizzlePlatformRepository {
           .set({
             ...(input.action === "save"
               ? {
+                  accessModel: "managed_capabilities" as const,
                   contractReference: input.contractReference!,
                   endsAt: input.endsAt!,
                   notes: input.notes ?? null,
@@ -864,10 +934,27 @@ export class DrizzlePlatformRepository {
               : {}),
             status,
             updatedAt: new Date(),
+            version: lockedGrant.version + 1,
           })
-          .where(eq(softwareAccessGrantsTable.id, input.grant.id))
+          .where(
+            and(
+              eq(softwareAccessGrantsTable.id, lockedGrant.id),
+              eq(softwareAccessGrantsTable.version, input.expectedVersion),
+            ),
+          )
           .returning(coachingAccessSelection);
-        grant = updated;
+        if (!updated) {
+          throw new CoachingAccessVersionConflictError();
+        }
+        if (input.action === "save") {
+          await this.replaceCoachingAccessCapabilities(
+            transactionDb,
+            updated.id,
+            updated.orgId,
+            input.capabilities ?? [],
+          );
+        }
+        grant = await this.attachCoachingAccessCapabilities(transactionDb, updated);
       }
 
       if (!grant) {
@@ -878,12 +965,15 @@ export class DrizzlePlatformRepository {
         action: `platform.coaching_access.${input.action}`,
         metadata: {
           current: {
+            accessModel: grant.accessModel,
+            capabilities: grant.capabilities,
             contractReference: grant.contractReference,
             endsAt: grant.endsAt.toISOString(),
             package: grant.package,
             seatLimit: grant.seatLimit,
             startsAt: grant.startsAt.toISOString(),
             status: grant.status,
+            version: grant.version,
           },
           previous,
         },
@@ -900,6 +990,32 @@ export class DrizzlePlatformRepository {
 
       return grant;
     });
+  }
+
+  private async replaceCoachingAccessCapabilities(
+    db: ArgosDb,
+    grantId: string,
+    orgId: string,
+    capabilities: ManagedCapabilityKey[],
+  ) {
+    await db
+      .delete(softwareAccessCapabilitiesTable)
+      .where(
+        and(
+          eq(softwareAccessCapabilitiesTable.grantId, grantId),
+          eq(softwareAccessCapabilitiesTable.orgId, orgId),
+        ),
+      );
+
+    if (capabilities.length > 0) {
+      await db.insert(softwareAccessCapabilitiesTable).values(
+        capabilities.map((capabilityKey) => ({
+          capabilityKey,
+          grantId,
+          orgId,
+        })),
+      );
+    }
   }
 
   async countAdminMembersForOrganization(orgId: string) {
@@ -1126,6 +1242,9 @@ export class DrizzlePlatformRepository {
         .limit(1),
     ]);
     const auditEvents = await this.listAuditEvents({ targetOrgId: organization.id, limit: 10 });
+    const coachingAccess = coachingAccessRows[0]
+      ? await this.attachCoachingAccessCapabilities(this.db, coachingAccessRows[0])
+      : null;
 
     const callStats = callRows[0];
     const trainingStats = trainingRows[0];
@@ -1159,20 +1278,23 @@ export class DrizzlePlatformRepository {
         reviewedCalls: toNumber(callStats?.reviewedCalls),
         totalCalls: toNumber(callStats?.totalCalls),
       },
-      coachingAccess: coachingAccessRows[0]
+      coachingAccess: coachingAccess
         ? {
-            contractReference: coachingAccessRows[0].contractReference,
-            endsAt: coachingAccessRows[0].endsAt.toISOString(),
-            id: coachingAccessRows[0].id,
+            accessModel: coachingAccess.accessModel,
+            capabilities: coachingAccess.capabilities,
+            contractReference: coachingAccess.contractReference,
+            endsAt: coachingAccess.endsAt.toISOString(),
+            id: coachingAccess.id,
             monthlyVoiceMinutesPerSeat: toNumber(
-              coachingAccessRows[0].monthlyVoiceMinutesPerSeat,
+              coachingAccess.monthlyVoiceMinutesPerSeat,
             ),
-            notes: coachingAccessRows[0].notes,
-            package: coachingAccessRows[0].package,
-            seatLimit: toNumber(coachingAccessRows[0].seatLimit),
-            startsAt: coachingAccessRows[0].startsAt.toISOString(),
-            status: coachingAccessRows[0].status,
-            updatedAt: coachingAccessRows[0].updatedAt.toISOString(),
+            notes: coachingAccess.notes,
+            package: coachingAccess.package,
+            seatLimit: toNumber(coachingAccess.seatLimit),
+            startsAt: coachingAccess.startsAt.toISOString(),
+            status: coachingAccess.status,
+            updatedAt: coachingAccess.updatedAt.toISOString(),
+            version: coachingAccess.version,
           }
         : null,
       invites: invites.map((invite) => ({
@@ -1185,6 +1307,7 @@ export class DrizzlePlatformRepository {
       })),
       members,
       organization: {
+        accessModel: organization.accessModel,
         createdAt: organization.createdAt.toISOString(),
         id: organization.id,
         name: organization.name,

@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { organizationHasManagedCapability } from "@/lib/access/managed-capabilities-server";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { createIntegrationsRepository } from "@/lib/integrations/create-repository";
 import {
@@ -65,6 +66,10 @@ export async function GET(request: Request) {
 
   if (!viewer?.org) {
     return settingsRedirect(request, "ghl_error", "not_provisioned");
+  }
+
+  if (!(await organizationHasManagedCapability(viewer.org.id, "integration_ghl"))) {
+    return settingsRedirect(request, "ghl_error", "feature_unavailable", true);
   }
 
   if (viewer.role !== "admin") {

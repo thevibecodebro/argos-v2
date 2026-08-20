@@ -13,6 +13,7 @@ import {
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { getCallDetail, listAnnotations } from "@/lib/calls/service";
 import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
+import { requireManagedCapabilityForPage } from "@/lib/access/managed-capabilities-server";
 
 export default async function CallDetailPage({
   params,
@@ -25,6 +26,8 @@ export default async function CallDetailPage({
   if (!authUser) {
     notFound();
   }
+
+  await requireManagedCapabilityForPage(authUser.id, "call_scoring");
 
   const repository = await createEffectiveTenantRepository(createCallsRepository(), authUser.id);
   const [profile, detailResult, annotationsResult] = await Promise.all([

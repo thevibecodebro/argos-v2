@@ -1,10 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const getAuthenticatedSupabaseUser = vi.fn();
+const requireAuthenticatedManagedCapability = vi.fn();
 const createIntegrationsRepository = vi.fn();
 
 vi.mock("@/lib/auth/get-authenticated-user", () => ({
   getAuthenticatedSupabaseUser,
+}));
+
+vi.mock("@/lib/access/managed-capabilities-server", () => ({
+  requireAuthenticatedManagedCapability,
 }));
 
 vi.mock("@/lib/integrations/create-repository", () => ({
@@ -21,7 +26,14 @@ describe("integration connect routes", () => {
     vi.restoreAllMocks();
     vi.unstubAllEnvs();
     getAuthenticatedSupabaseUser.mockReset();
+    requireAuthenticatedManagedCapability.mockReset();
     createIntegrationsRepository.mockReset();
+    requireAuthenticatedManagedCapability.mockImplementation(async () => {
+      const user = await getAuthenticatedSupabaseUser();
+      return user
+        ? { ok: true, user, orgId: "org-1", access: { mode: "legacy" } }
+        : { ok: false, response: Response.json({ error: "Unauthorized" }, { status: 401 }) };
+    });
   });
 
   afterEach(() => {

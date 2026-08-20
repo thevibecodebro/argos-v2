@@ -35,7 +35,7 @@ describe("authenticated backend readability scope", () => {
     );
     const primaryNavigationEntries = Array.from(
       navSource.matchAll(
-        /\{\s*href:\s*"([^"]+)",\s*label:\s*"([^"]+)",\s*icon:\s*"([^"]+)"\s*\}/g,
+        /\{\s*href:\s*"([^"]+)",\s*label:\s*"([^"]+)",\s*icon:\s*"([^"]+)"(?:,\s*capability:\s*"[^"]+")?\s*\}/g,
       ),
       ([, href, label, icon]) => ({ href, icon, label }),
     );

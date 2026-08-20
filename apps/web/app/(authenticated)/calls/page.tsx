@@ -18,6 +18,7 @@ import {
   OperationalWorkspace,
 } from "@/components/operational-workspace";
 import { CallsFilters } from "./calls-filters";
+import { requireManagedCapabilityForPage } from "@/lib/access/managed-capabilities-server";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -28,6 +29,7 @@ export default async function CallsPage({
 }) {
   const resolvedSearchParams = await searchParams;
   const authUser = await getCachedAuthenticatedSupabaseUser();
+  if (authUser) await requireManagedCapabilityForPage(authUser.id, "call_scoring");
   const filters = parseFilters(resolvedSearchParams);
 
   const repository = authUser

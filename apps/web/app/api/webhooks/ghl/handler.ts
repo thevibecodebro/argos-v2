@@ -7,6 +7,7 @@ import {
   rateLimitExceededResponse,
 } from "@/lib/rate-limit/service";
 import { readRequestTextWithLimit } from "@/lib/security/request-body";
+import { organizationHasManagedCapability } from "@/lib/access/managed-capabilities-server";
 
 const MAX_GHL_WEBHOOK_BODY_BYTES = 128 * 1024;
 const PUBLIC_WEBHOOK_RATE_LIMIT_SUBJECT = {
@@ -49,6 +50,9 @@ export async function processGhlWebhookPost(request: Request, token: string | nu
         token,
       },
       rawBody: rawBodyResult.text,
+    }, {
+      canIngestOrganization: (orgId) =>
+        organizationHasManagedCapability(orgId, "integration_ghl"),
     });
 
     return NextResponse.json(result.body, { status: result.status });

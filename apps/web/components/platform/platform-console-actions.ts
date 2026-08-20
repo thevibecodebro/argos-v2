@@ -51,6 +51,8 @@ export type ResendAdminInviteResponse = {
 
 export type CoachingAccessResponse = {
   grant: {
+    accessModel: "legacy_package" | "managed_capabilities";
+    capabilities: import("@/lib/access/managed-capabilities").ManagedCapabilityKey[];
     contractReference: string;
     endsAt: string;
     id: string;
@@ -61,6 +63,7 @@ export type CoachingAccessResponse = {
     startsAt: string;
     status: "active" | "expired" | "paused" | "revoked";
     updatedAt: string;
+    version: number;
   };
 };
 
@@ -98,6 +101,7 @@ async function postJson<T>(
 
 export function buildCreateOrganizationPayload(formData: FormData) {
   return {
+    accessModel: "managed" as const,
     adminEmail: String(formData.get("adminEmail") ?? "").trim(),
     name: String(formData.get("name") ?? "").trim(),
     plan: String(formData.get("plan") ?? "trial").trim(),
@@ -216,8 +220,10 @@ export function submitCoachingAccess(
   slug: string,
   payload: {
     action: "pause" | "reactivate" | "revoke" | "save";
+    capabilities?: import("@/lib/access/managed-capabilities").ManagedCapabilityKey[];
     contractReference?: string;
     endsAt?: string;
+    expectedVersion: number;
     notes?: string;
     package?: "solo" | "team";
     reason: string;

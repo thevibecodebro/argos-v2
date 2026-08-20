@@ -52,9 +52,10 @@ export interface ZoomWebhookRepository {
     sourceSizeBytes: number | null;
   }): Promise<void>;
   findActiveCallProcessingSubscription: CallProcessingEntitlementsRepository["findActiveCallProcessingSubscription"];
-  findCallByZoomRecordingId(
-    zoomRecordingId: string,
-  ): Promise<{ id: string; status: CallStatus; jobStatus: CallProcessingJobStatus | null } | null>;
+  findCallByZoomRecordingId(input: {
+    orgId: string;
+    zoomRecordingId: string;
+  }): Promise<{ id: string; status: CallStatus; jobStatus: CallProcessingJobStatus | null } | null>;
   findIngestionTitleFilterConfig(orgId: string): Promise<IngestionTitleFilterConfig>;
   findPreferredCallOwner(orgId: string): Promise<{ id: string } | null>;
   findZoomIntegrationByAccountId(accountId: string): Promise<{
@@ -129,6 +130,7 @@ export type ZoomIngestionTitleDecisionEvent = {
 };
 
 type ZoomWebhookDependencies = {
+  canIngestOrganization?: (orgId: string) => Promise<boolean>;
   callProcessingEntitlementsRepository?: CallProcessingEntitlementsRepository;
   recordIngestionTitleDecision?: (
     event: ZoomIngestionTitleDecisionEvent,
@@ -252,6 +254,15 @@ export async function processZoomWebhookRequest(
       body: { received: true },
     };
   }
+  if (
+    dependencies.canIngestOrganization &&
+    !(await dependencies.canIngestOrganization(integration.orgId))
+  ) {
+    return {
+      status: 200,
+      body: { received: true },
+    };
+  }
 
   if (env.ARGOS_INGESTION_TITLE_FILTERS_ENFORCED === "true") {
     const config = await repository.findIngestionTitleFilterConfig(integration.orgId);
@@ -277,7 +288,10 @@ export async function processZoomWebhookRequest(
     }
   }
 
-  const existing = await repository.findCallByZoomRecordingId(recording.id);
+  const existing = await repository.findCallByZoomRecordingId({
+    orgId: integration.orgId,
+    zoomRecordingId: recording.id,
+  });
 
   if (existing?.jobStatus && COMPLETED_OR_ACTIVE_JOB_STATUSES.has(existing.jobStatus)) {
     return {

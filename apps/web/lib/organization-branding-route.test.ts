@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_WORKSPACE_THEME } from "@/lib/organizations/workspace-theme";
 
 const getAuthenticatedSupabaseUser = vi.fn();
+const requireAuthenticatedManagedCapability = vi.fn();
 const createUsersRepository = vi.fn();
 const createEffectiveTenantUsersRepository = vi.fn();
 const createPlatformRepository = vi.fn();
@@ -17,6 +18,10 @@ vi.mock("next/headers", () => ({
 
 vi.mock("@/lib/auth/get-authenticated-user", () => ({
   getAuthenticatedSupabaseUser,
+}));
+
+vi.mock("@/lib/access/managed-capabilities-server", () => ({
+  requireAuthenticatedManagedCapability,
 }));
 
 vi.mock("@/lib/users/create-repository", () => ({
@@ -68,6 +73,7 @@ describe("organization branding route", () => {
     vi.resetModules();
     vi.restoreAllMocks();
     getAuthenticatedSupabaseUser.mockReset();
+    requireAuthenticatedManagedCapability.mockReset();
     createUsersRepository.mockReset();
     createEffectiveTenantUsersRepository.mockReset();
     createPlatformRepository.mockReset();
@@ -78,6 +84,12 @@ describe("organization branding route", () => {
     cookies.mockReset();
 
     getAuthenticatedSupabaseUser.mockResolvedValue({ id: "auth-user-1" });
+    requireAuthenticatedManagedCapability.mockImplementation(async () => {
+      const user = await getAuthenticatedSupabaseUser();
+      return user
+        ? { ok: true, user, orgId: "org-1", access: { mode: "legacy" } }
+        : { ok: false, response: Response.json({ error: "Unauthorized" }, { status: 401 }) };
+    });
     createUsersRepository.mockReturnValue({ repository: true });
     createEffectiveTenantUsersRepository.mockResolvedValue({ repository: "effective" });
     createPlatformRepository.mockReturnValue({ platformRepository: true });

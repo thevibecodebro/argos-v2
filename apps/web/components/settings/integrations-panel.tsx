@@ -14,7 +14,7 @@ import { SettingsStatus } from "./settings-readability";
 export type IntegrationsPanelProps = {
   titleFilterEnforcementEnabled: boolean;
   titleFilters: IngestionTitleFilterConfig;
-  zoom: {
+  zoom?: {
     available: boolean;
     connectPath: string;
     connected: boolean;
@@ -22,7 +22,7 @@ export type IntegrationsPanelProps = {
     disconnectPath: string;
     zoomUserId?: string | null;
   };
-  ghl: {
+  ghl?: {
     available: boolean;
     connectPath: string;
     connected: boolean;
@@ -39,7 +39,7 @@ export type IntegrationsPanelProps = {
     syncEnabled?: boolean;
     fallbackOwnerOptions?: GhlFallbackOwnerOption[];
   };
-  googleMeet: {
+  googleMeet?: {
     available: boolean;
     connectPath: string;
     connected: boolean;
@@ -1654,49 +1654,55 @@ export function IntegrationsPanel({
         rulesState={rulesState}
         titleFilterEnforcementEnabled={titleFilterEnforcementEnabled}
       />
-      <ZoomCard
-        autoIngestionConfigured={rulesState.savedConfig.configured}
-        available={zoom.available}
-        connectPath={zoom.connectPath}
-        connected={zoom.connected}
-        connectedAt={zoom.connectedAt}
-        disconnectPath={zoom.disconnectPath}
-        titleFilterEnforcementEnabled={titleFilterEnforcementEnabled}
-        zoomUserId={zoom.zoomUserId}
-      />
-      <GoogleMeetCard
-        autoIngestionConfigured={rulesState.savedConfig.configured}
-        available={googleMeet.available}
-        connectPath={googleMeet.connectPath}
-        connected={googleMeet.connected}
-        connectedAt={googleMeet.connectedAt}
-        consentConfirmedAt={googleMeet.consentConfirmedAt}
-        defaultRepId={googleMeet.defaultRepId}
-        disconnectPath={googleMeet.disconnectPath}
-        fallbackOwnerOptions={googleMeet.fallbackOwnerOptions}
-        googleEmail={googleMeet.googleEmail}
-        lastSyncCompletedAt={googleMeet.lastSyncCompletedAt}
-        lastSyncError={googleMeet.lastSyncError}
-        lastSyncStartedAt={googleMeet.lastSyncStartedAt}
-        syncEnabled={googleMeet.syncEnabled}
-      />
-      <GhlCard
-        available={ghl.available}
-        connectPath={ghl.connectPath}
-        connected={ghl.connected}
-        connectedAt={ghl.connectedAt}
-        consentConfirmedAt={ghl.consentConfirmedAt}
-        defaultRepId={ghl.defaultRepId}
-        disconnectPath={ghl.disconnectPath}
-        lastSyncCompletedAt={ghl.lastSyncCompletedAt}
-        lastSyncError={ghl.lastSyncError}
-        lastSyncStartedAt={ghl.lastSyncStartedAt}
-        locationId={ghl.locationId}
-        locationName={ghl.locationName}
-        mappedUsersCount={ghl.mappedUsersCount}
-        syncEnabled={ghl.syncEnabled}
-        fallbackOwnerOptions={ghl.fallbackOwnerOptions}
-      />
+      {zoom ? (
+        <ZoomCard
+          autoIngestionConfigured={rulesState.savedConfig.configured}
+          available={zoom.available}
+          connectPath={zoom.connectPath}
+          connected={zoom.connected}
+          connectedAt={zoom.connectedAt}
+          disconnectPath={zoom.disconnectPath}
+          titleFilterEnforcementEnabled={titleFilterEnforcementEnabled}
+          zoomUserId={zoom.zoomUserId}
+        />
+      ) : null}
+      {googleMeet ? (
+        <GoogleMeetCard
+          autoIngestionConfigured={rulesState.savedConfig.configured}
+          available={googleMeet.available}
+          connectPath={googleMeet.connectPath}
+          connected={googleMeet.connected}
+          connectedAt={googleMeet.connectedAt}
+          consentConfirmedAt={googleMeet.consentConfirmedAt}
+          defaultRepId={googleMeet.defaultRepId}
+          disconnectPath={googleMeet.disconnectPath}
+          fallbackOwnerOptions={googleMeet.fallbackOwnerOptions}
+          googleEmail={googleMeet.googleEmail}
+          lastSyncCompletedAt={googleMeet.lastSyncCompletedAt}
+          lastSyncError={googleMeet.lastSyncError}
+          lastSyncStartedAt={googleMeet.lastSyncStartedAt}
+          syncEnabled={googleMeet.syncEnabled}
+        />
+      ) : null}
+      {ghl ? (
+        <GhlCard
+          available={ghl.available}
+          connectPath={ghl.connectPath}
+          connected={ghl.connected}
+          connectedAt={ghl.connectedAt}
+          consentConfirmedAt={ghl.consentConfirmedAt}
+          defaultRepId={ghl.defaultRepId}
+          disconnectPath={ghl.disconnectPath}
+          lastSyncCompletedAt={ghl.lastSyncCompletedAt}
+          lastSyncError={ghl.lastSyncError}
+          lastSyncStartedAt={ghl.lastSyncStartedAt}
+          locationId={ghl.locationId}
+          locationName={ghl.locationName}
+          mappedUsersCount={ghl.mappedUsersCount}
+          syncEnabled={ghl.syncEnabled}
+          fallbackOwnerOptions={ghl.fallbackOwnerOptions}
+        />
+      ) : null}
     </div>
   );
 }

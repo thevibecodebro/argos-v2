@@ -6,6 +6,7 @@ import {
   rateLimitExceededResponse,
 } from "@/lib/rate-limit/service";
 import { readRequestTextWithLimit } from "@/lib/security/request-body";
+import { organizationHasManagedCapability } from "@/lib/access/managed-capabilities-server";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,9 @@ export async function POST(request: Request) {
         timestamp: request.headers.get("x-zm-request-timestamp"),
       },
       rawBody: rawBodyResult.text,
+    }, {
+      canIngestOrganization: (orgId) =>
+        organizationHasManagedCapability(orgId, "integration_zoom"),
     });
 
     return NextResponse.json(result.body, {

@@ -4,6 +4,7 @@ import { sendInviteEmail } from "@/lib/invites/email";
 import type { PlatformStaffRole } from "./repository";
 
 type PlatformOrganization = {
+  accessModel: "legacy" | "managed";
   id: string;
   name: string;
   slug: string;
@@ -52,6 +53,7 @@ export type PlatformOrganizationActor = {
 export type PlatformOrganizationRepository = {
   findOrganizationBySlug(slug: string): Promise<PlatformOrganization | null>;
   createOrganizationWithAdminInviteAndAudit(input: {
+    accessModel: "managed";
     name: string;
     slug: string;
     plan: string;
@@ -166,6 +168,7 @@ export async function createPlatformOrganizationWithAdminInvite(
   const plan = getTrimmedString(input.plan) || "trial";
 
   const data = await repository.createOrganizationWithAdminInviteAndAudit({
+    accessModel: "managed",
     adminEmail,
     inviteExpiresAt,
     inviteToken: dependencies.createToken?.() ?? randomUUID(),

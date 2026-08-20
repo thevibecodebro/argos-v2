@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getAuthenticatedSupabaseUser = vi.fn();
+const requireAuthenticatedManagedCapability = vi.fn();
 const createTrainingRepository = vi.fn();
 const createTrainingModule = vi.fn();
 const updateTrainingModule = vi.fn();
@@ -16,6 +17,10 @@ const submitTrainingProgress = vi.fn();
 
 vi.mock("@/lib/auth/get-authenticated-user", () => ({
   getAuthenticatedSupabaseUser,
+}));
+
+vi.mock("@/lib/access/managed-capabilities-server", () => ({
+  requireAuthenticatedManagedCapability,
 }));
 
 vi.mock("@/lib/training/create-repository", () => ({
@@ -41,6 +46,7 @@ describe("training routes", () => {
     vi.resetModules();
     vi.restoreAllMocks();
     getAuthenticatedSupabaseUser.mockReset();
+    requireAuthenticatedManagedCapability.mockReset();
     createTrainingRepository.mockReset();
     createTrainingModule.mockReset();
     updateTrainingModule.mockReset();
@@ -55,6 +61,15 @@ describe("training routes", () => {
     submitTrainingProgress.mockReset();
     createTrainingRepository.mockReturnValue({});
     getAuthenticatedSupabaseUser.mockResolvedValue({ id: "auth-user-1" });
+    requireAuthenticatedManagedCapability.mockImplementation(async () => {
+      const user = await getAuthenticatedSupabaseUser();
+      return user
+        ? { ok: true, user, orgId: "org-1", access: { mode: "legacy" } }
+        : {
+            ok: false,
+            response: Response.json({ error: "Unauthorized" }, { status: 401 }),
+          };
+    });
     getTrainingAiStatus.mockReturnValue({ available: true, reason: null });
     normalizeTrainingModuleGenerationInput.mockImplementation((body: unknown) => {
       if (!body || typeof body !== "object") {
@@ -305,11 +320,36 @@ describe("training routes", () => {
     const response = await route.GET();
 
     expect(getTrainingTeamProgress).toHaveBeenCalledWith({}, "auth-user-1");
+    expect(requireAuthenticatedManagedCapability).toHaveBeenNthCalledWith(1, "training");
+    expect(requireAuthenticatedManagedCapability).toHaveBeenNthCalledWith(2, "practice_reporting");
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       rows: [{ repId: "rep-1" }],
       progress: { modules: [{ id: "module-1" }] },
     });
+  });
+
+  it("does not query team progress when practice reporting is disabled", async () => {
+    requireAuthenticatedManagedCapability
+      .mockResolvedValueOnce({
+        ok: true,
+        user: { id: "auth-user-1" },
+        orgId: "org-1",
+        access: { mode: "managed" },
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        response: Response.json(
+          { code: "feature_unavailable", error: "This feature is not enabled for this workspace" },
+          { status: 403 },
+        ),
+      });
+
+    const route = await import("../../app/api/training/team-progress/route");
+    const response = await route.GET();
+
+    expect(response.status).toBe(403);
+    expect(getTrainingTeamProgress).not.toHaveBeenCalled();
   });
 
   it("returns forbidden when the service rejects progress for an unassigned module", async () => {

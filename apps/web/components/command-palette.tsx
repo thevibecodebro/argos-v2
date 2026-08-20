@@ -5,8 +5,13 @@ import { useRouter } from "next/navigation";
 import { ForgeIcon } from "./forge";
 import { getVisibleNavGroups } from "./app-navigation";
 import type { AppUserRole } from "@/lib/users/roles";
+import {
+  hasManagedCapability,
+  type EffectiveOrganizationCapabilities,
+} from "@/lib/access/managed-capabilities";
 
 type CommandPaletteProps = {
+  access?: EffectiveOrganizationCapabilities;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   role: AppUserRole | null;
@@ -18,13 +23,17 @@ const quickActions = [
 ];
 
 export function CommandPalette({
+  access,
   open,
   onOpenChange,
   role,
   onBeforeNavigate,
 }: CommandPaletteProps) {
   const router = useRouter();
-  const groups = getVisibleNavGroups(role);
+  const groups = getVisibleNavGroups(role, access);
+  const visibleQuickActions = quickActions.filter(
+    (action) => action.href !== "/upload" || !access || hasManagedCapability(access, "call_upload"),
+  );
 
   function go(href: string) {
     onBeforeNavigate?.(href);
@@ -46,7 +55,7 @@ export function CommandPalette({
         <Command.Empty>No matches.</Command.Empty>
 
         <Command.Group heading="Quick actions">
-          {quickActions.map((action) => (
+          {visibleQuickActions.map((action) => (
             <Command.Item
               key={action.href}
               onSelect={() => go(action.href)}

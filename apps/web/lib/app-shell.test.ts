@@ -49,6 +49,7 @@ const platformSwitcher = {
   },
   organizations: [
     {
+      accessModel: "legacy" as const,
       createdAt: "2026-06-11T15:30:00.000Z",
       id: "org-1",
       name: "Acme Health",

@@ -4,6 +4,7 @@ const cookies = vi.fn();
 const getAuthenticatedSupabaseUser = vi.fn();
 const createIntegrationsRepository = vi.fn();
 const exchangeZoomCode = vi.fn();
+const organizationHasManagedCapability = vi.fn();
 const registerZoomWebhook = vi.fn();
 
 vi.mock("next/headers", () => ({
@@ -12,6 +13,10 @@ vi.mock("next/headers", () => ({
 
 vi.mock("@/lib/auth/get-authenticated-user", () => ({
   getAuthenticatedSupabaseUser,
+}));
+
+vi.mock("@/lib/access/managed-capabilities-server", () => ({
+  organizationHasManagedCapability,
 }));
 
 vi.mock("@/lib/integrations/create-repository", () => ({
@@ -42,6 +47,8 @@ describe("zoom callback route", () => {
     getAuthenticatedSupabaseUser.mockReset();
     createIntegrationsRepository.mockReset();
     exchangeZoomCode.mockReset();
+    organizationHasManagedCapability.mockReset();
+    organizationHasManagedCapability.mockResolvedValue(true);
     registerZoomWebhook.mockReset();
   });
 

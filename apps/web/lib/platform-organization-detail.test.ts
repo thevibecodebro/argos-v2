@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildPlatformOrganizationDetailSnapshot } from "./platform/organization-detail";
 
 const organization = {
+  accessModel: "managed" as const,
   createdAt: "2026-06-01T15:00:00.000Z",
   id: "org-1",
   name: "Acme Health",

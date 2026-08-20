@@ -6,18 +6,27 @@ const {
   exchangeGoogleCode,
   getAuthenticatedSupabaseUser,
   getGoogleUserProfile,
+  organizationHasManagedCapability,
+  requireAuthenticatedManagedCapability,
 } = vi.hoisted(() => ({
   cookies: vi.fn(),
   createIntegrationsRepository: vi.fn(),
   exchangeGoogleCode: vi.fn(),
   getAuthenticatedSupabaseUser: vi.fn(),
   getGoogleUserProfile: vi.fn(),
+  organizationHasManagedCapability: vi.fn(),
+  requireAuthenticatedManagedCapability: vi.fn(),
 }));
 
 vi.mock("next/headers", () => ({ cookies }));
 
 vi.mock("@/lib/auth/get-authenticated-user", () => ({
   getAuthenticatedSupabaseUser,
+}));
+
+vi.mock("@/lib/access/managed-capabilities-server", () => ({
+  organizationHasManagedCapability,
+  requireAuthenticatedManagedCapability,
 }));
 
 vi.mock("@/lib/integrations/create-repository", () => ({
@@ -48,6 +57,13 @@ describe("Google Meet OAuth routes", () => {
     vi.stubEnv("ARGOS_GOOGLE_MEET_ENABLED", "true");
     vi.stubEnv("GOOGLE_MEET_CLIENT_ID", "google-client");
     vi.stubEnv("GOOGLE_MEET_CLIENT_SECRET", "google-secret");
+    organizationHasManagedCapability.mockResolvedValue(true);
+    requireAuthenticatedManagedCapability.mockImplementation(async () => {
+      const user = await getAuthenticatedSupabaseUser();
+      return user
+        ? { ok: true, user, orgId: "org-1", access: { mode: "legacy" } }
+        : { ok: false, response: Response.json({ error: "Unauthorized" }, { status: 401 }) };
+    });
   });
 
   it("keeps organizer connection admin-only", async () => {

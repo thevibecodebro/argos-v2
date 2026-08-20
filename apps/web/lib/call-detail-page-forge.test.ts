@@ -31,6 +31,13 @@ vi.mock("@/lib/auth/request-user", () => ({
   getCachedCurrentUserProfile: getCachedCurrentUserProfileMock,
 }));
 
+vi.mock("@/lib/access/managed-capabilities-server", () => ({
+  requireManagedCapabilityForPage: vi.fn().mockResolvedValue({
+    access: { mode: "legacy" },
+    orgId: "org-1",
+  }),
+}));
+
 vi.mock("@/lib/calls/create-repository", () => ({
   createCallsRepository: createCallsRepositoryMock,
 }));

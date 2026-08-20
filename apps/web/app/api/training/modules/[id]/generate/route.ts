@@ -1,5 +1,5 @@
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
-import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
+import { fromServiceResult } from "@/lib/http";
 import { createTrainingRepository } from "@/lib/training/create-repository";
 import {
   generateTrainingModuleDraft,
@@ -12,11 +12,9 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const authUser = await getAuthenticatedSupabaseUser();
-
-  if (!authUser) {
-    return unauthorizedJson();
-  }
+  const capabilityAccess = await requireAuthenticatedManagedCapability("training");
+  if (!capabilityAccess.ok) return capabilityAccess.response;
+  const authUser = capabilityAccess.user;
 
   let body: unknown;
   try {

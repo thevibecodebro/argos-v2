@@ -13,6 +13,11 @@ import {
   getCachedAuthenticatedSupabaseUser,
   getCachedCurrentUserDetails,
 } from "@/lib/auth/request-user";
+import {
+  hasManagedCapability,
+  type ManagedCapabilityKey,
+} from "@/lib/access/managed-capabilities";
+import { getCachedOrganizationCapabilities } from "@/lib/access/managed-capabilities-server";
 
 const SETTINGS_SECTIONS = [
   {
@@ -21,6 +26,7 @@ const SETTINGS_SECTIONS = [
     icon: "palette",
     label: "Branding",
     visibleTo: ["admin"],
+    capabilities: ["workspace_branding"],
   },
   {
     description: "Manage user records and account access.",
@@ -49,6 +55,7 @@ const SETTINGS_SECTIONS = [
     icon: "power",
     label: "Integrations",
     visibleTo: ["admin"],
+    capabilities: ["integration_google_meet", "integration_ghl", "integration_zoom"],
   },
   {
     description: "Tune the scoring system used on reviewed calls.",
@@ -88,11 +95,20 @@ export default async function SettingsAccountPage() {
     );
   }
 
+  const access = result.data.org
+    ? await getCachedOrganizationCapabilities(result.data.org.id)
+    : undefined;
+
   const visibleSections = SETTINGS_SECTIONS.filter(
     (section) =>
-      !section.visibleTo ||
-      (result.data.role !== null &&
-        (section.visibleTo as readonly string[]).includes(result.data.role)),
+      (!section.visibleTo ||
+        (result.data.role !== null &&
+          (section.visibleTo as readonly string[]).includes(result.data.role))) &&
+      (!("capabilities" in section) ||
+        !access ||
+        (section.capabilities as readonly ManagedCapabilityKey[]).some((capability) =>
+          hasManagedCapability(access, capability),
+        )),
   );
   const settingsRailItems = [
     { href: "/settings", icon: "person", key: "account", label: "Account" },
@@ -117,7 +133,9 @@ export default async function SettingsAccountPage() {
         <SettingsSecondaryRail activeKey="account" items={settingsRailItems} />
 
         <div className="min-w-0 space-y-3">
-          <VoiceBalanceCard returnTo="/settings" />
+          {!access || hasManagedCapability(access, "roleplay_voice") ? (
+            <VoiceBalanceCard returnTo="/settings" />
+          ) : null}
           <section
             className="rounded-xl border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-4"
             data-settings-inline-detail="account"

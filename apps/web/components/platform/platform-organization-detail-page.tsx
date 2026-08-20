@@ -15,6 +15,10 @@ import {
 } from "@/components/operational-workspace";
 import type { PlatformOrganizationDetailSnapshot } from "@/lib/platform/organization-detail";
 import {
+  INTERO_PRACTICE_PILOT_CAPABILITIES,
+  type ManagedCapabilityKey,
+} from "@/lib/access/managed-capabilities";
+import {
   buildCoachingAccessEndpoint,
   buildResendAdminInviteEndpoint,
   submitArchiveOrganization,
@@ -26,6 +30,29 @@ import { formatAccessSessionStatus, formatDate, formatPercent, formatPlan } from
 type PlatformOrganizationDetailPageProps = {
   organization: PlatformOrganizationDetailSnapshot;
 };
+
+const MANAGED_CAPABILITY_OPTIONS: {
+  description: string;
+  key: ManagedCapabilityKey;
+  label: string;
+}[] = [
+  { key: "training", label: "Training", description: "Training modules and assignments" },
+  { key: "roleplay", label: "Roleplay", description: "Practice sessions and history" },
+  { key: "roleplay_voice", label: "Voice roleplay", description: "Realtime voice and speech generation" },
+  { key: "custom_scenarios", label: "Custom scenarios", description: "Organization-specific practice scenarios" },
+  { key: "team_rubrics", label: "Team rubrics", description: "Different rubrics by department or team" },
+  { key: "practice_reporting", label: "Practice reporting", description: "Training and roleplay progress reporting" },
+  { key: "call_upload", label: "Call upload", description: "Manual recording uploads" },
+  { key: "call_ingestion", label: "Call ingestion", description: "Automated recording imports" },
+  { key: "call_scoring", label: "Call scoring", description: "AI scoring and call review" },
+  { key: "highlights", label: "Highlights", description: "Saved call moments and clips" },
+  { key: "call_analytics", label: "Call analytics", description: "Call score trends and reporting" },
+  { key: "leaderboard", label: "Leaderboard", description: "Team call performance rankings" },
+  { key: "integration_google_meet", label: "Google Meet", description: "Google Meet ingestion integration" },
+  { key: "integration_ghl", label: "GoHighLevel", description: "GoHighLevel ingestion integration" },
+  { key: "integration_zoom", label: "Zoom", description: "Zoom ingestion integration" },
+  { key: "workspace_branding", label: "Workspace branding", description: "Logo and theme controls" },
+];
 
 export function PlatformOrganizationDetailPage({
   organization,
@@ -426,6 +453,9 @@ function CoachingAccessPanel({
     grant?.contractReference ?? "",
   );
   const [notes, setNotes] = useState(grant?.notes ?? "");
+  const [capabilities, setCapabilities] = useState<ManagedCapabilityKey[]>(
+    grant?.capabilities ?? [...INTERO_PRACTICE_PILOT_CAPABILITIES],
+  );
   const [reason, setReason] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -443,24 +473,26 @@ function CoachingAccessPanel({
         action === "save"
           ? {
               action,
+              capabilities,
               contractReference,
               endsAt,
+              expectedVersion: grant?.version ?? 0,
               notes,
               package: packageName,
               reason,
               seatLimit: Number(seatLimit),
               startsAt,
             }
-          : { action, reason },
+          : { action, expectedVersion: grant?.version ?? 0, reason },
       );
       setMessage(
         action === "save"
-          ? "Coaching-included access saved."
-          : `Coaching access ${result.grant.status}.`,
+          ? "Managed access saved."
+          : `Managed access ${result.grant.status}.`,
       );
       window.location.reload();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to update coaching access.");
+      setMessage(error instanceof Error ? error.message : "Unable to update managed access.");
       setIsSaving(false);
     }
   }
@@ -478,12 +510,13 @@ function CoachingAccessPanel({
         <div>
           <p className="forge-page-eyebrow">Software access</p>
           <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">
-            Coaching-included access
+            Managed feature access
           </h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--forge-muted)]">
-            Contract-backed access uses the same Solo or Team product and includes 120
-            pooled voice minutes per seat each month. Access ends automatically on the
-            contract end date.
+            Contract-backed access is an explicit allow-list. Anything not selected is
+            unavailable to this organization, and access ends automatically on the
+            contract end date. Only Argos platform staff can change these settings;
+            organization admins cannot view or edit them.
           </p>
         </div>
         <ForgeChip
@@ -502,7 +535,7 @@ function CoachingAccessPanel({
       {hasStripeAccess ? (
         <p className="mt-3 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-muted)]">
           This organization has an active Stripe subscription. Cancel it before enabling
-          coaching-included access so the two entitlement sources cannot overlap.
+          managed access so the two entitlement sources cannot overlap.
         </p>
       ) : null}
 
@@ -576,6 +609,56 @@ function CoachingAccessPanel({
         </label>
       </div>
 
+      <div className="mt-4 rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface-2)] p-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-[var(--forge-text)]">Enabled features</p>
+            <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">
+              These controls are enforced server-side for managed organizations.
+            </p>
+          </div>
+          <ForgeButton
+            disabled={isSaving}
+            onClick={() => setCapabilities([...INTERO_PRACTICE_PILOT_CAPABILITIES])}
+            size="sm"
+            type="button"
+            variant="secondary"
+          >
+            Apply Intero practice pilot
+          </ForgeButton>
+        </div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          {MANAGED_CAPABILITY_OPTIONS.map((option) => (
+            <label
+              className="flex items-start gap-2 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] p-3"
+              key={option.key}
+            >
+              <input
+                checked={capabilities.includes(option.key)}
+                className="mt-1"
+                disabled={isSaving}
+                onChange={(event) =>
+                  setCapabilities((current) =>
+                    event.currentTarget.checked
+                      ? [...current, option.key]
+                      : current.filter((key) => key !== option.key),
+                  )
+                }
+                type="checkbox"
+              />
+              <span>
+                <span className="block text-sm font-semibold text-[var(--forge-text)]">
+                  {option.label}
+                </span>
+                <span className="mt-0.5 block text-xs leading-4 text-[var(--forge-muted)]">
+                  {option.description}
+                </span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </div>
+
       <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
         <label className="grid gap-1 text-sm font-semibold text-[var(--forge-text)]">
           Audit reason
@@ -583,7 +666,7 @@ function CoachingAccessPanel({
             className="min-h-10 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
             disabled={isSaving}
             onChange={(event) => setReason(event.currentTarget.value)}
-            placeholder="New coaching contract signed"
+            placeholder="Intero pilot access approved"
             value={reason}
           />
         </label>
@@ -635,12 +718,12 @@ function CoachingAccessPanel({
             type="button"
             variant="primary"
           >
-            {isSaving ? "Saving" : grant ? "Save contract" : "Enable access"}
+            {isSaving ? "Saving" : grant ? "Save managed access" : "Enable managed access"}
           </ForgeButton>
         </div>
       </div>
       <p className="mt-3 text-xs text-[var(--forge-muted)]">
-        Current monthly pool: {Math.max(0, Number(seatLimit) || 0) * 120} minutes.
+        Access model: {organization.organization.accessModel}. Revision: {grant?.version ?? 0}.
       </p>
       {message ? (
         <p className="mt-2 text-sm text-[var(--forge-muted)]" role="status">

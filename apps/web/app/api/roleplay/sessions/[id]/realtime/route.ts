@@ -1,7 +1,6 @@
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
 import { DrizzleBillingRepository } from "@/lib/billing/repository";
 import { consumeVoiceMinutes, getVoiceEntitlementStatus } from "@/lib/billing/voice-entitlements";
-import { unauthorizedJson } from "@/lib/http";
 import {
   checkRateLimitForPolicy,
   rateLimitExceededResponse,
@@ -50,11 +49,9 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const authUser = await getAuthenticatedSupabaseUser();
-
-  if (!authUser) {
-    return unauthorizedJson();
-  }
+  const capabilityAccess = await requireAuthenticatedManagedCapability("roleplay_voice");
+  if (!capabilityAccess.ok) return capabilityAccess.response;
+  const authUser = capabilityAccess.user;
 
   const { id } = await params;
   const roleplayRepository = createRoleplayRepository();
@@ -85,11 +82,9 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const authUser = await getAuthenticatedSupabaseUser();
-
-  if (!authUser) {
-    return unauthorizedJson();
-  }
+  const capabilityAccess = await requireAuthenticatedManagedCapability("roleplay_voice");
+  if (!capabilityAccess.ok) return capabilityAccess.response;
+  const authUser = capabilityAccess.user;
 
   const rateLimit = await checkRateLimitForPolicy("roleplayRealtime", {
     type: "user",

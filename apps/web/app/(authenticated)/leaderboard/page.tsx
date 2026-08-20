@@ -14,9 +14,11 @@ import { getCachedAuthenticatedSupabaseUser } from "@/lib/auth/request-user";
 import { createDashboardRepository } from "@/lib/dashboard/create-repository";
 import { getDashboardLeaderboard } from "@/lib/dashboard/service";
 import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
+import { requireManagedCapabilityForPage } from "@/lib/access/managed-capabilities-server";
 
 export default async function LeaderboardPage() {
   const authUser = await getCachedAuthenticatedSupabaseUser();
+  if (authUser) await requireManagedCapabilityForPage(authUser.id, "leaderboard");
   const repository = authUser
     ? await createEffectiveTenantRepository(createDashboardRepository(), authUser.id)
     : null;

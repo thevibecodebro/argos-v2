@@ -196,6 +196,23 @@ vi.mock("@/lib/auth/request-user", () => ({
   getCachedCurrentUserProfile: getCachedCurrentUserProfileMock,
 }));
 
+vi.mock("@/lib/access/managed-capabilities-server", () => ({
+  getCachedOrganizationCapabilities: vi.fn().mockResolvedValue({
+    capabilities: [],
+    grantId: null,
+    mode: "legacy",
+    version: null,
+  }),
+  requireAnyManagedCapabilityForPage: vi.fn().mockResolvedValue({
+    access: { mode: "legacy" },
+    orgId: "org-1",
+  }),
+  requireManagedCapabilityForPage: vi.fn().mockResolvedValue({
+    access: { mode: "legacy" },
+    orgId: "org-1",
+  }),
+}));
+
 vi.mock("@/lib/platform/effective-request", () => ({
   createEffectiveTenantAccessRepository: vi.fn(async (repository) => repository),
   createEffectiveTenantRepository: vi.fn(async (repository) => repository),

@@ -1,4 +1,5 @@
 export type PlatformOrganizationDetailOrganization = {
+  accessModel: "legacy" | "managed";
   archivedAt?: string | null;
   createdAt: string;
   id: string;
@@ -41,6 +42,8 @@ export type PlatformOrganizationDetailBillingSubscription = {
 };
 
 export type PlatformOrganizationDetailCoachingAccess = {
+  accessModel: "legacy_package" | "managed_capabilities";
+  capabilities: import("@/lib/access/managed-capabilities").ManagedCapabilityKey[];
   contractReference: string;
   endsAt: string;
   id: string;
@@ -51,6 +54,7 @@ export type PlatformOrganizationDetailCoachingAccess = {
   startsAt: string;
   status: "active" | "expired" | "paused" | "revoked";
   updatedAt: string;
+  version: number;
 };
 
 export type PlatformOrganizationDetailCallStats = {

@@ -2,12 +2,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CALL_UPLOAD_MAX_BYTES } from "./calls/upload-contract";
 
 const getAuthenticatedSupabaseUser = vi.fn();
+const requireAuthenticatedManagedCapability = vi.fn();
 const createCallsRepository = vi.fn();
 const uploadCall = vi.fn();
 const checkRateLimitForPolicy = vi.fn();
 
 vi.mock("@/lib/auth/get-authenticated-user", () => ({
   getAuthenticatedSupabaseUser,
+}));
+
+vi.mock("@/lib/access/managed-capabilities-server", () => ({
+  requireAuthenticatedManagedCapability,
 }));
 
 vi.mock("@/lib/calls/create-repository", () => ({
@@ -39,10 +44,17 @@ describe("calls upload route", () => {
     vi.resetModules();
     vi.restoreAllMocks();
     getAuthenticatedSupabaseUser.mockReset();
+    requireAuthenticatedManagedCapability.mockReset();
     createCallsRepository.mockReset();
     uploadCall.mockReset();
     checkRateLimitForPolicy.mockReset();
     getAuthenticatedSupabaseUser.mockResolvedValue({ id: "auth-user-1" });
+    requireAuthenticatedManagedCapability.mockImplementation(async () => {
+      const user = await getAuthenticatedSupabaseUser();
+      return user
+        ? { ok: true, user, orgId: "org-1", access: { mode: "legacy" } }
+        : { ok: false, response: Response.json({ error: "Unauthorized" }, { status: 401 }) };
+    });
     createCallsRepository.mockReturnValue({});
     checkRateLimitForPolicy.mockResolvedValue({
       allowed: true,

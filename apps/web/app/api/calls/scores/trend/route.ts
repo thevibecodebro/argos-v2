@@ -1,18 +1,16 @@
 import { type NextRequest } from "next/server";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { getScoreTrend } from "@/lib/calls/service";
-import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { fromServiceResult } from "@/lib/http";
 import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  const authUser = await getAuthenticatedSupabaseUser();
-
-  if (!authUser) {
-    return unauthorizedJson();
-  }
+  const capabilityAccess = await requireAuthenticatedManagedCapability("call_analytics");
+  if (!capabilityAccess.ok) return capabilityAccess.response;
+  const authUser = capabilityAccess.user;
 
   const searchParams = request.nextUrl.searchParams;
   const days = searchParams.get("days");
