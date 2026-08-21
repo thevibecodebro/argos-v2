@@ -29,6 +29,7 @@ export class DrizzleUsersRepository implements UsersRepository {
         orgId: usersTable.orgId,
         displayNameSet: usersTable.displayNameSet,
         org: {
+          accessModel: organizationsTable.accessModel,
           id: organizationsTable.id,
           name: organizationsTable.name,
           slug: organizationsTable.slug,
@@ -58,6 +59,7 @@ export class DrizzleUsersRepository implements UsersRepository {
       displayNameSet: record.displayNameSet,
       org: record.org?.id
         ? {
+            accessModel: record.org.accessModel,
             id: record.org.id,
             name: record.org.name,
             slug: record.org.slug,

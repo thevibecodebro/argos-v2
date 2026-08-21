@@ -179,20 +179,13 @@ describe("createPlatformOrganizationWithAdminInvite", () => {
     expect(repository.createOrganizationWithAdminInviteAndAudit).not.toHaveBeenCalledWith(
       expect.objectContaining({ userId: "staff-1" }),
     );
-    expect(generateAuthInviteLink).toHaveBeenCalledWith({
-      email: "admin@acme.com",
-      redirectTo: "https://app.argos.ai/invite/invite-token-1",
-      metadata: {
-        argosInviteToken: "invite-token-1",
-        argosOrganizationId: "org-1",
-        argosRole: "admin",
-      },
-    });
+    expect(generateAuthInviteLink).not.toHaveBeenCalled();
     expect(sendInviteEmail).toHaveBeenCalledWith(
       "admin@acme.com",
-      "https://auth.example.com/invite-link",
+      "https://app.argos.ai/login?next=%2Finvite%2Finvite-token-1&provider=google",
       "Acme",
       "admin",
+      { authMethod: "google" },
     );
   });
 });

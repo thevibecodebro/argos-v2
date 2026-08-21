@@ -5,6 +5,7 @@ import {
 import type { AppUserRole } from "./roles";
 
 type OrganizationRecord = {
+  accessModel?: "legacy" | "managed";
   id: string;
   name: string;
   slug: string;

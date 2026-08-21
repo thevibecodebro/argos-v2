@@ -1,10 +1,33 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildGoogleOnlyLoginUrl,
   getAuthenticatedEntryHref,
   getLoginHref,
   getSafeNextPath,
   isProtectedPath,
 } from "./auth-routing";
+
+describe("buildGoogleOnlyLoginUrl", () => {
+  it("builds an app-local Google-only login URL for an invite destination", () => {
+    expect(
+      buildGoogleOnlyLoginUrl(
+        "https://app.argos.ai/",
+        "/invite/server-only-token",
+      ),
+    ).toBe(
+      "https://app.argos.ai/login?next=%2Finvite%2Fserver-only-token&provider=google",
+    );
+  });
+
+  it("rejects external destinations", () => {
+    expect(
+      buildGoogleOnlyLoginUrl(
+        "https://app.argos.ai",
+        "https://evil.example/steal",
+      ),
+    ).toBe("https://app.argos.ai/login?next=%2Fdashboard&provider=google");
+  });
+});
 
 describe("isProtectedPath", () => {
   it("protects every authenticated product route", () => {

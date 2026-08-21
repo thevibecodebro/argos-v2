@@ -1,8 +1,10 @@
 import { generateInviteAuthLink, type GenerateInviteAuthLinkInput } from "@/lib/invites/auth-invite";
 import { sendInviteEmail as defaultSendInviteEmail } from "@/lib/invites/email";
+import { buildGoogleOnlyLoginUrl } from "@/lib/auth-routing";
 import type { PlatformStaffRole } from "./repository";
 
 type PlatformOrganization = {
+  accessModel: "legacy" | "managed";
   createdAt: Date;
   id: string;
   name: string;
@@ -145,21 +147,25 @@ export async function resendPlatformAdminInvite(
     extended = true;
   }
 
-  const authInviteUrl = await (dependencies.generateAuthInviteLink ?? generateInviteAuthLink)({
-    email: invite.email,
-    redirectTo: `${getSiteUrl()}/invite/${invite.token}`,
-    metadata: {
-      argosInviteToken: invite.token,
-      argosOrganizationId: organization.id,
-      argosRole: "admin",
-    },
-  });
+  const managedOrganization = organization.accessModel === "managed";
+  const authInviteUrl = managedOrganization
+    ? buildGoogleOnlyLoginUrl(getSiteUrl(), `/invite/${invite.token}`)
+    : await (dependencies.generateAuthInviteLink ?? generateInviteAuthLink)({
+        email: invite.email,
+        redirectTo: `${getSiteUrl()}/invite/${invite.token}`,
+        metadata: {
+          argosInviteToken: invite.token,
+          argosOrganizationId: organization.id,
+          argosRole: "admin",
+        },
+      });
 
   await (dependencies.sendInviteEmail ?? defaultSendInviteEmail)(
     invite.email,
     authInviteUrl,
     organization.name,
     "admin",
+    ...(managedOrganization ? [{ authMethod: "google" as const }] : []),
   );
 
   const auditEvent = await repository.createAuditEvent({

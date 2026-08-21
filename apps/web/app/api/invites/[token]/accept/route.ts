@@ -1,5 +1,10 @@
 import { unauthorizedJson, fromServiceResult } from "@/lib/http";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import {
+  getAuthenticatedSupabaseClaims,
+  getAuthenticatedSupabaseUser,
+} from "@/lib/auth/get-authenticated-user";
+import { isGoogleOAuthSession } from "@/lib/auth/google-auth";
+import { createManagedAccessRepository } from "@/lib/access/managed-capabilities-repository";
 import { getDb } from "@argos-v2/db";
 import { DrizzleInvitesRepository } from "@/lib/invites/supabase-repository";
 import { DrizzleOnboardingRepository } from "@/lib/onboarding/repository";
@@ -68,6 +73,22 @@ export async function POST(
 
   if (normalizeInviteEmail(caller.email) !== normalizeInviteEmail(invite.email)) {
     return fromServiceResult({ ok: false, status: 403, error: "This invite was sent to a different email address" });
+  }
+
+  const accessModel = await createManagedAccessRepository().findOrganizationAccessModel(
+    invite.orgId,
+  );
+
+  if (accessModel === "managed") {
+    const authClaims = await getAuthenticatedSupabaseClaims();
+
+    if (!isGoogleOAuthSession(authClaims)) {
+      return fromServiceResult({
+        ok: false,
+        status: 403,
+        error: "Managed organizations require Google sign-in",
+      });
+    }
   }
 
   // Mutating steps (inside transaction)

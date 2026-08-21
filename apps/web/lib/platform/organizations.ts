@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { generateInviteAuthLink, type GenerateInviteAuthLinkInput } from "@/lib/invites/auth-invite";
+import type { GenerateInviteAuthLinkInput } from "@/lib/invites/auth-invite";
 import { sendInviteEmail } from "@/lib/invites/email";
+import { buildGoogleOnlyLoginUrl } from "@/lib/auth-routing";
 import type { PlatformStaffRole } from "./repository";
 
 type PlatformOrganization = {
@@ -178,22 +179,17 @@ export async function createPlatformOrganizationWithAdminInvite(
     slug,
     staffUserId: actor.userId,
   });
-  const inviteUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/invite/${data.invite.token}`;
-  const authInviteUrl = await (dependencies.generateAuthInviteLink ?? generateInviteAuthLink)({
-    email: adminEmail,
-    redirectTo: inviteUrl,
-    metadata: {
-      argosInviteToken: data.invite.token,
-      argosOrganizationId: data.organization.id,
-      argosRole: "admin",
-    },
-  });
+  const authInviteUrl = buildGoogleOnlyLoginUrl(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+    `/invite/${data.invite.token}`,
+  );
 
   await (dependencies.sendInviteEmail ?? sendInviteEmail)(
     adminEmail,
     authInviteUrl,
     data.organization.name,
     "admin",
+    { authMethod: "google" },
   );
 
   return {

@@ -17,6 +17,7 @@ function makeUser(
     orgId: string | null;
     role: string | null;
     org: {
+      accessModel: "legacy" | "managed";
       id: string;
       name: string;
       slug: string;
@@ -35,6 +36,7 @@ function makeUser(
     orgId: "org-1",
     role: "admin" as const,
     org: {
+      accessModel: "managed" as const,
       id: "org-1",
       name: "Acme",
       slug: "acme",
@@ -141,20 +143,15 @@ describe("sendInvite", () => {
     }, { generateAuthInviteLink } as never);
     expect(result.ok).toBe(true);
     expect(repo.createInvite).toHaveBeenCalled();
-    expect(generateAuthInviteLink).toHaveBeenCalledWith({
-      email: "rep@acme.com",
-      redirectTo: expect.stringMatching(/^.*\/invite\/test-token$/),
-      metadata: {
-        argosInviteToken: "test-token",
-        argosOrganizationId: "org-1",
-        argosRole: "rep",
-      },
-    });
+    expect(generateAuthInviteLink).not.toHaveBeenCalled();
     expect(mockSendEmail).toHaveBeenCalledWith(
       "rep@acme.com",
-      "https://auth.example.com/invite-link",
+      expect.stringMatching(
+        /^.*\/login\?next=%2Finvite%2Ftest-token&provider=google$/,
+      ),
       "Acme",
       "rep",
+      { authMethod: "google" },
     );
   });
 
@@ -171,9 +168,46 @@ describe("sendInvite", () => {
     expect(repo.createInvite).toHaveBeenCalledWith(
       expect.objectContaining({ email: "rep@acme.com" }),
     );
-    expect(generateAuthInviteLink).toHaveBeenCalledWith(
-      expect.objectContaining({ email: "rep@acme.com" }),
+    expect(generateAuthInviteLink).not.toHaveBeenCalled();
+    expect(mockSendEmail).toHaveBeenCalledWith(
+      "rep@acme.com",
+      expect.stringMatching(
+        /^.*\/login\?next=%2Finvite%2Ftest-token&provider=google$/,
+      ),
+      "Acme",
+      "rep",
+      { authMethod: "google" },
     );
+  });
+
+  it("keeps legacy organization invites on the existing auth-link flow", async () => {
+    const repo = makeInvitesRepo();
+    const usersRepo = makeUsersRepo({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue(
+        makeUser({
+          org: {
+            accessModel: "legacy",
+            id: "org-1",
+            name: "Acme",
+            slug: "acme",
+            plan: "trial",
+            createdAt: new Date().toISOString(),
+          },
+        }),
+      ),
+    });
+    const generateAuthInviteLink = vi.fn().mockResolvedValue("https://auth.example.com/invite-link");
+
+    const result = await sendInvite(
+      repo,
+      usersRepo,
+      "user-1",
+      { email: "rep@acme.com", role: "rep" },
+      { generateAuthInviteLink },
+    );
+
+    expect(result.ok).toBe(true);
+    expect(generateAuthInviteLink).toHaveBeenCalledOnce();
     expect(mockSendEmail).toHaveBeenCalledWith(
       "rep@acme.com",
       "https://auth.example.com/invite-link",

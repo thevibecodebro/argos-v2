@@ -6,6 +6,7 @@ const expiresAt = new Date("2026-07-02T15:00:00.000Z");
 const expiredAt = new Date("2026-06-24T15:00:00.000Z");
 
 const organization = {
+  accessModel: "managed" as const,
   createdAt: new Date("2026-06-20T15:00:00.000Z"),
   id: "org-1",
   name: "JDL Ventures",
@@ -87,20 +88,13 @@ describe("resendPlatformAdminInvite", () => {
     });
     expect(repository.findOrganizationBySlug).toHaveBeenCalledWith("jdlventures");
     expect(repository.countAdminMembersForOrganization).toHaveBeenCalledWith("org-1");
-    expect(generateAuthInviteLink).toHaveBeenCalledWith({
-      email: "jason@jdlventures.com",
-      redirectTo: "https://app.argos.ai/invite/server-only-token",
-      metadata: {
-        argosInviteToken: "server-only-token",
-        argosOrganizationId: "org-1",
-        argosRole: "admin",
-      },
-    });
+    expect(generateAuthInviteLink).not.toHaveBeenCalled();
     expect(sendInviteEmail).toHaveBeenCalledWith(
       "jason@jdlventures.com",
-      "https://auth.example.com/invite-link",
+      "https://app.argos.ai/login?next=%2Finvite%2Fserver-only-token&provider=google",
       "JDL Ventures",
       "admin",
+      { authMethod: "google" },
     );
     expect(repository.createAuditEvent).toHaveBeenCalledWith({
       action: "platform.organization.admin_invite.resend",
@@ -121,6 +115,33 @@ describe("resendPlatformAdminInvite", () => {
     });
     expect(JSON.stringify(result)).not.toContain("server-only-token");
     expect(JSON.stringify(result)).not.toContain("auth.example.com");
+  });
+
+  it("keeps legacy organization admin resends on the existing auth-link flow", async () => {
+    const repository = createRepository({
+      findOrganizationBySlug: vi.fn().mockResolvedValue({
+        ...organization,
+        accessModel: "legacy" as const,
+      }),
+    });
+    const generateAuthInviteLink = vi.fn().mockResolvedValue("https://auth.example.com/invite-link");
+    const sendInviteEmail = vi.fn().mockResolvedValue(undefined);
+
+    const result = await resendPlatformAdminInvite(
+      repository,
+      { email: "operator@argos.ai", role: "operator", userId: "staff-1" },
+      { slug: "jdlventures" },
+      { generateAuthInviteLink, now: () => now, sendInviteEmail },
+    );
+
+    expect(result.ok).toBe(true);
+    expect(generateAuthInviteLink).toHaveBeenCalledOnce();
+    expect(sendInviteEmail).toHaveBeenCalledWith(
+      "jason@jdlventures.com",
+      "https://auth.example.com/invite-link",
+      "JDL Ventures",
+      "admin",
+    );
   });
 
   it("extends an expired pending admin invite before resending", async () => {
