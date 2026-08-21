@@ -22,6 +22,15 @@ async function migrationSql() {
   return normalizeSql(await readFile(path, "utf8"));
 }
 
+async function roleplayTenantIsolationMigrationSql() {
+  const path = join(
+    process.cwd(),
+    "../../supabase/migrations/20260821160729_roleplay_session_select_org_scope.sql",
+  );
+
+  return normalizeSql(await readFile(path, "utf8"));
+}
+
 describe("managed client tenant isolation migration", () => {
   it("marks managed organizations explicitly and versions agreement changes", async () => {
     const sql = await migrationSql();
@@ -68,6 +77,15 @@ describe("managed client tenant isolation migration", () => {
     expect(sql).toContain("org_id = private.current_user_org_id()");
     expect(sql).toContain("with check ( org_id = private.current_user_org_id()");
   });
+
+  it("keeps roleplay reads inside the current organization before applying rep scope", async () => {
+    const sql = await roleplayTenantIsolationMigrationSql();
+
+    expect(sql).toContain('drop policy if exists "roleplay_sessions_can_read_team_scope"');
+    expect(sql).toContain('create policy "roleplay_sessions_can_read_team_scope"');
+    expect(sql).toContain("org_id = private.current_user_org_id()");
+    expect(sql).toContain("private.current_user_can_read_rep_with_permissions(");
+  });
 });
 
 const isolationIds = {
@@ -88,6 +106,8 @@ const isolationIds = {
   assignmentA: "10000000-0000-4000-8000-000000000015",
   assignmentB: "10000000-0000-4000-8000-000000000016",
   grantA: "10000000-0000-4000-8000-000000000017",
+  rubricA: "10000000-0000-4000-8000-000000000018",
+  rubricB: "10000000-0000-4000-8000-000000000019",
 } as const;
 
 const workerTestDatabaseUrl = await discoverWorkerTestDatabaseUrl();
@@ -165,6 +185,13 @@ describeWithDatabase("managed client isolation against local Postgres", () => {
       on conflict (id) do nothing;
     `);
     await workerTestDb.execute(sql`
+      insert into public.rubrics (id, org_id, track_id, name, is_active)
+      values
+        (${isolationIds.rubricA}, ${isolationIds.orgA}, ${isolationIds.trackA}, 'Rubric A', true),
+        (${isolationIds.rubricB}, ${isolationIds.orgB}, ${isolationIds.trackB}, 'Rubric B', true)
+      on conflict (id) do nothing;
+    `);
+    await workerTestDb.execute(sql`
       insert into public.software_access_grants (
         id, org_id, source_type, package, seat_limit, starts_at, ends_at,
         status, contract_reference, access_model
@@ -191,7 +218,7 @@ describeWithDatabase("managed client isolation against local Postgres", () => {
     `);
   });
 
-  it("shows organization A only its own customer records across core data surfaces", async () => {
+  it("shows organization A only its own tenant-readable records on every core surface", async () => {
     if (!workerTestDb) throw new Error("Local Postgres is required");
     await seed();
 
@@ -212,33 +239,21 @@ describeWithDatabase("managed client isolation against local Postgres", () => {
         union all
         select 'roleplay', id from public.roleplay_sessions
           where id in (${isolationIds.roleplayA}, ${isolationIds.roleplayB})
-        union all
-        select 'rubric_track', id from public.rubric_tracks
-          where id in (${isolationIds.trackA}, ${isolationIds.trackB})
-        union all
-        select 'team_rubric_assignment', id from public.team_rubric_assignments
-          where id in (${isolationIds.assignmentA}, ${isolationIds.assignmentB})
         order by surface;
       `);
     });
 
-    const ids = visible.rows.map((row) => String(row.id));
-    expect(ids).toEqual(expect.arrayContaining([
-      isolationIds.orgA,
-      isolationIds.callA,
-      isolationIds.trainingA,
-      isolationIds.roleplayA,
-      isolationIds.trackA,
-      isolationIds.assignmentA,
-    ]));
-    expect(ids).not.toEqual(expect.arrayContaining([
-      isolationIds.orgB,
-      isolationIds.callB,
-      isolationIds.trainingB,
-      isolationIds.roleplayB,
-      isolationIds.trackB,
-      isolationIds.assignmentB,
-    ]));
+    expect(
+      visible.rows.map((row) => ({
+        id: String(row.id),
+        surface: String(row.surface),
+      })),
+    ).toEqual([
+      { id: isolationIds.callA, surface: "call" },
+      { id: isolationIds.orgA, surface: "organization" },
+      { id: isolationIds.roleplayA, surface: "roleplay" },
+      { id: isolationIds.trainingA, surface: "training" },
+    ]);
   });
 
   it("does not expose the service-only capability table to tenant sessions", async () => {
