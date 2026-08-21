@@ -1,4 +1,5 @@
 import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
+import { hasManagedCapability } from "@/lib/access/managed-capabilities";
 import { fromServiceResult } from "@/lib/http";
 import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 import { createRoleplayRepository } from "@/lib/roleplay/create-repository";
@@ -16,6 +17,8 @@ export async function GET(
 
   const { id } = await params;
   const repository = await createEffectiveTenantRepository(createRoleplayRepository(), authUser.id);
-  const result = await getRoleplaySession(repository, authUser.id, id);
+  const result = await getRoleplaySession(repository, authUser.id, id, {
+    allowOtherRep: hasManagedCapability(capabilityAccess.access, "practice_reporting"),
+  });
   return fromServiceResult(result);
 }

@@ -26,6 +26,7 @@ type RoleplayPanelProps = {
   initialPersonas: RoleplayPersona[];
   initialSessions: RoleplaySession[];
   initialSessionId?: string | null;
+  voiceEnabled: boolean;
 };
 
 function labelCallStage(value: string | undefined) {
@@ -182,6 +183,7 @@ export function RoleplayPanel({
   initialPersonas,
   initialSessions,
   initialSessionId,
+  voiceEnabled,
 }: RoleplayPanelProps) {
   const router = useRouter();
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -647,19 +649,19 @@ export function RoleplayPanel({
   });
   const isVoiceControlDisabled = isVoiceActive
     ? false
-    : baseVoiceControlDisabled || voiceAvailable !== true;
+    : !voiceEnabled || baseVoiceControlDisabled || voiceAvailable !== true;
   const generatedActiveSession =
     activeSession?.origin === "generated_from_call" ? activeSession : null;
 
   return (
     <>
-      <div className="mb-3">
+      {voiceEnabled ? <div className="mb-3">
         <VoiceBalanceCard
           onVoiceAvailabilityChange={setVoiceAvailable}
           refreshKey={balanceRefreshKey}
           returnTo="/roleplay"
         />
-      </div>
+      </div> : null}
       <div className="mb-4 lg:hidden" data-roleplay-mobile-sections="true">
         <ForgeSegmentedTabs
           className="overflow-x-auto"
@@ -788,7 +790,7 @@ export function RoleplayPanel({
                   )}
                 </div>
               </div>
-              <div
+              {voiceEnabled ? <div
                 className="flex w-full flex-col gap-2 rounded-lg bg-[var(--forge-surface-3)] p-2 sm:w-auto"
                 data-roleplay-mode-control="true"
               >
@@ -825,7 +827,7 @@ export function RoleplayPanel({
                         : "Start voice"}
                   </button>
                 </div>
-              </div>
+              </div> : null}
             </div>
 
             {generatedActiveSession?.scenarioSummary && (
@@ -890,7 +892,7 @@ export function RoleplayPanel({
                               ? "You"
                               : getSessionPersonaLabel(activeSession)}
                           </span>
-                          {msg.role === "assistant" && (
+                          {voiceEnabled && msg.role === "assistant" && (
                             <button
                               className="text-xs font-semibold text-[var(--forge-gold)]"
                               onClick={() =>
@@ -938,7 +940,7 @@ export function RoleplayPanel({
                 title="Roleplay update failed"
               />
             ) : null}
-            {voiceStatus ? (
+            {voiceEnabled && voiceStatus ? (
               <ForgeStatusPanel
                 announce="polite"
                 className="mb-4"

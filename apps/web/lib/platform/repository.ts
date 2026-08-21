@@ -961,6 +961,18 @@ export class DrizzlePlatformRepository {
         throw new Error("Failed to mutate coaching access");
       }
 
+      if (input.action === "save") {
+        const [organization] = await transactionDb
+          .update(organizationsTable)
+          .set({ accessModel: "managed" })
+          .where(eq(organizationsTable.id, input.organization.id))
+          .returning({ id: organizationsTable.id });
+
+        if (!organization) {
+          throw new Error("Failed to activate managed organization access");
+        }
+      }
+
       await this.insertAuditEvent(transactionDb, {
         action: `platform.coaching_access.${input.action}`,
         metadata: {

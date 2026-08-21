@@ -11,6 +11,7 @@ export type GhlSkippedReason =
   | "no_owner_mapping"
   | "wrong_message_type"
   | "invalid_recording_filename"
+  | "capability_disabled"
   | "unauthorized_after_refresh";
 
 export type GhlCallImportRecord = {
@@ -28,6 +29,7 @@ export type GhlCallImportRecord = {
 };
 
 export type GhlCallImportRepository = {
+  organizationHasIntegrationCapability(orgId: string): Promise<boolean>;
   createCallForGhlImport(input: {
     importId: string;
     orgId: string;
@@ -120,6 +122,13 @@ const CALL_MESSAGE_TYPES = new Set(["CALL", "call", "TYPE_CALL"]);
 
 export async function processGhlCallImport(input: ProcessGhlCallImportInput) {
   const importRecord = input.importRecord;
+  if (!(await input.repository.organizationHasIntegrationCapability(importRecord.orgId))) {
+    await input.repository.markGhlCallImportSkipped(importRecord.id, {
+      reason: "capability_disabled",
+    });
+    return;
+  }
+
   const integration = await input.repository.findGhlIntegrationForImport({
     orgId: importRecord.orgId,
     locationId: importRecord.locationId,
@@ -203,6 +212,13 @@ export async function processGhlCallImport(input: ProcessGhlCallImportInput) {
     return;
   }
 
+  if (!(await input.repository.organizationHasIntegrationCapability(integration.orgId))) {
+    await input.repository.markGhlCallImportSkipped(importRecord.id, {
+      reason: "capability_disabled",
+    });
+    return;
+  }
+
   const rubricId = await input.getActiveRubricId(integration.orgId);
   const call = await input.repository.createCallForGhlImport({
     importId: importRecord.id,
@@ -217,6 +233,12 @@ export async function processGhlCallImport(input: ProcessGhlCallImportInput) {
     ghlUserId: message.userId ?? importRecord.ghlUserId,
     messageCreatedAt: parseOptionalDate(message.dateAdded),
   });
+  if (!(await input.repository.organizationHasIntegrationCapability(integration.orgId))) {
+    await input.repository.markGhlCallImportSkipped(importRecord.id, {
+      reason: "capability_disabled",
+    });
+    return;
+  }
   const sourceAsset = await input.storeSourceAsset({
     callId: call.id,
     bytes: recording.bytes,
@@ -230,6 +252,12 @@ export async function processGhlCallImport(input: ProcessGhlCallImportInput) {
     contentType: sourceAsset.contentType,
     fileSizeBytes: sourceAsset.fileSizeBytes,
   });
+  if (!(await input.repository.organizationHasIntegrationCapability(integration.orgId))) {
+    await input.repository.markGhlCallImportSkipped(importRecord.id, {
+      reason: "capability_disabled",
+    });
+    return;
+  }
   await input.repository.createOrResetCallProcessingJob({
     callId: call.id,
     rubricId,

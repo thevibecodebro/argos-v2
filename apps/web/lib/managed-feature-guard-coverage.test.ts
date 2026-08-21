@@ -7,10 +7,16 @@ async function source(path: string) {
 }
 
 describe("managed feature guard coverage", () => {
+  it("atomically switches an organization to managed mode when platform access is saved", async () => {
+    const content = await source("lib/platform/repository.ts");
+
+    expect(content).toContain("if (input.action === \"save\")");
+    expect(content).toContain(".set({ accessModel: \"managed\" })");
+  });
   it.each([
-    ["app/(authenticated)/dashboard/page.tsx", "call_scoring", "await Promise.all"],
-    ["app/(authenticated)/team/page.tsx", "call_scoring", "const dashboard ="],
-    ["app/(authenticated)/team/[repId]/page.tsx", "call_scoring", "const [managerDashboard"],
+    ["app/(authenticated)/dashboard/page.tsx", "call_analytics", "await Promise.all"],
+    ["app/(authenticated)/team/page.tsx", "call_analytics", "const dashboard ="],
+    ["app/(authenticated)/team/[repId]/page.tsx", "call_analytics", "const [managerDashboard"],
   ])("guards %s before loading call-performance data", async (path, capability, sink) => {
     const content = await source(path);
     const guard = content.indexOf(`requireManagedCapabilityForPage(authUser.id, "${capability}")`);

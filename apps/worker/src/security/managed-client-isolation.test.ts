@@ -63,6 +63,8 @@ describe("managed client tenant isolation migration", () => {
     expect(sql).toContain("revoke all on table public.team_rubric_assignments from authenticated");
     expect(sql).toContain("grant select, insert, update, delete on table public.rubric_tracks to service_role");
     expect(sql).toContain("grant select, insert, update, delete on table public.team_rubric_assignments to service_role");
+    expect(sql).toContain("revoke insert, update, delete on table public.rubrics from authenticated");
+    expect(sql).toContain("revoke insert, update, delete on table public.rubric_categories from authenticated");
     expect(sql).toContain("org_id = private.current_user_org_id()");
     expect(sql).toContain("with check ( org_id = private.current_user_org_id()");
   });
@@ -287,6 +289,20 @@ describeWithDatabase("managed client isolation against local Postgres", () => {
         await tx.execute(sql`
           insert into public.rubric_tracks (org_id, name)
           values (${isolationIds.orgA}, 'Unauthorized tenant track');
+        `);
+      }),
+    ).rejects.toThrow();
+
+    await expect(
+      workerTestDb.transaction(async (tx) => {
+        await tx.execute(sql`set local role authenticated`);
+        await tx.execute(
+          sql`select set_config('request.jwt.claim.sub', ${isolationIds.userA}, true)`,
+        );
+        await tx.execute(sql`
+          update public.rubrics
+          set track_id = ${isolationIds.trackB}
+          where org_id = ${isolationIds.orgA};
         `);
       }),
     ).rejects.toThrow();

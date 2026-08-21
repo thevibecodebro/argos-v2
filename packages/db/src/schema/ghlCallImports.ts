@@ -19,6 +19,7 @@ export const GHL_CALL_IMPORT_SKIPPED_REASONS = [
   "no_owner_mapping",
   "wrong_message_type",
   "invalid_recording_filename",
+  "capability_disabled",
   "unauthorized_after_refresh",
 ] as const;
 

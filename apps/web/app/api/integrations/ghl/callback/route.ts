@@ -100,6 +100,10 @@ export async function GET(request: Request) {
     const redirectUri = resolveGhlRedirectUri(getRequestOrigin(request));
     const tokens = await exchangeGhlCode(code, redirectUri);
 
+    if (!(await organizationHasManagedCapability(viewer.org.id, "integration_ghl"))) {
+      return settingsRedirect(request, "ghl_error", "feature_unavailable", true);
+    }
+
     await repository.upsertGhlIntegration({
       accessToken: tokens.accessToken,
       locationId: tokens.locationId,

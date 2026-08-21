@@ -46,6 +46,8 @@ export async function GET(
     if (!callAccess.ok) return callAccess.response;
     const roleplayAccess = await requireAuthenticatedManagedCapability("roleplay");
     if (!roleplayAccess.ok) return roleplayAccess.response;
+    const scenarioAccess = await requireAuthenticatedManagedCapability("custom_scenarios");
+    if (!scenarioAccess.ok) return scenarioAccess.response;
     const authUser = callAccess.user;
 
     const { id } = await params;
@@ -82,6 +84,8 @@ export async function POST(
     if (!callAccess.ok) return callAccess.response;
     const roleplayAccess = await requireAuthenticatedManagedCapability("roleplay");
     if (!roleplayAccess.ok) return roleplayAccess.response;
+    const scenarioAccess = await requireAuthenticatedManagedCapability("custom_scenarios");
+    if (!scenarioAccess.ok) return scenarioAccess.response;
     const authUser = callAccess.user;
 
     const body = (await request.json().catch(() => null)) as

@@ -8,6 +8,7 @@ import {
   googleMeetIntegrationsTable,
   organizationIngestionTitleFiltersTable,
   organizationsTable,
+  organizationHasManagedCapability,
   rubricsTable,
   type ArgosDb,
 } from "@argos-v2/db";
@@ -63,6 +64,10 @@ export class GoogleMeetImportRepository
   implements GoogleMeetSyncRepository, GoogleMeetImportRepositoryContract
 {
   constructor(private readonly db: ArgosDb = getDb()) {}
+
+  async organizationHasIntegrationCapability(orgId: string) {
+    return organizationHasManagedCapability(this.db, orgId, "integration_google_meet");
+  }
 
   async claimNextGoogleMeetImport(now = new Date()) {
     const leaseExpiresAt = new Date(now.getTime() + 15 * 60 * 1000);

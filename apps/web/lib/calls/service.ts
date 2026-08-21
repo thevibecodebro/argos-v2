@@ -111,6 +111,17 @@ export type CallDetail = CallSummary & {
   processingJob: CallProcessingJob | null;
 };
 
+export function redactCallHighlightFields(call: CallDetail): CallDetail {
+  return {
+    ...call,
+    moments: call.moments.map((moment) => ({
+      ...moment,
+      highlightNote: null,
+      isHighlight: false,
+    })),
+  };
+}
+
 export type CallHighlight = {
   id: string;
   callId: string;

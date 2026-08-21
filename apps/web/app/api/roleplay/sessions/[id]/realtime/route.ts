@@ -1,4 +1,5 @@
 import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
+import { hasManagedCapability } from "@/lib/access/managed-capabilities";
 import { DrizzleBillingRepository } from "@/lib/billing/repository";
 import { consumeVoiceMinutes, getVoiceEntitlementStatus } from "@/lib/billing/voice-entitlements";
 import {
@@ -55,7 +56,9 @@ export async function GET(
 
   const { id } = await params;
   const roleplayRepository = createRoleplayRepository();
-  const sessionResult = await getRoleplaySession(roleplayRepository, authUser.id, id);
+  const sessionResult = await getRoleplaySession(roleplayRepository, authUser.id, id, {
+    allowOtherRep: hasManagedCapability(capabilityAccess.access, "practice_reporting"),
+  });
 
   if (!sessionResult.ok) {
     return Response.json({ error: sessionResult.error }, { status: sessionResult.status });
@@ -125,7 +128,9 @@ export async function POST(
 
   const { id } = await params;
   const roleplayRepository = createRoleplayRepository();
-  const sessionResult = await getRoleplaySession(roleplayRepository, authUser.id, id);
+  const sessionResult = await getRoleplaySession(roleplayRepository, authUser.id, id, {
+    allowOtherRep: hasManagedCapability(capabilityAccess.access, "practice_reporting"),
+  });
 
   if (!sessionResult.ok) {
     return Response.json({ error: sessionResult.error }, { status: sessionResult.status });

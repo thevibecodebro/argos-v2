@@ -7,10 +7,30 @@ import {
   exportCallData,
   getCallDetail,
   listCalls,
+  redactCallHighlightFields,
   retryCallProcessingJob,
   toggleMomentHighlight,
   type CallsRepository,
 } from "./service";
+
+describe("redactCallHighlightFields", () => {
+  it("removes highlight state and notes without mutating the call", () => {
+    const call = {
+      moments: [
+        { id: "moment-1", isHighlight: true, highlightNote: "Private manager note" },
+      ],
+    } as never;
+
+    const redacted = redactCallHighlightFields(call);
+
+    expect(redacted.moments[0]).toMatchObject({
+      id: "moment-1",
+      isHighlight: false,
+      highlightNote: null,
+    });
+    expect((call as { moments: Array<{ isHighlight: boolean }> }).moments[0].isHighlight).toBe(true);
+  });
+});
 
 function createRepository(
   overrides: Partial<CallsRepository> = {},

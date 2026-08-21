@@ -3,6 +3,7 @@ import {
   billingCustomersTable,
   billingSubscriptionsTable,
   findActiveCallProcessingSubscription,
+  findOrganizationAccessModel,
   findActiveTrainingAiSubscription,
   getDb,
   organizationsTable,
@@ -140,6 +141,10 @@ export class DrizzleBillingRepository
           sourceType: "coaching_contract",
           voiceMinutesPerSeat: coaching.voiceMinutesPerSeat,
         };
+      }
+
+      if ((await findOrganizationAccessModel(this.db, input.orgId)) === "managed") {
+        return null;
       }
     }
 

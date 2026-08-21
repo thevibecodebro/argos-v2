@@ -34,6 +34,14 @@ export async function pollGoogleMeetImports(input: PollGoogleMeetImportsInput) {
 
     if (claimed) {
       try {
+        if (!(await input.repository.organizationHasIntegrationCapability(claimed.orgId))) {
+          await input.repository.markGoogleMeetImportSkipped(claimed.id, {
+            reason: "capability_disabled",
+          });
+          if (input.once) return;
+          await sleep(input.pollIntervalMs ?? 5_000);
+          continue;
+        }
         const integration =
           await input.repository.findGoogleMeetIntegrationForImport({
             integrationId: claimed.integrationId,
@@ -52,6 +60,15 @@ export async function pollGoogleMeetImports(input: PollGoogleMeetImportsInput) {
             refreshed,
           );
           accessToken = refreshed.accessToken;
+        }
+
+        if (!(await input.repository.organizationHasIntegrationCapability(claimed.orgId))) {
+          await input.repository.markGoogleMeetImportSkipped(claimed.id, {
+            reason: "capability_disabled",
+          });
+          if (input.once) return;
+          await sleep(input.pollIntervalMs ?? 5_000);
+          continue;
         }
 
         await processGoogleMeetImport({

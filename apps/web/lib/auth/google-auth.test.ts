@@ -28,4 +28,16 @@ describe("isGoogleOAuthSession", () => {
       }),
     ).toBe(false);
   });
+
+  it("rejects a Google session when another OAuth identity is linked", () => {
+    expect(
+      isGoogleOAuthSession({
+        amr: ["oauth"],
+        app_metadata: {
+          provider: "google",
+          providers: ["email", "google", "github"],
+        },
+      }),
+    ).toBe(false);
+  });
 });

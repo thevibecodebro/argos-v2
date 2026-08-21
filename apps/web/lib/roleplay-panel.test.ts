@@ -154,6 +154,7 @@ describe("RoleplayPanel", () => {
             createdAt: "2026-04-03T00:00:00.000Z",
           },
         ],
+        voiceEnabled: true,
       }),
     );
 
@@ -234,6 +235,7 @@ describe("RoleplayPanel", () => {
           },
         ],
         initialSessions: [],
+        voiceEnabled: true,
       }),
     );
 
@@ -356,6 +358,7 @@ describe("RoleplayPanel", () => {
           },
         ],
         initialSessionId: "session-generated",
+        voiceEnabled: true,
       }),
     );
 

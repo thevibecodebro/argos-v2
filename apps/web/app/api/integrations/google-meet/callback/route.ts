@@ -117,6 +117,10 @@ export async function GET(request: Request) {
       throw new Error("Google profile is missing organizer identity");
     }
 
+    if (!(await organizationHasManagedCapability(viewer.org.id, "integration_google_meet"))) {
+      return settingsRedirect(request, "google_meet_error", "feature_unavailable", true);
+    }
+
     await repository.upsertGoogleMeetIntegration({
       ...tokens,
       connectedUserId: viewer.id,

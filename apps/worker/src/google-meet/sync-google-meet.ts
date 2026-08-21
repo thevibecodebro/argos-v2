@@ -35,6 +35,7 @@ export type GoogleMeetDiscoveredImport = {
 
 export type GoogleMeetSyncRepository = {
   getIngestionTitleFilterConfig(orgId: string): Promise<IngestionTitleFilterConfig>;
+  organizationHasIntegrationCapability(orgId: string): Promise<boolean>;
   upsertGoogleMeetImport(input: GoogleMeetDiscoveredImport): Promise<void>;
 };
 
@@ -84,6 +85,10 @@ const RECORDING_READINESS_OVERLAP_MS = 24 * 60 * 60 * 1000;
 export async function syncGoogleMeetIntegration(
   input: SyncGoogleMeetIntegrationInput,
 ) {
+  if (!(await input.repository.organizationHasIntegrationCapability(input.integration.orgId))) {
+    return { cursor: input.integration.lastSyncCursor ?? new Date(0) };
+  }
+
   const now = input.now ?? new Date();
   const startTime = input.integration.lastSyncCursor
     ? new Date(
@@ -107,6 +112,9 @@ export async function syncGoogleMeetIntegration(
     const recordings = await listAllRecordings(input.client, conference.name);
 
     for (const recording of recordings) {
+      if (!(await input.repository.organizationHasIntegrationCapability(input.integration.orgId))) {
+        return { cursor: input.integration.lastSyncCursor ?? new Date(0) };
+      }
       await discoverRecording({
         client: input.client,
         conference,

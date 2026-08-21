@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { hasManagedCapability } from "@/lib/access/managed-capabilities";
+import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
 import { createDashboardRepository } from "@/lib/dashboard/create-repository";
 import { DashboardServiceError, getRepBadges } from "@/lib/dashboard/service";
 import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
@@ -8,15 +9,18 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
-    const authUser = await getAuthenticatedSupabaseUser();
-
-    if (!authUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const capabilityAccess = await requireAuthenticatedManagedCapability("call_analytics");
+    if (!capabilityAccess.ok) return capabilityAccess.response;
+    const authUser = capabilityAccess.user;
 
     const repId = request.nextUrl.searchParams.get("repId") ?? undefined;
     const repository = await createEffectiveTenantRepository(createDashboardRepository(), authUser.id);
-    const badges = await getRepBadges(repository, authUser.id, repId);
+    const badges = await getRepBadges(repository, authUser.id, repId, undefined, {
+      includePracticeReporting: hasManagedCapability(
+        capabilityAccess.access,
+        "practice_reporting",
+      ),
+    });
 
     if (!badges) {
       return NextResponse.json({ error: "User is not provisioned in the app database" }, { status: 404 });

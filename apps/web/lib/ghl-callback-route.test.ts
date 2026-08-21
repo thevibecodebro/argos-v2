@@ -137,11 +137,23 @@ describe("ghl callback route", () => {
     };
     createIntegrationsRepository.mockReturnValue(repository);
     getAuthenticatedSupabaseUser.mockResolvedValue({ id: "auth-user-1" });
-    organizationHasManagedCapability.mockResolvedValue(false);
+    organizationHasManagedCapability
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
 
     const state = Buffer.from(
       JSON.stringify({ nonce: "nonce-123", orgId: "org-1", userId: "user-1" }),
     ).toString("base64url");
+    cookies.mockResolvedValue({
+      get: vi.fn().mockReturnValue({ value: state }),
+    });
+    exchangeGhlCode.mockResolvedValue({
+      accessToken: "ghl-access",
+      refreshToken: "ghl-refresh",
+      tokenExpiresAt: new Date("2026-06-18T12:00:00.000Z"),
+      locationId: "location-1",
+      locationName: "Sales Floor",
+    });
 
     const route = await import("../app/api/integrations/ghl/callback/route");
     const response = await route.GET(
@@ -153,7 +165,7 @@ describe("ghl callback route", () => {
     expect(response.headers.get("location")).toBe(
       "https://app.argos.ai/settings?ghl_error=feature_unavailable",
     );
-    expect(exchangeGhlCode).not.toHaveBeenCalled();
+    expect(exchangeGhlCode).toHaveBeenCalledOnce();
     expect(repository.upsertGhlIntegration).not.toHaveBeenCalled();
   });
 

@@ -2,8 +2,34 @@ import { describe, expect, it, vi } from "vitest";
 import { processCallJob } from "./process-call-job";
 
 describe("processCallJob", () => {
+  it("fails closed before downloading when call scoring was revoked", async () => {
+    const repository = {
+      organizationHasCallScoringCapability: vi.fn().mockResolvedValue(false),
+      markTerminalFailure: vi.fn().mockResolvedValue(undefined),
+      updateCallStatus: vi.fn().mockResolvedValue(undefined),
+    };
+    const downloadSourceAsset = vi.fn();
+
+    await processCallJob({
+      job: {
+        id: "job-revoked",
+        callId: "call-revoked",
+        attemptCount: 1,
+        maxAttempts: 3,
+      } as never,
+      repository: repository as never,
+      downloadSourceAsset,
+    });
+
+    expect(downloadSourceAsset).not.toHaveBeenCalled();
+    expect(repository.markTerminalFailure).toHaveBeenCalledWith(
+      "job-revoked",
+      expect.objectContaining({ lastError: "call_scoring capability disabled" }),
+    );
+  });
   it("downloads, normalizes, transcribes, scores, persists, and completes a queued call", async () => {
     const repository = {
+      organizationHasCallScoringCapability: vi.fn().mockResolvedValue(true),
       createNotification: vi.fn().mockResolvedValue(undefined),
       findRubricById: vi.fn().mockResolvedValue(null),
       markJobComplete: vi.fn().mockResolvedValue(undefined),
@@ -96,6 +122,7 @@ describe("processCallJob", () => {
 
   it("loads a pinned rubric and passes it into scoring", async () => {
     const repository = {
+      organizationHasCallScoringCapability: vi.fn().mockResolvedValue(true),
       createNotification: vi.fn().mockResolvedValue(undefined),
       findRubricById: vi.fn().mockResolvedValue({
         id: "rubric-1",
@@ -212,6 +239,7 @@ describe("processCallJob", () => {
 
   it("marks retryable transcription failures without failing the call", async () => {
     const repository = {
+      organizationHasCallScoringCapability: vi.fn().mockResolvedValue(true),
       createNotification: vi.fn().mockResolvedValue(undefined),
       findRubricById: vi.fn().mockResolvedValue(null),
       markJobComplete: vi.fn().mockResolvedValue(undefined),
@@ -259,6 +287,7 @@ describe("processCallJob", () => {
 
   it("classifies oversized chunk transcription failures as transcribe stage failures", async () => {
     const repository = {
+      organizationHasCallScoringCapability: vi.fn().mockResolvedValue(true),
       createNotification: vi.fn().mockResolvedValue(undefined),
       findRubricById: vi.fn().mockResolvedValue(null),
       markJobComplete: vi.fn().mockResolvedValue(undefined),

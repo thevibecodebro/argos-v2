@@ -31,6 +31,7 @@ type ProcessCallJobInput = {
     | "markJobComplete"
     | "markRetryableFailure"
     | "markTerminalFailure"
+    | "organizationHasCallScoringCapability"
     | "setCallEvaluation"
     | "updateCallStatus"
   >;
@@ -174,6 +175,18 @@ async function resolveScoringRubric(input: {
 }
 
 export async function processCallJob(input: ProcessCallJobInput) {
+  if (!(await input.repository.organizationHasCallScoringCapability(input.job.callId))) {
+    const now = new Date();
+    await input.repository.markTerminalFailure(input.job.id, {
+      now,
+      attemptCount: input.job.attemptCount,
+      lastError: "call_scoring capability disabled",
+      lastStage: "download",
+    });
+    await input.repository.updateCallStatus(input.job.callId, "failed");
+    return;
+  }
+
   const env = input.env ?? getWorkerEnv();
   const ffmpegBinary = resolveFfmpegBinary(env);
 
@@ -248,6 +261,9 @@ export async function processCallJob(input: ProcessCallJobInput) {
     });
 
     currentStage = "persist";
+    if (!(await input.repository.organizationHasCallScoringCapability(input.job.callId))) {
+      throw new Error("call_scoring capability disabled");
+    }
     await input.repository.setCallEvaluation(input.job.callId, evaluation);
     await input.repository.markJobComplete(input.job.id);
 

@@ -168,4 +168,32 @@ describe("generate roleplay route", () => {
     expect(response.status).toBe(401);
     await expect(response.json()).resolves.toMatchObject({ error: "Unauthorized" });
   });
+
+  it("does not load call data when custom scenarios are disabled", async () => {
+    requireAuthenticatedManagedCapability.mockImplementation(async (capability: string) =>
+      capability === "custom_scenarios"
+        ? {
+            ok: false,
+            response: Response.json(
+              { code: "feature_unavailable", error: "This feature is not enabled" },
+              { status: 403 },
+            ),
+          }
+        : {
+            ok: true,
+            user: { id: "auth-user-1" },
+            orgId: "org-1",
+            access: { mode: "managed" },
+          },
+    );
+
+    const route = await import("../app/api/calls/[id]/generate-roleplay/route");
+    const response = await route.GET(
+      new Request("http://localhost:3100/api/calls/call-22/generate-roleplay"),
+      { params: Promise.resolve({ id: "call-22" }) },
+    );
+
+    expect(response.status).toBe(403);
+    expect(getCallDetail).not.toHaveBeenCalled();
+  });
 });

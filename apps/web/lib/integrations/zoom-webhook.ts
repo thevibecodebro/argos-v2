@@ -349,6 +349,20 @@ export async function processZoomWebhookRequest(
   const rubricsRepository = dependencies.rubricsRepository ?? createRubricsRepository();
   const activeRubric = await getActiveRubric(rubricsRepository, integration.orgId);
   const rubricId = activeRubric.ok ? activeRubric.data.id : null;
+  const recordingAsset = await downloadRecording({
+    downloadUrl: recording.download_url ?? null,
+    accessToken,
+    fileExtension: recording.file_extension ?? null,
+    recordingId: recording.id,
+  });
+
+  if (
+    dependencies.canIngestOrganization &&
+    !(await dependencies.canIngestOrganization(integration.orgId))
+  ) {
+    return { status: 200, body: { received: true } };
+  }
+
   const createdNewCall = !existing;
   const callId = existing?.id ?? (
     await repository.createCall({
@@ -370,12 +384,14 @@ export async function processZoomWebhookRequest(
       await repository.updateCallStatus(callId, "uploaded");
     }
 
-    const recordingAsset = await downloadRecording({
-      downloadUrl: recording.download_url ?? null,
-      accessToken,
-      fileExtension: recording.file_extension ?? null,
-      recordingId: recording.id,
-    });
+    if (
+      dependencies.canIngestOrganization &&
+      !(await dependencies.canIngestOrganization(integration.orgId))
+    ) {
+      await repository.updateCallStatus(callId, "failed");
+      return { status: 200, body: { received: true } };
+    }
+
     const storeSourceAsset = dependencies.storeSourceAsset ?? storeZoomCallSource;
     const sourceAsset = await storeSourceAsset({
       callId,
@@ -390,6 +406,15 @@ export async function processZoomWebhookRequest(
       contentType: sourceAsset.contentType,
       fileSizeBytes: sourceAsset.fileSizeBytes,
     });
+
+    if (
+      dependencies.canIngestOrganization &&
+      !(await dependencies.canIngestOrganization(integration.orgId))
+    ) {
+      await repository.updateCallStatus(callId, "failed");
+      return { status: 200, body: { received: true } };
+    }
+
     await repository.createOrResetCallProcessingJob({
       callId,
       rubricId,

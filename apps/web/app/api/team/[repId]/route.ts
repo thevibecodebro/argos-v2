@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAccessRepository } from "@/lib/access/create-repository";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { hasManagedCapability } from "@/lib/access/managed-capabilities";
+import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
 import { createDashboardRepository } from "@/lib/dashboard/create-repository";
 import {
   DashboardServiceError,
@@ -20,11 +21,9 @@ export async function GET(
   context: { params: Promise<{ repId: string }> },
 ) {
   try {
-    const authUser = await getAuthenticatedSupabaseUser();
-
-    if (!authUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const capabilityAccess = await requireAuthenticatedManagedCapability("call_analytics");
+    if (!capabilityAccess.ok) return capabilityAccess.response;
+    const authUser = capabilityAccess.user;
 
     const { repId } = await context.params;
     const [repository, accessRepository] = await Promise.all([
@@ -34,7 +33,12 @@ export async function GET(
     const [managerDashboard, repDashboard, badges] = await Promise.all([
       getManagerDashboard(repository, authUser.id, new Date(), accessRepository),
       getRepDashboard(repository, authUser.id, repId, new Date(), accessRepository),
-      getRepBadges(repository, authUser.id, repId, accessRepository),
+      getRepBadges(repository, authUser.id, repId, accessRepository, {
+        includePracticeReporting: hasManagedCapability(
+          capabilityAccess.access,
+          "practice_reporting",
+        ),
+      }),
     ]);
 
     if (!managerDashboard || !repDashboard || !badges) {

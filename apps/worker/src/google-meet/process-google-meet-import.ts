@@ -17,7 +17,8 @@ export type GoogleMeetImportSkippedReason =
   | "title_excluded"
   | "title_no_include_match"
   | "recording_not_ready"
-  | "unauthorized_after_refresh";
+  | "unauthorized_after_refresh"
+  | "capability_disabled";
 
 export type GoogleMeetImportRecord = {
   attemptCount: number;
@@ -32,6 +33,7 @@ export type GoogleMeetImportRecord = {
 };
 
 export type GoogleMeetImportRepository = {
+  organizationHasIntegrationCapability(orgId: string): Promise<boolean>;
   createCallForGoogleMeetImport(input: {
     consentConfirmed: boolean;
     importId: string;
@@ -114,6 +116,10 @@ export async function processGoogleMeetImport(
   input: ProcessGoogleMeetImportInput,
 ) {
   const record = input.importRecord;
+  if (!(await input.repository.organizationHasIntegrationCapability(record.orgId))) {
+    return skip(input.repository, record.id, "capability_disabled");
+  }
+
   const integration =
     await input.repository.findGoogleMeetIntegrationForImport({
       integrationId: record.integrationId,
@@ -165,6 +171,9 @@ export async function processGoogleMeetImport(
     fileId: record.driveFileId,
     maxBytes: input.maxSourceBytes,
   });
+  if (!(await input.repository.organizationHasIntegrationCapability(record.orgId))) {
+    return skip(input.repository, record.id, "capability_disabled");
+  }
   const fileName = buildRecordingFileName(record.recordingName);
   const rubricId = await input.getActiveRubricId(record.orgId);
   const call = await input.repository.createCallForGoogleMeetImport({
@@ -175,6 +184,9 @@ export async function processGoogleMeetImport(
     repId: integration.defaultRepId,
     rubricId,
   });
+  if (!(await input.repository.organizationHasIntegrationCapability(record.orgId))) {
+    return skip(input.repository, record.id, "capability_disabled");
+  }
   const sourceAsset = await input.storeSourceAsset({
     bytes: recording.bytes,
     callId: call.id,
@@ -188,6 +200,9 @@ export async function processGoogleMeetImport(
     storageBucket: sourceAsset.storageBucket,
     storagePath: sourceAsset.storagePath,
   });
+  if (!(await input.repository.organizationHasIntegrationCapability(record.orgId))) {
+    return skip(input.repository, record.id, "capability_disabled");
+  }
   await input.repository.createOrResetCallProcessingJob({
     callId: call.id,
     rubricId,

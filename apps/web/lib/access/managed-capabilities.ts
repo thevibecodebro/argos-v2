@@ -177,7 +177,8 @@ export function getManagedWorkspaceLandingPath(
   access: EffectiveOrganizationCapabilities,
 ) {
   if (access.mode === "inactive") return "/access-pending";
-  if (hasManagedCapability(access, "call_scoring")) return "/dashboard";
+  if (hasManagedCapability(access, "call_analytics")) return "/dashboard";
+  if (hasManagedCapability(access, "call_scoring")) return "/calls";
   if (hasManagedCapability(access, "training")) return "/training";
   if (hasManagedCapability(access, "roleplay")) return "/roleplay";
   return "/settings";

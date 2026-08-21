@@ -23,7 +23,7 @@ export default async function TeamPage() {
     redirect("/dashboard");
   }
 
-  if (authUser) await requireManagedCapabilityForPage(authUser.id, "call_scoring");
+  if (authUser) await requireManagedCapabilityForPage(authUser.id, "call_analytics");
   const repository = authUser
     ? await createEffectiveTenantRepository(createDashboardRepository(), authUser.id)
     : createDashboardRepository();

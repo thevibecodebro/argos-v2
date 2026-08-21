@@ -8,6 +8,43 @@ alter table public.organizations
   add constraint organizations_access_model_check
   check (access_model in ('legacy', 'managed'));
 
+alter table public.ghl_call_imports
+  drop constraint if exists ghl_call_imports_skipped_reason_check;
+
+alter table public.ghl_call_imports
+  add constraint ghl_call_imports_skipped_reason_check
+  check (skipped_reason in (
+    'billing_inactive',
+    'no_connected_integration',
+    'consent_missing',
+    'no_recording',
+    'no_owner_mapping',
+    'wrong_message_type',
+    'invalid_recording_filename',
+    'capability_disabled',
+    'unauthorized_after_refresh'
+  ));
+
+alter table public.google_meet_imports
+  drop constraint if exists google_meet_imports_skipped_reason_check;
+
+alter table public.google_meet_imports
+  add constraint google_meet_imports_skipped_reason_check
+  check (skipped_reason in (
+    'no_connected_integration',
+    'sync_disabled',
+    'consent_missing',
+    'billing_inactive',
+    'no_owner',
+    'title_filter_unconfigured',
+    'title_missing',
+    'title_excluded',
+    'title_no_include_match',
+    'recording_not_ready',
+    'capability_disabled',
+    'unauthorized_after_refresh'
+  ));
+
 alter table public.software_access_grants
   add column if not exists access_model text not null default 'legacy_package',
   add column if not exists version integer not null default 1;
@@ -215,11 +252,23 @@ revoke all on table public.team_rubric_assignments from public;
 revoke all on table public.team_rubric_assignments from anon;
 revoke all on table public.team_rubric_assignments from authenticated;
 
+-- Rubric configuration is a server-side capability boundary. Tenant JWTs may
+-- retain read access through existing policies, but cannot mutate tracks by
+-- calling the Supabase data API directly.
+revoke insert, update, delete on table public.rubrics from public;
+revoke insert, update, delete on table public.rubrics from anon;
+revoke insert, update, delete on table public.rubrics from authenticated;
+revoke insert, update, delete on table public.rubric_categories from public;
+revoke insert, update, delete on table public.rubric_categories from anon;
+revoke insert, update, delete on table public.rubric_categories from authenticated;
+
 do $$
 begin
   if exists (select 1 from pg_roles where rolname = 'service_role') then
     grant select, insert, update, delete on table public.rubric_tracks to service_role;
     grant select, insert, update, delete on table public.team_rubric_assignments to service_role;
+    grant select, insert, update, delete on table public.rubrics to service_role;
+    grant select, insert, update, delete on table public.rubric_categories to service_role;
   end if;
 end;
 $$;

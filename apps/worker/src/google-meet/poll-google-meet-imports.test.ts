@@ -16,6 +16,7 @@ const claimed = {
 
 function createRepository(overrides: Record<string, unknown> = {}) {
   return {
+    organizationHasIntegrationCapability: vi.fn().mockResolvedValue(true),
     claimNextGoogleMeetImport: vi.fn().mockResolvedValue(claimed),
     createCallForGoogleMeetImport: vi.fn(),
     createOrResetCallProcessingJob: vi.fn(),

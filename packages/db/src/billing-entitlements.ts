@@ -1,5 +1,6 @@
 import { and, desc, eq, gt, inArray, isNull, lte, or } from "drizzle-orm";
 import type { ArgosDb } from "./client";
+import { findOrganizationAccessModel } from "./managed-capabilities";
 import {
   billingSubscriptionsTable,
   softwareAccessCapabilitiesTable,
@@ -104,6 +105,10 @@ async function findActiveSubscription(
         id: coachingGrant.id,
         sourceType: "coaching_contract",
       };
+    }
+
+    if ((await findOrganizationAccessModel(db, input.orgId)) === "managed") {
+      return null;
     }
   }
 

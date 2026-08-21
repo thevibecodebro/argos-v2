@@ -92,6 +92,10 @@ export async function GET(request: Request) {
     const redirectUri = resolveZoomRedirectUri(getRequestOrigin(request));
     const tokens = await exchangeZoomCode(code, redirectUri);
 
+    if (!(await organizationHasManagedCapability(viewer.org.id, "integration_zoom"))) {
+      return settingsRedirect(request, "zoom_error", "feature_unavailable", true);
+    }
+
     await repository.upsertZoomIntegration({
       accessToken: tokens.accessToken,
       connectedUserId: viewer.id,

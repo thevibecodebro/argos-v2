@@ -36,8 +36,11 @@ export async function pollGhlSync(input: PollGhlSyncInput) {
       limit: 10,
     });
 
-    for (const integration of integrations) {
+    integrationLoop: for (const integration of integrations) {
       try {
+        if (!(await input.repository.organizationHasIntegrationCapability(integration.orgId))) {
+          continue;
+        }
         await input.repository.markGhlSyncStarted(integration.orgId, now);
         let accessToken = integration.accessToken;
 
@@ -45,6 +48,10 @@ export async function pollGhlSync(input: PollGhlSyncInput) {
           const refreshed = await refreshGhlToken(integration.refreshToken);
           await input.repository.updateGhlTokens(integration.orgId, refreshed);
           accessToken = refreshed.accessToken;
+        }
+
+        if (!(await input.repository.organizationHasIntegrationCapability(integration.orgId))) {
+          continue;
         }
 
         const client = createLeadConnectorClient({ accessToken });
@@ -62,6 +69,10 @@ export async function pollGhlSync(input: PollGhlSyncInput) {
               continue;
             }
 
+            if (!(await input.repository.organizationHasIntegrationCapability(integration.orgId))) {
+              continue integrationLoop;
+            }
+
             await input.repository.upsertGhlCallImport({
               orgId: integration.orgId,
               locationId: integration.locationId,
@@ -76,6 +87,9 @@ export async function pollGhlSync(input: PollGhlSyncInput) {
           }
         }
 
+        if (!(await input.repository.organizationHasIntegrationCapability(integration.orgId))) {
+          continue;
+        }
         await input.repository.markGhlSyncCompleted(integration.orgId, {
           cursor: newestCursor,
         });

@@ -11,6 +11,11 @@ const publishRubric = vi.fn();
 const validateRubricInput = vi.fn();
 const parseCsvRubricImport = vi.fn();
 const parseJsonRubricImport = vi.fn();
+const requireAuthenticatedManagedCapability = vi.fn();
+
+vi.mock("@/lib/access/managed-capabilities-server", () => ({
+  requireAuthenticatedManagedCapability,
+}));
 
 vi.mock("@/lib/auth/get-authenticated-user", () => ({
   getAuthenticatedSupabaseUser,
@@ -59,7 +64,14 @@ describe("rubrics routes", () => {
     validateRubricInput.mockReset();
     parseCsvRubricImport.mockReset();
     parseJsonRubricImport.mockReset();
+    requireAuthenticatedManagedCapability.mockReset();
     getAuthenticatedSupabaseUser.mockResolvedValue({ id: "auth-user-1" });
+    requireAuthenticatedManagedCapability.mockResolvedValue({
+      ok: true,
+      access: { capabilities: ["team_rubrics"], grantId: "grant-1", mode: "managed", version: 1 },
+      orgId: "org-1",
+      user: { id: "auth-user-1" },
+    });
     createRubricsRepository.mockReturnValue({ kind: "rubrics-repo" });
     createUsersRepository.mockReturnValue({
       findCurrentUserByAuthId: vi.fn().mockResolvedValue({
@@ -76,11 +88,31 @@ describe("rubrics routes", () => {
 
   it("returns 401 for unauthorized rubric bootstrap requests", async () => {
     getAuthenticatedSupabaseUser.mockResolvedValue(null);
+    requireAuthenticatedManagedCapability.mockResolvedValue({
+      ok: false,
+      response: Response.json({ error: "Unauthorized" }, { status: 401 }),
+    });
 
     const route = await import("../../app/api/rubrics/route");
     const response = await route.GET(new Request("http://localhost:3000/api/rubrics"));
 
     expect(response.status).toBe(401);
+  });
+
+  it("does not load rubric data when team rubrics are disabled", async () => {
+    requireAuthenticatedManagedCapability.mockResolvedValue({
+      ok: false,
+      response: Response.json(
+        { code: "feature_unavailable", error: "This feature is not enabled" },
+        { status: 403 },
+      ),
+    });
+
+    const route = await import("../../app/api/rubrics/route");
+    const response = await route.GET(new Request("http://localhost:3000/api/rubrics"));
+
+    expect(response.status).toBe(403);
+    expect(createRubricsRepository).not.toHaveBeenCalled();
   });
 
   it("returns active rubric and history for admin bootstrap requests", async () => {

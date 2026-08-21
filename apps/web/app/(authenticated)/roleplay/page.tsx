@@ -11,6 +11,7 @@ import { createEffectiveTenantRepository } from "@/lib/platform/effective-reques
 import { createRoleplayRepository } from "@/lib/roleplay/create-repository";
 import { listRoleplaySessions } from "@/lib/roleplay/service";
 import { requireManagedCapabilityForPage } from "@/lib/access/managed-capabilities-server";
+import { hasManagedCapability } from "@/lib/access/managed-capabilities";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -34,10 +35,17 @@ export default async function RoleplayPage({
     notFound();
   }
 
-  await requireManagedCapabilityForPage(authUser.id, "roleplay");
+  const capabilityAccess = await requireManagedCapabilityForPage(authUser.id, "roleplay");
+  const practiceReportingEnabled = hasManagedCapability(
+    capabilityAccess.access,
+    "practice_reporting",
+  );
+  const voiceEnabled = hasManagedCapability(capabilityAccess.access, "roleplay_voice");
 
   const repository = await createEffectiveTenantRepository(createRoleplayRepository(), authUser.id);
-  const result = await listRoleplaySessions(repository, authUser.id);
+  const result = await listRoleplaySessions(repository, authUser.id, {
+    includeOtherReps: practiceReportingEnabled,
+  });
 
   if (!result.ok) {
     return (
@@ -72,6 +80,7 @@ export default async function RoleplayPage({
           initialPersonas={result.data.personas}
           initialSessions={result.data.sessions}
           initialSessionId={firstSearchParamValue(resolvedSearchParams.sessionId)}
+          voiceEnabled={voiceEnabled}
         />
       </OperationalWorkspace>
     </AuthenticatedPageContainer>

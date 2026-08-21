@@ -20,6 +20,7 @@ import { createRoleplayRepository } from "@/lib/roleplay/create-repository";
 import { listRoleplaySessions } from "@/lib/roleplay/service";
 import type { RoleplaySession } from "@/lib/roleplay/types";
 import { requireManagedCapabilityForPage } from "@/lib/access/managed-capabilities-server";
+import { hasManagedCapability } from "@/lib/access/managed-capabilities";
 
 export default async function RoleplayHistoryPage() {
   const authUser = await getCachedAuthenticatedSupabaseUser();
@@ -28,10 +29,12 @@ export default async function RoleplayHistoryPage() {
     notFound();
   }
 
-  await requireManagedCapabilityForPage(authUser.id, "roleplay");
+  const capabilityAccess = await requireManagedCapabilityForPage(authUser.id, "roleplay");
 
   const repository = await createEffectiveTenantRepository(createRoleplayRepository(), authUser.id);
-  const result = await listRoleplaySessions(repository, authUser.id);
+  const result = await listRoleplaySessions(repository, authUser.id, {
+    includeOtherReps: hasManagedCapability(capabilityAccess.access, "practice_reporting"),
+  });
 
   if (!result.ok) {
     return (

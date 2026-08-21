@@ -112,6 +112,30 @@ describe("billing checkout route", () => {
     expect(createStripeCheckoutSession).not.toHaveBeenCalled();
   });
 
+  it("does not let a managed workspace restore platform-denied access through Stripe", async () => {
+    getAuthenticatedSupabaseUser.mockResolvedValue({
+      email: "admin@intero.example",
+      id: "auth-user-1",
+    });
+    getCurrentUserDetails.mockResolvedValue({
+      ok: true,
+      data: currentUser({
+        org: { ...currentUser().org!, accessModel: "managed" },
+      }),
+    });
+
+    const route = await import("../app/billing/checkout/route");
+    const response = await route.GET(
+      new Request("https://argos.ai/billing/checkout?plan=team&seats=2"),
+    );
+
+    expect(response.headers.get("location")).toBe(
+      "https://argos.ai/?checkout_error=managed_access_only&plan=team#access",
+    );
+    expect(findActiveSoftwareAccess).not.toHaveBeenCalled();
+    expect(createStripeCheckoutSession).not.toHaveBeenCalled();
+  });
+
   it("uses the hardened site origin for unauthenticated checkout redirects in production", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://app.argos.ai");

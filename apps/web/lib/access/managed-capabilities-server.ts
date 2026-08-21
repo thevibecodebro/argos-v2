@@ -22,7 +22,7 @@ export async function organizationHasManagedCapability(
   capability: ManagedCapabilityKey,
 ) {
   return hasManagedCapability(
-    await getCachedOrganizationCapabilities(orgId),
+    await resolveOrganizationCapabilities(createManagedAccessRepository(), orgId),
     capability,
   );
 }

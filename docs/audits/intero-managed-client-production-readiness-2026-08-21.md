@@ -1,10 +1,10 @@
-# Intero Managed Google Tenant Vault — Production Readiness Save Point
+# Intero Platform-Locked Tenant Vault — Security-Hardened Release Save Point
 
 Date: 2026-08-21
 
-Status: release candidate; not deployed to production
+Status: security-hardened release candidate; not deployed to production
 
-Save point tag: `intero-managed-google-tenant-vault-release-candidate-2026-08-21`
+Save point tag: `intero-platform-locked-tenant-vault-security-hardened-2026-08-21`
 
 Release branch: `codex/managed-client-intero-pilot`
 
@@ -18,18 +18,37 @@ Production baseline: `7060a7406ecf757d90a823e194b0eb62b8d61ac5`
 - Tenant-owned records remain scoped by `org_id`, database row-level security, and service-layer organization checks.
 - Managed initial-admin and member invites use Google-only login links.
 - Managed invite acceptance fails closed unless verified Supabase JWT claims show the Google provider and the `oauth` authentication method.
+- Managed invite acceptance also rejects sessions linked to any non-Google social OAuth identity.
 - Legacy organizations and existing platform staff retain their existing authentication path. This avoids locking out the two active platform staff identities that currently use email authentication.
+
+## Security hardening included in this save point
+
+- Capability enforcement covers pages, API routes, background workers, OAuth callbacks, webhooks, queued call processing, and tenant UI—not only navigation visibility.
+- Saving a managed access grant atomically changes the organization to the `managed` access model, preventing a legacy-entitlement gap.
+- Stripe subscription state cannot restore a capability denied by a managed grant.
+- Custom-scenario generation, team rubrics, roleplay voice, practice reporting, highlights, call analytics, and call scoring each fail closed when disabled.
+- Tenant-authenticated database roles cannot insert, update, delete, or publish rubric definitions; rubric management is platform-controlled through the service role.
+- Google Meet, GHL, and Zoom callback and ingestion flows recheck capability immediately before durable writes, preventing in-flight revocation races from restoring tokens or ingesting data.
+- Queued scoring and integration work rechecks capability before provider access and again before durable persistence.
+- Roleplay session reads default to the authenticated rep; cross-rep practice data requires `practice_reporting`.
+- Call highlights are redacted from both API and server-rendered detail data unless `call_highlights` is enabled.
 
 ## Verified release evidence
 
 - Full repository verification passed under the repository's Node 24 runtime:
   - database typecheck
   - web typecheck
-  - 182 web test files and 1,121 tests
+  - 182 web test files and 1,131 tests
   - production Next.js build
   - worker typecheck
-  - 19 worker test files, 81 tests total; 19 database-dependent tests skipped in the root run
-- The managed-client database isolation suite previously passed against the local Supabase stack, including cross-organization read and write denials.
+  - 18 passing worker test files and one database-dependent file skipped in the root run; 65 tests passed and 19 database-dependent tests skipped
+- A clean local Supabase database reset applied the full migration history, including the edited managed-client migration, from an empty database without error.
+- Database-backed verification passed against local Supabase:
+  - managed-client isolation: 8 tests
+  - row-level security policies: 13 tests
+  - call repository isolation and capability enforcement: 8 tests
+  - GHL repository isolation and capability enforcement: 4 tests
+- The database-backed suites confirmed cross-organization read and write denials. The RLS suite passed 13/13 on its isolated rerun after one parallel test-harness collision produced PostgreSQL `tuple concurrently updated` during concurrent privilege setup.
 - The hosted Supabase project was active and healthy on PostgreSQL 17.6 during readiness inspection.
 - Hosted migration history matched the repository through `20260727213426`; the only pending migration was `20260820180510_managed_client_capabilities_and_rubric_tracks.sql`.
 - Hosted data preconditions were clean: no organization had multiple active rubrics, no rubric lacked an organization, and no duplicate organization/version rubric pairs existed.
@@ -62,12 +81,14 @@ Stop if any command shows additional migration drift, a different production bas
    - `organizations.access_model` exists and defaults to `legacy`.
    - managed access-grant and capability tables exist with RLS enabled.
    - rubric track/version constraints and organization-scoped policies exist.
+   - authenticated and anonymous roles cannot mutate `rubrics` or `rubric_categories`; only `service_role` retains those mutation privileges.
    - Supabase Security Advisor still reports zero errors.
 6. Promote the exact reviewed Vercel deployment.
-7. Smoke-test `/api/health`, `/login`, `/platform/organizations`, and a managed Google invite.
-8. Create two disposable managed organizations, A and B. With authenticated users from each organization, verify that calls, recordings, rubrics, training, roleplay, teams, grants, and integrations from the other organization return `403`, `404`, or an empty result as appropriate. Verify cross-tenant writes fail.
-9. Verify a managed invite cannot be accepted from an email magic-link session and succeeds through Google OAuth using the invited email.
-10. Only after steps 1–9 pass, create the Intero managed organization and its initial admin invite from the platform console.
+7. Confirm Supabase Auth has Google enabled. For the managed launch, disable other social OAuth providers. Email authentication may remain available for legacy organizations and platform staff because managed invite acceptance rejects it.
+8. Smoke-test `/api/health`, `/login`, `/platform/organizations`, and a managed Google invite.
+9. Create two disposable managed organizations, A and B. With authenticated users from each organization, verify that calls, recordings, rubrics, training, roleplay, teams, grants, and integrations from the other organization return `403`, `404`, or an empty result as appropriate. Verify cross-tenant writes fail.
+10. Verify a managed invite cannot be accepted from an email magic-link session, rejects a session linked to another social provider, and succeeds through Google OAuth using the invited email.
+11. Only after steps 1–10 pass, create the Intero managed organization and its initial admin invite from the platform console.
 
 ## Initial Intero configuration
 

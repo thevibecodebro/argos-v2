@@ -16,10 +16,13 @@ export function isGoogleOAuthSession(claims: unknown): boolean {
   }
 
   const { amr, app_metadata: appMetadata } = claims as AuthClaims;
+  const providers = Array.isArray(appMetadata?.providers)
+    ? appMetadata.providers.filter((provider): provider is string => typeof provider === "string")
+    : [];
   const isGoogleProvider =
     appMetadata?.provider === "google" &&
-    Array.isArray(appMetadata.providers) &&
-    appMetadata.providers.includes("google");
+    providers.includes("google") &&
+    providers.every((provider) => provider === "email" || provider === "google");
   const usedOAuth =
     Array.isArray(amr) &&
     amr.some((entry) =>

@@ -1,16 +1,14 @@
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
 import { DrizzleBillingRepository } from "@/lib/billing/repository";
 import { getVoiceBalance } from "@/lib/billing/voice-balance";
-import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { fromServiceResult } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const authUser = await getAuthenticatedSupabaseUser();
-
-  if (!authUser) {
-    return unauthorizedJson();
-  }
+  const capabilityAccess = await requireAuthenticatedManagedCapability("roleplay_voice");
+  if (!capabilityAccess.ok) return capabilityAccess.response;
+  const authUser = capabilityAccess.user;
 
   const result = await getVoiceBalance(
     new DrizzleBillingRepository(),
