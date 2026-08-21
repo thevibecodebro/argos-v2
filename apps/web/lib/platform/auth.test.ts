@@ -194,6 +194,25 @@ describe("requirePlatformStaffAccess", () => {
     expect(repository.findStaffByUserId).not.toHaveBeenCalled();
   });
 
+  it("redirects a missing Supabase auth session to login", async () => {
+    const repository = createRepository(activeStaff);
+
+    createSupabaseServerClient.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: null },
+          error: { message: "Auth session missing!" },
+        }),
+      },
+    });
+
+    await expect(
+      requirePlatformStaffAccess({ repository, pathname: "/platform/organizations" }),
+    ).rejects.toThrow("NEXT_REDIRECT:/login?next=%2Fplatform%2Forganizations");
+
+    expect(repository.findStaffByUserId).not.toHaveBeenCalled();
+  });
+
   it("denies authenticated users who are not platform staff", async () => {
     mockSupabaseSession({ user: { id: "auth-user-1", email: "rep@argos.ai" } });
     const repository = createRepository(null);
@@ -314,5 +333,49 @@ describe("requirePlatformStaffAccess", () => {
     });
 
     expect(mfa.getAuthenticatorAssuranceLevel).toHaveBeenCalled();
+  });
+
+  it("returns 401 when Supabase reports that the auth session is missing", async () => {
+    const getAuthenticatorAssuranceLevel = vi.fn();
+    const repository = createRepository(activeStaff);
+
+    createSupabaseServerClient.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: null },
+          error: { message: "Auth session missing!" },
+        }),
+        mfa: {
+          getAuthenticatorAssuranceLevel,
+        },
+      },
+    });
+
+    await expect(getPlatformApiAccess({ repository })).resolves.toEqual({
+      ok: false,
+      status: 401,
+      error: "Unauthorized",
+    });
+
+    expect(repository.findStaffByUserId).not.toHaveBeenCalled();
+    expect(getAuthenticatorAssuranceLevel).not.toHaveBeenCalled();
+  });
+
+  it("still throws unexpected Supabase auth errors", async () => {
+    const repository = createRepository(activeStaff);
+
+    createSupabaseServerClient.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: null },
+          error: { message: "Supabase auth unavailable" },
+        }),
+      },
+    });
+
+    await expect(getPlatformApiAccess({ repository })).rejects.toThrow(
+      "Supabase auth unavailable",
+    );
+    expect(repository.findStaffByUserId).not.toHaveBeenCalled();
   });
 });

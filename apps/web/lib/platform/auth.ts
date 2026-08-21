@@ -91,6 +91,10 @@ export async function requirePlatformStaffAccess(options: {
   } = await supabase.auth.getUser();
 
   if (userError) {
+    if (userError.message === "Auth session missing!") {
+      redirect(getLoginHref(pathname));
+    }
+
     throw new Error(userError.message);
   }
 
@@ -151,6 +155,10 @@ export async function getPlatformApiAccess(options: {
   } = await supabase.auth.getUser();
 
   if (userError) {
+    if (userError.message === "Auth session missing!") {
+      return { ok: false, status: 401, error: "Unauthorized" };
+    }
+
     throw new Error(userError.message);
   }
 
