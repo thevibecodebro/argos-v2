@@ -71,6 +71,14 @@ export type VoiceEntitlementsRepository = {
     role?: string | null;
     userId: string;
   } | null>;
+  insertVoiceUsageEvent(input: {
+    idempotencyKey: string;
+    minutesDebited: number;
+    orgId: string | null;
+    sessionId: string | null;
+    source: VoiceUsageSource;
+    userId: string;
+  }): Promise<void>;
 };
 
 export function hasUnlimitedVoiceAccess(plan: string | null | undefined) {
@@ -203,6 +211,15 @@ export async function consumeVoiceMinutes(
 
   const minutes = Math.max(1, Math.ceil(input.minutes));
   if (access.data.isUnlimited) {
+    await repository.insertVoiceUsageEvent({
+      idempotencyKey: input.idempotencyKey,
+      minutesDebited: minutes,
+      orgId: access.data.scope.orgId,
+      sessionId: input.sessionId ?? null,
+      source: input.source,
+      userId: access.data.scope.userId,
+    });
+
     return { ok: true as const, data: { minutesDebited: minutes } };
   }
 

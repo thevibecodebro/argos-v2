@@ -7,7 +7,6 @@ import {
 
 type TestVoiceEntitlementsRepository = VoiceEntitlementsRepository & {
   consumeVoiceCreditGrant: ReturnType<typeof vi.fn>;
-  insertVoiceUsageEvent: ReturnType<typeof vi.fn>;
 };
 
 function makeRepository(
@@ -120,6 +119,7 @@ describe("getVoiceEntitlementStatus", () => {
 describe("consumeVoiceMinutes", () => {
   it("records Enterprise usage without debiting a pooled grant", async () => {
     const consumeVoiceMinutesAtomically = vi.fn();
+    const insertVoiceUsageEvent = vi.fn().mockResolvedValue(undefined);
     const repository = makeRepository({
       consumeVoiceMinutesAtomically,
       findUserBillingScope: vi.fn().mockResolvedValue({
@@ -127,6 +127,7 @@ describe("consumeVoiceMinutes", () => {
         plan: "enterprise",
         userId: "auth-user-1",
       }),
+      insertVoiceUsageEvent,
     });
 
     await expect(
@@ -139,6 +140,14 @@ describe("consumeVoiceMinutes", () => {
     ).resolves.toEqual({ ok: true, data: { minutesDebited: 3 } });
 
     expect(consumeVoiceMinutesAtomically).not.toHaveBeenCalled();
+    expect(insertVoiceUsageEvent).toHaveBeenCalledWith({
+      idempotencyKey: "roleplay:session-1:complete",
+      minutesDebited: 3,
+      orgId: "org-enterprise",
+      sessionId: "session-1",
+      source: "roleplay_realtime",
+      userId: "auth-user-1",
+    });
     expect(repository.ensureCoachingVoiceCreditGrant).not.toHaveBeenCalled();
   });
 

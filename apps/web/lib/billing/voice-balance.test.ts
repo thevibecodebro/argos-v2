@@ -25,6 +25,7 @@ function makeRepository(
       userId: "user-1",
     }),
     findVoiceBalanceGrants: vi.fn().mockResolvedValue([]),
+    insertVoiceUsageEvent: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
