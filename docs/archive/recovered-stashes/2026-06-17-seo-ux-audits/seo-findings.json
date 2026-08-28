@@ -1,0 +1,122 @@
+[
+  {
+    "severity": "Critical",
+    "finding": "Production homepage content does not match the repository's canonical public-homepage source of truth.",
+    "evidence": "Live H1 is 'Build a sales team that actually follows the playbook.' while docs/public-homepage-source-of-truth.md and apps/web/components/public/landing-page.tsx identify 'Sales teams changed. Coaching them should have too.' as the canonical public direction.",
+    "fix": "Before implementing SEO changes, reconcile the release source and deploy the intended canonical homepage narrative so title, H1, schema, sitemap, llms.txt, and social previews describe the same product story.",
+    "confidence": "High",
+    "source": "live_crawl_and_repo_source"
+  },
+  {
+    "severity": "Warning",
+    "finding": "Missing sitemap.xml on the public production URL.",
+    "evidence": "https://argos-v2-nine.vercel.app/sitemap.xml returned 404. The App Router tree has no apps/web/app/sitemap.ts file.",
+    "fix": "Add apps/web/app/sitemap.ts with the homepage and public legal pages, then submit the production sitemap in Google Search Console and Bing Webmaster Tools.",
+    "confidence": "High",
+    "source": "crawler_scripts"
+  },
+  {
+    "severity": "Warning",
+    "finding": "Missing robots.txt and explicit AI crawler policy.",
+    "evidence": "https://argos-v2-nine.vercel.app/robots.txt returned 404. Google treats a 4xx robots response as no restrictions, but the site has no explicit Sitemap directive or AI crawler allow/disallow policy.",
+    "fix": "Add apps/web/app/robots.ts with Allow rules for public pages, Disallow rules for authenticated/private surfaces, a Sitemap directive, and explicit policy for Googlebot, OAI-SearchBot, ChatGPT-User, Claude-SearchBot, ClaudeBot, PerplexityBot, and Perplexity-User.",
+    "confidence": "High",
+    "source": "robots_checker"
+  },
+  {
+    "severity": "Warning",
+    "finding": "Homepage and public legal pages are missing canonical URLs.",
+    "evidence": "parse_html.py found canonical=null for /, /privacy-policy, /terms-of-service, and /security-policy. The app has multiple Vercel aliases and one alias returns x-robots-tag: noindex.",
+    "fix": "Set metadataBase and per-route alternates.canonical values so every public page points to the intended production domain.",
+    "confidence": "High",
+    "source": "parse_html"
+  },
+  {
+    "severity": "Warning",
+    "finding": "Root metadata in local source is generic and public legal pages inherit duplicate homepage metadata in production.",
+    "evidence": "apps/web/app/layout.tsx exports title='Argos' and description='Revenue Command Platform'. Live legal pages currently use the homepage title and description instead of page-specific titles and summaries.",
+    "fix": "Define route-level metadata for homepage, privacy policy, terms, and security policy with unique titles, descriptions, canonicals, Open Graph, and Twitter metadata.",
+    "confidence": "High",
+    "source": "repo_source_and_parse_html"
+  },
+  {
+    "severity": "Warning",
+    "finding": "Missing Open Graph and Twitter Card metadata.",
+    "evidence": "social_meta_checker.py scored the homepage 0/100 and reported missing og:title, og:description, og:image, og:url, og:type, and twitter:card.",
+    "fix": "Add openGraph and twitter metadata in Next metadata exports and ship a stable /opengraph-image.png or App Router generated OG image.",
+    "confidence": "High",
+    "source": "social_meta_checker"
+  },
+  {
+    "severity": "Warning",
+    "finding": "No structured data is present on the public pages.",
+    "evidence": "parse_html.py found schema=[] on the homepage and public legal pages.",
+    "fix": "Add JSON-LD for Organization, WebSite, WebPage, SoftwareApplication or Product, Offer where pricing is public, and BreadcrumbList for legal pages. Avoid FAQPage/HowTo schema because Google has removed or heavily limited those rich-result surfaces.",
+    "confidence": "High",
+    "source": "parse_html"
+  },
+  {
+    "severity": "Warning",
+    "finding": "Missing llms.txt and llms-full.txt for AI-answer and agent discovery.",
+    "evidence": "llms_txt_checker.py found no /llms.txt and no /llms-full.txt. Google says llms.txt is not needed for Google Search, but it remains useful as an explicit AI-agent content map.",
+    "fix": "Add /llms.txt with canonical product definition, public URLs, pricing/demo path, policies, and crawler guidance. Add /llms-full.txt only if maintaining a fuller source is practical.",
+    "confidence": "High",
+    "source": "llms_txt_checker"
+  },
+  {
+    "severity": "Warning",
+    "finding": "The homepage does not contain a direct answer block for 'What is Argos?' or clear comparison/use-case sections.",
+    "evidence": "The live page has strong product language and 658 raw words, but it does not expose a concise definition, audience, category, deployment status, pricing summary, or buyer question sections in answer-ready form.",
+    "fix": "Add a visible 40-60 word product definition near the top, plus compact sections for use cases, who Argos is for, integrations, security, pricing, and alternatives/comparisons where accurate.",
+    "confidence": "Medium",
+    "source": "content_audit"
+  },
+  {
+    "severity": "Warning",
+    "finding": "Product proof is stronger in the rendered browser than in the initial HTML.",
+    "evidence": "Raw HTML only contained two decorative logo-background images, while the rendered browser loaded product screenshots from /homepage-product/*.png with alt text. Some AI agents and lightweight crawlers may rely on raw HTML or early fetches.",
+    "fix": "Make core product proof text and at least one representative product image available in server-rendered HTML or provide a noscript/static fallback.",
+    "confidence": "Medium",
+    "source": "parse_html_and_playwright"
+  },
+  {
+    "severity": "Warning",
+    "finding": "Security and trust headers are incomplete.",
+    "evidence": "security_headers.py scored 45/100: HSTS is present, but CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, and Permissions-Policy were missing.",
+    "fix": "Add conservative security headers through next.config.ts or Vercel configuration, testing authenticated routes before enabling a strict CSP.",
+    "confidence": "High",
+    "source": "security_headers"
+  },
+  {
+    "severity": "Warning",
+    "finding": "Public pricing called for by the canonical source of truth is not visible on the live or local homepage.",
+    "evidence": "docs/public-homepage-source-of-truth.md says to keep Solo, Team, Enterprise, annual pricing math, and the enterprise calendar link. Current local landing-page.tsx only contains demo booking and no pricing section.",
+    "fix": "Either restore public pricing on the homepage or update the source of truth if pricing should not be public. If public, include pricing in HTML, schema Offer data, sitemap, and llms.txt.",
+    "confidence": "High",
+    "source": "repo_source_audit"
+  },
+  {
+    "severity": "Info",
+    "finding": "The primary live homepage returns HTTP 200, has no noindex header, renders responsively, and has no console errors in Playwright.",
+    "evidence": "https://argos-v2-nine.vercel.app/ returned 200 with no x-robots-tag noindex. Playwright desktop/mobile screenshots rendered successfully and captured 0 console messages.",
+    "fix": "Keep the production URL indexable while correcting canonical metadata and release drift.",
+    "confidence": "High",
+    "source": "curl_and_playwright"
+  },
+  {
+    "severity": "Info",
+    "finding": "Public legal pages exist and are crawlable.",
+    "evidence": "/privacy-policy, /terms-of-service, and /security-policy each returned HTTP 200 and have meaningful H1/H2 content, but they need unique metadata and canonical URLs.",
+    "fix": "Preserve these trust pages and improve route metadata, sitemap inclusion, and breadcrumb schema.",
+    "confidence": "High",
+    "source": "curl_and_parse_html"
+  },
+  {
+    "severity": "Info",
+    "finding": "No broken internal or external links were found in the homepage crawl.",
+    "evidence": "broken_link_checker.py found 6 links, 5 healthy, 0 broken, and 1 redirected calendar booking URL.",
+    "fix": "Optionally replace the short Google Calendar URL with its final destination to remove redirect hops.",
+    "confidence": "High",
+    "source": "broken_link_checker"
+  }
+]
