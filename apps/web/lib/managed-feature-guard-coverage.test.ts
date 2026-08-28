@@ -7,6 +7,19 @@ async function source(path: string) {
 }
 
 describe("managed feature guard coverage", () => {
+  it("captures checkbox state before the deferred capability state update", async () => {
+    const content = await source(
+      "components/platform/platform-organization-detail-page.tsx",
+    );
+
+    expect(content).toMatch(
+      /onChange=\{\(event\) => \{\s+const checked = event\.currentTarget\.checked;\s+setCapabilities\(\(current\) =>\s+checked/,
+    );
+    expect(content).not.toMatch(
+      /setCapabilities\(\(current\) =>\s+event\.currentTarget\.checked/,
+    );
+  });
+
   it("atomically switches an organization to managed mode when platform access is saved", async () => {
     const content = await source("lib/platform/repository.ts");
 
