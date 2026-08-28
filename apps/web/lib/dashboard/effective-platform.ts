@@ -100,7 +100,9 @@ export function createEffectiveBillingScopeRepository<
           orgName: profile.org?.name ?? null,
           orgId: profile.org?.id ?? null,
           plan: profile.org?.plan ?? null,
-          role: profile.role,
+          // Platform staff may inspect the selected tenant's billing state, but
+          // checkout and portal actions remain bound to their authenticated account.
+          role: null,
           userId: profile.id,
         });
       }

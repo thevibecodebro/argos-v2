@@ -156,7 +156,7 @@ describe("effective platform dashboard adapters", () => {
       orgName: "Acme Health",
       orgId: "org-1",
       plan: "trial",
-      role: "admin",
+      role: null,
       userId: "staff-user",
     });
     expect(repository.findUserBillingScope).not.toHaveBeenCalled();
