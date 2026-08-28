@@ -640,13 +640,15 @@ function CoachingAccessPanel({
                 checked={capabilities.includes(option.key)}
                 className="mt-1"
                 disabled={isSaving}
-                onChange={(event) =>
+                onChange={(event) => {
+                  const checked = event.currentTarget.checked;
+
                   setCapabilities((current) =>
-                    event.currentTarget.checked
+                    checked
                       ? [...current, option.key]
                       : current.filter((key) => key !== option.key),
-                  )
-                }
+                  );
+                }}
                 type="checkbox"
               />
               <span>
