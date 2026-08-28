@@ -68,6 +68,7 @@ export class DrizzleBillingRepository
         lastName: usersTable.lastName,
         orgName: organizationsTable.name,
         orgId: usersTable.orgId,
+        plan: organizationsTable.plan,
         role: usersTable.role,
         userId: usersTable.id,
       })
@@ -85,6 +86,7 @@ export class DrizzleBillingRepository
       fullName: buildFullName(user.firstName, user.lastName, user.email),
       orgName: user.orgName,
       orgId: user.orgId,
+      plan: user.plan,
       role: user.role,
       userId: user.userId,
     };
@@ -704,7 +706,7 @@ export class DrizzleBillingRepository
     source: "roleplay_realtime" | "roleplay_tts";
     userId: string;
   }) {
-    await this.db
+    const [usageEvent] = await this.db
       .insert(voiceUsageEventsTable)
       .values({
         idempotencyKey: input.idempotencyKey,
@@ -714,6 +716,21 @@ export class DrizzleBillingRepository
         source: input.source,
         userId: input.userId,
       })
-      .onConflictDoNothing();
+      .onConflictDoNothing()
+      .returning({ minutesDebited: voiceUsageEventsTable.minutesDebited });
+
+    if (usageEvent) {
+      return usageEvent;
+    }
+
+    const duplicateUsage = await this.findVoiceUsageEventByIdempotencyKey(
+      input.idempotencyKey,
+    );
+
+    if (duplicateUsage) {
+      return duplicateUsage;
+    }
+
+    throw new Error("Voice usage event conflict could not be resolved.");
   }
 }

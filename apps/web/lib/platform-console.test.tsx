@@ -382,6 +382,28 @@ describe("platform page components", () => {
     expect(html).toContain('type="checkbox"');
   });
 
+  it("describes Enterprise coaching access as unlimited instead of pooled", () => {
+    const html = renderToStaticMarkup(
+      createElement(PlatformOrganizationDetailPage, {
+        organization: makeOrganizationDetail({
+          organization: {
+            accessModel: "managed",
+            createdAt: "2026-06-01T15:00:00.000Z",
+            id: "org-1",
+            name: "Acme Health",
+            plan: "enterprise",
+            slug: "acme-health",
+            status: "active",
+          },
+        }),
+      }),
+    );
+
+    expect(html).toContain("Enterprise plans include unlimited live voice");
+    expect(html).toContain("Live voice usage: Unlimited");
+    expect(html).not.toContain("Current monthly pool");
+  });
+
   it("hides or disables the admin invite resend action when ineligible", () => {
     const withAdminHtml = renderToStaticMarkup(
       createElement(PlatformOrganizationDetailPage, {

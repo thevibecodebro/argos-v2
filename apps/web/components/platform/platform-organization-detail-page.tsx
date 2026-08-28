@@ -461,6 +461,8 @@ function CoachingAccessPanel({
   const [isSaving, setIsSaving] = useState(false);
   const hasStripeAccess = organization.billing.activeSubscriptionCount > 0;
   const canReactivate = grant?.status === "paused" && !hasStripeAccess;
+  const isEnterprise =
+    organization.organization.plan.trim().toLowerCase() === "enterprise";
 
   async function mutate(action: "pause" | "reactivate" | "revoke" | "save") {
     setMessage(null);
@@ -517,6 +519,7 @@ function CoachingAccessPanel({
             unavailable to this organization, and access ends automatically on the
             contract end date. Only Argos platform staff can change these settings;
             organization admins cannot view or edit them.
+            {isEnterprise ? " Enterprise plans include unlimited live voice." : ""}
           </p>
         </div>
         <ForgeChip
@@ -724,6 +727,7 @@ function CoachingAccessPanel({
       </div>
       <p className="mt-3 text-xs text-[var(--forge-muted)]">
         Access model: {organization.organization.accessModel}. Revision: {grant?.version ?? 0}.
+        {isEnterprise ? " Live voice usage: Unlimited." : ""}
       </p>
       {message ? (
         <p className="mt-2 text-sm text-[var(--forge-muted)]" role="status">
