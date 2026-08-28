@@ -16,7 +16,7 @@ import {
   type ArgosDb,
 } from "@argos-v2/db";
 import { parseAppUserRole } from "@/lib/users/roles";
-import type { CallsFilters, CallsRepository } from "./service";
+import { ACTIVE_CALL_PROCESSING_STATUSES, type CallsFilters, type CallsRepository } from "./service";
 import type { CallEvaluation } from "./types";
 import { parseBuyerPersonalityProfile } from "@argos-v2/call-processing";
 
@@ -762,7 +762,7 @@ export class DrizzleCallsRepository implements CallsRepository {
 
     if (filters.status && filters.status !== "all") {
       if (filters.status === "processing") {
-        conditions.push(inArray(callsTable.status, ["transcribing", "evaluating"]));
+        conditions.push(inArray(callsTable.status, [...ACTIVE_CALL_PROCESSING_STATUSES]));
       } else {
         conditions.push(eq(callsTable.status, filters.status as "uploaded" | "transcribing" | "evaluating" | "complete" | "failed"));
       }

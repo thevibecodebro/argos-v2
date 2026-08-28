@@ -79,6 +79,12 @@ export type CallAnnotation = {
 
 export type CallProcessingJobStatus = "pending" | "running" | "retrying" | "failed" | "complete";
 
+export const ACTIVE_CALL_PROCESSING_STATUSES = [
+  "uploaded",
+  "transcribing",
+  "evaluating",
+] as const;
+
 export type CallProcessingJob = {
   id: string;
   status: CallProcessingJobStatus;

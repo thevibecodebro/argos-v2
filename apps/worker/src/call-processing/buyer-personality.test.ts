@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   BUYER_PERSONALITY_SCHEMA_VERSION,
   buildBuyerPersonalityTranscriptEvidence,
+  collectBuyerPersonalityDirectIdentifiers,
   parseBuyerPersonalityProfile,
 } from "@argos-v2/call-processing";
 
@@ -58,8 +59,23 @@ describe("buyer personality contract", () => {
 
   it("redacts direct identifiers from reusable language", () => {
     const profile = validProfile();
+    profile.summary = "Jordan Lee from customer ID ACCT-4921 is cautious.";
     profile.languagePatterns = ["Email me at buyer@example.com or call +1 (212) 555-0199"];
-    expect(parseBuyerPersonalityProfile(profile, 120).languagePatterns[0]).toBe("Email me at [email] or call [phone]");
+    const parsed = parseBuyerPersonalityProfile(profile, 120, {
+      directIdentifiers: ["Jordan Lee", "ACCT-4921"],
+    });
+    expect(parsed.summary).toBe("[identifier] from customer ID [identifier] is cautious.");
+    expect(parsed.languagePatterns[0]).toBe("Email me at [email] or call [phone]");
+  });
+
+  it("extracts names and account identifiers from transcript evidence for deterministic redaction", () => {
+    expect(collectBuyerPersonalityDirectIdentifiers([
+      {
+        timestampSeconds: 0,
+        speaker: "Speaker B",
+        text: "My name is Jordan Lee and my account ID is ACCT-4921.",
+      },
+    ])).toEqual(expect.arrayContaining(["Jordan Lee", "ACCT-4921"]));
   });
 
   it("samples the beginning, middle, and end of long transcripts", () => {

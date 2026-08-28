@@ -263,17 +263,23 @@ export async function processCallJob(input: ProcessCallJobInput) {
     if (capabilities.canGenerateBuyerPersonality) {
       currentStage = "profile";
       await input.repository.updateBuyerProfileStatus(input.job.callId, "processing");
-      const extracted = await extractBuyerPersonalityImpl({
-        callTopic: input.job.callTopic,
-        durationSeconds: transcription.durationSeconds,
-        transcript: transcription.transcript,
-      });
-      buyerPersonality = {
-        generatedAt: new Date(),
-        model: extracted.model,
-        profile: extracted.profile,
-        status: extracted.profile.confidence === "low" ? "needs_review" : "ready",
-      };
+      try {
+        const extracted = await extractBuyerPersonalityImpl({
+          callTopic: input.job.callTopic,
+          durationSeconds: transcription.durationSeconds,
+          transcript: transcription.transcript,
+        });
+        buyerPersonality = {
+          generatedAt: new Date(),
+          model: extracted.model,
+          profile: extracted.profile,
+          status: extracted.profile.confidence === "low" ? "needs_review" : "ready",
+        };
+      } catch (error) {
+        await input.repository.updateBuyerProfileStatus(input.job.callId, "failed");
+        if (!capabilities.canScoreCall) throw error;
+        console.error("Buyer personality extraction failed; continuing call scoring", error);
+      }
     }
 
     let evaluation = null;

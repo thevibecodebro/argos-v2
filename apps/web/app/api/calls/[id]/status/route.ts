@@ -1,4 +1,4 @@
-import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
+import { requireAnyAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { getCallStatus, retryCallProcessingJob } from "@/lib/calls/service";
 import { fromServiceResult } from "@/lib/http";
@@ -10,7 +10,11 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const capabilityAccess = await requireAuthenticatedManagedCapability("call_scoring");
+  const capabilityAccess = await requireAnyAuthenticatedManagedCapability([
+    "call_upload",
+    "call_ingestion",
+    "call_scoring",
+  ]);
   if (!capabilityAccess.ok) return capabilityAccess.response;
   const authUser = capabilityAccess.user;
 
@@ -24,7 +28,11 @@ export async function POST(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const capabilityAccess = await requireAuthenticatedManagedCapability("call_scoring");
+  const capabilityAccess = await requireAnyAuthenticatedManagedCapability([
+    "call_upload",
+    "call_ingestion",
+    "call_scoring",
+  ]);
   if (!capabilityAccess.ok) return capabilityAccess.response;
   const authUser = capabilityAccess.user;
 

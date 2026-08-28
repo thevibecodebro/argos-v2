@@ -1,5 +1,5 @@
 import { findUserWithOrgByAuthId, findUsersByIds, getSupabaseAdminClient, toDate } from "@/lib/supabase/admin-repository-helpers";
-import type { CallsFilters, CallsRepository } from "./service";
+import { ACTIVE_CALL_PROCESSING_STATUSES, type CallsFilters, type CallsRepository } from "./service";
 import type { CallEvaluation } from "./types";
 import { parseBuyerPersonalityProfile } from "@argos-v2/call-processing";
 
@@ -855,8 +855,9 @@ export class SupabaseCallsRepository implements CallsRepository {
       if (repId) query = query.eq("rep_id", repId);
       if (repIds) query = query.in("rep_id", repIds);
       if (filters.status && filters.status !== "all") {
-        const normalizedStatus = filters.status === "processing" ? "evaluating" : filters.status;
-        query = query.eq("status", normalizedStatus);
+        query = filters.status === "processing"
+          ? query.in("status", ACTIVE_CALL_PROCESSING_STATUSES)
+          : query.eq("status", filters.status);
       }
       if (filters.search) query = query.ilike("call_topic", `%${filters.search}%`);
       if (filters.minScore !== undefined) query = query.gte("overall_score", filters.minScore);

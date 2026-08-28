@@ -1,8 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
 import { DrizzleCallsRepository } from "./repository";
 import { SupabaseCallsRepository } from "./supabase-repository";
+import { ACTIVE_CALL_PROCESSING_STATUSES } from "./service";
 
 describe("calls repositories", () => {
+  it("treats queued, transcribing, and evaluating calls as active processing", () => {
+    expect(ACTIVE_CALL_PROCESSING_STATUSES).toEqual([
+      "uploaded",
+      "transcribing",
+      "evaluating",
+    ]);
+  });
   it("does not query Drizzle when scoped rep ids are empty", async () => {
     const db = {
       select: vi.fn(() => {

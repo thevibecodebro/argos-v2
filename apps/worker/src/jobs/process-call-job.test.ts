@@ -71,6 +71,61 @@ describe("processCallJob", () => {
     }));
     expect(repository.createNotification).toHaveBeenCalledWith(expect.objectContaining({ type: "recording_ready" }));
   });
+
+  it("continues scoring when optional buyer personality extraction fails", async () => {
+    const repository = {
+      getCallProcessingCapabilities: vi.fn().mockResolvedValue({ canGenerateBuyerPersonality: true, canScoreCall: true }),
+      createNotification: vi.fn().mockResolvedValue(undefined),
+      findRubricById: vi.fn().mockResolvedValue(null),
+      markJobComplete: vi.fn().mockResolvedValue(undefined),
+      markRetryableFailure: vi.fn().mockResolvedValue(undefined),
+      markTerminalFailure: vi.fn().mockResolvedValue(undefined),
+      persistProcessedCall: vi.fn().mockResolvedValue(undefined),
+      updateBuyerProfileStatus: vi.fn().mockResolvedValue(undefined),
+      updateCallStatus: vi.fn().mockResolvedValue(undefined),
+    };
+    const evaluation = {
+      rubricId: null,
+      confidence: "high",
+      callStageReached: "commitment",
+      overallScore: 86,
+      categoryScores: [],
+      frameControlScore: null,
+      rapportScore: null,
+      discoveryScore: null,
+      painExpansionScore: null,
+      solutionScore: null,
+      objectionScore: null,
+      closingScore: null,
+      strengths: [],
+      improvements: [],
+      recommendedDrills: [],
+      transcript: [],
+      moments: [],
+      durationSeconds: 600,
+    };
+    const scoreTranscriptFromLines = vi.fn().mockResolvedValue(evaluation);
+
+    await processCallJob({
+      job: { id: "job-both", callId: "call-both", repId: "rep-1", callTopic: "Discovery", attemptCount: 1, maxAttempts: 3, sourceStoragePath: "recordings/call-both/source/demo.mp4" } as never,
+      repository: repository as never,
+      downloadSourceAsset: vi.fn().mockResolvedValue("/tmp/source.mp4"),
+      normalizeAudio: vi.fn().mockResolvedValue({ outputPath: "/tmp/normalized.mp3", sizeBytes: 1024, durationSeconds: 600 }),
+      readFile: vi.fn().mockResolvedValue(Buffer.from("normalized audio")),
+      transcribeAudioBuffer: vi.fn().mockResolvedValue({ durationSeconds: 600, transcript: [{ timestampSeconds: 0, speaker: "Speaker A", text: "Hello" }] }),
+      extractBuyerPersonalityFromTranscript: vi.fn().mockRejectedValue(new Error("malformed structured output")),
+      scoreTranscriptFromLines,
+    });
+
+    expect(repository.updateBuyerProfileStatus).toHaveBeenLastCalledWith("call-both", "failed");
+    expect(scoreTranscriptFromLines).toHaveBeenCalledTimes(1);
+    expect(repository.persistProcessedCall).toHaveBeenCalledWith(expect.objectContaining({
+      buyerPersonality: null,
+      evaluation,
+    }));
+    expect(repository.markJobComplete).toHaveBeenCalledWith("job-both");
+    expect(repository.createNotification).toHaveBeenCalledWith(expect.objectContaining({ type: "call_scored" }));
+  });
   it("downloads, normalizes, transcribes, scores, persists, and completes a queued call", async () => {
     const repository = {
       getCallProcessingCapabilities: vi.fn().mockResolvedValue({ canGenerateBuyerPersonality: false, canScoreCall: true }),
