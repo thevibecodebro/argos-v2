@@ -34,6 +34,7 @@ async function renderCallDetailPanel({
     createElement(CallDetailPanel, {
       annotations: [],
       call,
+      canGenerateRoleplay: true,
       canManage,
       canRetryProcessing,
     }),
@@ -343,6 +344,7 @@ describe("CallDetailPanel", () => {
       createElement(CallDetailPanel, {
         annotations: [],
         call: baseCall,
+        canGenerateRoleplay: true,
         canManage: true,
         canRetryProcessing: true,
       }),

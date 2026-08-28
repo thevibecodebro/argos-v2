@@ -45,6 +45,13 @@ export async function GET(request: Request) {
       });
     }
 
+    if (currentUser.data.org?.accessModel === "managed") {
+      return landingRedirect(origin, {
+        checkout_error: "managed_access_only",
+        plan: plan.id,
+      });
+    }
+
     if (!canStartBillingCheckout(currentUser.data)) {
       return landingRedirect(origin, {
         checkout_error: "admin_required",

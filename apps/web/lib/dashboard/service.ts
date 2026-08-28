@@ -915,6 +915,7 @@ export async function getRepBadges(
   authUserId: string,
   requestedRepId?: string,
   accessRepository: AccessRepository = createAccessRepository(),
+  options: { includePracticeReporting?: boolean } = {},
 ): Promise<RepBadges | null> {
   const user = await repository.findCurrentUserByAuthId(authUserId);
 
@@ -935,11 +936,16 @@ export async function getRepBadges(
   await assertRequestedRepAccessible(repository, user, access, requestedRepId);
 
   const targetRepId = requestedRepId ?? user.id;
+  const includePracticeReporting = options.includePracticeReporting !== false;
   const [completedCalls, passedTraining, completedRoleplays] =
     await Promise.all([
       repository.findCompletedCallsByRepId(targetRepId),
-      repository.findPassedTrainingByRepId(targetRepId),
-      repository.findCompletedRoleplaysByRepId(targetRepId),
+      includePracticeReporting
+        ? repository.findPassedTrainingByRepId(targetRepId)
+        : Promise.resolve([]),
+      includePracticeReporting
+        ? repository.findCompletedRoleplaysByRepId(targetRepId)
+        : Promise.resolve([]),
     ]);
 
   const orderedCalls = [...completedCalls].sort(
@@ -1043,7 +1049,11 @@ export async function getRepBadges(
     },
   ];
 
-  return { badges };
+  return {
+    badges: includePracticeReporting
+      ? badges
+      : badges.filter((badge) => badge.id !== "certified" && badge.id !== "roleplay_5x"),
+  };
 }
 
 export async function getExecutiveDashboard(
@@ -1051,6 +1061,7 @@ export async function getExecutiveDashboard(
   authUserId: string,
   now = new Date(),
   rubricsRepository?: RubricsRepository,
+  options: { includePracticeReporting?: boolean } = {},
 ): Promise<ExecutiveDashboard | null> {
   const user = await repository.findCurrentUserByAuthId(authUserId);
 
@@ -1072,10 +1083,13 @@ export async function getExecutiveDashboard(
   }
 
   const twelveWeeksAgo = new Date(now.getTime() - 12 * 7 * 24 * 60 * 60 * 1000);
+  const includePracticeReporting = options.includePracticeReporting !== false;
   const [completedCalls, users, trainingProgress] = await Promise.all([
     repository.findCompletedCallsByOrgId(user.org.id),
     repository.findOrgUsersByOrgId(user.org.id),
-    repository.findTrainingProgressByOrgId(user.org.id),
+    includePracticeReporting
+      ? repository.findTrainingProgressByOrgId(user.org.id)
+      : Promise.resolve([]),
   ]);
 
   const reps = users.filter((member) => member.role === "rep");

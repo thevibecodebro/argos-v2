@@ -1,5 +1,5 @@
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
-import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
+import { fromServiceResult } from "@/lib/http";
 import { createIntegrationsRepository } from "@/lib/integrations/create-repository";
 import {
   disconnectIntegration,
@@ -10,10 +10,9 @@ import { createEffectiveTenantRepository } from "@/lib/platform/effective-reques
 export const dynamic = "force-dynamic";
 
 export async function POST() {
-  const authUser = await getAuthenticatedSupabaseUser();
-  if (!authUser) {
-    return unauthorizedJson();
-  }
+  const capabilityAccess = await requireAuthenticatedManagedCapability("integration_google_meet");
+  if (!capabilityAccess.ok) return capabilityAccess.response;
+  const authUser = capabilityAccess.user;
   if (!isGoogleMeetIntegrationConfigured()) {
     return notConfigured();
   }

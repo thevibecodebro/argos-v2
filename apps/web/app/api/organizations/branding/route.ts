@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
-import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
+import { fromServiceResult } from "@/lib/http";
 import {
   auditPlatformWorkspaceMutation,
   getPlatformMutationAuditContext,
@@ -62,11 +62,9 @@ async function getPlatformAudit(authUserId: string) {
 
 export async function PATCH(request: Request) {
   try {
-    const authUser = await getAuthenticatedSupabaseUser();
-
-    if (!authUser) {
-      return unauthorizedJson();
-    }
+    const capabilityAccess = await requireAuthenticatedManagedCapability("workspace_branding");
+    if (!capabilityAccess.ok) return capabilityAccess.response;
+    const authUser = capabilityAccess.user;
 
     const admin = await requireBrandingAdmin(authUser.id);
 
@@ -119,11 +117,9 @@ export async function PATCH(request: Request) {
 
 export async function DELETE() {
   try {
-    const authUser = await getAuthenticatedSupabaseUser();
-
-    if (!authUser) {
-      return unauthorizedJson();
-    }
+    const capabilityAccess = await requireAuthenticatedManagedCapability("workspace_branding");
+    if (!capabilityAccess.ok) return capabilityAccess.response;
+    const authUser = capabilityAccess.user;
 
     const admin = await requireBrandingAdmin(authUser.id);
 

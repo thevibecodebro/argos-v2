@@ -18,8 +18,11 @@ const {
   checkRateLimitForPolicyMock,
   createSupabaseServerClientMock,
   createPlatformRepositoryMock,
+  createManagedAccessRepositoryMock,
   redirectMock,
   findInviteByTokenMock,
+  findOrganizationAccessModelMock,
+  getAuthenticatedSupabaseClaimsMock,
   getPlatformStaffAfterProvisioningMock,
   headersMock,
   ensureUserProvisionedMock,
@@ -28,10 +31,13 @@ const {
   checkRateLimitForPolicyMock: vi.fn(),
   createSupabaseServerClientMock: vi.fn(),
   createPlatformRepositoryMock: vi.fn(),
+  createManagedAccessRepositoryMock: vi.fn(),
   redirectMock: vi.fn((href: string) => {
     throw new Error(`NEXT_REDIRECT:${href}`);
   }),
   findInviteByTokenMock: vi.fn(),
+  findOrganizationAccessModelMock: vi.fn(),
+  getAuthenticatedSupabaseClaimsMock: vi.fn(),
   getPlatformStaffAfterProvisioningMock: vi.fn(),
   headersMock: vi.fn(),
   ensureUserProvisionedMock: vi.fn(),
@@ -45,6 +51,18 @@ vi.mock("@/lib/supabase/server", () => ({
 vi.mock("@/lib/platform/create-repository", () => ({
   createPlatformRepository: createPlatformRepositoryMock,
 }));
+
+vi.mock("@/lib/access/managed-capabilities-repository", () => ({
+  createManagedAccessRepository: createManagedAccessRepositoryMock,
+}));
+
+vi.mock("@/lib/auth/get-authenticated-user", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/auth/get-authenticated-user")>();
+  return {
+    ...actual,
+    getAuthenticatedSupabaseClaims: getAuthenticatedSupabaseClaimsMock,
+  };
+});
 
 vi.mock("@/lib/platform/auth", () => ({
   getPlatformStaffAfterProvisioning: getPlatformStaffAfterProvisioningMock,
@@ -110,6 +128,14 @@ describe("legacy auth shell", () => {
     createPlatformRepositoryMock.mockReturnValue({
       findStaffByUserId: vi.fn(),
       upsertStaff: vi.fn(),
+    });
+    createManagedAccessRepositoryMock.mockReturnValue({
+      findOrganizationAccessModel: findOrganizationAccessModelMock,
+    });
+    findOrganizationAccessModelMock.mockResolvedValue("legacy");
+    getAuthenticatedSupabaseClaimsMock.mockResolvedValue({
+      amr: [{ method: "oauth", timestamp: 1_725_000_000 }],
+      app_metadata: { provider: "google", providers: ["google"] },
     });
     getPlatformStaffAfterProvisioningMock.mockResolvedValue(null);
     ensureUserProvisionedMock.mockResolvedValue({
@@ -238,6 +264,23 @@ describe("legacy auth shell", () => {
     expect(html).not.toContain("#6dddff");
   });
 
+  it("renders managed invite login as Google-only", async () => {
+    const html = renderToStaticMarkup(
+      await LoginPage({
+        searchParams: Promise.resolve({
+          next: "/invite/server-only-token",
+          provider: "google",
+        }),
+      }),
+    );
+
+    expect(html).toContain("Continue with Google");
+    expect(html).toContain("Use the Google account that received your Argos invite.");
+    expect(html).not.toContain("Work Email");
+    expect(html).not.toContain("Access Dashboard");
+    expect(html).not.toContain(">OR<");
+  });
+
   it("sends already-authenticated active platform admins back to the platform dashboard", async () => {
     const authUser = {
       email: "owner@argos.ai",
@@ -345,6 +388,32 @@ describe("legacy auth shell", () => {
       type: "ip",
       id: "198.51.100.22",
     });
+  });
+
+  it("keeps a managed invite on Google-only login when opened directly", async () => {
+    findOrganizationAccessModelMock.mockResolvedValue("managed");
+    createSupabaseServerClientMock.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
+      },
+    });
+    findInviteByTokenMock.mockResolvedValue({
+      acceptedAt: null,
+      email: "rep@example.com",
+      expiresAt: new Date("2099-01-01T00:00:00.000Z"),
+      orgId: "org-managed",
+      role: "rep",
+    });
+
+    const html = renderToStaticMarkup(
+      await InvitePage({ params: Promise.resolve({ token: "invite-token" }) }),
+    );
+
+    expect(html).toContain(
+      'href="/login?next=%2Finvite%2Finvite-token&amp;provider=google"',
+    );
+    expect(html).toContain("Use a different Google account");
+    expect(html).not.toContain('href="/login">Use a different email');
   });
 
   it("auto-accepts a matching authenticated invite instead of making invited users stop on the page", async () => {

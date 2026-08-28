@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { createSupabaseServerClient, getUser } = vi.hoisted(() => ({
+const { createSupabaseServerClient, getClaims, getUser } = vi.hoisted(() => ({
   createSupabaseServerClient: vi.fn(),
+  getClaims: vi.fn(),
   getUser: vi.fn(),
 }));
 
@@ -9,15 +10,20 @@ vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient,
 }));
 
-import { getAuthenticatedSupabaseUser } from "./get-authenticated-user";
+import {
+  getAuthenticatedSupabaseClaims,
+  getAuthenticatedSupabaseUser,
+} from "./get-authenticated-user";
 
 describe("getAuthenticatedSupabaseUser", () => {
   beforeEach(() => {
     createSupabaseServerClient.mockResolvedValue({
       auth: {
+        getClaims,
         getUser,
       },
     });
+    getClaims.mockReset();
     getUser.mockReset();
   });
 
@@ -58,5 +64,26 @@ describe("getAuthenticatedSupabaseUser", () => {
     });
 
     await expect(getAuthenticatedSupabaseUser()).resolves.toEqual(user);
+  });
+
+  it("returns verified JWT claims for provider enforcement", async () => {
+    const claims = {
+      amr: [{ method: "oauth", timestamp: 1_725_000_000 }],
+      app_metadata: { provider: "google", providers: ["google"] },
+    };
+    getClaims.mockResolvedValue({ data: { claims }, error: null });
+
+    await expect(getAuthenticatedSupabaseClaims()).resolves.toEqual(claims);
+  });
+
+  it("fails closed when provider claims cannot be verified", async () => {
+    getClaims.mockRejectedValue(
+      Object.assign(new Error("fetch failed"), {
+        __isAuthError: true,
+        status: 0,
+      }),
+    );
+
+    await expect(getAuthenticatedSupabaseClaims()).resolves.toBeNull();
   });
 });

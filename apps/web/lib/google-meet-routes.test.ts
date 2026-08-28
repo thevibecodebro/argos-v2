@@ -6,18 +6,27 @@ const {
   exchangeGoogleCode,
   getAuthenticatedSupabaseUser,
   getGoogleUserProfile,
+  organizationHasManagedCapability,
+  requireAuthenticatedManagedCapability,
 } = vi.hoisted(() => ({
   cookies: vi.fn(),
   createIntegrationsRepository: vi.fn(),
   exchangeGoogleCode: vi.fn(),
   getAuthenticatedSupabaseUser: vi.fn(),
   getGoogleUserProfile: vi.fn(),
+  organizationHasManagedCapability: vi.fn(),
+  requireAuthenticatedManagedCapability: vi.fn(),
 }));
 
 vi.mock("next/headers", () => ({ cookies }));
 
 vi.mock("@/lib/auth/get-authenticated-user", () => ({
   getAuthenticatedSupabaseUser,
+}));
+
+vi.mock("@/lib/access/managed-capabilities-server", () => ({
+  organizationHasManagedCapability,
+  requireAuthenticatedManagedCapability,
 }));
 
 vi.mock("@/lib/integrations/create-repository", () => ({
@@ -48,6 +57,13 @@ describe("Google Meet OAuth routes", () => {
     vi.stubEnv("ARGOS_GOOGLE_MEET_ENABLED", "true");
     vi.stubEnv("GOOGLE_MEET_CLIENT_ID", "google-client");
     vi.stubEnv("GOOGLE_MEET_CLIENT_SECRET", "google-secret");
+    organizationHasManagedCapability.mockResolvedValue(true);
+    requireAuthenticatedManagedCapability.mockImplementation(async () => {
+      const user = await getAuthenticatedSupabaseUser();
+      return user
+        ? { ok: true, user, orgId: "org-1", access: { mode: "legacy" } }
+        : { ok: false, response: Response.json({ error: "Unauthorized" }, { status: 401 }) };
+    });
   });
 
   it("keeps organizer connection admin-only", async () => {
@@ -175,5 +191,47 @@ describe("Google Meet OAuth routes", () => {
       "https://app.argos.ai/settings/integrations?google_meet_error=state_mismatch",
     );
     expect(exchangeGoogleCode).not.toHaveBeenCalled();
+  });
+
+  it("does not persist credentials when Google Meet is revoked during exchange", async () => {
+    const repository = {
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "admin-1",
+        role: "admin",
+        org: { id: "org-1", slug: "argos" },
+      }),
+      upsertGoogleMeetIntegration: vi.fn(),
+    };
+    createIntegrationsRepository.mockReturnValue(repository);
+    getAuthenticatedSupabaseUser.mockResolvedValue({ id: "auth-user-1" });
+    organizationHasManagedCapability
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
+    exchangeGoogleCode.mockResolvedValue({
+      accessToken: "google-access",
+      refreshToken: "google-refresh",
+      tokenExpiresAt: new Date("2026-07-13T13:00:00.000Z"),
+    });
+    getGoogleUserProfile.mockResolvedValue({
+      email: "organizer@example.com",
+      id: "google-user-1",
+    });
+    const state = Buffer.from(
+      JSON.stringify({ nonce: "nonce-123", orgId: "org-1", userId: "admin-1" }),
+    ).toString("base64url");
+    cookies.mockResolvedValue({ get: vi.fn().mockReturnValue({ value: state }) });
+
+    const route = await import("../app/api/integrations/google-meet/callback/route");
+    const response = await route.GET(
+      new Request(
+        `https://app.argos.ai/api/integrations/google-meet/callback?code=auth-code&state=${state}`,
+      ),
+    );
+
+    expect(response.headers.get("location")).toBe(
+      "https://app.argos.ai/settings/integrations?google_meet_error=feature_unavailable",
+    );
+    expect(exchangeGoogleCode).toHaveBeenCalledOnce();
+    expect(repository.upsertGoogleMeetIntegration).not.toHaveBeenCalled();
   });
 });

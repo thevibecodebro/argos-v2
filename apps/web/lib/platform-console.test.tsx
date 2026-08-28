@@ -18,6 +18,7 @@ import { parsePlatformDashboardFilters } from "./platform/dashboard";
 
 const organizations: PlatformConsoleOrganization[] = [
   {
+    accessModel: "legacy",
     createdAt: "2026-06-11T15:30:00.000Z",
     id: "org-1",
     name: "Acme Health",
@@ -89,6 +90,7 @@ function makeOrganizationDetail(
     ],
     members: [],
     organization: {
+      accessModel: "managed",
       createdAt: "2026-06-01T15:00:00.000Z",
       id: "org-1",
       name: "Acme Health",
@@ -366,6 +368,20 @@ describe("platform page components", () => {
     expect(html).toContain("admin@acme.test");
   });
 
+  it("keeps managed feature controls in the platform organization workspace", () => {
+    const html = renderToStaticMarkup(
+      createElement(PlatformOrganizationDetailPage, {
+        organization: makeOrganizationDetail(),
+      }),
+    );
+
+    expect(html).toContain("Managed feature access");
+    expect(html).toContain("Only Argos platform staff can change these settings");
+    expect(html).toContain("organization admins cannot view or edit them");
+    expect(html).toContain("Apply Intero practice pilot");
+    expect(html).toContain('type="checkbox"');
+  });
+
   it("hides or disables the admin invite resend action when ineligible", () => {
     const withAdminHtml = renderToStaticMarkup(
       createElement(PlatformOrganizationDetailPage, {
@@ -386,6 +402,7 @@ describe("platform page components", () => {
       createElement(PlatformOrganizationDetailPage, {
         organization: makeOrganizationDetail({
           organization: {
+            accessModel: "managed",
             createdAt: "2026-06-01T15:00:00.000Z",
             id: "org-1",
             name: "Acme Health",

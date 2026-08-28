@@ -1,5 +1,5 @@
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
-import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
+import { fromServiceResult } from "@/lib/http";
 import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 import {
   checkRateLimitForPolicy,
@@ -29,11 +29,9 @@ export async function POST(
     return bodyResult.response;
   }
 
-  const authUser = await getAuthenticatedSupabaseUser();
-
-  if (!authUser) {
-    return unauthorizedJson();
-  }
+  const capabilityAccess = await requireAuthenticatedManagedCapability("roleplay");
+  if (!capabilityAccess.ok) return capabilityAccess.response;
+  const authUser = capabilityAccess.user;
 
   const rateLimit = await checkRateLimitForPolicy("roleplayMessage", {
     type: "user",

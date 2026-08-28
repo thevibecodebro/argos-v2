@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { organizationHasManagedCapability } from "@/lib/access/managed-capabilities-server";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { createIntegrationsRepository } from "@/lib/integrations/create-repository";
 import {
@@ -62,6 +63,10 @@ export async function GET(request: Request) {
     return settingsRedirect(request, "zoom_error", "not_provisioned");
   }
 
+  if (!(await organizationHasManagedCapability(viewer.org.id, "integration_zoom"))) {
+    return settingsRedirect(request, "zoom_error", "feature_unavailable", true);
+  }
+
   const decoded = decodeIntegrationOAuthState(state);
 
   if (!decoded) {
@@ -86,6 +91,10 @@ export async function GET(request: Request) {
   try {
     const redirectUri = resolveZoomRedirectUri(getRequestOrigin(request));
     const tokens = await exchangeZoomCode(code, redirectUri);
+
+    if (!(await organizationHasManagedCapability(viewer.org.id, "integration_zoom"))) {
+      return settingsRedirect(request, "zoom_error", "feature_unavailable", true);
+    }
 
     await repository.upsertZoomIntegration({
       accessToken: tokens.accessToken,

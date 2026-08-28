@@ -1098,6 +1098,47 @@ describe("getRepBadges", () => {
       earnedAt: "2026-03-05T12:00:00.000Z",
     });
   });
+
+  it("does not query or return practice badges when practice reporting is disabled", async () => {
+    const accessRepository = createAccessRepository({
+      findActorByAuthUserId: vi.fn().mockResolvedValue({
+        id: "rep-1",
+        role: "rep",
+        orgId: "org-1",
+      }),
+      findMembershipsByOrgId: vi.fn().mockResolvedValue([]),
+      findGrantsByUserId: vi.fn().mockResolvedValue([]),
+    });
+    const findPassedTrainingByRepId = vi.fn();
+    const findCompletedRoleplaysByRepId = vi.fn();
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "rep-1",
+        email: "rep@example.com",
+        role: "rep",
+        firstName: "Riley",
+        lastName: "Stone",
+        org: { id: "org-1", name: "Intero", slug: "intero", plan: "team" },
+      }),
+      findCompletedCallsByRepId: vi.fn().mockResolvedValue([]),
+      findPassedTrainingByRepId,
+      findCompletedRoleplaysByRepId,
+    });
+
+    const result = await getRepBadges(
+      repository,
+      "rep-1",
+      undefined,
+      accessRepository as never,
+      { includePracticeReporting: false },
+    );
+
+    expect(findPassedTrainingByRepId).not.toHaveBeenCalled();
+    expect(findCompletedRoleplaysByRepId).not.toHaveBeenCalled();
+    expect(result?.badges.map((badge) => badge.id)).not.toEqual(
+      expect.arrayContaining(["certified", "roleplay_5x"]),
+    );
+  });
 });
 
 describe("getSetupStatus", () => {

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
-import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
+import { fromServiceResult } from "@/lib/http";
 import {
   RUBRIC_IMPORT_LIMITS,
   parseCsvRubricImport,
@@ -30,11 +30,9 @@ type JsonBodyResult =
   | { ok: false; response: Response };
 
 async function requireAdminContext(): Promise<AdminContext> {
-  const authUser = await getAuthenticatedSupabaseUser();
-
-  if (!authUser) {
-    return { ok: false, response: unauthorizedJson() };
-  }
+  const capabilityAccess = await requireAuthenticatedManagedCapability("team_rubrics");
+  if (!capabilityAccess.ok) return capabilityAccess;
+  const authUser = capabilityAccess.user;
 
   const usersRepository = await createEffectiveTenantUsersRepository(
     createUsersRepository(),

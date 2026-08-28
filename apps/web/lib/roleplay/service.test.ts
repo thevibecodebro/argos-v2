@@ -1313,7 +1313,9 @@ describe("listRoleplaySessions", () => {
       }),
     });
 
-    const result = await listRoleplaySessions(repository, "mgr-1");
+    const result = await listRoleplaySessions(repository, "mgr-1", {
+      includeOtherReps: true,
+    });
 
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("Expected visible roleplay sessions");
@@ -1360,7 +1362,9 @@ describe("listRoleplaySessions", () => {
       findSessionsByRepId: vi.fn(),
     });
 
-    const result = await listRoleplaySessions(repository, "exec-1");
+    const result = await listRoleplaySessions(repository, "exec-1", {
+      includeOtherReps: true,
+    });
 
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("Expected org-wide roleplay sessions");
@@ -1421,7 +1425,9 @@ describe("getRoleplaySession", () => {
       }),
     });
 
-    const result = await getRoleplaySession(repository, "mgr-1", "session-generated-1");
+    const result = await getRoleplaySession(repository, "mgr-1", "session-generated-1", {
+      allowOtherRep: true,
+    });
 
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("Expected generated session");

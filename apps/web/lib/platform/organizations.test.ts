@@ -8,6 +8,7 @@ const createdAt = new Date("2026-06-11T10:00:00.000Z");
 const expiresAt = new Date("2026-06-18T10:00:00.000Z");
 
 const organization = {
+  accessModel: "managed" as const,
   id: "org-1",
   name: "Acme",
   slug: "acme",
@@ -165,6 +166,7 @@ describe("createPlatformOrganizationWithAdminInvite", () => {
     });
 
     expect(repository.createOrganizationWithAdminInviteAndAudit).toHaveBeenCalledWith({
+      accessModel: "managed",
       adminEmail: "admin@acme.com",
       inviteExpiresAt: expiresAt,
       inviteToken: "invite-token-1",
@@ -177,20 +179,13 @@ describe("createPlatformOrganizationWithAdminInvite", () => {
     expect(repository.createOrganizationWithAdminInviteAndAudit).not.toHaveBeenCalledWith(
       expect.objectContaining({ userId: "staff-1" }),
     );
-    expect(generateAuthInviteLink).toHaveBeenCalledWith({
-      email: "admin@acme.com",
-      redirectTo: "https://app.argos.ai/invite/invite-token-1",
-      metadata: {
-        argosInviteToken: "invite-token-1",
-        argosOrganizationId: "org-1",
-        argosRole: "admin",
-      },
-    });
+    expect(generateAuthInviteLink).not.toHaveBeenCalled();
     expect(sendInviteEmail).toHaveBeenCalledWith(
       "admin@acme.com",
-      "https://auth.example.com/invite-link",
+      "https://app.argos.ai/login?next=%2Finvite%2Finvite-token-1&provider=google",
       "Acme",
       "admin",
+      { authMethod: "google" },
     );
   });
 });

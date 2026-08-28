@@ -5,6 +5,7 @@ import {
 import type { AppUserRole } from "./roles";
 
 type OrganizationRecord = {
+  accessModel?: "legacy" | "managed";
   id: string;
   name: string;
   slug: string;
@@ -58,6 +59,7 @@ export type CurrentUserDetails = {
   orgId: string | null;
   displayNameSet: boolean;
   org: {
+    accessModel?: "legacy" | "managed";
     id: string;
     name: string;
     slug: string;
@@ -131,6 +133,7 @@ function serializeCurrentUser(user: CurrentUserRecord): CurrentUserDetails {
     displayNameSet: user.displayNameSet,
     org: user.org
       ? {
+          ...(user.org.accessModel ? { accessModel: user.org.accessModel } : {}),
           id: user.org.id,
           name: user.org.name,
           slug: user.org.slug,

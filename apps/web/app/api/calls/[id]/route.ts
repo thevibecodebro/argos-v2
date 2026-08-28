@@ -1,7 +1,8 @@
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
+import { hasManagedCapability } from "@/lib/access/managed-capabilities";
 import { createCallsRepository } from "@/lib/calls/create-repository";
-import { deleteCallData, getCallDetail, renameCall } from "@/lib/calls/service";
-import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { deleteCallData, getCallDetail, redactCallHighlightFields, renameCall } from "@/lib/calls/service";
+import { fromServiceResult } from "@/lib/http";
 import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -12,16 +13,18 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const authUser = await getAuthenticatedSupabaseUser();
-
-    if (!authUser) {
-      return unauthorizedJson();
-    }
+    const capabilityAccess = await requireAuthenticatedManagedCapability("call_scoring");
+    if (!capabilityAccess.ok) return capabilityAccess.response;
+    const authUser = capabilityAccess.user;
 
     const { id } = await params;
     const repository = await createEffectiveTenantRepository(createCallsRepository(), authUser.id);
     const result = await getCallDetail(repository, authUser.id, id);
-    return fromServiceResult(result);
+    return fromServiceResult(
+      result.ok && !hasManagedCapability(capabilityAccess.access, "highlights")
+        ? { ...result, data: redactCallHighlightFields(result.data) }
+        : result,
+    );
   } catch (error) {
     console.error("Failed to load call detail", error);
     return Response.json({ error: error instanceof Error ? error.message : "Internal server error" }, { status: 500 });
@@ -33,11 +36,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const authUser = await getAuthenticatedSupabaseUser();
-
-    if (!authUser) {
-      return unauthorizedJson();
-    }
+    const capabilityAccess = await requireAuthenticatedManagedCapability("call_scoring");
+    if (!capabilityAccess.ok) return capabilityAccess.response;
+    const authUser = capabilityAccess.user;
 
     const body = (await request.json()) as { callTopic?: unknown };
 
@@ -66,11 +67,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const authUser = await getAuthenticatedSupabaseUser();
-
-    if (!authUser) {
-      return unauthorizedJson();
-    }
+    const capabilityAccess = await requireAuthenticatedManagedCapability("call_scoring");
+    if (!capabilityAccess.ok) return capabilityAccess.response;
+    const authUser = capabilityAccess.user;
 
     const { id } = await params;
     const repository = await createEffectiveTenantRepository(createCallsRepository(), authUser.id);

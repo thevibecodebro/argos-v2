@@ -1,7 +1,6 @@
 import { buildGoogleOAuthUrl } from "@argos-v2/google-workspace-client";
 import { NextResponse } from "next/server";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
-import { unauthorizedJson } from "@/lib/http";
+import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
 import { createIntegrationsRepository } from "@/lib/integrations/create-repository";
 import {
   createIntegrationNonce,
@@ -22,10 +21,9 @@ function settingsRedirect(request: Request, error: string) {
 }
 
 export async function GET(request: Request) {
-  const authUser = await getAuthenticatedSupabaseUser();
-  if (!authUser) {
-    return unauthorizedJson();
-  }
+  const capabilityAccess = await requireAuthenticatedManagedCapability("integration_google_meet");
+  if (!capabilityAccess.ok) return capabilityAccess.response;
+  const authUser = capabilityAccess.user;
 
   const repository = await createEffectiveTenantRepository(
     createIntegrationsRepository(),

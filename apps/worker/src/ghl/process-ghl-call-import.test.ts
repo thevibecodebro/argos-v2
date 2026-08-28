@@ -5,6 +5,7 @@ function createRepository(
   overrides: Partial<GhlCallImportRepository> = {},
 ): GhlCallImportRepository {
   return {
+    organizationHasIntegrationCapability: vi.fn().mockResolvedValue(true),
     createCallForGhlImport: vi.fn(),
     createOrResetCallProcessingJob: vi.fn(),
     findActiveCallProcessingSubscription: vi.fn().mockResolvedValue({ id: "sub-1" }),
@@ -20,6 +21,41 @@ function createRepository(
 }
 
 describe("processGhlCallImport", () => {
+  it("skips before provider access when the platform revoked GHL", async () => {
+    const repository = createRepository({
+      organizationHasIntegrationCapability: vi.fn().mockResolvedValue(false),
+    });
+    const leadConnector = {
+      getMessage: vi.fn(),
+      downloadMessageRecording: vi.fn(),
+    };
+
+    await processGhlCallImport({
+      importRecord: {
+        id: "import-revoked",
+        orgId: "org-1",
+        locationId: "loc-1",
+        messageId: "msg-1",
+        conversationId: null,
+        contactId: null,
+        ghlUserId: null,
+        callId: null,
+        status: "running",
+        attemptCount: 1,
+        maxAttempts: 3,
+      },
+      repository,
+      leadConnector,
+      storeSourceAsset: vi.fn(),
+      getActiveRubricId: vi.fn(),
+    });
+
+    expect(repository.markGhlCallImportSkipped).toHaveBeenCalledWith(
+      "import-revoked",
+      { reason: "capability_disabled" },
+    );
+    expect(leadConnector.getMessage).not.toHaveBeenCalled();
+  });
   it("downloads a GHL recording, stores it, creates the call, and queues processing", async () => {
     const repository = createRepository({
       findGhlIntegrationForImport: vi.fn().mockResolvedValue({

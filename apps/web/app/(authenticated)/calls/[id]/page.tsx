@@ -11,8 +11,10 @@ import {
   getCachedCurrentUserProfile,
 } from "@/lib/auth/request-user";
 import { createCallsRepository } from "@/lib/calls/create-repository";
-import { getCallDetail, listAnnotations } from "@/lib/calls/service";
+import { getCallDetail, listAnnotations, redactCallHighlightFields } from "@/lib/calls/service";
 import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
+import { requireManagedCapabilityForPage } from "@/lib/access/managed-capabilities-server";
+import { hasManagedCapability } from "@/lib/access/managed-capabilities";
 
 export default async function CallDetailPage({
   params,
@@ -26,6 +28,13 @@ export default async function CallDetailPage({
     notFound();
   }
 
+  const capabilityAccess = await requireManagedCapabilityForPage(authUser.id, "call_scoring");
+  const canUseHighlights = hasManagedCapability(capabilityAccess.access, "highlights");
+  const canGenerateRoleplay = hasManagedCapability(
+    capabilityAccess.access,
+    "custom_scenarios",
+  );
+
   const repository = await createEffectiveTenantRepository(createCallsRepository(), authUser.id);
   const [profile, detailResult, annotationsResult] = await Promise.all([
     getCachedCurrentUserProfile(authUser.id),
@@ -37,12 +46,14 @@ export default async function CallDetailPage({
     notFound();
   }
 
-  const call = detailResult.data;
+  const call = canUseHighlights
+    ? detailResult.data
+    : redactCallHighlightFields(detailResult.data);
   const topic = call.callTopic ?? "Untitled call";
-  const canManage =
+  const canManage = canUseHighlights && (
     profile?.role === "admin" ||
     profile?.role === "manager" ||
-    profile?.role === "executive";
+    profile?.role === "executive");
 
   return (
     <AuthenticatedPageContainer
@@ -53,7 +64,9 @@ export default async function CallDetailPage({
         <OperationalToolbar
           actions={[
             { href: "/calls", icon: "arrow_back", label: "Call Library", variant: "secondary" },
-            { href: "/highlights", icon: "insights", label: "Open Highlights", variant: "primary" },
+            ...(canUseHighlights
+              ? [{ href: "/highlights", icon: "insights", label: "Open Highlights", variant: "primary" as const }]
+              : []),
           ]}
           description={`Access scoped to ${profile?.role ?? "member"} permissions.`}
           eyebrow="Call detail"
@@ -73,6 +86,7 @@ export default async function CallDetailPage({
           annotations={annotationsResult.ok ? annotationsResult.data.annotations : []}
           call={call}
           canManage={canManage}
+          canGenerateRoleplay={canGenerateRoleplay}
           canRetryProcessing={profile?.role === "admin"}
         />
       </OperationalWorkspace>

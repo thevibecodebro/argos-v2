@@ -1,9 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { generateInviteAuthLink, type GenerateInviteAuthLinkInput } from "@/lib/invites/auth-invite";
+import type { GenerateInviteAuthLinkInput } from "@/lib/invites/auth-invite";
 import { sendInviteEmail } from "@/lib/invites/email";
+import { buildGoogleOnlyLoginUrl } from "@/lib/auth-routing";
 import type { PlatformStaffRole } from "./repository";
 
 type PlatformOrganization = {
+  accessModel: "legacy" | "managed";
   id: string;
   name: string;
   slug: string;
@@ -52,6 +54,7 @@ export type PlatformOrganizationActor = {
 export type PlatformOrganizationRepository = {
   findOrganizationBySlug(slug: string): Promise<PlatformOrganization | null>;
   createOrganizationWithAdminInviteAndAudit(input: {
+    accessModel: "managed";
     name: string;
     slug: string;
     plan: string;
@@ -166,6 +169,7 @@ export async function createPlatformOrganizationWithAdminInvite(
   const plan = getTrimmedString(input.plan) || "trial";
 
   const data = await repository.createOrganizationWithAdminInviteAndAudit({
+    accessModel: "managed",
     adminEmail,
     inviteExpiresAt,
     inviteToken: dependencies.createToken?.() ?? randomUUID(),
@@ -175,22 +179,17 @@ export async function createPlatformOrganizationWithAdminInvite(
     slug,
     staffUserId: actor.userId,
   });
-  const inviteUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/invite/${data.invite.token}`;
-  const authInviteUrl = await (dependencies.generateAuthInviteLink ?? generateInviteAuthLink)({
-    email: adminEmail,
-    redirectTo: inviteUrl,
-    metadata: {
-      argosInviteToken: data.invite.token,
-      argosOrganizationId: data.organization.id,
-      argosRole: "admin",
-    },
-  });
+  const authInviteUrl = buildGoogleOnlyLoginUrl(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+    `/invite/${data.invite.token}`,
+  );
 
   await (dependencies.sendInviteEmail ?? sendInviteEmail)(
     adminEmail,
     authInviteUrl,
     data.organization.name,
     "admin",
+    { authMethod: "google" },
   );
 
   return {

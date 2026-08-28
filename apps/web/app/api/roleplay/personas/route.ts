@@ -1,16 +1,12 @@
 import { NextResponse } from "next/server";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
-import { unauthorizedJson } from "@/lib/http";
+import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
 import { getRoleplayPersonas } from "@/lib/roleplay/service";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const authUser = await getAuthenticatedSupabaseUser();
-
-  if (!authUser) {
-    return unauthorizedJson();
-  }
+  const capabilityAccess = await requireAuthenticatedManagedCapability("roleplay");
+  if (!capabilityAccess.ok) return capabilityAccess.response;
 
   return NextResponse.json(
     { personas: getRoleplayPersonas() },

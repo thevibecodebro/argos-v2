@@ -1,7 +1,6 @@
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { exportCallData } from "@/lib/calls/service";
-import { unauthorizedJson } from "@/lib/http";
 import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 
 export const dynamic = "force-dynamic";
@@ -13,11 +12,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const authUser = await getAuthenticatedSupabaseUser();
-
-    if (!authUser) {
-      return unauthorizedJson();
-    }
+    const capabilityAccess = await requireAuthenticatedManagedCapability("call_scoring");
+    if (!capabilityAccess.ok) return capabilityAccess.response;
+    const authUser = capabilityAccess.user;
 
     const { id } = await params;
     const repository = await createEffectiveTenantRepository(createCallsRepository(), authUser.id);

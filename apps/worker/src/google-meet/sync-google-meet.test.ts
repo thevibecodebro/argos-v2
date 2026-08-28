@@ -8,6 +8,7 @@ function createRepository(
   overrides: Partial<GoogleMeetSyncRepository> = {},
 ): GoogleMeetSyncRepository {
   return {
+    organizationHasIntegrationCapability: vi.fn().mockResolvedValue(true),
     getIngestionTitleFilterConfig: vi.fn().mockResolvedValue({
       configured: true,
       excludePhrases: ["internal"],

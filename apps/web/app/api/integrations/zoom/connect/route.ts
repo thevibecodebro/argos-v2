@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
 import { createIntegrationsRepository } from "@/lib/integrations/create-repository";
 import {
   buildZoomOAuthUrl,
@@ -9,7 +9,6 @@ import {
   integrationOAuthCookieNames,
   resolveZoomRedirectUri,
 } from "@/lib/integrations/oauth";
-import { unauthorizedJson } from "@/lib/http";
 import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 
 export const dynamic = "force-dynamic";
@@ -19,11 +18,9 @@ function settingsRedirect(request: Request, error: string) {
 }
 
 export async function GET(request: Request) {
-  const authUser = await getAuthenticatedSupabaseUser();
-
-  if (!authUser) {
-    return unauthorizedJson();
-  }
+  const capabilityAccess = await requireAuthenticatedManagedCapability("integration_zoom");
+  if (!capabilityAccess.ok) return capabilityAccess.response;
+  const authUser = capabilityAccess.user;
 
   const repository = await createEffectiveTenantRepository(
     createIntegrationsRepository(),

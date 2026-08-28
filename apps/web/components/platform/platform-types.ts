@@ -2,6 +2,7 @@ export type PlatformRole = "owner" | "operator";
 export type PlatformStaffStatus = "active" | "revoked";
 
 export type PlatformConsoleOrganization = {
+  accessModel: "legacy" | "managed";
   archivedAt?: string | null;
   createdAt: string;
   id: string;

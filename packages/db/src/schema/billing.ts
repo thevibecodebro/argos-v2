@@ -2,9 +2,11 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  foreignKey,
   index,
   integer,
   jsonb,
+  primaryKey,
   pgTable,
   text,
   timestamp,
@@ -66,6 +68,11 @@ export const softwareAccessGrantsTable = pgTable(
   "software_access_grants",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    accessModel: text("access_model", {
+      enum: ["legacy_package", "managed_capabilities"],
+    })
+      .notNull()
+      .default("legacy_package"),
     orgId: uuid("org_id")
       .notNull()
       .references(() => organizationsTable.id, { onDelete: "cascade" }),
@@ -93,6 +100,7 @@ export const softwareAccessGrantsTable = pgTable(
     }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    version: integer("version").notNull().default(1),
   },
   (table) => [
     index("software_access_grants_org_status_dates_idx").on(
@@ -105,6 +113,11 @@ export const softwareAccessGrantsTable = pgTable(
     uniqueIndex("software_access_grants_one_active_coaching_org_uq")
       .on(table.orgId)
       .where(sql`${table.status} = 'active'`),
+    uniqueIndex("software_access_grants_id_org_id_uq").on(table.id, table.orgId),
+    check(
+      "software_access_grants_access_model_check",
+      sql`${table.accessModel} in ('legacy_package', 'managed_capabilities')`,
+    ),
     check("software_access_grants_source_type_check", sql`${table.sourceType} = 'coaching_contract'`),
     check("software_access_grants_package_check", sql`${table.package} in ('solo', 'team')`),
     check(
@@ -121,6 +134,51 @@ export const softwareAccessGrantsTable = pgTable(
       sql`${table.monthlyVoiceMinutesPerSeat} > 0`,
     ),
     check("software_access_grants_dates_check", sql`${table.endsAt} > ${table.startsAt}`),
+    check("software_access_grants_version_positive", sql`${table.version} > 0`),
+  ],
+);
+
+export const softwareAccessCapabilitiesTable = pgTable(
+  "software_access_capabilities",
+  {
+    grantId: uuid("grant_id").notNull(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizationsTable.id, { onDelete: "cascade" }),
+    capabilityKey: text("capability_key", {
+      enum: [
+        "training",
+        "roleplay",
+        "roleplay_voice",
+        "custom_scenarios",
+        "team_rubrics",
+        "practice_reporting",
+        "call_upload",
+        "call_ingestion",
+        "call_scoring",
+        "highlights",
+        "call_analytics",
+        "leaderboard",
+        "integration_google_meet",
+        "integration_ghl",
+        "integration_zoom",
+        "workspace_branding",
+      ],
+    }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.grantId, table.capabilityKey] }),
+    index("software_access_capabilities_org_grant_idx").on(table.orgId, table.grantId),
+    foreignKey({
+      name: "software_access_capabilities_grant_org_fkey",
+      columns: [table.grantId, table.orgId],
+      foreignColumns: [softwareAccessGrantsTable.id, softwareAccessGrantsTable.orgId],
+    }).onDelete("cascade"),
+    check(
+      "software_access_capabilities_key_check",
+      sql`${table.capabilityKey} in ('training', 'roleplay', 'roleplay_voice', 'custom_scenarios', 'team_rubrics', 'practice_reporting', 'call_upload', 'call_ingestion', 'call_scoring', 'highlights', 'call_analytics', 'leaderboard', 'integration_google_meet', 'integration_ghl', 'integration_zoom', 'workspace_branding')`,
+    ),
   ],
 );
 

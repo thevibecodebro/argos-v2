@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
 import { createDashboardRepository } from "@/lib/dashboard/create-repository";
 import { DashboardServiceError, getSetupStatus } from "@/lib/dashboard/service";
 import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
@@ -8,11 +8,11 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const authUser = await getAuthenticatedSupabaseUser();
-
-    if (!authUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const analyticsAccess = await requireAuthenticatedManagedCapability("call_analytics");
+    if (!analyticsAccess.ok) return analyticsAccess.response;
+    const reportingAccess = await requireAuthenticatedManagedCapability("practice_reporting");
+    if (!reportingAccess.ok) return reportingAccess.response;
+    const authUser = analyticsAccess.user;
 
     const repository = await createEffectiveTenantRepository(createDashboardRepository(), authUser.id);
     const status = await getSetupStatus(repository, authUser.id);

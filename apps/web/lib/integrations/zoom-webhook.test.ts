@@ -694,6 +694,78 @@ describe("processZoomWebhookRequest", () => {
     }
   });
 
+  it("does not create or store a call when Zoom is revoked during download", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(Buffer.from("zoom-audio"), {
+          status: 200,
+          headers: { "Content-Type": "audio/mp4" },
+        }),
+      ),
+    );
+    const repository = createRepository({
+      createCall: vi.fn().mockResolvedValue({ id: "call-1" }),
+      findCallByZoomRecordingId: vi.fn().mockResolvedValue(null),
+      findPreferredCallOwner: vi.fn().mockResolvedValue({ id: "user-1" }),
+      findZoomIntegrationByAccountId: vi.fn().mockResolvedValue({
+        id: "zoom-integration-1",
+        orgId: "org-1",
+        webhookToken: null,
+        accessToken: "zoom-access",
+        refreshToken: "zoom-refresh",
+        tokenExpiresAt: new Date("2099-01-01T00:00:00.000Z"),
+      }),
+    });
+    const rawBody = JSON.stringify({
+      event: "recording.completed",
+      payload: {
+        account_id: "zoom-account-1",
+        object: {
+          id: "meeting-1",
+          topic: "Discovery call",
+          recording_files: [
+            {
+              id: "recording-1",
+              recording_type: "audio_only",
+              download_url: "https://us02web.zoom.us/rec/download/audio.m4a",
+              file_extension: "m4a",
+            },
+          ],
+        },
+      },
+    });
+    const { signature, timestamp } = sign("webhook-secret", rawBody);
+    const canIngestOrganization = vi
+      .fn()
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
+    const storeSourceAsset = vi.fn();
+
+    try {
+      const result = await processZoomWebhookRequest(
+        repository,
+        {
+          headers: { signature, timestamp },
+          rawBody,
+          env: { ZOOM_WEBHOOK_SECRET_TOKEN: "webhook-secret" },
+        },
+        {
+          canIngestOrganization,
+          rubricsRepository: createRubricsRepository(),
+          storeSourceAsset,
+        },
+      );
+
+      expect(result).toEqual({ status: 200, body: { received: true } });
+      expect(repository.createCall).not.toHaveBeenCalled();
+      expect(storeSourceAsset).not.toHaveBeenCalled();
+      expect(repository.createOrResetCallProcessingJob).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("acknowledges Zoom recordings without importing when the org has no active processing entitlement", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
@@ -867,7 +939,8 @@ describe("processZoomWebhookRequest", () => {
       expect(storeSourceAsset).not.toHaveBeenCalled();
       expect(repository.updateCallRecordingStorage).not.toHaveBeenCalled();
       expect(repository.createOrResetCallProcessingJob).not.toHaveBeenCalled();
-      expect(repository.updateCallStatus).toHaveBeenCalledWith("call-1", "failed");
+      expect(repository.createCall).not.toHaveBeenCalled();
+      expect(repository.updateCallStatus).not.toHaveBeenCalled();
     } finally {
       vi.unstubAllGlobals();
     }
@@ -1278,6 +1351,10 @@ describe("processZoomWebhookRequest", () => {
     expect(result).toEqual({
       status: 200,
       body: { received: true },
+    });
+    expect(repository.findCallByZoomRecordingId).toHaveBeenCalledWith({
+      orgId: "org-1",
+      zoomRecordingId: "recording-1",
     });
     expect(repository.createCall).not.toHaveBeenCalled();
     expect(repository.createOrResetCallProcessingJob).not.toHaveBeenCalled();

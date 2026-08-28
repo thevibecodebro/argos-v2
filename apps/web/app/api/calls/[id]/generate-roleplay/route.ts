@@ -1,7 +1,6 @@
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { getCallDetail } from "@/lib/calls/service";
-import { unauthorizedJson } from "@/lib/http";
 import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 import { createRoleplayRepository } from "@/lib/roleplay/create-repository";
 import {
@@ -43,11 +42,13 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const authUser = await getAuthenticatedSupabaseUser();
-
-    if (!authUser) {
-      return unauthorizedJson();
-    }
+    const callAccess = await requireAuthenticatedManagedCapability("call_scoring");
+    if (!callAccess.ok) return callAccess.response;
+    const roleplayAccess = await requireAuthenticatedManagedCapability("roleplay");
+    if (!roleplayAccess.ok) return roleplayAccess.response;
+    const scenarioAccess = await requireAuthenticatedManagedCapability("custom_scenarios");
+    if (!scenarioAccess.ok) return scenarioAccess.response;
+    const authUser = callAccess.user;
 
     const { id } = await params;
     const context = await loadGenerateRoleplayContext(authUser.id, id);
@@ -79,11 +80,13 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const authUser = await getAuthenticatedSupabaseUser();
-
-    if (!authUser) {
-      return unauthorizedJson();
-    }
+    const callAccess = await requireAuthenticatedManagedCapability("call_scoring");
+    if (!callAccess.ok) return callAccess.response;
+    const roleplayAccess = await requireAuthenticatedManagedCapability("roleplay");
+    if (!roleplayAccess.ok) return roleplayAccess.response;
+    const scenarioAccess = await requireAuthenticatedManagedCapability("custom_scenarios");
+    if (!scenarioAccess.ok) return scenarioAccess.response;
+    const authUser = callAccess.user;
 
     const body = (await request.json().catch(() => null)) as
       | { buyerVoice?: unknown; focusCategorySlug?: unknown }

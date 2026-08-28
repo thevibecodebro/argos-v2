@@ -637,6 +637,7 @@ async function getAuthorizedSession(
   repository: RoleplayRepository,
   authUserId: string,
   sessionId: string,
+  options: { allowOtherRep: boolean },
 ): Promise<ServiceResult<RoleplaySessionRecord>> {
   const accessResult = await getViewer(authUserId);
 
@@ -662,7 +663,10 @@ async function getAuthorizedSession(
     };
   }
 
-  if (!canActorViewRep(accessResult.data, session.repId)) {
+  if (
+    session.repId !== accessResult.data.actor.id &&
+    (!options.allowOtherRep || !canActorViewRep(accessResult.data, session.repId))
+  ) {
     return {
       ok: false,
       status: 403,
@@ -762,6 +766,7 @@ export function getRoleplayPersona(personaId: string) {
 export async function listRoleplaySessions(
   repository: RoleplayRepository,
   authUserId: string,
+  options: { includeOtherReps?: boolean } = {},
 ): Promise<ServiceResult<{ personas: RoleplayPersona[]; sessions: RoleplaySession[] }>> {
   const accessResult = await getViewer(authUserId);
 
@@ -770,6 +775,18 @@ export async function listRoleplaySessions(
   }
 
   const access = accessResult.data;
+  if (!options.includeOtherReps) {
+    const sessions = await repository.findSessionsByRepId(access.actor.id);
+
+    return {
+      ok: true,
+      data: {
+        personas: getRoleplayPersonas(),
+        sessions: sessions.map(serializeSession),
+      },
+    };
+  }
+
   if (access.actor.role === "admin" || access.actor.role === "executive") {
     const orgId = access.actor.orgId;
 
@@ -859,8 +876,11 @@ export async function getRoleplaySession(
   repository: RoleplayRepository,
   authUserId: string,
   sessionId: string,
+  options: { allowOtherRep?: boolean } = {},
 ): Promise<ServiceResult<RoleplaySession>> {
-  const sessionResult = await getAuthorizedSession(repository, authUserId, sessionId);
+  const sessionResult = await getAuthorizedSession(repository, authUserId, sessionId, {
+    allowOtherRep: options.allowOtherRep === true,
+  });
 
   if (!sessionResult.ok) {
     return sessionResult;

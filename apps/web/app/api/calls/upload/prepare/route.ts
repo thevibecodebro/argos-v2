@@ -1,4 +1,4 @@
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
 import { createManualCallUploadTarget } from "@/lib/calls/ingestion-service";
 import {
   validateUploadFile,
@@ -8,7 +8,6 @@ import {
   UPLOAD_CALL_ERROR_CODES,
   uploadCallErrorJson,
 } from "@/lib/calls/upload-errors";
-import { unauthorizedJson } from "@/lib/http";
 import {
   checkRateLimitForPolicy,
   rateLimitExceededResponse,
@@ -24,11 +23,9 @@ type PrepareUploadBody = {
 
 export async function POST(request: Request) {
   try {
-    const authUser = await getAuthenticatedSupabaseUser();
-
-    if (!authUser) {
-      return unauthorizedJson();
-    }
+    const capabilityAccess = await requireAuthenticatedManagedCapability("call_upload");
+    if (!capabilityAccess.ok) return capabilityAccess.response;
+    const authUser = capabilityAccess.user;
 
     const rateLimit = await checkRateLimitForPolicy("uploadPrepare", {
       type: "user",

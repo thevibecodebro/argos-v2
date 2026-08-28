@@ -129,6 +129,7 @@ describe("GHL webhook route", () => {
         headers: { token: null },
         rawBody: JSON.stringify({ type: "InboundMessage" }),
       },
+      expect.objectContaining({ canIngestOrganization: expect.any(Function) }),
     );
     expect(checkRateLimitForPolicy).toHaveBeenCalledWith("ghlWebhook", {
       type: "route",
@@ -196,6 +197,7 @@ describe("GHL webhook route", () => {
         headers: { token: null },
         rawBody: JSON.stringify({ type: "InboundMessage" }),
       },
+      expect.objectContaining({ canIngestOrganization: expect.any(Function) }),
     );
   });
 
@@ -219,6 +221,7 @@ describe("GHL webhook route", () => {
         headers: { token: "secret-token" },
         rawBody: JSON.stringify({ type: "InboundMessage" }),
       },
+      expect.objectContaining({ canIngestOrganization: expect.any(Function) }),
     );
   });
 
@@ -242,6 +245,7 @@ describe("GHL webhook route", () => {
         headers: { token: "secret-token" },
         rawBody: JSON.stringify({ type: "InboundMessage" }),
       },
+      expect.objectContaining({ canIngestOrganization: expect.any(Function) }),
     );
   });
 });

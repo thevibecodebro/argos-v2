@@ -4,8 +4,10 @@ import type {
   PlatformConsoleOrganization,
 } from "./platform/platform-types";
 import type { WorkspaceTheme } from "@/lib/organizations/workspace-theme";
+import type { EffectiveOrganizationCapabilities } from "@/lib/access/managed-capabilities";
 
 type AuthenticatedAppChromeProps = {
+  access?: EffectiveOrganizationCapabilities;
   children: React.ReactNode;
   platformSwitcher?: {
     activeSession: PlatformConsoleActiveSession | null;
@@ -23,12 +25,13 @@ type AuthenticatedAppChromeProps = {
 };
 
 export function AuthenticatedAppChrome({
+  access,
   children,
   platformSwitcher,
   user,
 }: AuthenticatedAppChromeProps) {
   return (
-    <AuthenticatedAppShell platformSwitcher={platformSwitcher} user={user}>
+    <AuthenticatedAppShell access={access} platformSwitcher={platformSwitcher} user={user}>
       {children}
     </AuthenticatedAppShell>
   );

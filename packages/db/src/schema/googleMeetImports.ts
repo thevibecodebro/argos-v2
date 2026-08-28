@@ -26,6 +26,7 @@ export const GOOGLE_MEET_IMPORT_SKIPPED_REASONS = [
   "title_excluded",
   "title_no_include_match",
   "recording_not_ready",
+  "capability_disabled",
   "unauthorized_after_refresh",
 ] as const;
 

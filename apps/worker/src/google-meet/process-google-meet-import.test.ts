@@ -8,6 +8,7 @@ function createRepository(
   overrides: Partial<GoogleMeetImportRepository> = {},
 ): GoogleMeetImportRepository {
   return {
+    organizationHasIntegrationCapability: vi.fn().mockResolvedValue(true),
     createCallForGoogleMeetImport: vi.fn().mockResolvedValue({ id: "call-1" }),
     createOrResetCallProcessingJob: vi.fn(),
     findActiveCallProcessingSubscription: vi.fn().mockResolvedValue({ id: "sub-1" }),
@@ -43,6 +44,27 @@ const importRecord = {
 };
 
 describe("processGoogleMeetImport", () => {
+  it("skips before provider access when the platform revoked Google Meet", async () => {
+    const repository = createRepository({
+      organizationHasIntegrationCapability: vi.fn().mockResolvedValue(false),
+    });
+    const client = { downloadDriveFile: vi.fn() };
+
+    await processGoogleMeetImport({
+      client,
+      getActiveRubricId: vi.fn(),
+      importRecord,
+      maxSourceBytes: 10_000,
+      repository,
+      storeSourceAsset: vi.fn(),
+    });
+
+    expect(repository.markGoogleMeetImportSkipped).toHaveBeenCalledWith(
+      "import-1",
+      { reason: "capability_disabled" },
+    );
+    expect(client.downloadDriveFile).not.toHaveBeenCalled();
+  });
   it("downloads an accepted MP4, stores it, creates one call, and queues one processing job", async () => {
     const repository = createRepository();
     const client = {

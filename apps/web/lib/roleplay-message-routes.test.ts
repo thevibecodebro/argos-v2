@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getAuthenticatedSupabaseUser = vi.fn();
+const requireAuthenticatedManagedCapability = vi.fn();
 const createRoleplayRepository = vi.fn();
 const createEffectiveTenantRepository = vi.fn();
 const appendRoleplayMessage = vi.fn();
@@ -9,6 +10,10 @@ const checkRateLimitForPolicy = vi.fn();
 
 vi.mock("@/lib/auth/get-authenticated-user", () => ({
   getAuthenticatedSupabaseUser,
+}));
+
+vi.mock("@/lib/access/managed-capabilities-server", () => ({
+  requireAuthenticatedManagedCapability,
 }));
 
 vi.mock("@/lib/platform/effective-request", () => ({
@@ -62,6 +67,12 @@ describe("roleplay message route guardrails", () => {
     vi.resetModules();
     vi.clearAllMocks();
     getAuthenticatedSupabaseUser.mockResolvedValue({ id: "auth-user-1" });
+    requireAuthenticatedManagedCapability.mockImplementation(async () => {
+      const user = await getAuthenticatedSupabaseUser();
+      return user
+        ? { ok: true, user, orgId: "org-1", access: { mode: "legacy" } }
+        : { ok: false, response: Response.json({ error: "Unauthorized" }, { status: 401 }) };
+    });
     createRoleplayRepository.mockReturnValue({});
     createEffectiveTenantRepository.mockImplementation(async (repository) => repository);
     assertRoleplayContentAllowed.mockResolvedValue({ ok: true });

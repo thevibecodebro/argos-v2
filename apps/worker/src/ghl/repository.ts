@@ -8,6 +8,7 @@ import {
   ghlIntegrationsTable,
   ghlUserMappingsTable,
   organizationsTable,
+  organizationHasManagedCapability,
   rubricsTable,
   type ArgosDb,
 } from "@argos-v2/db";
@@ -54,6 +55,10 @@ function extractRows<T>(result: unknown): T[] {
 
 export class GhlImportRepository implements GhlCallImportRepository {
   constructor(private readonly db: ArgosDb = getDb()) {}
+
+  async organizationHasIntegrationCapability(orgId: string) {
+    return organizationHasManagedCapability(this.db, orgId, "integration_ghl");
+  }
 
   async claimNextGhlCallImport(now = new Date()) {
     const leaseExpiresAt = new Date(now.getTime() + 15 * 60 * 1000);

@@ -1,6 +1,12 @@
 import type { PlatformStaffRole } from "./repository";
+import {
+  normalizeManagedCapabilities,
+  type ManagedCapabilityKey,
+} from "@/lib/access/managed-capabilities";
 
 export type CoachingAccessGrant = {
+  accessModel: "legacy_package" | "managed_capabilities";
+  capabilities: ManagedCapabilityKey[];
   contractReference: string;
   endsAt: Date;
   id: string;
@@ -12,7 +18,15 @@ export type CoachingAccessGrant = {
   startsAt: Date;
   status: "active" | "expired" | "paused" | "revoked";
   updatedAt: Date;
+  version: number;
 };
+
+export class CoachingAccessVersionConflictError extends Error {
+  constructor() {
+    super("Managed access was changed by another platform operator");
+    this.name = "CoachingAccessVersionConflictError";
+  }
+}
 
 export type CoachingAccessRepository = {
   findActiveStripeSubscriptionForOrg(orgId: string): Promise<{ id: string } | null>;
@@ -29,8 +43,11 @@ export type CoachingAccessRepository = {
       userId: string;
     };
     action: "pause" | "reactivate" | "revoke" | "save";
+    accessModel?: "managed_capabilities";
+    capabilities?: ManagedCapabilityKey[];
     contractReference?: string;
     endsAt?: Date;
+    expectedVersion: number;
     grant: CoachingAccessGrant | null;
     notes?: string | null;
     organization: { id: string; name: string; slug: string };
@@ -43,8 +60,10 @@ export type CoachingAccessRepository = {
 
 type CoachingAccessInput = {
   action?: unknown;
+  capabilities?: unknown;
   contractReference?: unknown;
   endsAt?: unknown;
+  expectedVersion?: unknown;
   notes?: unknown;
   package?: unknown;
   reason?: unknown;
@@ -94,6 +113,23 @@ export async function mutateCoachingAccess(
 
   const currentGrant = await repository.findLatestCoachingAccessGrant(organization.id);
 
+  const expectedVersion = Number(input.expectedVersion);
+  if (!Number.isInteger(expectedVersion) || expectedVersion < 0) {
+    return { ok: false as const, status: 400, error: "expectedVersion is required" };
+  }
+
+  if (
+    (currentGrant && expectedVersion !== currentGrant.version) ||
+    (!currentGrant && expectedVersion !== 0)
+  ) {
+    return {
+      ok: false as const,
+      status: 409,
+      error: "Managed access was changed by another platform operator",
+      code: "agreement_version_conflict",
+    };
+  }
+
   if (action !== "save" && !currentGrant) {
     return { ok: false as const, status: 404, error: "Coaching access not found" };
   }
@@ -101,6 +137,7 @@ export async function mutateCoachingAccess(
   let normalized:
     | {
         contractReference: string;
+        capabilities: ManagedCapabilityKey[];
         endsAt: Date;
         notes: string | null;
         package: "solo" | "team";
@@ -110,6 +147,11 @@ export async function mutateCoachingAccess(
     | undefined;
 
   if (action === "save") {
+    const capabilityResult = normalizeManagedCapabilities(input.capabilities);
+    if (!capabilityResult.ok) {
+      return { ok: false as const, status: 400, error: capabilityResult.error };
+    }
+
     const packageValue = stringValue(input.package);
     const packageName =
       packageValue === "solo" || packageValue === "team" ? packageValue : null;
@@ -138,6 +180,7 @@ export async function mutateCoachingAccess(
     }
 
     normalized = {
+      capabilities: capabilityResult.capabilities,
       contractReference,
       endsAt,
       notes: stringValue(input.notes) || null,
@@ -171,14 +214,30 @@ export async function mutateCoachingAccess(
     };
   }
 
-  const grant = await repository.mutateCoachingAccessWithAudit({
-    actor,
-    action,
-    ...normalized,
-    grant: currentGrant,
-    organization,
-    reason,
-  });
+  let grant: CoachingAccessGrant;
+  try {
+    grant = await repository.mutateCoachingAccessWithAudit({
+      actor,
+      action,
+      accessModel: action === "save" ? "managed_capabilities" : undefined,
+      ...normalized,
+      expectedVersion,
+      grant: currentGrant,
+      organization,
+      reason,
+    });
+  } catch (error) {
+    if (error instanceof CoachingAccessVersionConflictError) {
+      return {
+        ok: false as const,
+        status: 409,
+        error: error.message,
+        code: "agreement_version_conflict",
+      };
+    }
+
+    throw error;
+  }
 
   return { ok: true as const, data: grant };
 }

@@ -5,6 +5,7 @@ import {
   getCachedCurrentUserDetails,
 } from "@/lib/auth/request-user";
 import { SettingsOperationalLayout } from "../settings-operational-layout";
+import { requireManagedCapabilityForPage } from "@/lib/access/managed-capabilities-server";
 
 export default async function SettingsBrandingPage() {
   const authUser = await getCachedAuthenticatedSupabaseUser();
@@ -13,6 +14,7 @@ export default async function SettingsBrandingPage() {
   const result = await getCachedCurrentUserDetails(authUser.id);
   if (!result?.ok) redirect("/settings");
   if (result.data.role !== "admin") redirect("/settings");
+  await requireManagedCapabilityForPage(authUser.id, "workspace_branding");
 
   return (
     <SettingsOperationalLayout

@@ -31,6 +31,8 @@ import {
   OperationalToolbar,
   OperationalWorkspace,
 } from "@/components/operational-workspace";
+import { requireManagedCapabilityForPage } from "@/lib/access/managed-capabilities-server";
+import { hasManagedCapability } from "@/lib/access/managed-capabilities";
 
 export default async function DashboardPage() {
   const authUser = await getCachedAuthenticatedSupabaseUser();
@@ -55,6 +57,12 @@ export default async function DashboardPage() {
     );
   }
 
+  const analyticsAccess = await requireManagedCapabilityForPage(authUser.id, "call_analytics");
+  const practiceReportingEnabled = hasManagedCapability(
+    analyticsAccess.access,
+    "practice_reporting",
+  );
+
   const isExecutive = profile.role === "executive";
   const isManager = isExecutive || profile.role === "manager" || profile.role === "admin";
   const isPlatformSessionProfile = profile.email?.startsWith("platform:") ?? false;
@@ -68,12 +76,20 @@ export default async function DashboardPage() {
   const [repDashboard, badges, managerDashboard, executiveDashboard, setupStatus] =
     await Promise.all([
       getRepDashboard(dashboardRepository, authUser.id, undefined, undefined, accessRepository),
-      getRepBadges(dashboardRepository, authUser.id, undefined, accessRepository),
+      getRepBadges(dashboardRepository, authUser.id, undefined, accessRepository, {
+        includePracticeReporting: practiceReportingEnabled,
+      }),
       isManager
         ? getManagerDashboard(dashboardRepository, authUser.id, undefined, accessRepository)
         : Promise.resolve(null),
-      isExecutive ? getExecutiveDashboard(dashboardRepository, authUser.id) : Promise.resolve(null),
-      isManager ? getSetupStatus(dashboardRepository, authUser.id) : Promise.resolve(null),
+      isExecutive
+        ? getExecutiveDashboard(dashboardRepository, authUser.id, undefined, undefined, {
+            includePracticeReporting: practiceReportingEnabled,
+          })
+        : Promise.resolve(null),
+      isManager && practiceReportingEnabled
+        ? getSetupStatus(dashboardRepository, authUser.id)
+        : Promise.resolve(null),
     ]);
   const roleLabel = isExecutive ? "Executive view" : isManager ? "Manager view" : "Rep view";
 

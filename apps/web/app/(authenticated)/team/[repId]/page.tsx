@@ -17,6 +17,8 @@ import {
   getRepDashboard,
 } from "@/lib/dashboard/service";
 import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
+import { requireManagedCapabilityForPage } from "@/lib/access/managed-capabilities-server";
+import { hasManagedCapability } from "@/lib/access/managed-capabilities";
 
 export default async function RepProfilePage({
   params,
@@ -26,19 +28,27 @@ export default async function RepProfilePage({
   const { repId } = await params;
   const authUser = await getCachedAuthenticatedSupabaseUser();
   const profile = authUser ? await getCachedCurrentUserProfile(authUser.id) : null;
-  const repository = authUser
-    ? await createEffectiveTenantRepository(createDashboardRepository(), authUser.id)
-    : createDashboardRepository();
 
   if (profile?.role === "rep") {
     redirect("/dashboard");
   }
 
+  const analyticsAccess = authUser
+    ? await requireManagedCapabilityForPage(authUser.id, "call_analytics")
+    : null;
+  const repository = authUser
+    ? await createEffectiveTenantRepository(createDashboardRepository(), authUser.id)
+    : createDashboardRepository();
+
   const [managerDashboard, repDashboard, badges] = authUser
     ? await Promise.all([
         getManagerDashboard(repository, authUser.id),
         getRepDashboard(repository, authUser.id, repId),
-        getRepBadges(repository, authUser.id, repId),
+        getRepBadges(repository, authUser.id, repId, undefined, {
+          includePracticeReporting: analyticsAccess
+            ? hasManagedCapability(analyticsAccess.access, "practice_reporting")
+            : false,
+        }),
       ])
     : [null, null, null];
 

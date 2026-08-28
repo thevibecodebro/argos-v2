@@ -4,6 +4,7 @@ import {
 } from "@argos-v2/google-workspace-client";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { organizationHasManagedCapability } from "@/lib/access/managed-capabilities-server";
 import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
 import { createIntegrationsRepository } from "@/lib/integrations/create-repository";
 import {
@@ -69,6 +70,9 @@ export async function GET(request: Request) {
   if (!viewer?.org) {
     return settingsRedirect(request, "google_meet_error", "not_provisioned", true);
   }
+  if (!(await organizationHasManagedCapability(viewer.org.id, "integration_google_meet"))) {
+    return settingsRedirect(request, "google_meet_error", "feature_unavailable", true);
+  }
   if (viewer.role !== "admin") {
     return settingsRedirect(request, "google_meet_error", "forbidden", true);
   }
@@ -111,6 +115,10 @@ export async function GET(request: Request) {
 
     if (!profile.id || !profile.email) {
       throw new Error("Google profile is missing organizer identity");
+    }
+
+    if (!(await organizationHasManagedCapability(viewer.org.id, "integration_google_meet"))) {
+      return settingsRedirect(request, "google_meet_error", "feature_unavailable", true);
     }
 
     await repository.upsertGoogleMeetIntegration({

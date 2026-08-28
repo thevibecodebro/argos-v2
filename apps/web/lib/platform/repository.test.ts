@@ -798,6 +798,7 @@ describe("DrizzlePlatformRepository", () => {
           resourceId: "org-1",
           reason: "Customer onboarding request",
           metadata: {
+            accessModel: "managed",
             initialAdminEmail: "admin@acme.com",
             inviteId: "invite-1",
             plan: "team",
@@ -810,6 +811,7 @@ describe("DrizzlePlatformRepository", () => {
 
     await expect(
       repository.createOrganizationWithAdminInviteAndAudit({
+        accessModel: "managed",
         adminEmail: "admin@acme.com",
         inviteExpiresAt: expiresAt,
         inviteToken: "invite-token-1",

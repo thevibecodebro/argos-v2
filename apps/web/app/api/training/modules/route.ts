@@ -1,5 +1,5 @@
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
-import { fromServiceResult, unauthorizedJson } from "@/lib/http";
+import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
+import { fromServiceResult } from "@/lib/http";
 import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 import { createTrainingRepository } from "@/lib/training/create-repository";
 import { createTrainingModule, getTrainingModules, type TrainingModuleRecord } from "@/lib/training/service";
@@ -83,11 +83,9 @@ function parseModuleUpsertBody(body: unknown) {
 }
 
 export async function GET() {
-  const authUser = await getAuthenticatedSupabaseUser();
-
-  if (!authUser) {
-    return unauthorizedJson();
-  }
+  const capabilityAccess = await requireAuthenticatedManagedCapability("training");
+  if (!capabilityAccess.ok) return capabilityAccess.response;
+  const authUser = capabilityAccess.user;
 
   const repository = await createEffectiveTenantRepository(createTrainingRepository(), authUser.id);
   const result = await getTrainingModules(repository, authUser.id);
@@ -95,11 +93,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const authUser = await getAuthenticatedSupabaseUser();
-
-  if (!authUser) {
-    return unauthorizedJson();
-  }
+  const capabilityAccess = await requireAuthenticatedManagedCapability("training");
+  if (!capabilityAccess.ok) return capabilityAccess.response;
+  const authUser = capabilityAccess.user;
 
   let body: Record<string, unknown>;
   try {

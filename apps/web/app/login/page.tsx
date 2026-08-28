@@ -16,12 +16,14 @@ import { ensureUserProvisioned } from "@/lib/provisioning/service";
 type LoginPageProps = {
   searchParams?: Promise<{
     next?: string;
+    provider?: string;
   }>;
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const nextPath = getSafeNextPath(resolvedSearchParams?.next ?? null);
+  const googleOnly = resolvedSearchParams?.provider === "google";
   const authenticatedUser = await getAuthenticatedSupabaseUser();
 
   if (authenticatedUser) {
@@ -30,7 +32,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <AuthShell>
-      <LoginForm nextPath={nextPath} />
+      <LoginForm googleOnly={googleOnly} nextPath={nextPath} />
     </AuthShell>
   );
 }

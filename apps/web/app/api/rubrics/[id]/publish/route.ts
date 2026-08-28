@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
-import { unauthorizedJson } from "@/lib/http";
+import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
 import { createEffectiveTenantUsersRepository } from "@/lib/platform/effective-request";
 import { createRubricsRepository } from "@/lib/rubrics/create-repository";
 import { publishRubric } from "@/lib/rubrics/service";
@@ -13,11 +12,9 @@ type AdminContext =
   | { ok: false; response: Response };
 
 async function requireAdminContext(): Promise<AdminContext> {
-  const authUser = await getAuthenticatedSupabaseUser();
-
-  if (!authUser) {
-    return { ok: false, response: unauthorizedJson() };
-  }
+  const capabilityAccess = await requireAuthenticatedManagedCapability("team_rubrics");
+  if (!capabilityAccess.ok) return capabilityAccess;
+  const authUser = capabilityAccess.user;
 
   const usersRepository = await createEffectiveTenantUsersRepository(
     createUsersRepository(),

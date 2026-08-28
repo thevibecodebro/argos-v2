@@ -35,6 +35,9 @@ export async function pollGoogleMeetSync(input: PollGoogleMeetSyncInput) {
 
     for (const integration of integrations) {
       try {
+        if (!(await input.repository.organizationHasIntegrationCapability(integration.orgId))) {
+          continue;
+        }
         await input.repository.markGoogleMeetSyncStarted(integration.orgId, now);
         let accessToken = integration.accessToken;
 
@@ -51,12 +54,19 @@ export async function pollGoogleMeetSync(input: PollGoogleMeetSyncInput) {
           accessToken = refreshed.accessToken;
         }
 
+        if (!(await input.repository.organizationHasIntegrationCapability(integration.orgId))) {
+          continue;
+        }
+
         const result = await syncGoogleMeetIntegration({
           client: createClient(accessToken),
           integration: { ...integration, accessToken },
           now,
           repository: input.repository,
         });
+        if (!(await input.repository.organizationHasIntegrationCapability(integration.orgId))) {
+          continue;
+        }
         await input.repository.markGoogleMeetSyncCompleted(integration.orgId, {
           cursor: result.cursor,
         });

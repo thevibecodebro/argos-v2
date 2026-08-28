@@ -13,17 +13,20 @@ import {
 import { createDashboardRepository } from "@/lib/dashboard/create-repository";
 import { getManagerDashboard } from "@/lib/dashboard/service";
 import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
+import { requireManagedCapabilityForPage } from "@/lib/access/managed-capabilities-server";
 
 export default async function TeamPage() {
   const authUser = await getCachedAuthenticatedSupabaseUser();
   const profile = authUser ? await getCachedCurrentUserProfile(authUser.id) : null;
-  const repository = authUser
-    ? await createEffectiveTenantRepository(createDashboardRepository(), authUser.id)
-    : createDashboardRepository();
 
   if (profile?.role === "rep") {
     redirect("/dashboard");
   }
+
+  if (authUser) await requireManagedCapabilityForPage(authUser.id, "call_analytics");
+  const repository = authUser
+    ? await createEffectiveTenantRepository(createDashboardRepository(), authUser.id)
+    : createDashboardRepository();
 
   const dashboard = authUser ? await getManagerDashboard(repository, authUser.id) : null;
   const reps = dashboard?.reps ?? [];

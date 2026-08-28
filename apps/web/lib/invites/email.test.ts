@@ -36,4 +36,24 @@ describe("sendInviteEmail", () => {
       }),
     );
   });
+
+  it("tells managed invitees to continue with Google", async () => {
+    vi.stubEnv("RESEND_API_KEY", "re_test");
+
+    await sendInviteEmail(
+      "admin@acme.com",
+      "https://app.argos.ai/login?next=%2Finvite%2Ftoken&provider=google",
+      "Acme",
+      "admin",
+      { authMethod: "google" },
+    );
+
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        html: expect.stringContaining(
+          "Continue with Google using admin@acme.com",
+        ),
+      }),
+    );
+  });
 });

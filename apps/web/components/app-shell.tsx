@@ -12,7 +12,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@argos-v2/ui";
 import { ArgosLogo } from "./argos-logo";
 import {
-  bottomTabs,
+  getVisibleBottomTabs,
   getVisibleNavGroups,
   type BottomTabItem,
 } from "./app-navigation";
@@ -27,6 +27,10 @@ import {
   type WorkspaceTheme,
 } from "@/lib/organizations/workspace-theme";
 import type { AppUserRole } from "@/lib/users/roles";
+import {
+  hasManagedCapability,
+  type EffectiveOrganizationCapabilities,
+} from "@/lib/access/managed-capabilities";
 import type {
   PlatformConsoleActiveSession,
   PlatformConsoleOrganization,
@@ -43,6 +47,7 @@ type ShellUser = {
 };
 
 type AuthenticatedAppShellProps = {
+  access?: EffectiveOrganizationCapabilities;
   children: React.ReactNode;
   initialPrimaryRailCollapsed?: boolean;
   platformSwitcher?: {
@@ -64,6 +69,7 @@ type NavigationPendingState = {
 };
 
 export function AuthenticatedAppShell({
+  access,
   children,
   initialPrimaryRailCollapsed = false,
   platformSwitcher,
@@ -103,7 +109,9 @@ export function AuthenticatedAppShell({
     user.workspaceTheme ?? DEFAULT_WORKSPACE_THEME,
   ) as CSSProperties;
 
-  const visibleGroups = getVisibleNavGroups(user.role);
+  const visibleGroups = getVisibleNavGroups(user.role, access);
+  const visibleBottomTabs = getVisibleBottomTabs(access);
+  const canUploadCalls = !access || hasManagedCapability(access, "call_upload");
   const visibleItems = visibleGroups.flatMap((group) => group.items);
   const navigationDestinations: NavigationDestination[] = visibleItems.map(
     ({ href, label }) => ({ href, label }),
@@ -388,7 +396,7 @@ export function AuthenticatedAppShell({
             >
               <ForgeIcon name="search" size={20} />
             </button>
-            <Link
+            {canUploadCalls ? <Link
               className="forge-button forge-button-primary flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-semibold sm:px-4"
               data-global-create="upload"
               data-navigation-pending={
@@ -401,7 +409,7 @@ export function AuthenticatedAppShell({
             >
               <ForgeIcon name="upload" size={18} />
               <span className="hidden sm:inline">Upload</span>
-            </Link>
+            </Link> : null}
 
             <div className="relative" ref={accountRef}>
               <button
@@ -508,6 +516,7 @@ export function AuthenticatedAppShell({
       </div>
 
       <CommandPalette
+        access={access}
         onBeforeNavigate={setPendingHref}
         onOpenChange={setCommandOpen}
         open={commandOpen}
@@ -520,7 +529,7 @@ export function AuthenticatedAppShell({
         className="forge-bottom-bar fixed inset-x-0 bottom-0 z-40 flex items-stretch justify-around md:hidden"
         data-mobile-tabbar="true"
       >
-        {bottomTabs.map((tab) => (
+        {visibleBottomTabs.map((tab) => (
           <BottomTab
             active={isRouteActive(currentPath, tab.href)}
             key={tab.href}

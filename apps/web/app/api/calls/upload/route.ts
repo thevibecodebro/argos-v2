@@ -1,4 +1,4 @@
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import {
   CALL_UPLOAD_ACCEPTED_TYPES,
@@ -12,7 +12,6 @@ import {
   UPLOAD_CALL_ERROR_CODES,
 } from "@/lib/calls/upload-errors";
 import { uploadCall } from "@/lib/calls/service";
-import { unauthorizedJson } from "@/lib/http";
 import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 import {
   checkRateLimitForPolicy,
@@ -24,11 +23,9 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
-    const authUser = await getAuthenticatedSupabaseUser();
-
-    if (!authUser) {
-      return unauthorizedJson();
-    }
+    const capabilityAccess = await requireAuthenticatedManagedCapability("call_upload");
+    if (!capabilityAccess.ok) return capabilityAccess.response;
+    const authUser = capabilityAccess.user;
 
     const rateLimit = await checkRateLimitForPolicy("uploadDirect", {
       type: "user",

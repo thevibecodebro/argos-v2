@@ -1,4 +1,4 @@
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { completeUploadedCall } from "@/lib/calls/service";
 import {
@@ -9,7 +9,6 @@ import {
   UPLOAD_CALL_ERROR_CODES,
   uploadCallErrorJson,
 } from "@/lib/calls/upload-errors";
-import { unauthorizedJson } from "@/lib/http";
 import {
   checkRateLimitForPolicy,
   rateLimitExceededResponse,
@@ -30,11 +29,9 @@ type CompleteUploadBody = {
 
 export async function POST(request: Request) {
   try {
-    const authUser = await getAuthenticatedSupabaseUser();
-
-    if (!authUser) {
-      return unauthorizedJson();
-    }
+    const capabilityAccess = await requireAuthenticatedManagedCapability("call_upload");
+    if (!capabilityAccess.ok) return capabilityAccess.response;
+    const authUser = capabilityAccess.user;
 
     const rateLimit = await checkRateLimitForPolicy("uploadComplete", {
       type: "user",

@@ -6,6 +6,7 @@ import { ForgeErrorState, ForgeStatusPanel } from "@/components/forge";
 import { buildAuthRedirectUrl, getBrowserWebEnvConfigurationError } from "@/lib/env";
 
 type LoginFormProps = {
+  googleOnly?: boolean;
   nextPath: string;
 };
 
@@ -14,7 +15,7 @@ async function getSupabaseBrowserClient() {
   return createSupabaseBrowserClient();
 }
 
-export function LoginForm({ nextPath }: LoginFormProps) {
+export function LoginForm({ googleOnly = false, nextPath }: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "submitting" | "sent">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -136,50 +137,61 @@ export function LoginForm({ nextPath }: LoginFormProps) {
           <span>Continue with Google</span>
         </button>
 
-        <div className="flex items-center space-x-4">
-          <div className="h-px flex-1 bg-[linear-gradient(to_right,transparent,var(--forge-border))]" />
-          <span
-            className="text-[10px] uppercase tracking-[0.2em] text-[var(--forge-muted)]"
+        {googleOnly ? (
+          <p
+            className="text-center text-sm leading-6 text-[var(--forge-muted)]"
             style={{ fontFamily: "var(--font-body, 'Source Sans 3', sans-serif)" }}
           >
-            OR
-          </span>
-          <div className="h-px flex-1 bg-[linear-gradient(to_left,transparent,var(--forge-border))]" />
-        </div>
-
-        <form className="space-y-6" onSubmit={handleEmailSignIn}>
-          <div className="space-y-2">
-            <label
-              className="block pl-1 text-[10px] uppercase tracking-[0.15em] text-[var(--forge-muted)]"
-              htmlFor="auth-email"
-              style={{ fontFamily: "var(--font-body, 'Source Sans 3', sans-serif)" }}
-            >
-              Work Email
-            </label>
-            <div className="relative group">
-              <input
-                autoComplete="email"
-                className="forge-form-control min-h-16 rounded-[1.15rem] px-5 py-4 text-base outline-none"
-                id="auth-email"
-                name="email"
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="you@company.com"
-                required
-                type="email"
-                value={email}
+            Use the Google account that received your Argos invite.
+          </p>
+        ) : (
+          <>
+            <div className="flex items-center space-x-4">
+              <div className="h-px flex-1 bg-[linear-gradient(to_right,transparent,var(--forge-border))]" />
+              <span
+                className="text-[10px] uppercase tracking-[0.2em] text-[var(--forge-muted)]"
                 style={{ fontFamily: "var(--font-body, 'Source Sans 3', sans-serif)" }}
-              />
+              >
+                OR
+              </span>
+              <div className="h-px flex-1 bg-[linear-gradient(to_left,transparent,var(--forge-border))]" />
             </div>
-          </div>
 
-          <button
-            className="forge-focus-ring inline-flex min-h-16 w-full items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--forge-text)_22%,transparent)] bg-[var(--forge-text)] px-5 text-sm font-black text-[#100b08] shadow-[inset_0_1px_0_rgba(255,255,255,0.42),0_24px_70px_color-mix(in_srgb,var(--forge-text)_12%,transparent)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#fff8ed] disabled:cursor-not-allowed disabled:opacity-50 sm:px-6 sm:text-base"
-            disabled={status === "submitting" || !authEnabled}
-            type="submit"
-          >
-            {status === "submitting" ? "Sending link..." : "Access Dashboard"}
-          </button>
-        </form>
+            <form className="space-y-6" onSubmit={handleEmailSignIn}>
+              <div className="space-y-2">
+                <label
+                  className="block pl-1 text-[10px] uppercase tracking-[0.15em] text-[var(--forge-muted)]"
+                  htmlFor="auth-email"
+                  style={{ fontFamily: "var(--font-body, 'Source Sans 3', sans-serif)" }}
+                >
+                  Work Email
+                </label>
+                <div className="relative group">
+                  <input
+                    autoComplete="email"
+                    className="forge-form-control min-h-16 rounded-[1.15rem] px-5 py-4 text-base outline-none"
+                    id="auth-email"
+                    name="email"
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="you@company.com"
+                    required
+                    type="email"
+                    value={email}
+                    style={{ fontFamily: "var(--font-body, 'Source Sans 3', sans-serif)" }}
+                  />
+                </div>
+              </div>
+
+              <button
+                className="forge-focus-ring inline-flex min-h-16 w-full items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--forge-text)_22%,transparent)] bg-[var(--forge-text)] px-5 text-sm font-black text-[#100b08] shadow-[inset_0_1px_0_rgba(255,255,255,0.42),0_24px_70px_color-mix(in_srgb,var(--forge-text)_12%,transparent)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#fff8ed] disabled:cursor-not-allowed disabled:opacity-50 sm:px-6 sm:text-base"
+                disabled={status === "submitting" || !authEnabled}
+                type="submit"
+              >
+                {status === "submitting" ? "Sending link..." : "Access Dashboard"}
+              </button>
+            </form>
+          </>
+        )}
       </div>
 
       <p

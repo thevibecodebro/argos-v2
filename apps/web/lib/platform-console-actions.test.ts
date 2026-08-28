@@ -50,6 +50,7 @@ describe("platform console actions", () => {
       organization: { id: "org-1" },
     });
     expect(buildCreateOrganizationPayload(formData)).toEqual({
+      accessModel: "managed",
       adminEmail: "Owner@Example.COM",
       name: "Acme Health",
       plan: "trial",
@@ -60,6 +61,7 @@ describe("platform console actions", () => {
       CREATE_ORGANIZATION_ENDPOINT,
       expect.objectContaining({
         body: JSON.stringify({
+          accessModel: "managed",
           adminEmail: "Owner@Example.COM",
           name: "Acme Health",
           plan: "trial",

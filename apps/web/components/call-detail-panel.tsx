@@ -22,6 +22,7 @@ import {
 type CallDetailPanelProps = {
   annotations: CallAnnotation[];
   call: CallDetail;
+  canGenerateRoleplay: boolean;
   canManage: boolean;
   canRetryProcessing: boolean;
 };
@@ -154,6 +155,7 @@ function initials(speaker: string) {
 export function CallDetailPanel({
   annotations: initialAnnotations,
   call,
+  canGenerateRoleplay,
   canManage,
   canRetryProcessing,
 }: CallDetailPanelProps) {
@@ -807,7 +809,9 @@ export function CallDetailPanel({
         <div className="mt-3 space-y-3">
           {renderMediaStatePanel()}
           {processingJob ? renderProcessingJobPanel() : null}
-          {call.status === "complete" ? renderGenerateRoleplayAction() : null}
+          {call.status === "complete" && canGenerateRoleplay
+            ? renderGenerateRoleplayAction()
+            : null}
           {renderCoachingNoteForm()}
           {renderAnnotationList()}
         </div>
@@ -833,7 +837,7 @@ export function CallDetailPanel({
         </div>
       </div>
 
-      <ForgeDialog
+      {canGenerateRoleplay ? <ForgeDialog
         description="Launch a saved roleplay from this completed call."
         footer={
           <>
@@ -934,7 +938,7 @@ export function CallDetailPanel({
             <ForgeErrorState description={generateError} title="Roleplay generation failed" />
           ) : null}
         </div>
-      </ForgeDialog>
+      </ForgeDialog> : null}
     </>
   );
 }

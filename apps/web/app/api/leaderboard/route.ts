@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAuthenticatedSupabaseUser } from "@/lib/auth/get-authenticated-user";
+import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
 import { createProductRepository } from "@/lib/product/create-repository";
 import { getLeaderboard } from "@/lib/product/service";
 
@@ -7,11 +7,9 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const authUser = await getAuthenticatedSupabaseUser();
-
-    if (!authUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const capabilityAccess = await requireAuthenticatedManagedCapability("leaderboard");
+    if (!capabilityAccess.ok) return capabilityAccess.response;
+    const authUser = capabilityAccess.user;
 
     const leaderboard = await getLeaderboard(createProductRepository(), authUser.id);
 

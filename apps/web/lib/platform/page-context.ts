@@ -33,6 +33,7 @@ export function serializeDate(value: Date) {
 
 export function serializeOrganization(
   organization: {
+    accessModel: "legacy" | "managed";
     archivedAt?: Date | null;
     createdAt: Date;
     id: string;
@@ -43,6 +44,7 @@ export function serializeOrganization(
   },
 ): PlatformConsoleOrganization {
   return {
+    accessModel: organization.accessModel,
     archivedAt: organization.archivedAt ? serializeDate(organization.archivedAt) : null,
     createdAt: serializeDate(organization.createdAt),
     id: organization.id,

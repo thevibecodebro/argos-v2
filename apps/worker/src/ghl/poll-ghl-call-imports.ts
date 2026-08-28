@@ -26,6 +26,14 @@ export async function pollGhlCallImports(input: PollGhlCallImportsInput) {
 
     if (claimed) {
       try {
+        if (!(await input.repository.organizationHasIntegrationCapability(claimed.orgId))) {
+          await input.repository.markGhlCallImportSkipped(claimed.id, {
+            reason: "capability_disabled",
+          });
+          if (input.once) return;
+          await sleep(input.pollIntervalMs ?? 5_000);
+          continue;
+        }
         let integration = await input.repository.findGhlIntegrationForImport({
           orgId: claimed.orgId,
           locationId: claimed.locationId,
@@ -40,6 +48,15 @@ export async function pollGhlCallImports(input: PollGhlCallImportsInput) {
             ...refreshed,
           };
           accessToken = refreshed.accessToken;
+        }
+
+        if (!(await input.repository.organizationHasIntegrationCapability(claimed.orgId))) {
+          await input.repository.markGhlCallImportSkipped(claimed.id, {
+            reason: "capability_disabled",
+          });
+          if (input.once) return;
+          await sleep(input.pollIntervalMs ?? 5_000);
+          continue;
         }
 
         await processGhlCallImport({

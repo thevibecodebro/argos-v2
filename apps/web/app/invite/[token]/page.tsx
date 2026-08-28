@@ -2,6 +2,10 @@ import { headers } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createInvitesRepository } from "@/lib/invites/create-repository";
 import { normalizeInviteEmail } from "@/lib/invites/service";
+import { createManagedAccessRepository } from "@/lib/access/managed-capabilities-repository";
+import { getAuthenticatedSupabaseClaims } from "@/lib/auth/get-authenticated-user";
+import { isGoogleOAuthSession } from "@/lib/auth/google-auth";
+import { getGoogleOnlyLoginHref } from "@/lib/auth-routing";
 import { checkRateLimitForPolicy } from "@/lib/rate-limit/service";
 import {
   InviteAccessShell,
@@ -127,9 +131,16 @@ export default async function InvitePage({
     );
   }
 
+  const managedOrganization =
+    (await createManagedAccessRepository().findOrganizationAccessModel(invite.orgId)) ===
+    "managed";
+  const nextPath = `/invite/${token}`;
+  const signInHref = managedOrganization
+    ? getGoogleOnlyLoginHref(nextPath)
+    : `/login?next=${encodeURIComponent(nextPath)}`;
+
   // Unauthenticated
   if (!user) {
-    const next = encodeURIComponent(`/invite/${token}`);
     return (
       <InviteAccessShell
         description="Use the work email your admin invited. If you're setting up Argos for your organization, choose a plan instead."
@@ -141,8 +152,10 @@ export default async function InvitePage({
           description="Use the email your admin invited. We'll return you to this invite after authentication."
           title="Accept your invite"
         >
-          <InvitePrimaryLink href={`/login?next=${next}`}>Sign in to accept</InvitePrimaryLink>
-          <InviteSecondaryLink href="/login">Use a different email</InviteSecondaryLink>
+          <InvitePrimaryLink href={signInHref}>Sign in to accept</InvitePrimaryLink>
+          <InviteSecondaryLink href={managedOrganization ? signInHref : "/login"}>
+            {managedOrganization ? "Use a different Google account" : "Use a different email"}
+          </InviteSecondaryLink>
         </InviteActionPanel>
       </InviteAccessShell>
     );
@@ -163,6 +176,28 @@ export default async function InvitePage({
           tone="danger"
         >
           <InvitePrimarySignOutButton>Use a different email</InvitePrimarySignOutButton>
+        </InviteActionPanel>
+      </InviteAccessShell>
+    );
+  }
+
+  if (
+    managedOrganization &&
+    !isGoogleOAuthSession(await getAuthenticatedSupabaseClaims())
+  ) {
+    return (
+      <InviteAccessShell
+        description="This managed workspace requires Google sign-in."
+        heading="Google sign-in required"
+        note="Sign out, then continue with the invited Google account."
+        role={invite.role}
+      >
+        <InviteActionPanel
+          description="This session was not authenticated with Google, so the invite cannot be accepted."
+          title="Use Google to continue"
+          tone="danger"
+        >
+          <InvitePrimarySignOutButton>Sign out and use Google</InvitePrimarySignOutButton>
         </InviteActionPanel>
       </InviteAccessShell>
     );

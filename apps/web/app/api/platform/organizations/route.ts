@@ -4,10 +4,16 @@ import { archiveOrganizationForPlatform } from "@/lib/organizations/archive";
 import { getPlatformApiAccess } from "@/lib/platform/auth";
 import { createPlatformRepository } from "@/lib/platform/create-repository";
 import { createPlatformOrganizationWithAdminInvite } from "@/lib/platform/organizations";
+import { validatePlatformJsonMutation } from "@/lib/security/platform-mutation";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const mutation = validatePlatformJsonMutation(request);
+  if (!mutation.ok) {
+    return NextResponse.json({ error: mutation.error }, { status: mutation.status });
+  }
+
   const access = await getPlatformApiAccess();
 
   if (!access.ok) {
@@ -56,6 +62,11 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const mutation = validatePlatformJsonMutation(request);
+  if (!mutation.ok) {
+    return NextResponse.json({ error: mutation.error }, { status: mutation.status });
+  }
+
   const access = await getPlatformApiAccess();
 
   if (!access.ok) {

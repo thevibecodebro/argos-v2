@@ -10,6 +10,7 @@ import {
   getCachedCurrentUserProfile,
 } from "@/lib/auth/request-user";
 import { getAuthenticatedEntryHref } from "@/lib/auth-routing";
+import { getCachedOrganizationCapabilities } from "@/lib/access/managed-capabilities-server";
 import { createPlatformRepository } from "@/lib/platform/create-repository";
 import { getPlatformSessionCookieValue } from "@/lib/platform/effective-actor";
 import {
@@ -46,9 +47,15 @@ export default async function AuthenticatedLayout({
   const platformSwitcher = currentUser.email.startsWith("platform:")
     ? await loadPlatformOrganizationSwitcher(authUser.id)
     : null;
+  const access = await getCachedOrganizationCapabilities(currentUser.org.id);
+
+  if (access.mode === "inactive") {
+    redirect("/access-pending");
+  }
 
   return (
     <AuthenticatedAppChrome
+      access={access}
       platformSwitcher={platformSwitcher ?? undefined}
       user={{
         email: currentUser.email,

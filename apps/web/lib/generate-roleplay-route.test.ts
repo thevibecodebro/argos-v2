@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getAuthenticatedSupabaseUser = vi.fn();
+const requireAuthenticatedManagedCapability = vi.fn();
 const createCallsRepository = vi.fn();
 const getCallDetail = vi.fn();
 const createRoleplayRepository = vi.fn();
@@ -11,6 +12,10 @@ const createGeneratedRoleplaySession = vi.fn();
 
 vi.mock("@/lib/auth/get-authenticated-user", () => ({
   getAuthenticatedSupabaseUser,
+}));
+
+vi.mock("@/lib/access/managed-capabilities-server", () => ({
+  requireAuthenticatedManagedCapability,
 }));
 
 vi.mock("@/lib/calls/create-repository", () => ({
@@ -48,6 +53,12 @@ describe("generate roleplay route", () => {
     vi.clearAllMocks();
 
     getAuthenticatedSupabaseUser.mockResolvedValue({ id: "auth-user-1" });
+    requireAuthenticatedManagedCapability.mockImplementation(async () => {
+      const user = await getAuthenticatedSupabaseUser();
+      return user
+        ? { ok: true, user, orgId: "org-1", access: { mode: "legacy" } }
+        : { ok: false, response: Response.json({ error: "Unauthorized" }, { status: 401 }) };
+    });
     createCallsRepository.mockReturnValue({});
     createRoleplayRepository.mockReturnValue(roleplayRepository);
     createRubricsRepository.mockReturnValue({});
@@ -156,5 +167,33 @@ describe("generate roleplay route", () => {
 
     expect(response.status).toBe(401);
     await expect(response.json()).resolves.toMatchObject({ error: "Unauthorized" });
+  });
+
+  it("does not load call data when custom scenarios are disabled", async () => {
+    requireAuthenticatedManagedCapability.mockImplementation(async (capability: string) =>
+      capability === "custom_scenarios"
+        ? {
+            ok: false,
+            response: Response.json(
+              { code: "feature_unavailable", error: "This feature is not enabled" },
+              { status: 403 },
+            ),
+          }
+        : {
+            ok: true,
+            user: { id: "auth-user-1" },
+            orgId: "org-1",
+            access: { mode: "managed" },
+          },
+    );
+
+    const route = await import("../app/api/calls/[id]/generate-roleplay/route");
+    const response = await route.GET(
+      new Request("http://localhost:3100/api/calls/call-22/generate-roleplay"),
+      { params: Promise.resolve({ id: "call-22" }) },
+    );
+
+    expect(response.status).toBe(403);
+    expect(getCallDetail).not.toHaveBeenCalled();
   });
 });

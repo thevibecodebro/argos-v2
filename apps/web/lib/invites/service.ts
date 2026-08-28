@@ -5,6 +5,7 @@ import type { OnboardingRepository } from "@/lib/onboarding/service";
 import type { InvitesRepository, InviteRecord } from "./repository";
 import { generateInviteAuthLink, type GenerateInviteAuthLinkInput } from "./auth-invite";
 import { sendInviteEmail } from "./email";
+import { buildGoogleOnlyLoginUrl } from "@/lib/auth-routing";
 
 type InviteServiceResult<T> =
   | { ok: true; data: T }
@@ -102,21 +103,31 @@ export async function sendInvite(
     expiresAt,
   });
 
-  const inviteUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/invite/${invite.token}`;
-  const authInviteUrl = await (options.generateAuthInviteLink ?? generateInviteAuthLink)({
-    email,
-    redirectTo: inviteUrl,
-    metadata: {
-      argosInviteToken: invite.token,
-      argosOrganizationId: invite.orgId,
-      argosRole: invite.role,
-    },
-  });
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const invitePath = `/invite/${invite.token}`;
+  const managedOrganization = caller.org?.accessModel === "managed";
+  const authInviteUrl = managedOrganization
+    ? buildGoogleOnlyLoginUrl(siteUrl, invitePath)
+    : await (options.generateAuthInviteLink ?? generateInviteAuthLink)({
+        email,
+        redirectTo: `${siteUrl.replace(/\/+$/, "")}${invitePath}`,
+        metadata: {
+          argosInviteToken: invite.token,
+          argosOrganizationId: invite.orgId,
+          argosRole: invite.role,
+        },
+      });
 
   // Fetch org name for email (caller.org is available from UsersRepository)
   const orgName = caller.org?.name ?? "your organization";
 
-  await sendInviteEmail(email, authInviteUrl, orgName, role);
+  await sendInviteEmail(
+    email,
+    authInviteUrl,
+    orgName,
+    role,
+    ...(managedOrganization ? [{ authMethod: "google" as const }] : []),
+  );
 
   return { ok: true, data: invite };
 }

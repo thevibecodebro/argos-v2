@@ -26,3 +26,27 @@ export async function getAuthenticatedSupabaseUser() {
     throw error;
   }
 }
+
+export async function getAuthenticatedSupabaseClaims() {
+  const supabase = await createSupabaseServerClient();
+
+  try {
+    const { data, error } = await supabase.auth.getClaims();
+
+    if (error) {
+      if (error.message === "Auth session missing!") {
+        return null;
+      }
+
+      throw new Error(error.message);
+    }
+
+    return data?.claims ?? null;
+  } catch (error) {
+    if (isRetryableSupabaseAuthError(error)) {
+      return null;
+    }
+
+    throw error;
+  }
+}

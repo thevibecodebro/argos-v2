@@ -18,6 +18,7 @@ type UserOrgRecord = {
   displayNameSet: boolean;
   createdAt: Date;
   org: {
+    accessModel: "legacy" | "managed";
     id: string;
     name: string;
     slug: string;
@@ -30,6 +31,10 @@ type UserOrgRecord = {
 
 function toDate(value: string | null | undefined) {
   return value ? new Date(value) : null;
+}
+
+function toAccessModel(value: unknown): "legacy" | "managed" {
+  return value === "managed" ? "managed" : "legacy";
 }
 
 export function getSupabaseAdminClient(client?: SupabaseAdminClient) {
@@ -62,7 +67,7 @@ export async function findUserWithOrgByAuthId(
   if (user.org_id) {
     const { data: orgData, error: orgError } = await supabase
       .from("organizations")
-      .select("id, name, slug, plan, logo_url, workspace_theme, created_at")
+      .select("id, name, slug, plan, access_model, logo_url, workspace_theme, created_at")
       .eq("id", user.org_id)
       .maybeSingle();
 
@@ -72,6 +77,7 @@ export async function findUserWithOrgByAuthId(
 
     org = orgData
       ? {
+          accessModel: toAccessModel(orgData.access_model),
           id: orgData.id,
           name: orgData.name,
           slug: orgData.slug,

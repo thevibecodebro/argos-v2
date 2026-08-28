@@ -80,4 +80,30 @@ describe("processGhlWebhookRequest", () => {
     expect(repository.deleteGhlIntegrationByLocationId).toHaveBeenCalledWith("loc-1");
     expect(repository.upsertGhlCallImport).not.toHaveBeenCalled();
   });
+
+  it("acknowledges but does not enqueue messages when the organization capability is disabled", async () => {
+    const repository = createRepository({
+      findGhlIntegrationByLocationId: vi.fn().mockResolvedValue({
+        orgId: "org-1",
+        locationId: "loc-1",
+      }),
+    });
+
+    const result = await processGhlWebhookRequest(
+      repository,
+      {
+        headers: { token: "secret-token" },
+        rawBody: JSON.stringify({
+          type: "InboundMessage",
+          locationId: "loc-1",
+          messageId: "msg-disabled",
+        }),
+        env: { GHL_WEBHOOK_TOKEN: "secret-token" },
+      },
+      { canIngestOrganization: vi.fn().mockResolvedValue(false) },
+    );
+
+    expect(result).toEqual({ status: 200, body: { received: true } });
+    expect(repository.upsertGhlCallImport).not.toHaveBeenCalled();
+  });
 });

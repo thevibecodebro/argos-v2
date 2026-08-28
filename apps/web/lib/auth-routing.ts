@@ -34,6 +34,22 @@ export function getSafeNextPath(value: string | null, fallback = "/dashboard") {
   return value;
 }
 
+export function buildGoogleOnlyLoginUrl(siteUrl: string, nextPath: string) {
+  const url = new URL("/login", `${siteUrl.replace(/\/+$/, "")}/`);
+  const loginHref = getGoogleOnlyLoginHref(nextPath);
+  url.search = loginHref.slice(loginHref.indexOf("?"));
+  return url.toString();
+}
+
+export function getGoogleOnlyLoginHref(nextPath: string) {
+  const params = new URLSearchParams({
+    next: getSafeNextPath(nextPath),
+    provider: "google",
+  });
+
+  return `/login?${params.toString()}`;
+}
+
 export function getAuthenticatedEntryHref(
   hasOrganization: boolean,
   options: { isActivePlatformStaff?: boolean } = {},

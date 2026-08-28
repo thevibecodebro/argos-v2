@@ -6,6 +6,7 @@ import {
   callsTable,
   getDb,
   notificationsTable,
+  organizationHasManagedCapability,
   rubricCategoriesTable,
   rubricsTable,
   type ArgosDb,
@@ -125,6 +126,18 @@ export class CallProcessingRepository {
       .limit(1);
 
     return job ?? null;
+  }
+
+  async organizationHasCallScoringCapability(callId: string) {
+    const [call] = await this.db
+      .select({ orgId: callsTable.orgId })
+      .from(callsTable)
+      .where(eq(callsTable.id, callId))
+      .limit(1);
+
+    return call
+      ? organizationHasManagedCapability(this.db, call.orgId, "call_scoring")
+      : false;
   }
 
   async claimNextJob(now = new Date()): Promise<ClaimedCallProcessingJobRecord | null> {

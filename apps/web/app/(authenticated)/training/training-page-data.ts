@@ -3,6 +3,7 @@ import {
   getCachedAuthenticatedSupabaseUser,
   getCachedCurrentUserProfile,
 } from "@/lib/auth/request-user";
+import { requireManagedCapabilityForPage } from "@/lib/access/managed-capabilities-server";
 import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
 import { createRubricsRepository } from "@/lib/rubrics/create-repository";
 import { getActiveRubric } from "@/lib/rubrics/service";
@@ -42,6 +43,12 @@ export async function loadTrainingPageData(
 ): Promise<TrainingPageData> {
   const authUser = await getCachedAuthenticatedSupabaseUser();
   const currentUserProfile = authUser ? await getCachedCurrentUserProfile(authUser.id) : null;
+  if (authUser) {
+    await requireManagedCapabilityForPage(authUser.id, "training");
+    if (options.includeTeamProgress) {
+      await requireManagedCapabilityForPage(authUser.id, "practice_reporting");
+    }
+  }
   const orgId = currentUserProfile?.org?.id ?? null;
   const trainingRepository = authUser
     ? await createEffectiveTenantRepository(createTrainingRepository(), authUser.id)

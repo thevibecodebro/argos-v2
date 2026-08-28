@@ -3,10 +3,12 @@ import {
   billingCustomersTable,
   billingSubscriptionsTable,
   findActiveCallProcessingSubscription,
+  findOrganizationAccessModel,
   findActiveTrainingAiSubscription,
   getDb,
   organizationsTable,
   softwareAccessGrantsTable,
+  softwareAccessCapabilitiesTable,
   stripeWebhookEventsTable,
   usersTable,
   voiceCreditGrantsTable,
@@ -105,12 +107,24 @@ export class DrizzleBillingRepository
           voiceMinutesPerSeat: softwareAccessGrantsTable.monthlyVoiceMinutesPerSeat,
         })
         .from(softwareAccessGrantsTable)
+        .leftJoin(
+          softwareAccessCapabilitiesTable,
+          and(
+            eq(softwareAccessCapabilitiesTable.grantId, softwareAccessGrantsTable.id),
+            eq(softwareAccessCapabilitiesTable.orgId, softwareAccessGrantsTable.orgId),
+            eq(softwareAccessCapabilitiesTable.capabilityKey, "roleplay_voice"),
+          ),
+        )
         .where(
           and(
             eq(softwareAccessGrantsTable.orgId, input.orgId),
             eq(softwareAccessGrantsTable.status, "active"),
             lte(softwareAccessGrantsTable.startsAt, now),
             gt(softwareAccessGrantsTable.endsAt, now),
+            or(
+              eq(softwareAccessGrantsTable.accessModel, "legacy_package"),
+              eq(softwareAccessCapabilitiesTable.capabilityKey, "roleplay_voice"),
+            ),
           ),
         )
         .orderBy(desc(softwareAccessGrantsTable.updatedAt))
@@ -127,6 +141,10 @@ export class DrizzleBillingRepository
           sourceType: "coaching_contract",
           voiceMinutesPerSeat: coaching.voiceMinutesPerSeat,
         };
+      }
+
+      if ((await findOrganizationAccessModel(this.db, input.orgId)) === "managed") {
+        return null;
       }
     }
 

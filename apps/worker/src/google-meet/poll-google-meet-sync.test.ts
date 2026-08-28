@@ -5,6 +5,7 @@ describe("pollGoogleMeetSync", () => {
   it("refreshes expired organizer tokens before listing Google metadata", async () => {
     const now = new Date();
     const repository = {
+      organizationHasIntegrationCapability: vi.fn().mockResolvedValue(true),
       getIngestionTitleFilterConfig: vi.fn().mockResolvedValue({
         configured: true,
         excludePhrases: [],

@@ -84,6 +84,7 @@ describe("platform organizations route", () => {
     const response = await route.POST(
       new Request("http://localhost:3000/api/platform/organizations", {
         method: "POST",
+        headers: { "content-type": "application/json", origin: "http://localhost:3000" },
         body: JSON.stringify({
           adminEmail: "admin@acme.com",
           name: "Acme",
@@ -105,6 +106,7 @@ describe("platform organizations route", () => {
     const response = await route.POST(
       new Request("http://localhost:3000/api/platform/organizations", {
         method: "POST",
+        headers: { "content-type": "application/json", origin: "http://localhost:3000" },
         body: JSON.stringify({
           adminEmail: "admin@acme.com",
           name: "Acme",
@@ -155,6 +157,7 @@ describe("platform organizations route", () => {
     const response = await route.DELETE(
       new Request("http://localhost:3000/api/platform/organizations", {
         method: "DELETE",
+        headers: { "content-type": "application/json", origin: "http://localhost:3000" },
         body: JSON.stringify({
           confirmationSlug: "acme",
           orgId: "org-1",
@@ -175,6 +178,7 @@ describe("platform organizations route", () => {
     const response = await route.DELETE(
       new Request("http://localhost:3000/api/platform/organizations", {
         method: "DELETE",
+        headers: { "content-type": "application/json", origin: "http://localhost:3000" },
         body: JSON.stringify({
           confirmationSlug: "acme",
           orgId: "org-1",

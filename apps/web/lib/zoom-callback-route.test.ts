@@ -4,6 +4,7 @@ const cookies = vi.fn();
 const getAuthenticatedSupabaseUser = vi.fn();
 const createIntegrationsRepository = vi.fn();
 const exchangeZoomCode = vi.fn();
+const organizationHasManagedCapability = vi.fn();
 const registerZoomWebhook = vi.fn();
 
 vi.mock("next/headers", () => ({
@@ -12,6 +13,10 @@ vi.mock("next/headers", () => ({
 
 vi.mock("@/lib/auth/get-authenticated-user", () => ({
   getAuthenticatedSupabaseUser,
+}));
+
+vi.mock("@/lib/access/managed-capabilities-server", () => ({
+  organizationHasManagedCapability,
 }));
 
 vi.mock("@/lib/integrations/create-repository", () => ({
@@ -42,6 +47,8 @@ describe("zoom callback route", () => {
     getAuthenticatedSupabaseUser.mockReset();
     createIntegrationsRepository.mockReset();
     exchangeZoomCode.mockReset();
+    organizationHasManagedCapability.mockReset();
+    organizationHasManagedCapability.mockResolvedValue(true);
     registerZoomWebhook.mockReset();
   });
 
@@ -96,6 +103,48 @@ describe("zoom callback route", () => {
       zoomUserId: "zoom-user-1",
     });
     expect(registerZoomWebhook).not.toHaveBeenCalled();
+  });
+
+  it("does not persist credentials when Zoom is revoked during exchange", async () => {
+    const repository = {
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "user-1",
+        role: "admin",
+        org: { id: "org-1", slug: "argos" },
+      }),
+      upsertZoomIntegration: vi.fn(),
+    };
+    createIntegrationsRepository.mockReturnValue(repository);
+    cookies.mockResolvedValue({
+      get: vi.fn().mockReturnValue({ value: "nonce-123" }),
+    });
+    getAuthenticatedSupabaseUser.mockResolvedValue({ id: "auth-user-1" });
+    organizationHasManagedCapability
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
+    exchangeZoomCode.mockResolvedValue({
+      accessToken: "zoom-access",
+      refreshToken: "zoom-refresh",
+      tokenExpiresAt: new Date("2026-04-04T12:00:00.000Z"),
+      zoomAccountId: "zoom-account-1",
+      zoomUserId: "zoom-user-1",
+    });
+    const state = Buffer.from(
+      JSON.stringify({ nonce: "nonce-123", orgId: "org-1", userId: "user-1" }),
+    ).toString("base64url");
+
+    const route = await import("../app/api/integrations/zoom/callback/route");
+    const response = await route.GET(
+      new Request(
+        `https://app.argos.ai/api/integrations/zoom/callback?code=auth-code&state=${state}`,
+      ),
+    );
+
+    expect(response.headers.get("location")).toBe(
+      "https://app.argos.ai/settings?zoom_error=feature_unavailable",
+    );
+    expect(exchangeZoomCode).toHaveBeenCalledOnce();
+    expect(repository.upsertZoomIntegration).not.toHaveBeenCalled();
   });
 
   it("keeps the integration connected when a prior webhook token is cleared", async () => {

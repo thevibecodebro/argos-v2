@@ -1,11 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getAuthenticatedSupabaseUser = vi.fn();
+const requireAuthenticatedManagedCapability = vi.fn();
 const createCallsRepository = vi.fn();
 const exportCallData = vi.fn();
 
 vi.mock("@/lib/auth/get-authenticated-user", () => ({
   getAuthenticatedSupabaseUser,
+}));
+
+vi.mock("@/lib/access/managed-capabilities-server", () => ({
+  requireAuthenticatedManagedCapability,
 }));
 
 vi.mock("@/lib/calls/create-repository", () => ({
@@ -20,10 +25,17 @@ describe("call export route", () => {
   beforeEach(() => {
     vi.resetModules();
     getAuthenticatedSupabaseUser.mockReset();
+    requireAuthenticatedManagedCapability.mockReset();
     createCallsRepository.mockReset();
     exportCallData.mockReset();
     createCallsRepository.mockReturnValue({ calls: true });
     getAuthenticatedSupabaseUser.mockResolvedValue({ id: "admin-1" });
+    requireAuthenticatedManagedCapability.mockImplementation(async () => {
+      const user = await getAuthenticatedSupabaseUser();
+      return user
+        ? { ok: true, user, orgId: "org-1", access: { mode: "legacy" } }
+        : { ok: false, response: Response.json({ error: "Unauthorized" }, { status: 401 }) };
+    });
     exportCallData.mockResolvedValue({
       ok: true,
       data: {
@@ -76,4 +88,3 @@ describe("call export route", () => {
     });
   });
 });
-
