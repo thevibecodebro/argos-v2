@@ -21,5 +21,10 @@
     "verify:web": "npm run typecheck:web && npm run test:web && npm run build:web",
     "verify:worker": "npm run typecheck:worker && npm run test:worker",
     "verify": "npm run verify:db && npm run verify:web && npm run verify:worker"
+  },
+  "overrides": {
+    "nanoid": "3.3.18",
+    "postcss": "8.5.26",
+    "sharp": "0.35.4"
   }
 }
