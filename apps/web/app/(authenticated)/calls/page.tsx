@@ -18,7 +18,8 @@ import {
   OperationalWorkspace,
 } from "@/components/operational-workspace";
 import { CallsFilters } from "./calls-filters";
-import { requireManagedCapabilityForPage } from "@/lib/access/managed-capabilities-server";
+import { requireAnyManagedCapabilityForPage } from "@/lib/access/managed-capabilities-server";
+import { hasManagedCapability } from "@/lib/access/managed-capabilities";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -29,8 +30,14 @@ export default async function CallsPage({
 }) {
   const resolvedSearchParams = await searchParams;
   const authUser = await getCachedAuthenticatedSupabaseUser();
-  if (authUser) await requireManagedCapabilityForPage(authUser.id, "call_scoring");
-  const filters = parseFilters(resolvedSearchParams);
+  const capabilityAccess = authUser
+    ? await requireAnyManagedCapabilityForPage(authUser.id, ["call_upload", "call_ingestion", "call_scoring"])
+    : null;
+  const scoringEnabled = capabilityAccess ? hasManagedCapability(capabilityAccess.access, "call_scoring") : false;
+  const parsedFilters = parseFilters(resolvedSearchParams);
+  const filters = scoringEnabled
+    ? parsedFilters
+    : { ...parsedFilters, minScore: undefined, maxScore: undefined, sortBy: "createdAt" as const };
 
   const repository = authUser
     ? await createEffectiveTenantRepository(createCallsRepository(), authUser.id)
@@ -55,7 +62,7 @@ export default async function CallsPage({
     Boolean(filters.maxScore !== undefined) ||
     filters.status !== "all" ||
     activeSort !== "createdAt:desc";
-  const quickViews = buildQuickViews(filters);
+  const quickViews = scoringEnabled ? buildQuickViews(filters) : buildRecordingQuickViews(filters);
   const selectedCall = calls[0] ?? null;
   const selectedCallRepName = selectedCall
     ? repDisplayName(selectedCall)
@@ -65,13 +72,13 @@ export default async function CallsPage({
     <AuthenticatedPageContainer className="py-4 sm:py-5" size="wide">
       <OperationalWorkspace data-calls-layout="table-first">
         <OperationalToolbar
-          description="Find and review scored calls."
+          description={scoringEnabled ? "Find and review scored calls." : "Find recordings, transcripts, and buyer personalities for roleplay."}
           status={
             hasActiveFilters
               ? { icon: "filter_list", label: "Filters applied", tone: "ember" }
               : undefined
           }
-          title="Calls"
+          title={scoringEnabled ? "Calls" : "Recordings"}
         />
 
         <section
@@ -125,7 +132,7 @@ export default async function CallsPage({
                   <ForgeSkeleton className="rounded-lg py-4" lines={2} />
                 }
               >
-                <CallsFilters initialSearch={filters.search ?? ""} />
+                <CallsFilters initialSearch={filters.search ?? ""} scoringEnabled={scoringEnabled} />
               </Suspense>
             </div>
 
@@ -182,7 +189,7 @@ export default async function CallsPage({
                                     </p>
                                   </div>
                                 ) : null}
-                                <div>
+                                {scoringEnabled ? <div>
                                   <p className="font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
                                     Score
                                   </p>
@@ -191,7 +198,7 @@ export default async function CallsPage({
                                   >
                                     {call.overallScore ?? "--"}
                                   </p>
-                                </div>
+                                </div> : null}
                                 <div>
                                   <p className="font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
                                     Duration
@@ -211,12 +218,14 @@ export default async function CallsPage({
                       action={
                         hasActiveFilters
                           ? { href: "/calls", label: "Clear filters" }
-                          : { href: "/upload", label: "Upload a call" }
+                          : { href: "/upload", label: scoringEnabled ? "Upload a call" : "Upload a recording" }
                       }
                       description={
                         hasActiveFilters
                           ? "No calls match the current filters. Clear the filters or upload a new recording when the next review is ready."
-                          : "Upload a call recording to populate the library and start the scoring workflow."
+                          : scoringEnabled
+                            ? "Upload a call recording to populate the library and start the scoring workflow."
+                            : "Upload audio or video to create a transcript and buyer personality for roleplay."
                       }
                       icon={hasActiveFilters ? "filter_list" : "attach_file"}
                       title={
@@ -239,7 +248,7 @@ export default async function CallsPage({
                           className="px-4 py-3 text-left text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]"
                           scope="col"
                         >
-                          Call
+                          {scoringEnabled ? "Call" : "Recording"}
                         </th>
                         {canSeeRep ? (
                           <th
@@ -249,12 +258,12 @@ export default async function CallsPage({
                             Rep
                           </th>
                         ) : null}
-                        <th
+                        {scoringEnabled ? <th
                           className="px-4 py-3 text-left text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]"
                           scope="col"
                         >
                           Score
-                        </th>
+                        </th> : null}
                         <th
                           className="px-4 py-3 text-left text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]"
                           scope="col"
@@ -331,13 +340,13 @@ export default async function CallsPage({
                                   </div>
                                 </td>
                               ) : null}
-                              <td className="px-4 py-3">
+                              {scoringEnabled ? <td className="px-4 py-3">
                                 <ForgeScoreMeter
                                   label={`${topic} score`}
                                   showValue
                                   value={call.overallScore}
                                 />
-                              </td>
+                              </td> : null}
                               <td className="px-4 py-3">
                                 <ForgeChip tone={badge.tone}>
                                   {badge.label}
@@ -362,18 +371,20 @@ export default async function CallsPage({
                         <tr>
                           <td
                             className="px-4 py-10"
-                            colSpan={canSeeRep ? 6 : 5}
+                            colSpan={(canSeeRep ? 5 : 4) + (scoringEnabled ? 1 : 0)}
                           >
                             <ForgeEmptyState
                               action={
                                 hasActiveFilters
                                   ? { href: "/calls", label: "Clear filters" }
-                                  : { href: "/upload", label: "Upload a call" }
+                                  : { href: "/upload", label: scoringEnabled ? "Upload a call" : "Upload a recording" }
                               }
                               description={
                                 hasActiveFilters
                                   ? "No calls match the current filters. Clear the filters or upload a new recording when the next review is ready."
-                                  : "Upload a call recording to populate the library and start the scoring workflow."
+                                  : scoringEnabled
+                                    ? "Upload a call recording to populate the library and start the scoring workflow."
+                                    : "Upload audio or video to create a transcript and buyer personality for roleplay."
                               }
                               icon={
                                 hasActiveFilters ? "filter_list" : "attach_file"
@@ -414,7 +425,7 @@ export default async function CallsPage({
                     {
                       href: "/upload",
                       icon: "attach_file",
-                      label: "Upload call",
+                      label: scoringEnabled ? "Upload call" : "Upload recording",
                       variant: "primary",
                     },
                   ]
@@ -422,25 +433,27 @@ export default async function CallsPage({
             description={
               selectedCall
                 ? "Selected row summary."
-                : "Upload a call to populate the library and preview details."
+                : scoringEnabled
+                  ? "Upload a call to populate the library and preview details."
+                  : "Upload a recording to create a transcript and buyer personality."
             }
-            eyebrow="Selected call"
+            eyebrow={scoringEnabled ? "Selected call" : "Selected recording"}
             title={
               selectedCall
                 ? (selectedCall.callTopic ?? "Untitled call")
-                : "No call selected"
+                : scoringEnabled ? "No call selected" : "No recording selected"
             }
           >
             {selectedCall ? (
               <dl className="divide-y divide-[var(--forge-border)] text-sm">
-                <div className="flex items-center justify-between gap-3 py-2">
+                {scoringEnabled ? <div className="flex items-center justify-between gap-3 py-2">
                   <dt className="text-[var(--forge-muted)]">Score</dt>
                   <dd
                     className={`forge-tabular-nums font-semibold ${scoreColor(selectedCall.overallScore)}`}
                   >
                     {selectedCall.overallScore ?? "--"}
                   </dd>
-                </div>
+                </div> : null}
                 <div className="flex items-center justify-between gap-3 py-2">
                   <dt className="text-[var(--forge-muted)]">Rep</dt>
                   <dd className="truncate font-medium text-[var(--forge-text)]">
@@ -626,6 +639,15 @@ function buildQuickViews(filters: ReturnType<typeof parseFilters>) {
       }),
       label: "Processing",
     },
+  ];
+}
+
+function buildRecordingQuickViews(filters: ReturnType<typeof parseFilters>) {
+  return [
+    { active: filters.status === "all", href: buildCallsHref(filters, { status: "all" }), label: "All recordings" },
+    { active: filters.status === "processing", href: buildCallsHref(filters, { status: "processing" }), label: "Processing" },
+    { active: filters.status === "complete", href: buildCallsHref(filters, { status: "complete" }), label: "Ready" },
+    { active: filters.status === "failed", href: buildCallsHref(filters, { status: "failed" }), label: "Needs attention" },
   ];
 }
 

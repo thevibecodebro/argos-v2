@@ -87,6 +87,36 @@ export async function requireAuthenticatedManagedCapability(
   };
 }
 
+export async function requireAnyAuthenticatedManagedCapability(
+  capabilities: readonly ManagedCapabilityKey[],
+) {
+  const user = await getAuthenticatedSupabaseUser();
+  if (!user) return { ok: false as const, response: unauthorizedJson() };
+
+  const profile = await getCachedCurrentUserProfile(user.id);
+  const orgId = profile?.org?.id ?? null;
+  if (!orgId) {
+    return {
+      ok: false as const,
+      response: Response.json({ code: "workspace_inactive", error: "Workspace access is inactive" }, { status: 403 }),
+    };
+  }
+  const access = await getCachedOrganizationCapabilities(orgId);
+  if (access.mode === "inactive" || !capabilities.some((capability) => hasManagedCapability(access, capability))) {
+    return {
+      ok: false as const,
+      response: Response.json(
+        {
+          code: access.mode === "inactive" ? "workspace_inactive" : "feature_unavailable",
+          error: access.mode === "inactive" ? "Workspace access is inactive" : "This feature is not enabled for this workspace",
+        },
+        { status: 403 },
+      ),
+    };
+  }
+  return { ok: true as const, access, orgId, user };
+}
+
 export async function requireManagedCapabilityForPage(
   authUserId: string,
   capability: ManagedCapabilityKey,

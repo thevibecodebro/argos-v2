@@ -31,12 +31,14 @@ describe("UploadCallPanel forge step flow", () => {
 
     expect(html).toContain("Choose recordings");
     expect(html).toContain("Add call context");
-    expect(html).toContain("Upload and analyze");
-    expect(html).toContain("Choose one or more recordings before analysis can start.");
+    expect(html).toContain("Upload and process");
+    expect(html).toContain("Choose one or more recordings before processing can start.");
     expect(html).toContain(`accept="${ACCEPTED_TYPES.join(",")}"`);
     expect(html).toMatch(/<input(?=[^>]*type="file")(?=[^>]*multiple="")/);
     expect(html).toContain(`Upload up to ${MAX_BULK_UPLOAD_FILES} recordings in one batch.`);
-    expect(html).toContain("MP3, WAV, M4A, MP4, or WebM up to 500 MB each");
+    expect(html).toContain("Accepted: MP3, WAV, M4A, MP4, and WebM. Up to 500 MB each.");
+    expect(html).toContain("Video files are processed from their audio track.");
+    expect(html.toLowerCase()).not.toMatch(/scorecard|scored|scoring/);
     expect(html).toContain("disabled=\"\"");
     expect(html).toContain('data-upload-step-flow="forge"');
     expect(html).toContain('data-forge-status-panel="muted"');
@@ -64,8 +66,8 @@ describe("UploadCallPanel forge step flow", () => {
     expect(getSelectedFilesLabel(0)).toBe("No recordings selected");
     expect(getSelectedFilesLabel(1)).toBe("1 recording selected");
     expect(getSelectedFilesLabel(3)).toBe("3 recordings selected");
-    expect(getUploadActionLabel({ fileCount: 0, isUploading: false, uploadedCount: 0 })).toBe("Upload calls");
-    expect(getUploadActionLabel({ fileCount: 3, isUploading: false, uploadedCount: 0 })).toBe("Upload 3 calls");
+    expect(getUploadActionLabel({ fileCount: 0, isUploading: false, uploadedCount: 0 })).toBe("Upload recordings");
+    expect(getUploadActionLabel({ fileCount: 3, isUploading: false, uploadedCount: 0 })).toBe("Upload 3 recordings");
     expect(getUploadActionLabel({ fileCount: 3, isUploading: true, uploadedCount: 1 })).toBe("Uploading 2 of 3");
     expect(getUploadActionLabel({ fileCount: 3, isUploading: false, uploadedCount: 3 })).toBe("View call library");
   });
@@ -95,7 +97,7 @@ describe("UploadCallPanel forge step flow", () => {
     expect(formatBytes(512_000)).toBe("500 KB");
     expect(formatBytes(12 * 1024 * 1024)).toBe("12.0 MB");
     expect(getUploadProgressLabel(80)).toContain("Keep this page open");
-    expect(getUploadProgressLabel(100)).toContain("preparing the scorecard");
+    expect(getUploadProgressLabel(100)).toContain("building the buyer personality");
     expect(getUploadStatusCopy({ error: null, failedCount: 0, fileCount: 0, isUploading: false, progress: 0, uploadedCount: 0 })).toMatchObject({
       title: "Recordings required",
       tone: "muted",
@@ -109,7 +111,7 @@ describe("UploadCallPanel forge step flow", () => {
       tone: "gold",
     });
     expect(getUploadStatusCopy({ error: null, failedCount: 0, fileCount: 3, isUploading: true, progress: 100, uploadedCount: 1 })).toMatchObject({
-      title: "Analyzing 2 of 3",
+      title: "Processing 2 of 3",
       tone: "gold",
     });
     expect(getUploadStatusCopy({ error: null, failedCount: 1, fileCount: 5, isUploading: false, progress: 0, uploadedCount: 4 })).toMatchObject({

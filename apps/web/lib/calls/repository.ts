@@ -18,6 +18,7 @@ import {
 import { parseAppUserRole } from "@/lib/users/roles";
 import type { CallsFilters, CallsRepository } from "./service";
 import type { CallEvaluation } from "./types";
+import { parseBuyerPersonalityProfile } from "@argos-v2/call-processing";
 
 const callProcessingJobSelection = {
   id: callProcessingJobsTable.id,
@@ -54,6 +55,22 @@ export class DrizzleCallsRepository implements CallsRepository {
       });
 
     return call;
+  }
+
+  async updateBuyerPersonalityProfile(input: {
+    callId: string;
+    generatedAt: Date;
+    model: string;
+    profile: import("@argos-v2/call-processing").BuyerPersonalityProfile;
+    status: "ready" | "needs_review";
+  }) {
+    await this.db.update(callsTable).set({
+      buyerProfileStatus: input.status,
+      buyerPersonalityProfile: input.profile as unknown as Record<string, unknown>,
+      buyerPersonalitySchemaVersion: input.profile.schemaVersion,
+      buyerPersonalityModel: input.model,
+      buyerPersonalityGeneratedAt: input.generatedAt,
+    }).where(eq(callsTable.id, input.callId));
   }
 
   async createAuditEvent(input: {
@@ -241,6 +258,11 @@ export class DrizzleCallsRepository implements CallsRepository {
         improvements: callsTable.improvements,
         recommendedDrills: callsTable.recommendedDrills,
         transcript: callsTable.transcript,
+        buyerProfileStatus: callsTable.buyerProfileStatus,
+        buyerPersonalityProfile: callsTable.buyerPersonalityProfile,
+        buyerPersonalitySchemaVersion: callsTable.buyerPersonalitySchemaVersion,
+        buyerPersonalityModel: callsTable.buyerPersonalityModel,
+        buyerPersonalityGeneratedAt: callsTable.buyerPersonalityGeneratedAt,
         repId: callsTable.repId,
         rubricId: callsTable.rubricId,
         orgId: callsTable.orgId,
@@ -348,6 +370,15 @@ export class DrizzleCallsRepository implements CallsRepository {
       }));
     }
 
+    let buyerPersonalityProfile = null;
+    if (callRow.buyerPersonalityProfile && callRow.durationSeconds) {
+      try {
+        buyerPersonalityProfile = parseBuyerPersonalityProfile(callRow.buyerPersonalityProfile, callRow.durationSeconds);
+      } catch {
+        buyerPersonalityProfile = null;
+      }
+    }
+
     return {
       ...callRow,
       rubric,
@@ -358,6 +389,7 @@ export class DrizzleCallsRepository implements CallsRepository {
         ? (callRow.recommendedDrills as string[])
         : null,
       transcript: Array.isArray(callRow.transcript) ? callRow.transcript : null,
+      buyerPersonalityProfile,
       moments,
     };
   }

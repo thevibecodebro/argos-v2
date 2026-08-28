@@ -21,6 +21,7 @@ export const CALL_PROCESSING_JOB_STAGES = [
   "normalize",
   "chunk",
   "transcribe",
+  "profile",
   "score",
   "persist",
 ] as const;

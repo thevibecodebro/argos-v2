@@ -1,4 +1,7 @@
-import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
+import {
+  requireAnyAuthenticatedManagedCapability,
+  requireAuthenticatedManagedCapability,
+} from "@/lib/access/managed-capabilities-server";
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { getCallDetail } from "@/lib/calls/service";
 import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
@@ -37,18 +40,31 @@ async function loadGenerateRoleplayContext(authUserId: string, callId: string) {
   };
 }
 
+function buyerProfileNotReadyResponse(call: { buyerProfileStatus?: string | null; buyerPersonalityProfile?: unknown }) {
+  if (call.buyerProfileStatus === "ready" && call.buyerPersonalityProfile) return null;
+  return Response.json(
+    {
+      code: "buyer_profile_not_ready",
+      error: call.buyerProfileStatus === "needs_review"
+        ? "Confirm the buyer speaker before generating a roleplay."
+        : "The buyer personality is still being prepared.",
+    },
+    { status: 409, headers: { "Cache-Control": "private, no-store" } },
+  );
+}
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const callAccess = await requireAuthenticatedManagedCapability("call_scoring");
-    if (!callAccess.ok) return callAccess.response;
+    const recordingAccess = await requireAnyAuthenticatedManagedCapability(["call_upload", "call_ingestion"]);
+    if (!recordingAccess.ok) return recordingAccess.response;
     const roleplayAccess = await requireAuthenticatedManagedCapability("roleplay");
     if (!roleplayAccess.ok) return roleplayAccess.response;
     const scenarioAccess = await requireAuthenticatedManagedCapability("custom_scenarios");
     if (!scenarioAccess.ok) return scenarioAccess.response;
-    const authUser = callAccess.user;
+    const authUser = recordingAccess.user;
 
     const { id } = await params;
     const context = await loadGenerateRoleplayContext(authUser.id, id);
@@ -56,6 +72,8 @@ export async function GET(
     if (!context.ok) {
       return Response.json({ error: context.error }, { status: context.status });
     }
+    const notReady = buyerProfileNotReadyResponse(context.data.call);
+    if (notReady) return notReady;
 
     return Response.json(
       buildGeneratedRoleplayPreview({
@@ -80,13 +98,13 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const callAccess = await requireAuthenticatedManagedCapability("call_scoring");
-    if (!callAccess.ok) return callAccess.response;
+    const recordingAccess = await requireAnyAuthenticatedManagedCapability(["call_upload", "call_ingestion"]);
+    if (!recordingAccess.ok) return recordingAccess.response;
     const roleplayAccess = await requireAuthenticatedManagedCapability("roleplay");
     if (!roleplayAccess.ok) return roleplayAccess.response;
     const scenarioAccess = await requireAuthenticatedManagedCapability("custom_scenarios");
     if (!scenarioAccess.ok) return scenarioAccess.response;
-    const authUser = callAccess.user;
+    const authUser = recordingAccess.user;
 
     const body = (await request.json().catch(() => null)) as
       | { buyerVoice?: unknown; focusCategorySlug?: unknown }
@@ -98,6 +116,8 @@ export async function POST(
     if (!context.ok) {
       return Response.json({ error: context.error }, { status: context.status });
     }
+    const notReady = buyerProfileNotReadyResponse(context.data.call);
+    if (notReady) return notReady;
 
     const focusCategorySlug =
       typeof body?.focusCategorySlug === "string" &&

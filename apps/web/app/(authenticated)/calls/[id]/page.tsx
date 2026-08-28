@@ -13,7 +13,7 @@ import {
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { getCallDetail, listAnnotations, redactCallHighlightFields } from "@/lib/calls/service";
 import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
-import { requireManagedCapabilityForPage } from "@/lib/access/managed-capabilities-server";
+import { requireAnyManagedCapabilityForPage } from "@/lib/access/managed-capabilities-server";
 import { hasManagedCapability } from "@/lib/access/managed-capabilities";
 
 export default async function CallDetailPage({
@@ -28,12 +28,12 @@ export default async function CallDetailPage({
     notFound();
   }
 
-  const capabilityAccess = await requireManagedCapabilityForPage(authUser.id, "call_scoring");
+  const capabilityAccess = await requireAnyManagedCapabilityForPage(authUser.id, ["call_upload", "call_ingestion", "call_scoring"]);
+  const scoringEnabled = hasManagedCapability(capabilityAccess.access, "call_scoring");
   const canUseHighlights = hasManagedCapability(capabilityAccess.access, "highlights");
-  const canGenerateRoleplay = hasManagedCapability(
-    capabilityAccess.access,
-    "custom_scenarios",
-  );
+  const canGenerateRoleplay =
+    hasManagedCapability(capabilityAccess.access, "roleplay") &&
+    hasManagedCapability(capabilityAccess.access, "custom_scenarios");
 
   const repository = await createEffectiveTenantRepository(createCallsRepository(), authUser.id);
   const [profile, detailResult, annotationsResult] = await Promise.all([
@@ -88,6 +88,7 @@ export default async function CallDetailPage({
           canManage={canManage}
           canGenerateRoleplay={canGenerateRoleplay}
           canRetryProcessing={profile?.role === "admin"}
+          scoringEnabled={scoringEnabled}
         />
       </OperationalWorkspace>
     </AuthenticatedPageContainer>
@@ -98,7 +99,7 @@ function statusTone(status: string | null | undefined) {
   const normalized = status?.toLowerCase();
   if (normalized === "complete") return "success";
   if (normalized === "failed") return "danger";
-  if (normalized === "processing" || normalized === "transcribing" || normalized === "evaluating") {
+  if (normalized === "uploaded" || normalized === "processing" || normalized === "transcribing" || normalized === "evaluating") {
     return "ember";
   }
   return "muted";

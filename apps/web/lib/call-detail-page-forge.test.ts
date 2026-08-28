@@ -32,7 +32,7 @@ vi.mock("@/lib/auth/request-user", () => ({
 }));
 
 vi.mock("@/lib/access/managed-capabilities-server", () => ({
-  requireManagedCapabilityForPage: vi.fn().mockResolvedValue({
+  requireAnyManagedCapabilityForPage: vi.fn().mockResolvedValue({
     access: { mode: "legacy" },
     orgId: "org-1",
   }),

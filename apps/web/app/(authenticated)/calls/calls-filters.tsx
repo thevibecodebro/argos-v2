@@ -20,9 +20,10 @@ const SORT_OPTIONS = [
 
 type Props = {
   initialSearch: string;
+  scoringEnabled?: boolean;
 };
 
-export function CallsFilters({ initialSearch }: Props) {
+export function CallsFilters({ initialSearch, scoringEnabled = true }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [search, setSearch] = useState(initialSearch);
@@ -41,8 +42,7 @@ export function CallsFilters({ initialSearch }: Props) {
 
   const hasActiveFilters =
     Boolean(search) ||
-    Boolean(currentMinScore) ||
-    Boolean(currentMaxScore) ||
+    (scoringEnabled && (Boolean(currentMinScore) || Boolean(currentMaxScore))) ||
     currentStatus !== "all" ||
     currentSort !== "createdAt:desc";
 
@@ -142,7 +142,7 @@ export function CallsFilters({ initialSearch }: Props) {
           className="w-full border-none bg-transparent px-0 py-2 text-sm font-medium text-[var(--forge-text)] outline-none placeholder:text-[color-mix(in_srgb,var(--forge-text)_42%,transparent)] focus:ring-0"
           id="search"
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search calls, reps, topics..."
+          placeholder={scoringEnabled ? "Search calls, reps, topics..." : "Search recordings, reps, topics..."}
           type="text"
           value={search}
         />
@@ -182,7 +182,7 @@ export function CallsFilters({ initialSearch }: Props) {
           onChange={(e) => replaceUrl(buildUrl({ sort: e.target.value }))}
           value={currentSort}
         >
-          {SORT_OPTIONS.map((option) => (
+          {SORT_OPTIONS.filter((option) => scoringEnabled || !option.value.startsWith("overallScore")).map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>
@@ -202,7 +202,7 @@ export function CallsFilters({ initialSearch }: Props) {
         Clear
       </ForgeButton>
 
-      <details
+      {scoringEnabled ? <details
         className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] lg:col-span-full"
         open={Boolean(currentMinScore || currentMaxScore)}
       >
@@ -264,7 +264,7 @@ export function CallsFilters({ initialSearch }: Props) {
             </select>
           </div>
         </div>
-      </details>
+      </details> : null}
     </div>
   );
 }

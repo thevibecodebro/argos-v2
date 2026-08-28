@@ -4,6 +4,7 @@ import { basename, extname, join } from "node:path";
 import ffmpegStatic from "ffmpeg-static";
 import {
   DEFAULT_CALL_SCORING_RUBRIC,
+  extractBuyerPersonalityFromTranscript,
   mergeTranscriptLines,
   scoreTranscriptFromLines,
   transcribeAudioBuffer,
@@ -20,7 +21,7 @@ type ClaimedCallProcessingJob = NonNullable<
   Awaited<ReturnType<CallProcessingRepository["claimNextJob"]>>
 >;
 
-type JobStage = "download" | "normalize" | "chunk" | "transcribe" | "score" | "persist";
+type JobStage = "download" | "normalize" | "chunk" | "transcribe" | "profile" | "score" | "persist";
 
 type ProcessCallJobInput = {
   job: ClaimedCallProcessingJob;
@@ -28,17 +29,19 @@ type ProcessCallJobInput = {
     CallProcessingRepository,
     | "createNotification"
     | "findRubricById"
+    | "getCallProcessingCapabilities"
     | "markJobComplete"
     | "markRetryableFailure"
     | "markTerminalFailure"
-    | "organizationHasCallScoringCapability"
-    | "setCallEvaluation"
+    | "persistProcessedCall"
+    | "updateBuyerProfileStatus"
     | "updateCallStatus"
   >;
   downloadSourceAsset?: typeof downloadSourceAsset;
   normalizeAudio?: typeof normalizeAudio;
   transcribeAudioBuffer?: typeof transcribeAudioBuffer;
   scoreTranscriptFromLines?: typeof scoreTranscriptFromLines;
+  extractBuyerPersonalityFromTranscript?: typeof extractBuyerPersonalityFromTranscript;
   chunkAudioFile?: typeof chunkAudioFile;
   env?: WorkerEnv;
   readFile?: typeof readFile;
@@ -145,7 +148,7 @@ async function classifyAndPersistFailure(input: {
       lastError: message,
       lastStage: input.lastStage,
     });
-    return;
+    return "retrying" as const;
   }
 
   await input.repository.markTerminalFailure(input.job.id, {
@@ -155,6 +158,7 @@ async function classifyAndPersistFailure(input: {
     lastStage: input.lastStage,
   });
   await input.repository.updateCallStatus(input.job.callId, "failed");
+  return "failed" as const;
 }
 
 async function resolveScoringRubric(input: {
@@ -175,12 +179,13 @@ async function resolveScoringRubric(input: {
 }
 
 export async function processCallJob(input: ProcessCallJobInput) {
-  if (!(await input.repository.organizationHasCallScoringCapability(input.job.callId))) {
+  const capabilities = await input.repository.getCallProcessingCapabilities(input.job.callId);
+  if (!capabilities.canGenerateBuyerPersonality && !capabilities.canScoreCall) {
     const now = new Date();
     await input.repository.markTerminalFailure(input.job.id, {
       now,
       attemptCount: input.job.attemptCount,
-      lastError: "call_scoring capability disabled",
+      lastError: "recording processing capabilities disabled",
       lastStage: "download",
     });
     await input.repository.updateCallStatus(input.job.callId, "failed");
@@ -199,6 +204,8 @@ export async function processCallJob(input: ProcessCallJobInput) {
   const transcribeAudioBufferImpl = input.transcribeAudioBuffer ?? transcribeAudioBuffer;
   const scoreTranscriptFromLinesImpl =
     input.scoreTranscriptFromLines ?? scoreTranscriptFromLines;
+  const extractBuyerPersonalityImpl =
+    input.extractBuyerPersonalityFromTranscript ?? extractBuyerPersonalityFromTranscript;
   const chunkAudioFileImpl = input.chunkAudioFile ?? chunkAudioFile;
   const readFileImpl = input.readFile ?? readFile;
   const mkdtempImpl = input.mkdtemp ?? mkdtemp;
@@ -247,44 +254,84 @@ export async function processCallJob(input: ProcessCallJobInput) {
       transcribeAudioBufferImpl,
     });
 
-    currentStage = "score";
-    await input.repository.updateCallStatus(input.job.callId, "evaluating");
-    const rubric = await resolveScoringRubric({
-      job: input.job,
-      repository: input.repository,
-    });
-    const evaluation = await scoreTranscriptFromLinesImpl({
-      callTopic: input.job.callTopic,
-      durationSeconds: transcription.durationSeconds,
-      rubric,
-      transcript: transcription.transcript,
-    });
+    let buyerPersonality: {
+      generatedAt: Date;
+      model: string;
+      profile: Awaited<ReturnType<typeof extractBuyerPersonalityFromTranscript>>["profile"];
+      status: "ready" | "needs_review";
+    } | null = null;
+    if (capabilities.canGenerateBuyerPersonality) {
+      currentStage = "profile";
+      await input.repository.updateBuyerProfileStatus(input.job.callId, "processing");
+      const extracted = await extractBuyerPersonalityImpl({
+        callTopic: input.job.callTopic,
+        durationSeconds: transcription.durationSeconds,
+        transcript: transcription.transcript,
+      });
+      buyerPersonality = {
+        generatedAt: new Date(),
+        model: extracted.model,
+        profile: extracted.profile,
+        status: extracted.profile.confidence === "low" ? "needs_review" : "ready",
+      };
+    }
+
+    let evaluation = null;
+    if (capabilities.canScoreCall) {
+      currentStage = "score";
+      await input.repository.updateCallStatus(input.job.callId, "evaluating");
+      const rubric = await resolveScoringRubric({
+        job: input.job,
+        repository: input.repository,
+      });
+      evaluation = await scoreTranscriptFromLinesImpl({
+        callTopic: input.job.callTopic,
+        durationSeconds: transcription.durationSeconds,
+        rubric,
+        transcript: transcription.transcript,
+      });
+    }
 
     currentStage = "persist";
-    if (!(await input.repository.organizationHasCallScoringCapability(input.job.callId))) {
-      throw new Error("call_scoring capability disabled");
+    const currentCapabilities = await input.repository.getCallProcessingCapabilities(input.job.callId);
+    if (
+      (capabilities.canGenerateBuyerPersonality && !currentCapabilities.canGenerateBuyerPersonality) ||
+      (capabilities.canScoreCall && !currentCapabilities.canScoreCall)
+    ) {
+      throw new Error("recording processing capability disabled during processing");
     }
-    await input.repository.setCallEvaluation(input.job.callId, evaluation);
+    await input.repository.persistProcessedCall({
+      callId: input.job.callId,
+      durationSeconds: transcription.durationSeconds,
+      transcript: transcription.transcript,
+      buyerPersonality,
+      evaluation,
+    });
     await input.repository.markJobComplete(input.job.id);
 
     await input.repository
       .createNotification({
         userId: input.job.repId,
-        type: "call_scored",
-        title: "Call scored",
-        body: `${input.job.callTopic ?? "Call"} finished scoring with an ${evaluation.overallScore} overall score.`,
+        type: evaluation ? "call_scored" : "recording_ready",
+        title: evaluation ? "Call scored" : "Recording ready",
+        body: evaluation
+          ? `${input.job.callTopic ?? "Call"} finished scoring with an ${evaluation.overallScore} overall score.`
+          : `${input.job.callTopic ?? "Recording"} is transcribed and ready for buyer-personality roleplay.`,
         link: `/calls/${input.job.callId}`,
       })
       .catch((error) => {
-        console.error("Failed to create call scored notification", error);
+        console.error("Failed to create recording notification", error);
       });
   } catch (error) {
-    await classifyAndPersistFailure({
+    const failureStatus = await classifyAndPersistFailure({
       error,
       job: input.job,
       lastStage: currentStage,
       repository: input.repository,
     });
+    if (failureStatus === "failed" && capabilities.canGenerateBuyerPersonality) {
+      await input.repository.updateBuyerProfileStatus(input.job.callId, "failed").catch(() => undefined);
+    }
     throw error;
   } finally {
     await rmImpl(tempDir, { recursive: true, force: true }).catch(() => undefined);

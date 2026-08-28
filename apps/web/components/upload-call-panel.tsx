@@ -50,7 +50,7 @@ export function formatBytes(bytes: number) {
 export function getUploadProgressLabel(progress: number) {
   return progress < 100
     ? "Uploading the recording. Keep this page open while the file transfers."
-    : "Upload complete. Argos is analyzing the call and preparing the scorecard.";
+    : "Upload complete. Argos is transcribing the recording and building the buyer personality.";
 }
 
 export function getUploadedCallHref(callId: string) {
@@ -86,7 +86,7 @@ export function getUploadActionLabel({
   }
 
   if (fileCount === 0) {
-    return "Upload calls";
+    return "Upload recordings";
   }
 
   if (uploadedCount === fileCount) {
@@ -94,10 +94,10 @@ export function getUploadActionLabel({
   }
 
   if (failedCount > 0) {
-    return failedCount === 1 ? "Retry failed call" : `Retry ${failedCount} failed calls`;
+    return failedCount === 1 ? "Retry failed recording" : `Retry ${failedCount} failed recordings`;
   }
 
-  return fileCount === 1 ? "Upload call" : `Upload ${fileCount} calls`;
+  return fileCount === 1 ? "Upload recording" : `Upload ${fileCount} recordings`;
 }
 
 export function formatCallTopicForUpload({
@@ -148,7 +148,7 @@ export function getUploadStatusCopy({
     return {
       description: getUploadProgressLabel(progress),
       icon: progress < 100 ? "upload" : "query_stats",
-      title: progress < 100 ? `Uploading ${activePosition} of ${fileCount}` : `Analyzing ${activePosition} of ${fileCount}`,
+      title: progress < 100 ? `Uploading ${activePosition} of ${fileCount}` : `Processing ${activePosition} of ${fileCount}`,
       tone: "gold" as const,
     };
   }
@@ -165,7 +165,7 @@ export function getUploadStatusCopy({
   if (fileCount > 0) {
     if (uploadedCount === fileCount) {
       return {
-        description: "All selected recordings were uploaded and queued for analysis.",
+        description: "All selected recordings were uploaded and queued for processing.",
         icon: "check_circle",
         title: "Uploads queued",
         tone: "success" as const,
@@ -173,7 +173,7 @@ export function getUploadStatusCopy({
     }
 
     return {
-      description: `Ready to upload and analyze ${fileCount === 1 ? "this recording" : "these recordings"}.`,
+      description: `Ready to upload and process ${fileCount === 1 ? "this recording" : "these recordings"}.`,
       icon: "check_circle",
       title: `${fileCount} ${fileCount === 1 ? "recording" : "recordings"} ready`,
       tone: "success" as const,
@@ -181,7 +181,7 @@ export function getUploadStatusCopy({
   }
 
   return {
-    description: "Choose one or more recordings before analysis can start.",
+    description: "Choose one or more recordings before processing can start.",
     icon: "info",
     title: "Recordings required",
     tone: "muted" as const,
@@ -364,10 +364,10 @@ export function UploadCallPanel() {
   const failedCount = queue.filter((item) => item.status === "failed").length;
   const totalBytes = queue.reduce((sum, item) => sum + item.file.size, 0);
   const disabledReason = queue.length === 0
-    ? "Choose one or more recordings before analysis can start."
+    ? "Choose one or more recordings before processing can start."
     : failedCount > 0
       ? "Retry failed uploads or remove them from the queue."
-      : "Ready to upload and analyze selected recordings.";
+      : "Ready to upload and process selected recordings.";
   const progressLabel = getUploadProgressLabel(progress);
   const uploadStatusCopy = getUploadStatusCopy({
     error,
@@ -422,7 +422,7 @@ export function UploadCallPanel() {
               active: Boolean(callTopic.trim()),
             },
             {
-              label: "Upload and analyze",
+              label: "Upload and process",
               detail: isUploading ? progressLabel : disabledReason,
               active: isUploading,
             },
@@ -606,10 +606,11 @@ export function UploadCallPanel() {
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)] text-[var(--forge-gold)]">
                 <ForgeIcon name="upload_file" size={24} />
               </div>
-              <p className="text-lg font-semibold text-[var(--forge-text)]">Drop call recordings here</p>
+              <p className="text-lg font-semibold text-[var(--forge-text)]">Drop recording or audio here</p>
               <p className="text-sm text-[var(--forge-muted)]">
-                MP3, WAV, M4A, MP4, or WebM up to {formatUploadLimit(CALL_UPLOAD_MAX_BYTES)} each
+                Accepted: MP3, WAV, M4A, MP4, and WebM. Up to {formatUploadLimit(CALL_UPLOAD_MAX_BYTES)} each.
               </p>
+              <p className="text-xs text-[var(--forge-muted)]">Video files are processed from their audio track.</p>
               <p className="text-xs font-medium text-[var(--forge-muted)]">
                 Upload up to {MAX_BULK_UPLOAD_FILES} recordings in one batch.
               </p>

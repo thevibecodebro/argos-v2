@@ -11,7 +11,13 @@ import {
   rubricsTable,
   type ArgosDb,
 } from "@argos-v2/db";
-import type { CallEvaluation, ScoringRubric, ScoringRubricCategory } from "@argos-v2/call-processing";
+import type {
+  BuyerPersonalityProfile,
+  CallEvaluation,
+  ScoringRubric,
+  ScoringRubricCategory,
+  TranscriptLine,
+} from "@argos-v2/call-processing";
 
 type CallProcessingJobRecord = typeof callProcessingJobsTable.$inferSelect;
 type ClaimedCallProcessingJobRecord = CallProcessingJobRecord & {
@@ -138,6 +144,31 @@ export class CallProcessingRepository {
     return call
       ? organizationHasManagedCapability(this.db, call.orgId, "call_scoring")
       : false;
+  }
+
+  async getCallProcessingCapabilities(callId: string) {
+    const [call] = await this.db
+      .select({ orgId: callsTable.orgId })
+      .from(callsTable)
+      .where(eq(callsTable.id, callId))
+      .limit(1);
+
+    if (!call) {
+      return { canGenerateBuyerPersonality: false, canScoreCall: false };
+    }
+
+    const [canScoreCall, roleplay, customScenarios, callUpload, callIngestion] = await Promise.all([
+      organizationHasManagedCapability(this.db, call.orgId, "call_scoring"),
+      organizationHasManagedCapability(this.db, call.orgId, "roleplay"),
+      organizationHasManagedCapability(this.db, call.orgId, "custom_scenarios"),
+      organizationHasManagedCapability(this.db, call.orgId, "call_upload"),
+      organizationHasManagedCapability(this.db, call.orgId, "call_ingestion"),
+    ]);
+
+    return {
+      canGenerateBuyerPersonality: roleplay && customScenarios && (callUpload || callIngestion),
+      canScoreCall,
+    };
   }
 
   async claimNextJob(now = new Date()): Promise<ClaimedCallProcessingJobRecord | null> {
@@ -327,33 +358,76 @@ export class CallProcessingRepository {
       .where(eq(callsTable.id, callId));
   }
 
+  async updateBuyerProfileStatus(
+    callId: string,
+    status: "pending" | "processing" | "ready" | "needs_review" | "failed",
+  ): Promise<void> {
+    await this.db.update(callsTable).set({ buyerProfileStatus: status }).where(eq(callsTable.id, callId));
+  }
+
   async setCallEvaluation(callId: string, evaluation: CallEvaluation): Promise<void> {
+    await this.persistProcessedCall({
+      callId,
+      durationSeconds: evaluation.durationSeconds,
+      transcript: evaluation.transcript,
+      evaluation,
+    });
+  }
+
+  async persistProcessedCall(input: {
+    callId: string;
+    durationSeconds: number;
+    transcript: TranscriptLine[];
+    buyerPersonality?: {
+      generatedAt: Date;
+      model: string;
+      profile: BuyerPersonalityProfile;
+      status: "ready" | "needs_review";
+    } | null;
+    evaluation?: CallEvaluation | null;
+  }): Promise<void> {
     await this.db.transaction(async (tx) => {
+      const evaluation = input.evaluation ?? null;
       await tx
         .update(callsTable)
         .set({
           status: "complete",
-          durationSeconds: evaluation.durationSeconds,
-          overallScore: evaluation.overallScore,
-          rubricId: evaluation.rubricId,
-          frameControlScore: evaluation.frameControlScore,
-          rapportScore: evaluation.rapportScore,
-          discoveryScore: evaluation.discoveryScore,
-          painExpansionScore: evaluation.painExpansionScore,
-          solutionScore: evaluation.solutionScore,
-          objectionScore: evaluation.objectionScore,
-          closingScore: evaluation.closingScore,
-          confidence: evaluation.confidence,
-          callStageReached: evaluation.callStageReached,
-          strengths: evaluation.strengths,
-          improvements: evaluation.improvements,
-          recommendedDrills: evaluation.recommendedDrills,
-          transcript: evaluation.transcript,
+          durationSeconds: input.durationSeconds,
+          transcript: input.transcript,
+          ...(input.buyerPersonality
+            ? {
+                buyerProfileStatus: input.buyerPersonality.status,
+                buyerPersonalityProfile: input.buyerPersonality.profile as unknown as Record<string, unknown>,
+                buyerPersonalitySchemaVersion: input.buyerPersonality.profile.schemaVersion,
+                buyerPersonalityModel: input.buyerPersonality.model,
+                buyerPersonalityGeneratedAt: input.buyerPersonality.generatedAt,
+              }
+            : {}),
+          ...(evaluation
+            ? {
+                overallScore: evaluation.overallScore,
+                rubricId: evaluation.rubricId,
+                frameControlScore: evaluation.frameControlScore,
+                rapportScore: evaluation.rapportScore,
+                discoveryScore: evaluation.discoveryScore,
+                painExpansionScore: evaluation.painExpansionScore,
+                solutionScore: evaluation.solutionScore,
+                objectionScore: evaluation.objectionScore,
+                closingScore: evaluation.closingScore,
+                confidence: evaluation.confidence,
+                callStageReached: evaluation.callStageReached,
+                strengths: evaluation.strengths,
+                improvements: evaluation.improvements,
+                recommendedDrills: evaluation.recommendedDrills,
+              }
+            : {}),
         })
-        .where(eq(callsTable.id, callId));
+        .where(eq(callsTable.id, input.callId));
 
-      await tx.delete(callScoresTable).where(eq(callScoresTable.callId, callId));
-      await tx.delete(callMomentsTable).where(eq(callMomentsTable.callId, callId));
+      if (!evaluation) return;
+
+      await tx.delete(callScoresTable).where(eq(callScoresTable.callId, input.callId));
+      await tx.delete(callMomentsTable).where(eq(callMomentsTable.callId, input.callId));
 
       const categoryScores = evaluation.categoryScores.filter(
         (category) => category.categoryId,
@@ -362,7 +436,7 @@ export class CallProcessingRepository {
       if (categoryScores.length > 0) {
         await tx.insert(callScoresTable).values(
           categoryScores.map((category) => ({
-            callId,
+            callId: input.callId,
             rubricCategoryId: category.categoryId!,
             score: category.score,
           })),
@@ -372,7 +446,7 @@ export class CallProcessingRepository {
       if (evaluation.moments.length > 0) {
         await tx.insert(callMomentsTable).values(
           evaluation.moments.map((moment) => ({
-            callId,
+            callId: input.callId,
             timestampSeconds: moment.timestampSeconds,
             category: moment.category,
             observation: moment.observation,
@@ -390,7 +464,7 @@ export class CallProcessingRepository {
     body: string;
     link: string | null;
     title: string;
-    type: "call_scored" | "annotation_added" | "module_assigned";
+    type: "call_scored" | "recording_ready" | "annotation_added" | "module_assigned";
     userId: string;
   }): Promise<void> {
     await this.db.insert(notificationsTable).values(input);

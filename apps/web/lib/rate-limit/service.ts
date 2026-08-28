@@ -21,7 +21,8 @@ export type RateLimitPolicyName =
   | "roleplayMessage"
   | "roleplayTranscript"
   | "roleplayTts"
-  | "roleplayRealtime";
+  | "roleplayRealtime"
+  | "buyerPersonality";
 
 export type RateLimitSubject = {
   type: "org" | "user" | "ip" | "route";
@@ -73,6 +74,7 @@ export const RATE_LIMIT_POLICIES = {
   roleplayTranscript: { limit: 60, window: "hour" },
   roleplayTts: { limit: 60, window: "hour" },
   roleplayRealtime: { limit: 60, window: "hour" },
+  buyerPersonality: { limit: 10, window: "hour" },
 } satisfies Record<RateLimitPolicyName, { limit: number; window: RateLimitWindow }>;
 
 const WINDOW_SECONDS: Record<RateLimitWindow, number> = {

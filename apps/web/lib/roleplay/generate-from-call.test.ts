@@ -63,6 +63,13 @@ const call = {
   ],
 } satisfies CallDetail;
 
+const buyerProfile = {
+  schemaVersion: 1 as const, confidence: "high" as const, buyerSpeakerLabels: ["Speaker B"], speakerRationale: "Buyer questions", summary: "A careful operations buyer",
+  communicationStyle: { directness: "high" as const, warmth: "medium" as const, skepticism: "high" as const, patience: "low" as const, detailOrientation: "high" as const, decisionStyle: "analytical" as const, questionStyle: "Proof-focused" },
+  motivations: ["Reduce manual work"], concerns: ["Implementation risk"], objections: [], decisionCriteria: ["Clear rollout"], engagementTriggers: [], resistanceTriggers: [], languagePatterns: [],
+  roleplayBehavior: { openingPosture: "Busy and skeptical", conversationalRules: [], escalationRules: [], evidenceNeededToMoveForward: [], realisticResolutionConditions: ["Agree to a technical follow-up"] },
+};
+
 const activeRubric = {
   id: "rubric-active",
   orgId: "org-1",
@@ -128,9 +135,38 @@ describe("buildGeneratedRoleplayPreview", () => {
     expect(preview.scenarioSummary.toLowerCase()).not.toContain("acme");
     expect(preview.scenarioSummary).toContain("anonymized");
   });
+
+  it("builds the scenario from the recording-derived buyer profile", () => {
+    const profiledCall = {
+      ...call,
+      buyerProfileStatus: "ready" as const,
+      buyerPersonalityProfile: buyerProfile,
+    };
+    const preview = buildGeneratedRoleplayPreview({ call: profiledCall, activeRubric });
+    expect(preview.scenarioSummary).toContain("A careful operations buyer");
+    expect(preview.scenarioSummary).toContain("Implementation risk");
+    expect(preview.scenarioBrief).toContain("Agree to a technical follow-up");
+  });
 });
 
 describe("createGeneratedRoleplaySession", () => {
+  it("copies the buyer profile into an immutable session snapshot", async () => {
+    const profiledCall = { ...call, buyerProfileStatus: "ready" as const, buyerPersonalityProfile: buyerProfile };
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({ id: "rep-9", email: "rep@argos.ai", role: "rep", firstName: "Riley", lastName: "Stone", org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" } }),
+      createSession: vi.fn().mockImplementation(async (input) => ({
+        id: "session-profile", repId: input.repId, orgId: input.orgId, persona: input.persona, industry: input.industry,
+        difficulty: input.difficulty, overallScore: null, transcript: input.transcript, scorecard: null, status: "active",
+        rubricId: null, origin: "generated_from_call", sourceCallId: "call-22", focusMode: "all", focusCategorySlug: null,
+        scenarioSummary: input.scenarioSummary, scenarioBrief: input.scenarioBrief,
+        buyerPersonalitySnapshot: input.buyerPersonalitySnapshot, createdAt: new Date("2026-04-20T16:00:00.000Z"),
+      })),
+    });
+    const result = await createGeneratedRoleplaySession(repository, "auth-user-9", { call: profiledCall, activeRubric: null, focusCategorySlug: null });
+    expect(result.ok).toBe(true);
+    expect(repository.createSession).toHaveBeenCalledWith(expect.objectContaining({ buyerPersonalitySnapshot: buyerProfile }));
+  });
+
   it("pins the active rubric and persists generated-session metadata", async () => {
     const repository = createRepository({
       findCurrentUserByAuthId: vi.fn().mockResolvedValue({
