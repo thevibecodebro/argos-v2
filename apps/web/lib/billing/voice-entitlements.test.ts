@@ -34,7 +34,9 @@ function makeRepository(
       orgId: "org-1",
       userId: "auth-user-1",
     }),
-    insertVoiceUsageEvent: vi.fn().mockResolvedValue(undefined),
+    insertVoiceUsageEvent: vi
+      .fn()
+      .mockResolvedValue({ minutesDebited: 1 }),
     ...overrides,
   };
 }
@@ -119,7 +121,9 @@ describe("getVoiceEntitlementStatus", () => {
 describe("consumeVoiceMinutes", () => {
   it("records Enterprise usage without debiting a pooled grant", async () => {
     const consumeVoiceMinutesAtomically = vi.fn();
-    const insertVoiceUsageEvent = vi.fn().mockResolvedValue(undefined);
+    const insertVoiceUsageEvent = vi
+      .fn()
+      .mockResolvedValue({ minutesDebited: 3 });
     const repository = makeRepository({
       consumeVoiceMinutesAtomically,
       findUserBillingScope: vi.fn().mockResolvedValue({
@@ -149,6 +153,36 @@ describe("consumeVoiceMinutes", () => {
       userId: "auth-user-1",
     });
     expect(repository.ensureCoachingVoiceCreditGrant).not.toHaveBeenCalled();
+  });
+
+  it("returns the persisted usage minutes when an Enterprise settlement is retried", async () => {
+    const insertVoiceUsageEvent = vi
+      .fn()
+      .mockResolvedValue({ minutesDebited: 2 });
+    const repository = makeRepository({
+      findUserBillingScope: vi.fn().mockResolvedValue({
+        orgId: "org-enterprise",
+        plan: "enterprise",
+        userId: "auth-user-1",
+      }),
+      insertVoiceUsageEvent,
+    });
+
+    await expect(
+      consumeVoiceMinutes(repository, "auth-user-1", {
+        idempotencyKey: "roleplay:session-1:complete",
+        minutes: 3.1,
+        source: "roleplay_realtime",
+        sessionId: "session-1",
+      }),
+    ).resolves.toEqual({ ok: true, data: { minutesDebited: 2 } });
+
+    expect(insertVoiceUsageEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        idempotencyKey: "roleplay:session-1:complete",
+        minutesDebited: 4,
+      }),
+    );
   });
 
   it("uses a single atomic repository operation for idempotent balance mutation", async () => {

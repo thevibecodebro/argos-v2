@@ -706,7 +706,7 @@ export class DrizzleBillingRepository
     source: "roleplay_realtime" | "roleplay_tts";
     userId: string;
   }) {
-    await this.db
+    const [usageEvent] = await this.db
       .insert(voiceUsageEventsTable)
       .values({
         idempotencyKey: input.idempotencyKey,
@@ -716,6 +716,21 @@ export class DrizzleBillingRepository
         source: input.source,
         userId: input.userId,
       })
-      .onConflictDoNothing();
+      .onConflictDoNothing()
+      .returning({ minutesDebited: voiceUsageEventsTable.minutesDebited });
+
+    if (usageEvent) {
+      return usageEvent;
+    }
+
+    const duplicateUsage = await this.findVoiceUsageEventByIdempotencyKey(
+      input.idempotencyKey,
+    );
+
+    if (duplicateUsage) {
+      return duplicateUsage;
+    }
+
+    throw new Error("Voice usage event conflict could not be resolved.");
   }
 }
