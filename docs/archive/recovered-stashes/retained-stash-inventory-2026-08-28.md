@@ -4,6 +4,8 @@ This inventory records the two recovery stashes intentionally retained after the
 
 Do not apply either stash wholesale to current `main`. Both were created against older bases and contain older versions of files that have since shipped or continued elsewhere.
 
+The commit IDs below are local recovery identifiers, not GitHub backups. Normal pushes do not transfer stash refs or their otherwise-unreferenced objects, so recovery works only while this originating clone or a deliberately created archive remains available. Because the stash-only material can include private business artifacts, do not publish these objects to the public repository without a content and privacy review. Before dropping either stash, create and verify an approved private archive of any files the owner chooses to retain.
+
 ## `6ef35d48bd7da52c3b21676a939d06038f89eb30`
 
 - Current reference: `stash@{0}`
@@ -12,7 +14,7 @@ Do not apply either stash wholesale to current `main`. Both were created against
 - Intended outcome: preserve voice-balance and coaching-access work, managed-client/Intero hardening material, founder and marketplace deck artifacts, and related planning documents before returning the checkout to GitHub-aligned `main`.
 - Contents: 24 tracked changes and 286 untracked files. The untracked material is primarily 253 temporary deck-generation files plus 23 documents.
 - Current overlap after PR #89 merged: seven tracked files and six formerly untracked files are byte-identical to current `main`; 17 tracked files and four formerly untracked files have evolved or different versions on `main`. The managed-client/Intero outcome shipped in PR #89, while 276 stash files remain absent from `main`, mostly deck build artifacts and historical planning/security documents.
-- Recommendation: retain until the owner decides whether the unique decks and planning documents should be archived outside Git or deleted. Recover individual files by commit ID rather than applying the full stash.
+- Recommendation: retain until the owner decides whether the unique decks and planning documents should be privately archived or deleted. In this originating clone, recover individual files by commit ID rather than applying the full stash.
 
 ## `47cb9ca71c18c846c34932fa4e0032634b708f83`
 
