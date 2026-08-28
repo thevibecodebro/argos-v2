@@ -54,4 +54,13 @@ describe("managed feature guard coverage", () => {
 
     expect(content).toContain(`requireAuthenticatedManagedCapability("${capability}")`);
   });
+
+  it("allows recording-only workspaces to poll and retry processing", async () => {
+    const content = await source("app/api/calls/[id]/status/route.ts");
+
+    expect(content).toContain("requireAnyAuthenticatedManagedCapability");
+    expect(content).toContain('"call_upload"');
+    expect(content).toContain('"call_ingestion"');
+    expect(content).toContain('"call_scoring"');
+  });
 });

@@ -682,8 +682,8 @@ describe("primary route hero removal", () => {
     ]);
 
     expect(uploadHtml).toContain("Upload call panel marker");
-    expect(uploadHtml).toContain(">Upload Call<");
-    expect(uploadHtml).toContain("Upload a call recording, name it clearly, and send it into analysis.");
+    expect(uploadHtml).toContain(">Upload Recording / Audio<");
+    expect(uploadHtml).toContain("Upload a recording or audio file to transcribe it and generate a buyer-personality roleplay.");
 
     expect(notificationsHtml).toContain("Notifications panel marker");
     expect(notificationsHtml).toContain(">Notifications<");

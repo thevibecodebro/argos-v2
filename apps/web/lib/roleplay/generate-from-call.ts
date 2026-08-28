@@ -37,7 +37,7 @@ type GeneratedRoleplayPreviewCall = Pick<
   | "painExpansionScore"
   | "rapportScore"
   | "solutionScore"
->;
+> & Partial<Pick<CallDetail, "buyerProfileStatus" | "buyerPersonalityProfile" | "callTopic">>;
 
 type GeneratedRoleplayCreateCall = GeneratedRoleplayPreviewCall &
   Pick<CallDetail, "id" | "status">;
@@ -204,6 +204,15 @@ function getStageSummary(callStageReached: string | null) {
 }
 
 function buildScenarioSummary(call: GeneratedRoleplayPreviewInput["call"]) {
+  if (call.buyerPersonalityProfile) {
+    const profile = call.buyerPersonalityProfile;
+    const concerns = profile.concerns.slice(0, 2);
+    return [
+      profile.summary,
+      concerns.length ? `The buyer is concerned about ${joinHumanList(concerns)}.` : null,
+      `Practice a ${profile.communicationStyle.decisionStyle} decision style with ${profile.communicationStyle.skepticism} skepticism.`,
+    ].filter(Boolean).join(" ");
+  }
   const scoreSentence =
     call.overallScore == null
       ? "An anonymized buyer wants a clearer path forward."
@@ -222,6 +231,10 @@ function buildScenarioSummary(call: GeneratedRoleplayPreviewInput["call"]) {
 }
 
 function buildScenarioBrief(call: GeneratedRoleplayPreviewInput["call"]) {
+  if (call.buyerPersonalityProfile) {
+    const profile = call.buyerPersonalityProfile;
+    return `Derived from the recording's anonymized buyer profile. ${profile.roleplayBehavior.openingPosture} Move forward only when: ${joinHumanList(profile.roleplayBehavior.realisticResolutionConditions)}.`;
+  }
   const signalLabels = getSignalLabels(call);
   const focusPhrase = signalLabels.length
     ? joinHumanList(signalLabels).toLowerCase()
@@ -264,11 +277,14 @@ function resolveGeneratedRoleplayFocusCategory(
   return { ok: true, data: normalizedFocusCategorySlug };
 }
 
-function buildAssistantOpeningLine(focusCategorySlug: string | null) {
+function buildAssistantOpeningLine(
+  focusCategorySlug: string | null,
+  call?: GeneratedRoleplayPreviewInput["call"],
+) {
   const normalizedFocusCategorySlug = normalizeFocusCategorySlug(focusCategorySlug);
 
   if (!normalizedFocusCategorySlug) {
-    return GENERATED_ROLEPLAY_DEFAULT_OPENING;
+    return call?.buyerPersonalityProfile?.roleplayBehavior.openingPosture || GENERATED_ROLEPLAY_DEFAULT_OPENING;
   }
 
   return (
@@ -296,6 +312,7 @@ function serializeGeneratedRoleplaySession(
     focusCategorySlug: session.focusCategorySlug,
     scenarioSummary: session.scenarioSummary,
     scenarioBrief: session.scenarioBrief,
+    buyerPersonalitySnapshot: session.buyerPersonalitySnapshot,
     transcript: Array.isArray(session.transcript) ? session.transcript : [],
     scorecard: session.scorecard,
     status: session.status,
@@ -320,7 +337,7 @@ function buildGeneratedRoleplaySessionCreateInput(
   const transcript: RoleplayMessage[] = [
     {
       role: "assistant",
-      content: buildAssistantOpeningLine(focusCategorySlug),
+      content: buildAssistantOpeningLine(focusCategorySlug, input.call),
     },
   ];
 
@@ -341,6 +358,7 @@ function buildGeneratedRoleplaySessionCreateInput(
       focusCategorySlug,
       scenarioSummary: preview.scenarioSummary,
       scenarioBrief: buildScenarioBrief(input.call),
+      buyerPersonalitySnapshot: input.call.buyerPersonalityProfile,
     };
   }
 
@@ -360,6 +378,7 @@ function buildGeneratedRoleplaySessionCreateInput(
     focusCategorySlug: null,
     scenarioSummary: preview.scenarioSummary,
     scenarioBrief: buildScenarioBrief(input.call),
+    buyerPersonalitySnapshot: input.call.buyerPersonalityProfile,
   };
 }
 
@@ -396,6 +415,21 @@ export async function createGeneratedRoleplaySession(
       code: "call_not_complete",
       error: "Generated roleplay sessions require a completed call.",
     };
+  }
+
+  if (input.call.buyerProfileStatus !== undefined && input.call.buyerProfileStatus !== "ready") {
+    return {
+      ok: false,
+      status: 409,
+      code: "buyer_profile_not_ready",
+      error: input.call.buyerProfileStatus === "needs_review"
+        ? "Confirm the buyer speaker before generating a roleplay."
+        : "The buyer personality is not ready yet.",
+    };
+  }
+
+  if (input.call.buyerProfileStatus === "ready" && !input.call.buyerPersonalityProfile) {
+    return { ok: false, status: 409, code: "buyer_profile_not_ready", error: "The buyer personality could not be loaded." };
   }
 
   const focusCategoryResult = resolveGeneratedRoleplayFocusCategory(

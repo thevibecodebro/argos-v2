@@ -17,10 +17,10 @@ export default async function UploadPage() {
     <AuthenticatedPageContainer>
       <OperationalWorkspace data-upload-route="capture-workflow">
         <OperationalToolbar
-          actions={[{ href: "/calls", icon: "subject", label: "View call library", variant: "secondary" }]}
-          description="Upload a call recording, name it clearly, and send it into analysis."
+          actions={[{ href: "/calls", icon: "subject", label: "View recordings", variant: "secondary" }]}
+          description="Upload a recording or audio file to transcribe it and generate a buyer-personality roleplay."
           eyebrow="Capture"
-          title="Upload Call"
+          title="Upload Recording / Audio"
         />
         <section className="min-w-0">
           <div className="min-w-0">

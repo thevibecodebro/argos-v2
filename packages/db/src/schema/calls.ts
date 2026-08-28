@@ -39,6 +39,13 @@ export const callsTable = pgTable("calls", {
   recommendedDrills: jsonb("recommended_drills"),
   callTopic: text("call_topic"),
   transcript: jsonb("transcript"),
+  buyerProfileStatus: text("buyer_profile_status", {
+    enum: ["pending", "processing", "ready", "needs_review", "failed"],
+  }),
+  buyerPersonalityProfile: jsonb("buyer_personality_profile").$type<Record<string, unknown>>(),
+  buyerPersonalitySchemaVersion: integer("buyer_personality_schema_version"),
+  buyerPersonalityModel: text("buyer_personality_model"),
+  buyerPersonalityGeneratedAt: timestamp("buyer_personality_generated_at", { withTimezone: true }),
   crmDealId: text("crm_deal_id"),
   rubricId: uuid("rubric_id").references(() => rubricsTable.id, { onDelete: "set null" }),
   zoomRecordingId: text("zoom_recording_id").unique(),

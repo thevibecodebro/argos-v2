@@ -18,6 +18,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { AppUserRole } from "@/lib/users/roles";
 import { storeManualCallSource, type SourceAsset } from "./ingestion-service";
 import type { CallEvaluation, TranscriptLine } from "./types";
+import type { BuyerPersonalityProfile } from "@argos-v2/call-processing";
 import { CALL_SCORE_LABELS_BY_FIELD } from "./rubric";
 
 export type { TranscriptLine } from "./types";
@@ -78,6 +79,12 @@ export type CallAnnotation = {
 
 export type CallProcessingJobStatus = "pending" | "running" | "retrying" | "failed" | "complete";
 
+export const ACTIVE_CALL_PROCESSING_STATUSES = [
+  "uploaded",
+  "transcribing",
+  "evaluating",
+] as const;
+
 export type CallProcessingJob = {
   id: string;
   status: CallProcessingJobStatus;
@@ -107,6 +114,11 @@ export type CallDetail = CallSummary & {
   improvements: string[] | null;
   recommendedDrills: string[] | null;
   transcript: TranscriptLine[] | null;
+  buyerProfileStatus?: "pending" | "processing" | "ready" | "needs_review" | "failed" | null;
+  buyerPersonalityProfile?: BuyerPersonalityProfile | null;
+  buyerPersonalitySchemaVersion?: number | null;
+  buyerPersonalityModel?: string | null;
+  buyerPersonalityGeneratedAt?: string | null;
   moments: CallMoment[];
   processingJob: CallProcessingJob | null;
 };
@@ -158,8 +170,8 @@ type CallMomentRecord = Omit<CallMoment, "createdAt"> & { createdAt: Date };
 type CallAnnotationRecord = Omit<CallAnnotation, "createdAt"> & { createdAt: Date };
 type CallDetailRecord = Omit<
   CallDetail,
-  "createdAt" | "moments" | "processingJob"
-> & { createdAt: Date; orgId: string; moments: CallMomentRecord[] };
+  "createdAt" | "moments" | "processingJob" | "buyerPersonalityGeneratedAt"
+> & { createdAt: Date; orgId: string; moments: CallMomentRecord[]; buyerPersonalityGeneratedAt?: Date | null };
 type CallHighlightRecord = Omit<CallHighlight, "createdAt" | "callCreatedAt"> & {
   createdAt: Date;
   callCreatedAt: Date;
@@ -317,6 +329,13 @@ export type CallsRepository = {
   deleteAnnotation(annotationId: string, callId: string): Promise<boolean>;
   findAnnotations(callId: string): Promise<CallAnnotationRecord[]>;
   findCallById(callId: string): Promise<CallDetailRecord | null>;
+  updateBuyerPersonalityProfile(input: {
+    callId: string;
+    generatedAt: Date;
+    model: string;
+    profile: BuyerPersonalityProfile;
+    status: "ready" | "needs_review";
+  }): Promise<void>;
   findCallProcessingJobByCallId(callId: string): Promise<CallProcessingJobRecord | null>;
   findCallProcessingJobBySourceStoragePath(sourceStoragePath: string): Promise<CallProcessingJobRecord | null>;
   findCallRecordingReference(callId: string): Promise<CallRecordingReference | null>;
@@ -432,6 +451,7 @@ function serializeDetail(
     categoryScores: ((call.categoryScores?.length ? call.categoryScores : buildLegacyCategoryScores(call))
       .map(serializeCategoryScore)),
     transcript: Array.isArray(call.transcript) ? call.transcript : null,
+    buyerPersonalityGeneratedAt: call.buyerPersonalityGeneratedAt?.toISOString() ?? null,
     moments: call.moments.map(serializeMoment),
     processingJob: processingJob ? serializeProcessingJob(processingJob) : null,
   };

@@ -180,6 +180,7 @@ function serializeSession(session: RoleplaySessionRecord): RoleplaySession {
     focusCategorySlug: session.focusCategorySlug ?? null,
     scenarioSummary: session.scenarioSummary ?? null,
     scenarioBrief: session.scenarioBrief ?? null,
+    buyerPersonalitySnapshot: session.buyerPersonalitySnapshot ?? null,
     transcript: Array.isArray(session.transcript) ? session.transcript : [],
     scorecard: normalizeScorecard(session.scorecard),
     status: session.status,

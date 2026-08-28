@@ -13,6 +13,7 @@ import {
 } from "@/components/forge";
 import { HighlightNote } from "@/components/highlight-note";
 import type { CallAnnotation, CallDetail, CallMoment, CallProcessingJob } from "@/lib/calls/service";
+import { BuyerPersonalityPanel } from "@/components/buyer-personality-panel";
 import {
   DEFAULT_GENERATED_ROLEPLAY_BUYER_VOICE,
   GENERATED_ROLEPLAY_BUYER_PERSONAS,
@@ -25,6 +26,7 @@ type CallDetailPanelProps = {
   canGenerateRoleplay: boolean;
   canManage: boolean;
   canRetryProcessing: boolean;
+  scoringEnabled?: boolean;
 };
 
 function formatTimestamp(seconds: number | null | undefined) {
@@ -55,7 +57,7 @@ function statusTone(status: string | null | undefined): "danger" | "ember" | "mu
   const normalized = status?.toLowerCase();
   if (normalized === "complete") return "success";
   if (normalized === "failed") return "danger";
-  if (normalized === "processing" || normalized === "transcribing" || normalized === "evaluating") {
+  if (normalized === "uploaded" || normalized === "processing" || normalized === "transcribing" || normalized === "evaluating") {
     return "ember";
   }
   return "muted";
@@ -108,7 +110,7 @@ export function getCallMediaState({
     };
   }
 
-  if (normalized === "processing" || normalized === "transcribing" || normalized === "evaluating") {
+  if (normalized === "uploaded" || normalized === "processing" || normalized === "transcribing" || normalized === "evaluating") {
     return {
       description: "Argos is still preparing the transcript, scorecard, and coaching moments.",
       icon: "pending",
@@ -152,12 +154,23 @@ function initials(speaker: string) {
     .join("");
 }
 
+function getSpeakerSamples(transcript: CallDetail["transcript"]) {
+  const samples: Record<string, string[]> = {};
+  for (const line of transcript ?? []) {
+    const current = samples[line.speaker] ?? [];
+    if (current.length < 2) current.push(line.text.slice(0, 180));
+    samples[line.speaker] = current;
+  }
+  return samples;
+}
+
 export function CallDetailPanel({
   annotations: initialAnnotations,
   call,
   canGenerateRoleplay,
   canManage,
   canRetryProcessing,
+  scoringEnabled = true,
 }: CallDetailPanelProps) {
   const router = useRouter();
   const [annotations, setAnnotations] = useState(initialAnnotations);
@@ -422,6 +435,10 @@ export function CallDetailPanel({
       hasTranscript: Boolean(call.transcriptUrl || (call.transcript ?? []).length),
       status: call.status,
     });
+    if (!scoringEnabled && call.status !== "failed" && call.status !== "complete") {
+      mediaState.description = "Argos is preparing the transcript and buyer personality for roleplay.";
+      mediaState.title = "Processing recording";
+    }
 
     return (
       <ForgeStatusPanel
@@ -809,7 +826,8 @@ export function CallDetailPanel({
         <div className="mt-3 space-y-3">
           {renderMediaStatePanel()}
           {processingJob ? renderProcessingJobPanel() : null}
-          {call.status === "complete" && canGenerateRoleplay
+          {call.status === "complete" && canGenerateRoleplay &&
+          (call.buyerProfileStatus === "ready" || (scoringEnabled && call.buyerProfileStatus === undefined))
             ? renderGenerateRoleplayAction()
             : null}
           {renderCoachingNoteForm()}
@@ -831,7 +849,14 @@ export function CallDetailPanel({
         >
           <section className="min-w-0 space-y-3">
             {renderTranscriptSection()}
-            {renderEvidenceSection()}
+            <BuyerPersonalityPanel
+              callId={call.id}
+              profile={call.buyerPersonalityProfile ?? null}
+              speakerLabels={[...new Set((call.transcript ?? []).map((line) => line.speaker))]}
+              speakerSamples={getSpeakerSamples(call.transcript)}
+              status={call.buyerProfileStatus ?? null}
+            />
+            {scoringEnabled ? renderEvidenceSection() : null}
           </section>
           {renderCoachingPane()}
         </div>

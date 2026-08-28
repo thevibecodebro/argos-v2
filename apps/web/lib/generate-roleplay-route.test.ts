@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getAuthenticatedSupabaseUser = vi.fn();
 const requireAuthenticatedManagedCapability = vi.fn();
+const requireAnyAuthenticatedManagedCapability = vi.fn();
 const createCallsRepository = vi.fn();
 const getCallDetail = vi.fn();
 const createRoleplayRepository = vi.fn();
@@ -15,6 +16,7 @@ vi.mock("@/lib/auth/get-authenticated-user", () => ({
 }));
 
 vi.mock("@/lib/access/managed-capabilities-server", () => ({
+  requireAnyAuthenticatedManagedCapability,
   requireAuthenticatedManagedCapability,
 }));
 
@@ -59,6 +61,12 @@ describe("generate roleplay route", () => {
         ? { ok: true, user, orgId: "org-1", access: { mode: "legacy" } }
         : { ok: false, response: Response.json({ error: "Unauthorized" }, { status: 401 }) };
     });
+    requireAnyAuthenticatedManagedCapability.mockImplementation(async () => {
+      const user = await getAuthenticatedSupabaseUser();
+      return user
+        ? { ok: true, user, orgId: "org-1", access: { mode: "legacy" } }
+        : { ok: false, response: Response.json({ error: "Unauthorized" }, { status: 401 }) };
+    });
     createCallsRepository.mockReturnValue({});
     createRoleplayRepository.mockReturnValue(roleplayRepository);
     createRubricsRepository.mockReturnValue({});
@@ -75,6 +83,8 @@ describe("generate roleplay route", () => {
         moments: [],
         callStageReached: "discovery",
         overallScore: 71,
+        buyerProfileStatus: "ready",
+        buyerPersonalityProfile: { schemaVersion: 1 },
       },
     });
     loadActiveRubric.mockResolvedValue({ id: "rubric-active", categories: [] });

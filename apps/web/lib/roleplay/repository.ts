@@ -32,6 +32,7 @@ function normalizeSessionRecord(record: {
   focusCategorySlug: string | null;
   scenarioSummary: string | null;
   scenarioBrief: string | null;
+  buyerPersonalitySnapshot: unknown;
   transcript: unknown;
   scorecard: unknown;
   status: "active" | "evaluating" | "complete";
@@ -50,6 +51,10 @@ function normalizeSessionRecord(record: {
     focusCategorySlug: record.focusCategorySlug ?? null,
     scenarioSummary: record.scenarioSummary ?? null,
     scenarioBrief: record.scenarioBrief ?? null,
+    buyerPersonalitySnapshot:
+      record.buyerPersonalitySnapshot && typeof record.buyerPersonalitySnapshot === "object"
+        ? record.buyerPersonalitySnapshot as RoleplaySessionRecord["buyerPersonalitySnapshot"]
+        : null,
     transcript: Array.isArray(record.transcript)
       ? (record.transcript as RoleplaySessionRecord["transcript"])
       : null,
@@ -87,6 +92,7 @@ export class DrizzleRoleplayRepository implements RoleplayRepository {
         focusCategorySlug: roleplaySessionsTable.focusCategorySlug,
         scenarioSummary: roleplaySessionsTable.scenarioSummary,
         scenarioBrief: roleplaySessionsTable.scenarioBrief,
+        buyerPersonalitySnapshot: roleplaySessionsTable.buyerPersonalitySnapshot,
         transcript: roleplaySessionsTable.transcript,
         scorecard: roleplaySessionsTable.scorecard,
         status: roleplaySessionsTable.status,
@@ -147,6 +153,7 @@ export class DrizzleRoleplayRepository implements RoleplayRepository {
         focusCategorySlug: roleplaySessionsTable.focusCategorySlug,
         scenarioSummary: roleplaySessionsTable.scenarioSummary,
         scenarioBrief: roleplaySessionsTable.scenarioBrief,
+        buyerPersonalitySnapshot: roleplaySessionsTable.buyerPersonalitySnapshot,
         transcript: roleplaySessionsTable.transcript,
         scorecard: roleplaySessionsTable.scorecard,
         status: roleplaySessionsTable.status,
@@ -180,6 +187,7 @@ export class DrizzleRoleplayRepository implements RoleplayRepository {
         focusCategorySlug: roleplaySessionsTable.focusCategorySlug,
         scenarioSummary: roleplaySessionsTable.scenarioSummary,
         scenarioBrief: roleplaySessionsTable.scenarioBrief,
+        buyerPersonalitySnapshot: roleplaySessionsTable.buyerPersonalitySnapshot,
         transcript: roleplaySessionsTable.transcript,
         scorecard: roleplaySessionsTable.scorecard,
         status: roleplaySessionsTable.status,
@@ -213,6 +221,7 @@ export class DrizzleRoleplayRepository implements RoleplayRepository {
         focusCategorySlug: roleplaySessionsTable.focusCategorySlug,
         scenarioSummary: roleplaySessionsTable.scenarioSummary,
         scenarioBrief: roleplaySessionsTable.scenarioBrief,
+        buyerPersonalitySnapshot: roleplaySessionsTable.buyerPersonalitySnapshot,
         transcript: roleplaySessionsTable.transcript,
         scorecard: roleplaySessionsTable.scorecard,
         status: roleplaySessionsTable.status,
@@ -259,6 +268,7 @@ export class DrizzleRoleplayRepository implements RoleplayRepository {
         focusCategorySlug: roleplaySessionsTable.focusCategorySlug,
         scenarioSummary: roleplaySessionsTable.scenarioSummary,
         scenarioBrief: roleplaySessionsTable.scenarioBrief,
+        buyerPersonalitySnapshot: roleplaySessionsTable.buyerPersonalitySnapshot,
         transcript: roleplaySessionsTable.transcript,
         scorecard: roleplaySessionsTable.scorecard,
         status: roleplaySessionsTable.status,
@@ -314,6 +324,7 @@ export class DrizzleRoleplayRepository implements RoleplayRepository {
         focusCategorySlug: roleplaySessionsTable.focusCategorySlug,
         scenarioSummary: roleplaySessionsTable.scenarioSummary,
         scenarioBrief: roleplaySessionsTable.scenarioBrief,
+        buyerPersonalitySnapshot: roleplaySessionsTable.buyerPersonalitySnapshot,
         transcript: roleplaySessionsTable.transcript,
         scorecard: roleplaySessionsTable.scorecard,
         status: roleplaySessionsTable.status,
@@ -370,6 +381,7 @@ export class DrizzleRoleplayRepository implements RoleplayRepository {
         focusCategorySlug: roleplaySessionsTable.focusCategorySlug,
         scenarioSummary: roleplaySessionsTable.scenarioSummary,
         scenarioBrief: roleplaySessionsTable.scenarioBrief,
+        buyerPersonalitySnapshot: roleplaySessionsTable.buyerPersonalitySnapshot,
         transcript: roleplaySessionsTable.transcript,
         scorecard: roleplaySessionsTable.scorecard,
         status: roleplaySessionsTable.status,

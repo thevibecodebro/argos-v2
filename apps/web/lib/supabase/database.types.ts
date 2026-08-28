@@ -222,6 +222,11 @@ export type Database = {
       }
       calls: {
         Row: {
+          buyer_personality_generated_at: string | null
+          buyer_personality_model: string | null
+          buyer_personality_profile: Json | null
+          buyer_personality_schema_version: number | null
+          buyer_profile_status: string | null
           call_stage_reached: string | null
           call_topic: string | null
           closing_score: number | null
@@ -256,6 +261,11 @@ export type Database = {
           zoom_recording_id: string | null
         }
         Insert: {
+          buyer_personality_generated_at?: string | null
+          buyer_personality_model?: string | null
+          buyer_personality_profile?: Json | null
+          buyer_personality_schema_version?: number | null
+          buyer_profile_status?: string | null
           call_stage_reached?: string | null
           call_topic?: string | null
           closing_score?: number | null
@@ -290,6 +300,11 @@ export type Database = {
           zoom_recording_id?: string | null
         }
         Update: {
+          buyer_personality_generated_at?: string | null
+          buyer_personality_model?: string | null
+          buyer_personality_profile?: Json | null
+          buyer_personality_schema_version?: number | null
+          buyer_profile_status?: string | null
           call_stage_reached?: string | null
           call_topic?: string | null
           closing_score?: number | null
@@ -605,6 +620,7 @@ export type Database = {
       }
       roleplay_sessions: {
         Row: {
+          buyer_personality_snapshot: Json | null
           created_at: string
           difficulty: string | null
           focus_category_slug: string | null
@@ -625,6 +641,7 @@ export type Database = {
           transcript: Json | null
         }
         Insert: {
+          buyer_personality_snapshot?: Json | null
           created_at?: string
           difficulty?: string | null
           focus_category_slug?: string | null
@@ -645,6 +662,7 @@ export type Database = {
           transcript?: Json | null
         }
         Update: {
+          buyer_personality_snapshot?: Json | null
           created_at?: string
           difficulty?: string | null
           focus_category_slug?: string | null

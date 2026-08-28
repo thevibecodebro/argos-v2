@@ -60,6 +60,7 @@ Optional worker test env var:
 Recommended worker env vars:
 
 - `OPENAI_CALL_SCORING_MODEL`
+- `OPENAI_BUYER_PERSONALITY_MODEL`
 - `OPENAI_CALL_TRANSCRIPTION_MODEL`
 - `FFMPEG_BINARY` if you want to override the bundled `ffmpeg-static` binary
 - `CALL_PROCESSING_POLL_INTERVAL_MS`
@@ -127,6 +128,7 @@ Set these Vercel environment variables for `apps/web`:
 - `GOOGLE_MEET_SYNC_POLL_INTERVAL_MS`
 - `OPENAI_API_KEY`
 - `OPENAI_CALL_SCORING_MODEL`
+- `OPENAI_BUYER_PERSONALITY_MODEL`
 - `OPENAI_TRAINING_MODEL`
 
 Recommended environment scoping:

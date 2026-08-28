@@ -61,4 +61,14 @@ describe("CallsFilters forge treatment", () => {
       'className="block min-w-0 rounded-xl border border-[var(--forge-border)]',
     );
   });
+
+  it("removes score controls when the recording workspace has scoring disabled", () => {
+    const html = renderToStaticMarkup(
+      createElement(CallsFilters, { initialSearch: "", scoringEnabled: false }),
+    );
+    expect(html).toContain('placeholder="Search recordings, reps, topics..."');
+    expect(html).not.toContain("Score range");
+    expect(html).not.toContain("Highest score");
+    expect(html).not.toContain("Lowest score");
+  });
 });

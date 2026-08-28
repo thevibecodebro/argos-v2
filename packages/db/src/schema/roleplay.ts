@@ -36,6 +36,7 @@ export const roleplaySessionsTable = pgTable(
     focusCategorySlug: text("focus_category_slug"),
     scenarioSummary: text("scenario_summary"),
     scenarioBrief: text("scenario_brief"),
+    buyerPersonalitySnapshot: jsonb("buyer_personality_snapshot").$type<Record<string, unknown>>(),
     transcript: jsonb("transcript"),
     scorecard: jsonb("scorecard"),
     status: text("status", {

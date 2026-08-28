@@ -1,6 +1,7 @@
 import { findUserWithOrgByAuthId, findUsersByIds, getSupabaseAdminClient, toDate } from "@/lib/supabase/admin-repository-helpers";
-import type { CallsFilters, CallsRepository } from "./service";
+import { ACTIVE_CALL_PROCESSING_STATUSES, type CallsFilters, type CallsRepository } from "./service";
 import type { CallEvaluation } from "./types";
+import { parseBuyerPersonalityProfile } from "@argos-v2/call-processing";
 
 type SupabaseCallRow = {
   id: string;
@@ -94,6 +95,24 @@ export class SupabaseCallsRepository implements CallsRepository {
       status: data.status,
       createdAt: toDate(data.created_at) ?? new Date(),
     };
+  }
+
+  async updateBuyerPersonalityProfile(input: {
+    callId: string;
+    generatedAt: Date;
+    model: string;
+    profile: import("@argos-v2/call-processing").BuyerPersonalityProfile;
+    status: "ready" | "needs_review";
+  }) {
+    const supabase: any = this.supabase;
+    const { error } = await supabase.from("calls").update({
+      buyer_profile_status: input.status,
+      buyer_personality_profile: input.profile,
+      buyer_personality_schema_version: input.profile.schemaVersion,
+      buyer_personality_model: input.model,
+      buyer_personality_generated_at: input.generatedAt.toISOString(),
+    }).eq("id", input.callId);
+    if (error) throw new Error(error.message);
   }
 
   async createAuditEvent(input: {
@@ -461,6 +480,14 @@ export class SupabaseCallsRepository implements CallsRepository {
       improvements: normalizeStringArray(call.improvements),
       recommendedDrills: normalizeStringArray(call.recommended_drills),
       transcript: normalizeTranscript(call.transcript),
+      buyerProfileStatus: call.buyer_profile_status ?? null,
+      buyerPersonalityProfile: (() => {
+        if (!call.buyer_personality_profile || !call.duration_seconds) return null;
+        try { return parseBuyerPersonalityProfile(call.buyer_personality_profile, call.duration_seconds); } catch { return null; }
+      })(),
+      buyerPersonalitySchemaVersion: call.buyer_personality_schema_version ?? null,
+      buyerPersonalityModel: call.buyer_personality_model ?? null,
+      buyerPersonalityGeneratedAt: toDate(call.buyer_personality_generated_at),
       repId: call.rep_id,
       orgId: call.org_id,
       rubric,
@@ -828,8 +855,9 @@ export class SupabaseCallsRepository implements CallsRepository {
       if (repId) query = query.eq("rep_id", repId);
       if (repIds) query = query.in("rep_id", repIds);
       if (filters.status && filters.status !== "all") {
-        const normalizedStatus = filters.status === "processing" ? "evaluating" : filters.status;
-        query = query.eq("status", normalizedStatus);
+        query = filters.status === "processing"
+          ? query.in("status", ACTIVE_CALL_PROCESSING_STATUSES)
+          : query.eq("status", filters.status);
       }
       if (filters.search) query = query.ilike("call_topic", `%${filters.search}%`);
       if (filters.minScore !== undefined) query = query.gte("overall_score", filters.minScore);

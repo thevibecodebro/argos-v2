@@ -8,6 +8,8 @@ export const ROLEPLAY_CATEGORY_LABELS = {
   solution: "Solution",
 } as const;
 
+import type { BuyerPersonalityProfile } from "@argos-v2/call-processing";
+
 export type RoleplayCategory = keyof typeof ROLEPLAY_CATEGORY_LABELS;
 
 export type RoleplayVoice =
@@ -75,6 +77,7 @@ export type RoleplaySessionCreateBase = {
   rubricId?: string | null;
   scenarioSummary?: string | null;
   scenarioBrief?: string | null;
+  buyerPersonalitySnapshot?: BuyerPersonalityProfile | null;
 };
 
 type OriginRoleplaySessionCreateInput =
@@ -109,6 +112,7 @@ type NormalizedRoleplaySessionCreateInput = RoleplaySessionCreateBase & {
   rubricId: string | null;
   scenarioSummary: string | null;
   scenarioBrief: string | null;
+  buyerPersonalitySnapshot?: BuyerPersonalityProfile | null;
 };
 
 export type RoleplayScorecard = {
@@ -143,6 +147,7 @@ export type RoleplaySessionMetadata = {
   focusCategorySlug: string | null;
   scenarioSummary: string | null;
   scenarioBrief: string | null;
+  buyerPersonalitySnapshot?: BuyerPersonalityProfile | null;
 };
 
 export type RoleplaySession = {
@@ -161,6 +166,7 @@ export type RoleplaySession = {
   focusCategorySlug: string | null;
   scenarioSummary: string | null;
   scenarioBrief: string | null;
+  buyerPersonalitySnapshot?: BuyerPersonalityProfile | null;
   transcript: RoleplayMessage[];
   scorecard: RoleplayScorecard | null;
   status: "active" | "evaluating" | "complete";
@@ -186,6 +192,7 @@ export type RoleplaySessionRecord = {
   focusCategorySlug: string | null;
   scenarioSummary: string | null;
   scenarioBrief: string | null;
+  buyerPersonalitySnapshot?: BuyerPersonalityProfile | null;
   transcript: RoleplayMessage[] | null;
   scorecard: RoleplayScorecard | null;
   status: "active" | "evaluating" | "complete";
@@ -259,6 +266,7 @@ export function normalizeRoleplaySessionCreateInput(
     rubricId: input.rubricId ?? null,
     scenarioSummary: input.scenarioSummary ?? null,
     scenarioBrief: input.scenarioBrief ?? null,
+    buyerPersonalitySnapshot: input.buyerPersonalitySnapshot ?? null,
   };
 
   return normalized as NormalizedRoleplaySessionCreateInput;
