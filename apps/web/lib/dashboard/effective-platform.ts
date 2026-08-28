@@ -10,6 +10,18 @@ type CurrentUserLookupRepository<TUser> = {
   findCurrentUserByAuthId(authUserId: string): Promise<TUser | null>;
 };
 
+export type BillingScopeRepository = {
+  findUserBillingScope(authUserId: string): Promise<{
+    email: string;
+    fullName: string;
+    orgName: string | null;
+    orgId: string | null;
+    plan: string | null;
+    role: CurrentUserProfile["role"];
+    userId: string;
+  } | null>;
+};
+
 function createRepositoryAdapter<TRepository extends object, TOverrides extends object>(
   repository: TRepository,
   overrides: TOverrides,
@@ -68,6 +80,32 @@ export function createEffectiveAccessRepository(
       }
 
       return repository.findActorByAuthUserId(userId);
+    },
+  });
+}
+
+export function createEffectiveBillingScopeRepository<
+  TRepository extends BillingScopeRepository,
+>(
+  repository: TRepository,
+  profile: CurrentUserProfile,
+  authUserId: string,
+): TRepository {
+  return createRepositoryAdapter(repository, {
+    findUserBillingScope(userId: string) {
+      if (userId === authUserId) {
+        return Promise.resolve({
+          email: profile.email,
+          fullName: profile.fullName,
+          orgName: profile.org?.name ?? null,
+          orgId: profile.org?.id ?? null,
+          plan: profile.org?.plan ?? null,
+          role: profile.role,
+          userId: profile.id,
+        });
+      }
+
+      return repository.findUserBillingScope(userId);
     },
   });
 }

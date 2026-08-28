@@ -16,6 +16,7 @@ type PlatformAccessSessionRecord = {
   targetOrgId: string | null;
   targetOrgLogoUrl?: string | null;
   targetOrgName?: string | null;
+  targetOrgPlan?: string | null;
   targetOrgSlug?: string | null;
   targetOrgWorkspaceTheme?: WorkspaceTheme | null;
   targetOrgNameSnapshot?: string | null;
@@ -113,7 +114,7 @@ export async function resolveEffectiveActor(
         id: session.targetOrgId,
         name: targetOrgName,
         slug: targetOrgSlug,
-        plan: "trial",
+        plan: session.targetOrgPlan ?? "trial",
         logoUrl: session.targetOrgLogoUrl ?? null,
         workspaceTheme: session.targetOrgWorkspaceTheme ?? null,
       },

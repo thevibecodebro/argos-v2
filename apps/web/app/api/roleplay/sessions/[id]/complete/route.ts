@@ -2,7 +2,10 @@ import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capa
 import { DrizzleBillingRepository } from "@/lib/billing/repository";
 import { consumeVoiceMinutes } from "@/lib/billing/voice-entitlements";
 import { fromServiceResult } from "@/lib/http";
-import { createEffectiveTenantRepository } from "@/lib/platform/effective-request";
+import {
+  createEffectiveTenantBillingRepository,
+  createEffectiveTenantRepository,
+} from "@/lib/platform/effective-request";
 import { createRoleplayRepository } from "@/lib/roleplay/create-repository";
 import { completeRoleplaySession, settleRoleplayVoiceUsage } from "@/lib/roleplay/service";
 
@@ -24,7 +27,10 @@ export async function POST(
     return fromServiceResult(result);
   }
 
-  const billingRepository = new DrizzleBillingRepository();
+  const billingRepository = await createEffectiveTenantBillingRepository(
+    new DrizzleBillingRepository(),
+    authUser.id,
+  );
   const settlementResult = await settleRoleplayVoiceUsage(roleplayRepository, authUser.id, id, {
     consumeVoiceMinutes: (userId, input) =>
       consumeVoiceMinutes(billingRepository, userId, input),

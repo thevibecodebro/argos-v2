@@ -355,6 +355,7 @@ export class DrizzlePlatformRepository {
         ...accessSessionSelection,
         targetOrgLogoUrl: organizationsTable.logoUrl,
         targetOrgName: organizationsTable.name,
+        targetOrgPlan: organizationsTable.plan,
         targetOrgSlug: organizationsTable.slug,
         targetOrgWorkspaceTheme: organizationsTable.workspaceTheme,
       })

@@ -10,6 +10,12 @@ export async function createEffectiveTenantAccessRepository<TRepository>(
   return repository;
 }
 
+export async function createEffectiveTenantBillingRepository<TRepository>(
+  repository: TRepository,
+) {
+  return repository;
+}
+
 export async function createEffectiveTenantUsersRepository<TRepository>(
   repository: TRepository,
 ) {

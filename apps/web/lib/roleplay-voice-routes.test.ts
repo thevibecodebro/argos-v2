@@ -13,6 +13,7 @@ const getVoiceEntitlementStatus = vi.fn();
 const consumeVoiceMinutes = vi.fn();
 const assertRoleplayContentAllowed = vi.fn();
 const buildRoleplaySafetyIdentifier = vi.fn();
+const createEffectiveTenantBillingRepository = vi.fn();
 const createEffectiveTenantRepository = vi.fn();
 
 vi.mock("@/lib/auth/get-authenticated-user", () => ({
@@ -55,6 +56,7 @@ vi.mock("@/lib/roleplay/content-policy", () => ({
 }));
 
 vi.mock("@/lib/platform/effective-request", () => ({
+  createEffectiveTenantBillingRepository,
   createEffectiveTenantRepository,
 }));
 
@@ -109,6 +111,7 @@ describe("roleplay voice routes", () => {
     consumeVoiceMinutes.mockReset();
     assertRoleplayContentAllowed.mockReset();
     buildRoleplaySafetyIdentifier.mockReset();
+    createEffectiveTenantBillingRepository.mockReset();
     createEffectiveTenantRepository.mockReset();
     createRoleplayRepository.mockReturnValue({});
     requireAuthenticatedManagedCapability.mockImplementation(async () => {
@@ -118,6 +121,7 @@ describe("roleplay voice routes", () => {
         : { ok: false, response: Response.json({ error: "Unauthorized" }, { status: 401 }) };
     });
     createEffectiveTenantRepository.mockImplementation(async (repository) => repository);
+    createEffectiveTenantBillingRepository.mockResolvedValue({ billing: "effective" });
     assertRoleplayContentAllowed.mockResolvedValue({ ok: true });
     buildRoleplaySafetyIdentifier.mockReturnValue("roleplay:safety-hash");
     getVoiceEntitlementStatus.mockResolvedValue({
@@ -265,8 +269,15 @@ describe("roleplay voice routes", () => {
       "auth-user-1",
       "session-1",
     );
-    expect(getVoiceEntitlementStatus).toHaveBeenCalledWith({ billing: true }, "auth-user-1");
-    expect(consumeVoiceMinutes).toHaveBeenCalledWith({ billing: true }, "auth-user-1", {
+    expect(createEffectiveTenantBillingRepository).toHaveBeenCalledWith(
+      { billing: true },
+      "auth-user-1",
+    );
+    expect(getVoiceEntitlementStatus).toHaveBeenCalledWith(
+      { billing: "effective" },
+      "auth-user-1",
+    );
+    expect(consumeVoiceMinutes).toHaveBeenCalledWith({ billing: "effective" }, "auth-user-1", {
       idempotencyKey: "roleplay:session-1:start",
       minutes: 1,
       sessionId: "session-1",
@@ -307,6 +318,10 @@ describe("roleplay voice routes", () => {
       expect.objectContaining({
         consumeVoiceMinutes: expect.any(Function),
       }),
+    );
+    expect(createEffectiveTenantBillingRepository).toHaveBeenCalledWith(
+      { billing: true },
+      "auth-user-1",
     );
   });
 
@@ -556,9 +571,16 @@ describe("roleplay voice routes", () => {
     expect(fetchMock.mock.calls[0]?.[1]?.headers).toMatchObject({
       Authorization: "Bearer roleplay-openai-key",
     });
-    expect(getVoiceEntitlementStatus).toHaveBeenCalledWith({ billing: true }, "auth-user-1");
-    expect(consumeVoiceMinutes).toHaveBeenCalledWith(
+    expect(createEffectiveTenantBillingRepository).toHaveBeenCalledWith(
       { billing: true },
+      "auth-user-1",
+    );
+    expect(getVoiceEntitlementStatus).toHaveBeenCalledWith(
+      { billing: "effective" },
+      "auth-user-1",
+    );
+    expect(consumeVoiceMinutes).toHaveBeenCalledWith(
+      { billing: "effective" },
       "auth-user-1",
       expect.objectContaining({
         minutes: 1,
