@@ -67,10 +67,15 @@ export type VoiceEntitlementsRepository = {
   }): Promise<VoiceCreditGrant[]>;
   findUserBillingScope(authUserId: string): Promise<{
     orgId: string | null;
+    plan?: string | null;
     role?: string | null;
     userId: string;
   } | null>;
 };
+
+export function hasUnlimitedVoiceAccess(plan: string | null | undefined) {
+  return plan?.trim().toLowerCase() === "enterprise";
+}
 
 export async function resolveVoiceAccess(
   repository: VoiceEntitlementsRepository,
@@ -98,7 +103,10 @@ export async function resolveVoiceAccess(
     };
   }
 
+  const isUnlimited = hasUnlimitedVoiceAccess(scope.plan);
+
   if (
+    !isUnlimited &&
     entitlement.sourceType === "coaching_contract" &&
     scope.orgId &&
     entitlement.accessStartsAt &&
@@ -130,6 +138,7 @@ export async function resolveVoiceAccess(
     ok: true as const,
     data: {
       entitlement,
+      isUnlimited,
       scope,
     },
   };
@@ -141,6 +150,18 @@ export async function getVoiceEntitlementStatus(
 ) {
   const access = await resolveVoiceAccess(repository, authUserId);
   if (!access.ok) return access;
+
+  if (access.data.isUnlimited) {
+    return {
+      ok: true as const,
+      data: {
+        availableMinutes: null,
+        isUnlimited: true as const,
+        orgId: access.data.scope.orgId,
+        userId: access.data.scope.userId,
+      },
+    };
+  }
 
   const grants = await repository.findActiveVoiceCreditGrants(access.data.scope);
   const availableMinutes = grants.reduce(
@@ -181,6 +202,10 @@ export async function consumeVoiceMinutes(
   if (!access.ok) return access;
 
   const minutes = Math.max(1, Math.ceil(input.minutes));
+  if (access.data.isUnlimited) {
+    return { ok: true as const, data: { minutesDebited: minutes } };
+  }
+
   return repository.consumeVoiceMinutesAtomically({
     idempotencyKey: input.idempotencyKey,
     minutes,

@@ -53,7 +53,6 @@ export function VoiceBalanceCard({
   const [balance, setBalance] = useState<VoiceBalance | null>(null);
   const [error, setError] = useState<BalanceApiError | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isPackDialogOpen, setIsPackDialogOpen] = useState(false);
 
   const loadBalance = useCallback(async () => {
     setIsLoading(true);
@@ -82,7 +81,9 @@ export function VoiceBalanceCard({
 
       setBalance(payload);
       setError(null);
-      onVoiceAvailabilityChange?.(payload.totalMinutesRemaining > 0);
+      onVoiceAvailabilityChange?.(
+        payload.isUnlimited || payload.totalMinutesRemaining > 0,
+      );
     } catch {
       setBalance(null);
       setError({ error: "Unable to load the voice-minute balance." });
@@ -116,7 +117,7 @@ export function VoiceBalanceCard({
       >
         <div className="flex items-center gap-3 text-sm text-[var(--forge-muted)]">
           <ForgeIcon className="animate-spin" name="refresh" size={16} />
-          Loading pooled voice-minute balance…
+          Loading live voice access…
         </div>
       </ForgeSurface>
     );
@@ -172,6 +173,17 @@ export function VoiceBalanceCard({
     );
   }
 
+  return <VoiceBalanceSummary balance={balance} returnTo={returnTo} />;
+}
+
+export function VoiceBalanceSummary({
+  balance,
+  returnTo,
+}: {
+  balance: VoiceBalance;
+  returnTo: VoiceBalanceCardProps["returnTo"];
+}) {
+  const [isPackDialogOpen, setIsPackDialogOpen] = useState(false);
   const tone = balanceTone(balance.state);
   const periodLabel =
     balance.renewalDate &&
@@ -187,7 +199,7 @@ export function VoiceBalanceCard({
     <>
       <ForgeSurface
         className="p-4"
-        data-voice-balance-state={balance.state}
+        data-voice-balance-state={balance.isUnlimited ? "unlimited" : balance.state}
         variant="panel"
       >
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -195,7 +207,9 @@ export function VoiceBalanceCard({
             <div className="flex flex-wrap items-center gap-2">
               <p className="forge-page-eyebrow">Live voice minutes</p>
               <ForgeChip tone={tone}>
-                {balance.state === "healthy"
+                {balance.isUnlimited
+                  ? "Unlimited"
+                  : balance.state === "healthy"
                   ? "Available"
                   : balance.state === "low"
                     ? "Running low"
@@ -206,37 +220,44 @@ export function VoiceBalanceCard({
             </div>
             <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
               <strong className="text-2xl font-semibold text-[var(--forge-text)]">
-                {balance.totalMinutesRemaining}
+                {balance.isUnlimited ? "Unlimited" : balance.totalMinutesRemaining}
               </strong>
               <span className="text-sm text-[var(--forge-muted)]">
-                pooled minutes remaining
+                {balance.isUnlimited ? "live voice" : "pooled minutes remaining"}
               </span>
             </div>
-            <div
-              aria-label={`${balance.remainingPercentage}% of voice minutes remaining`}
-              className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--forge-surface-3)]"
-              role="progressbar"
-              aria-valuemax={100}
-              aria-valuemin={0}
-              aria-valuenow={balance.remainingPercentage}
-            >
+            {balance.isUnlimited ? null : (
               <div
-                className={
-                  tone === "danger"
-                    ? "h-full bg-[var(--forge-danger)]"
-                    : tone === "ember"
-                      ? "h-full bg-[var(--forge-ember)]"
-                      : "h-full bg-[var(--forge-success)]"
-                }
-                style={{ width: `${balance.remainingPercentage}%` }}
-              />
-            </div>
+                aria-label={`${balance.remainingPercentage}% of voice minutes remaining`}
+                className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--forge-surface-3)]"
+                role="progressbar"
+                aria-valuemax={100}
+                aria-valuemin={0}
+                aria-valuenow={balance.remainingPercentage}
+              >
+                <div
+                  className={
+                    tone === "danger"
+                      ? "h-full bg-[var(--forge-danger)]"
+                      : tone === "ember"
+                        ? "h-full bg-[var(--forge-ember)]"
+                        : "h-full bg-[var(--forge-success)]"
+                  }
+                  style={{ width: `${balance.remainingPercentage}%` }}
+                />
+              </div>
+            )}
             <p className="mt-2 text-xs leading-5 text-[var(--forge-muted)]">
-              <span className="capitalize">{balance.package}</span>
-              {balance.package === "team" ? ` · ${balance.seatCount} seats` : ""}
-              {" · "}
-              {balance.includedMinutesRemaining} included
-              {balance.purchasedMinutesRemaining > 0
+              <span className="capitalize">
+                {balance.isUnlimited ? "Enterprise" : balance.package}
+              </span>
+              {!balance.isUnlimited && balance.package === "team"
+                ? ` · ${balance.seatCount} seats`
+                : ""}
+              {balance.isUnlimited
+                ? " · Unlimited live voice included"
+                : ` · ${balance.includedMinutesRemaining} included`}
+              {!balance.isUnlimited && balance.purchasedMinutesRemaining > 0
                 ? ` + ${balance.purchasedMinutesRemaining} purchased`
                 : ""}
               {accessLabel ? ` · ${accessLabel}` : ""}
@@ -244,7 +265,7 @@ export function VoiceBalanceCard({
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {balance.canPurchaseMinutes ? (
+            {!balance.isUnlimited && balance.canPurchaseMinutes ? (
               <ForgeButton
                 icon="plus_circle"
                 onClick={() => setIsPackDialogOpen(true)}
@@ -253,11 +274,11 @@ export function VoiceBalanceCard({
               >
                 Buy minutes
               </ForgeButton>
-            ) : (
+            ) : !balance.isUnlimited ? (
               <p className="max-w-xs text-sm text-[var(--forge-muted)]">
                 Contact your organization admin to buy more minutes.
               </p>
-            )}
+            ) : null}
             {balance.canManageBasePlan ? (
               <ForgeButton
                 href={`/billing/portal?return_to=${encodeURIComponent(returnTo)}`}
@@ -271,31 +292,33 @@ export function VoiceBalanceCard({
         </div>
       </ForgeSurface>
 
-      <ForgeDialog
-        description="Extra minutes are added to the same pooled workspace balance and do not expire at the monthly reset."
-        onOpenChange={setIsPackDialogOpen}
-        open={isPackDialogOpen}
-        title="Buy live voice minutes"
-      >
-        <div className="grid gap-3 sm:grid-cols-3">
-          {voicePackOptions.map((pack) => (
-            <a
-              className="rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface-2)] p-4 transition hover:border-[var(--forge-gold)]"
-              data-voice-pack={pack.id}
-              href={getBillingCheckoutHref(pack.id as BillingPlanId, { returnTo })}
-              key={pack.id}
-            >
-              <strong className="block text-lg text-[var(--forge-text)]">
-                {pack.minutes.toLocaleString()}
-              </strong>
-              <span className="mt-1 block text-xs text-[var(--forge-muted)]">minutes</span>
-              <span className="mt-4 block text-sm font-semibold text-[var(--forge-gold)]">
-                {formatPrice(pack.unitAmountCents)}
-              </span>
-            </a>
-          ))}
-        </div>
-      </ForgeDialog>
+      {balance.isUnlimited ? null : (
+        <ForgeDialog
+          description="Extra minutes are added to the same pooled workspace balance and do not expire at the monthly reset."
+          onOpenChange={setIsPackDialogOpen}
+          open={isPackDialogOpen}
+          title="Buy live voice minutes"
+        >
+          <div className="grid gap-3 sm:grid-cols-3">
+            {voicePackOptions.map((pack) => (
+              <a
+                className="rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface-2)] p-4 transition hover:border-[var(--forge-gold)]"
+                data-voice-pack={pack.id}
+                href={getBillingCheckoutHref(pack.id as BillingPlanId, { returnTo })}
+                key={pack.id}
+              >
+                <strong className="block text-lg text-[var(--forge-text)]">
+                  {pack.minutes.toLocaleString()}
+                </strong>
+                <span className="mt-1 block text-xs text-[var(--forge-muted)]">minutes</span>
+                <span className="mt-4 block text-sm font-semibold text-[var(--forge-gold)]">
+                  {formatPrice(pack.unitAmountCents)}
+                </span>
+              </a>
+            ))}
+          </div>
+        </ForgeDialog>
+      )}
     </>
   );
 }

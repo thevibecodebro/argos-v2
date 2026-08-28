@@ -15,6 +15,7 @@ export type VoiceBalance = {
   canPurchaseMinutes: boolean;
   capacityMinutes: number;
   includedMinutesRemaining: number;
+  isUnlimited: boolean;
   package: "solo" | "team";
   purchasedMinutesRemaining: number;
   remainingPercentage: number;
@@ -59,6 +60,33 @@ export async function getVoiceBalance(
   const access = await resolveVoiceAccess(repository, authUserId);
   if (!access.ok) return access;
 
+  const role = access.data.scope.role ?? null;
+  const canManageBilling = !access.data.scope.orgId || role === "admin";
+  const entitlement = access.data.entitlement;
+
+  if (access.data.isUnlimited) {
+    const data: VoiceBalance = {
+      accessEndsAt: entitlement.accessEndsAt?.toISOString() ?? null,
+      accessSource: entitlement.sourceType,
+      billingPlanId: entitlement.billingPlanId,
+      canManageBasePlan:
+        canManageBilling && entitlement.sourceType === "stripe_subscription",
+      canPurchaseMinutes: false,
+      capacityMinutes: 0,
+      includedMinutesRemaining: 0,
+      isUnlimited: true,
+      package: entitlement.package,
+      purchasedMinutesRemaining: 0,
+      remainingPercentage: 100,
+      renewalDate: null,
+      seatCount: entitlement.seatCount,
+      state: "healthy",
+      totalMinutesRemaining: 0,
+    };
+
+    return { ok: true as const, data };
+  }
+
   const grants = await repository.findVoiceBalanceGrants(access.data.scope);
   const included = grants.filter((grant) => grant.sourceType !== "extra_pack");
   const purchased = grants.filter((grant) => grant.sourceType === "extra_pack");
@@ -79,9 +107,6 @@ export async function getVoiceBalance(
       .map((grant) => grant.periodEnd)
       .filter((value): value is Date => value instanceof Date)
       .sort((left, right) => left.getTime() - right.getTime())[0] ?? null;
-  const role = access.data.scope.role ?? null;
-  const canManageBilling = !access.data.scope.orgId || role === "admin";
-  const entitlement = access.data.entitlement;
   const data: VoiceBalance = {
     accessEndsAt: entitlement.accessEndsAt?.toISOString() ?? null,
     accessSource: entitlement.sourceType,
@@ -91,6 +116,7 @@ export async function getVoiceBalance(
     canPurchaseMinutes: canManageBilling,
     capacityMinutes,
     includedMinutesRemaining,
+    isUnlimited: false,
     package: entitlement.package,
     purchasedMinutesRemaining,
     remainingPercentage,

@@ -68,6 +68,7 @@ export class DrizzleBillingRepository
         lastName: usersTable.lastName,
         orgName: organizationsTable.name,
         orgId: usersTable.orgId,
+        plan: organizationsTable.plan,
         role: usersTable.role,
         userId: usersTable.id,
       })
@@ -85,6 +86,7 @@ export class DrizzleBillingRepository
       fullName: buildFullName(user.firstName, user.lastName, user.email),
       orgName: user.orgName,
       orgId: user.orgId,
+      plan: user.plan,
       role: user.role,
       userId: user.userId,
     };

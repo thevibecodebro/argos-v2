@@ -59,6 +59,7 @@ describe("getVoiceBalance", () => {
         canPurchaseMinutes: true,
         capacityMinutes: 610,
         includedMinutesRemaining: 80,
+        isUnlimited: false,
         package: "team",
         purchasedMinutesRemaining: 70,
         remainingPercentage: 25,
@@ -68,6 +69,42 @@ describe("getVoiceBalance", () => {
         totalMinutesRemaining: 150,
       },
     });
+  });
+
+  it("returns unlimited access for Enterprise without loading pooled grants", async () => {
+    const findVoiceBalanceGrants = vi.fn().mockResolvedValue([]);
+    const repository = makeRepository({
+      findUserBillingScope: vi.fn().mockResolvedValue({
+        orgId: "org-enterprise",
+        plan: "Enterprise",
+        role: "admin",
+        userId: "user-1",
+      }),
+      findVoiceBalanceGrants,
+    });
+
+    await expect(getVoiceBalance(repository, "user-1")).resolves.toEqual({
+      ok: true,
+      data: {
+        accessEndsAt: "2026-12-31T00:00:00.000Z",
+        accessSource: "stripe_subscription",
+        billingPlanId: "team",
+        canManageBasePlan: true,
+        canPurchaseMinutes: false,
+        capacityMinutes: 0,
+        includedMinutesRemaining: 0,
+        isUnlimited: true,
+        package: "team",
+        purchasedMinutesRemaining: 0,
+        remainingPercentage: 100,
+        renewalDate: null,
+        seatCount: 3,
+        state: "healthy",
+        totalMinutesRemaining: 0,
+      },
+    });
+    expect(findVoiceBalanceGrants).not.toHaveBeenCalled();
+    expect(repository.ensureCoachingVoiceCreditGrant).not.toHaveBeenCalled();
   });
 
   it.each([
