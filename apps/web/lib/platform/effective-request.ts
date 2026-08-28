@@ -5,8 +5,10 @@ import type { AccessRepository } from "@/lib/access/repository.types";
 import { getCachedCurrentUserProfile } from "@/lib/auth/request-user";
 import {
   createEffectiveAccessRepository,
+  createEffectiveBillingScopeRepository,
   createEffectiveCurrentUserRepository,
   toEffectiveDashboardUserRecord,
+  type BillingScopeRepository,
 } from "@/lib/dashboard/effective-platform";
 import {
   auditPlatformWorkspaceMutation,
@@ -131,6 +133,23 @@ export async function createEffectiveTenantAccessRepository(
   }
 
   const effectiveRepository = createEffectiveAccessRepository(repository, profile, authUserId);
+  return createPlatformAuditedEffectiveRepository(effectiveRepository, authUserId);
+}
+
+export async function createEffectiveTenantBillingRepository<
+  TRepository extends BillingScopeRepository,
+>(repository: TRepository, authUserId: string): Promise<TRepository> {
+  const profile = await getCachedCurrentUserProfile(authUserId);
+
+  if (!profile || !isPlatformSessionProfile(profile.email)) {
+    return repository;
+  }
+
+  const effectiveRepository = createEffectiveBillingScopeRepository(
+    repository,
+    profile,
+    authUserId,
+  );
   return createPlatformAuditedEffectiveRepository(effectiveRepository, authUserId);
 }
 

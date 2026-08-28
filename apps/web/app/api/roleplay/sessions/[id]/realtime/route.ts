@@ -7,6 +7,7 @@ import {
   rateLimitExceededResponse,
 } from "@/lib/rate-limit/service";
 import { buildRoleplaySafetyIdentifier } from "@/lib/roleplay/content-policy";
+import { createEffectiveTenantBillingRepository } from "@/lib/platform/effective-request";
 import { createRoleplayRepository } from "@/lib/roleplay/create-repository";
 import { getRoleplaySession, markRoleplayVoiceStarted } from "@/lib/roleplay/service";
 import {
@@ -104,7 +105,10 @@ export async function POST(
     return unavailable();
   }
 
-  const billingRepository = new DrizzleBillingRepository();
+  const billingRepository = await createEffectiveTenantBillingRepository(
+    new DrizzleBillingRepository(),
+    authUser.id,
+  );
   const entitlement = await getVoiceEntitlementStatus(billingRepository, authUser.id);
 
   if (!entitlement.ok) {

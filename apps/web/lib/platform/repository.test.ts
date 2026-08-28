@@ -590,6 +590,7 @@ describe("DrizzlePlatformRepository", () => {
           expiresAt,
           endedAt: null,
           targetOrgName: "Acme",
+          targetOrgPlan: "enterprise",
           targetOrgSlug: "acme",
           targetOrgLogoUrl: "https://assets.example/acme-logo.png",
         },
@@ -610,6 +611,7 @@ describe("DrizzlePlatformRepository", () => {
       targetOrgNameSnapshot: "Acme",
       targetOrgSlugSnapshot: "acme",
       targetOrgName: "Acme",
+      targetOrgPlan: "enterprise",
       targetOrgSlug: "acme",
       targetOrgLogoUrl: "https://assets.example/acme-logo.png",
       targetOrgWorkspaceTheme: null,
@@ -630,6 +632,7 @@ describe("DrizzlePlatformRepository", () => {
       kind: "select",
       selection: expect.objectContaining({
         targetOrgLogoUrl: organizationsTable.logoUrl,
+        targetOrgPlan: organizationsTable.plan,
         targetOrgWorkspaceTheme: organizationsTable.workspaceTheme,
       }),
       joins: expect.any(Array),

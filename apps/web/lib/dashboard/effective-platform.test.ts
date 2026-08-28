@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   createEffectiveAccessRepository,
+  createEffectiveBillingScopeRepository,
   createEffectiveCurrentUserRepository,
   createEffectiveDashboardRepository,
   toEffectiveDashboardUserRecord,
@@ -126,5 +127,38 @@ describe("effective platform dashboard adapters", () => {
 
     expect(repository.findCurrentUserByAuthId).toHaveBeenCalledWith("rep-1");
     expect(accessRepository.findActorByAuthUserId).not.toHaveBeenCalled();
+  });
+
+  it("uses the selected platform organization for billing scope", async () => {
+    const repository = {
+      findUserBillingScope: vi.fn().mockResolvedValue({
+        email: "staff@argos.test",
+        fullName: "Platform Staff",
+        orgName: "Staff Workspace",
+        orgId: "staff-org",
+        plan: "solo",
+        role: "admin",
+        userId: "staff-user",
+      }),
+    };
+
+    const effectiveRepository = createEffectiveBillingScopeRepository(
+      repository,
+      effectiveProfile,
+      "staff-user",
+    );
+
+    await expect(
+      effectiveRepository.findUserBillingScope("staff-user"),
+    ).resolves.toEqual({
+      email: "platform:staff-user",
+      fullName: "Platform Staff",
+      orgName: "Acme Health",
+      orgId: "org-1",
+      plan: "trial",
+      role: null,
+      userId: "staff-user",
+    });
+    expect(repository.findUserBillingScope).not.toHaveBeenCalled();
   });
 });

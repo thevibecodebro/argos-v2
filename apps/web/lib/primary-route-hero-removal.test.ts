@@ -215,6 +215,7 @@ vi.mock("@/lib/access/managed-capabilities-server", () => ({
 
 vi.mock("@/lib/platform/effective-request", () => ({
   createEffectiveTenantAccessRepository: vi.fn(async (repository) => repository),
+  createEffectiveTenantBillingRepository: vi.fn(async (repository) => repository),
   createEffectiveTenantRepository: vi.fn(async (repository) => repository),
   createEffectiveTenantTeamAccessRepository: vi.fn(async (repository) => repository),
   createEffectiveTenantUsersRepository: vi.fn(async (repository) => repository),

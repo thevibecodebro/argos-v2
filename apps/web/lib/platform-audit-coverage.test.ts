@@ -7,9 +7,9 @@ const mutationMethodPattern = /export\s+async\s+function\s+(POST|PATCH|PUT|DELET
 const protectedRoutePattern =
   /getAuthenticatedSupabaseUser|getCachedAuthenticatedSupabaseUser|getPlatformApiAccess|createSupabaseServerClient/;
 const platformAuditPattern =
-  /auditPlatformWorkspaceMutation|createEffectiveTenant(?:Access|TeamAccess|Users)?Repository|getPlatformApiAccess|archiveOrganizationForCurrentAdmin|archiveOrganizationForPlatform|createPlatformOrganizationWithAdminInvite|createPlatformSwitchSession|endPlatformSwitchSession|grantPlatformStaffAccess|mutateCoachingAccess|resendPlatformAdminInvite|revokePlatformStaffAccess/;
+  /auditPlatformWorkspaceMutation|createEffectiveTenant(?:Access|Billing|TeamAccess|Users)?Repository|getPlatformApiAccess|archiveOrganizationForCurrentAdmin|archiveOrganizationForPlatform|createPlatformSwitchSession|endPlatformSwitchSession|grantPlatformStaffAccess|mutateCoachingAccess|resendPlatformAdminInvite|revokePlatformStaffAccess/;
 const effectiveTenantRepositoryPattern =
-  /createEffectiveTenant(?:Access|TeamAccess|Users)?Repository/;
+  /createEffectiveTenant(?:Access|Billing|TeamAccess|Users)?Repository/;
 
 const platformAuditCoveredRoutes = new Set([
   "integrations/ghl/consent/route.ts",

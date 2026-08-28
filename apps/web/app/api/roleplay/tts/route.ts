@@ -12,6 +12,7 @@ import {
   assertRoleplayContentAllowed,
   roleplayContentPolicyResponse,
 } from "@/lib/roleplay/content-policy";
+import { createEffectiveTenantBillingRepository } from "@/lib/platform/effective-request";
 import { createSpeechAudio, getOpenAiVoiceConfigurationError } from "@/lib/roleplay/openai-voice";
 import { readRequestTextWithLimit } from "@/lib/security/request-body";
 
@@ -61,7 +62,10 @@ export async function POST(request: Request) {
     return Response.json({ error: configurationError }, { status: 503 });
   }
 
-  const billingRepository = new DrizzleBillingRepository();
+  const billingRepository = await createEffectiveTenantBillingRepository(
+    new DrizzleBillingRepository(),
+    authUser.id,
+  );
   const entitlement = await getVoiceEntitlementStatus(billingRepository, authUser.id);
 
   if (!entitlement.ok) {
