@@ -36,7 +36,7 @@ describe("UploadCallPanel forge step flow", () => {
     expect(html).toContain(`accept="${ACCEPTED_TYPES.join(",")}"`);
     expect(html).toMatch(/<input(?=[^>]*type="file")(?=[^>]*multiple="")/);
     expect(html).toContain(`Upload up to ${MAX_BULK_UPLOAD_FILES} recordings in one batch.`);
-    expect(html).toContain("Accepted: MP3, WAV, M4A, MP4, and WebM. Up to 500 MB each.");
+    expect(html).toContain("Accepted: MP3, WAV, M4A, MP4, and WebM. Up to 2 GB each.");
     expect(html).toContain("Video files are processed from their audio track.");
     expect(html.toLowerCase()).not.toMatch(/scorecard|scored|scoring/);
     expect(html).toContain("disabled=\"\"");

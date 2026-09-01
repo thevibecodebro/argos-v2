@@ -1,7 +1,8 @@
 import { isSafeStorageFileName } from "@argos-v2/call-processing";
 
-export const CALL_UPLOAD_MAX_BYTES = 500 * 1024 * 1024;
-export const CALL_UPLOAD_MAX_REQUEST_BYTES = CALL_UPLOAD_MAX_BYTES + 1024 * 1024;
+export const CALL_UPLOAD_MAX_BYTES = 2 * 1024 * 1024 * 1024;
+export const CALL_SERVER_UPLOAD_MAX_BYTES = 500 * 1024 * 1024;
+export const CALL_UPLOAD_MAX_REQUEST_BYTES = CALL_SERVER_UPLOAD_MAX_BYTES + 1024 * 1024;
 
 export const CALL_UPLOAD_ACCEPTED_TYPES = [
   "audio/mpeg",
@@ -57,6 +58,12 @@ type UploadFileLike = {
 };
 
 export function formatUploadLimit(bytes: number) {
+  const gibibyte = 1024 * 1024 * 1024;
+
+  if (bytes >= gibibyte && bytes % gibibyte === 0) {
+    return `${bytes / gibibyte} GB`;
+  }
+
   return `${Math.round(bytes / (1024 * 1024))} MB`;
 }
 

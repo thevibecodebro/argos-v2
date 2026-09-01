@@ -3,11 +3,9 @@ import { uploadCallFromBrowser } from "./browser-upload";
 
 describe("uploadCallFromBrowser", () => {
   it("prepares the upload, sends the file to storage, and completes queueing", async () => {
-    const from = vi.fn().mockReturnValue({
-      uploadToSignedUrl: vi.fn().mockResolvedValue({
-        data: { path: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3" },
-        error: null,
-      }),
+    const uploadResumable = vi.fn().mockImplementation(async (input) => {
+      input.onProgress(50);
+      input.onProgress(100);
     });
     const fetchImpl = vi
       .fn()
@@ -40,16 +38,17 @@ describe("uploadCallFromBrowser", () => {
       {
         fetchImpl: fetchImpl as typeof fetch,
         onProgress: (progress) => progressValues.push(progress),
-        supabase: {
-          storage: {
-            from,
-          },
-        } as any,
+        uploadResumable,
       },
     );
 
     expect(result.id).toBe("call-1");
-    expect(from).toHaveBeenCalledWith("call-recordings");
+    expect(uploadResumable).toHaveBeenCalledWith({
+      file: expect.any(File),
+      onProgress: expect.any(Function),
+      path: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
+      token: "signed-token",
+    });
     expect(fetchImpl).toHaveBeenNthCalledWith(
       1,
       "/api/calls/upload/prepare",
@@ -64,7 +63,7 @@ describe("uploadCallFromBrowser", () => {
         method: "POST",
       }),
     );
-    expect(progressValues).toEqual([15, 35, 85, 100]);
+    expect(progressValues).toEqual([15, 35, 60, 85, 100]);
   });
 
   it("surfaces plain-text upstream errors instead of throwing a JSON parse error", async () => {
@@ -80,11 +79,7 @@ describe("uploadCallFromBrowser", () => {
         },
         {
           fetchImpl: fetchImpl as typeof fetch,
-          supabase: {
-            storage: {
-              from: vi.fn(),
-            },
-          } as any,
+          uploadResumable: vi.fn(),
         },
       ),
     ).rejects.toThrow("Request Entity Too Large");

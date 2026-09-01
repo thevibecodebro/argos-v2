@@ -11,7 +11,7 @@ import {
   processZoomWebhookRequest,
   type ZoomWebhookRepository,
 } from "./zoom-webhook";
-import { CALL_UPLOAD_MAX_BYTES } from "../calls/upload-contract";
+import { CALL_SERVER_UPLOAD_MAX_BYTES } from "../calls/upload-contract";
 import type { RubricsRepository } from "../rubrics/service";
 
 function createRepository(
@@ -851,7 +851,7 @@ describe("processZoomWebhookRequest", () => {
       status: 200,
       body: {},
       headers: new Headers({
-        "Content-Length": String(CALL_UPLOAD_MAX_BYTES + 1),
+        "Content-Length": String(CALL_SERVER_UPLOAD_MAX_BYTES + 1),
         "Content-Type": "audio/mp4",
       }),
       arrayBuffer: readBody,

@@ -3,10 +3,7 @@ import {
   normalizeUploadErrorPayload,
   type UploadSuccessPayload,
 } from "./upload-contract";
-
-type BrowserSupabaseClient = ReturnType<
-  (typeof import("@/lib/supabase/browser"))["createSupabaseBrowserClient"]
->;
+import { uploadToSignedResumableUrl } from "./resumable-upload";
 
 type SignedUploadPayload = {
   path: string;
@@ -16,7 +13,7 @@ type SignedUploadPayload = {
 type BrowserUploadDependencies = {
   fetchImpl?: typeof fetch;
   onProgress?: (progress: number) => void;
-  supabase?: Pick<BrowserSupabaseClient, "storage">;
+  uploadResumable?: typeof uploadToSignedResumableUrl;
 };
 
 type BrowserUploadInput = {
@@ -29,9 +26,7 @@ export async function uploadCallFromBrowser(
   dependencies: BrowserUploadDependencies = {},
 ): Promise<UploadSuccessPayload> {
   const fetchImpl = dependencies.fetchImpl ?? fetch;
-  const supabase =
-    dependencies.supabase
-    ?? (await import("@/lib/supabase/browser")).createSupabaseBrowserClient();
+  const uploadResumable = dependencies.uploadResumable ?? uploadToSignedResumableUrl;
 
   dependencies.onProgress?.(15);
   const prepareResponse = await fetchImpl("/api/calls/upload/prepare", {
@@ -57,17 +52,21 @@ export async function uploadCallFromBrowser(
   }
 
   dependencies.onProgress?.(35);
-  const uploadResult = await supabase.storage
-    .from("call-recordings")
-    .uploadToSignedUrl(preparePayload.path, preparePayload.token, input.file, {
-      contentType: input.file.type || "application/octet-stream",
+  try {
+    await uploadResumable({
+      file: input.file,
+      onProgress: (progress) => {
+        dependencies.onProgress?.(35 + Math.round(progress / 2));
+      },
+      path: preparePayload.path,
+      token: preparePayload.token,
     });
-
-  if (uploadResult.error) {
-    throw new Error(`Failed to upload recording: ${uploadResult.error.message}`);
+  } catch (error) {
+    throw new Error(
+      `Failed to upload recording: ${error instanceof Error ? error.message : "Upload failed"}`,
+    );
   }
 
-  dependencies.onProgress?.(85);
   const completeResponse = await fetchImpl("/api/calls/upload/complete", {
     method: "POST",
     headers: {

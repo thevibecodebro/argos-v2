@@ -25,7 +25,7 @@ describe("getWorkerEnv", () => {
       googleMeetSyncIntervalMs: 15 * 60 * 1000,
       googleMeetSyncPollIntervalMs: 60_000,
       host: "0.0.0.0",
-      maxSourceBytes: 500 * 1024 * 1024,
+      maxSourceBytes: 2 * 1024 * 1024 * 1024,
       openaiApiKey: null,
       port: 8787,
       nodeEnv: "development",

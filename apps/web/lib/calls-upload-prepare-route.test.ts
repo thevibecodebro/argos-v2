@@ -85,7 +85,30 @@ describe("calls upload prepare route", () => {
     });
   });
 
-  it("returns a structured 413 error for oversized upload metadata", async () => {
+  it("accepts recording metadata above 500 MB for resumable upload", async () => {
+    createManualCallUploadTarget.mockResolvedValue({
+      storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp4",
+      token: "signed-token",
+    });
+
+    const route = await import("../app/api/calls/upload/prepare/route");
+    const response = await route.POST(
+      new Request("http://localhost:3000/api/calls/upload/prepare", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: "demo.mp4",
+          fileSizeBytes: 1_500 * 1024 * 1024,
+          contentType: "video/mp4",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(createManualCallUploadTarget).toHaveBeenCalled();
+  });
+
+  it("returns a structured 413 error above the 2 GB upload limit", async () => {
     const route = await import("../app/api/calls/upload/prepare/route");
     const response = await route.POST(
       new Request("http://localhost:3000/api/calls/upload/prepare", {
@@ -93,7 +116,7 @@ describe("calls upload prepare route", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           fileName: "demo.mp3",
-          fileSizeBytes: 501 * 1024 * 1024,
+          fileSizeBytes: 2 * 1024 * 1024 * 1024 + 1,
           contentType: "audio/mpeg",
         }),
       }),

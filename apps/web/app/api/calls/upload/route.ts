@@ -2,8 +2,9 @@ import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capa
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import {
   CALL_UPLOAD_ACCEPTED_TYPES,
-  CALL_UPLOAD_MAX_BYTES,
   CALL_UPLOAD_MAX_REQUEST_BYTES,
+  CALL_SERVER_UPLOAD_MAX_BYTES,
+  formatUploadLimit,
   isAcceptedUploadFile,
 } from "@/lib/calls/upload-contract";
 import {
@@ -45,11 +46,11 @@ export async function POST(request: Request) {
       if (formDataResult.reason === "too_large") {
         return uploadCallErrorJson(
           UPLOAD_CALL_ERROR_CODES.fileTooLarge,
-          "Call recordings must be 500 MB or smaller.",
+          `Direct call uploads must be ${formatUploadLimit(CALL_SERVER_UPLOAD_MAX_BYTES)} or smaller.`,
           413,
           {
             details: {
-              maxBytes: CALL_UPLOAD_MAX_BYTES,
+              maxBytes: CALL_SERVER_UPLOAD_MAX_BYTES,
             },
           },
         );
@@ -90,14 +91,14 @@ export async function POST(request: Request) {
       );
     }
 
-    if (recording.size > CALL_UPLOAD_MAX_BYTES) {
+    if (recording.size > CALL_SERVER_UPLOAD_MAX_BYTES) {
       return uploadCallErrorJson(
         UPLOAD_CALL_ERROR_CODES.fileTooLarge,
-        "Call recordings must be 500 MB or smaller.",
+        `Direct call uploads must be ${formatUploadLimit(CALL_SERVER_UPLOAD_MAX_BYTES)} or smaller.`,
         413,
         {
           details: {
-            maxBytes: CALL_UPLOAD_MAX_BYTES,
+            maxBytes: CALL_SERVER_UPLOAD_MAX_BYTES,
             fileSizeBytes: recording.size,
           },
         },

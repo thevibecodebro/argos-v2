@@ -9,7 +9,7 @@ import {
   getCallProcessingEntitlementStatus,
   type CallProcessingEntitlementsRepository,
 } from "@/lib/billing/call-processing-entitlements";
-import { CALL_UPLOAD_MAX_BYTES } from "@/lib/calls/upload-contract";
+import { CALL_SERVER_UPLOAD_MAX_BYTES } from "@/lib/calls/upload-contract";
 import { storeZoomCallSource, type SourceAsset } from "@/lib/calls/ingestion-service";
 import type { CallRecordingStorage } from "@/lib/calls/service";
 import { checkRateLimitForPolicy, type RateLimitResult } from "@/lib/rate-limit/service";
@@ -494,7 +494,7 @@ async function fetchTrustedZoomRecordingDownload(input: {
       (response) =>
         isRedirectResponse(response) || !response.ok || !response.body
           ? Promise.resolve(null)
-          : readResponseArrayBufferWithLimit(response, CALL_UPLOAD_MAX_BYTES),
+          : readResponseArrayBufferWithLimit(response, CALL_SERVER_UPLOAD_MAX_BYTES),
     );
 
     if (!isRedirectResponse(result.response)) {
