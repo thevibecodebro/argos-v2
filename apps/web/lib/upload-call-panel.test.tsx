@@ -36,7 +36,7 @@ describe("UploadCallPanel forge step flow", () => {
     expect(html).toContain(`accept="${ACCEPTED_TYPES.join(",")}"`);
     expect(html).toMatch(/<input(?=[^>]*type="file")(?=[^>]*multiple="")/);
     expect(html).toContain(`Upload up to ${MAX_BULK_UPLOAD_FILES} recordings in one batch.`);
-    expect(html).toContain("Accepted: MP3, WAV, M4A, MP4, and WebM. Up to 500 MB each.");
+    expect(html).toContain("Accepted: MP3, WAV, M4A, MP4, and WebM. Up to 2 GB each.");
     expect(html).toContain("Video files are processed from their audio track.");
     expect(html.toLowerCase()).not.toMatch(/scorecard|scored|scoring/);
     expect(html).toContain("disabled=\"\"");
@@ -91,6 +91,7 @@ describe("UploadCallPanel forge step flow", () => {
     expect(validateUploadFile({ name: "../call.mp3", size: 42_000, type: "audio/mpeg" })?.code).toBe(
       "invalid_upload",
     );
+    expect(validateUploadFile({ name: "call.mp3", size: MAX_UPLOAD_BYTES, type: "audio/mpeg" })).toBeNull();
     expect(validateUploadFile({ name: "call.mp3", size: MAX_UPLOAD_BYTES + 1, type: "audio/mpeg" })?.code).toBe(
       "file_too_large",
     );

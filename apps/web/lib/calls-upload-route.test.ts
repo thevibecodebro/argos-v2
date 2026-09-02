@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { CALL_UPLOAD_MAX_BYTES } from "./calls/upload-contract";
+import {
+  CALL_SERVER_UPLOAD_MAX_BYTES,
+  CALL_UPLOAD_MAX_REQUEST_BYTES,
+} from "./calls/upload-contract";
 
 const getAuthenticatedSupabaseUser = vi.fn();
 const requireAuthenticatedManagedCapability = vi.fn();
@@ -108,7 +111,7 @@ describe("calls upload route", () => {
       code: "file_too_large",
       retryable: true,
       details: {
-        maxBytes: 500 * 1024 * 1024,
+        maxBytes: CALL_SERVER_UPLOAD_MAX_BYTES,
       },
     });
     expect(uploadCall).not.toHaveBeenCalled();
@@ -120,7 +123,7 @@ describe("calls upload route", () => {
 
     const response = await route.POST({
       headers: new Headers({
-        "Content-Length": String(CALL_UPLOAD_MAX_BYTES + 1024 * 1024 + 1),
+        "Content-Length": String(CALL_UPLOAD_MAX_REQUEST_BYTES + 1),
         "Content-Type": "multipart/form-data; boundary=upload-boundary",
       }),
       formData,
@@ -131,7 +134,7 @@ describe("calls upload route", () => {
       code: "file_too_large",
       retryable: true,
       details: {
-        maxBytes: CALL_UPLOAD_MAX_BYTES,
+        maxBytes: CALL_SERVER_UPLOAD_MAX_BYTES,
       },
     });
     expect(formData).not.toHaveBeenCalled();

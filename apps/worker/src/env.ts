@@ -133,7 +133,7 @@ export function getWorkerEnv(env: WorkerEnvSource = process.env): WorkerEnv {
   const supabaseUrl = readEnv(env, "SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL");
   const maxSourceBytes = parseInteger(
     env.CALL_PROCESSING_MAX_SOURCE_BYTES ?? env.MAX_SOURCE_BYTES,
-    500 * 1024 * 1024,
+    2 * 1024 * 1024 * 1024,
     "CALL_PROCESSING_MAX_SOURCE_BYTES",
   );
   const pollIntervalMs = parseInteger(

@@ -1,5 +1,12 @@
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { downloadSourceAsset, storeCallSourceAsset } from "./storage";
+import {
+  downloadSourceAsset,
+  storeCallSourceAsset,
+  streamResponseBodyToFile,
+} from "./storage";
 
 describe("storeCallSourceAsset", () => {
   it("rejects path-like filenames before worker storage upload", async () => {
@@ -34,16 +41,14 @@ describe("storeCallSourceAsset", () => {
 
 describe("downloadSourceAsset", () => {
   it("rejects stored source assets whose current size no longer matches the queued size", async () => {
-    const readBody = vi.fn().mockResolvedValue(new ArrayBuffer(11));
-    const download = vi.fn().mockResolvedValue({
-      data: {
-        size: 11,
-        arrayBuffer: readBody,
-      },
+    const createSignedUrl = vi.fn().mockResolvedValue({
+      data: { signedUrl: "https://storage.local/signed-source" },
       error: null,
     });
-    const from = vi.fn().mockReturnValue({ download });
-    const writeFile = vi.fn().mockResolvedValue(undefined);
+    const from = vi.fn().mockReturnValue({ createSignedUrl });
+    const fetchImpl = vi.fn().mockResolvedValue(
+      new Response("hello world", { headers: { "Content-Length": "11" } }),
+    );
 
     await expect(
       downloadSourceAsset(
@@ -63,26 +68,26 @@ describe("downloadSourceAsset", () => {
               from,
             },
           } as any,
-          writeFile: writeFile as any,
+          fetchImpl: fetchImpl as typeof fetch,
         },
       ),
     ).rejects.toThrow("Stored source asset changed after upload completion.");
 
-    expect(readBody).not.toHaveBeenCalled();
-    expect(writeFile).not.toHaveBeenCalled();
+    expect(createSignedUrl).toHaveBeenCalledWith(
+      "recordings/call-1/source/demo.wav",
+      60 * 60,
+    );
   });
 
-  it("rejects oversized stored source assets before buffering the blob", async () => {
-    const readBody = vi.fn().mockResolvedValue(new ArrayBuffer(0));
-    const download = vi.fn().mockResolvedValue({
-      data: {
-        size: 11,
-        arrayBuffer: readBody,
-      },
+  it("rejects oversized stored source assets before streaming the response", async () => {
+    const createSignedUrl = vi.fn().mockResolvedValue({
+      data: { signedUrl: "https://storage.local/signed-source" },
       error: null,
     });
-    const from = vi.fn().mockReturnValue({ download });
-    const writeFile = vi.fn().mockResolvedValue(undefined);
+    const from = vi.fn().mockReturnValue({ createSignedUrl });
+    const fetchImpl = vi.fn().mockResolvedValue(
+      new Response("hello world", { headers: { "Content-Length": "11" } }),
+    );
 
     await expect(
       downloadSourceAsset(
@@ -101,12 +106,29 @@ describe("downloadSourceAsset", () => {
               from,
             },
           } as any,
-          writeFile: writeFile as any,
+          fetchImpl: fetchImpl as typeof fetch,
         },
       ),
     ).rejects.toThrow("Response body exceeds 10 bytes");
+  });
+});
 
-    expect(readBody).not.toHaveBeenCalled();
-    expect(writeFile).not.toHaveBeenCalled();
+describe("streamResponseBodyToFile", () => {
+  it("streams a source asset to disk without buffering the entire recording", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "argos-storage-test-"));
+    const targetPath = join(tempDir, "source.mp4");
+
+    try {
+      const receivedBytes = await streamResponseBodyToFile(
+        new Response("streamed-video"),
+        targetPath,
+        100,
+      );
+
+      expect(receivedBytes).toBe(14);
+      await expect(readFile(targetPath, "utf8")).resolves.toBe("streamed-video");
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
   });
 });

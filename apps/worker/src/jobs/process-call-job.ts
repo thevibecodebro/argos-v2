@@ -23,6 +23,8 @@ type ClaimedCallProcessingJob = NonNullable<
 
 type JobStage = "download" | "normalize" | "chunk" | "transcribe" | "profile" | "score" | "persist";
 
+const MAX_NORMALIZED_AUDIO_BYTES = 500 * 1024 * 1024;
+
 type ProcessCallJobInput = {
   job: ClaimedCallProcessingJob;
   repository: Pick<
@@ -237,7 +239,7 @@ export async function processCallJob(input: ProcessCallJobInput) {
       inputPath: downloadedSourcePath,
       outputPath: normalizedPath,
       ffmpegBinary,
-      maxOutputBytes: env.maxSourceBytes,
+      maxOutputBytes: Math.min(env.maxSourceBytes, MAX_NORMALIZED_AUDIO_BYTES),
     });
 
     const transcription = await transcribeNormalizedAudio({
