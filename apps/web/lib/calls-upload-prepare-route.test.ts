@@ -108,7 +108,7 @@ describe("calls upload prepare route", () => {
     expect(createManualCallUploadTarget).toHaveBeenCalled();
   });
 
-  it("returns a structured 413 error above the 2 GB upload limit", async () => {
+  it("returns a structured 413 error at the unsafe PostgreSQL integer boundary", async () => {
     const route = await import("../app/api/calls/upload/prepare/route");
     const response = await route.POST(
       new Request("http://localhost:3000/api/calls/upload/prepare", {
@@ -116,7 +116,7 @@ describe("calls upload prepare route", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           fileName: "demo.mp3",
-          fileSizeBytes: 2 * 1024 * 1024 * 1024 + 1,
+          fileSizeBytes: 2 * 1024 * 1024 * 1024,
           contentType: "audio/mpeg",
         }),
       }),
