@@ -59,6 +59,7 @@ export async function createManualCallUploadTarget(
   input: {
     authUserId: string;
     fileName: string;
+    orgId: string;
   },
   dependencies: CreateManualCallUploadTargetDependencies = {},
 ): Promise<ManualCallUploadTarget> {
@@ -80,6 +81,7 @@ export async function createManualCallUploadTarget(
       auth_user_id: input.authUserId,
       expires_at: new Date(now.getTime() + MANUAL_UPLOAD_TARGET_TTL_MS).toISOString(),
       storage_path: storagePath,
+      target_org_id: input.orgId,
     });
 
   if (error) {

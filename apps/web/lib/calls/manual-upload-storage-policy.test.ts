@@ -18,6 +18,9 @@ describe("manual recording upload storage policy", () => {
       /auth_user_id uuid not null references public\.users\(id\) on delete cascade/i,
     );
     expect(migration).toMatch(
+      /target_org_id uuid not null references public\.organizations\(id\) on delete cascade/i,
+    );
+    expect(migration).toMatch(
       /alter table public\.manual_recording_upload_targets enable row level security/i,
     );
     expect(migration).toMatch(
@@ -27,6 +30,9 @@ describe("manual recording upload storage policy", () => {
       /upload_target\.storage_path = storage_object_name/i,
     );
     expect(migration).toMatch(/upload_target\.auth_user_id = auth\.uid\(\)/i);
+    expect(migration).toMatch(
+      /organization\.id = upload_target\.target_org_id/i,
+    );
     expect(migration).toMatch(/upload_target\.expires_at > now\(\)/i);
     expect(migration).toMatch(/capability\.capability_key = 'call_upload'/i);
     expect(migration).toMatch(

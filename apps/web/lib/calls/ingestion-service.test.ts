@@ -109,6 +109,7 @@ describe("createManualCallUploadTarget", () => {
       {
         authUserId: "auth-user-1",
         fileName: "demo.mp3",
+        orgId: "org-1",
       },
       {
         createId: () => "upload-1",
@@ -123,6 +124,7 @@ describe("createManualCallUploadTarget", () => {
       auth_user_id: "auth-user-1",
       expires_at: "2026-09-09T00:00:00.000Z",
       storage_path: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
+      target_org_id: "org-1",
     });
     expect(result).toEqual({
       storageBucket: "call-recordings",
@@ -136,6 +138,7 @@ describe("createManualCallUploadTarget", () => {
         {
           authUserId: "auth-user-1",
           fileName: "nested/demo.mp3",
+          orgId: "org-1",
         },
         {
           createId: () => "upload-1",
@@ -156,6 +159,7 @@ describe("createManualCallUploadTarget", () => {
         {
           authUserId: "auth-user-1",
           fileName: "demo.mp3",
+          orgId: "org-1",
         },
         {
           createId: () => "upload-1",

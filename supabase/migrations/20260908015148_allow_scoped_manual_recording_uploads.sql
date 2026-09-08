@@ -1,6 +1,7 @@
 create table if not exists public.manual_recording_upload_targets (
   storage_path text primary key,
   auth_user_id uuid not null references public.users(id) on delete cascade,
+  target_org_id uuid not null references public.organizations(id) on delete cascade,
   expires_at timestamptz not null,
   created_at timestamptz not null default now(),
   constraint manual_recording_upload_targets_path_check
@@ -38,10 +39,8 @@ as $$
   select exists (
     select 1
     from public.manual_recording_upload_targets upload_target
-    join public.users user_row
-      on user_row.id = upload_target.auth_user_id
     join public.organizations organization
-      on organization.id = user_row.org_id
+      on organization.id = upload_target.target_org_id
     where upload_target.storage_path = storage_object_name
       and upload_target.auth_user_id = auth.uid()
       and upload_target.expires_at > now()

@@ -78,6 +78,11 @@ describe("calls upload prepare route", () => {
     );
 
     expect(response.status).toBe(200);
+    expect(createManualCallUploadTarget).toHaveBeenCalledWith({
+      authUserId: "auth-user-1",
+      fileName: "demo.mp3",
+      orgId: "org-1",
+    });
     await expect(response.json()).resolves.toMatchObject({
       path: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
     });

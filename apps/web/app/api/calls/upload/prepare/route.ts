@@ -66,6 +66,7 @@ export async function POST(request: Request) {
     const target = await createManualCallUploadTarget({
       authUserId: authUser.id,
       fileName: body.fileName,
+      orgId: capabilityAccess.orgId,
     });
 
     return Response.json(
