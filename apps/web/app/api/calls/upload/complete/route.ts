@@ -1,4 +1,5 @@
 import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
+import { consumeManualCallUploadTarget } from "@/lib/calls/ingestion-service";
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { completeUploadedCall } from "@/lib/calls/service";
 import {
@@ -119,6 +120,11 @@ export async function POST(request: Request) {
         { status: result.status },
       );
     }
+
+    await consumeManualCallUploadTarget({
+      authUserId: authUser.id,
+      storagePath: body.storagePath,
+    });
 
     return Response.json(result.data, {
       headers: { "Cache-Control": "private, no-store" },

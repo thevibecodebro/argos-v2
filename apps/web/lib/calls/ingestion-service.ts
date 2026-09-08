@@ -9,9 +9,9 @@ export type SourceAsset = {
   fileSizeBytes: number;
 };
 
-export type ManualCallUploadTarget = Pick<SourceAsset, "storageBucket" | "storagePath"> & {
-  token: string;
-};
+export type ManualCallUploadTarget = Pick<SourceAsset, "storageBucket" | "storagePath">;
+
+const MANUAL_UPLOAD_TARGET_TTL_MS = 24 * 60 * 60 * 1000;
 
 type CallSourceInput = {
   callId: string;
@@ -26,6 +26,7 @@ type StoreCallSourceDependencies = {
 
 type CreateManualCallUploadTargetDependencies = {
   createId?: () => string;
+  now?: () => Date;
   supabase?: ReturnType<typeof createSupabaseAdminClient>;
 };
 
@@ -61,26 +62,54 @@ export async function createManualCallUploadTarget(
   },
   dependencies: CreateManualCallUploadTargetDependencies = {},
 ): Promise<ManualCallUploadTarget> {
-  const supabase = dependencies.supabase ?? createSupabaseAdminClient();
   const createId = dependencies.createId ?? randomUUID;
+  const now = dependencies.now?.() ?? new Date();
   const fileName = assertSafeStorageFileName(input.fileName);
   const storagePath = `recordings/manual-uploads/${input.authUserId}/${createId()}/${fileName}`;
-  const bucket = supabase.storage.from("call-recordings");
-  const { data, error } = await bucket.createSignedUploadUrl(storagePath, {
-    upsert: false,
-  });
+  const supabase = dependencies.supabase ?? createSupabaseAdminClient();
+  const client: any = supabase;
 
-  if (error || !data?.token) {
-    throw new Error(
-      `Failed to create source upload target: ${error?.message ?? "missing upload token"}`,
-    );
+  await client
+    .from("manual_recording_upload_targets")
+    .delete()
+    .lt("expires_at", now.toISOString());
+
+  const { error } = await client
+    .from("manual_recording_upload_targets")
+    .insert({
+      auth_user_id: input.authUserId,
+      expires_at: new Date(now.getTime() + MANUAL_UPLOAD_TARGET_TTL_MS).toISOString(),
+      storage_path: storagePath,
+    });
+
+  if (error) {
+    throw new Error(`Failed to create source upload target: ${error.message}`);
   }
 
   return {
     storageBucket: "call-recordings",
     storagePath,
-    token: data.token,
   };
+}
+
+export async function consumeManualCallUploadTarget(
+  input: {
+    authUserId: string;
+    storagePath: string;
+  },
+  dependencies: StoreCallSourceDependencies = {},
+) {
+  const supabase = dependencies.supabase ?? createSupabaseAdminClient();
+  const client: any = supabase;
+  const { error } = await client
+    .from("manual_recording_upload_targets")
+    .delete()
+    .eq("storage_path", input.storagePath)
+    .eq("auth_user_id", input.authUserId);
+
+  if (error) {
+    console.error("Failed to consume manual upload target", error);
+  }
 }
 
 export async function storeManualCallSource(

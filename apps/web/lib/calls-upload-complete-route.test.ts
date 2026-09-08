@@ -4,6 +4,7 @@ const getAuthenticatedSupabaseUser = vi.fn();
 const requireAuthenticatedManagedCapability = vi.fn();
 const createCallsRepository = vi.fn();
 const completeUploadedCall = vi.fn();
+const consumeManualCallUploadTarget = vi.fn();
 const createSupabaseAdminClient = vi.fn();
 const checkRateLimitForPolicy = vi.fn();
 
@@ -17,6 +18,10 @@ vi.mock("@/lib/access/managed-capabilities-server", () => ({
 
 vi.mock("@/lib/calls/create-repository", () => ({
   createCallsRepository,
+}));
+
+vi.mock("@/lib/calls/ingestion-service", () => ({
+  consumeManualCallUploadTarget,
 }));
 
 vi.mock("@/lib/supabase/admin", () => ({
@@ -55,6 +60,7 @@ describe("calls upload complete route", () => {
     requireAuthenticatedManagedCapability.mockReset();
     createCallsRepository.mockReset();
     completeUploadedCall.mockReset();
+    consumeManualCallUploadTarget.mockReset();
     createSupabaseAdminClient.mockReset();
     checkRateLimitForPolicy.mockReset();
     getAuthenticatedSupabaseUser.mockResolvedValue({ id: "auth-user-1" });
@@ -65,6 +71,7 @@ describe("calls upload complete route", () => {
         : { ok: false, response: Response.json({ error: "Unauthorized" }, { status: 401 }) };
     });
     createCallsRepository.mockReturnValue({});
+    consumeManualCallUploadTarget.mockResolvedValue(undefined);
     checkRateLimitForPolicy.mockResolvedValue({
       allowed: true,
       limit: 20,
@@ -135,6 +142,10 @@ describe("calls upload complete route", () => {
           }),
         }),
       );
+      expect(consumeManualCallUploadTarget).toHaveBeenCalledWith({
+        authUserId: "auth-user-1",
+        storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
+      });
       await expect(response.json()).resolves.toMatchObject({ id: "call-1" });
     },
     10_000,

@@ -4,10 +4,10 @@ import { getBrowserWebEnv } from "@/lib/env";
 const TUS_CHUNK_SIZE_BYTES = 6 * 1024 * 1024;
 
 type ResumableUploadInput = {
+  accessToken: string;
   file: File;
   onProgress: (progress: number) => void;
   path: string;
-  token: string;
 };
 
 type TusUpload = {
@@ -16,6 +16,7 @@ type TusUpload = {
 
 type ResumableUploadDependencies = {
   createUpload?: (file: File, options: UploadOptions) => TusUpload;
+  supabaseAnonKey?: string;
   supabaseUrl?: string;
 };
 
@@ -32,11 +33,20 @@ export function buildResumableUploadEndpoint(supabaseUrl: string) {
   return url.toString().replace(/\/$/, "");
 }
 
-export function uploadToSignedResumableUrl(
+export function uploadToAuthenticatedResumableUrl(
   input: ResumableUploadInput,
   dependencies: ResumableUploadDependencies = {},
 ) {
-  const supabaseUrl = dependencies.supabaseUrl ?? getBrowserWebEnv().supabaseUrl;
+  const browserEnv =
+    dependencies.supabaseAnonKey && dependencies.supabaseUrl
+      ? null
+      : getBrowserWebEnv();
+  const supabaseAnonKey = dependencies.supabaseAnonKey ?? browserEnv?.supabaseAnonKey;
+  const supabaseUrl = dependencies.supabaseUrl ?? browserEnv?.supabaseUrl;
+
+  if (!supabaseAnonKey || !supabaseUrl) {
+    throw new Error("Supabase upload configuration is unavailable.");
+  }
   const createUpload =
     dependencies.createUpload
     ?? ((file: File, options: UploadOptions) => new Upload(file, options));
@@ -46,7 +56,8 @@ export function uploadToSignedResumableUrl(
       chunkSize: TUS_CHUNK_SIZE_BYTES,
       endpoint: buildResumableUploadEndpoint(supabaseUrl),
       headers: {
-        "x-signature": input.token,
+        apikey: supabaseAnonKey,
+        authorization: `Bearer ${input.accessToken}`,
       },
       metadata: {
         bucketName: "call-recordings",

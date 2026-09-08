@@ -71,7 +71,6 @@ export async function POST(request: Request) {
     return Response.json(
       {
         path: target.storagePath,
-        token: target.token,
       },
       {
         headers: { "Cache-Control": "private, no-store" },

@@ -3,17 +3,18 @@ import {
   normalizeUploadErrorPayload,
   type UploadSuccessPayload,
 } from "./upload-contract";
-import { uploadToSignedResumableUrl } from "./resumable-upload";
+import { uploadToAuthenticatedResumableUrl } from "./resumable-upload";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
-type SignedUploadPayload = {
+type UploadTargetPayload = {
   path: string;
-  token: string;
 };
 
 type BrowserUploadDependencies = {
   fetchImpl?: typeof fetch;
+  getAccessToken?: () => Promise<string | null>;
   onProgress?: (progress: number) => void;
-  uploadResumable?: typeof uploadToSignedResumableUrl;
+  uploadResumable?: typeof uploadToAuthenticatedResumableUrl;
 };
 
 type BrowserUploadInput = {
@@ -26,7 +27,8 @@ export async function uploadCallFromBrowser(
   dependencies: BrowserUploadDependencies = {},
 ): Promise<UploadSuccessPayload> {
   const fetchImpl = dependencies.fetchImpl ?? fetch;
-  const uploadResumable = dependencies.uploadResumable ?? uploadToSignedResumableUrl;
+  const getAccessToken = dependencies.getAccessToken ?? getCurrentAccessToken;
+  const uploadResumable = dependencies.uploadResumable ?? uploadToAuthenticatedResumableUrl;
 
   dependencies.onProgress?.(15);
   const prepareResponse = await fetchImpl("/api/calls/upload/prepare", {
@@ -42,7 +44,7 @@ export async function uploadCallFromBrowser(
   });
   const preparePayload = await readResponsePayload(prepareResponse);
 
-  if (!prepareResponse.ok || !isSignedUploadPayload(preparePayload)) {
+  if (!prepareResponse.ok || !isUploadTargetPayload(preparePayload)) {
     throw new Error(
       normalizeUploadFailure(
         preparePayload,
@@ -51,15 +53,20 @@ export async function uploadCallFromBrowser(
     );
   }
 
+  const accessToken = await getAccessToken();
+  if (!accessToken) {
+    throw new Error("Your session expired. Sign in again and retry the upload.");
+  }
+
   dependencies.onProgress?.(35);
   try {
     await uploadResumable({
+      accessToken,
       file: input.file,
       onProgress: (progress) => {
         dependencies.onProgress?.(35 + Math.round(progress / 2));
       },
       path: preparePayload.path,
-      token: preparePayload.token,
     });
   } catch (error) {
     throw new Error(
@@ -124,12 +131,25 @@ function normalizeUploadFailure(payload: unknown, fallbackError: string) {
   });
 }
 
-function isSignedUploadPayload(payload: unknown): payload is SignedUploadPayload {
+async function getCurrentAccessToken() {
+  const supabase = createSupabaseBrowserClient();
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
+
+  if (error) {
+    throw new Error("Your session could not be verified. Sign in again and retry the upload.");
+  }
+
+  return session?.access_token ?? null;
+}
+
+function isUploadTargetPayload(payload: unknown): payload is UploadTargetPayload {
   return Boolean(
     payload &&
       typeof payload === "object" &&
-      typeof (payload as SignedUploadPayload).path === "string" &&
-      typeof (payload as SignedUploadPayload).token === "string",
+      typeof (payload as UploadTargetPayload).path === "string",
   );
 }
 

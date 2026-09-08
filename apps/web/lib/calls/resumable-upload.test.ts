@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   buildResumableUploadEndpoint,
-  uploadToSignedResumableUrl,
+  uploadToAuthenticatedResumableUrl,
 } from "./resumable-upload";
 
 describe("buildResumableUploadEndpoint", () => {
@@ -18,8 +18,8 @@ describe("buildResumableUploadEndpoint", () => {
   });
 });
 
-describe("uploadToSignedResumableUrl", () => {
-  it("uses signed 6 MB TUS chunks and reports upload progress", async () => {
+describe("uploadToAuthenticatedResumableUrl", () => {
+  it("uses the user session for 6 MB TUS chunks and reports upload progress", async () => {
     let capturedOptions: Record<string, unknown> | undefined;
     const start = vi.fn();
     const createUpload = vi.fn((_file, options) => {
@@ -28,15 +28,16 @@ describe("uploadToSignedResumableUrl", () => {
     });
     const onProgress = vi.fn();
 
-    const promise = uploadToSignedResumableUrl(
+    const promise = uploadToAuthenticatedResumableUrl(
       {
+        accessToken: "session-access-token",
         file: new File(["video"], "demo.mp4", { type: "video/mp4" }),
         onProgress,
         path: "recordings/manual-uploads/user-1/upload-1/demo.mp4",
-        token: "signed-token",
       },
       {
         createUpload: createUpload as never,
+        supabaseAnonKey: "browser-anon-key",
         supabaseUrl: "https://project-ref.supabase.co",
       },
     );
@@ -45,7 +46,10 @@ describe("uploadToSignedResumableUrl", () => {
     expect(capturedOptions).toMatchObject({
       chunkSize: 6 * 1024 * 1024,
       endpoint: "https://project-ref.storage.supabase.co/storage/v1/upload/resumable",
-      headers: { "x-signature": "signed-token" },
+      headers: {
+        apikey: "browser-anon-key",
+        authorization: "Bearer session-access-token",
+      },
       metadata: {
         bucketName: "call-recordings",
         cacheControl: "3600",
