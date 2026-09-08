@@ -207,6 +207,12 @@ describe("calls upload route", () => {
           contentType: "audio/mpeg",
         },
       }),
+      {
+        callUploadCapability: {
+          authUserId: "auth-user-1",
+          orgId: "org-1",
+        },
+      },
     );
   });
 });
