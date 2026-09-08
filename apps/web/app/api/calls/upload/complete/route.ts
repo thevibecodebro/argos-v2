@@ -109,6 +109,11 @@ export async function POST(request: Request) {
         contentType: body.contentType ?? null,
         fileSizeBytes: body.fileSizeBytes,
       },
+    }, {
+      callUploadCapability: {
+        authUserId: authUser.id,
+        orgId: capabilityAccess.orgId,
+      },
     });
 
     if (!result.ok) {

@@ -330,6 +330,109 @@ describe("completeUploadedCall", () => {
     expect(repository.createOrResetCallProcessingJob).not.toHaveBeenCalled();
   });
 
+  it("uses verified call-upload capability without requiring call-scoring entitlement", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "rep-1",
+        email: "rep@argos.ai",
+        role: "rep",
+        firstName: "Riley",
+        lastName: "Stone",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      createCall: vi.fn().mockResolvedValue({
+        id: "call-1",
+        status: "uploaded",
+        createdAt: new Date("2026-04-17T00:00:00.000Z"),
+      }),
+      createOrResetCallProcessingJob: vi.fn().mockResolvedValue(undefined),
+      updateCallRecordingStorage: vi.fn().mockResolvedValue(undefined),
+    });
+    const callProcessingEntitlementsRepository = {
+      findActiveCallProcessingSubscription: vi.fn().mockResolvedValue(null),
+    };
+
+    const result = await completeUploadedCall(
+      repository,
+      "auth-user-1",
+      {
+        fileName: "demo.mp3",
+        fileSizeBytes: 12_000_000,
+        callTopic: "Discovery",
+        sourceAsset: {
+          storageBucket: "call-recordings",
+          storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
+          contentType: "audio/mpeg",
+          fileSizeBytes: 12_000_000,
+        },
+      },
+      {
+        callProcessingEntitlementsRepository,
+        callUploadCapability: {
+          authUserId: "auth-user-1",
+          orgId: "org-1",
+        },
+        rubricsRepository: createRubricsRepository(),
+      },
+    );
+
+    expect(result.ok && result.data.status).toBe("uploaded");
+    expect(callProcessingEntitlementsRepository.findActiveCallProcessingSubscription).not.toHaveBeenCalled();
+    expect(repository.createCall).toHaveBeenCalledOnce();
+    expect(repository.createOrResetCallProcessingJob).toHaveBeenCalledOnce();
+  });
+
+  it("rejects verified call-upload capability for a different workspace", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "rep-1",
+        email: "rep@argos.ai",
+        role: "rep",
+        firstName: "Riley",
+        lastName: "Stone",
+        org: { id: "org-1", name: "Argos", slug: "argos", plan: "trial" },
+      }),
+      createCall: vi.fn(),
+      createOrResetCallProcessingJob: vi.fn(),
+    });
+    const callProcessingEntitlementsRepository = {
+      findActiveCallProcessingSubscription: vi.fn().mockResolvedValue({ id: "sub-1" }),
+    };
+
+    const result = await completeUploadedCall(
+      repository,
+      "auth-user-1",
+      {
+        fileName: "demo.mp3",
+        fileSizeBytes: 12_000_000,
+        callTopic: "Discovery",
+        sourceAsset: {
+          storageBucket: "call-recordings",
+          storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
+          contentType: "audio/mpeg",
+          fileSizeBytes: 12_000_000,
+        },
+      },
+      {
+        callProcessingEntitlementsRepository,
+        callUploadCapability: {
+          authUserId: "auth-user-1",
+          orgId: "another-org",
+        },
+        rubricsRepository: createRubricsRepository(),
+      },
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      status: 403,
+      code: "forbidden",
+    });
+    expect(callProcessingEntitlementsRepository.findActiveCallProcessingSubscription).not.toHaveBeenCalled();
+    expect(repository.createCall).not.toHaveBeenCalled();
+    expect(repository.createOrResetCallProcessingJob).not.toHaveBeenCalled();
+  });
+
   it("creates a queued call from a pre-uploaded source asset", async () => {
     const repository = createRepository({
       findCurrentUserByAuthId: vi.fn().mockResolvedValue({

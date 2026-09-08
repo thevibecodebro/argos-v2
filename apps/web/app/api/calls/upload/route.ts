@@ -124,6 +124,11 @@ export async function POST(request: Request) {
           bytes: recordingBytes,
           contentType: recording.type || null,
         },
+      }, {
+        callUploadCapability: {
+          authUserId: authUser.id,
+          orgId: capabilityAccess.orgId,
+        },
       });
 
       if (!result.ok) {

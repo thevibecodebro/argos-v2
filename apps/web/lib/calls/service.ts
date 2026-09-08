@@ -253,6 +253,7 @@ type StoreSourceAssetFunction = (input: {
 
 type UploadCallDependencies = {
   callProcessingEntitlementsRepository?: CallProcessingEntitlementsRepository;
+  callUploadCapability?: VerifiedCallUploadCapability;
   rubricsRepository?: RubricsRepository;
   storeSourceAsset?: StoreSourceAssetFunction;
 };
@@ -266,7 +267,13 @@ type CompleteUploadedCallInput = {
 
 type CompleteUploadedCallDependencies = {
   callProcessingEntitlementsRepository?: CallProcessingEntitlementsRepository;
+  callUploadCapability?: VerifiedCallUploadCapability;
   rubricsRepository?: RubricsRepository;
+};
+
+type VerifiedCallUploadCapability = {
+  authUserId: string;
+  orgId: string;
 };
 
 type RetryCallProcessingJobDependencies = {
@@ -296,6 +303,38 @@ type ServiceErrorCode =
 export type ServiceResult<T> =
   | { ok: true; data: T }
   | { ok: false; status: 400 | 402 | 403 | 404 | 409; error: string; code: ServiceErrorCode };
+
+async function requireManualCallProcessingAccess(input: {
+  authUserId: string;
+  callProcessingEntitlementsRepository?: CallProcessingEntitlementsRepository;
+  callUploadCapability?: VerifiedCallUploadCapability;
+  orgId: string;
+  userId: string;
+}) {
+  if (input.callUploadCapability) {
+    if (
+      input.callUploadCapability.authUserId !== input.authUserId ||
+      input.callUploadCapability.orgId !== input.orgId
+    ) {
+      return {
+        ok: false as const,
+        status: 403 as const,
+        code: "forbidden" as const,
+        error: "Upload authorization does not match this user and workspace",
+      };
+    }
+
+    return { ok: true as const };
+  }
+
+  return getCallProcessingEntitlementStatus(
+    input.callProcessingEntitlementsRepository ?? new DrizzleBillingRepository(),
+    {
+      orgId: input.orgId,
+      userId: input.userId,
+    },
+  );
+}
 
 export type CallsRepository = {
   createCall(input: {
@@ -1607,13 +1646,13 @@ export async function uploadCall(
     };
   }
 
-  const entitlement = await getCallProcessingEntitlementStatus(
-    dependencies.callProcessingEntitlementsRepository ?? new DrizzleBillingRepository(),
-    {
-      orgId: viewer.org.id,
-      userId: viewer.id,
-    },
-  );
+  const entitlement = await requireManualCallProcessingAccess({
+    authUserId,
+    callProcessingEntitlementsRepository: dependencies.callProcessingEntitlementsRepository,
+    callUploadCapability: dependencies.callUploadCapability,
+    orgId: viewer.org.id,
+    userId: viewer.id,
+  });
 
   if (!entitlement.ok) {
     return entitlement;
@@ -1698,13 +1737,13 @@ export async function completeUploadedCall(
     };
   }
 
-  const entitlement = await getCallProcessingEntitlementStatus(
-    dependencies.callProcessingEntitlementsRepository ?? new DrizzleBillingRepository(),
-    {
-      orgId: viewer.org.id,
-      userId: viewer.id,
-    },
-  );
+  const entitlement = await requireManualCallProcessingAccess({
+    authUserId,
+    callProcessingEntitlementsRepository: dependencies.callProcessingEntitlementsRepository,
+    callUploadCapability: dependencies.callUploadCapability,
+    orgId: viewer.org.id,
+    userId: viewer.id,
+  });
 
   if (!entitlement.ok) {
     return entitlement;
