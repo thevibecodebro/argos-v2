@@ -141,6 +141,12 @@ describe("calls upload complete route", () => {
             fileSizeBytes: 1024,
           }),
         }),
+        {
+          callUploadCapability: {
+            authUserId: "auth-user-1",
+            orgId: "org-1",
+          },
+        },
       );
       expect(consumeManualCallUploadTarget).toHaveBeenCalledWith({
         authUserId: "auth-user-1",
