@@ -44,8 +44,8 @@ describe("uploadCallFromBrowser", () => {
 
     expect(result.id).toBe("call-1");
     expect(uploadResumable).toHaveBeenCalledWith({
-      accessToken: "session-access-token",
       file: expect.any(File),
+      getAccessToken: expect.any(Function),
       onProgress: expect.any(Function),
       path: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
     });

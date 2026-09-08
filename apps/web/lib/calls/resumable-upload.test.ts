@@ -27,11 +27,15 @@ describe("uploadToAuthenticatedResumableUrl", () => {
       return { start };
     });
     const onProgress = vi.fn();
+    const getAccessToken = vi
+      .fn()
+      .mockResolvedValueOnce("session-access-token")
+      .mockResolvedValueOnce("refreshed-access-token");
 
     const promise = uploadToAuthenticatedResumableUrl(
       {
-        accessToken: "session-access-token",
         file: new File(["video"], "demo.mp4", { type: "video/mp4" }),
+        getAccessToken,
         onProgress,
         path: "recordings/manual-uploads/user-1/upload-1/demo.mp4",
       },
@@ -48,7 +52,6 @@ describe("uploadToAuthenticatedResumableUrl", () => {
       endpoint: "https://project-ref.storage.supabase.co/storage/v1/upload/resumable",
       headers: {
         apikey: "browser-anon-key",
-        authorization: "Bearer session-access-token",
       },
       metadata: {
         bucketName: "call-recordings",
@@ -60,6 +63,26 @@ describe("uploadToAuthenticatedResumableUrl", () => {
       storeFingerprintForResuming: false,
       uploadDataDuringCreation: true,
     });
+
+    const setHeader = vi.fn();
+    const onBeforeRequest = capturedOptions?.onBeforeRequest as (
+      request: { setHeader: typeof setHeader },
+    ) => Promise<void>;
+
+    await onBeforeRequest({ setHeader });
+    await onBeforeRequest({ setHeader });
+
+    expect(getAccessToken).toHaveBeenCalledTimes(2);
+    expect(setHeader).toHaveBeenNthCalledWith(
+      1,
+      "authorization",
+      "Bearer session-access-token",
+    );
+    expect(setHeader).toHaveBeenNthCalledWith(
+      2,
+      "authorization",
+      "Bearer refreshed-access-token",
+    );
 
     (capturedOptions?.onProgress as (sent: number, total: number) => void)(5, 10);
     expect(onProgress).toHaveBeenCalledWith(50);

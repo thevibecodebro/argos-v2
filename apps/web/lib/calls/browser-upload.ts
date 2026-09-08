@@ -61,8 +61,8 @@ export async function uploadCallFromBrowser(
   dependencies.onProgress?.(35);
   try {
     await uploadResumable({
-      accessToken,
       file: input.file,
+      getAccessToken,
       onProgress: (progress) => {
         dependencies.onProgress?.(35 + Math.round(progress / 2));
       },

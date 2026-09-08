@@ -4,8 +4,8 @@ import { getBrowserWebEnv } from "@/lib/env";
 const TUS_CHUNK_SIZE_BYTES = 6 * 1024 * 1024;
 
 type ResumableUploadInput = {
-  accessToken: string;
   file: File;
+  getAccessToken: () => Promise<string | null>;
   onProgress: (progress: number) => void;
   path: string;
 };
@@ -57,7 +57,6 @@ export function uploadToAuthenticatedResumableUrl(
       endpoint: buildResumableUploadEndpoint(supabaseUrl),
       headers: {
         apikey: supabaseAnonKey,
-        authorization: `Bearer ${input.accessToken}`,
       },
       metadata: {
         bucketName: "call-recordings",
@@ -66,6 +65,15 @@ export function uploadToAuthenticatedResumableUrl(
         objectName: input.path,
       },
       onError: (error) => reject(error),
+      onBeforeRequest: async (request) => {
+        const accessToken = await input.getAccessToken();
+
+        if (!accessToken) {
+          throw new Error("Your session expired. Sign in again and retry the upload.");
+        }
+
+        request.setHeader("authorization", `Bearer ${accessToken}`);
+      },
       onProgress: (bytesUploaded, bytesTotal) => {
         const progress = bytesTotal > 0 ? Math.round((bytesUploaded / bytesTotal) * 100) : 0;
         input.onProgress(progress);
