@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  consumeManualCallUploadTarget,
   createManualCallUploadTarget,
   storeManualCallSource,
 } from "./ingestion-service";
@@ -98,49 +99,59 @@ describe("storeManualCallSource", () => {
 });
 
 describe("createManualCallUploadTarget", () => {
-  it("creates a signed upload target scoped to the auth user", async () => {
-    const createSignedUploadUrl = vi.fn().mockResolvedValue({
-      data: { token: "signed-token" },
-      error: null,
-    });
-    const bucket = {
-      createSignedUploadUrl,
-    };
-    const from = vi.fn().mockReturnValue(bucket);
+  it("creates an upload target scoped to the auth user", async () => {
+    const lt = vi.fn().mockResolvedValue({ error: null });
+    const deleteExpired = vi.fn().mockReturnValue({ lt });
+    const insert = vi.fn().mockResolvedValue({ error: null });
+    const from = vi.fn().mockReturnValue({ delete: deleteExpired, insert });
 
     const result = await createManualCallUploadTarget(
       {
         authUserId: "auth-user-1",
         fileName: "demo.mp3",
+        orgId: "org-1",
       },
       {
         createId: () => "upload-1",
-        supabase: {
-          storage: {
-            from,
-          },
-        } as any,
+        now: () => new Date("2026-09-08T00:00:00.000Z"),
+        supabase: { from } as any,
       },
     );
 
-    expect(from).toHaveBeenCalledWith("call-recordings");
-    expect(createSignedUploadUrl).toHaveBeenCalledWith(
-      "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
-      { upsert: false },
-    );
+    expect(from).toHaveBeenCalledWith("manual_recording_upload_targets");
+    expect(lt).toHaveBeenCalledWith("expires_at", "2026-09-08T00:00:00.000Z");
+    expect(insert).toHaveBeenCalledWith({
+      auth_user_id: "auth-user-1",
+      expires_at: "2026-09-09T00:00:00.000Z",
+      storage_path: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
+      target_org_id: "org-1",
+    });
     expect(result).toEqual({
       storageBucket: "call-recordings",
       storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
-      token: "signed-token",
     });
   });
 
-  it("throws a descriptive error when signed upload url creation fails", async () => {
+  it("rejects path-like filenames before creating upload targets", async () => {
+    await expect(
+      createManualCallUploadTarget(
+        {
+          authUserId: "auth-user-1",
+          fileName: "nested/demo.mp3",
+          orgId: "org-1",
+        },
+        {
+          createId: () => "upload-1",
+        },
+      ),
+    ).rejects.toThrow("Invalid recording filename.");
+  });
+
+  it("fails closed when the exact upload target cannot be persisted", async () => {
+    const lt = vi.fn().mockResolvedValue({ error: null });
     const from = vi.fn().mockReturnValue({
-      createSignedUploadUrl: vi.fn().mockResolvedValue({
-        data: null,
-        error: { message: "signing unavailable" },
-      }),
+      delete: vi.fn().mockReturnValue({ lt }),
+      insert: vi.fn().mockResolvedValue({ error: { message: "database unavailable" } }),
     });
 
     await expect(
@@ -148,43 +159,38 @@ describe("createManualCallUploadTarget", () => {
         {
           authUserId: "auth-user-1",
           fileName: "demo.mp3",
+          orgId: "org-1",
         },
         {
           createId: () => "upload-1",
-          supabase: {
-            storage: {
-              from,
-            },
-          } as any,
+          now: () => new Date("2026-09-08T00:00:00.000Z"),
+          supabase: { from } as any,
         },
       ),
-    ).rejects.toThrow("Failed to create source upload target: signing unavailable");
+    ).rejects.toThrow("Failed to create source upload target: database unavailable");
   });
+});
 
-  it("rejects path-like filenames before creating signed upload targets", async () => {
-    const createSignedUploadUrl = vi.fn().mockResolvedValue({
-      data: { token: "signed-token" },
-      error: null,
+describe("consumeManualCallUploadTarget", () => {
+  it("deletes the exact user-scoped target", async () => {
+    const finalEq = vi.fn().mockResolvedValue({ error: null });
+    const firstEq = vi.fn().mockReturnValue({ eq: finalEq });
+    const from = vi.fn().mockReturnValue({
+      delete: vi.fn().mockReturnValue({ eq: firstEq }),
     });
-    const from = vi.fn().mockReturnValue({ createSignedUploadUrl });
 
-    await expect(
-      createManualCallUploadTarget(
-        {
-          authUserId: "auth-user-1",
-          fileName: "nested/demo.mp3",
-        },
-        {
-          createId: () => "upload-1",
-          supabase: {
-            storage: {
-              from,
-            },
-          } as any,
-        },
-      ),
-    ).rejects.toThrow("Invalid recording filename.");
+    await consumeManualCallUploadTarget(
+      {
+        authUserId: "auth-user-1",
+        storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
+      },
+      { supabase: { from } as any },
+    );
 
-    expect(createSignedUploadUrl).not.toHaveBeenCalled();
+    expect(firstEq).toHaveBeenCalledWith(
+      "storage_path",
+      "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
+    );
+    expect(finalEq).toHaveBeenCalledWith("auth_user_id", "auth-user-1");
   });
 });

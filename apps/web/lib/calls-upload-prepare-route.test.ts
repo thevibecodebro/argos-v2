@@ -59,10 +59,9 @@ describe("calls upload prepare route", () => {
     });
   });
 
-  it("returns a signed upload target for valid file metadata", async () => {
+  it("returns a user-scoped upload target for valid file metadata", async () => {
     createManualCallUploadTarget.mockResolvedValue({
       storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
-      token: "signed-token",
     });
 
     const route = await import("../app/api/calls/upload/prepare/route");
@@ -79,16 +78,19 @@ describe("calls upload prepare route", () => {
     );
 
     expect(response.status).toBe(200);
+    expect(createManualCallUploadTarget).toHaveBeenCalledWith({
+      authUserId: "auth-user-1",
+      fileName: "demo.mp3",
+      orgId: "org-1",
+    });
     await expect(response.json()).resolves.toMatchObject({
       path: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
-      token: "signed-token",
     });
   });
 
   it("accepts recording metadata above 500 MB for resumable upload", async () => {
     createManualCallUploadTarget.mockResolvedValue({
       storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp4",
-      token: "signed-token",
     });
 
     const route = await import("../app/api/calls/upload/prepare/route");

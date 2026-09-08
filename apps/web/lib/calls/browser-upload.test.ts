@@ -13,7 +13,6 @@ describe("uploadCallFromBrowser", () => {
         new Response(
           JSON.stringify({
             path: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
-            token: "signed-token",
           }),
           { status: 200 },
         ),
@@ -37,6 +36,7 @@ describe("uploadCallFromBrowser", () => {
       },
       {
         fetchImpl: fetchImpl as typeof fetch,
+        getAccessToken: vi.fn().mockResolvedValue("session-access-token"),
         onProgress: (progress) => progressValues.push(progress),
         uploadResumable,
       },
@@ -45,9 +45,9 @@ describe("uploadCallFromBrowser", () => {
     expect(result.id).toBe("call-1");
     expect(uploadResumable).toHaveBeenCalledWith({
       file: expect.any(File),
+      getAccessToken: expect.any(Function),
       onProgress: expect.any(Function),
       path: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
-      token: "signed-token",
     });
     expect(fetchImpl).toHaveBeenNthCalledWith(
       1,
@@ -83,5 +83,33 @@ describe("uploadCallFromBrowser", () => {
         },
       ),
     ).rejects.toThrow("Request Entity Too Large");
+  });
+
+  it("stops before storage upload when the browser session has expired", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          path: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
+        }),
+        { status: 200 },
+      ),
+    );
+    const uploadResumable = vi.fn();
+
+    await expect(
+      uploadCallFromBrowser(
+        {
+          file: new File(["audio"], "demo.mp3", { type: "audio/mpeg" }),
+        },
+        {
+          fetchImpl: fetchImpl as typeof fetch,
+          getAccessToken: vi.fn().mockResolvedValue(null),
+          uploadResumable,
+        },
+      ),
+    ).rejects.toThrow("Your session expired. Sign in again and retry the upload.");
+
+    expect(uploadResumable).not.toHaveBeenCalled();
+    expect(fetchImpl).toHaveBeenCalledOnce();
   });
 });

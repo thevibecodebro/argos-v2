@@ -66,12 +66,12 @@ export async function POST(request: Request) {
     const target = await createManualCallUploadTarget({
       authUserId: authUser.id,
       fileName: body.fileName,
+      orgId: capabilityAccess.orgId,
     });
 
     return Response.json(
       {
         path: target.storagePath,
-        token: target.token,
       },
       {
         headers: { "Cache-Control": "private, no-store" },

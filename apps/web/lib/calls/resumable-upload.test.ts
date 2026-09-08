@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   buildResumableUploadEndpoint,
-  uploadToSignedResumableUrl,
+  uploadToAuthenticatedResumableUrl,
 } from "./resumable-upload";
 
 describe("buildResumableUploadEndpoint", () => {
@@ -18,8 +18,8 @@ describe("buildResumableUploadEndpoint", () => {
   });
 });
 
-describe("uploadToSignedResumableUrl", () => {
-  it("uses signed 6 MB TUS chunks and reports upload progress", async () => {
+describe("uploadToAuthenticatedResumableUrl", () => {
+  it("uses the user session for 6 MB TUS chunks and reports upload progress", async () => {
     let capturedOptions: Record<string, unknown> | undefined;
     const start = vi.fn();
     const createUpload = vi.fn((_file, options) => {
@@ -27,16 +27,21 @@ describe("uploadToSignedResumableUrl", () => {
       return { start };
     });
     const onProgress = vi.fn();
+    const getAccessToken = vi
+      .fn()
+      .mockResolvedValueOnce("session-access-token")
+      .mockResolvedValueOnce("refreshed-access-token");
 
-    const promise = uploadToSignedResumableUrl(
+    const promise = uploadToAuthenticatedResumableUrl(
       {
         file: new File(["video"], "demo.mp4", { type: "video/mp4" }),
+        getAccessToken,
         onProgress,
         path: "recordings/manual-uploads/user-1/upload-1/demo.mp4",
-        token: "signed-token",
       },
       {
         createUpload: createUpload as never,
+        supabaseAnonKey: "browser-anon-key",
         supabaseUrl: "https://project-ref.supabase.co",
       },
     );
@@ -45,7 +50,9 @@ describe("uploadToSignedResumableUrl", () => {
     expect(capturedOptions).toMatchObject({
       chunkSize: 6 * 1024 * 1024,
       endpoint: "https://project-ref.storage.supabase.co/storage/v1/upload/resumable",
-      headers: { "x-signature": "signed-token" },
+      headers: {
+        apikey: "browser-anon-key",
+      },
       metadata: {
         bucketName: "call-recordings",
         cacheControl: "3600",
@@ -56,6 +63,26 @@ describe("uploadToSignedResumableUrl", () => {
       storeFingerprintForResuming: false,
       uploadDataDuringCreation: true,
     });
+
+    const setHeader = vi.fn();
+    const onBeforeRequest = capturedOptions?.onBeforeRequest as (
+      request: { setHeader: typeof setHeader },
+    ) => Promise<void>;
+
+    await onBeforeRequest({ setHeader });
+    await onBeforeRequest({ setHeader });
+
+    expect(getAccessToken).toHaveBeenCalledTimes(2);
+    expect(setHeader).toHaveBeenNthCalledWith(
+      1,
+      "authorization",
+      "Bearer session-access-token",
+    );
+    expect(setHeader).toHaveBeenNthCalledWith(
+      2,
+      "authorization",
+      "Bearer refreshed-access-token",
+    );
 
     (capturedOptions?.onProgress as (sent: number, total: number) => void)(5, 10);
     expect(onProgress).toHaveBeenCalledWith(50);
