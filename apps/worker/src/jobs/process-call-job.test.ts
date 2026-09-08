@@ -55,7 +55,7 @@ describe("processCallJob", () => {
       job: { id: "job-profile", callId: "call-profile", repId: "rep-1", callTopic: "Discovery", attemptCount: 1, maxAttempts: 3, sourceStoragePath: "recordings/call-profile/source/demo.mp4" } as never,
       repository: repository as never,
       downloadSourceAsset: vi.fn().mockResolvedValue("/tmp/source.mp4"),
-      normalizeAudio: vi.fn().mockResolvedValue({ outputPath: "/tmp/normalized.mp3", sizeBytes: 1024, durationSeconds: 600 }),
+      normalizeAudio: vi.fn().mockResolvedValue({ outputPath: "/tmp/normalized.mp3", sizeBytes: 1024, durationSeconds: 300 }),
       readFile: vi.fn().mockResolvedValue(Buffer.from("normalized audio")),
       transcribeAudioBuffer: vi.fn().mockResolvedValue({ durationSeconds: 600, transcript }),
       extractBuyerPersonalityFromTranscript: extractor,
@@ -110,7 +110,7 @@ describe("processCallJob", () => {
       job: { id: "job-both", callId: "call-both", repId: "rep-1", callTopic: "Discovery", attemptCount: 1, maxAttempts: 3, sourceStoragePath: "recordings/call-both/source/demo.mp4" } as never,
       repository: repository as never,
       downloadSourceAsset: vi.fn().mockResolvedValue("/tmp/source.mp4"),
-      normalizeAudio: vi.fn().mockResolvedValue({ outputPath: "/tmp/normalized.mp3", sizeBytes: 1024, durationSeconds: 600 }),
+      normalizeAudio: vi.fn().mockResolvedValue({ outputPath: "/tmp/normalized.mp3", sizeBytes: 1024, durationSeconds: 300 }),
       readFile: vi.fn().mockResolvedValue(Buffer.from("normalized audio")),
       transcribeAudioBuffer: vi.fn().mockResolvedValue({ durationSeconds: 600, transcript: [{ timestampSeconds: 0, speaker: "Speaker A", text: "Hello" }] }),
       extractBuyerPersonalityFromTranscript: vi.fn().mockRejectedValue(new Error("malformed structured output")),
@@ -142,7 +142,7 @@ describe("processCallJob", () => {
     const normalizeAudio = vi.fn().mockResolvedValue({
       outputPath: "/tmp/normalized.mp3",
       sizeBytes: 12 * 1024 * 1024,
-      durationSeconds: 1800,
+      durationSeconds: 300,
     });
     const transcribeAudioBuffer = vi.fn().mockResolvedValue({
       durationSeconds: 1800,
@@ -322,7 +322,7 @@ describe("processCallJob", () => {
       normalizeAudio: vi.fn().mockResolvedValue({
         outputPath: "/tmp/normalized.mp3",
         sizeBytes: 12 * 1024 * 1024,
-        durationSeconds: 1800,
+        durationSeconds: 300,
       }),
       readFile: vi.fn().mockResolvedValue(Buffer.from("audio")),
       transcribeAudioBuffer,
@@ -370,7 +370,7 @@ describe("processCallJob", () => {
         normalizeAudio: vi.fn().mockResolvedValue({
           outputPath: "/tmp/normalized.mp3",
           sizeBytes: 12 * 1024 * 1024,
-          durationSeconds: 1800,
+          durationSeconds: 300,
         }),
         readFile: vi.fn().mockResolvedValue(Buffer.from("audio")),
         transcribeAudioBuffer: vi.fn().mockRejectedValue(retryableError),
@@ -439,5 +439,54 @@ describe("processCallJob", () => {
         lastStage: "transcribe",
       }),
     );
+  });
+
+  it("chunks highly compressed long audio before transcription", async () => {
+    const repository = {
+      getCallProcessingCapabilities: vi.fn().mockResolvedValue({ canGenerateBuyerPersonality: false, canScoreCall: true }),
+      createNotification: vi.fn().mockResolvedValue(undefined),
+      findRubricById: vi.fn().mockResolvedValue(null),
+      markJobComplete: vi.fn().mockResolvedValue(undefined),
+      markRetryableFailure: vi.fn().mockResolvedValue(undefined),
+      markTerminalFailure: vi.fn().mockResolvedValue(undefined),
+      persistProcessedCall: vi.fn().mockResolvedValue(undefined),
+      updateBuyerProfileStatus: vi.fn().mockResolvedValue(undefined),
+      updateCallStatus: vi.fn().mockResolvedValue(undefined),
+    };
+    const retryableError = new Error("OpenAI transcription request failed: 429 rate limited");
+    const chunkAudioFile = vi.fn().mockResolvedValue([
+      { filePath: "/tmp/normalized-part-0.mp3", startSeconds: 0, endSeconds: 296 },
+      { filePath: "/tmp/normalized-part-1.mp3", startSeconds: 296, endSeconds: 592 },
+    ]);
+
+    await expect(
+      processCallJob({
+        job: {
+          id: "job-long-compressed",
+          callId: "call-long-compressed",
+          repId: "rep-1",
+          callTopic: "Discovery",
+          attemptCount: 1,
+          maxAttempts: 3,
+          sourceStoragePath: "recordings/call-long-compressed/source/demo.mp4",
+        } as never,
+        repository: repository as never,
+        downloadSourceAsset: vi.fn().mockResolvedValue("/tmp/source.mp4"),
+        normalizeAudio: vi.fn().mockResolvedValue({
+          outputPath: "/tmp/normalized.mp3",
+          sizeBytes: 20 * 1024 * 1024,
+          durationSeconds: 5_031,
+        }),
+        chunkAudioFile: chunkAudioFile as never,
+        readFile: vi.fn().mockResolvedValue(Buffer.from("audio")),
+        transcribeAudioBuffer: vi.fn().mockRejectedValue(retryableError),
+        scoreTranscriptFromLines: vi.fn(),
+      }),
+    ).rejects.toThrow("429 rate limited");
+
+    expect(chunkAudioFile).toHaveBeenCalledWith(expect.objectContaining({
+      durationSeconds: 5_031,
+      sizeBytes: 20 * 1024 * 1024,
+    }));
   });
 });

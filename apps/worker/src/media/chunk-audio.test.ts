@@ -7,16 +7,40 @@ describe("chunkAudioFile", () => {
       filePath: "/tmp/call.mp3",
       sizeBytes: 10 * 1024 * 1024,
       maxChunkBytes: 24 * 1024 * 1024,
-      durationSeconds: 600,
+      durationSeconds: 300,
       ffmpegBinary: "/usr/local/bin/ffmpeg",
     });
 
     expect(chunks).toHaveLength(1);
     expect(chunks[0]).toEqual({
-      endSeconds: 600,
+      endSeconds: 300,
       filePath: "/tmp/call.mp3",
       startSeconds: 0,
     });
+  });
+
+  it("splits highly compressed long audio even when it is below the byte limit", async () => {
+    const spawn = vi.fn().mockResolvedValue(undefined);
+    const chunks = await chunkAudioFile({
+      filePath: "/tmp/call.mp3",
+      sizeBytes: 20 * 1024 * 1024,
+      maxChunkBytes: 24 * 1024 * 1024,
+      durationSeconds: 5_031,
+      ffmpegBinary: "/usr/local/bin/ffmpeg",
+    }, { spawn });
+
+    expect(chunks).toHaveLength(17);
+    expect(chunks[0]).toEqual({
+      filePath: "/tmp/call-part-0.mp3",
+      startSeconds: 0,
+      endSeconds: 296,
+    });
+    expect(chunks.at(-1)).toEqual({
+      filePath: "/tmp/call-part-16.mp3",
+      startSeconds: 4_736,
+      endSeconds: 5_031,
+    });
+    expect(spawn).toHaveBeenCalledTimes(17);
   });
 
   it("splits oversized audio into deterministic chunk windows and writes chunk files", async () => {
@@ -30,9 +54,9 @@ describe("chunkAudioFile", () => {
     }, { spawn });
 
     expect(chunks).toEqual([
-      { filePath: "/tmp/call.mp3.part-0.mp3", startSeconds: 0, endSeconds: 300 },
-      { filePath: "/tmp/call.mp3.part-1.mp3", startSeconds: 300, endSeconds: 600 },
-      { filePath: "/tmp/call.mp3.part-2.mp3", startSeconds: 600, endSeconds: 900 },
+      { filePath: "/tmp/call-part-0.mp3", startSeconds: 0, endSeconds: 300 },
+      { filePath: "/tmp/call-part-1.mp3", startSeconds: 300, endSeconds: 600 },
+      { filePath: "/tmp/call-part-2.mp3", startSeconds: 600, endSeconds: 900 },
     ]);
     expect(spawn).toHaveBeenCalledTimes(3);
     expect(spawn).toHaveBeenNthCalledWith(
@@ -50,7 +74,7 @@ describe("chunkAudioFile", () => {
         "copy",
         "-fs",
         String(24 * 1024 * 1024),
-        "/tmp/call.mp3.part-0.mp3",
+        "/tmp/call-part-0.mp3",
       ],
     );
   });

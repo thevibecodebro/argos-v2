@@ -13,7 +13,10 @@ import {
 } from "@argos-v2/call-processing";
 import { downloadSourceAsset } from "../calls/storage";
 import { getWorkerEnv, type WorkerEnv } from "../env";
-import { chunkAudioFile } from "../media/chunk-audio";
+import {
+  chunkAudioFile,
+  MAX_TRANSCRIPTION_CHUNK_DURATION_SECONDS,
+} from "../media/chunk-audio";
 import { normalizeAudio } from "../media/normalize-audio";
 import type { CallProcessingRepository } from "../calls/repository";
 
@@ -76,7 +79,10 @@ async function transcribeNormalizedAudio(input: {
   sizeBytes: number;
   transcribeAudioBufferImpl: typeof transcribeAudioBuffer;
 }) {
-  if (input.sizeBytes <= 24 * 1024 * 1024) {
+  if (
+    input.sizeBytes <= 24 * 1024 * 1024 &&
+    input.durationSeconds <= MAX_TRANSCRIPTION_CHUNK_DURATION_SECONDS
+  ) {
     input.onStageChange?.("transcribe");
     const bytes = await input.readFileImpl(input.filePath);
 
