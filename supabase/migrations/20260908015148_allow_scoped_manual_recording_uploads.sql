@@ -1,6 +1,6 @@
 create table if not exists public.manual_recording_upload_targets (
   storage_path text primary key,
-  auth_user_id uuid not null references auth.users(id) on delete cascade,
+  auth_user_id uuid not null references public.users(id) on delete cascade,
   expires_at timestamptz not null,
   created_at timestamptz not null default now(),
   constraint manual_recording_upload_targets_path_check

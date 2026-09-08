@@ -15,6 +15,9 @@ describe("manual recording upload storage policy", () => {
       /create table if not exists public\.manual_recording_upload_targets/i,
     );
     expect(migration).toMatch(
+      /auth_user_id uuid not null references public\.users\(id\) on delete cascade/i,
+    );
+    expect(migration).toMatch(
       /alter table public\.manual_recording_upload_targets enable row level security/i,
     );
     expect(migration).toMatch(
