@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   consumeManualCallUploadTarget,
+  getManualCallUploadTargetStatus,
   createManualCallUploadTarget,
   storeManualCallSource,
 } from "./ingestion-service";
@@ -192,5 +193,14 @@ describe("consumeManualCallUploadTarget", () => {
       "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",
     );
     expect(finalEq).toHaveBeenCalledWith("auth_user_id", "auth-user-1");
+  });
+});
+
+describe("getManualCallUploadTargetStatus", () => {
+  it.each(["valid", "expired", "missing", "workspace_mismatch"] as const)("distinguishes target status after matching user, workspace and path: %s", async (status) => {
+    const query = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), maybeSingle: vi.fn().mockResolvedValue({ data: status === "missing" ? null : { target_org_id: status === "workspace_mismatch" ? "org-B" : "org-A", expires_at: new Date(Date.now() + (status === "expired" ? -1000 : 10000)).toISOString() }, error: null }) };
+    const result = await getManualCallUploadTargetStatus({ authUserId: "user", orgId: "org-A", storagePath: "path" }, { supabase: { from: vi.fn().mockReturnValue(query) } as any });
+    expect(result).toBe(status);
+    expect(query.eq.mock.calls).toEqual([["storage_path", "path"], ["auth_user_id", "user"]]);
   });
 });

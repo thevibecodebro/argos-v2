@@ -94,6 +94,25 @@ export async function createManualCallUploadTarget(
   };
 }
 
+export async function getManualCallUploadTargetStatus(
+  input: { authUserId: string; orgId: string; storagePath: string },
+  dependencies: StoreCallSourceDependencies = {},
+) {
+  const client: any = dependencies.supabase ?? createSupabaseAdminClient();
+  const { data, error } = await client
+    .from("manual_recording_upload_targets")
+    .select("expires_at, target_org_id")
+    .eq("storage_path", input.storagePath)
+    .eq("auth_user_id", input.authUserId)
+    .maybeSingle();
+  if (error) throw new Error(`Failed to verify upload target: ${error.message}`);
+  if (!data) return "missing" as const;
+  if (data.target_org_id !== input.orgId) return "workspace_mismatch" as const;
+  const expiresAt = Date.parse(data.expires_at);
+  if (!Number.isFinite(expiresAt)) throw new Error("Upload target expiry metadata is invalid");
+  return expiresAt <= Date.now() ? "expired" as const : "valid" as const;
+}
+
 export async function consumeManualCallUploadTarget(
   input: {
     authUserId: string;

@@ -132,12 +132,26 @@ describe("AuthenticatedAppShell", () => {
     expect(html).toContain("Switch organization");
     expect(html).toContain("Current organization");
     expect(html).toContain("Acme Health");
-    expect(html).toContain("Return to platform dashboard");
+    expect(html).toContain("Return to Argos Admin Dashboard");
     expect(html).toContain('data-platform-return-to-agency="true"');
     expect(html).not.toContain("Sub-account");
     expect(html).not.toContain("sub-account");
     expect(html).not.toContain("Subaccount");
     expect(html).not.toContain("subaccount");
+  });
+
+  it("keeps a dashboard return link and account choices without a support session", () => {
+    const html = renderToStaticMarkup(
+      createElement(AuthenticatedAppShell, {
+        user: adminUser,
+        platformSwitcher: { ...platformSwitcher, activeSession: null },
+        children: null,
+      }),
+    );
+
+    expect(html).toContain('data-platform-organization-option="org-1"');
+    expect(html).toContain('href="/platform/dashboard"');
+    expect(html).toContain("Return to Argos Admin Dashboard");
   });
 
   it("hides the team navigation item for reps", () => {

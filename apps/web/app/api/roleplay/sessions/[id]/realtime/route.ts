@@ -9,7 +9,7 @@ import {
 import { buildRoleplaySafetyIdentifier } from "@/lib/roleplay/content-policy";
 import { createEffectiveTenantBillingRepository } from "@/lib/platform/effective-request";
 import { createRoleplayRepository } from "@/lib/roleplay/create-repository";
-import { getRoleplaySession, markRoleplayVoiceStarted } from "@/lib/roleplay/service";
+import { getRoleplaySession, getAuthorizedMutableSession, markRoleplayVoiceStarted } from "@/lib/roleplay/service";
 import {
   buildRoleplayRealtimeInstructions,
   createRealtimeCall,
@@ -17,6 +17,8 @@ import {
   getOpenAiVoiceConfigurationError,
 } from "@/lib/roleplay/openai-voice";
 import { readRequestTextWithLimit } from "@/lib/security/request-body";
+
+import { createVoiceSegmentsRepository } from "@/lib/roleplay/voice-segments";
 
 export const dynamic = "force-dynamic";
 
@@ -132,45 +134,44 @@ export async function POST(
 
   const { id } = await params;
   const roleplayRepository = createRoleplayRepository();
-  const sessionResult = await getRoleplaySession(roleplayRepository, authUser.id, id, {
-    allowOtherRep: hasManagedCapability(capabilityAccess.access, "practice_reporting"),
-  });
-
-  if (!sessionResult.ok) {
-    return Response.json({ error: sessionResult.error }, { status: sessionResult.status });
+  const sessionResult = await getAuthorizedMutableSession(roleplayRepository, authUser.id, id);
+  if (!sessionResult.ok) return serviceErrorResponse(sessionResult);
+  if (sessionResult.data.status !== "active") return Response.json({ error: "Roleplay session is already complete" }, { status: 409 });
+  const segmentId = request.headers.get("X-Roleplay-Voice-Segment");
+  if (segmentId === null) {
+    return Response.json({
+      code: "voice_client_upgrade_required",
+      error: "Voice practice has been updated. Refresh this page, then start voice practice again.",
+    }, { status: 409 });
   }
-
-  let reservedMinutesSettled = 0;
-  const firstVoiceStart = !sessionResult.data.voiceStartedAt;
-
-  if (firstVoiceStart) {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(segmentId)) {
+    return Response.json({ error: "A valid voice segment ID is required." }, { status: 400 });
+  }
+  const segments = createVoiceSegmentsRepository();
+  const prepared = await segments.prepare(id, segmentId);
+  if (!prepared.created || prepared.stoppedAt) return Response.json({ error: "Voice start was cancelled or already attempted. Start again." }, { status: 409 });
+  const serializedSession = await getRoleplaySession(roleplayRepository, authUser.id, id, { allowOtherRep: true });
+  if (!serializedSession.ok) return serviceErrorResponse(serializedSession);
+  try {
     const reservation = await consumeVoiceMinutes(billingRepository, authUser.id, {
       idempotencyKey: `roleplay:${id}:start`,
-      minutes: 1,
-      sessionId: id,
-      source: "roleplay_realtime",
+      minutes: 1, sessionId: id, source: "roleplay_realtime",
     });
-
-    if (!reservation.ok) {
-      return serviceErrorResponse(reservation);
-    }
-
-    reservedMinutesSettled = reservation.data.minutesDebited;
-  }
-
-  try {
+    if (!reservation.ok) { await segments.stop(id, segmentId, new Date()); return serviceErrorResponse(reservation); }
     const realtime = await createRealtimeCall({
-      instructions: buildRoleplayRealtimeInstructions(sessionResult.data),
+      instructions: buildRoleplayRealtimeInstructions(serializedSession.data),
       offerSdp,
       safetyIdentifier: buildRoleplaySafetyIdentifier(authUser.id, id),
-      voice: getRoleplayRealtimeVoice(sessionResult.data),
+      voice: getRoleplayRealtimeVoice(serializedSession.data),
     });
+    const segment = await segments.start(id, segmentId, new Date());
+    if (segment.stoppedAt || !segment.startedAt) return Response.json({ error: "Voice start was cancelled." }, { status: 409 });
     const markStartedResult = await markRoleplayVoiceStarted(
       roleplayRepository,
       authUser.id,
       id,
       new Date(),
-      { reservedMinutesSettled },
+      { reservedMinutesSettled: reservation.data.minutesDebited },
     );
 
     if (!markStartedResult.ok) {
@@ -185,6 +186,7 @@ export async function POST(
       },
     });
   } catch (error) {
+    await segments.stop(id, segmentId, new Date());
     console.error("Failed to create realtime roleplay call", error);
     return Response.json(
       { error: "Unable to start voice mode with the configured OpenAI provider." },

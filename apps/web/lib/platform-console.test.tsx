@@ -176,7 +176,7 @@ describe("PlatformShell", () => {
     expect(html).toContain("Switch organization");
     expect(html).toContain("Acme Health");
     expect(html).toContain("Current organization");
-    expect(html).toContain("Return to platform dashboard");
+    expect(html).toContain("Return to Argos Admin Dashboard");
     expect(html).not.toContain("Click to switch");
     expect(html).not.toContain("Open workspace");
     expect(html).not.toContain("End session");

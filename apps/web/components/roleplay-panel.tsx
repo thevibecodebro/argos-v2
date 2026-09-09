@@ -1,5 +1,6 @@
 "use client";
 
+import { VoiceLifecycle } from "@/lib/roleplay/voice-lifecycle";
 import { startTransition, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -193,6 +194,23 @@ export function RoleplayPanel({
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
   const transcriptEndRef = useRef<HTMLDivElement | null>(null);
+  const mountedRef = useRef(true);
+  const playbackGenerationRef = useRef(0);
+  const voiceLifecycleRef = useRef<VoiceLifecycle | null>(null);
+  const voiceStopPromiseRef = useRef(Promise.resolve());
+  if (!voiceLifecycleRef.current) {
+    voiceLifecycleRef.current = new VoiceLifecycle(async (run) => {
+      const stopped = fetch(`/api/roleplay/sessions/${run.sessionId}/voice`, {
+        method: "POST", keepalive: true, signal: AbortSignal.timeout(10_000),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "stop", segmentId: run.segmentId }),
+      }).then((response) => { if (!response.ok) throw new Error("Unable to settle voice usage. End & Score retries settlement."); });
+      voiceStopPromiseRef.current = stopped.catch(() => undefined);
+      try { await stopped; } catch (error) {
+        if (mountedRef.current) setError(error instanceof Error ? error.message : "Unable to stop voice session.");
+      }
+    });
+  }
   const requestedSessionIdRef = useRef<string | null>(initialSessionId ?? null);
   const initialActiveSession = getInitialActiveSession(
     initialSessions,
@@ -238,6 +256,7 @@ export function RoleplayPanel({
     );
 
     if (existing) {
+      stopActiveRoleplayAudio({ announce: false });
       setActiveSession(existing);
 
       if (existing.persona) {
@@ -252,7 +271,19 @@ export function RoleplayPanel({
     void loadSession(requestedSessionId);
   }, [activeSession?.id, initialSessionId, sessions]);
 
+  useEffect(() => {
+    mountedRef.current = true;
+    const onPageHide = () => stopActiveRoleplayAudio({ announce: false });
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      mountedRef.current = false;
+      window.removeEventListener("pagehide", onPageHide);
+      stopActiveRoleplayAudio({ announce: false });
+    };
+  }, []);
+
   function stopTranscriptAudioPlayback() {
+    playbackGenerationRef.current += 1;
     activeTranscriptAudioRef.current?.pause();
     activeTranscriptAudioRef.current = null;
 
@@ -261,12 +292,13 @@ export function RoleplayPanel({
       activeAudioUrlRef.current = null;
     }
 
-    setSpeakingLine(null);
+    if (mountedRef.current) setSpeakingLine(null);
   }
 
   function stopActiveRoleplayAudio({
     announce = true,
   }: { announce?: boolean } = {}) {
+    void voiceLifecycleRef.current?.stop();
     dataChannelRef.current?.close();
     dataChannelRef.current = null;
     peerConnectionRef.current?.close();
@@ -276,6 +308,7 @@ export function RoleplayPanel({
     remoteAudioRef.current?.pause();
     if (remoteAudioRef.current) remoteAudioRef.current.srcObject = null;
     stopTranscriptAudioPlayback();
+    if (!mountedRef.current) return;
     setIsVoiceActive(false);
     setIsStartingVoice(false);
 
@@ -291,6 +324,7 @@ export function RoleplayPanel({
   }
 
   function commitSession(session: RoleplaySession) {
+    if (activeSessionRef.current?.id !== session.id) stopActiveRoleplayAudio({ announce: false });
     activeSessionRef.current = session;
     setActiveSession(session);
     setSessions((cur) => mergeSessionIntoList(cur, session));
@@ -383,12 +417,16 @@ export function RoleplayPanel({
       });
   }
 
-  async function waitForIceGatheringComplete(pc: RTCPeerConnection) {
+  async function waitForIceGatheringComplete(pc: RTCPeerConnection, signal: AbortSignal) {
     if (pc.iceGatheringState === "complete") return;
-    await new Promise<void>((resolve) => {
+    await new Promise<void>((resolve, reject) => {
+      if (signal.aborted) { reject(new Error("Voice start cancelled")); return; }
+      const abort = () => { pc.removeEventListener("icegatheringstatechange", handler); reject(new Error("Voice start cancelled")); };
+      signal.addEventListener("abort", abort, { once: true });
       const handler = () => {
         if (pc.iceGatheringState === "complete") {
           pc.removeEventListener("icegatheringstatechange", handler);
+          signal.removeEventListener("abort", abort);
           resolve();
         }
       };
@@ -408,16 +446,25 @@ export function RoleplayPanel({
       return;
     }
 
+    const lifecycle = voiceLifecycleRef.current!;
+    const run = lifecycle.begin(activeSession.id, crypto.randomUUID());
+    const abortController = new AbortController();
+    lifecycle.adopt(run, () => abortController.abort());
     setError(null);
     setVoiceStatus("Requesting microphone access…");
     setIsStartingVoice(true);
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (!lifecycle.adopt(run, () => stream.getTracks().forEach((track) => track.stop()))) return;
       mediaStreamRef.current = stream;
 
       const pc = new RTCPeerConnection();
+      lifecycle.adopt(run, () => pc.close());
       peerConnectionRef.current = pc;
+      pc.onconnectionstatechange = () => {
+        if (lifecycle.isCurrent(run) && ["disconnected", "failed", "closed"].includes(pc.connectionState)) stopVoicePractice();
+      };
 
       const remoteStream = new MediaStream();
       if (remoteAudioRef.current)
@@ -428,34 +475,46 @@ export function RoleplayPanel({
         );
 
       const dc = pc.createDataChannel("argos-realtime-events");
+      lifecycle.adopt(run, () => dc.close());
       dataChannelRef.current = dc;
       dc.onopen = () => {
+        if (!lifecycle.isCurrent(run)) return;
+        const heartbeat = setInterval(() => {
+          void fetch(`/api/roleplay/sessions/${run.sessionId}/voice`, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "heartbeat", segmentId: run.segmentId }),
+            signal: AbortSignal.timeout(10_000),
+          }).then((response) => { if (!response.ok) throw new Error("Voice connection expired"); })
+            .catch(() => { if (lifecycle.isCurrent(run)) stopVoicePractice(); });
+        }, 10_000);
+        lifecycle.adopt(run, () => clearInterval(heartbeat));
         setVoiceStatus("Voice practice live.");
         setIsVoiceActive(true);
         setIsStartingVoice(false);
       };
       dc.onmessage = (e) => {
+        if (!lifecycle.isCurrent(run)) return;
         const msg = parseRealtimeEvent(e.data);
         if (msg) {
           queueVoiceTranscriptPersistence(activeSession.id, msg);
         }
       };
-      dc.onerror = () =>
-        setError(
-          "Voice mode lost the realtime event channel. Stop and restart.",
-        );
+      dc.onerror = () => { if (lifecycle.isCurrent(run)) stopVoicePractice(); };
 
       stream.getTracks().forEach((t) => pc.addTrack(t, stream));
 
       const offer = await pc.createOffer();
+      if (!lifecycle.isCurrent(run)) return;
       await pc.setLocalDescription(offer);
-      await waitForIceGatheringComplete(pc);
+      await waitForIceGatheringComplete(pc, abortController.signal);
+      if (!lifecycle.isCurrent(run)) return;
 
       const res = await fetch(
         `/api/roleplay/sessions/${activeSession.id}/realtime`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/sdp" },
+          headers: { "Content-Type": "application/sdp", "X-Roleplay-Voice-Segment": run.segmentId },
+          signal: abortController.signal,
           body: pc.localDescription?.sdp ?? offer.sdp ?? "",
         },
       );
@@ -468,9 +527,13 @@ export function RoleplayPanel({
         throw new Error(payload?.error ?? "Unable to start voice practice.");
       }
 
-      await pc.setRemoteDescription({ type: "answer", sdp: await res.text() });
+      const answer = await res.text();
+      if (!lifecycle.isCurrent(run)) return;
+      await pc.setRemoteDescription({ type: "answer", sdp: answer });
+      if (!lifecycle.isCurrent(run)) return;
       setBalanceRefreshKey((value) => value + 1);
     } catch (err) {
+      if (!lifecycle.isCurrent(run)) return;
       cleanupVoiceSession();
       const msg =
         err instanceof Error
@@ -495,6 +558,7 @@ export function RoleplayPanel({
   async function playTranscriptLine(text: string) {
     if (!text.trim()) return;
     stopTranscriptAudioPlayback();
+    const generation = playbackGenerationRef.current;
     setError(null);
     setSpeakingLine(text);
     try {
@@ -517,6 +581,7 @@ export function RoleplayPanel({
         throw new Error(p?.error ?? "Unable to synthesize voice.");
       }
       const blob = await res.blob();
+      if (!mountedRef.current || generation !== playbackGenerationRef.current) return;
       setBalanceRefreshKey((value) => value + 1);
       if (activeAudioUrlRef.current)
         URL.revokeObjectURL(activeAudioUrlRef.current);
@@ -548,6 +613,7 @@ export function RoleplayPanel({
   }
 
   async function loadSession(sessionId: string) {
+    stopActiveRoleplayAudio({ announce: false });
     setError(null);
     setIsMutating(true);
     const res = await fetch(`/api/roleplay/sessions/${sessionId}`, {
@@ -568,6 +634,7 @@ export function RoleplayPanel({
 
   async function createSession() {
     if (!selectedPersonaId) return;
+    stopActiveRoleplayAudio({ announce: false });
     setError(null);
     setIsMutating(true);
     const res = await fetch("/api/roleplay/sessions", {
@@ -620,6 +687,7 @@ export function RoleplayPanel({
     setError(null);
     setIsMutating(true);
     stopActiveRoleplayAudio({ announce: false });
+    await voiceStopPromiseRef.current;
     await flushPendingVoiceTranscriptPersistence();
     const res = await fetch(`/api/roleplay/sessions/${sessionId}/complete`, {
       method: "POST",

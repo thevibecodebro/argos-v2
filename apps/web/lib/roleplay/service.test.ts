@@ -1,7 +1,15 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("./voice-segments", async (importOriginal) => ({
+  ...await importOriginal<typeof import("./voice-segments")>(),
+  createVoiceSegmentsRepository: vi.fn(() => ({ list: vi.fn().mockResolvedValue([]) })),
+}));
 
 vi.mock("server-only", () => ({}));
 
+import { createEffectiveTenantAccessRepository } from "@/lib/platform/effective-request";
+import { createEffectiveAccessRepository } from "@/lib/dashboard/effective-platform";
+import type { CurrentUserProfile } from "@/lib/dashboard/service";
 import { createAccessRepository } from "@/lib/access/create-repository";
 import {
   appendRoleplayMessage,
@@ -22,6 +30,14 @@ import { getRoleplaySessionVoice, type RoleplaySession } from "./types";
 vi.mock("@/lib/access/create-repository", () => ({
   createAccessRepository: vi.fn(),
 }));
+
+vi.mock("@/lib/platform/effective-request", () => ({
+  createEffectiveTenantAccessRepository: vi.fn(async (repository) => repository),
+}));
+
+beforeEach(() => {
+  vi.mocked(createEffectiveTenantAccessRepository).mockImplementation(async (repository) => repository);
+});
 
 function createRepository(
   overrides: Partial<RoleplayRepository> = {},
@@ -992,7 +1008,7 @@ describe("roleplay voice usage settlement", () => {
     expect(result.data.voiceMinutesSettled).toBe(0);
   });
 
-  it("settles realtime voice usage once from recorded start time to completion time", async () => {
+  it("does not backfill unknown legacy realtime voice minutes", async () => {
     mockAccessRepository({
       actor: { id: "rep-1", orgId: "org-1", role: "rep" },
       memberships: [
@@ -1072,21 +1088,16 @@ describe("roleplay voice usage settlement", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("Expected voice usage to be settled");
-    expect(consumeVoiceMinutes).toHaveBeenCalledWith("rep-1", {
-      idempotencyKey: "roleplay:session-1:complete",
-      minutes: 9,
-      sessionId: "session-1",
-      source: "roleplay_realtime",
-    });
+    expect(consumeVoiceMinutes).not.toHaveBeenCalled();
     expect(settleVoiceUsage).toHaveBeenCalledWith("session-1", {
       completedAt,
-      minutesSettled: 9,
+      minutesSettled: 0,
     });
-    expect(result.data.voiceMinutesSettled).toBe(9);
+    expect(result.data.voiceMinutesSettled).toBe(0);
     expect(result.data.voiceCompletedAt).toBe("2026-05-11T20:08:10.000Z");
   });
 
-  it("settles only additional realtime voice minutes after the start reservation", async () => {
+  it("preserves the legacy start reservation without charging unknown paused time", async () => {
     mockAccessRepository({
       actor: { id: "rep-1", orgId: "org-1", role: "rep" },
       memberships: [
@@ -1166,17 +1177,113 @@ describe("roleplay voice usage settlement", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("Expected voice usage to be settled");
-    expect(consumeVoiceMinutes).toHaveBeenCalledWith("rep-1", {
-      idempotencyKey: "roleplay:session-1:complete",
-      minutes: 8,
-      sessionId: "session-1",
-      source: "roleplay_realtime",
-    });
+    expect(consumeVoiceMinutes).not.toHaveBeenCalled();
     expect(settleVoiceUsage).toHaveBeenCalledWith("session-1", {
       completedAt,
-      minutesSettled: 9,
+      minutesSettled: 1,
     });
-    expect(result.data.voiceMinutesSettled).toBe(9);
+    expect(result.data.voiceMinutesSettled).toBe(1);
+  });
+
+  it("settles only recorded active segments when scoring later and reuses ledger keys on replay", async () => {
+    mockAccessRepository({
+      actor: { id: "rep-1", orgId: "org-1", role: "rep" },
+      memberships: [
+        { orgId: "org-1", teamId: "team-a", userId: "rep-1", membershipType: "rep" },
+      ],
+      grants: [],
+    });
+
+    const startedAt = new Date("2026-05-11T20:00:00.000Z");
+    const completedAt = new Date("2026-05-11T20:08:10.000Z");
+    const consumeVoiceMinutes = vi.fn().mockResolvedValue({
+      ok: true,
+      data: { minutesDebited: 1 },
+    });
+    const settleVoiceUsage = vi.fn().mockImplementation(async (_sessionId, input) => ({
+      id: "session-1",
+      repId: "rep-1",
+      orgId: "org-1",
+      persona: "stalling-vp",
+      industry: "SaaS",
+      difficulty: "intermediate",
+      overallScore: 82,
+      origin: "manual",
+      sourceCallId: null,
+      rubricId: null,
+      focusMode: "all",
+      focusCategorySlug: null,
+      scenarioSummary: null,
+      scenarioBrief: null,
+      status: "complete",
+      transcript: [
+        { role: "assistant", content: "Timing is tough right now." },
+        { role: "user", content: "Let's schedule a pilot review next Tuesday." },
+      ],
+      scorecard: null,
+      voiceStartedAt: startedAt,
+      voiceCompletedAt: input.completedAt,
+      voiceMinutesSettled: input.minutesSettled,
+      voiceSettledAt: input.completedAt,
+      createdAt: new Date("2026-04-03T00:00:00.000Z"),
+    }));
+    const repository = createRepository({
+      findSessionById: vi.fn().mockResolvedValue({
+        id: "session-1",
+        repId: "rep-1",
+        orgId: "org-1",
+        persona: "stalling-vp",
+        industry: "SaaS",
+        difficulty: "intermediate",
+        overallScore: 82,
+        origin: "manual",
+        sourceCallId: null,
+        rubricId: null,
+        focusMode: "all",
+        focusCategorySlug: null,
+        scenarioSummary: null,
+        scenarioBrief: null,
+        status: "complete",
+        transcript: [
+          { role: "assistant", content: "Timing is tough right now." },
+          { role: "user", content: "Let's schedule a pilot review next Tuesday." },
+        ],
+        scorecard: null,
+        voiceStartedAt: startedAt,
+        voiceCompletedAt: null,
+        voiceMinutesSettled: 1,
+        voiceSettledAt: null,
+        createdAt: new Date("2026-04-03T00:00:00.000Z"),
+      }),
+      settleVoiceUsage,
+    });
+
+    const result = await settleRoleplayVoiceUsage(repository, "rep-1", "session-1", {
+      consumeVoiceMinutes,
+      now: () => new Date("2026-05-12T20:00:00.000Z"),
+      segments: {
+        prepare: vi.fn(), start: vi.fn(), stop: vi.fn(), heartbeat: vi.fn(),
+        list: vi.fn().mockResolvedValue([
+          { sessionId: "session-1", id: "segment-1", startedAt, stoppedAt: new Date(startedAt.getTime() + 61_000), leaseExpiresAt: new Date(startedAt.getTime() + 90_000) },
+          { sessionId: "session-1", id: "segment-2", startedAt: new Date(startedAt.getTime() + 1_800_000), stoppedAt: new Date(startedAt.getTime() + 1_860_000), leaseExpiresAt: new Date(startedAt.getTime() + 1_880_000) },
+        ]),
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected voice usage to be settled");
+    expect(consumeVoiceMinutes).toHaveBeenCalledTimes(2);
+    expect(consumeVoiceMinutes).toHaveBeenNthCalledWith(1, "rep-1", {
+      idempotencyKey: "roleplay:session-1:minute:2", minutes: 1, sessionId: "session-1", source: "roleplay_realtime",
+    });
+    expect(consumeVoiceMinutes).toHaveBeenNthCalledWith(2, "rep-1", {
+      idempotencyKey: "roleplay:session-1:minute:3", minutes: 1, sessionId: "session-1", source: "roleplay_realtime",
+    });
+    expect(settleVoiceUsage).toHaveBeenCalledWith("session-1", {
+      completedAt: new Date("2026-05-12T20:00:00.000Z"),
+      minutesSettled: 3,
+    });
+    expect(result.data.voiceMinutesSettled).toBe(3);
   });
 
   it("does not debit realtime voice minutes again for an already settled session", async () => {
@@ -1540,4 +1647,59 @@ describe("getRoleplaySession", () => {
     if (result.ok) throw new Error("Expected cross-tenant roleplay access to be denied");
     expect(result.status).toBe(403);
   });
+});
+
+
+describe("roleplay selected workspace access", () => {
+  function selectClientWorkspace() {
+    mockAccessRepository({
+      actor: { id: "platform-user", orgId: "home-org", role: "admin" },
+      memberships: [],
+      grants: [],
+    });
+    vi.mocked(createEffectiveTenantAccessRepository).mockImplementation(async (repository) =>
+      createEffectiveAccessRepository(repository, {
+        id: "platform-user",
+        role: "admin",
+        org: { id: "client-org" },
+      } as CurrentUserProfile, "platform-user"),
+    );
+  }
+
+  it("opens a generated session in the selected client workspace", async () => {
+    selectClientWorkspace();
+    const repository = createRepository({
+      findSessionById: vi.fn().mockResolvedValue(createRoleplaySessionRecord({
+        repId: "platform-user", orgId: "client-org", origin: "generated_from_call",
+      })),
+    });
+    const result = await getRoleplaySession(repository, "platform-user", "session-1");
+    expect(result.ok).toBe(true);
+  });
+
+  it("rejects a home-workspace session while a client workspace is selected", async () => {
+    selectClientWorkspace();
+    const repository = createRepository({
+      findSessionById: vi.fn().mockResolvedValue(createRoleplaySessionRecord({
+        repId: "platform-user", orgId: "home-org",
+      })),
+    });
+    const result = await getRoleplaySession(repository, "platform-user", "session-1");
+    expect(result).toMatchObject({ ok: false, status: 403 });
+  });
+  it("lists only the selected workspace sessions for a platform user shared across workspaces", async () => {
+    selectClientWorkspace();
+    const repository = createRepository({
+      findSessionsByRepId: vi.fn().mockResolvedValue([
+        createRoleplaySessionRecord({ id: "home-session", repId: "platform-user", orgId: "home-org" }),
+        createRoleplaySessionRecord({ id: "client-session", repId: "platform-user", orgId: "client-org" }),
+        createRoleplaySessionRecord({ id: "other-session", repId: "platform-user", orgId: "other-client" }),
+      ]),
+    });
+    const result = await listRoleplaySessions(repository, "platform-user");
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.error);
+    expect(result.data.sessions.map((session) => session.id)).toEqual(["client-session"]);
+  });
+
 });

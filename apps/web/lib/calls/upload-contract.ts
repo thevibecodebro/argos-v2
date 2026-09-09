@@ -34,6 +34,7 @@ export const UPLOAD_ERROR_CODES = [
   "processing_failed",
   "unsupported_file_type",
   "upload_canceled",
+  "upload_target_expired",
 ] as const;
 
 export type UploadErrorCode =
@@ -127,6 +128,12 @@ export function createUploadError(
   overrides: Partial<UploadErrorPayload> = {},
 ): UploadErrorPayload {
   const defaults: Record<UploadErrorCode, UploadErrorPayload> = {
+    upload_target_expired: {
+      code: "upload_target_expired",
+      error: "This upload target has expired.",
+      retryable: true,
+      action: "Retry to start a new upload in the original workspace.",
+    },
     missing_file: {
       code: "missing_file",
       error: "No recording was attached to the upload request.",

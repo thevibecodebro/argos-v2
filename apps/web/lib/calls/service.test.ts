@@ -399,6 +399,72 @@ describe("processing job recovery", () => {
     });
   });
 
+  it.each([{ authUserId: "someone-else", orgId: "org-1" }, { authUserId: "admin-1", orgId: "org-B" }])("rejects retry authorization with mismatched identity or tenant: %j", async (callUploadCapability) => {
+    const billing = { findActiveCallProcessingSubscription: vi.fn() };
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue(adminViewer),
+      findCallById: vi.fn().mockResolvedValue({ ...baseCallRecord, status: "failed" }),
+      findCallProcessingJobByCallId: vi.fn().mockResolvedValue({ status: "failed", attemptCount: 1, maxAttempts: 3 }),
+    });
+    const result = await retryCallProcessingJob(repository, "admin-1", "call-1", adminAccessRepository() as never, { callUploadCapability, callProcessingEntitlementsRepository: billing });
+    expect(result).toMatchObject({ ok: false, status: 403 });
+    expect(repository.retryCallProcessingJob).not.toHaveBeenCalled();
+    expect(billing.findActiveCallProcessingSubscription).not.toHaveBeenCalled();
+  });
+
+  it("allows verified managed retry without a billing subscription", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue(adminViewer),
+      findCallById: vi.fn().mockResolvedValue({
+        ...baseCallRecord,
+        status: "failed",
+      }),
+      findCallProcessingJobByCallId: vi.fn().mockResolvedValue({
+        id: "job-1",
+        status: "failed",
+        attemptCount: 2,
+        maxAttempts: 3,
+        nextRunAt: new Date("2026-04-03T00:00:00.000Z"),
+        lastStage: "score",
+        lastError: "Scoring failed",
+        updatedAt: new Date("2026-04-03T00:00:00.000Z"),
+      }),
+      retryCallProcessingJob: vi.fn().mockResolvedValue({
+        id: "job-1",
+        status: "pending",
+        attemptCount: 2,
+        maxAttempts: 3,
+        nextRunAt: new Date("2026-04-03T00:15:00.000Z"),
+        lastStage: null,
+        lastError: null,
+        updatedAt: new Date("2026-04-03T00:15:00.000Z"),
+      }),
+    });
+
+    const result = await retryCallProcessingJob(
+      repository,
+      "admin-1",
+      "call-1",
+      adminAccessRepository() as never,
+      {
+        callUploadCapability: { authUserId: "admin-1", orgId: "org-1" },
+        callProcessingEntitlementsRepository: {
+          findActiveCallProcessingSubscription: vi.fn().mockRejectedValue(new Error("Managed retry must not query billing")),
+        },
+      },
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected retry result");
+    expect(repository.retryCallProcessingJob).toHaveBeenCalledWith("call-1");
+    expect(result.data.processingJob).toMatchObject({
+      id: "job-1",
+      status: "pending",
+      attemptCount: 2,
+      lastError: null,
+    });
+  });
+
   it("blocks admins from requeueing failed processing jobs that exhausted retry budget", async () => {
     const repository = createRepository({
       findCurrentUserByAuthId: vi.fn().mockResolvedValue(adminViewer),

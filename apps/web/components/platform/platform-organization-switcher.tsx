@@ -122,10 +122,10 @@ export function PlatformOrganizationSwitcher({
     try {
       await submitEndSession(fetch);
       setSession(null);
-      setSessionStatus("Back in Agency.");
+      setSessionStatus("Back in Argos Admin Dashboard.");
       window.location.assign("/platform/dashboard");
     } catch (error) {
-      setSessionStatus(error instanceof Error ? error.message : "Unable to return to Agency");
+      setSessionStatus(error instanceof Error ? error.message : "Unable to return to Argos Admin Dashboard");
     } finally {
       setSwitchingOrgId(null);
     }
@@ -266,10 +266,18 @@ export function PlatformOrganizationSwitcher({
               <ForgeIcon name="arrow_back" size={15} />
               {switchingOrgId === "ending"
                 ? "Returning…"
-                : "Return to platform dashboard"}
+                : "Return to Argos Admin Dashboard"}
             </button>
           </div>
-        ) : null}
+        ) : (
+          <a
+            className="mt-3 flex items-center justify-center gap-2 rounded-lg border border-[var(--forge-border)] px-3 py-2 text-xs font-semibold text-[var(--forge-muted)] hover:text-[var(--forge-text)]"
+            href="/platform/dashboard"
+          >
+            <ForgeIcon name="arrow_back" size={15} />
+            Return to Argos Admin Dashboard
+          </a>
+        )}
         {sessionStatus ? (
           <p className="mt-2 rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface-2)] px-3 py-2 text-xs text-[var(--forge-muted)]">
             {sessionStatus}

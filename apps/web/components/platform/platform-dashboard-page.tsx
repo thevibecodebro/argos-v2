@@ -40,7 +40,7 @@ export function PlatformDashboardPage({ dashboard }: PlatformDashboardPageProps)
           },
         ]}
         description="Organization health, usage, and risk."
-        title="Dashboard"
+        title="Argos Admin Dashboard"
       >
         <form
           action="/platform/dashboard"

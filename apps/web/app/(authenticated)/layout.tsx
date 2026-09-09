@@ -11,6 +11,7 @@ import {
 } from "@/lib/auth/request-user";
 import { getAuthenticatedEntryHref } from "@/lib/auth-routing";
 import { getCachedOrganizationCapabilities } from "@/lib/access/managed-capabilities-server";
+import { requirePlatformStaffAccess } from "@/lib/platform/auth";
 import { createPlatformRepository } from "@/lib/platform/create-repository";
 import { getPlatformSessionCookieValue } from "@/lib/platform/effective-actor";
 import {
@@ -34,7 +35,12 @@ export default async function AuthenticatedLayout({
     redirect("/login");
   }
 
+  const platformSwitcher = await loadPlatformOrganizationSwitcher(authUser.id);
   const currentUser = await getCachedCurrentUserProfile(authUser.id);
+
+  if (platformSwitcher && !currentUser?.org) {
+    redirect("/platform/dashboard");
+  }
 
   if (!currentUser) {
     redirect("/auth/error");
@@ -44,13 +50,10 @@ export default async function AuthenticatedLayout({
     redirect(getAuthenticatedEntryHref(false));
   }
 
-  const platformSwitcher = currentUser.email.startsWith("platform:")
-    ? await loadPlatformOrganizationSwitcher(authUser.id)
-    : null;
   const access = await getCachedOrganizationCapabilities(currentUser.org.id);
 
   if (access.mode === "inactive") {
-    redirect("/access-pending");
+    redirect(platformSwitcher ? "/platform/dashboard" : "/access-pending");
   }
 
   return (
@@ -75,27 +78,25 @@ export default async function AuthenticatedLayout({
 async function loadPlatformOrganizationSwitcher(
   authUserId: string,
 ): Promise<PlatformOrganizationSwitcherContext | null> {
+  const repository = createPlatformRepository();
+  const staff = await repository.findStaffByUserId(authUserId);
+
+  // Staff access outlives the temporary organization support session.
+  if (staff?.status !== "active") {
+    return null;
+  }
+
+  await requirePlatformStaffAccess({ repository, pathname: "/dashboard" });
   const cookieStore = await cookies();
   const activeSessionId = getPlatformSessionCookieValue(cookieStore);
-
-  if (!activeSessionId) {
-    return null;
-  }
-
-  const repository = createPlatformRepository();
-  const activeSession = await repository.findActiveAccessSession(
-    activeSessionId,
-    authUserId,
-  );
-
-  if (!activeSession) {
-    return null;
-  }
+  const activeSession = activeSessionId
+    ? await repository.findActiveAccessSession(activeSessionId, authUserId)
+    : null;
 
   const organizations = await repository.listOrganizations({ limit: 100 });
 
   return {
-    activeSession: serializeActivePlatformSession(activeSession),
+    activeSession: activeSession ? serializeActivePlatformSession(activeSession) : null,
     organizations: organizations.map(serializeOrganization),
   };
 }

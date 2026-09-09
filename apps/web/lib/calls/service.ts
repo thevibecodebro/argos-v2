@@ -277,6 +277,7 @@ type VerifiedCallUploadCapability = {
 };
 
 type RetryCallProcessingJobDependencies = {
+  callUploadCapability?: VerifiedCallUploadCapability;
   callProcessingEntitlementsRepository?: CallProcessingEntitlementsRepository;
 };
 
@@ -376,7 +377,7 @@ export type CallsRepository = {
     status: "ready" | "needs_review";
   }): Promise<void>;
   findCallProcessingJobByCallId(callId: string): Promise<CallProcessingJobRecord | null>;
-  findCallProcessingJobBySourceStoragePath(sourceStoragePath: string): Promise<CallProcessingJobRecord | null>;
+  findCallProcessingJobBySourceStoragePath(sourceStoragePath: string): Promise<(CallProcessingJobRecord & { callId: string }) | null>;
   findCallRecordingReference(callId: string): Promise<CallRecordingReference | null>;
   findCallsByOrgId(
     orgId: string,
@@ -940,13 +941,13 @@ export async function retryCallProcessingJob(
     };
   }
 
-  const entitlement = await getCallProcessingEntitlementStatus(
-    dependencies.callProcessingEntitlementsRepository ?? new DrizzleBillingRepository(),
-    {
-      orgId: call.orgId,
-      userId: viewer.id,
-    },
-  );
+  const entitlement = await requireManualCallProcessingAccess({
+    authUserId,
+    orgId: call.orgId,
+    userId: viewer.id,
+    callProcessingEntitlementsRepository: dependencies.callProcessingEntitlementsRepository,
+    callUploadCapability: dependencies.callUploadCapability,
+  });
 
   if (!entitlement.ok) {
     return entitlement;
@@ -1749,13 +1750,8 @@ export async function completeUploadedCall(
     return entitlement;
   }
 
-  const existingSourceJob = await repository.findCallProcessingJobBySourceStoragePath(
-    input.sourceAsset.storagePath,
-  );
-
-  if (existingSourceJob) {
-    return manualUploadSourceAlreadyQueuedResult();
-  }
+  const existingUpload = await findCompletedManualUpload(repository, authUserId, input.sourceAsset.storagePath, viewer.org.id);
+  if (existingUpload) return existingUpload;
 
   const topic = input.callTopic?.trim() || deriveCallTopicFromFileName(input.fileName);
   const rubricsRepository = dependencies.rubricsRepository ?? createRubricsRepository();
@@ -1799,18 +1795,32 @@ export async function completeUploadedCall(
       },
     };
   } catch (error) {
-    await handleQueuedCallFailure(
-      repository,
-      created.id,
-      "Failed to mark direct upload as failed",
-    );
-
     if (isManualUploadSourceAlreadyQueuedError(error)) {
-      return manualUploadSourceAlreadyQueuedResult();
+      // The unique source index chose another request's call. Remove this
+      // request's unused call, then return only a winner owned by this viewer.
+      await repository.deleteCall(created.id);
+      return await findCompletedManualUpload(repository, authUserId, input.sourceAsset.storagePath, viewer.org.id)
+        ?? manualUploadSourceAlreadyQueuedResult();
     }
-
+    await handleQueuedCallFailure(repository, created.id, "Failed to mark direct upload as failed");
     throw error;
   }
+}
+
+export async function findCompletedManualUpload(
+  repository: CallsRepository,
+  authUserId: string,
+  storagePath: string,
+  orgId: string,
+): Promise<ServiceResult<UploadCallResult> | null> {
+  const job = await repository.findCallProcessingJobBySourceStoragePath(storagePath);
+  if (!job) return null;
+  const viewer = await getViewer(repository, authUserId);
+  const call = job.callId ? await repository.findCallById(job.callId) : null;
+  if (!viewer.ok || viewer.data.org?.id !== orgId || !call || call.orgId !== orgId || call.repId !== viewer.data.id) {
+    return manualUploadSourceAlreadyQueuedResult();
+  }
+  return { ok: true, data: { id: call.id, status: call.status, createdAt: call.createdAt.toISOString() } };
 }
 
 function manualUploadSourceAlreadyQueuedResult(): ServiceResult<UploadCallResult> {

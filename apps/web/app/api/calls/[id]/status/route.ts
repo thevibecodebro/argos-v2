@@ -38,6 +38,10 @@ export async function POST(
 
   const { id } = await params;
   const repository = await createEffectiveTenantRepository(createCallsRepository(), authUser.id);
-  const result = await retryCallProcessingJob(repository, authUser.id, id);
+  const result = await retryCallProcessingJob(repository, authUser.id, id, undefined, {
+    callUploadCapability: capabilityAccess.access.mode === "managed"
+      ? { authUserId: authUser.id, orgId: capabilityAccess.orgId }
+      : undefined,
+  });
   return fromServiceResult(result);
 }

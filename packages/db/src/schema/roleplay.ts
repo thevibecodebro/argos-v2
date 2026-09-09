@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { check, integer, jsonb, pgTable, primaryKey, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { callsTable } from "./calls";
 import { organizationsTable } from "./organizations";
 import { rubricsTable } from "./rubrics";
@@ -61,3 +61,12 @@ export const roleplaySessionsTable = pgTable(
     ),
   ],
 );
+
+// Service-only interval records; all access goes through session authorization.
+export const roleplayVoiceSegmentsTable = pgTable("roleplay_voice_segments", {
+  sessionId: uuid("session_id").notNull().references(() => roleplaySessionsTable.id, { onDelete: "cascade" }),
+  id: uuid("id").notNull(),
+  startedAt: timestamp("started_at", { withTimezone: true }),
+  stoppedAt: timestamp("stopped_at", { withTimezone: true }),
+  leaseExpiresAt: timestamp("lease_expires_at", { withTimezone: true }),
+}, (table) => [primaryKey({ columns: [table.sessionId, table.id] })]);

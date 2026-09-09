@@ -4,6 +4,8 @@ const getAuthenticatedSupabaseUser = vi.fn();
 const requireAuthenticatedManagedCapability = vi.fn();
 const createCallsRepository = vi.fn();
 const completeUploadedCall = vi.fn();
+const findCompletedManualUpload = vi.fn();
+const getManualCallUploadTargetStatus = vi.fn();
 const consumeManualCallUploadTarget = vi.fn();
 const createSupabaseAdminClient = vi.fn();
 const checkRateLimitForPolicy = vi.fn();
@@ -22,6 +24,7 @@ vi.mock("@/lib/calls/create-repository", () => ({
 
 vi.mock("@/lib/calls/ingestion-service", () => ({
   consumeManualCallUploadTarget,
+  getManualCallUploadTargetStatus,
 }));
 
 vi.mock("@/lib/supabase/admin", () => ({
@@ -33,6 +36,7 @@ vi.mock("@/lib/calls/service", async () => {
   return {
     ...actual,
     completeUploadedCall,
+    findCompletedManualUpload,
   };
 });
 
@@ -60,6 +64,8 @@ describe("calls upload complete route", () => {
     requireAuthenticatedManagedCapability.mockReset();
     createCallsRepository.mockReset();
     completeUploadedCall.mockReset();
+    findCompletedManualUpload.mockReset().mockResolvedValue(null);
+    getManualCallUploadTargetStatus.mockReset().mockResolvedValue("valid");
     consumeManualCallUploadTarget.mockReset();
     createSupabaseAdminClient.mockReset();
     checkRateLimitForPolicy.mockReset();
@@ -94,6 +100,62 @@ describe("calls upload complete route", () => {
         }),
       },
     });
+  });
+
+  it("rejects a target prepared for a different workspace before storage or queueing", async () => {
+    getManualCallUploadTargetStatus.mockResolvedValue("workspace_mismatch");
+    const { POST } = await import("../app/api/calls/upload/complete/route");
+    const response = await POST(new Request("http://localhost/api/calls/upload/complete", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fileName: "demo.mp3", fileSizeBytes: 1024, contentType: "audio/mpeg", consentConfirmed: true, storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3" }),
+    }));
+    expect(response.status).toBe(400);
+    expect(getManualCallUploadTargetStatus).toHaveBeenCalledWith({ authUserId: "auth-user-1", orgId: "org-1", storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3" });
+    expect(createSupabaseAdminClient).not.toHaveBeenCalled();
+    expect(completeUploadedCall).not.toHaveBeenCalled();
+    expect(consumeManualCallUploadTarget).not.toHaveBeenCalled();
+  });
+
+  it("allows renewal after expired metadata cleanup only with the original workspace binding", async () => {
+    getManualCallUploadTargetStatus.mockResolvedValue("missing");
+    const { POST } = await import("../app/api/calls/upload/complete/route");
+    for (const orgId of [undefined, "org-1", "other-org"]) {
+      const response = await POST(new Request("http://localhost/api/calls/upload/complete", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orgId, fileName: "demo.mp3", fileSizeBytes: 1024, contentType: "audio/mpeg", consentConfirmed: true, storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3" }),
+      }));
+      expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({ code: orgId === "org-1" ? "upload_target_expired" : "invalid_upload" });
+    }
+    expect(completeUploadedCall).not.toHaveBeenCalled();
+  });
+
+  it("reports definitive expiry without queueing a call", async () => {
+    getManualCallUploadTargetStatus.mockResolvedValue("expired");
+    const { POST } = await import("../app/api/calls/upload/complete/route");
+    const response = await POST(new Request("http://localhost/api/calls/upload/complete", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fileName: "demo.mp3", fileSizeBytes: 1024, contentType: "audio/mpeg", consentConfirmed: true, storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3" }),
+    }));
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ code: "upload_target_expired" });
+    expect(completeUploadedCall).not.toHaveBeenCalled();
+    expect(consumeManualCallUploadTarget).not.toHaveBeenCalled();
+  });
+
+  it.each(["expired", "missing"])("returns the existing owned call before classifying a target as %s", async (status) => {
+    findCompletedManualUpload.mockResolvedValue({ ok: true, data: { id: "original-call", status: "uploaded", createdAt: "2026-09-09T00:00:00Z" } });
+    getManualCallUploadTargetStatus.mockResolvedValue(status);
+    const { POST } = await import("../app/api/calls/upload/complete/route");
+    const response = await POST(new Request("http://localhost/api/calls/upload/complete", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fileName: "demo.mp3", fileSizeBytes: 1024, contentType: "audio/mpeg", consentConfirmed: true, storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3" }),
+    }));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ id: "original-call" });
+    expect(getManualCallUploadTargetStatus).not.toHaveBeenCalled();
+    expect(completeUploadedCall).not.toHaveBeenCalled();
+    expect(createSupabaseAdminClient).not.toHaveBeenCalled();
   });
 
   it(

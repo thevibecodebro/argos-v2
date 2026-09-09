@@ -59,6 +59,16 @@ describe("calls upload prepare route", () => {
     });
   });
 
+  it("does not renew an expired upload into a different selected workspace", async () => {
+    const { POST } = await import("../app/api/calls/upload/prepare/route");
+    const response = await POST(new Request("http://localhost/api/calls/upload/prepare", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fileName: "demo.mp3", fileSizeBytes: 1024, contentType: "audio/mpeg", orgId: "original-org" }),
+    }));
+    expect(response.status).toBe(400);
+    expect(createManualCallUploadTarget).not.toHaveBeenCalled();
+  });
+
   it("returns a user-scoped upload target for valid file metadata", async () => {
     createManualCallUploadTarget.mockResolvedValue({
       storagePath: "recordings/manual-uploads/auth-user-1/upload-1/demo.mp3",

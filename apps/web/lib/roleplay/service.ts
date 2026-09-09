@@ -1,4 +1,5 @@
 import "server-only";
+import { createVoiceSegmentsRepository, settleVoiceSegments, type VoiceSegmentsRepository } from "./voice-segments";
 import {
   buildAccessContext,
   canActorUsePermissionForRep,
@@ -600,7 +601,8 @@ async function getViewer(
   authUserId: string,
 ): Promise<ServiceResult<AccessContext>> {
   const { createAccessRepository } = await import("@/lib/access/create-repository");
-  const accessRepository = createAccessRepository();
+  const { createEffectiveTenantAccessRepository } = await import("@/lib/platform/effective-request");
+  const accessRepository = await createEffectiveTenantAccessRepository(createAccessRepository(), authUserId);
   const actor = await accessRepository.findActorByAuthUserId(authUserId);
 
   if (!actor) {
@@ -690,7 +692,7 @@ function canActorMutateRoleplaySession(access: AccessContext, repId: string) {
   return canActorUsePermissionForRep(access, "coach_team_calls", repId);
 }
 
-async function getAuthorizedMutableSession(
+export async function getAuthorizedMutableSession(
   repository: RoleplayRepository,
   authUserId: string,
   sessionId: string,
@@ -783,7 +785,7 @@ export async function listRoleplaySessions(
       ok: true,
       data: {
         personas: getRoleplayPersonas(),
-        sessions: sessions.map(serializeSession),
+        sessions: sessions.filter((session) => session.orgId === access.actor.orgId).map(serializeSession),
       },
     };
   }
@@ -805,7 +807,7 @@ export async function listRoleplaySessions(
       ok: true,
       data: {
         personas: getRoleplayPersonas(),
-        sessions: sessions.map(serializeSession),
+        sessions: sessions.filter((session) => session.orgId === access.actor.orgId).map(serializeSession),
       },
     };
   }
@@ -828,7 +830,7 @@ export async function listRoleplaySessions(
     ok: true,
     data: {
       personas: PERSONAS,
-      sessions: sessions.map(serializeSession),
+      sessions: sessions.filter((session) => session.orgId === access.actor.orgId).map(serializeSession),
     },
   };
 }
@@ -1136,6 +1138,7 @@ export async function settleRoleplayVoiceUsage(
   input: {
     consumeVoiceMinutes: RoleplayVoiceUsageConsumer;
     now?: () => Date;
+    segments?: VoiceSegmentsRepository;
   },
 ): Promise<ServiceResult<RoleplaySession>> {
   const sessionResult = await getAuthorizedMutableSession(repository, authUserId, sessionId);
@@ -1162,30 +1165,18 @@ export async function settleRoleplayVoiceUsage(
   }
 
   const completedAt = input.now?.() ?? new Date();
-  const elapsedMs = completedAt.getTime() - session.voiceStartedAt.getTime();
-  const elapsedMinutes = Math.max(1, Math.ceil(elapsedMs / 60_000));
-  const alreadySettledMinutes = Math.max(0, Math.ceil(session.voiceMinutesSettled ?? 0));
-  const additionalMinutes = Math.max(0, elapsedMinutes - alreadySettledMinutes);
-  let totalMinutesSettled = Math.max(alreadySettledMinutes, elapsedMinutes);
-
-  if (additionalMinutes > 0) {
-    const consumption = await input.consumeVoiceMinutes(authUserId, {
-      idempotencyKey: `roleplay:${sessionId}:complete`,
-      minutes: additionalMinutes,
-      sessionId,
-      source: "roleplay_realtime",
-    });
-
-    if (!consumption.ok) {
-      return {
-        ok: false,
-        status: consumption.status,
-        code: consumption.code,
-        error: consumption.error,
-      };
-    }
-
-    totalMinutesSettled = alreadySettledMinutes + consumption.data.minutesDebited;
+  const segments = input.segments ?? createVoiceSegmentsRepository();
+  const recorded = await segments.list(sessionId);
+  // Legacy records have no trustworthy stop time. Preserve their existing debit;
+  // never reconstruct unknown hours of paused time from the original start.
+  let totalMinutesSettled = Math.max(0, session.voiceMinutesSettled ?? 0);
+  if (recorded.length) {
+    const stopped = await Promise.all(recorded.map((item) =>
+      item.stoppedAt ? item : segments.stop(sessionId, item.id, completedAt),
+    ));
+    const result = await settleVoiceSegments(sessionId, stopped, authUserId, input.consumeVoiceMinutes);
+    if (!result.ok) return result;
+    totalMinutesSettled = Math.max(totalMinutesSettled, result.data.minutesDebited);
   }
 
   const updated = await repository.settleVoiceUsage(sessionId, {
