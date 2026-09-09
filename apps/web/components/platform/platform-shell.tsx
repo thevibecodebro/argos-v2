@@ -94,7 +94,7 @@ export function PlatformShell({
                 placement="primary-rail"
               />
               <p className="mt-0.5 font-[var(--font-display)] text-[0.62rem] font-bold uppercase tracking-[0.24em] text-[var(--forge-gold)]">
-                Revenue Command
+                Argos Admin Dashboard
               </p>
             </div>
             <button
@@ -117,7 +117,7 @@ export function PlatformShell({
         />
 
         <nav
-          aria-label="Platform navigation"
+          aria-label="Argos Admin Dashboard navigation"
           className={cn("flex-1 space-y-1 overflow-y-auto pr-1", primaryRailCollapsed && "lg:pr-0")}
         >
           {platformNavItems.map((item) => (

@@ -7,6 +7,8 @@ type ClaimedCallProcessingJob = NonNullable<
 type PollCallProcessingJobsInput = {
   repository: Pick<CallProcessingRepository, "claimNextJob">;
   processJob: (job: ClaimedCallProcessingJob) => Promise<void>;
+  onPollError?: (error: unknown) => void;
+  onPollSuccess?: () => void;
   now?: Date;
   once?: boolean;
   pollIntervalMs?: number;
@@ -25,7 +27,16 @@ export async function pollCallProcessingJobs(
   const sleep = input.sleep ?? defaultSleep;
 
   do {
-    const claimed = await input.repository.claimNextJob(input.now ?? new Date());
+    let claimed: ClaimedCallProcessingJob | null;
+    try {
+      claimed = await input.repository.claimNextJob(input.now ?? new Date());
+    } catch (error) {
+      input.onPollError?.(error);
+      if (input.once) throw error;
+      await sleep(input.pollIntervalMs ?? 5_000);
+      continue;
+    }
+    input.onPollSuccess?.();
 
     if (claimed) {
       await input.processJob(claimed);

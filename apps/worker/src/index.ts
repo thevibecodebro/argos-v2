@@ -34,6 +34,7 @@ function loadLocalWorkerEnvFiles() {
 loadLocalWorkerEnvFiles();
 
 const env = getWorkerEnv();
+let callProcessingPollHealthy = !env.callProcessingEnabled;
 
 if (env.callProcessingEnabled) {
   const repository = new CallProcessingRepository();
@@ -41,6 +42,13 @@ if (env.callProcessingEnabled) {
   void pollCallProcessingJobs({
     repository,
     pollIntervalMs: env.pollIntervalMs,
+    onPollError: (error) => {
+      callProcessingPollHealthy = false;
+      console.error("Call processing poll failed; retrying", error);
+    },
+    onPollSuccess: () => {
+      callProcessingPollHealthy = true;
+    },
     processJob: async (job) => {
       try {
         await processCallJob({
@@ -53,6 +61,7 @@ if (env.callProcessingEnabled) {
       }
     },
   }).catch((error) => {
+    callProcessingPollHealthy = false;
     console.error("Call processing poll loop stopped", error);
   });
 }
@@ -108,13 +117,13 @@ if (env.googleMeetImportEnabled) {
 
 const server = createServer((request, response) => {
   if (request.url === "/health") {
-    response.writeHead(200, {
+    response.writeHead(callProcessingPollHealthy ? 200 : 503, {
       "Content-Type": "application/json",
       "Cache-Control": "no-store",
     });
     response.end(
       JSON.stringify({
-        ok: true,
+        ok: callProcessingPollHealthy,
         service: "@argos-v2/worker",
         timestamp: new Date().toISOString(),
       }),

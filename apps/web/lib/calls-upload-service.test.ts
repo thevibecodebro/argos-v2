@@ -622,7 +622,7 @@ describe("completeUploadedCall", () => {
       code: "invalid_state",
     });
     expect(repository.createCall).toHaveBeenCalledOnce();
-    expect(repository.updateCallStatus).toHaveBeenCalledWith("call-2", "failed");
+    expect(repository.deleteCall).toHaveBeenCalledWith("call-2");
   });
 
   it("marks the call failed if queueing the pre-uploaded source asset crashes", async () => {
@@ -670,5 +670,41 @@ describe("completeUploadedCall", () => {
     ).rejects.toThrow("write unavailable");
 
     expect(repository.updateCallStatus).toHaveBeenCalledWith("call-1", "failed");
+  });
+});
+
+describe("manual upload completion replay ownership", () => {
+  const sourceAsset = { storageBucket: "call-recordings" as const, storagePath: "recordings/manual-uploads/user/target/demo.mp3", contentType: "audio/mpeg", fileSizeBytes: 5 };
+  const dependencies = { callUploadCapability: { authUserId: "user", orgId: "org-A" }, rubricsRepository: createRubricsRepository() };
+  const call = { id: "original-call", repId: "user", orgId: "org-A", status: "uploaded", createdAt: new Date("2026-09-09T00:00:00Z") };
+  function replayRepository(overrides = {}) {
+    return createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({ id: "user", org: { id: "org-A" } }),
+      findCallProcessingJobBySourceStoragePath: vi.fn().mockResolvedValue({ callId: "original-call" }),
+      findCallById: vi.fn().mockResolvedValue(call), ...overrides,
+    });
+  }
+  it("returns the original call without creating another call or resetting its job", async () => {
+    const repository = replayRepository();
+    const result = await completeUploadedCall(repository, "user", { fileName: "demo.mp3", fileSizeBytes: 5, sourceAsset }, dependencies);
+    expect(result).toMatchObject({ ok: true, data: { id: "original-call" } });
+    expect(repository.createCall).not.toHaveBeenCalled();
+    expect(repository.createOrResetCallProcessingJob).not.toHaveBeenCalled();
+  });
+  it.each([{ orgId: "org-B" }, { repId: "another-user" }])("does not disclose or reuse a call with different ownership: %j", async (ownership) => {
+    const repository = replayRepository({ findCallById: vi.fn().mockResolvedValue({ ...call, ...ownership }) });
+    const result = await completeUploadedCall(repository, "user", { fileName: "demo.mp3", fileSizeBytes: 5, sourceAsset }, dependencies);
+    expect(result).toMatchObject({ ok: false, status: 409 });
+    expect(repository.createCall).not.toHaveBeenCalled();
+  });
+  it("returns the same-owner winner and deletes only the losing call in a source uniqueness race", async () => {
+    const repository = replayRepository({
+      findCallProcessingJobBySourceStoragePath: vi.fn().mockResolvedValueOnce(null).mockResolvedValue({ callId: "original-call" }),
+      createCall: vi.fn().mockResolvedValue({ ...call, id: "losing-call" }),
+      createOrResetCallProcessingJob: vi.fn().mockRejectedValue(new Error("call_processing_jobs_manual_source_storage_path_uq")),
+    });
+    const result = await completeUploadedCall(repository, "user", { fileName: "demo.mp3", fileSizeBytes: 5, sourceAsset }, dependencies);
+    expect(result).toMatchObject({ ok: true, data: { id: "original-call" } });
+    expect(repository.deleteCall).toHaveBeenCalledExactlyOnceWith("losing-call");
   });
 });

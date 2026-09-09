@@ -159,7 +159,7 @@ export class DrizzleCallsRepository implements CallsRepository {
 
   async findCallProcessingJobBySourceStoragePath(sourceStoragePath: string) {
     const [job] = await this.db
-      .select(callProcessingJobSelection)
+      .select({ ...callProcessingJobSelection, callId: callProcessingJobsTable.callId })
       .from(callProcessingJobsTable)
       .where(eq(callProcessingJobsTable.sourceStoragePath, sourceStoragePath))
       .limit(1);

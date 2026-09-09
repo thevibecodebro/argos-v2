@@ -16,6 +16,7 @@ import {
 export const dynamic = "force-dynamic";
 
 type PrepareUploadBody = {
+  orgId?: string;
   contentType?: string | null;
   fileName?: string;
   fileSizeBytes?: number;
@@ -51,6 +52,11 @@ export async function POST(request: Request) {
       );
     }
 
+    if (body.orgId !== undefined && body.orgId !== capabilityAccess.orgId) {
+      return uploadCallErrorJson(UPLOAD_CALL_ERROR_CODES.invalidUpload,
+        "Return to the original workspace before retrying this upload.", 400);
+    }
+
     const validation = validateUploadFile({
       name: body.fileName,
       size: body.fileSizeBytes,
@@ -72,6 +78,7 @@ export async function POST(request: Request) {
     return Response.json(
       {
         path: target.storagePath,
+        orgId: capabilityAccess.orgId,
       },
       {
         headers: { "Cache-Control": "private, no-store" },

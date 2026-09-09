@@ -218,7 +218,8 @@ export function buildRoleplaySafetyIdentifier(
   sessionId: string,
   env: RoleplayContentPolicyEnv = process.env,
 ) {
-  return `roleplay:${createHmac("sha256", getSafetyIdentifierSecret(env))
+  // OpenAI limits this header to 64 characters; the full SHA-256 hex digest fits.
+  return createHmac("sha256", getSafetyIdentifierSecret(env))
     .update(`${authUserId}:${sessionId}`)
-    .digest("hex")}`;
+    .digest("hex");
 }

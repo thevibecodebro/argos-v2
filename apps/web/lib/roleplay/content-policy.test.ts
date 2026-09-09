@@ -147,7 +147,9 @@ describe("roleplay content policy", () => {
     });
 
     expect(first).toBe(second);
-    expect(first).toMatch(/^roleplay:[a-f0-9]{64}$/);
+    expect(first.length).toBeLessThanOrEqual(64);
+    expect(first).toMatch(/^[a-f0-9]{64}$/);
+    expect(buildRoleplaySafetyIdentifier("other-user", "session-1", { ARGOS_RATE_LIMIT_HASH_SECRET: "secret" })).not.toBe(first);
     expect(first).not.toContain("auth-user-1");
     expect(first).not.toContain("session-1");
   });

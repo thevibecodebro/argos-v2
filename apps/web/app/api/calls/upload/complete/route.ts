@@ -1,7 +1,7 @@
 import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
-import { consumeManualCallUploadTarget } from "@/lib/calls/ingestion-service";
+import { consumeManualCallUploadTarget, getManualCallUploadTargetStatus } from "@/lib/calls/ingestion-service";
 import { createCallsRepository } from "@/lib/calls/create-repository";
-import { completeUploadedCall } from "@/lib/calls/service";
+import { completeUploadedCall, findCompletedManualUpload } from "@/lib/calls/service";
 import {
   validateUploadFile,
   type UploadErrorPayload,
@@ -20,6 +20,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 export const dynamic = "force-dynamic";
 
 type CompleteUploadBody = {
+  orgId?: string;
   callTopic?: string | null;
   consentConfirmed?: boolean;
   contentType?: string | null;
@@ -87,6 +88,30 @@ export async function POST(request: Request) {
       );
     }
 
+    if (body.orgId !== undefined && body.orgId !== capabilityAccess.orgId) {
+      return uploadCallErrorJson(UPLOAD_CALL_ERROR_CODES.invalidUpload,
+        "Return to the original workspace before retrying this upload.", 400);
+    }
+
+    const repository = await createEffectiveTenantRepository(createCallsRepository(), authUser.id);
+    const existing = await findCompletedManualUpload(repository, authUser.id, body.storagePath, capabilityAccess.orgId);
+    if (existing) {
+      return Response.json(existing.ok ? existing.data : { code: existing.code, error: existing.error }, {
+        status: existing.ok ? 200 : existing.status,
+        headers: { "Cache-Control": "private, no-store" },
+      });
+    }
+    const targetStatus = await getManualCallUploadTargetStatus({ authUserId: authUser.id, orgId: capabilityAccess.orgId, storagePath: body.storagePath });
+    // Expired metadata may already have been pruned by prepare. Renew a missing
+    // target only when the browser retained and supplied its original workspace.
+    if (targetStatus === "expired" || (targetStatus === "missing" && body.orgId === capabilityAccess.orgId)) {
+      return uploadCallErrorJson("upload_target_expired", "This upload target has expired. Retry to start a new upload in this workspace.", 400, { details: { orgId: capabilityAccess.orgId } });
+    }
+    if (targetStatus !== "valid") {
+      return uploadCallErrorJson(UPLOAD_CALL_ERROR_CODES.invalidUpload,
+        "This upload target is unavailable in this workspace. Return to its original workspace to retry.", 400);
+    }
+
     const bucket = createSupabaseAdminClient().storage.from("call-recordings");
     const storageVerification = await verifyUploadedRecordingObject(bucket, {
       storagePath: body.storagePath,
@@ -98,7 +123,6 @@ export async function POST(request: Request) {
       return storageVerification;
     }
 
-    const repository = await createEffectiveTenantRepository(createCallsRepository(), authUser.id);
     const result = await completeUploadedCall(repository, authUser.id, {
       callTopic: typeof body.callTopic === "string" ? body.callTopic : null,
       fileName: body.fileName,

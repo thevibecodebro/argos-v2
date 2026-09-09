@@ -4,6 +4,16 @@ const getAuthenticatedSupabaseUser = vi.fn();
 const requireAuthenticatedManagedCapability = vi.fn();
 const createRoleplayRepository = vi.fn();
 const getRoleplaySession = vi.fn();
+const getAuthorizedMutableSession = vi.fn();
+const prepareSegment = vi.fn();
+const startSegment = vi.fn();
+const stopSegment = vi.fn();
+const heartbeatSegment = vi.fn();
+const listSegments = vi.fn();
+vi.mock("@/lib/roleplay/voice-segments", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/roleplay/voice-segments")>(),
+  createVoiceSegmentsRepository: () => ({ prepare: prepareSegment, start: startSegment, stop: stopSegment, heartbeat: heartbeatSegment, list: listSegments }),
+}));
 const appendRoleplayTranscriptMessage = vi.fn();
 const completeRoleplaySession = vi.fn();
 const markRoleplayVoiceStarted = vi.fn();
@@ -30,6 +40,7 @@ vi.mock("@/lib/roleplay/create-repository", () => ({
 
 vi.mock("@/lib/roleplay/service", () => ({
   getRoleplaySession,
+  getAuthorizedMutableSession,
   appendRoleplayTranscriptMessage,
   completeRoleplaySession,
   markRoleplayVoiceStarted,
@@ -98,6 +109,15 @@ describe("roleplay voice routes", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.restoreAllMocks();
+    getAuthorizedMutableSession.mockResolvedValue({ ok: true, data: { status: "active" } });
+    prepareSegment.mockResolvedValue({ created: true, stoppedAt: null });
+    startSegment.mockResolvedValue({ startedAt: new Date(), stoppedAt: null });
+    stopSegment.mockReset().mockResolvedValue({ stoppedAt: new Date() });
+    heartbeatSegment.mockReset();
+    listSegments.mockReset().mockResolvedValue([]);
+    prepareSegment.mockClear();
+    startSegment.mockClear();
+
     getAuthenticatedSupabaseUser.mockReset();
     requireAuthenticatedManagedCapability.mockReset();
     createRoleplayRepository.mockReset();
@@ -216,12 +236,95 @@ describe("roleplay voice routes", () => {
     process.env.OPENAI_TTS_VOICE = originalEnv.OPENAI_TTS_VOICE;
   });
 
+  it("authorizes stop before changing or debiting another rep's segment", async () => {
+    getAuthorizedMutableSession.mockResolvedValueOnce({ ok: false, status: 403, error: "Forbidden" });
+    const route = await import("../app/api/roleplay/sessions/[id]/voice/route");
+    const response = await route.POST(new Request("http://localhost/api/roleplay/sessions/session-1/voice", {
+      method: "POST", body: JSON.stringify({ action: "stop", segmentId: "11111111-1111-4111-8111-111111111111" }),
+    }), { params: Promise.resolve({ id: "session-1" }) });
+    expect(response.status).toBe(403);
+    expect(stopSegment).not.toHaveBeenCalled();
+    expect(consumeVoiceMinutes).not.toHaveBeenCalled();
+  });
+
+  it("freezes stop before debiting additional minutes through effective tenant billing", async () => {
+    listSegments.mockResolvedValueOnce([{ sessionId: "session-1", id: "segment-1", startedAt: new Date(0), stoppedAt: new Date(61000), leaseExpiresAt: new Date(90000) }]);
+    const route = await import("../app/api/roleplay/sessions/[id]/voice/route");
+    const response = await route.POST(new Request("http://localhost/api/roleplay/sessions/session-1/voice", {
+      method: "POST", body: JSON.stringify({ action: "stop", segmentId: "11111111-1111-4111-8111-111111111111" }),
+    }), { params: Promise.resolve({ id: "session-1" }) });
+    expect(response.status).toBe(200);
+    expect(stopSegment).toHaveBeenCalledWith("session-1", "11111111-1111-4111-8111-111111111111", expect.any(Date));
+    expect(consumeVoiceMinutes).toHaveBeenCalledWith({ billing: "effective" }, "auth-user-1", expect.objectContaining({ minutes: 1, idempotencyKey: "roleplay:session-1:minute:2" }));
+    expect(stopSegment.mock.invocationCallOrder[0]).toBeLessThan(consumeVoiceMinutes.mock.invocationCallOrder[0]);
+  });
+
+  it("rejects heartbeats for completed sessions before extending their lease", async () => {
+    getAuthorizedMutableSession.mockResolvedValueOnce({ ok: true, data: { status: "complete" } });
+    const route = await import("../app/api/roleplay/sessions/[id]/voice/route");
+    const response = await route.POST(new Request("http://localhost/api/roleplay/sessions/session-1/voice", {
+      method: "POST", body: JSON.stringify({ action: "heartbeat", segmentId: "11111111-1111-4111-8111-111111111111" }),
+    }), { params: Promise.resolve({ id: "session-1" }) });
+    expect(response.status).toBe(409);
+    expect(heartbeatSegment).not.toHaveBeenCalled();
+  });
+
+  it("rejects expired heartbeats", async () => {
+    heartbeatSegment.mockResolvedValueOnce({ stoppedAt: null, leaseExpiresAt: new Date(0) });
+    const route = await import("../app/api/roleplay/sessions/[id]/voice/route");
+    const response = await route.POST(new Request("http://localhost/api/roleplay/sessions/session-1/voice", {
+      method: "POST", body: JSON.stringify({ action: "heartbeat", segmentId: "11111111-1111-4111-8111-111111111111" }),
+    }), { params: Promise.resolve({ id: "session-1" }) });
+    expect(response.status).toBe(409);
+  });
+
+  it("asks already-open legacy clients to refresh before debiting or contacting the provider", async () => {
+    process.env.OPENAI_API_KEY = "test-key";
+    const fetchMock = vi.fn(); vi.stubGlobal("fetch", fetchMock);
+    const route = await import("../app/api/roleplay/sessions/[id]/realtime/route");
+    const response = await route.POST(new Request("http://localhost/api/roleplay/sessions/session-1/realtime", {
+      method: "POST", headers: { "Content-Type": "application/sdp" }, body: "v=0",
+    }), { params: Promise.resolve({ id: "session-1" }) });
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      code: "voice_client_upgrade_required",
+      error: "Voice practice has been updated. Refresh this page, then start voice practice again.",
+    });
+    expect(prepareSegment).not.toHaveBeenCalled();
+    expect(consumeVoiceMinutes).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it.each(["", "invalid-uuid"])("rejects a malformed supplied segment ID %j with 400", async (segmentId) => {
+    process.env.OPENAI_API_KEY = "test-key";
+    const fetchMock = vi.fn(); vi.stubGlobal("fetch", fetchMock);
+    const route = await import("../app/api/roleplay/sessions/[id]/realtime/route");
+    const response = await route.POST(new Request("http://localhost/api/roleplay/sessions/session-1/realtime", {
+      method: "POST", headers: { "X-Roleplay-Voice-Segment": segmentId }, body: "v=0",
+    }), { params: Promise.resolve({ id: "session-1" }) });
+    expect(response.status).toBe(400);
+    expect(prepareSegment).not.toHaveBeenCalled();
+    expect(consumeVoiceMinutes).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a cancelled or repeated start UUID before provider work or reservation", async () => {
+    process.env.OPENAI_API_KEY = "test-key";
+    prepareSegment.mockResolvedValueOnce({ created: false, stoppedAt: new Date() });
+    const fetchMock = vi.fn(); vi.stubGlobal("fetch", fetchMock);
+    const route = await import("../app/api/roleplay/sessions/[id]/realtime/route");
+    const response = await route.POST(new Request("http://localhost/api/roleplay/sessions/session-1/realtime", {
+      method: "POST", headers: { "X-Roleplay-Voice-Segment": "11111111-1111-4111-8111-111111111111" }, body: "v=0",
+    }), { params: Promise.resolve({ id: "session-1" }) });
+    expect(response.status).toBe(409); expect(fetchMock).not.toHaveBeenCalled(); expect(consumeVoiceMinutes).not.toHaveBeenCalled();
+  });
+
   it("returns 503 for realtime when OpenAI voice config is missing", async () => {
     const route = await import("../app/api/roleplay/sessions/[id]/realtime/route");
     const response = await route.POST(
       new Request("http://localhost:3100/api/roleplay/sessions/session-1/realtime", {
         method: "POST",
-        headers: { "Content-Type": "application/sdp" },
+        headers: { "Content-Type": "application/sdp", "X-Roleplay-Voice-Segment": "11111111-1111-4111-8111-111111111111" },
         body: "v=0",
       }),
       { params: Promise.resolve({ id: "session-1" }) },
@@ -240,7 +343,7 @@ describe("roleplay voice routes", () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response("v=0\r\na=answer-sdp", {
         status: 200,
-        headers: { "Content-Type": "application/sdp" },
+        headers: { "Content-Type": "application/sdp", "X-Roleplay-Voice-Segment": "11111111-1111-4111-8111-111111111111" },
       }),
     );
     vi.stubGlobal("fetch", fetchMock);
@@ -249,7 +352,7 @@ describe("roleplay voice routes", () => {
     const response = await route.POST(
       new Request("http://localhost:3100/api/roleplay/sessions/session-1/realtime", {
         method: "POST",
-        headers: { "Content-Type": "application/sdp" },
+        headers: { "Content-Type": "application/sdp", "X-Roleplay-Voice-Segment": "11111111-1111-4111-8111-111111111111" },
         body: "v=0\r\na=offer-sdp",
       }),
       { params: Promise.resolve({ id: "session-1" }) },
@@ -340,7 +443,7 @@ describe("roleplay voice routes", () => {
     const response = await route.POST(
       new Request("http://localhost:3100/api/roleplay/sessions/session-1/realtime", {
         method: "POST",
-        headers: { "Content-Type": "application/sdp" },
+        headers: { "Content-Type": "application/sdp", "X-Roleplay-Voice-Segment": "11111111-1111-4111-8111-111111111111" },
         body: "v=0\r\na=offer-sdp",
       }),
       { params: Promise.resolve({ id: "session-1" }) },
@@ -379,7 +482,7 @@ describe("roleplay voice routes", () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response("v=0\r\na=answer-sdp", {
         status: 200,
-        headers: { "Content-Type": "application/sdp" },
+        headers: { "Content-Type": "application/sdp", "X-Roleplay-Voice-Segment": "11111111-1111-4111-8111-111111111111" },
       }),
     );
     vi.stubGlobal("fetch", fetchMock);
@@ -388,7 +491,7 @@ describe("roleplay voice routes", () => {
     const response = await route.POST(
       new Request("http://localhost:3100/api/roleplay/sessions/session-1/realtime", {
         method: "POST",
-        headers: { "Content-Type": "application/sdp" },
+        headers: { "Content-Type": "application/sdp", "X-Roleplay-Voice-Segment": "11111111-1111-4111-8111-111111111111" },
         body: "v=0\r\na=offer-sdp",
       }),
       { params: Promise.resolve({ id: "session-1" }) },
@@ -418,7 +521,7 @@ describe("roleplay voice routes", () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response("v=0\r\na=answer-sdp", {
         status: 200,
-        headers: { "Content-Type": "application/sdp" },
+        headers: { "Content-Type": "application/sdp", "X-Roleplay-Voice-Segment": "11111111-1111-4111-8111-111111111111" },
       }),
     );
     vi.stubGlobal("fetch", fetchMock);
@@ -427,7 +530,7 @@ describe("roleplay voice routes", () => {
     const response = await route.POST(
       new Request("http://localhost:3100/api/roleplay/sessions/session-generated-1/realtime", {
         method: "POST",
-        headers: { "Content-Type": "application/sdp" },
+        headers: { "Content-Type": "application/sdp", "X-Roleplay-Voice-Segment": "11111111-1111-4111-8111-111111111111" },
         body: "v=0\r\na=offer-sdp",
       }),
       { params: Promise.resolve({ id: "session-generated-1" }) },
@@ -451,7 +554,7 @@ describe("roleplay voice routes", () => {
     const response = await route.POST(
       new Request("http://localhost:3100/api/roleplay/sessions/session-1/realtime", {
         method: "POST",
-        headers: { "Content-Type": "application/sdp" },
+        headers: { "Content-Type": "application/sdp", "X-Roleplay-Voice-Segment": "11111111-1111-4111-8111-111111111111" },
         body: `v=0\r\n${"a".repeat(80_000)}`,
       }),
       { params: Promise.resolve({ id: "session-1" }) },

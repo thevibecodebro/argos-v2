@@ -1,0 +1,11 @@
+# Voice interval and lifecycle hotfix
+
+Apply `supabase/migrations/20260909040320_roleplay_voice_segments.sql` before deploying this application change. The migration is additive, enables RLS, and denies direct anon/authenticated access. Application routes authorize the session before accessing its intervals. No live database or provider was used during implementation.
+
+Each connection has its own UUID and server-recorded start, immutable stop and activity lease. Stop Voice, session changes, disconnects, pagehide and unmount close the local microphone/peer/data/audio immediately, then submit a keepalive stop. A stop arriving before startup records a cancellation tombstone. Reusing a start UUID is rejected, and ledger keys make repeated stop/completion debits idempotent.
+
+Billing preserves the **one-minute minimum per roleplay session**, rounding the sum of active intervals once. Ten five-second connections consume one minute, while five 61-second connections consume six minutes. Paused time between connections is excluded. End & Score totals recorded intervals; it does not infer usage from the original session start. Additional minutes use stable session-and-minute-ordinal ledger keys so concurrent stops and retries cannot double-debit the same minute. Legacy sessions without intervals retain their recorded debit and receive no retrospective elapsed-time charge.
+
+The browser renews a 30-second server lease every 10 seconds. Heartbeat and stop requests time out after 10 seconds. A failed heartbeat closes local media. Settlement caps a late/missing stop at the last lease expiry, so an abandoned session does not accumulate hours of idle charges. Abrupt device/network loss can leave up to 30 seconds of uncertainty after the last confirmed activity, subject to minute rounding. This is application accounting, not provider metering: the server does not forcibly terminate the provider connection, and no real microphone/WebRTC/provider end-to-end test was run.
+
+Late microphone permission and SDP promises are invalidated by a resource owner. Any microphone stream arriving after cancellation is stopped immediately; stale responses cannot reconnect or persist transcript events for a new session.
