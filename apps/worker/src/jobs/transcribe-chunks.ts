@@ -71,10 +71,11 @@ export async function transcribeChunksResumable(input: {
   const now = input.now ?? (() => new Date());
   const random = input.random ?? Math.random;
   const maxAttempts = input.maxAttempts ?? 3;
-  const manifests = await Promise.all(input.chunks.map(async (chunk, index) => {
+  const manifests: Array<Chunk & { audioHash: string; index: number }> = [];
+  for (const [index, chunk] of input.chunks.entries()) {
     const bytes = await read(chunk.filePath);
-    return { ...chunk, audioHash: sha256(bytes), bytes, index };
-  }));
+    manifests.push({ ...chunk, audioHash: sha256(bytes), index });
+  }
   const fingerprint = createManifestFingerprint({
     chunks: manifests.map(({ audioHash, endSeconds, startSeconds }) => ({ audioHash, endSeconds, startSeconds })),
     generation: input.job.generation,
@@ -110,6 +111,7 @@ export async function transcribeChunksResumable(input: {
     };
     const attemptCount = await input.repository.beginChunkAttempt(input.lease, checkpoint);
     if (attemptCount === "lost_lease") throw new LostJobLeaseError(input.lease);
+    const bytes = await read(chunk.filePath);
     const startedAt = Date.now();
     input.onEvent?.({
       event: "call_processing.chunk_started",
@@ -118,12 +120,12 @@ export async function transcribeChunksResumable(input: {
       totalChunks: manifests.length,
       attemptCount,
       durationSeconds: chunk.endSeconds - chunk.startSeconds,
-      bytes: chunk.bytes.length,
+      bytes: bytes.length,
       model: input.model,
     });
     try {
       const result = await input.transcribe({
-        audioBytes: chunk.bytes,
+        audioBytes: bytes,
         contentType: "audio/mpeg",
         fileName: chunk.filePath.split("/").at(-1) ?? `chunk-${chunk.index}.mp3`,
         signal: input.signal,
