@@ -80,6 +80,9 @@ function processingJobDescription(job: CallProcessingJob) {
   }
 
   if (job.status === "running") {
+    if (job.totalChunks) {
+      return `${job.completedChunks} of ${job.totalChunks} sections transcribed.`;
+    }
     return "Worker analysis is currently running.";
   }
 
@@ -479,7 +482,14 @@ export function CallDetailPanel({
               {processingJobDescription(processingJob)}
             </p>
             <div className="flex flex-wrap gap-2 text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
-              <span>Attempts {processingJob.attemptCount}/{processingJob.maxAttempts}</span>
+              <span>
+                {processingJob.processingVersion === 2
+                  ? `Failures ${processingJob.failureCount}/${processingJob.maxFailures}`
+                  : `Attempts ${processingJob.attemptCount}/${processingJob.maxAttempts}`}
+              </span>
+              {processingJob.totalChunks ? (
+                <span>{processingJob.completedChunks}/{processingJob.totalChunks} sections</span>
+              ) : null}
               <span>Updated {formatDate(processingJob.updatedAt)}</span>
             </div>
             {processingJob.lastError ? (

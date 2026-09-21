@@ -254,6 +254,35 @@ describe("CallDetailPanel", () => {
     expect(html).not.toContain("Retry processing");
   });
 
+  it("renders resumable chunk progress for version 2 jobs", async () => {
+    const html = await renderCallDetailPanel({
+      call: {
+        ...baseCall,
+        status: "transcribing",
+        processingJob: {
+          id: "job-v2",
+          status: "running",
+          attemptCount: 2,
+          maxAttempts: 3,
+          processingVersion: 2,
+          failureCount: 1,
+          maxFailures: 3,
+          completedChunks: 12,
+          totalChunks: 28,
+          nextRunAt: "2026-09-21T12:00:00.000Z",
+          lastStage: "transcribe",
+          lastError: null,
+          updatedAt: "2026-09-21T12:00:00.000Z",
+        },
+      },
+      canRetryProcessing: true,
+    });
+
+    expect(html).toContain("12 of 28 sections transcribed");
+    expect(html).toContain("Failures 1/3");
+    expect(html).toContain("12/28 sections");
+  });
+
   it("uses the forge review bench treatment instead of the old blue glass style", async () => {
     const html = await renderCallDetailPanel();
 

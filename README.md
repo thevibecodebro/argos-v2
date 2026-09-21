@@ -66,8 +66,25 @@ Recommended worker env vars:
 - `CALL_PROCESSING_POLL_INTERVAL_MS`
 - `CALL_PROCESSING_MAX_SOURCE_BYTES`
 - `CALL_PROCESSING_TRANSCRIBE_CONCURRENCY`
+- `CALL_PROCESSING_V2_ENABLED` (default `false`; set on both the web app and worker only after the checkpoint migration is applied)
+- `CALL_PROCESSING_HEARTBEAT_INTERVAL_MS` (default `30000`)
+- `CALL_PROCESSING_MAX_ELAPSED_MS` (default `21600000`, six hours)
+- `CALL_PROCESSING_TRANSCRIPTION_TIMEOUT_MS` (default `120000`)
 
 The worker still exposes `/health` for uptime checks.
+
+### Resumable processing rollout
+
+The additive `call_processing_checkpoints` migration introduces version-2 jobs. Version 2 renews a fenced lease, checkpoints each completed transcription chunk, resumes profile/scoring from saved output, and commits the call result, job completion, and notification in one transaction. Legacy jobs remain version 1 and do not change behavior.
+
+Roll out in this order:
+
+1. Apply the migration and verify that `call_processing_chunks` and `call_processing_checkpoints` have RLS enabled with no `anon` or `authenticated` grants.
+2. Deploy the web and worker code with `CALL_PROCESSING_V2_ENABLED=false`.
+3. Drain active version-1 jobs, then set `CALL_PROCESSING_V2_ENABLED=true` on both the web app and worker for a controlled canary upload.
+4. Verify structured `call_processing.*` worker events, chunk progress, a forced retry, one completion notification, and full transcript coverage before broader enrollment.
+
+To stop enrollment, set the flag back to `false`; existing version-2 jobs still require the compatible worker to finish. Do not roll the worker back to a build that ignores `processing_version`, and do not delete checkpoint rows during rollback. Admin retry creates a fresh version-2 generation so incompatible checkpoints are not reused.
 
 ## Vercel Web Deploy
 

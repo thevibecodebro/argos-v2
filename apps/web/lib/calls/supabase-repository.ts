@@ -52,6 +52,11 @@ function mapProcessingJob(row: any) {
     lastStage: row.last_stage,
     lastError: row.last_error,
     updatedAt: toDate(row.updated_at) ?? new Date(0),
+    processingVersion: row.processing_version ?? 1,
+    failureCount: row.failure_count ?? 0,
+    maxFailures: row.max_failures ?? 3,
+    completedChunks: row.completed_chunks ?? 0,
+    totalChunks: row.total_chunks ?? null,
   };
 }
 
@@ -217,6 +222,7 @@ export class SupabaseCallsRepository implements CallsRepository {
           source_content_type: input.sourceContentType,
           source_size_bytes: input.sourceSizeBytes,
           status: "pending",
+          processing_version: 1,
           attempt_count: 0,
           next_run_at: new Date().toISOString(),
           locked_at: null,
@@ -237,7 +243,7 @@ export class SupabaseCallsRepository implements CallsRepository {
     const supabase: any = this.supabase;
     const { data, error } = await supabase
       .from("call_processing_jobs")
-      .select("id, status, attempt_count, max_attempts, next_run_at, last_stage, last_error, updated_at")
+      .select("id, status, attempt_count, max_attempts, processing_version, failure_count, max_failures, completed_chunks, total_chunks, next_run_at, last_stage, last_error, updated_at")
       .eq("call_id", callId)
       .maybeSingle();
 
@@ -252,7 +258,7 @@ export class SupabaseCallsRepository implements CallsRepository {
     const supabase: any = this.supabase;
     const { data, error } = await supabase
       .from("call_processing_jobs")
-      .select("call_id, id, status, attempt_count, max_attempts, next_run_at, last_stage, last_error, updated_at")
+      .select("call_id, id, status, attempt_count, max_attempts, processing_version, failure_count, max_failures, completed_chunks, total_chunks, next_run_at, last_stage, last_error, updated_at")
       .eq("source_storage_path", sourceStoragePath)
       .maybeSingle();
 
@@ -280,7 +286,8 @@ export class SupabaseCallsRepository implements CallsRepository {
       })
       .eq("call_id", callId)
       .eq("status", "failed")
-      .select("id, status, attempt_count, max_attempts, next_run_at, last_stage, last_error, updated_at")
+      .eq("processing_version", 1)
+      .select("id, status, attempt_count, max_attempts, processing_version, failure_count, max_failures, completed_chunks, total_chunks, next_run_at, last_stage, last_error, updated_at")
       .maybeSingle();
 
     if (error) {

@@ -94,6 +94,11 @@ export type CallProcessingJob = {
   lastStage: string | null;
   lastError: string | null;
   updatedAt: string;
+  processingVersion?: number;
+  failureCount?: number;
+  maxFailures?: number;
+  completedChunks?: number;
+  totalChunks?: number | null;
 };
 
 export type CallDetail = CallSummary & {
@@ -932,7 +937,7 @@ export async function retryCallProcessingJob(
     };
   }
 
-  if (existingJob.attemptCount >= existingJob.maxAttempts) {
+  if (existingJob.processingVersion !== 2 && existingJob.attemptCount >= existingJob.maxAttempts) {
     return {
       ok: false,
       status: 400,
