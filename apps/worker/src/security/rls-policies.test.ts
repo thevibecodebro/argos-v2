@@ -131,6 +131,14 @@ async function readGhlMigrationSql() {
   return normalizeWhitespace(await readFile(migrationPath, "utf8"));
 }
 
+async function readCallProcessingCheckpointMigrationSql() {
+  const migrationPath = join(
+    process.cwd(),
+    "../../supabase/migrations/20260921142203_call_processing_checkpoints.sql",
+  );
+  return normalizeWhitespace(await readFile(migrationPath, "utf8"));
+}
+
 async function readRoleplaySessionReferenceMigrationSql() {
   const migrationPath = join(
     process.cwd(),
@@ -195,6 +203,16 @@ async function readPrivateRlsHelpersMigrationSql() {
 }
 
 describe("RLS policy hardening migration", () => {
+  it("keeps call processing checkpoints service-only", async () => {
+    const migrationSql = await readCallProcessingCheckpointMigrationSql();
+    for (const table of ["call_processing_chunks", "call_processing_checkpoints"]) {
+      expect(migrationSql).toContain(`alter table public.${table} enable row level security`);
+      expect(migrationSql).toContain(`revoke all on table public.${table} from public, anon, authenticated`);
+      expect(migrationSql).not.toMatch(
+        new RegExp(`create policy "[^"]+" on public\\.${table}`),
+      );
+    }
+  });
   it("defines the expected rubric and call score policies", async () => {
     const migrationSql = await readMigrationSql();
 

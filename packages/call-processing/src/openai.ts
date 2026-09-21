@@ -21,6 +21,50 @@ const OPENAI_TRANSCRIPTION_TIMEOUT_MS = 120_000;
 const OPENAI_CHAT_COMPLETION_TIMEOUT_MS = 60_000;
 const MAX_SCORING_TRANSCRIPT_PROMPT_CHARS = 60_000;
 
+export type TranscriptionFailureCategory =
+  | "aborted"
+  | "authentication"
+  | "invalid_request"
+  | "network"
+  | "quota"
+  | "rate_limit"
+  | "server"
+  | "timeout";
+
+export class TranscriptionRequestError extends Error {
+  constructor(
+    message: string,
+    readonly details: {
+      category: TranscriptionFailureCategory;
+      elapsedMs: number;
+      providerRequestId: string | null;
+      retryAfterMs: number | null;
+      status: number | null;
+    },
+    options?: ErrorOptions,
+  ) {
+    super(message, options);
+    this.name = "TranscriptionRequestError";
+  }
+}
+
+function readRetryAfterMs(value: string | null): number | null {
+  if (!value) return null;
+  if (/^\d+(\.\d+)?$/.test(value.trim())) return Math.ceil(Number(value) * 1_000);
+  const retryAt = Date.parse(value);
+  return Number.isNaN(retryAt) ? null : Math.max(0, retryAt - Date.now());
+}
+
+function classifyTranscriptionStatus(status: number, body: string): TranscriptionFailureCategory {
+  if (status === 401 || status === 403) return "authentication";
+  if (status === 408) return "timeout";
+  if (status === 429) {
+    return /insufficient_quota|quota|billing/i.test(body) ? "quota" : "rate_limit";
+  }
+  if (status >= 500) return "server";
+  return "invalid_request";
+}
+
 export type CallScoringInput = {
   audioBytes: Buffer;
   callTopic: string | null;
@@ -184,6 +228,8 @@ export async function transcribeAudioBuffer(input: {
   contentType: string | null;
   fileName: string;
   config?: CallScoringConfig;
+  signal?: AbortSignal;
+  timeoutMs?: number;
 }) {
   const resolved = resolveCallScoringConfig(input.config);
   const form = new FormData();
@@ -201,28 +247,55 @@ export async function transcribeAudioBuffer(input: {
   );
   form.append("chunking_strategy", "auto");
 
-  const { response, body } = await fetchWithTimeout<TranscriptionResponse | string>(
-    `${resolved.baseUrl}/audio/transcriptions`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resolved.apiKey}`,
+  const startedAt = Date.now();
+  let response: Response;
+  let body: TranscriptionResponse | string;
+
+  try {
+    ({ response, body } = await fetchWithTimeout<TranscriptionResponse | string>(
+      `${resolved.baseUrl}/audio/transcriptions`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resolved.apiKey}`,
+        },
+        body: form,
       },
-      body: form,
-    },
-    OPENAI_TRANSCRIPTION_TIMEOUT_MS,
-    (response) =>
-      response.ok
-        ? (response.json() as Promise<TranscriptionResponse>)
-        : response.text().catch(() => ""),
-  );
+      input.timeoutMs ?? OPENAI_TRANSCRIPTION_TIMEOUT_MS,
+      (response) =>
+        response.ok
+          ? (response.json() as Promise<TranscriptionResponse>)
+          : response.text().catch(() => ""),
+      input.signal,
+    ));
+  } catch (error) {
+    const elapsedMs = Date.now() - startedAt;
+    const aborted = input.signal?.aborted === true;
+    const timedOut = error instanceof Error && /timed out/i.test(error.message);
+    throw new TranscriptionRequestError(
+      aborted ? "Transcription request was aborted" : timedOut ? "Transcription request timed out" : "Transcription network request failed",
+      {
+        category: aborted ? "aborted" : timedOut ? "timeout" : "network",
+        elapsedMs,
+        providerRequestId: null,
+        retryAfterMs: null,
+        status: null,
+      },
+      { cause: error },
+    );
+  }
 
   if (!response.ok) {
     const errorBody = typeof body === "string" ? body : "";
-    throw new Error(
-      `OpenAI transcription request failed: ${response.status}${
-        errorBody ? ` ${errorBody}` : ""
-      }`,
+    throw new TranscriptionRequestError(
+      `Transcription provider rejected the request with HTTP ${response.status}`,
+      {
+        category: classifyTranscriptionStatus(response.status, errorBody),
+        elapsedMs: Date.now() - startedAt,
+        providerRequestId: response.headers.get("x-request-id"),
+        retryAfterMs: readRetryAfterMs(response.headers.get("retry-after")),
+        status: response.status,
+      },
     );
   }
 
@@ -235,6 +308,7 @@ export async function scoreTranscriptFromLines(input: {
   rubric?: ScoringRubric;
   transcript: TranscriptLine[];
   config?: CallScoringConfig;
+  signal?: AbortSignal;
 }): Promise<CallEvaluation> {
   const resolved = resolveCallScoringConfig(input.config);
   const rubric = validateScoringRubric(input.rubric ?? DEFAULT_CALL_SCORING_RUBRIC);
@@ -281,15 +355,11 @@ export async function scoreTranscriptFromLines(input: {
             }>;
           }>)
         : response.text().catch(() => ""),
+    input.signal,
   );
 
   if (!response.ok) {
-    const errorBody = typeof body === "string" ? body : "";
-    throw new Error(
-      `OpenAI call scoring request failed: ${response.status}${
-        errorBody ? ` ${errorBody}` : ""
-      }`,
-    );
+    throw new Error(`OpenAI call scoring request failed: ${response.status}`);
   }
 
   const payload = body as {

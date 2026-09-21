@@ -12,6 +12,7 @@ type PollCallProcessingJobsInput = {
   now?: Date;
   once?: boolean;
   pollIntervalMs?: number;
+  processingMaxElapsedMs?: number;
   sleep?: (ms: number) => Promise<void>;
 };
 
@@ -29,7 +30,10 @@ export async function pollCallProcessingJobs(
   do {
     let claimed: ClaimedCallProcessingJob | null;
     try {
-      claimed = await input.repository.claimNextJob(input.now ?? new Date());
+      claimed = await input.repository.claimNextJob(
+        input.now ?? new Date(),
+        input.processingMaxElapsedMs,
+      );
     } catch (error) {
       input.onPollError?.(error);
       if (input.once) throw error;

@@ -5,8 +5,10 @@ type ChunkAudioFileInput = {
   filePath: string;
   sizeBytes: number;
   maxChunkBytes: number;
+  maxChunkDurationSeconds?: number;
   durationSeconds: number;
   ffmpegBinary: string;
+  signal?: AbortSignal;
 };
 
 type ChunkAudioFileDependencies = {
@@ -19,9 +21,10 @@ export async function chunkAudioFile(
   input: ChunkAudioFileInput,
   dependencies: ChunkAudioFileDependencies = {},
 ) {
+  const maxChunkDurationSeconds = input.maxChunkDurationSeconds ?? MAX_TRANSCRIPTION_CHUNK_DURATION_SECONDS;
   if (
     input.sizeBytes <= input.maxChunkBytes &&
-    input.durationSeconds <= MAX_TRANSCRIPTION_CHUNK_DURATION_SECONDS
+    input.durationSeconds <= maxChunkDurationSeconds
   ) {
     return [{ filePath: input.filePath, startSeconds: 0, endSeconds: input.durationSeconds }];
   }
@@ -29,7 +32,7 @@ export async function chunkAudioFile(
   const spawn = dependencies.spawn ?? runFfmpeg;
   const chunkCount = Math.max(
     Math.ceil(input.sizeBytes / input.maxChunkBytes),
-    Math.ceil(input.durationSeconds / MAX_TRANSCRIPTION_CHUNK_DURATION_SECONDS),
+    Math.ceil(input.durationSeconds / maxChunkDurationSeconds),
   );
   const chunkDuration = Math.ceil(input.durationSeconds / chunkCount);
   const parsedPath = parse(input.filePath);
@@ -43,7 +46,7 @@ export async function chunkAudioFile(
   }));
 
   for (const chunk of chunks) {
-    await spawn(input.ffmpegBinary, [
+    const args = [
       "-y",
       "-i",
       input.filePath,
@@ -56,7 +59,9 @@ export async function chunkAudioFile(
       "-fs",
       String(input.maxChunkBytes),
       chunk.filePath,
-    ]);
+    ];
+    if (input.signal) await spawn(input.ffmpegBinary, args, { signal: input.signal });
+    else await spawn(input.ffmpegBinary, args);
   }
 
   return chunks;

@@ -12,6 +12,7 @@ import { pollGoogleMeetSync } from "./google-meet/poll-google-meet-sync";
 import { GoogleMeetImportRepository } from "./google-meet/repository";
 import { pollCallProcessingJobs } from "./jobs/poll-call-processing-jobs";
 import { processCallJob } from "./jobs/process-call-job";
+import { withJobLease } from "./jobs/job-lease";
 
 function loadLocalWorkerEnvFiles() {
   if (typeof process.loadEnvFile !== "function") {
@@ -49,13 +50,20 @@ if (env.callProcessingEnabled) {
     onPollSuccess: () => {
       callProcessingPollHealthy = true;
     },
+    processingMaxElapsedMs: env.processingMaxElapsedMs,
     processJob: async (job) => {
       try {
-        await processCallJob({
-          env,
-          job,
-          repository,
-        });
+        if (job.processingVersion === 2) {
+          if (!job.leaseToken) throw new Error(`Version 2 job ${job.id} has no lease token`);
+          await withJobLease({
+            heartbeatIntervalMs: env.processingHeartbeatIntervalMs,
+            lease: { jobId: job.id, token: job.leaseToken },
+            renewLease: (lease) => repository.renewLease(lease),
+            work: (signal) => processCallJob({ env, job, repository, signal }),
+          });
+        } else {
+          await processCallJob({ env, job, repository });
+        }
       } catch (error) {
         console.error(`Call processing job ${job.id} failed`, error);
       }

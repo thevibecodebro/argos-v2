@@ -278,6 +278,7 @@ export async function extractBuyerPersonalityFromTranscript(input: {
   callTopic?: string | null;
   buyerSpeakerOverride?: string;
   config?: BuyerPersonalityConfig;
+  signal?: AbortSignal;
 }): Promise<{ model: string; profile: BuyerPersonalityProfile }> {
   if (!input.transcript.length) throw new Error("Buyer personality extraction requires a transcript");
   if (input.buyerSpeakerOverride && !input.transcript.some((line) => line.speaker === input.buyerSpeakerOverride)) {
@@ -301,10 +302,10 @@ export async function extractBuyerPersonalityFromTranscript(input: {
     },
     OPENAI_PROFILE_TIMEOUT_MS,
     (response) => response.ok ? response.json() : response.text().catch(() => ""),
+    input.signal,
   );
   if (!response.ok) {
-    const providerText = typeof body === "string" ? body.replace(/[\r\n]+/g, " ").slice(0, 300) : "";
-    throw new Error(`OpenAI buyer personality request failed: ${response.status}${providerText ? ` ${providerText}` : ""}`);
+    throw new Error(`OpenAI buyer personality request failed: ${response.status}`);
   }
   const outputText = extractResponseText(body);
   if (!outputText) throw new Error("OpenAI buyer personality response contained no structured output");

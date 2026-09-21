@@ -6,6 +6,7 @@ describe("normalizeAudio", () => {
     const spawn = vi.fn().mockResolvedValue(undefined);
     const stat = vi.fn().mockResolvedValue({ size: 7_200_000 });
 
+    const probeDuration = vi.fn().mockResolvedValue(1800.25);
     const normalized = await normalizeAudio(
       {
         inputPath: "/tmp/source.mp4",
@@ -13,7 +14,7 @@ describe("normalizeAudio", () => {
         ffmpegBinary: "/usr/local/bin/ffmpeg",
         maxOutputBytes: 64 * 1024 * 1024,
       },
-      { spawn, stat },
+      { probeDuration, spawn, stat },
     );
 
     expect(spawn).toHaveBeenCalledWith(
@@ -25,16 +26,19 @@ describe("normalizeAudio", () => {
         "16000",
         "-b:a",
         "32k",
-        "-fs",
-        String(64 * 1024 * 1024),
         "/tmp/normalized.mp3",
       ]),
     );
     expect(stat).toHaveBeenCalledWith("/tmp/normalized.mp3");
+    expect(probeDuration).toHaveBeenCalledWith(
+      "/usr/local/bin/ffmpeg",
+      "/tmp/normalized.mp3",
+      { signal: undefined },
+    );
     expect(normalized).toEqual({
       outputPath: "/tmp/normalized.mp3",
       sizeBytes: 7_200_000,
-      durationSeconds: 1800,
+      durationSeconds: 1800.25,
     });
   });
 
@@ -50,7 +54,7 @@ describe("normalizeAudio", () => {
           ffmpegBinary: "/usr/local/bin/ffmpeg",
           maxOutputBytes: 64 * 1024 * 1024,
         },
-        { spawn, stat },
+        { probeDuration: vi.fn(), spawn, stat },
       ),
     ).rejects.toThrow("exceeds the configured output limit");
   });

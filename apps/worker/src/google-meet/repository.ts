@@ -332,7 +332,11 @@ export class GoogleMeetImportRepository
   }) {
     await this.db
       .insert(callProcessingJobsTable)
-      .values({ ...input, status: "pending" })
+      .values({
+        ...input,
+        status: "pending",
+        processingVersion: process.env.CALL_PROCESSING_V2_ENABLED === "true" ? 2 : 1,
+      })
       .onConflictDoNothing({ target: callProcessingJobsTable.callId });
   }
 

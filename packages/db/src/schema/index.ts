@@ -17,6 +17,8 @@ export * from "./ghlUserMappings";
 export * from "./ghlCallImports";
 export * from "./invites";
 export * from "./callProcessingJobs";
+export * from "./callProcessingChunks";
+export * from "./callProcessingCheckpoints";
 export * from "./rateLimitBuckets";
 export * from "./billing";
 export * from "./auditEvents";

@@ -274,6 +274,7 @@ export class GhlImportRepository implements GhlCallImportRepository {
         sourceContentType: input.sourceContentType,
         sourceSizeBytes: input.sourceSizeBytes,
         status: "pending",
+        processingVersion: process.env.CALL_PROCESSING_V2_ENABLED === "true" ? 2 : 1,
       })
       .onConflictDoNothing({
         target: callProcessingJobsTable.callId,

@@ -489,4 +489,50 @@ describe("processCallJob", () => {
       sizeBytes: 20 * 1024 * 1024,
     }));
   });
+
+  it("resumes downstream work from a version 2 transcript checkpoint", async () => {
+    const transcript = [{ timestampSeconds: 0, speaker: "Speaker A", text: "Hello" }];
+    const evaluation = {
+      rubricId: null, confidence: "high", callStageReached: "commitment", overallScore: 90,
+      categoryScores: [], frameControlScore: null, rapportScore: null, discoveryScore: null,
+      painExpansionScore: null, solutionScore: null, objectionScore: null, closingScore: null,
+      strengths: [], improvements: [], recommendedDrills: [], transcript, moments: [], durationSeconds: 600,
+    };
+    const repository = {
+      getCallProcessingCapabilities: vi.fn().mockResolvedValue({ canGenerateBuyerPersonality: false, canScoreCall: true }),
+      findTranscriptCheckpoint: vi.fn().mockResolvedValue({
+        buyerPersonality: null,
+        durationSeconds: 600,
+        evaluation,
+        fingerprint: "manifest-1",
+        transcript,
+      }),
+      finalizeV2Job: vi.fn().mockResolvedValue("written"),
+      updateCallStatus: vi.fn().mockResolvedValue(undefined),
+      updateCallStatusForLease: vi.fn().mockResolvedValue("written"),
+      markV2TerminalFailure: vi.fn().mockResolvedValue("written"),
+    };
+    const downloadSourceAsset = vi.fn();
+    const scoreTranscriptFromLines = vi.fn();
+
+    await processCallJob({
+      job: {
+        id: "job-v2", callId: "call-v2", repId: "rep-1", callTopic: "Discovery",
+        attemptCount: 2, maxAttempts: 3, failureCount: 1, maxFailures: 3,
+        processingVersion: 2, generation: 1, leaseToken: "00000000-0000-4000-8000-000000000001",
+        sourceStoragePath: "recordings/call-v2/source/demo.mp4",
+      } as never,
+      repository: repository as never,
+      downloadSourceAsset,
+      scoreTranscriptFromLines,
+    });
+
+    expect(downloadSourceAsset).not.toHaveBeenCalled();
+    expect(scoreTranscriptFromLines).not.toHaveBeenCalled();
+    expect(repository.finalizeV2Job).toHaveBeenCalledWith(expect.objectContaining({
+      callId: "call-v2",
+      evaluation,
+      transcript,
+    }));
+  });
 });

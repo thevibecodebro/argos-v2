@@ -14,6 +14,7 @@ type DownloadSourceAssetInput = {
   bucket?: string;
   expectedSizeBytes?: number | null;
   targetPath: string;
+  signal?: AbortSignal;
 };
 
 type DownloadSourceAssetDependencies = {
@@ -66,7 +67,7 @@ export async function downloadSourceAsset(
     }
   }
 
-  const response = await fetchImpl(data.signedUrl);
+  const response = await fetchImpl(data.signedUrl, { signal: input.signal });
 
   if (!response.ok || !response.body) {
     throw new Error(`Failed to download source asset: HTTP ${response.status}`);

@@ -19,6 +19,9 @@ import {
 } from "../media/chunk-audio";
 import { normalizeAudio } from "../media/normalize-audio";
 import type { CallProcessingRepository } from "../calls/repository";
+import type { Lease } from "../calls/processing-checkpoints";
+import { LostJobLeaseError } from "./job-lease";
+import { JobRetryScheduledError, transcribeChunksResumable } from "./transcribe-chunks";
 
 type ClaimedCallProcessingJob = NonNullable<
   Awaited<ReturnType<CallProcessingRepository["claimNextJob"]>>
@@ -34,13 +37,28 @@ type ProcessCallJobInput = {
     CallProcessingRepository,
     | "createNotification"
     | "findRubricById"
+    | "findTranscriptCheckpoint"
+    | "finalizeV2Job"
     | "getCallProcessingCapabilities"
     | "markJobComplete"
     | "markRetryableFailure"
     | "markTerminalFailure"
+    | "markV2RetryableFailure"
+    | "markV2TerminalFailure"
     | "persistProcessedCall"
+    | "beginChunkAttempt"
+    | "listCompletedChunks"
+    | "releaseForRetry"
+    | "saveChunkFailure"
+    | "saveCompletedChunk"
+    | "saveBuyerPersonalityCheckpoint"
+    | "saveEvaluationCheckpoint"
+    | "saveTranscriptCheckpoint"
+    | "setChunkManifest"
     | "updateBuyerProfileStatus"
+    | "updateBuyerProfileStatusForLease"
     | "updateCallStatus"
+    | "updateCallStatusForLease"
   >;
   downloadSourceAsset?: typeof downloadSourceAsset;
   normalizeAudio?: typeof normalizeAudio;
@@ -52,6 +70,7 @@ type ProcessCallJobInput = {
   readFile?: typeof readFile;
   mkdtemp?: typeof mkdtemp;
   rm?: typeof rm;
+  signal?: AbortSignal;
 };
 
 function resolveFfmpegBinary(env: WorkerEnv) {
@@ -187,9 +206,39 @@ async function resolveScoringRubric(input: {
 }
 
 export async function processCallJob(input: ProcessCallJobInput) {
+  const v2Lease: Lease | null = input.job.processingVersion === 2 && input.job.leaseToken
+    ? { jobId: input.job.id, token: input.job.leaseToken }
+    : null;
+  const updateCallStatusSafely = async (status: Parameters<CallProcessingRepository["updateCallStatus"]>[1]) => {
+    if (!v2Lease) return input.repository.updateCallStatus(input.job.callId, status);
+    const outcome = await input.repository.updateCallStatusForLease(v2Lease, input.job.callId, status);
+    if (outcome === "lost_lease") throw new LostJobLeaseError(v2Lease);
+  };
+  const updateBuyerProfileStatusSafely = async (
+    status: Parameters<CallProcessingRepository["updateBuyerProfileStatus"]>[1],
+  ) => {
+    if (!v2Lease) return input.repository.updateBuyerProfileStatus(input.job.callId, status);
+    const outcome = await input.repository.updateBuyerProfileStatusForLease(v2Lease, input.job.callId, status);
+    if (outcome === "lost_lease") throw new LostJobLeaseError(v2Lease);
+  };
   const capabilities = await input.repository.getCallProcessingCapabilities(input.job.callId);
   if (!capabilities.canGenerateBuyerPersonality && !capabilities.canScoreCall) {
     const now = new Date();
+    if (input.job.processingVersion === 2 && input.job.leaseToken) {
+      const outcome = await input.repository.markV2TerminalFailure(
+        { jobId: input.job.id, token: input.job.leaseToken },
+        {
+          callId: input.job.callId,
+          buyerProfileFailed: false,
+          lastError: "recording processing capabilities disabled",
+          lastStage: "download",
+        },
+      );
+      if (outcome === "lost_lease") {
+        throw new LostJobLeaseError({ jobId: input.job.id, token: input.job.leaseToken });
+      }
+      return;
+    }
     await input.repository.markTerminalFailure(input.job.id, {
       now,
       attemptCount: input.job.attemptCount,
@@ -231,51 +280,87 @@ export async function processCallJob(input: ProcessCallJobInput) {
   let currentStage: JobStage = "download";
 
   try {
-    await input.repository.updateCallStatus(input.job.callId, "transcribing");
+    await updateCallStatusSafely("transcribing");
 
-    currentStage = "download";
-    const downloadedSourcePath = await downloadSourceAssetImpl({
-      expectedSizeBytes: input.job.sourceSizeBytes,
-      storagePath: input.job.sourceStoragePath,
-      targetPath: sourcePath,
-    });
+    const resumedCheckpoint = input.job.processingVersion === 2
+      ? await input.repository.findTranscriptCheckpoint(input.job.id, input.job.generation)
+      : null;
+    let transcription: { durationSeconds: number; fingerprint?: string; transcript: TranscriptLine[] } | null = resumedCheckpoint;
+    if (!transcription) {
+      currentStage = "download";
+      const downloadedSourcePath = await downloadSourceAssetImpl({
+        expectedSizeBytes: input.job.sourceSizeBytes,
+        storagePath: input.job.sourceStoragePath,
+        targetPath: sourcePath,
+        signal: input.signal,
+      });
 
-    currentStage = "normalize";
-    const normalized = await normalizeAudioImpl({
-      inputPath: downloadedSourcePath,
-      outputPath: normalizedPath,
-      ffmpegBinary,
-      maxOutputBytes: Math.min(env.maxSourceBytes, MAX_NORMALIZED_AUDIO_BYTES),
-    });
+      currentStage = "normalize";
+      const normalized = await normalizeAudioImpl({
+        inputPath: downloadedSourcePath,
+        outputPath: normalizedPath,
+        ffmpegBinary,
+        maxOutputBytes: Math.min(env.maxSourceBytes, MAX_NORMALIZED_AUDIO_BYTES),
+        signal: input.signal,
+      });
 
-    const transcription = await transcribeNormalizedAudio({
-      chunkAudioFileImpl,
-      concurrency: env.transcribeConcurrency,
-      durationSeconds: normalized.durationSeconds,
-      ffmpegBinary,
-      filePath: normalized.outputPath,
-      onStageChange: (stage) => {
-        currentStage = stage;
-      },
-      readFileImpl,
-      sizeBytes: normalized.sizeBytes,
-      transcribeAudioBufferImpl,
-    });
+      if (input.job.processingVersion === 2) {
+      if (!input.job.leaseToken) throw new Error("Version 2 job is missing its processing lease token");
+      currentStage = "chunk";
+      const chunks = await chunkAudioFileImpl({
+        filePath: normalized.outputPath,
+        sizeBytes: normalized.sizeBytes,
+        maxChunkBytes: 24 * 1024 * 1024,
+        durationSeconds: normalized.durationSeconds,
+        ffmpegBinary,
+        signal: input.signal,
+      });
+      currentStage = "transcribe";
+      transcription = await transcribeChunksResumable({
+        chunks,
+        durationSeconds: normalized.durationSeconds,
+        job: { generation: input.job.generation, id: input.job.id, sourceSizeBytes: input.job.sourceSizeBytes },
+        lease: { jobId: input.job.id, token: input.job.leaseToken },
+        model: process.env.OPENAI_CALL_TRANSCRIPTION_MODEL?.trim() || "gpt-4o-transcribe-diarize",
+        onEvent: (event) => console.info(JSON.stringify(event)),
+        readFile: readFileImpl,
+        repository: input.repository,
+        signal: input.signal,
+        timeoutMs: env.transcriptionTimeoutMs,
+        transcribe: transcribeAudioBufferImpl,
+      });
+      } else {
+        transcription = await transcribeNormalizedAudio({
+          chunkAudioFileImpl,
+          concurrency: env.transcribeConcurrency,
+          durationSeconds: normalized.durationSeconds,
+          ffmpegBinary,
+          filePath: normalized.outputPath,
+          onStageChange: (stage) => {
+            currentStage = stage;
+          },
+          readFileImpl,
+          sizeBytes: normalized.sizeBytes,
+          transcribeAudioBufferImpl,
+        });
+      }
+    }
 
     let buyerPersonality: {
       generatedAt: Date;
       model: string;
       profile: Awaited<ReturnType<typeof extractBuyerPersonalityFromTranscript>>["profile"];
       status: "ready" | "needs_review";
-    } | null = null;
-    if (capabilities.canGenerateBuyerPersonality) {
+    } | null = resumedCheckpoint?.buyerPersonality ?? null;
+    if (capabilities.canGenerateBuyerPersonality && !buyerPersonality) {
       currentStage = "profile";
-      await input.repository.updateBuyerProfileStatus(input.job.callId, "processing");
+      await updateBuyerProfileStatusSafely("processing");
       try {
         const extracted = await extractBuyerPersonalityImpl({
           callTopic: input.job.callTopic,
           durationSeconds: transcription.durationSeconds,
           transcript: transcription.transcript,
+          signal: input.signal,
         });
         buyerPersonality = {
           generatedAt: new Date(),
@@ -283,17 +368,26 @@ export async function processCallJob(input: ProcessCallJobInput) {
           profile: extracted.profile,
           status: extracted.profile.confidence === "low" ? "needs_review" : "ready",
         };
+        if (input.job.processingVersion === 2 && input.job.leaseToken && transcription.fingerprint) {
+          const outcome = await input.repository.saveBuyerPersonalityCheckpoint(
+            { jobId: input.job.id, token: input.job.leaseToken },
+            { buyerPersonality, fingerprint: transcription.fingerprint },
+          );
+          if (outcome === "lost_lease") {
+            throw new LostJobLeaseError({ jobId: input.job.id, token: input.job.leaseToken });
+          }
+        }
       } catch (error) {
-        await input.repository.updateBuyerProfileStatus(input.job.callId, "failed");
+        await updateBuyerProfileStatusSafely("failed");
         if (!capabilities.canScoreCall) throw error;
         console.error("Buyer personality extraction failed; continuing call scoring", error);
       }
     }
 
-    let evaluation = null;
-    if (capabilities.canScoreCall) {
+    let evaluation = resumedCheckpoint?.evaluation ?? null;
+    if (capabilities.canScoreCall && !evaluation) {
       currentStage = "score";
-      await input.repository.updateCallStatus(input.job.callId, "evaluating");
+      await updateCallStatusSafely("evaluating");
       const rubric = await resolveScoringRubric({
         job: input.job,
         repository: input.repository,
@@ -303,7 +397,17 @@ export async function processCallJob(input: ProcessCallJobInput) {
         durationSeconds: transcription.durationSeconds,
         rubric,
         transcript: transcription.transcript,
+        signal: input.signal,
       });
+      if (input.job.processingVersion === 2 && input.job.leaseToken && transcription.fingerprint) {
+        const outcome = await input.repository.saveEvaluationCheckpoint(
+          { jobId: input.job.id, token: input.job.leaseToken },
+          { evaluation, fingerprint: transcription.fingerprint },
+        );
+        if (outcome === "lost_lease") {
+          throw new LostJobLeaseError({ jobId: input.job.id, token: input.job.leaseToken });
+        }
+      }
     }
 
     currentStage = "persist";
@@ -314,29 +418,65 @@ export async function processCallJob(input: ProcessCallJobInput) {
     ) {
       throw new Error("recording processing capability disabled during processing");
     }
-    await input.repository.persistProcessedCall({
-      callId: input.job.callId,
-      durationSeconds: transcription.durationSeconds,
-      transcript: transcription.transcript,
-      buyerPersonality,
-      evaluation,
-    });
-    await input.repository.markJobComplete(input.job.id);
-
-    await input.repository
-      .createNotification({
-        userId: input.job.repId,
-        type: evaluation ? "call_scored" : "recording_ready",
-        title: evaluation ? "Call scored" : "Recording ready",
-        body: evaluation
-          ? `${input.job.callTopic ?? "Call"} finished scoring with an ${evaluation.overallScore} overall score.`
-          : `${input.job.callTopic ?? "Recording"} is transcribed and ready for buyer-personality roleplay.`,
-        link: `/calls/${input.job.callId}`,
-      })
-      .catch((error) => {
+    const notification = {
+      userId: input.job.repId,
+      type: evaluation ? "call_scored" as const : "recording_ready" as const,
+      title: evaluation ? "Call scored" : "Recording ready",
+      body: evaluation
+        ? `${input.job.callTopic ?? "Call"} finished scoring with an ${evaluation.overallScore} overall score.`
+        : `${input.job.callTopic ?? "Recording"} is transcribed and ready for buyer-personality roleplay.`,
+      link: `/calls/${input.job.callId}`,
+    };
+    if (input.job.processingVersion === 2) {
+      if (!input.job.leaseToken) throw new Error("Version 2 job is missing its processing lease token");
+      const outcome = await input.repository.finalizeV2Job({
+        buyerPersonality,
+        callId: input.job.callId,
+        durationSeconds: transcription.durationSeconds,
+        evaluation,
+        generation: input.job.generation,
+        lease: { jobId: input.job.id, token: input.job.leaseToken },
+        notification,
+        transcript: transcription.transcript,
+      });
+      if (outcome === "lost_lease") {
+        throw new LostJobLeaseError({ jobId: input.job.id, token: input.job.leaseToken });
+      }
+    } else {
+      await input.repository.persistProcessedCall({
+        callId: input.job.callId,
+        durationSeconds: transcription.durationSeconds,
+        transcript: transcription.transcript,
+        buyerPersonality,
+        evaluation,
+      });
+      await input.repository.markJobComplete(input.job.id);
+      await input.repository.createNotification(notification).catch((error) => {
         console.error("Failed to create recording notification", error);
       });
+    }
   } catch (error) {
+    if (error instanceof JobRetryScheduledError) return;
+    if (error instanceof LostJobLeaseError) throw error;
+    if (input.job.processingVersion === 2 && input.job.leaseToken) {
+      const lease: Lease = { jobId: input.job.id, token: input.job.leaseToken };
+      const message = error instanceof Error ? error.message : String(error);
+      const retryable = isRetryableError(message, input.job.failureCount + 1, input.job.maxFailures);
+      const outcome = retryable
+        ? await input.repository.markV2RetryableFailure(lease, {
+            lastError: message,
+            lastStage: currentStage,
+            nextRunAt: new Date(Date.now() + 2 * 60 * 1000),
+          })
+        : await input.repository.markV2TerminalFailure(lease, {
+            buyerProfileFailed: capabilities.canGenerateBuyerPersonality,
+            callId: input.job.callId,
+            lastError: message,
+            lastStage: currentStage,
+          });
+      if (outcome === "lost_lease") throw new LostJobLeaseError(lease);
+      throw error;
+    }
     const failureStatus = await classifyAndPersistFailure({
       error,
       job: input.job,

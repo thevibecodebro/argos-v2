@@ -43,9 +43,19 @@ export const callProcessingJobsTable = pgTable(
     status: text("status", { enum: CALL_PROCESSING_JOB_STATUSES }).notNull().default("pending"),
     attemptCount: integer("attempt_count").notNull().default(0),
     maxAttempts: integer("max_attempts").notNull().default(3),
+    processingVersion: integer("processing_version").notNull().default(1),
+    generation: integer("generation").notNull().default(1),
+    failureCount: integer("failure_count").notNull().default(0),
+    maxFailures: integer("max_failures").notNull().default(3),
+    totalChunks: integer("total_chunks"),
+    completedChunks: integer("completed_chunks").notNull().default(0),
     nextRunAt: timestamp("next_run_at", { withTimezone: true }).notNull().defaultNow(),
     lockedAt: timestamp("locked_at", { withTimezone: true }),
     lockExpiresAt: timestamp("lock_expires_at", { withTimezone: true }),
+    leaseToken: uuid("lease_token"),
+    heartbeatAt: timestamp("heartbeat_at", { withTimezone: true }),
+    processingStartedAt: timestamp("processing_started_at", { withTimezone: true }),
+    processingDeadlineAt: timestamp("processing_deadline_at", { withTimezone: true }),
     lastStage: text("last_stage", { enum: CALL_PROCESSING_JOB_STAGES }),
     lastError: text("last_error"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -54,6 +64,9 @@ export const callProcessingJobsTable = pgTable(
   (table) => [
     index("call_processing_jobs_status_next_run_idx").on(table.status, table.nextRunAt),
     index("call_processing_jobs_lock_expires_idx").on(table.lockExpiresAt),
+    index("call_processing_jobs_v2_due_idx")
+      .on(table.nextRunAt, table.createdAt)
+      .where(sql`${table.processingVersion} = 2 and ${table.status} in ('pending', 'retrying', 'running')`),
     index("call_processing_jobs_rubric_id_idx").on(table.rubricId),
     uniqueIndex("call_processing_jobs_manual_source_storage_path_uq")
       .on(table.sourceStoragePath)
