@@ -51,7 +51,7 @@ export type GoogleMeetImportRepository = {
     sourceOrigin: "google_meet_recording";
     sourceSizeBytes: number;
     sourceStoragePath: string;
-  }, beforeCreate?: () => Promise<void>): Promise<string | void>;
+  }): Promise<string | void>;
   findActiveCallProcessingSubscription(input: {
     orgId: string | null;
     userId: string | null;
@@ -203,25 +203,20 @@ export async function processGoogleMeetImport(
     return skip(input.repository, record.id, "capability_disabled");
   }
   const removeSourceAssets = input.removeSourceAssets ?? removeCallSourceAssets;
-  const queuedStoragePath = await input.repository.createOrResetCallProcessingJob(
-    {
-      callId: call.id,
-      rubricId,
-      sourceContentType: sourceAsset.contentType,
-      sourceFileName: fileName,
-      sourceOrigin: "google_meet_recording",
-      sourceSizeBytes: sourceAsset.fileSizeBytes,
-      sourceStoragePath: sourceAsset.storagePath,
-    },
-    async () => {
-      if (call.recordingStoragePath && call.recordingStoragePath !== sourceAsset.storagePath) {
-        await removeSourceAssets([call.recordingStoragePath]);
-      }
-    },
-  );
+  const queuedStoragePath = await input.repository.createOrResetCallProcessingJob({
+    callId: call.id,
+    rubricId,
+    sourceContentType: sourceAsset.contentType,
+    sourceFileName: fileName,
+    sourceOrigin: "google_meet_recording",
+    sourceSizeBytes: sourceAsset.fileSizeBytes,
+    sourceStoragePath: sourceAsset.storagePath,
+  });
   const acceptedStoragePath = queuedStoragePath ?? sourceAsset.storagePath;
   if (acceptedStoragePath !== sourceAsset.storagePath) {
     await removeSourceAssets([sourceAsset.storagePath]);
+  } else if (call.recordingStoragePath && call.recordingStoragePath !== sourceAsset.storagePath) {
+    await removeSourceAssets([call.recordingStoragePath]);
   }
   await input.repository.markGoogleMeetImportImported(record.id, {
     callId: call.id,

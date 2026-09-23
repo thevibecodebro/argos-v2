@@ -270,7 +270,7 @@ export class GhlImportRepository implements GhlCallImportRepository {
     sourceFileName: string;
     sourceContentType: string | null;
     sourceSizeBytes: number | null;
-  }, beforeCreate?: () => Promise<void>) {
+  }) {
     return this.db.transaction(async (tx) => {
       await tx
         .select({ id: callsTable.id })
@@ -285,7 +285,6 @@ export class GhlImportRepository implements GhlCallImportRepository {
         .limit(1);
       if (existing) return existing.sourceStoragePath;
 
-      await beforeCreate?.();
       await tx
         .update(callsTable)
         .set({

@@ -1453,7 +1453,7 @@ describe("processZoomWebhookRequest", () => {
         body: { received: true },
       });
       expect(repository.createCall).not.toHaveBeenCalled();
-      expect(repository.updateCallStatus).toHaveBeenCalledWith("call-1", "uploaded");
+      expect(repository.updateCallStatus).not.toHaveBeenCalledWith("call-1", "uploaded");
       expect(storeSourceAsset).toHaveBeenCalledWith({
         bytes: Buffer.from("zoom-audio"),
         callId: "call-1",

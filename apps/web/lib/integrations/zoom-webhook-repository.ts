@@ -90,6 +90,7 @@ export class DrizzleZoomWebhookRepository implements ZoomWebhookRepository {
 
       const callsRepository = new DrizzleCallsRepository(tx as ArgosDb);
       await callsRepository.updateCallRecordingStorage(input.callId, input.recording);
+      await callsRepository.updateCallStatus(input.callId, "uploaded");
       await callsRepository.createOrResetCallProcessingJob({
         callId: input.callId,
         ...input.job,

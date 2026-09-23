@@ -402,10 +402,6 @@ export async function processZoomWebhookRequest(
   ).id;
 
   try {
-    if (!createdNewCall && existing?.status === "failed") {
-      await repository.updateCallStatus(callId, "uploaded");
-    }
-
     if (
       dependencies.canIngestOrganization &&
       !(await dependencies.canIngestOrganization(integration.orgId))

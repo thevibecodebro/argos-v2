@@ -337,7 +337,7 @@ export class GoogleMeetImportRepository
     sourceOrigin: "google_meet_recording";
     sourceSizeBytes: number;
     sourceStoragePath: string;
-  }, beforeCreate?: () => Promise<void>) {
+  }) {
     return this.db.transaction(async (tx) => {
       await tx
         .select({ id: callsTable.id })
@@ -352,7 +352,6 @@ export class GoogleMeetImportRepository
         .limit(1);
       if (existing) return existing.sourceStoragePath;
 
-      await beforeCreate?.();
       await tx
         .update(callsTable)
         .set({

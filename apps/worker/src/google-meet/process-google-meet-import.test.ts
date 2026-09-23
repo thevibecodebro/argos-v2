@@ -111,27 +111,30 @@ describe("processGoogleMeetImport", () => {
       sourceOrigin: "google_meet_recording",
       sourceSizeBytes: 9,
       sourceStoragePath: "recordings/call-1/source/google-meet-recording-1.mp4",
-    }, expect.any(Function));
+    });
     expect(repository.markGoogleMeetImportImported).toHaveBeenCalledWith(
       "import-1",
       { callId: "call-1" },
     );
   });
 
-  it("removes a superseded source before pointing the call at its replacement", async () => {
+  it("removes a superseded source after pointing the call at its replacement", async () => {
     const oldStoragePath = "recordings/call-1/source/old.mp4";
     const newStoragePath = "recordings/call-1/source/new.mp4";
+    const order: string[] = [];
     const repository = createRepository({
       createCallForGoogleMeetImport: vi.fn().mockResolvedValue({
         id: "call-1",
         recordingStoragePath: oldStoragePath,
       }),
-      createOrResetCallProcessingJob: vi.fn(async (_input, beforeCreate) => {
-        await beforeCreate?.();
+      createOrResetCallProcessingJob: vi.fn(async () => {
+        order.push("committed");
         return newStoragePath;
       }),
     });
-    const removeSourceAssets = vi.fn().mockResolvedValue(undefined);
+    const removeSourceAssets = vi.fn(async () => {
+      order.push("removed");
+    });
 
     await processGoogleMeetImport({
       client: {
@@ -154,6 +157,7 @@ describe("processGoogleMeetImport", () => {
     });
 
     expect(removeSourceAssets).toHaveBeenCalledWith([oldStoragePath]);
+    expect(order).toEqual(["committed", "removed"]);
     expect(repository.updateCallRecordingStorage).not.toHaveBeenCalled();
   });
 
