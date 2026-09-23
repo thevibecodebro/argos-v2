@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   callProcessingJobsTable,
   callsTable,
@@ -20,8 +20,74 @@ vi.mock("drizzle-orm", async () => {
 });
 
 import { DrizzleZoomWebhookRepository } from "./zoom-webhook-repository";
+import { DrizzleCallsRepository } from "@/lib/calls/repository";
 
 describe("DrizzleZoomWebhookRepository", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("retains superseded paths for worker retry when immediate cleanup fails", async () => {
+    vi.spyOn(DrizzleCallsRepository.prototype, "updateCallRecordingStorage").mockResolvedValue(undefined);
+    vi.spyOn(DrizzleCallsRepository.prototype, "updateCallStatus").mockResolvedValue(undefined);
+    vi.spyOn(DrizzleCallsRepository.prototype, "createOrResetCallProcessingJob").mockResolvedValue(undefined);
+    const query = (rows: unknown[]) => ({
+      where: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      for: vi.fn().mockResolvedValue(rows),
+    });
+    const jobQuery = query([{
+      id: "job-1",
+      pendingSourceCleanupPaths: ["recordings/call-1/older.m4a"],
+      sourceStoragePath: "recordings/call-1/old.m4a",
+      status: "failed",
+    }]);
+    const callQuery = query([{ recordingStoragePath: "recordings/call-1/old.m4a" }]);
+    const returning = vi.fn().mockResolvedValue([{ id: "job-1" }]);
+    const update = {
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({ returning }),
+      }),
+    };
+    const tx = {
+      select: vi.fn(() => ({
+        from: vi.fn((table) => table === callProcessingJobsTable ? jobQuery : callQuery),
+      })),
+      update: vi.fn().mockReturnValue(update),
+    };
+    const db = {
+      execute: vi.fn(),
+      transaction: vi.fn((callback) => callback(tx)),
+    };
+    const repository = new DrizzleZoomWebhookRepository(db as never);
+
+    await expect(repository.replaceCallRecordingAndResetProcessingJob({
+      callId: "call-1",
+      recording: {
+        contentType: "audio/mp4",
+        fileSizeBytes: 1024,
+        storageBucket: "call-recordings",
+        storagePath: "recordings/call-1/new.m4a",
+      },
+      job: {
+        rubricId: null,
+        sourceContentType: "audio/mp4",
+        sourceFileName: "new.m4a",
+        sourceOrigin: "zoom_recording",
+        sourceSizeBytes: 1024,
+        sourceStoragePath: "recordings/call-1/new.m4a",
+      },
+    }, vi.fn().mockRejectedValue(new Error("storage unavailable")))).resolves.toBe(true);
+
+    expect(update.set).toHaveBeenCalledWith({
+      pendingSourceCleanupPaths: [
+        "recordings/call-1/older.m4a",
+        "recordings/call-1/old.m4a",
+      ],
+    });
+    expect(db.execute).not.toHaveBeenCalled();
+  });
+
   it("locks the processing job before the call during source replacement", async () => {
     const fromOrder: unknown[] = [];
     const query = (rows: unknown[]) => ({
@@ -29,8 +95,15 @@ describe("DrizzleZoomWebhookRepository", () => {
       limit: vi.fn().mockReturnThis(),
       for: vi.fn().mockResolvedValue(rows),
     });
-    const jobQuery = query([{ sourceStoragePath: "old.mp4", status: "running" }]);
+    const jobQuery = query([{
+      id: "job-1",
+      pendingSourceCleanupPaths: [],
+      sourceStoragePath: "old.mp4",
+      status: "running",
+    }]);
     const callQuery = query([{ recordingStoragePath: "old.mp4" }]);
+    const updateWhere = vi.fn().mockResolvedValue(undefined);
+    const updateSet = vi.fn().mockReturnValue({ where: updateWhere });
     const tx = {
       select: vi.fn(() => ({
         from: vi.fn((table) => {
@@ -38,6 +111,7 @@ describe("DrizzleZoomWebhookRepository", () => {
           return table === callProcessingJobsTable ? jobQuery : callQuery;
         }),
       })),
+      update: vi.fn().mockReturnValue({ set: updateSet }),
     };
     const repository = new DrizzleZoomWebhookRepository({
       transaction: vi.fn((callback) => callback(tx)),
@@ -65,6 +139,9 @@ describe("DrizzleZoomWebhookRepository", () => {
     expect(fromOrder).toEqual([callProcessingJobsTable, callsTable]);
     expect(jobQuery.for).toHaveBeenCalledWith("update");
     expect(callQuery.for).toHaveBeenCalledWith("update");
+    expect(updateSet).toHaveBeenCalledWith({
+      pendingSourceCleanupPaths: ["replacement.mp4"],
+    });
     expect(removeSourceAssets).toHaveBeenCalledWith(["replacement.mp4"]);
   });
 
@@ -74,7 +151,12 @@ describe("DrizzleZoomWebhookRepository", () => {
       limit: vi.fn().mockReturnThis(),
       for: vi.fn().mockResolvedValue(rows),
     });
-    const jobQuery = query([{ sourceStoragePath: "old.mp4", status: "failed" }]);
+    const jobQuery = query([{
+      id: "job-1",
+      pendingSourceCleanupPaths: [],
+      sourceStoragePath: "old.mp4",
+      status: "failed",
+    }]);
     const callQuery = query([{ recordingStoragePath: "old.mp4" }]);
     const writeError = new Error("database write failed");
     const update = {

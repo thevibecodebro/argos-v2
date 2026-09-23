@@ -146,6 +146,28 @@ export class CallProcessingRepository {
     return job ?? null;
   }
 
+  async findPendingSourceCleanup() {
+    const rows = extractRows<{ jobId: string; storagePaths: string[] }>(await this.db.execute(sql`
+      select id as "jobId", pending_source_cleanup_paths as "storagePaths"
+      from call_processing_jobs
+      where cardinality(pending_source_cleanup_paths) > 0
+      order by updated_at asc
+      limit 1
+    `));
+    return rows[0] ?? null;
+  }
+
+  async clearPendingSourceCleanup(jobId: string, storagePaths: string[]) {
+    await this.db.execute(sql`
+      update call_processing_jobs
+      set pending_source_cleanup_paths = array(
+        select path from unnest(pending_source_cleanup_paths) as path
+        where not (path = any(${storagePaths}::text[]))
+      ), updated_at = now()
+      where id = ${jobId}
+    `);
+  }
+
   async organizationHasCallScoringCapability(callId: string) {
     const [call] = await this.db
       .select({ orgId: callsTable.orgId })
@@ -267,6 +289,7 @@ export class CallProcessingRepository {
             heartbeat_at as "heartbeatAt",
             processing_started_at as "processingStartedAt",
             processing_deadline_at as "processingDeadlineAt",
+            pending_source_cleanup_paths as "pendingSourceCleanupPaths",
             last_stage as "lastStage",
             last_error as "lastError",
             created_at as "createdAt",
@@ -297,6 +320,7 @@ export class CallProcessingRepository {
           claimed."heartbeatAt",
           claimed."processingStartedAt",
           claimed."processingDeadlineAt",
+          claimed."pendingSourceCleanupPaths",
           claimed."lastStage",
           claimed."lastError",
           claimed."createdAt",
@@ -328,18 +352,21 @@ export class CallProcessingRepository {
   }
 
   async updateCallStatusForLease(lease: Lease, callId: string, status: CallStatus): Promise<WriteOutcome> {
-    const rows = extractRows(await this.db.execute(sql`
-      update calls
-      set status = ${status}
-      where id = ${callId}
-        and exists (
-          select 1 from call_processing_jobs
-          where id = ${lease.jobId} and lease_token = ${lease.token}::uuid
-            and status = 'running' and lock_expires_at > now()
-        )
-      returning id
-    `));
-    return rows.length === 1 ? "written" : "lost_lease";
+    return this.db.transaction(async (tx) => {
+      const leaseRows = extractRows(await tx.execute(sql`
+        select id from call_processing_jobs
+        where id = ${lease.jobId} and lease_token = ${lease.token}::uuid
+          and status = 'running' and lock_expires_at > now()
+        for update
+      `));
+      if (leaseRows.length !== 1) return "lost_lease" as const;
+      const rows = extractRows(await tx.execute(sql`
+        update calls set status = ${status}
+        where id = ${callId}
+        returning id
+      `));
+      return rows.length === 1 ? "written" as const : "lost_lease" as const;
+    });
   }
 
   async updateBuyerProfileStatusForLease(
@@ -347,18 +374,21 @@ export class CallProcessingRepository {
     callId: string,
     status: "pending" | "processing" | "ready" | "needs_review" | "failed",
   ): Promise<WriteOutcome> {
-    const rows = extractRows(await this.db.execute(sql`
-      update calls
-      set buyer_profile_status = ${status}
-      where id = ${callId}
-        and exists (
-          select 1 from call_processing_jobs
-          where id = ${lease.jobId} and lease_token = ${lease.token}::uuid
-            and status = 'running' and lock_expires_at > now()
-        )
-      returning id
-    `));
-    return rows.length === 1 ? "written" : "lost_lease";
+    return this.db.transaction(async (tx) => {
+      const leaseRows = extractRows(await tx.execute(sql`
+        select id from call_processing_jobs
+        where id = ${lease.jobId} and lease_token = ${lease.token}::uuid
+          and status = 'running' and lock_expires_at > now()
+        for update
+      `));
+      if (leaseRows.length !== 1) return "lost_lease" as const;
+      const rows = extractRows(await tx.execute(sql`
+        update calls set buyer_profile_status = ${status}
+        where id = ${callId}
+        returning id
+      `));
+      return rows.length === 1 ? "written" as const : "lost_lease" as const;
+    });
   }
 
   async listCompletedChunks(jobId: string, fingerprint: string): Promise<ChunkCheckpoint[]> {

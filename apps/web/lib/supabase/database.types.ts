@@ -160,6 +160,7 @@ export type Database = {
           max_attempts: number
           max_failures: number
           next_run_at: string
+          pending_source_cleanup_paths: string[]
           rubric_id: string | null
           processing_deadline_at: string | null
           processing_started_at: string | null
@@ -190,6 +191,7 @@ export type Database = {
           max_attempts?: number
           max_failures?: number
           next_run_at?: string
+          pending_source_cleanup_paths?: string[]
           rubric_id?: string | null
           processing_deadline_at?: string | null
           processing_started_at?: string | null
@@ -220,6 +222,7 @@ export type Database = {
           max_attempts?: number
           max_failures?: number
           next_run_at?: string
+          pending_source_cleanup_paths?: string[]
           rubric_id?: string | null
           processing_deadline_at?: string | null
           processing_started_at?: string | null

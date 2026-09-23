@@ -81,6 +81,7 @@ async function ensureCallProcessingJobsTable(db: ArgosDb) {
       heartbeat_at timestamptz,
       processing_started_at timestamptz,
       processing_deadline_at timestamptz,
+      pending_source_cleanup_paths text[] not null default '{}'::text[],
       last_stage text check (last_stage in ('download', 'normalize', 'chunk', 'transcribe', 'profile', 'score', 'persist')),
       last_error text,
       created_at timestamptz not null default now(),

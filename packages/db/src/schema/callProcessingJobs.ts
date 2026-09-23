@@ -56,6 +56,7 @@ export const callProcessingJobsTable = pgTable(
     heartbeatAt: timestamp("heartbeat_at", { withTimezone: true }),
     processingStartedAt: timestamp("processing_started_at", { withTimezone: true }),
     processingDeadlineAt: timestamp("processing_deadline_at", { withTimezone: true }),
+    pendingSourceCleanupPaths: text("pending_source_cleanup_paths").array().notNull().default(sql`'{}'::text[]`),
     lastStage: text("last_stage", { enum: CALL_PROCESSING_JOB_STAGES }),
     lastError: text("last_error"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

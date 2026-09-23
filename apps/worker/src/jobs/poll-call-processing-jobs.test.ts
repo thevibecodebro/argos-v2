@@ -2,6 +2,50 @@ import { describe, expect, it, vi } from "vitest";
 import { pollCallProcessingJobs } from "./poll-call-processing-jobs";
 
 describe("pollCallProcessingJobs", () => {
+  it("clears persisted source cleanup work only after storage deletion succeeds", async () => {
+    const cleanup = { jobId: "job-1", storagePaths: ["recordings/call-1/old.m4a"] };
+    const repository = {
+      claimNextJob: vi.fn().mockResolvedValue(null),
+      clearPendingSourceCleanup: vi.fn().mockResolvedValue(undefined),
+      findPendingSourceCleanup: vi.fn().mockResolvedValue(cleanup),
+    };
+    const cleanupSourceAssets = vi.fn().mockResolvedValue(undefined);
+
+    await pollCallProcessingJobs({
+      cleanupSourceAssets,
+      once: true,
+      processJob: vi.fn(),
+      repository,
+    });
+
+    expect(cleanupSourceAssets).toHaveBeenCalledWith(cleanup.storagePaths);
+    expect(repository.clearPendingSourceCleanup).toHaveBeenCalledWith(cleanup.jobId, cleanup.storagePaths);
+  });
+
+  it("retains persisted source cleanup work when storage deletion fails", async () => {
+    const cleanupError = new Error("storage unavailable");
+    const repository = {
+      claimNextJob: vi.fn().mockResolvedValue(null),
+      clearPendingSourceCleanup: vi.fn(),
+      findPendingSourceCleanup: vi.fn().mockResolvedValue({
+        jobId: "job-1",
+        storagePaths: ["recordings/call-1/old.m4a"],
+      }),
+    };
+    const onCleanupError = vi.fn();
+
+    await pollCallProcessingJobs({
+      cleanupSourceAssets: vi.fn().mockRejectedValue(cleanupError),
+      onCleanupError,
+      once: true,
+      processJob: vi.fn(),
+      repository,
+    });
+
+    expect(onCleanupError).toHaveBeenCalledWith(cleanupError);
+    expect(repository.clearPendingSourceCleanup).not.toHaveBeenCalled();
+  });
+
   it("claims one pending job and hands it to the processor", async () => {
     const job = { id: "job-1", callId: "call-1" };
     const repository = {

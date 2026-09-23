@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CallProcessingRepository } from "./calls/repository";
+import { removeCallSourceAssets } from "./calls/storage";
 import { getWorkerEnv } from "./env";
 import { pollGhlCallImports } from "./ghl/poll-ghl-call-imports";
 import { pollGhlSync } from "./ghl/poll-ghl-sync";
@@ -42,6 +43,10 @@ if (env.callProcessingEnabled) {
 
   void pollCallProcessingJobs({
     repository,
+    cleanupSourceAssets: removeCallSourceAssets,
+    onCleanupError: (error) => {
+      console.error("Pending source cleanup failed; retaining for retry", error);
+    },
     pollIntervalMs: env.pollIntervalMs,
     onPollError: (error) => {
       callProcessingPollHealthy = false;

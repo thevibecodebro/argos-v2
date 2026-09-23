@@ -8,7 +8,8 @@ alter table public.call_processing_jobs
   add column if not exists lease_token uuid,
   add column if not exists heartbeat_at timestamptz,
   add column if not exists processing_started_at timestamptz,
-  add column if not exists processing_deadline_at timestamptz;
+  add column if not exists processing_deadline_at timestamptz,
+  add column if not exists pending_source_cleanup_paths text[] not null default '{}'::text[];
 
 alter table public.call_processing_jobs
   add constraint call_processing_jobs_processing_version_check check (processing_version in (1, 2)),
