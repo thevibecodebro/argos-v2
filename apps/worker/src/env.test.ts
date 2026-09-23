@@ -12,6 +12,7 @@ describe("getWorkerEnv", () => {
   it("returns defaults when optional values are missing", () => {
     expect(getWorkerEnv({})).toEqual({
       callProcessingEnabled: false,
+      callProcessingV2Enabled: false,
       databaseUrl: null,
       ffmpegBinary: null,
       ghlImportEnabled: false,
@@ -30,9 +31,12 @@ describe("getWorkerEnv", () => {
       port: 8787,
       nodeEnv: "development",
       pollIntervalMs: 5_000,
+      processingHeartbeatIntervalMs: 30_000,
+      processingMaxElapsedMs: 6 * 60 * 60 * 1_000,
       supabaseServiceRoleKey: null,
       supabaseUrl: null,
       transcribeConcurrency: 3,
+      transcriptionTimeoutMs: 120_000,
     });
   });
 
@@ -48,6 +52,7 @@ describe("getWorkerEnv", () => {
       NODE_ENV: "production",
     })).toEqual({
       callProcessingEnabled: true,
+      callProcessingV2Enabled: false,
       databaseUrl: "postgres://postgres:postgres@localhost:5432/argos",
       ffmpegBinary: "/usr/local/bin/ffmpeg",
       ghlImportEnabled: false,
@@ -66,9 +71,12 @@ describe("getWorkerEnv", () => {
       port: 9001,
       nodeEnv: "production",
       pollIntervalMs: 15_000,
+      processingHeartbeatIntervalMs: 30_000,
+      processingMaxElapsedMs: 6 * 60 * 60 * 1_000,
       supabaseServiceRoleKey: "service-role-key",
       supabaseUrl: "https://argos.example.supabase.co",
       transcribeConcurrency: 4,
+      transcriptionTimeoutMs: 120_000,
     });
   });
 
@@ -96,6 +104,12 @@ describe("getWorkerEnv", () => {
     );
   });
 
+  it("rejects heartbeat intervals without enough lease-renewal margin", () => {
+    expect(() => getWorkerEnv({ CALL_PROCESSING_HEARTBEAT_INTERVAL_MS: "900000" })).toThrow(
+      "CALL_PROCESSING_HEARTBEAT_INTERVAL_MS must be at most 300000",
+    );
+  });
+
   it("throws when call processing is enabled without required environment variables", () => {
     expect(() => getWorkerEnv({
       CALL_PROCESSING_ENABLED: "true",
@@ -117,6 +131,7 @@ describe("getWorkerEnv", () => {
       CALL_PROCESSING_TRANSCRIBE_CONCURRENCY: "2",
     })).toEqual({
       callProcessingEnabled: true,
+      callProcessingV2Enabled: false,
       databaseUrl: "postgres://postgres:postgres@localhost:5432/argos",
       ffmpegBinary: null,
       ghlImportEnabled: false,
@@ -135,9 +150,12 @@ describe("getWorkerEnv", () => {
       port: 8787,
       nodeEnv: "development",
       pollIntervalMs: 9_000,
+      processingHeartbeatIntervalMs: 30_000,
+      processingMaxElapsedMs: 6 * 60 * 60 * 1_000,
       supabaseServiceRoleKey: "service-role-key",
       supabaseUrl: "https://argos.example.supabase.co",
       transcribeConcurrency: 2,
+      transcriptionTimeoutMs: 120_000,
     });
   });
 

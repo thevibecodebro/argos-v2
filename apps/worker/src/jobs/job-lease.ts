@@ -1,0 +1,49 @@
+import type { Lease, WriteOutcome } from "../calls/processing-checkpoints";
+
+export class LostJobLeaseError extends Error {
+  constructor(readonly lease: Lease) {
+    super(`Lost processing lease for job ${lease.jobId}`);
+    this.name = "LostJobLeaseError";
+  }
+}
+
+export async function withJobLease<T>(input: {
+  // Informational only. renewLease checks the deadline against PostgreSQL time.
+  deadlineAt?: Date | null;
+  heartbeatIntervalMs: number;
+  lease: Lease;
+  renewLease: (lease: Lease) => Promise<WriteOutcome>;
+  work: (signal: AbortSignal) => Promise<T>;
+}): Promise<T> {
+  const controller = new AbortController();
+  let renewal: Promise<void> = Promise.resolve();
+
+  const heartbeat = () => {
+    renewal = input.renewLease(input.lease).then((outcome) => {
+      if (outcome === "lost_lease" && !controller.signal.aborted) {
+        controller.abort(new LostJobLeaseError(input.lease));
+      }
+    }).catch(() => {
+      if (!controller.signal.aborted) controller.abort(new LostJobLeaseError(input.lease));
+    });
+  };
+
+  const timer = setInterval(heartbeat, input.heartbeatIntervalMs);
+  timer.unref?.();
+
+  try {
+    if (controller.signal.aborted) {
+      throw controller.signal.reason;
+    }
+    const result = await input.work(controller.signal);
+    if (controller.signal.aborted) {
+      throw controller.signal.reason instanceof Error
+        ? controller.signal.reason
+        : new LostJobLeaseError(input.lease);
+    }
+    return result;
+  } finally {
+    clearInterval(timer);
+    await renewal.catch(() => undefined);
+  }
+}

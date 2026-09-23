@@ -145,62 +145,95 @@ export type Database = {
       call_processing_jobs: {
         Row: {
           attempt_count: number
+          completed_chunks: number
           call_id: string
           created_at: string
           id: string
+          failure_count: number
+          generation: number
+          heartbeat_at: string | null
           last_error: string | null
           last_stage: string | null
           lock_expires_at: string | null
           locked_at: string | null
+          lease_token: string | null
           max_attempts: number
+          max_failures: number
           next_run_at: string
+          pending_source_cleanup_paths: string[]
           rubric_id: string | null
+          processing_deadline_at: string | null
+          processing_started_at: string | null
+          processing_version: number
           source_content_type: string | null
           source_file_name: string
           source_origin: string
           source_size_bytes: number | null
           source_storage_path: string
           status: string
+          total_chunks: number | null
           updated_at: string
         }
         Insert: {
           attempt_count?: number
+          completed_chunks?: number
           call_id: string
           created_at?: string
           id?: string
+          failure_count?: number
+          generation?: number
+          heartbeat_at?: string | null
           last_error?: string | null
           last_stage?: string | null
           lock_expires_at?: string | null
           locked_at?: string | null
+          lease_token?: string | null
           max_attempts?: number
+          max_failures?: number
           next_run_at?: string
+          pending_source_cleanup_paths?: string[]
           rubric_id?: string | null
+          processing_deadline_at?: string | null
+          processing_started_at?: string | null
+          processing_version?: number
           source_content_type?: string | null
           source_file_name: string
           source_origin: string
           source_size_bytes?: number | null
           source_storage_path: string
           status?: string
+          total_chunks?: number | null
           updated_at?: string
         }
         Update: {
           attempt_count?: number
+          completed_chunks?: number
           call_id?: string
           created_at?: string
           id?: string
+          failure_count?: number
+          generation?: number
+          heartbeat_at?: string | null
           last_error?: string | null
           last_stage?: string | null
           lock_expires_at?: string | null
           locked_at?: string | null
+          lease_token?: string | null
           max_attempts?: number
+          max_failures?: number
           next_run_at?: string
+          pending_source_cleanup_paths?: string[]
           rubric_id?: string | null
+          processing_deadline_at?: string | null
+          processing_started_at?: string | null
+          processing_version?: number
           source_content_type?: string | null
           source_file_name?: string
           source_origin?: string
           source_size_bytes?: number | null
           source_storage_path?: string
           status?: string
+          total_chunks?: number | null
           updated_at?: string
         }
         Relationships: [

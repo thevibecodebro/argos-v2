@@ -1,5 +1,6 @@
 import { isSafeStorageFileName } from "@argos-v2/call-processing";
 import type { LeadConnectorMessage, LeadConnectorRecording } from "../../../../packages/ghl-client/src/index";
+import { removeCallSourceAssets } from "../calls/storage";
 
 export type GhlCallImportStatus = "pending" | "running" | "retrying" | "imported" | "skipped" | "failed";
 
@@ -42,7 +43,7 @@ export type GhlCallImportRepository = {
     contactId: string | null;
     ghlUserId: string | null;
     messageCreatedAt: Date | null;
-  }): Promise<{ id: string }>;
+  }): Promise<{ id: string; recordingStoragePath?: string | null }>;
   createOrResetCallProcessingJob(input: {
     callId: string;
     rubricId?: string | null;
@@ -51,7 +52,7 @@ export type GhlCallImportRepository = {
     sourceFileName: string;
     sourceContentType: string | null;
     sourceSizeBytes: number | null;
-  }): Promise<void>;
+  }): Promise<string | void>;
   findActiveCallProcessingSubscription(input: {
     orgId: string | null;
     userId: string | null;
@@ -115,6 +116,7 @@ type ProcessGhlCallImportInput = {
     contentType: string | null;
     fileName: string;
   }) => Promise<SourceAsset>;
+  removeSourceAssets?: (storagePaths: string[]) => Promise<void>;
   getActiveRubricId: (orgId: string) => Promise<string | null>;
 };
 
@@ -246,19 +248,17 @@ export async function processGhlCallImport(input: ProcessGhlCallImportInput) {
     fileName: recording.fileName,
   });
 
-  await input.repository.updateCallRecordingStorage(call.id, {
-    storageBucket: sourceAsset.storageBucket,
-    storagePath: sourceAsset.storagePath,
-    contentType: sourceAsset.contentType,
-    fileSizeBytes: sourceAsset.fileSizeBytes,
-  });
   if (!(await input.repository.organizationHasIntegrationCapability(integration.orgId))) {
+    if (sourceAsset.storagePath !== call.recordingStoragePath) {
+      await (input.removeSourceAssets ?? removeCallSourceAssets)([sourceAsset.storagePath]);
+    }
     await input.repository.markGhlCallImportSkipped(importRecord.id, {
       reason: "capability_disabled",
     });
     return;
   }
-  await input.repository.createOrResetCallProcessingJob({
+  const removeSourceAssets = input.removeSourceAssets ?? removeCallSourceAssets;
+  const queuedStoragePath = await input.repository.createOrResetCallProcessingJob({
     callId: call.id,
     rubricId,
     sourceOrigin: "ghl_recording",
@@ -267,6 +267,11 @@ export async function processGhlCallImport(input: ProcessGhlCallImportInput) {
     sourceContentType: sourceAsset.contentType,
     sourceSizeBytes: sourceAsset.fileSizeBytes,
   });
+  const acceptedStoragePath = queuedStoragePath ?? sourceAsset.storagePath;
+  if (acceptedStoragePath !== sourceAsset.storagePath) {
+    await removeSourceAssets([sourceAsset.storagePath]);
+
+  }
   await input.repository.markGhlCallImportImported(importRecord.id, {
     callId: call.id,
   });

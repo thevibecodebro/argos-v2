@@ -4,6 +4,7 @@ type WorkerEnvSource = Partial<Record<string, string | undefined>>;
 
 export type WorkerEnv = {
   callProcessingEnabled: boolean;
+  callProcessingV2Enabled: boolean;
   databaseUrl: string | null;
   ffmpegBinary: string | null;
   ghlImportEnabled: boolean;
@@ -22,9 +23,12 @@ export type WorkerEnv = {
   port: number;
   nodeEnv: string;
   pollIntervalMs: number;
+  processingHeartbeatIntervalMs: number;
+  processingMaxElapsedMs: number;
   supabaseServiceRoleKey: string | null;
   supabaseUrl: string | null;
   transcribeConcurrency: number;
+  transcriptionTimeoutMs: number;
 };
 
 function parsePort(value: string | undefined): number {
@@ -89,6 +93,7 @@ function readEnv(env: WorkerEnvSource, ...keys: string[]) {
 
 export function getWorkerEnv(env: WorkerEnvSource = process.env): WorkerEnv {
   const callProcessingEnabled = parseBoolean(env.CALL_PROCESSING_ENABLED, false);
+  const callProcessingV2Enabled = parseBoolean(env.CALL_PROCESSING_V2_ENABLED, false);
   const databaseUrl = readEnv(env, "DATABASE_URL");
   const ffmpegBinary = readEnv(env, "FFMPEG_BINARY", "CALL_PROCESSING_FFMPEG_BINARY");
   const ghlImportEnabled = parseBoolean(env.GHL_IMPORT_ENABLED, false);
@@ -146,6 +151,26 @@ export function getWorkerEnv(env: WorkerEnvSource = process.env): WorkerEnv {
     3,
     "CALL_PROCESSING_TRANSCRIBE_CONCURRENCY",
   );
+  const processingHeartbeatIntervalMs = parseInteger(
+    env.CALL_PROCESSING_HEARTBEAT_INTERVAL_MS,
+    30_000,
+    "CALL_PROCESSING_HEARTBEAT_INTERVAL_MS",
+  );
+  if (processingHeartbeatIntervalMs > 5 * 60 * 1000) {
+    throw new Error(
+      "CALL_PROCESSING_HEARTBEAT_INTERVAL_MS must be at most 300000 to renew the 15-minute lease safely",
+    );
+  }
+  const processingMaxElapsedMs = parseInteger(
+    env.CALL_PROCESSING_MAX_ELAPSED_MS,
+    6 * 60 * 60 * 1_000,
+    "CALL_PROCESSING_MAX_ELAPSED_MS",
+  );
+  const transcriptionTimeoutMs = parseInteger(
+    env.CALL_PROCESSING_TRANSCRIPTION_TIMEOUT_MS,
+    120_000,
+    "CALL_PROCESSING_TRANSCRIPTION_TIMEOUT_MS",
+  );
 
   const privilegedIngestionEnabled =
     callProcessingEnabled || ghlImportEnabled || googleMeetImportEnabled;
@@ -192,6 +217,7 @@ export function getWorkerEnv(env: WorkerEnvSource = process.env): WorkerEnv {
 
   return {
     callProcessingEnabled,
+    callProcessingV2Enabled,
     databaseUrl,
     ffmpegBinary,
     ghlImportEnabled,
@@ -210,8 +236,11 @@ export function getWorkerEnv(env: WorkerEnvSource = process.env): WorkerEnv {
     port: parsePort(env.PORT),
     nodeEnv: env.NODE_ENV || "development",
     pollIntervalMs,
+    processingHeartbeatIntervalMs,
+    processingMaxElapsedMs,
     supabaseServiceRoleKey,
     supabaseUrl,
     transcribeConcurrency,
+    transcriptionTimeoutMs,
   };
 }

@@ -3,6 +3,7 @@ import {
   consumeManualCallUploadTarget,
   getManualCallUploadTargetStatus,
   createManualCallUploadTarget,
+  removeCallSourceAssets,
   storeManualCallSource,
 } from "./ingestion-service";
 
@@ -31,8 +32,11 @@ describe("storeManualCallSource", () => {
     );
 
     expect(from).toHaveBeenCalledWith("call-recordings");
+    const contentAddressedPath = expect.stringMatching(
+      /^recordings\/call-1\/source\/[a-f0-9]{64}\/demo\.mp3$/,
+    );
     expect(upload).toHaveBeenCalledWith(
-      "recordings/call-1/source/demo.mp3",
+      contentAddressedPath,
       Buffer.from("audio"),
       {
         contentType: "audio/mpeg",
@@ -41,7 +45,7 @@ describe("storeManualCallSource", () => {
     );
     expect(result).toEqual({
       storageBucket: "call-recordings",
-      storagePath: "recordings/call-1/source/demo.mp3",
+      storagePath: contentAddressedPath,
       contentType: "audio/mpeg",
       fileSizeBytes: 5,
     });
@@ -96,6 +100,32 @@ describe("storeManualCallSource", () => {
     ).rejects.toThrow("Invalid recording filename.");
 
     expect(upload).not.toHaveBeenCalled();
+  });
+});
+
+describe("removeCallSourceAssets", () => {
+  it("removes the exact superseded private objects", async () => {
+    const remove = vi.fn().mockResolvedValue({ error: null });
+    const from = vi.fn().mockReturnValue({ remove });
+
+    await removeCallSourceAssets(
+      ["recordings/call-1/source/old.mp3"],
+      { supabase: { storage: { from } } as any },
+    );
+
+    expect(from).toHaveBeenCalledWith("call-recordings");
+    expect(remove).toHaveBeenCalledWith(["recordings/call-1/source/old.mp3"]);
+  });
+
+  it("fails when superseded storage cleanup is not confirmed", async () => {
+    const from = vi.fn().mockReturnValue({
+      remove: vi.fn().mockResolvedValue({ error: { message: "storage unavailable" } }),
+    });
+
+    await expect(removeCallSourceAssets(
+      ["recordings/call-1/source/old.mp3"],
+      { supabase: { storage: { from } } as any },
+    )).rejects.toThrow("Failed to remove superseded source recording: storage unavailable");
   });
 });
 

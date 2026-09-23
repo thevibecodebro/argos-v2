@@ -80,6 +80,9 @@ function processingJobDescription(job: CallProcessingJob) {
   }
 
   if (job.status === "running") {
+    if (job.totalChunks) {
+      return `${job.completedChunks} of ${job.totalChunks} sections transcribed.`;
+    }
     return "Worker analysis is currently running.";
   }
 
@@ -152,6 +155,10 @@ function initials(speaker: string) {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("");
+}
+
+function formatSpeakerLabel(speaker: string) {
+  return speaker.replace(/^Chunk \d+ (Speaker .+)$/, "$1");
 }
 
 function getSpeakerSamples(transcript: CallDetail["transcript"]) {
@@ -479,7 +486,14 @@ export function CallDetailPanel({
               {processingJobDescription(processingJob)}
             </p>
             <div className="flex flex-wrap gap-2 text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
-              <span>Attempts {processingJob.attemptCount}/{processingJob.maxAttempts}</span>
+              <span>
+                {processingJob.processingVersion === 2
+                  ? `Failures ${processingJob.failureCount}/${processingJob.maxFailures}`
+                  : `Attempts ${processingJob.attemptCount}/${processingJob.maxAttempts}`}
+              </span>
+              {processingJob.totalChunks ? (
+                <span>{processingJob.completedChunks}/{processingJob.totalChunks} sections</span>
+              ) : null}
               <span>Updated {formatDate(processingJob.updatedAt)}</span>
             </div>
             {processingJob.lastError ? (
@@ -632,7 +646,8 @@ export function CallDetailPanel({
         {transcriptLines.length ? (
           <div className="max-h-[520px] divide-y divide-[var(--forge-border)] overflow-y-auto">
             {transcriptLines.map((line, index) => {
-              const speakerInitials = initials(line.speaker);
+              const speakerLabel = formatSpeakerLabel(line.speaker);
+              const speakerInitials = initials(speakerLabel);
 
               return (
                 <div
@@ -644,7 +659,7 @@ export function CallDetailPanel({
                   </div>
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-semibold text-[var(--forge-text)]">{line.speaker}</span>
+                      <span className="text-sm font-semibold text-[var(--forge-text)]">{speakerLabel}</span>
                       <span className="text-xs text-[var(--forge-muted)]">
                         {formatTimestamp(line.timestampSeconds)}
                       </span>

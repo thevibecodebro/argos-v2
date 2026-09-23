@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gte, ilike, inArray, isNotNull, lte, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, ilike, inArray, isNotNull, lte, or, sql } from "drizzle-orm";
 import {
   auditEventsTable,
   callAnnotationsTable,
@@ -29,7 +29,16 @@ const callProcessingJobSelection = {
   lastStage: callProcessingJobsTable.lastStage,
   lastError: callProcessingJobsTable.lastError,
   updatedAt: callProcessingJobsTable.updatedAt,
+  processingVersion: callProcessingJobsTable.processingVersion,
+  failureCount: callProcessingJobsTable.failureCount,
+  maxFailures: callProcessingJobsTable.maxFailures,
+  completedChunks: callProcessingJobsTable.completedChunks,
+  totalChunks: callProcessingJobsTable.totalChunks,
 };
+
+function configuredProcessingVersion() {
+  return process.env.CALL_PROCESSING_V2_ENABLED === "true" ? 2 : 1;
+}
 
 export class DrizzleCallsRepository implements CallsRepository {
   constructor(private readonly db: ArgosDb = getDb()) {}
@@ -114,6 +123,7 @@ export class DrizzleCallsRepository implements CallsRepository {
     sourceContentType: string | null;
     sourceSizeBytes: number | null;
   }) {
+    const processingVersion = configuredProcessingVersion();
     await this.db
       .insert(callProcessingJobsTable)
       .values({
@@ -125,6 +135,7 @@ export class DrizzleCallsRepository implements CallsRepository {
         sourceContentType: input.sourceContentType,
         sourceSizeBytes: input.sourceSizeBytes,
         status: "pending",
+        processingVersion,
       })
       .onConflictDoUpdate({
         target: callProcessingJobsTable.callId,
@@ -136,10 +147,19 @@ export class DrizzleCallsRepository implements CallsRepository {
           sourceContentType: input.sourceContentType,
           sourceSizeBytes: input.sourceSizeBytes,
           status: "pending",
+          processingVersion: sql`greatest(${callProcessingJobsTable.processingVersion}, ${processingVersion})`,
+          generation: sql`${callProcessingJobsTable.generation} + 1`,
           attemptCount: 0,
+          failureCount: 0,
+          completedChunks: 0,
+          totalChunks: null,
           nextRunAt: new Date(),
           lockedAt: null,
           lockExpiresAt: null,
+          leaseToken: null,
+          heartbeatAt: null,
+          processingStartedAt: null,
+          processingDeadlineAt: null,
           lastStage: null,
           lastError: null,
           updatedAt: new Date(),
@@ -169,15 +189,30 @@ export class DrizzleCallsRepository implements CallsRepository {
 
   async retryCallProcessingJob(callId: string) {
     const now = new Date();
+    const targetProcessingVersion = configuredProcessingVersion();
 
     return this.db.transaction(async (tx) => {
       const [job] = await tx
         .update(callProcessingJobsTable)
         .set({
           status: "pending",
+          processingVersion: sql`greatest(${callProcessingJobsTable.processingVersion}, ${targetProcessingVersion})`,
+          generation: sql`case
+            when greatest(${callProcessingJobsTable.processingVersion}, ${targetProcessingVersion}) = 2
+            then ${callProcessingJobsTable.generation} + 1
+            else ${callProcessingJobsTable.generation}
+          end`,
+          ...(targetProcessingVersion === 2 ? { attemptCount: 0 } : {}),
+          failureCount: 0,
+          completedChunks: 0,
+          totalChunks: null,
           nextRunAt: now,
           lockedAt: null,
           lockExpiresAt: null,
+          leaseToken: null,
+          heartbeatAt: null,
+          processingStartedAt: null,
+          processingDeadlineAt: null,
           lastStage: null,
           lastError: null,
           updatedAt: now,
@@ -185,7 +220,12 @@ export class DrizzleCallsRepository implements CallsRepository {
         .where(and(
           eq(callProcessingJobsTable.callId, callId),
           eq(callProcessingJobsTable.status, "failed"),
-          sql`${callProcessingJobsTable.attemptCount} < ${callProcessingJobsTable.maxAttempts}`,
+          targetProcessingVersion === 2
+            ? sql`true`
+            : or(
+                eq(callProcessingJobsTable.processingVersion, 2),
+                sql`${callProcessingJobsTable.attemptCount} < ${callProcessingJobsTable.maxAttempts}`,
+              ),
         ))
         .returning(callProcessingJobSelection);
 

@@ -20,7 +20,8 @@
     "verify:db": "npm run typecheck:db",
     "verify:web": "npm run typecheck:web && npm run test:web && npm run build:web",
     "verify:worker": "npm run typecheck:worker && npm run test:worker",
-    "verify": "npm run verify:db && npm run verify:web && npm run verify:worker"
+    "verify": "npm run verify:db && npm run verify:web && npm run verify:worker",
+    "benchmark:call-processing": "tsx scripts/benchmark-call-processing.ts"
   },
   "overrides": {
     "nanoid": "3.3.18",

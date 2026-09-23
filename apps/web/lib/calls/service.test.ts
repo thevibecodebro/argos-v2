@@ -347,6 +347,31 @@ describe("processing job recovery", () => {
     expect(repository.findCallProcessingJobByCallId).not.toHaveBeenCalled();
   });
 
+  it("preserves chunk-scoped speaker identities in the service response", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue(repViewer),
+      findCallById: vi.fn().mockResolvedValue({
+        ...baseCallRecord,
+        transcript: [{
+          timestampSeconds: 0,
+          speaker: "Chunk 2 Speaker A",
+          text: "I need to compare the options.",
+        }],
+      }),
+    });
+
+    const result = await getCallDetail(
+      repository,
+      "rep-1",
+      "call-1",
+      repAccessRepository() as never,
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected call detail");
+    expect(result.data.transcript?.[0]?.speaker).toBe("Chunk 2 Speaker A");
+  });
+
   it("lets admins requeue failed processing jobs that still have retry budget", async () => {
     const repository = createRepository({
       findCurrentUserByAuthId: vi.fn().mockResolvedValue(adminViewer),
@@ -503,6 +528,63 @@ describe("processing job recovery", () => {
     });
     expect(callProcessingEntitlementsRepository.findActiveCallProcessingSubscription).not.toHaveBeenCalled();
     expect(repository.retryCallProcessingJob).not.toHaveBeenCalled();
+  });
+
+  it("allows an exhausted V1 job to be promoted when V2 processing is enabled", async () => {
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue(adminViewer),
+      findCallById: vi.fn().mockResolvedValue({
+        ...baseCallRecord,
+        status: "failed",
+      }),
+      findCallProcessingJobByCallId: vi.fn().mockResolvedValue({
+        id: "job-legacy",
+        status: "failed",
+        processingVersion: 1,
+        attemptCount: 3,
+        maxAttempts: 3,
+        nextRunAt: new Date("2026-04-03T00:00:00.000Z"),
+        lastStage: "transcribe",
+        lastError: "Request timed out",
+        updatedAt: new Date("2026-04-03T00:00:00.000Z"),
+      }),
+      retryCallProcessingJob: vi.fn().mockResolvedValue({
+        id: "job-legacy",
+        status: "pending",
+        processingVersion: 2,
+        attemptCount: 0,
+        maxAttempts: 3,
+        nextRunAt: new Date("2026-04-03T00:15:00.000Z"),
+        lastStage: null,
+        lastError: null,
+        updatedAt: new Date("2026-04-03T00:15:00.000Z"),
+      }),
+    });
+    const previous = process.env.CALL_PROCESSING_V2_ENABLED;
+    process.env.CALL_PROCESSING_V2_ENABLED = "true";
+
+    try {
+      const result = await retryCallProcessingJob(
+        repository,
+        "admin-1",
+        "call-1",
+        adminAccessRepository() as never,
+        {
+          callProcessingEntitlementsRepository: {
+            findActiveCallProcessingSubscription: vi.fn().mockResolvedValue({ id: "sub-1" }),
+          },
+        },
+      );
+
+      expect(result).toMatchObject({
+        ok: true,
+        data: { processingJob: { id: "job-legacy", processingVersion: 2, attemptCount: 0 } },
+      });
+      expect(repository.retryCallProcessingJob).toHaveBeenCalledWith("call-1");
+    } finally {
+      if (previous === undefined) delete process.env.CALL_PROCESSING_V2_ENABLED;
+      else process.env.CALL_PROCESSING_V2_ENABLED = previous;
+    }
   });
 
   it("blocks retrying failed processing jobs when billing is inactive", async () => {

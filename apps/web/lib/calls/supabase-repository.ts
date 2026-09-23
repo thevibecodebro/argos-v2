@@ -52,7 +52,16 @@ function mapProcessingJob(row: any) {
     lastStage: row.last_stage,
     lastError: row.last_error,
     updatedAt: toDate(row.updated_at) ?? new Date(0),
+    processingVersion: row.processing_version ?? 1,
+    failureCount: row.failure_count ?? 0,
+    maxFailures: row.max_failures ?? 3,
+    completedChunks: row.completed_chunks ?? 0,
+    totalChunks: row.total_chunks ?? null,
   };
+}
+
+function configuredProcessingVersion() {
+  return process.env.CALL_PROCESSING_V2_ENABLED === "true" ? 2 : 1;
 }
 
 export class SupabaseCallsRepository implements CallsRepository {
@@ -206,27 +215,16 @@ export class SupabaseCallsRepository implements CallsRepository {
   }) {
     const supabase: any = this.supabase;
     const { error } = await supabase
-      .from("call_processing_jobs")
-      .upsert(
-        {
-          call_id: input.callId,
-          rubric_id: input.rubricId ?? null,
-          source_origin: input.sourceOrigin,
-          source_storage_path: input.sourceStoragePath,
-          source_file_name: input.sourceFileName,
-          source_content_type: input.sourceContentType,
-          source_size_bytes: input.sourceSizeBytes,
-          status: "pending",
-          attempt_count: 0,
-          next_run_at: new Date().toISOString(),
-          locked_at: null,
-          lock_expires_at: null,
-          last_stage: null,
-          last_error: null,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "call_id" },
-      );
+      .rpc("create_or_reset_call_processing_job", {
+        target_call_id: input.callId,
+        target_processing_version: configuredProcessingVersion(),
+        target_rubric_id: input.rubricId ?? null,
+        target_source_content_type: input.sourceContentType,
+        target_source_file_name: input.sourceFileName,
+        target_source_origin: input.sourceOrigin,
+        target_source_size_bytes: input.sourceSizeBytes,
+        target_source_storage_path: input.sourceStoragePath,
+      });
 
     if (error) {
       throw new Error(error.message);
@@ -237,7 +235,7 @@ export class SupabaseCallsRepository implements CallsRepository {
     const supabase: any = this.supabase;
     const { data, error } = await supabase
       .from("call_processing_jobs")
-      .select("id, status, attempt_count, max_attempts, next_run_at, last_stage, last_error, updated_at")
+      .select("id, status, attempt_count, max_attempts, processing_version, failure_count, max_failures, completed_chunks, total_chunks, next_run_at, last_stage, last_error, updated_at")
       .eq("call_id", callId)
       .maybeSingle();
 
@@ -252,7 +250,7 @@ export class SupabaseCallsRepository implements CallsRepository {
     const supabase: any = this.supabase;
     const { data, error } = await supabase
       .from("call_processing_jobs")
-      .select("call_id, id, status, attempt_count, max_attempts, next_run_at, last_stage, last_error, updated_at")
+      .select("call_id, id, status, attempt_count, max_attempts, processing_version, failure_count, max_failures, completed_chunks, total_chunks, next_run_at, last_stage, last_error, updated_at")
       .eq("source_storage_path", sourceStoragePath)
       .maybeSingle();
 
@@ -265,22 +263,11 @@ export class SupabaseCallsRepository implements CallsRepository {
 
   async retryCallProcessingJob(callId: string) {
     const supabase: any = this.supabase;
-    const now = new Date().toISOString();
     const { data, error } = await supabase
-      .from("call_processing_jobs")
-      .update({
-        status: "pending",
-        attempt_count: 0,
-        next_run_at: now,
-        locked_at: null,
-        lock_expires_at: null,
-        last_stage: null,
-        last_error: null,
-        updated_at: now,
+      .rpc("retry_call_processing_job", {
+        target_call_id: callId,
+        target_processing_version: configuredProcessingVersion(),
       })
-      .eq("call_id", callId)
-      .eq("status", "failed")
-      .select("id, status, attempt_count, max_attempts, next_run_at, last_stage, last_error, updated_at")
       .maybeSingle();
 
     if (error) {
@@ -289,15 +276,6 @@ export class SupabaseCallsRepository implements CallsRepository {
 
     if (!data) {
       return null;
-    }
-
-    const { error: callError } = await supabase
-      .from("calls")
-      .update({ status: "uploaded" })
-      .eq("id", callId);
-
-    if (callError) {
-      throw new Error(callError.message);
     }
 
     return mapProcessingJob(data);

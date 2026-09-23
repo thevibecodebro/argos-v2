@@ -3,7 +3,9 @@ import { tmpdir } from "node:os";
 import { basename, extname, join } from "node:path";
 import ffmpegStatic from "ffmpeg-static";
 import {
+  BUYER_PERSONALITY_SCHEMA_VERSION,
   DEFAULT_CALL_SCORING_RUBRIC,
+  ProviderRequestError,
   extractBuyerPersonalityFromTranscript,
   mergeTranscriptLines,
   scoreTranscriptFromLines,
@@ -19,6 +21,19 @@ import {
 } from "../media/chunk-audio";
 import { normalizeAudio } from "../media/normalize-audio";
 import type { CallProcessingRepository } from "../calls/repository";
+import {
+  createTranscriptResumeFingerprint,
+  fingerprintConfiguration,
+  type Lease,
+} from "../calls/processing-checkpoints";
+import { LostJobLeaseError } from "./job-lease";
+import {
+  ChunkAttemptsExhaustedError,
+  JobRetryScheduledError,
+  TRANSCRIPTION_NORMALIZATION_VERSION,
+  TRANSCRIPT_FORMAT_VERSION,
+  transcribeChunksResumable,
+} from "./transcribe-chunks";
 
 type ClaimedCallProcessingJob = NonNullable<
   Awaited<ReturnType<CallProcessingRepository["claimNextJob"]>>
@@ -27,6 +42,16 @@ type ClaimedCallProcessingJob = NonNullable<
 type JobStage = "download" | "normalize" | "chunk" | "transcribe" | "profile" | "score" | "persist";
 
 const MAX_NORMALIZED_AUDIO_BYTES = 500 * 1024 * 1024;
+const BUYER_PERSONALITY_PROMPT_VERSION = 1;
+const CALL_SCORING_PROMPT_VERSION = 1;
+const RETRYABLE_POSTGRES_CODES = new Set([
+  "40001", // serialization_failure
+  "40P01", // deadlock_detected
+  "55P03", // lock_not_available
+  "57P01", // admin_shutdown
+  "57P02", // crash_shutdown
+  "57P03", // cannot_connect_now
+]);
 
 type ProcessCallJobInput = {
   job: ClaimedCallProcessingJob;
@@ -34,13 +59,29 @@ type ProcessCallJobInput = {
     CallProcessingRepository,
     | "createNotification"
     | "findRubricById"
+    | "findTranscriptCheckpoint"
+    | "findReusableTranscriptCheckpoint"
+    | "finalizeV2Job"
     | "getCallProcessingCapabilities"
     | "markJobComplete"
     | "markRetryableFailure"
     | "markTerminalFailure"
+    | "markV2RetryableFailure"
+    | "markV2TerminalFailure"
     | "persistProcessedCall"
+    | "beginChunkAttempt"
+    | "listCompletedChunks"
+    | "releaseForRetry"
+    | "saveChunkFailure"
+    | "saveCompletedChunk"
+    | "saveBuyerPersonalityCheckpoint"
+    | "saveEvaluationCheckpoint"
+    | "saveTranscriptCheckpoint"
+    | "setChunkManifest"
     | "updateBuyerProfileStatus"
+    | "updateBuyerProfileStatusForLease"
     | "updateCallStatus"
+    | "updateCallStatusForLease"
   >;
   downloadSourceAsset?: typeof downloadSourceAsset;
   normalizeAudio?: typeof normalizeAudio;
@@ -52,18 +93,37 @@ type ProcessCallJobInput = {
   readFile?: typeof readFile;
   mkdtemp?: typeof mkdtemp;
   rm?: typeof rm;
+  signal?: AbortSignal;
 };
 
 function resolveFfmpegBinary(env: WorkerEnv) {
   return env.ffmpegBinary ?? ffmpegStatic ?? null;
 }
 
-function isRetryableError(message: string, attemptCount: number, maxAttempts: number) {
+export function isRetryableProcessingError(
+  error: unknown,
+  attemptCount: number,
+  maxAttempts: number,
+) {
   if (attemptCount >= maxAttempts) {
     return false;
   }
 
-  return /429|5\d\d|timeout|timed out|rate limit|temporar|ECONNRESET|fetch failed/i.test(
+  if (error instanceof ProviderRequestError) {
+    return ["network", "rate_limit", "server", "timeout"].includes(error.details.category);
+  }
+
+  const databaseCode = error && typeof error === "object" && "code" in error
+    && typeof error.code === "string"
+    ? error.code
+    : null;
+  if (databaseCode?.startsWith("08") || (databaseCode && RETRYABLE_POSTGRES_CODES.has(databaseCode))) {
+    return true;
+  }
+
+  const message = error instanceof Error ? error.message : String(error);
+
+  return /429|5\d\d|timeout|timed out|rate limit|temporar|ECONNRESET|fetch failed|deadlock|could not serialize|serialization failure/i.test(
     message,
   );
 }
@@ -149,7 +209,7 @@ async function classifyAndPersistFailure(input: {
   const message = input.error instanceof Error ? input.error.message : String(input.error);
   const now = new Date();
 
-  if (isRetryableError(message, input.job.attemptCount, input.job.maxAttempts)) {
+  if (isRetryableProcessingError(input.error, input.job.attemptCount, input.job.maxAttempts)) {
     await input.repository.markRetryableFailure(input.job.id, {
       now,
       attemptCount: input.job.attemptCount,
@@ -187,9 +247,39 @@ async function resolveScoringRubric(input: {
 }
 
 export async function processCallJob(input: ProcessCallJobInput) {
+  const v2Lease: Lease | null = input.job.processingVersion === 2 && input.job.leaseToken
+    ? { jobId: input.job.id, token: input.job.leaseToken }
+    : null;
+  const updateCallStatusSafely = async (status: Parameters<CallProcessingRepository["updateCallStatus"]>[1]) => {
+    if (!v2Lease) return input.repository.updateCallStatus(input.job.callId, status);
+    const outcome = await input.repository.updateCallStatusForLease(v2Lease, input.job.callId, status);
+    if (outcome === "lost_lease") throw new LostJobLeaseError(v2Lease);
+  };
+  const updateBuyerProfileStatusSafely = async (
+    status: Parameters<CallProcessingRepository["updateBuyerProfileStatus"]>[1],
+  ) => {
+    if (!v2Lease) return input.repository.updateBuyerProfileStatus(input.job.callId, status);
+    const outcome = await input.repository.updateBuyerProfileStatusForLease(v2Lease, input.job.callId, status);
+    if (outcome === "lost_lease") throw new LostJobLeaseError(v2Lease);
+  };
   const capabilities = await input.repository.getCallProcessingCapabilities(input.job.callId);
   if (!capabilities.canGenerateBuyerPersonality && !capabilities.canScoreCall) {
     const now = new Date();
+    if (input.job.processingVersion === 2 && input.job.leaseToken) {
+      const outcome = await input.repository.markV2TerminalFailure(
+        { jobId: input.job.id, token: input.job.leaseToken },
+        {
+          callId: input.job.callId,
+          buyerProfileFailedIfProcessing: true,
+          lastError: "recording processing capabilities disabled",
+          lastStage: "download",
+        },
+      );
+      if (outcome === "lost_lease") {
+        throw new LostJobLeaseError({ jobId: input.job.id, token: input.job.leaseToken });
+      }
+      return;
+    }
     await input.repository.markTerminalFailure(input.job.id, {
       now,
       attemptCount: input.job.attemptCount,
@@ -203,10 +293,6 @@ export async function processCallJob(input: ProcessCallJobInput) {
   const env = input.env ?? getWorkerEnv();
   const ffmpegBinary = resolveFfmpegBinary(env);
 
-  if (!ffmpegBinary) {
-    throw new Error("FFmpeg binary is not configured. Set FFMPEG_BINARY or install ffmpeg-static.");
-  }
-
   const downloadSourceAssetImpl = input.downloadSourceAsset ?? downloadSourceAsset;
   const normalizeAudioImpl = input.normalizeAudio ?? normalizeAudio;
   const transcribeAudioBufferImpl = input.transcribeAudioBuffer ?? transcribeAudioBuffer;
@@ -218,64 +304,157 @@ export async function processCallJob(input: ProcessCallJobInput) {
   const readFileImpl = input.readFile ?? readFile;
   const mkdtempImpl = input.mkdtemp ?? mkdtemp;
   const rmImpl = input.rm ?? rm;
-  const tempDir = await mkdtempImpl(join(tmpdir(), `call-job-${input.job.callId}-`));
-  const sourceName =
-    ("sourceFileName" in input.job &&
-    typeof input.job.sourceFileName === "string" &&
-    input.job.sourceFileName.trim().length > 0
-      ? input.job.sourceFileName
-      : basename(input.job.sourceStoragePath)) || "source.bin";
-  const sourceExtension = extname(sourceName) || ".bin";
-  const sourcePath = join(tempDir, `source${sourceExtension}`);
-  const normalizedPath = join(tempDir, "normalized.mp3");
+  const transcriptionModel = process.env.OPENAI_CALL_TRANSCRIPTION_MODEL?.trim()
+    || "gpt-4o-transcribe-diarize";
+  let tempDir: string | null = null;
   let currentStage: JobStage = "download";
 
   try {
-    await input.repository.updateCallStatus(input.job.callId, "transcribing");
+    const scoringRubric = capabilities.canScoreCall
+      ? await resolveScoringRubric({ job: input.job, repository: input.repository })
+      : null;
+    const buyerPersonalityFingerprint = capabilities.canGenerateBuyerPersonality
+      ? fingerprintConfiguration({
+          callTopic: input.job.callTopic,
+          model: process.env.OPENAI_BUYER_PERSONALITY_MODEL?.trim()
+            || process.env.OPENAI_TRAINING_MODEL?.trim()
+            || "gpt-5-mini",
+          promptVersion: BUYER_PERSONALITY_PROMPT_VERSION,
+          schemaVersion: BUYER_PERSONALITY_SCHEMA_VERSION,
+        })
+      : null;
+    const evaluationFingerprint = scoringRubric
+      ? fingerprintConfiguration({
+          callTopic: input.job.callTopic,
+          model: process.env.OPENAI_CALL_SCORING_MODEL?.trim() || "gpt-5-mini",
+          promptVersion: CALL_SCORING_PROMPT_VERSION,
+          rubric: scoringRubric,
+        })
+      : null;
+    const transcriptResumeFingerprint = input.job.processingVersion === 2
+      ? createTranscriptResumeFingerprint({
+          generation: input.job.generation,
+          model: transcriptionModel,
+          normalizationVersion: TRANSCRIPTION_NORMALIZATION_VERSION,
+          sourceSizeBytes: input.job.sourceSizeBytes,
+          sourceStoragePath: input.job.sourceStoragePath,
+          transcriptFormatVersion: TRANSCRIPT_FORMAT_VERSION,
+        })
+      : null;
+    await updateCallStatusSafely("transcribing");
 
-    currentStage = "download";
-    const downloadedSourcePath = await downloadSourceAssetImpl({
-      expectedSizeBytes: input.job.sourceSizeBytes,
-      storagePath: input.job.sourceStoragePath,
-      targetPath: sourcePath,
-    });
+    let resumedCheckpoint = input.job.processingVersion === 2 && transcriptResumeFingerprint
+      ? await input.repository.findReusableTranscriptCheckpoint(
+          input.job.id,
+          input.job.generation,
+          transcriptResumeFingerprint,
+          { buyerPersonalityFingerprint, evaluationFingerprint },
+        )
+      : null;
+    let transcription: { durationSeconds: number; fingerprint?: string; transcript: TranscriptLine[] };
+    if (resumedCheckpoint) {
+      transcription = resumedCheckpoint;
+    } else {
+      if (!ffmpegBinary) {
+        throw new Error("FFmpeg binary is not configured. Set FFMPEG_BINARY or install ffmpeg-static.");
+      }
+      tempDir = await mkdtempImpl(join(tmpdir(), `call-job-${input.job.callId}-`));
+      const sourceName =
+        ("sourceFileName" in input.job &&
+        typeof input.job.sourceFileName === "string" &&
+        input.job.sourceFileName.trim().length > 0
+          ? input.job.sourceFileName
+          : basename(input.job.sourceStoragePath)) || "source.bin";
+      const sourceExtension = extname(sourceName) || ".bin";
+      const sourcePath = join(tempDir, `source${sourceExtension}`);
+      const normalizedPath = join(tempDir, "normalized.mp3");
+      currentStage = "download";
+      const downloadedSourcePath = await downloadSourceAssetImpl({
+        expectedSizeBytes: input.job.sourceSizeBytes,
+        storagePath: input.job.sourceStoragePath,
+        targetPath: sourcePath,
+        signal: input.signal,
+      });
 
-    currentStage = "normalize";
-    const normalized = await normalizeAudioImpl({
-      inputPath: downloadedSourcePath,
-      outputPath: normalizedPath,
-      ffmpegBinary,
-      maxOutputBytes: Math.min(env.maxSourceBytes, MAX_NORMALIZED_AUDIO_BYTES),
-    });
+      currentStage = "normalize";
+      const normalized = await normalizeAudioImpl({
+        inputPath: downloadedSourcePath,
+        outputPath: normalizedPath,
+        ffmpegBinary,
+        maxOutputBytes: Math.min(env.maxSourceBytes, MAX_NORMALIZED_AUDIO_BYTES),
+        signal: input.signal,
+      });
 
-    const transcription = await transcribeNormalizedAudio({
-      chunkAudioFileImpl,
-      concurrency: env.transcribeConcurrency,
-      durationSeconds: normalized.durationSeconds,
-      ffmpegBinary,
-      filePath: normalized.outputPath,
-      onStageChange: (stage) => {
-        currentStage = stage;
-      },
-      readFileImpl,
-      sizeBytes: normalized.sizeBytes,
-      transcribeAudioBufferImpl,
-    });
+      if (input.job.processingVersion === 2) {
+        if (!input.job.leaseToken) throw new Error("Version 2 job is missing its processing lease token");
+        currentStage = "chunk";
+        const chunks = await chunkAudioFileImpl({
+          filePath: normalized.outputPath,
+          sizeBytes: normalized.sizeBytes,
+          maxChunkBytes: 24 * 1024 * 1024,
+          durationSeconds: normalized.durationSeconds,
+          ffmpegBinary,
+          signal: input.signal,
+        });
+        currentStage = "transcribe";
+        transcription = await transcribeChunksResumable({
+          chunks,
+          durationSeconds: normalized.durationSeconds,
+          job: {
+            generation: input.job.generation,
+            id: input.job.id,
+            sourceSizeBytes: input.job.sourceSizeBytes,
+            sourceStoragePath: input.job.sourceStoragePath,
+          },
+          lease: { jobId: input.job.id, token: input.job.leaseToken },
+          model: transcriptionModel,
+          onEvent: (event) => console.info(JSON.stringify(event)),
+          readFile: readFileImpl,
+          repository: input.repository,
+          signal: input.signal,
+          timeoutMs: env.transcriptionTimeoutMs,
+          transcribe: transcribeAudioBufferImpl,
+        });
+      } else {
+        transcription = await transcribeNormalizedAudio({
+          chunkAudioFileImpl,
+          concurrency: env.transcribeConcurrency,
+          durationSeconds: normalized.durationSeconds,
+          ffmpegBinary,
+          filePath: normalized.outputPath,
+          onStageChange: (stage) => {
+            currentStage = stage;
+          },
+          readFileImpl,
+          sizeBytes: normalized.sizeBytes,
+          transcribeAudioBufferImpl,
+        });
+      }
+    }
+    resumedCheckpoint ??= input.job.processingVersion === 2 && transcription.fingerprint
+      ? await input.repository.findTranscriptCheckpoint(
+          input.job.id,
+          input.job.generation,
+          transcription.fingerprint,
+          { buyerPersonalityFingerprint, evaluationFingerprint },
+        )
+      : null;
 
     let buyerPersonality: {
       generatedAt: Date;
       model: string;
       profile: Awaited<ReturnType<typeof extractBuyerPersonalityFromTranscript>>["profile"];
       status: "ready" | "needs_review";
-    } | null = null;
-    if (capabilities.canGenerateBuyerPersonality) {
+    } | null = resumedCheckpoint?.buyerPersonality ?? null;
+    if (capabilities.canGenerateBuyerPersonality && !buyerPersonality) {
       currentStage = "profile";
-      await input.repository.updateBuyerProfileStatus(input.job.callId, "processing");
+      await updateBuyerProfileStatusSafely("processing");
       try {
         const extracted = await extractBuyerPersonalityImpl({
           callTopic: input.job.callTopic,
           durationSeconds: transcription.durationSeconds,
           transcript: transcription.transcript,
+          signal: input.signal,
         });
         buyerPersonality = {
           generatedAt: new Date(),
@@ -283,27 +462,50 @@ export async function processCallJob(input: ProcessCallJobInput) {
           profile: extracted.profile,
           status: extracted.profile.confidence === "low" ? "needs_review" : "ready",
         };
+        if (input.job.processingVersion === 2 && input.job.leaseToken && transcription.fingerprint) {
+          const outcome = await input.repository.saveBuyerPersonalityCheckpoint(
+            { jobId: input.job.id, token: input.job.leaseToken },
+            {
+              buyerPersonality,
+              buyerPersonalityFingerprint: buyerPersonalityFingerprint!,
+              fingerprint: transcription.fingerprint,
+            },
+          );
+          if (outcome === "lost_lease") {
+            throw new LostJobLeaseError({ jobId: input.job.id, token: input.job.leaseToken });
+          }
+        }
       } catch (error) {
-        await input.repository.updateBuyerProfileStatus(input.job.callId, "failed");
+        await updateBuyerProfileStatusSafely("failed");
         if (!capabilities.canScoreCall) throw error;
         console.error("Buyer personality extraction failed; continuing call scoring", error);
       }
     }
 
-    let evaluation = null;
-    if (capabilities.canScoreCall) {
+    let evaluation = resumedCheckpoint?.evaluation ?? null;
+    if (capabilities.canScoreCall && !evaluation) {
       currentStage = "score";
-      await input.repository.updateCallStatus(input.job.callId, "evaluating");
-      const rubric = await resolveScoringRubric({
-        job: input.job,
-        repository: input.repository,
-      });
+      await updateCallStatusSafely("evaluating");
       evaluation = await scoreTranscriptFromLinesImpl({
         callTopic: input.job.callTopic,
         durationSeconds: transcription.durationSeconds,
-        rubric,
+        rubric: scoringRubric!,
         transcript: transcription.transcript,
+        signal: input.signal,
       });
+      if (input.job.processingVersion === 2 && input.job.leaseToken && transcription.fingerprint) {
+        const outcome = await input.repository.saveEvaluationCheckpoint(
+          { jobId: input.job.id, token: input.job.leaseToken },
+          {
+            evaluation,
+            evaluationFingerprint: evaluationFingerprint!,
+            fingerprint: transcription.fingerprint,
+          },
+        );
+        if (outcome === "lost_lease") {
+          throw new LostJobLeaseError({ jobId: input.job.id, token: input.job.leaseToken });
+        }
+      }
     }
 
     currentStage = "persist";
@@ -314,29 +516,72 @@ export async function processCallJob(input: ProcessCallJobInput) {
     ) {
       throw new Error("recording processing capability disabled during processing");
     }
-    await input.repository.persistProcessedCall({
-      callId: input.job.callId,
-      durationSeconds: transcription.durationSeconds,
-      transcript: transcription.transcript,
-      buyerPersonality,
-      evaluation,
-    });
-    await input.repository.markJobComplete(input.job.id);
-
-    await input.repository
-      .createNotification({
-        userId: input.job.repId,
-        type: evaluation ? "call_scored" : "recording_ready",
-        title: evaluation ? "Call scored" : "Recording ready",
-        body: evaluation
-          ? `${input.job.callTopic ?? "Call"} finished scoring with an ${evaluation.overallScore} overall score.`
-          : `${input.job.callTopic ?? "Recording"} is transcribed and ready for buyer-personality roleplay.`,
-        link: `/calls/${input.job.callId}`,
-      })
-      .catch((error) => {
+    const notification = {
+      userId: input.job.repId,
+      type: evaluation ? "call_scored" as const : "recording_ready" as const,
+      title: evaluation ? "Call scored" : "Recording ready",
+      body: evaluation
+        ? `${input.job.callTopic ?? "Call"} finished scoring with an ${evaluation.overallScore} overall score.`
+        : `${input.job.callTopic ?? "Recording"} is transcribed and ready for buyer-personality roleplay.`,
+      link: `/calls/${input.job.callId}`,
+    };
+    if (input.job.processingVersion === 2) {
+      if (!input.job.leaseToken) throw new Error("Version 2 job is missing its processing lease token");
+      const outcome = await input.repository.finalizeV2Job({
+        buyerPersonality,
+        callId: input.job.callId,
+        durationSeconds: transcription.durationSeconds,
+        evaluation,
+        generation: input.job.generation,
+        lease: { jobId: input.job.id, token: input.job.leaseToken },
+        notification,
+        transcript: transcription.transcript,
+      });
+      if (outcome === "lost_lease") {
+        throw new LostJobLeaseError({ jobId: input.job.id, token: input.job.leaseToken });
+      }
+    } else {
+      await input.repository.persistProcessedCall({
+        callId: input.job.callId,
+        durationSeconds: transcription.durationSeconds,
+        transcript: transcription.transcript,
+        buyerPersonality,
+        evaluation,
+      });
+      await input.repository.markJobComplete(input.job.id);
+      await input.repository.createNotification(notification).catch((error) => {
         console.error("Failed to create recording notification", error);
       });
+    }
   } catch (error) {
+    if (error instanceof JobRetryScheduledError) return;
+    if (error instanceof LostJobLeaseError) throw error;
+    if (input.job.processingVersion === 2 && input.job.leaseToken) {
+      const lease: Lease = { jobId: input.job.id, token: input.job.leaseToken };
+      const message = error instanceof Error ? error.message : String(error);
+      const stageFailureCount = input.job.lastStage === currentStage
+        ? input.job.failureCount
+        : 0;
+      const retryable = !(error instanceof ChunkAttemptsExhaustedError)
+        && isRetryableProcessingError(error, stageFailureCount + 1, input.job.maxFailures);
+      const providerRetryAfterMs = error instanceof ProviderRequestError
+        ? error.details.retryAfterMs ?? 0
+        : 0;
+      const outcome = retryable
+        ? await input.repository.markV2RetryableFailure(lease, {
+            lastError: message,
+            lastStage: currentStage,
+            nextRunAt: new Date(Date.now() + Math.max(2 * 60 * 1000, providerRetryAfterMs)),
+          })
+        : await input.repository.markV2TerminalFailure(lease, {
+            buyerProfileFailed: capabilities.canGenerateBuyerPersonality,
+            callId: input.job.callId,
+            lastError: message,
+            lastStage: currentStage,
+          });
+      if (outcome === "lost_lease") throw new LostJobLeaseError(lease);
+      throw error;
+    }
     const failureStatus = await classifyAndPersistFailure({
       error,
       job: input.job,
@@ -348,6 +593,8 @@ export async function processCallJob(input: ProcessCallJobInput) {
     }
     throw error;
   } finally {
-    await rmImpl(tempDir, { recursive: true, force: true }).catch(() => undefined);
+    if (tempDir) {
+      await rmImpl(tempDir, { recursive: true, force: true }).catch(() => undefined);
+    }
   }
 }

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { createWriteStream } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
@@ -14,6 +15,7 @@ type DownloadSourceAssetInput = {
   bucket?: string;
   expectedSizeBytes?: number | null;
   targetPath: string;
+  signal?: AbortSignal;
 };
 
 type DownloadSourceAssetDependencies = {
@@ -66,7 +68,7 @@ export async function downloadSourceAsset(
     }
   }
 
-  const response = await fetchImpl(data.signedUrl);
+  const response = await fetchImpl(data.signedUrl, { signal: input.signal });
 
   if (!response.ok || !response.body) {
     throw new Error(`Failed to download source asset: HTTP ${response.status}`);
@@ -175,7 +177,8 @@ export async function storeCallSourceAsset(
 
   const supabase = dependencies.supabase ?? createClient(supabaseUrl, supabaseServiceRoleKey);
   const fileName = assertSafeStorageFileName(input.fileName);
-  const storagePath = `recordings/${input.callId}/source/${fileName}`;
+  const contentHash = createHash("sha256").update(input.bytes).digest("hex");
+  const storagePath = `recordings/${input.callId}/source/${contentHash}/${fileName}`;
   const { error } = await supabase.storage.from("call-recordings").upload(storagePath, input.bytes, {
     contentType: input.contentType ?? "application/octet-stream",
     upsert: true,
@@ -191,4 +194,25 @@ export async function storeCallSourceAsset(
     contentType: input.contentType,
     fileSizeBytes: input.bytes.length,
   };
+}
+
+export async function removeCallSourceAssets(
+  storagePaths: string[],
+  dependencies: {
+    env?: WorkerEnv;
+    supabase?: StorageClient;
+  } = {},
+) {
+  if (storagePaths.length === 0) return;
+  const env = dependencies.env ?? getWorkerEnv();
+  if (!env.supabaseUrl) throw new Error("Missing required environment variable: SUPABASE_URL");
+  if (!env.supabaseServiceRoleKey) {
+    throw new Error("Missing required environment variable: SUPABASE_SERVICE_ROLE_KEY");
+  }
+  const supabase = dependencies.supabase
+    ?? createClient(env.supabaseUrl, env.supabaseServiceRoleKey);
+  const { error } = await supabase.storage.from("call-recordings").remove(storagePaths);
+  if (error) {
+    throw new Error(`Failed to remove superseded source recording: ${error.message}`);
+  }
 }

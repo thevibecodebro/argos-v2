@@ -278,7 +278,15 @@ export class GoogleMeetImportRepository
         .limit(1)
         .for("update");
       if (existing?.callId) {
-        return { id: existing.callId };
+        const [existingCall] = await tx
+          .select({ recordingStoragePath: callsTable.recordingStoragePath })
+          .from(callsTable)
+          .where(eq(callsTable.id, existing.callId))
+          .limit(1);
+        return {
+          id: existing.callId,
+          recordingStoragePath: existingCall?.recordingStoragePath ?? null,
+        };
       }
 
       const [call] = await tx
@@ -296,7 +304,7 @@ export class GoogleMeetImportRepository
         .update(googleMeetImportsTable)
         .set({ callId: call.id, updatedAt: new Date() })
         .where(eq(googleMeetImportsTable.id, input.importId));
-      return call;
+      return { ...call, recordingStoragePath: null };
     });
   }
 
@@ -330,10 +338,42 @@ export class GoogleMeetImportRepository
     sourceSizeBytes: number;
     sourceStoragePath: string;
   }) {
-    await this.db
-      .insert(callProcessingJobsTable)
-      .values({ ...input, status: "pending" })
-      .onConflictDoNothing({ target: callProcessingJobsTable.callId });
+    return this.db.transaction(async (tx) => {
+      const [currentCall] = await tx
+        .select({ id: callsTable.id, recordingStoragePath: callsTable.recordingStoragePath })
+        .from(callsTable)
+        .where(eq(callsTable.id, input.callId))
+        .limit(1)
+        .for("update");
+      const [existing] = await tx
+        .select({ sourceStoragePath: callProcessingJobsTable.sourceStoragePath })
+        .from(callProcessingJobsTable)
+        .where(eq(callProcessingJobsTable.callId, input.callId))
+        .limit(1);
+      if (existing) return existing.sourceStoragePath;
+
+      await tx
+        .update(callsTable)
+        .set({
+          recordingContentType: input.sourceContentType,
+          recordingFileSizeBytes: input.sourceSizeBytes,
+          recordingStorageBucket: "call-recordings",
+          recordingStoragePath: input.sourceStoragePath,
+          recordingUrl: null,
+        })
+        .where(eq(callsTable.id, input.callId));
+      await tx
+        .insert(callProcessingJobsTable)
+        .values({
+          ...input,
+          pendingSourceCleanupPaths: currentCall?.recordingStoragePath && currentCall.recordingStoragePath !== input.sourceStoragePath
+            ? [currentCall.recordingStoragePath]
+            : [],
+          status: "pending",
+          processingVersion: process.env.CALL_PROCESSING_V2_ENABLED === "true" ? 2 : 1,
+        });
+      return input.sourceStoragePath;
+    });
   }
 
   async updateGoogleMeetTokens(

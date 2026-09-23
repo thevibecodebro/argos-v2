@@ -5,13 +5,19 @@ type ClaimedCallProcessingJob = NonNullable<
 >;
 
 type PollCallProcessingJobsInput = {
-  repository: Pick<CallProcessingRepository, "claimNextJob">;
+  repository: Pick<
+    CallProcessingRepository,
+    "claimNextJob" | "processPendingSourceCleanup"
+  >;
+  cleanupSourceAssets?: (storagePaths: string[]) => Promise<void>;
+  onCleanupError?: (error: unknown) => void;
   processJob: (job: ClaimedCallProcessingJob) => Promise<void>;
   onPollError?: (error: unknown) => void;
   onPollSuccess?: () => void;
   now?: Date;
   once?: boolean;
   pollIntervalMs?: number;
+  processingMaxElapsedMs?: number;
   sleep?: (ms: number) => Promise<void>;
 };
 
@@ -27,9 +33,20 @@ export async function pollCallProcessingJobs(
   const sleep = input.sleep ?? defaultSleep;
 
   do {
+    if (input.cleanupSourceAssets) {
+      try {
+        await input.repository.processPendingSourceCleanup(input.cleanupSourceAssets);
+      } catch (error) {
+        input.onCleanupError?.(error);
+      }
+    }
+
     let claimed: ClaimedCallProcessingJob | null;
     try {
-      claimed = await input.repository.claimNextJob(input.now ?? new Date());
+      claimed = await input.repository.claimNextJob(
+        input.now ?? null,
+        input.processingMaxElapsedMs,
+      );
     } catch (error) {
       input.onPollError?.(error);
       if (input.once) throw error;

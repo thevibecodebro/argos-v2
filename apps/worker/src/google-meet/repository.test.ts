@@ -1,17 +1,36 @@
-import { callProcessingJobsTable } from "@argos-v2/db";
 import { PgDialect } from "drizzle-orm/pg-core";
 import { describe, expect, it, vi } from "vitest";
 import { GoogleMeetImportRepository } from "./repository";
 
 describe("GoogleMeetImportRepository", () => {
   it("does not reset an existing processing job when an import is replayed", async () => {
-    const builder = {
-      onConflictDoNothing: vi.fn(async () => undefined),
-      values: vi.fn(),
+    const lockBuilder = {
+      from: vi.fn(),
+      where: vi.fn(),
+      limit: vi.fn(),
+      for: vi.fn(async () => [{ id: "00000000-0000-4000-8000-000000000001" }]),
     };
-    builder.values.mockReturnValue(builder);
+    lockBuilder.from.mockReturnValue(lockBuilder);
+    lockBuilder.where.mockReturnValue(lockBuilder);
+    lockBuilder.limit.mockReturnValue(lockBuilder);
+    const jobBuilder = {
+      from: vi.fn(),
+      limit: vi.fn(async () => [{
+        sourceStoragePath: "recordings/call-1/source/google-meet-recording-1.mp4",
+      }]),
+      where: vi.fn(),
+    };
+    jobBuilder.from.mockReturnValue(jobBuilder);
+    jobBuilder.where.mockReturnValue(jobBuilder);
+    const tx = {
+      insert: vi.fn(),
+      select: vi.fn()
+        .mockReturnValueOnce(lockBuilder)
+        .mockReturnValueOnce(jobBuilder),
+      update: vi.fn(),
+    };
     const repository = new GoogleMeetImportRepository({
-      insert: vi.fn(() => builder),
+      transaction: vi.fn(async (callback) => callback(tx)),
     } as never);
 
     await repository.createOrResetCallProcessingJob({
@@ -24,9 +43,8 @@ describe("GoogleMeetImportRepository", () => {
       sourceStoragePath: "recordings/call-1/source/google-meet-recording-1.mp4",
     });
 
-    expect(builder.onConflictDoNothing).toHaveBeenCalledWith({
-      target: callProcessingJobsTable.callId,
-    });
+    expect(tx.insert).not.toHaveBeenCalled();
+    expect(tx.update).not.toHaveBeenCalled();
   });
 
   it("locks an import before deciding whether to create its call", async () => {
@@ -58,7 +76,7 @@ describe("GoogleMeetImportRepository", () => {
       rubricId: null,
     });
 
-    expect(call).toEqual({ id: existing[0].callId });
+    expect(call).toEqual({ id: existing[0].callId, recordingStoragePath: null });
     expect(selectBuilder.for).toHaveBeenCalledWith("update");
     expect(tx.insert).not.toHaveBeenCalled();
   });

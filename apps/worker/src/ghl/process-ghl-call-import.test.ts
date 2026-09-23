@@ -153,6 +153,190 @@ describe("processGhlCallImport", () => {
     });
   });
 
+  it("keeps the source owned by an existing job and removes an unused redelivery", async () => {
+    const existingStoragePath = "recordings/call-1/source/existing.wav";
+    const newStoragePath = "recordings/call-1/source/redelivery.wav";
+    const repository = createRepository({
+      findGhlIntegrationForImport: vi.fn().mockResolvedValue({
+        orgId: "org-1",
+        locationId: "loc-1",
+        accessToken: "ghl-access",
+        refreshToken: "ghl-refresh",
+        tokenExpiresAt: new Date("2026-06-18T13:00:00.000Z"),
+        syncEnabled: true,
+        consentConfirmedAt: new Date("2026-06-18T12:00:00.000Z"),
+        defaultRepId: "rep-1",
+      }),
+      createCallForGhlImport: vi.fn().mockResolvedValue({
+        id: "call-1",
+        recordingStoragePath: existingStoragePath,
+      }),
+      createOrResetCallProcessingJob: vi.fn().mockResolvedValue(existingStoragePath),
+    });
+    const removeSourceAssets = vi.fn().mockResolvedValue(undefined);
+
+    await processGhlCallImport({
+      importRecord: {
+        id: "import-1",
+        orgId: "org-1",
+        locationId: "loc-1",
+        messageId: "msg-1",
+        conversationId: null,
+        contactId: null,
+        ghlUserId: null,
+        callId: "call-1",
+        status: "retrying",
+        attemptCount: 2,
+        maxAttempts: 3,
+      },
+      repository,
+      leadConnector: {
+        getMessage: vi.fn().mockResolvedValue({
+          id: "msg-1",
+          direction: "inbound",
+          type: "CALL",
+        }),
+        downloadMessageRecording: vi.fn().mockResolvedValue({
+          bytes: Buffer.from("new audio"),
+          contentType: "audio/wav",
+          fileName: "redelivery.wav",
+        }),
+      },
+      storeSourceAsset: vi.fn().mockResolvedValue({
+        storageBucket: "call-recordings",
+        storagePath: newStoragePath,
+        contentType: "audio/wav",
+        fileSizeBytes: 9,
+      }),
+      removeSourceAssets,
+      getActiveRubricId: vi.fn().mockResolvedValue(null),
+    });
+
+    expect(removeSourceAssets).toHaveBeenCalledWith([newStoragePath]);
+    expect(repository.updateCallRecordingStorage).not.toHaveBeenCalled();
+    expect(repository.markGhlCallImportImported).toHaveBeenCalledWith("import-1", {
+      callId: "call-1",
+    });
+  });
+
+  it("leaves superseded source cleanup to the durable worker queue", async () => {
+    const oldStoragePath = "recordings/call-1/source/old.wav";
+    const newStoragePath = "recordings/call-1/source/new.wav";
+    const order: string[] = [];
+    const repository = createRepository({
+      findGhlIntegrationForImport: vi.fn().mockResolvedValue({
+        orgId: "org-1", locationId: "loc-1", accessToken: "ghl-access",
+        refreshToken: "ghl-refresh", tokenExpiresAt: new Date("2026-06-18T13:00:00.000Z"),
+        syncEnabled: true, consentConfirmedAt: new Date("2026-06-18T12:00:00.000Z"),
+        defaultRepId: "rep-1",
+      }),
+      createCallForGhlImport: vi.fn().mockResolvedValue({
+        id: "call-1",
+        recordingStoragePath: oldStoragePath,
+      }),
+      createOrResetCallProcessingJob: vi.fn(async () => {
+        order.push("committed");
+        return newStoragePath;
+      }),
+    });
+    const removeSourceAssets = vi.fn(async () => {
+      order.push("removed");
+    });
+
+    await processGhlCallImport({
+      importRecord: {
+        id: "import-1", orgId: "org-1", locationId: "loc-1", messageId: "msg-1",
+        conversationId: null, contactId: null, ghlUserId: null, callId: "call-1",
+        status: "retrying", attemptCount: 2, maxAttempts: 3,
+      },
+      repository,
+      leadConnector: {
+        getMessage: vi.fn().mockResolvedValue({ id: "msg-1", direction: "inbound", type: "CALL" }),
+        downloadMessageRecording: vi.fn().mockResolvedValue({
+          bytes: Buffer.from("new audio"), contentType: "audio/wav", fileName: "new.wav",
+        }),
+      },
+      storeSourceAsset: vi.fn().mockResolvedValue({
+        storageBucket: "call-recordings", storagePath: newStoragePath,
+        contentType: "audio/wav", fileSizeBytes: 9,
+      }),
+      removeSourceAssets,
+      getActiveRubricId: vi.fn().mockResolvedValue(null),
+    });
+
+    expect(removeSourceAssets).not.toHaveBeenCalled();
+    expect(order).toEqual(["committed"]);
+  });
+
+  it("preserves a same-key source when capability is revoked after storage", async () => {
+    const storagePath = "recordings/call-1/source/msg-1.wav";
+    const repository = createRepository({
+      organizationHasIntegrationCapability: vi.fn()
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce(false),
+      findGhlIntegrationForImport: vi.fn().mockResolvedValue({
+        orgId: "org-1",
+        locationId: "loc-1",
+        accessToken: "ghl-access",
+        refreshToken: "ghl-refresh",
+        tokenExpiresAt: new Date("2026-06-18T13:00:00.000Z"),
+        syncEnabled: true,
+        consentConfirmedAt: new Date("2026-06-18T12:00:00.000Z"),
+        defaultRepId: "rep-1",
+      }),
+      createCallForGhlImport: vi.fn().mockResolvedValue({
+        id: "call-1",
+        recordingStoragePath: storagePath,
+      }),
+    });
+    const removeSourceAssets = vi.fn().mockResolvedValue(undefined);
+
+    await processGhlCallImport({
+      importRecord: {
+        id: "import-1",
+        orgId: "org-1",
+        locationId: "loc-1",
+        messageId: "msg-1",
+        conversationId: null,
+        contactId: null,
+        ghlUserId: null,
+        callId: "call-1",
+        status: "retrying",
+        attemptCount: 2,
+        maxAttempts: 3,
+      },
+      repository,
+      leadConnector: {
+        getMessage: vi.fn().mockResolvedValue({
+          id: "msg-1",
+          direction: "inbound",
+          type: "CALL",
+        }),
+        downloadMessageRecording: vi.fn().mockResolvedValue({
+          bytes: Buffer.from("same audio"),
+          contentType: "audio/wav",
+          fileName: "msg-1.wav",
+        }),
+      },
+      storeSourceAsset: vi.fn().mockResolvedValue({
+        storageBucket: "call-recordings",
+        storagePath,
+        contentType: "audio/wav",
+        fileSizeBytes: 10,
+      }),
+      removeSourceAssets,
+      getActiveRubricId: vi.fn().mockResolvedValue(null),
+    });
+
+    expect(removeSourceAssets).not.toHaveBeenCalled();
+    expect(repository.createOrResetCallProcessingJob).not.toHaveBeenCalled();
+    expect(repository.markGhlCallImportSkipped).toHaveBeenCalledWith("import-1", {
+      reason: "capability_disabled",
+    });
+  });
+
   it("skips imports before downloading recordings when the org has no active processing entitlement", async () => {
     const repository = createRepository({
       findActiveCallProcessingSubscription: vi.fn().mockResolvedValue(null),

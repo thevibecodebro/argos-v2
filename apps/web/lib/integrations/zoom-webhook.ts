@@ -10,7 +10,11 @@ import {
   type CallProcessingEntitlementsRepository,
 } from "@/lib/billing/call-processing-entitlements";
 import { CALL_SERVER_UPLOAD_MAX_BYTES } from "@/lib/calls/upload-contract";
-import { storeZoomCallSource, type SourceAsset } from "@/lib/calls/ingestion-service";
+import {
+  removeCallSourceAssets,
+  storeZoomCallSource,
+  type SourceAsset,
+} from "@/lib/calls/ingestion-service";
 import type { CallRecordingStorage } from "@/lib/calls/service";
 import { checkRateLimitForPolicy, type RateLimitResult } from "@/lib/rate-limit/service";
 import { createRubricsRepository } from "@/lib/rubrics/create-repository";
@@ -51,11 +55,28 @@ export interface ZoomWebhookRepository {
     sourceContentType: string | null;
     sourceSizeBytes: number | null;
   }): Promise<void>;
+  replaceCallRecordingAndResetProcessingJob(input: {
+    callId: string;
+    recording: CallRecordingStorage;
+    job: {
+      rubricId: string | null;
+      sourceContentType: string | null;
+      sourceFileName: string;
+      sourceOrigin: "zoom_recording";
+      sourceSizeBytes: number;
+      sourceStoragePath: string;
+    };
+  }, removeSourceAssets: (storagePaths: string[]) => Promise<void>): Promise<boolean>;
   findActiveCallProcessingSubscription: CallProcessingEntitlementsRepository["findActiveCallProcessingSubscription"];
   findCallByZoomRecordingId(input: {
     orgId: string;
     zoomRecordingId: string;
-  }): Promise<{ id: string; status: CallStatus; jobStatus: CallProcessingJobStatus | null } | null>;
+  }): Promise<{
+    id: string;
+    jobStatus: CallProcessingJobStatus | null;
+    recordingStoragePath: string | null;
+    status: CallStatus;
+  } | null>;
   findIngestionTitleFilterConfig(orgId: string): Promise<IngestionTitleFilterConfig>;
   findPreferredCallOwner(orgId: string): Promise<{ id: string } | null>;
   findZoomIntegrationByAccountId(accountId: string): Promise<{
@@ -136,6 +157,7 @@ type ZoomWebhookDependencies = {
     event: ZoomIngestionTitleDecisionEvent,
   ) => Promise<void> | void;
   rubricsRepository?: RubricsRepository;
+  removeSourceAssets?: (storagePaths: string[]) => Promise<void>;
   storeSourceAsset?: (input: {
     callId: string;
     bytes: Buffer;
@@ -380,10 +402,6 @@ export async function processZoomWebhookRequest(
   ).id;
 
   try {
-    if (!createdNewCall && existing?.status === "failed") {
-      await repository.updateCallStatus(callId, "uploaded");
-    }
-
     if (
       dependencies.canIngestOrganization &&
       !(await dependencies.canIngestOrganization(integration.orgId))
@@ -393,6 +411,7 @@ export async function processZoomWebhookRequest(
     }
 
     const storeSourceAsset = dependencies.storeSourceAsset ?? storeZoomCallSource;
+    const removeSourceAssets = dependencies.removeSourceAssets ?? removeCallSourceAssets;
     const sourceAsset = await storeSourceAsset({
       callId,
       bytes: recordingAsset.audioBytes,
@@ -400,30 +419,37 @@ export async function processZoomWebhookRequest(
       fileName: recordingAsset.fileName,
     });
 
-    await repository.updateCallRecordingStorage(callId, {
-      storageBucket: sourceAsset.storageBucket,
-      storagePath: sourceAsset.storagePath,
-      contentType: sourceAsset.contentType,
-      fileSizeBytes: sourceAsset.fileSizeBytes,
-    });
-
     if (
       dependencies.canIngestOrganization &&
       !(await dependencies.canIngestOrganization(integration.orgId))
     ) {
+      if (sourceAsset.storagePath !== existing?.recordingStoragePath) {
+        await removeSourceAssets([sourceAsset.storagePath]);
+      }
       await repository.updateCallStatus(callId, "failed");
       return { status: 200, body: { received: true } };
     }
 
-    await repository.createOrResetCallProcessingJob({
-      callId,
-      rubricId,
-      sourceOrigin: "zoom_recording",
-      sourceStoragePath: sourceAsset.storagePath,
-      sourceFileName: recordingAsset.fileName,
-      sourceContentType: recordingAsset.contentType,
-      sourceSizeBytes: recordingAsset.audioBytes.length,
-    });
+    await repository.replaceCallRecordingAndResetProcessingJob(
+      {
+        callId,
+        recording: {
+          storageBucket: sourceAsset.storageBucket,
+          storagePath: sourceAsset.storagePath,
+          contentType: sourceAsset.contentType,
+          fileSizeBytes: sourceAsset.fileSizeBytes,
+        },
+        job: {
+          rubricId,
+          sourceOrigin: "zoom_recording",
+          sourceStoragePath: sourceAsset.storagePath,
+          sourceFileName: recordingAsset.fileName,
+          sourceContentType: recordingAsset.contentType,
+          sourceSizeBytes: recordingAsset.audioBytes.length,
+        },
+      },
+      removeSourceAssets,
+    );
   } catch (error) {
     await Promise.resolve(repository.updateCallStatus(callId, "failed")).catch(() => undefined);
     throw error;

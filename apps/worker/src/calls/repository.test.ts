@@ -68,10 +68,21 @@ async function ensureCallProcessingJobsTable(db: ArgosDb) {
       status text not null default 'pending' check (status in ('pending', 'running', 'retrying', 'failed', 'complete')),
       attempt_count integer not null default 0,
       max_attempts integer not null default 3,
+      processing_version integer not null default 1,
+      generation integer not null default 1,
+      failure_count integer not null default 0,
+      max_failures integer not null default 3,
+      total_chunks integer,
+      completed_chunks integer not null default 0,
       next_run_at timestamptz not null default now(),
       locked_at timestamptz,
       lock_expires_at timestamptz,
-      last_stage text check (last_stage in ('download', 'normalize', 'chunk', 'transcribe', 'score', 'persist')),
+      lease_token uuid,
+      heartbeat_at timestamptz,
+      processing_started_at timestamptz,
+      processing_deadline_at timestamptz,
+      pending_source_cleanup_paths text[] not null default '{}'::text[],
+      last_stage text check (last_stage in ('download', 'normalize', 'chunk', 'transcribe', 'profile', 'score', 'persist')),
       last_error text,
       created_at timestamptz not null default now(),
       updated_at timestamptz not null default now()
@@ -86,6 +97,23 @@ async function ensureCallProcessingJobsTable(db: ArgosDb) {
   await db.execute(sql`
     create index call_processing_jobs_lock_expires_idx
       on call_processing_jobs (lock_expires_at);
+  `);
+
+  await db.execute(sql`
+    create temporary table call_processing_checkpoints (
+      id uuid primary key default gen_random_uuid(),
+      job_id uuid not null,
+      manifest_fingerprint text not null,
+      transcript_hash text not null,
+      duration_seconds integer,
+      merged_transcript jsonb,
+      configuration jsonb not null default '{}'::jsonb,
+      buyer_personality jsonb,
+      evaluation jsonb,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now(),
+      unique (job_id, manifest_fingerprint)
+    ) on commit drop;
   `);
 }
 
@@ -243,6 +271,337 @@ describeWithDatabase("CallProcessingRepository", () => {
       const claimed = await repository.claimNextJob(new Date("2026-04-18T10:00:00.000Z"));
 
       expect(claimed).toBeNull();
+    });
+  });
+
+  it("refuses to renew a lease after the processing deadline", async () => {
+    await withRepositoryTransaction(async ({ db, repository }) => {
+      const seeded = await seedCall(db);
+      const job = await repository.insertJob({
+        callId: seeded.callId,
+        sourceOrigin: "manual_upload",
+        sourceStoragePath: "recordings/call-deadline/source/audio.mp3",
+        sourceFileName: "audio.mp3",
+        status: "running",
+      });
+      const leaseToken = crypto.randomUUID();
+
+      await db
+        .update(callProcessingJobsTable)
+        .set({
+          processingVersion: 2,
+          leaseToken,
+          lockExpiresAt: new Date(Date.now() + 60_000),
+          processingDeadlineAt: new Date(Date.now() - 60_000),
+        })
+        .where(eq(callProcessingJobsTable.id, job.id));
+
+      await expect(repository.renewLease({ jobId: job.id, token: leaseToken }))
+        .resolves.toBe("lost_lease");
+    });
+  });
+
+  it("rejects state transitions from an expired lease", async () => {
+    await withRepositoryTransaction(async ({ db, repository }) => {
+      const seeded = await seedCall(db);
+      const job = await repository.insertJob({
+        callId: seeded.callId,
+        sourceOrigin: "manual_upload",
+        sourceStoragePath: "recordings/call-stale/source/audio.mp3",
+        sourceFileName: "audio.mp3",
+        status: "running",
+      });
+      const lease = { jobId: job.id, token: crypto.randomUUID() };
+
+      await db
+        .update(callProcessingJobsTable)
+        .set({
+          processingVersion: 2,
+          leaseToken: lease.token,
+          lockExpiresAt: new Date(Date.now() - 60_000),
+          processingDeadlineAt: new Date(Date.now() + 60_000),
+        })
+        .where(eq(callProcessingJobsTable.id, job.id));
+
+      await expect(repository.releaseForRetry(lease, {
+        lastError: "late retry",
+        nextRunAt: new Date(Date.now() + 60_000),
+      })).resolves.toBe("lost_lease");
+      await expect(repository.markV2RetryableFailure(lease, {
+        lastError: "late failure",
+        lastStage: "transcribe",
+        nextRunAt: new Date(Date.now() + 60_000),
+      })).resolves.toBe("lost_lease");
+      await expect(repository.markV2TerminalFailure(lease, {
+        callId: seeded.callId,
+        lastError: "late terminal failure",
+        lastStage: "transcribe",
+      })).resolves.toBe("lost_lease");
+
+      await expect(repository.findJobById(job.id)).resolves.toMatchObject({ status: "running" });
+    });
+  });
+
+  it("starts a fresh retry budget when a different processing stage fails", async () => {
+    await withRepositoryTransaction(async ({ db, repository }) => {
+      const seeded = await seedCall(db);
+      const job = await repository.insertJob({
+        callId: seeded.callId,
+        sourceOrigin: "manual_upload",
+        sourceStoragePath: "recordings/call-stage/source/audio.mp3",
+        sourceFileName: "audio.mp3",
+        status: "running",
+      });
+      const lease = { jobId: job.id, token: crypto.randomUUID() };
+
+      await db.update(callProcessingJobsTable).set({
+        processingVersion: 2,
+        failureCount: 2,
+        lastStage: "download",
+        leaseToken: lease.token,
+        lockExpiresAt: new Date(Date.now() + 60_000),
+        processingDeadlineAt: new Date(Date.now() + 120_000),
+      }).where(eq(callProcessingJobsTable.id, job.id));
+
+      await expect(repository.markV2RetryableFailure(lease, {
+        lastError: "scoring timed out",
+        lastStage: "score",
+        nextRunAt: new Date(Date.now() + 60_000),
+      })).resolves.toBe("written");
+
+      await expect(repository.findJobById(job.id)).resolves.toMatchObject({
+        failureCount: 1,
+        lastStage: "score",
+        status: "retrying",
+      });
+    });
+  });
+
+  it("fails an in-progress buyer profile when the processing deadline expires", async () => {
+    await withRepositoryTransaction(async ({ db, repository }) => {
+      const seeded = await seedCall(db);
+      const job = await repository.insertJob({
+        callId: seeded.callId,
+        sourceOrigin: "manual_upload",
+        sourceStoragePath: "recordings/call-profile-deadline/source/audio.mp3",
+        sourceFileName: "audio.mp3",
+        status: "pending",
+      });
+      const now = new Date("2026-04-18T10:00:00.000Z");
+
+      await db.update(callsTable).set({ buyerProfileStatus: "processing" })
+        .where(eq(callsTable.id, seeded.callId));
+      await db.update(callProcessingJobsTable).set({
+        processingVersion: 2,
+        processingDeadlineAt: new Date("2026-04-18T09:59:00.000Z"),
+      }).where(eq(callProcessingJobsTable.id, job.id));
+
+      await expect(repository.claimNextJob(now)).resolves.toBeNull();
+      const [call] = await db.select({
+        buyerProfileStatus: callsTable.buyerProfileStatus,
+        status: callsTable.status,
+      }).from(callsTable).where(eq(callsTable.id, seeded.callId));
+      expect(call).toEqual({ buyerProfileStatus: "failed", status: "failed" });
+    });
+  });
+
+  it("fails only an in-progress buyer profile when capabilities disappear", async () => {
+    await withRepositoryTransaction(async ({ db, repository }) => {
+      const seeded = await seedCall(db);
+      const job = await repository.insertJob({
+        callId: seeded.callId,
+        sourceOrigin: "manual_upload",
+        sourceStoragePath: "recordings/call-capabilities/source/audio.mp3",
+        sourceFileName: "audio.mp3",
+        status: "running",
+      });
+      const lease = { jobId: job.id, token: crypto.randomUUID() };
+
+      await db.update(callsTable).set({ buyerProfileStatus: "processing" })
+        .where(eq(callsTable.id, seeded.callId));
+      await db.update(callProcessingJobsTable).set({
+        processingVersion: 2,
+        leaseToken: lease.token,
+        lockExpiresAt: new Date(Date.now() + 60_000),
+      }).where(eq(callProcessingJobsTable.id, job.id));
+
+      await expect(repository.markV2TerminalFailure(lease, {
+        buyerProfileFailedIfProcessing: true,
+        callId: seeded.callId,
+        lastError: "recording processing capabilities disabled",
+        lastStage: "download",
+      })).resolves.toBe("written");
+
+      const [call] = await db.select({
+        buyerProfileStatus: callsTable.buyerProfileStatus,
+        status: callsTable.status,
+      }).from(callsTable).where(eq(callsTable.id, seeded.callId));
+      expect(call).toEqual({ buyerProfileStatus: "failed", status: "failed" });
+    });
+  });
+
+  it("reuses evaluation checkpoints only for the same scoring configuration", async () => {
+    await withRepositoryTransaction(async ({ db, repository }) => {
+      const seeded = await seedCall(db);
+      const job = await repository.insertJob({
+        callId: seeded.callId,
+        sourceOrigin: "manual_upload",
+        sourceStoragePath: "recordings/call-checkpoint/source/audio.mp3",
+        sourceFileName: "audio.mp3",
+        status: "running",
+      });
+      const lease = { jobId: job.id, token: crypto.randomUUID() };
+      const fingerprint = "manifest-fingerprint";
+      const transcript = [{ timestampSeconds: 0, speaker: "Speaker A", text: "Hello" }];
+      const evaluation = {
+        rubricId: null,
+        confidence: "high",
+        callStageReached: "commitment",
+        overallScore: 90,
+        categoryScores: [],
+        frameControlScore: null,
+        rapportScore: null,
+        discoveryScore: null,
+        painExpansionScore: null,
+        solutionScore: null,
+        objectionScore: null,
+        closingScore: null,
+        strengths: [],
+        improvements: [],
+        recommendedDrills: [],
+        transcript,
+        moments: [],
+        durationSeconds: 600,
+      } as const;
+
+      await db
+        .update(callProcessingJobsTable)
+        .set({
+          processingVersion: 2,
+          leaseToken: lease.token,
+          lockExpiresAt: new Date(Date.now() + 60_000),
+          processingDeadlineAt: new Date(Date.now() + 120_000),
+        })
+        .where(eq(callProcessingJobsTable.id, job.id));
+
+      await expect(repository.saveTranscriptCheckpoint(lease, {
+        durationSeconds: 600.49,
+        fingerprint,
+        generation: 1,
+        resumeFingerprint: "source-and-transcription-v1",
+        transcript,
+        transcriptHash: "transcript-hash",
+      })).resolves.toBe("written");
+      await expect(repository.saveEvaluationCheckpoint(lease, {
+        evaluation: evaluation as never,
+        evaluationFingerprint: "scoring-v1",
+        fingerprint,
+      })).resolves.toBe("written");
+
+      await expect(repository.findTranscriptCheckpoint(job.id, 1, fingerprint, {
+        buyerPersonalityFingerprint: null,
+        evaluationFingerprint: "scoring-v1",
+      })).resolves.toMatchObject({ durationSeconds: 600, evaluation: { overallScore: 90 } });
+      await expect(repository.findTranscriptCheckpoint(job.id, 1, fingerprint, {
+        buyerPersonalityFingerprint: null,
+        evaluationFingerprint: "scoring-v2",
+      })).resolves.toMatchObject({ evaluation: null });
+      await expect(repository.findReusableTranscriptCheckpoint(job.id, 1, "source-and-transcription-v1", {
+        buyerPersonalityFingerprint: null,
+        evaluationFingerprint: "scoring-v1",
+      })).resolves.toMatchObject({ evaluation: { overallScore: 90 }, fingerprint });
+      await expect(repository.findReusableTranscriptCheckpoint(job.id, 1, "different-source", {
+        buyerPersonalityFingerprint: null,
+        evaluationFingerprint: "scoring-v1",
+      })).resolves.toBeNull();
+    });
+  });
+
+  it("rejects V2 finalization after the processing deadline", async () => {
+    await withRepositoryTransaction(async ({ db, repository }) => {
+      const seeded = await seedCall(db);
+      const job = await repository.insertJob({
+        callId: seeded.callId,
+        sourceOrigin: "manual_upload",
+        sourceStoragePath: "recordings/call-finalize-deadline/source/audio.mp3",
+        sourceFileName: "audio.mp3",
+        status: "running",
+      });
+      const lease = { jobId: job.id, token: crypto.randomUUID() };
+
+      await db.update(callProcessingJobsTable).set({
+        processingVersion: 2,
+        leaseToken: lease.token,
+        lockExpiresAt: new Date(Date.now() + 60_000),
+        processingDeadlineAt: new Date(Date.now() - 60_000),
+      }).where(eq(callProcessingJobsTable.id, job.id));
+
+      await expect(repository.finalizeV2Job({
+        buyerPersonality: null,
+        callId: seeded.callId,
+        durationSeconds: 600.49,
+        evaluation: null,
+        generation: 1,
+        lease,
+        notification: {
+          body: "Recording ready",
+          link: `/calls/${seeded.callId}`,
+          title: "Recording ready",
+          type: "recording_ready",
+          userId: seeded.repId,
+        },
+        transcript: [{ timestampSeconds: 0, speaker: "Speaker A", text: "Hello" }],
+      })).resolves.toBe("lost_lease");
+
+      await expect(repository.findJobById(job.id)).resolves.toMatchObject({ status: "running" });
+      const [call] = await db.select({ status: callsTable.status })
+        .from(callsTable).where(eq(callsTable.id, seeded.callId));
+      expect(call?.status).toBe("uploaded");
+    });
+  });
+
+  it("finalizes before the deadline and rounds duration only for persistence", async () => {
+    await withRepositoryTransaction(async ({ db, repository }) => {
+      const seeded = await seedCall(db);
+      const job = await repository.insertJob({
+        callId: seeded.callId,
+        sourceOrigin: "manual_upload",
+        sourceStoragePath: "recordings/call-finalize/source/audio.mp3",
+        sourceFileName: "audio.mp3",
+        status: "running",
+      });
+      const lease = { jobId: job.id, token: crypto.randomUUID() };
+
+      await db.update(callProcessingJobsTable).set({
+        processingVersion: 2,
+        leaseToken: lease.token,
+        lockExpiresAt: new Date(Date.now() + 60_000),
+        processingDeadlineAt: new Date(Date.now() + 120_000),
+      }).where(eq(callProcessingJobsTable.id, job.id));
+
+      await expect(repository.finalizeV2Job({
+        buyerPersonality: null,
+        callId: seeded.callId,
+        durationSeconds: 600.49,
+        evaluation: null,
+        generation: 1,
+        lease,
+        notification: {
+          body: "Recording ready",
+          link: `/calls/${seeded.callId}`,
+          title: "Recording ready",
+          type: "recording_ready",
+          userId: seeded.repId,
+        },
+        transcript: [{ timestampSeconds: 0, speaker: "Speaker A", text: "Hello" }],
+      })).resolves.toBe("written");
+
+      await expect(repository.findJobById(job.id)).resolves.toMatchObject({ status: "complete" });
+      const [call] = await db.select({
+        durationSeconds: callsTable.durationSeconds,
+        status: callsTable.status,
+      }).from(callsTable).where(eq(callsTable.id, seeded.callId));
+      expect(call).toEqual({ durationSeconds: 600, status: "complete" });
     });
   });
 
