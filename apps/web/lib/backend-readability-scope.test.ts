@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
+import { navGroups } from "../components/app-navigation";
 
 const repoRoot = new URL("..", import.meta.url).pathname;
 const authenticatedRoot = join(repoRoot, "app/(authenticated)");
@@ -28,21 +29,13 @@ describe("authenticated backend readability scope", () => {
       new URL("../components/app-navigation.ts", import.meta.url),
       "utf8",
     );
-    // Scope to the grouped primary-rail declaration (not the bottom tab bar).
-    const navSource = source.slice(
-      source.indexOf("const navGroups"),
-      source.indexOf("const bottomTabs"),
-    );
-    const primaryNavigationEntries = Array.from(
-      navSource.matchAll(
-        /\{\s*href:\s*"([^"]+)",\s*label:\s*"([^"]+)",\s*icon:\s*"([^"]+)"(?:,\s*capability:\s*"[^"]+")?\s*\}/g,
-      ),
-      ([, href, label, icon]) => ({ href, icon, label }),
+    const primaryNavigationEntries = navGroups.flatMap((group) =>
+      group.items.map(({ href, icon, label }) => ({ href, icon, label })),
     );
 
     expect(primaryNavigationEntries).toEqual([
       { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
-      { href: "/calls", label: "Calls", icon: "library_books" },
+      { href: "/calls", label: "Recordings", icon: "library_books" },
       { href: "/highlights", label: "Highlights", icon: "auto_awesome" },
       { href: "/training", label: "Training", icon: "school" },
       { href: "/roleplay", label: "Roleplay", icon: "psychology" },
