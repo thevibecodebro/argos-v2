@@ -56,6 +56,6 @@ export async function normalizeAudio(
   return {
     outputPath: input.outputPath,
     sizeBytes: outputStats.size,
-    durationSeconds: Math.max(1, Math.round(durationSeconds)),
+    durationSeconds: Math.max(1, durationSeconds),
   };
 }

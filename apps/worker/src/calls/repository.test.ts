@@ -484,7 +484,7 @@ describeWithDatabase("CallProcessingRepository", () => {
         .where(eq(callProcessingJobsTable.id, job.id));
 
       await expect(repository.saveTranscriptCheckpoint(lease, {
-        durationSeconds: 600,
+        durationSeconds: 600.49,
         fingerprint,
         generation: 1,
         resumeFingerprint: "source-and-transcription-v1",
@@ -500,7 +500,7 @@ describeWithDatabase("CallProcessingRepository", () => {
       await expect(repository.findTranscriptCheckpoint(job.id, 1, fingerprint, {
         buyerPersonalityFingerprint: null,
         evaluationFingerprint: "scoring-v1",
-      })).resolves.toMatchObject({ evaluation: { overallScore: 90 } });
+      })).resolves.toMatchObject({ durationSeconds: 600, evaluation: { overallScore: 90 } });
       await expect(repository.findTranscriptCheckpoint(job.id, 1, fingerprint, {
         buyerPersonalityFingerprint: null,
         evaluationFingerprint: "scoring-v2",
@@ -513,6 +513,94 @@ describeWithDatabase("CallProcessingRepository", () => {
         buyerPersonalityFingerprint: null,
         evaluationFingerprint: "scoring-v1",
       })).resolves.toBeNull();
+    });
+  });
+
+  it("rejects V2 finalization after the processing deadline", async () => {
+    await withRepositoryTransaction(async ({ db, repository }) => {
+      const seeded = await seedCall(db);
+      const job = await repository.insertJob({
+        callId: seeded.callId,
+        sourceOrigin: "manual_upload",
+        sourceStoragePath: "recordings/call-finalize-deadline/source/audio.mp3",
+        sourceFileName: "audio.mp3",
+        status: "running",
+      });
+      const lease = { jobId: job.id, token: crypto.randomUUID() };
+
+      await db.update(callProcessingJobsTable).set({
+        processingVersion: 2,
+        leaseToken: lease.token,
+        lockExpiresAt: new Date(Date.now() + 60_000),
+        processingDeadlineAt: new Date(Date.now() - 60_000),
+      }).where(eq(callProcessingJobsTable.id, job.id));
+
+      await expect(repository.finalizeV2Job({
+        buyerPersonality: null,
+        callId: seeded.callId,
+        durationSeconds: 600.49,
+        evaluation: null,
+        generation: 1,
+        lease,
+        notification: {
+          body: "Recording ready",
+          link: `/calls/${seeded.callId}`,
+          title: "Recording ready",
+          type: "recording_ready",
+          userId: seeded.repId,
+        },
+        transcript: [{ timestampSeconds: 0, speaker: "Speaker A", text: "Hello" }],
+      })).resolves.toBe("lost_lease");
+
+      await expect(repository.findJobById(job.id)).resolves.toMatchObject({ status: "running" });
+      const [call] = await db.select({ status: callsTable.status })
+        .from(callsTable).where(eq(callsTable.id, seeded.callId));
+      expect(call?.status).toBe("uploaded");
+    });
+  });
+
+  it("finalizes before the deadline and rounds duration only for persistence", async () => {
+    await withRepositoryTransaction(async ({ db, repository }) => {
+      const seeded = await seedCall(db);
+      const job = await repository.insertJob({
+        callId: seeded.callId,
+        sourceOrigin: "manual_upload",
+        sourceStoragePath: "recordings/call-finalize/source/audio.mp3",
+        sourceFileName: "audio.mp3",
+        status: "running",
+      });
+      const lease = { jobId: job.id, token: crypto.randomUUID() };
+
+      await db.update(callProcessingJobsTable).set({
+        processingVersion: 2,
+        leaseToken: lease.token,
+        lockExpiresAt: new Date(Date.now() + 60_000),
+        processingDeadlineAt: new Date(Date.now() + 120_000),
+      }).where(eq(callProcessingJobsTable.id, job.id));
+
+      await expect(repository.finalizeV2Job({
+        buyerPersonality: null,
+        callId: seeded.callId,
+        durationSeconds: 600.49,
+        evaluation: null,
+        generation: 1,
+        lease,
+        notification: {
+          body: "Recording ready",
+          link: `/calls/${seeded.callId}`,
+          title: "Recording ready",
+          type: "recording_ready",
+          userId: seeded.repId,
+        },
+        transcript: [{ timestampSeconds: 0, speaker: "Speaker A", text: "Hello" }],
+      })).resolves.toBe("written");
+
+      await expect(repository.findJobById(job.id)).resolves.toMatchObject({ status: "complete" });
+      const [call] = await db.select({
+        durationSeconds: callsTable.durationSeconds,
+        status: callsTable.status,
+      }).from(callsTable).where(eq(callsTable.id, seeded.callId));
+      expect(call).toEqual({ durationSeconds: 600, status: "complete" });
     });
   });
 

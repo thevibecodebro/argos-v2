@@ -72,6 +72,10 @@ function extractRows<T>(result: unknown): T[] {
   return [];
 }
 
+function persistedDurationSeconds(durationSeconds: number) {
+  return Math.max(1, Math.round(durationSeconds));
+}
+
 function toDate(value: Date | string | null, fieldName: string): Date | null {
   if (!value) {
     return null;
@@ -546,11 +550,12 @@ export class CallProcessingRepository {
     transcript: TranscriptLine[];
     transcriptHash: string;
   }): Promise<WriteOutcome> {
+    const durationSeconds = persistedDurationSeconds(input.durationSeconds);
     const rows = extractRows(await this.db.execute(sql`
       insert into call_processing_checkpoints (
         job_id, manifest_fingerprint, transcript_hash, duration_seconds, merged_transcript, configuration, updated_at
       )
-      select ${lease.jobId}, ${input.fingerprint}, ${input.transcriptHash}, ${input.durationSeconds},
+      select ${lease.jobId}, ${input.fingerprint}, ${input.transcriptHash}, ${durationSeconds},
         ${JSON.stringify(input.transcript)}::jsonb,
         ${JSON.stringify({ generation: input.generation, resumeFingerprint: input.resumeFingerprint })}::jsonb, now()
       where exists (
@@ -875,6 +880,7 @@ export class CallProcessingRepository {
           heartbeat_at = null, updated_at = now()
         where id = ${input.lease.jobId} and lease_token = ${input.lease.token}::uuid
           and status = 'running' and lock_expires_at > now()
+          and processing_deadline_at > now()
         returning id
       `));
       if (claimed.length !== 1) {
@@ -888,7 +894,7 @@ export class CallProcessingRepository {
       const evaluation = input.evaluation ?? null;
       await tx.update(callsTable).set({
         status: "complete",
-        durationSeconds: input.durationSeconds,
+        durationSeconds: persistedDurationSeconds(input.durationSeconds),
         transcript: input.transcript,
         ...(input.buyerPersonality ? {
           buyerProfileStatus: input.buyerPersonality.status,
@@ -964,7 +970,7 @@ export class CallProcessingRepository {
         .update(callsTable)
         .set({
           status: "complete",
-          durationSeconds: input.durationSeconds,
+          durationSeconds: persistedDurationSeconds(input.durationSeconds),
           transcript: input.transcript,
           ...(input.buyerPersonality
             ? {
