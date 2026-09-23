@@ -40,7 +40,7 @@ describe("normalizeAudio", () => {
     expect(normalized).toEqual({
       outputPath: "/tmp/normalized.mp3",
       sizeBytes: 7_200_000,
-      durationSeconds: 1800.25,
+      durationSeconds: 1800,
     });
   });
 

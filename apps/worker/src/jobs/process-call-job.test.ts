@@ -27,6 +27,35 @@ describe("processCallJob", () => {
       expect.objectContaining({ lastError: "recording processing capabilities disabled" }),
     );
   });
+
+  it("fails an in-progress buyer profile when V2 capabilities disappear", async () => {
+    const repository = {
+      getCallProcessingCapabilities: vi.fn().mockResolvedValue({ canGenerateBuyerPersonality: false, canScoreCall: false }),
+      markV2TerminalFailure: vi.fn().mockResolvedValue("written"),
+    };
+
+    await processCallJob({
+      job: {
+        id: "job-revoked-v2",
+        callId: "call-revoked-v2",
+        attemptCount: 1,
+        maxAttempts: 3,
+        processingVersion: 2,
+        leaseToken: "00000000-0000-4000-8000-000000000001",
+      } as never,
+      repository: repository as never,
+      downloadSourceAsset: vi.fn(),
+    });
+
+    expect(repository.markV2TerminalFailure).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        buyerProfileFailedIfProcessing: true,
+        lastError: "recording processing capabilities disabled",
+      }),
+    );
+  });
+
   it("transcribes, profiles, and completes without scoring in a personality-only workspace", async () => {
     const repository = {
       getCallProcessingCapabilities: vi.fn().mockResolvedValue({ canGenerateBuyerPersonality: true, canScoreCall: false }),

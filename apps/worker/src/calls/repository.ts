@@ -506,6 +506,7 @@ export class CallProcessingRepository {
 
   async markV2TerminalFailure(lease: Lease, input: {
     buyerProfileFailed?: boolean;
+    buyerProfileFailedIfProcessing?: boolean;
     callId: string;
     lastError: string;
     lastStage: NonNullable<CallProcessingJobRecord["lastStage"]>;
@@ -526,6 +527,12 @@ export class CallProcessingRepository {
       await tx.update(callsTable).set({
         status: "failed",
         ...(input.buyerProfileFailed ? { buyerProfileStatus: "failed" as const } : {}),
+        ...(input.buyerProfileFailedIfProcessing ? {
+          buyerProfileStatus: sql`case
+            when ${callsTable.buyerProfileStatus} = 'processing' then 'failed'
+            else ${callsTable.buyerProfileStatus}
+          end`,
+        } : {}),
       }).where(eq(callsTable.id, input.callId));
       return "written" as const;
     });

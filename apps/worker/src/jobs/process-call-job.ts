@@ -243,7 +243,7 @@ export async function processCallJob(input: ProcessCallJobInput) {
         { jobId: input.job.id, token: input.job.leaseToken },
         {
           callId: input.job.callId,
-          buyerProfileFailed: false,
+          buyerProfileFailedIfProcessing: true,
           lastError: "recording processing capabilities disabled",
           lastStage: "download",
         },

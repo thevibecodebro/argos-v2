@@ -404,6 +404,41 @@ describeWithDatabase("CallProcessingRepository", () => {
     });
   });
 
+  it("fails only an in-progress buyer profile when capabilities disappear", async () => {
+    await withRepositoryTransaction(async ({ db, repository }) => {
+      const seeded = await seedCall(db);
+      const job = await repository.insertJob({
+        callId: seeded.callId,
+        sourceOrigin: "manual_upload",
+        sourceStoragePath: "recordings/call-capabilities/source/audio.mp3",
+        sourceFileName: "audio.mp3",
+        status: "running",
+      });
+      const lease = { jobId: job.id, token: crypto.randomUUID() };
+
+      await db.update(callsTable).set({ buyerProfileStatus: "processing" })
+        .where(eq(callsTable.id, seeded.callId));
+      await db.update(callProcessingJobsTable).set({
+        processingVersion: 2,
+        leaseToken: lease.token,
+        lockExpiresAt: new Date(Date.now() + 60_000),
+      }).where(eq(callProcessingJobsTable.id, job.id));
+
+      await expect(repository.markV2TerminalFailure(lease, {
+        buyerProfileFailedIfProcessing: true,
+        callId: seeded.callId,
+        lastError: "recording processing capabilities disabled",
+        lastStage: "download",
+      })).resolves.toBe("written");
+
+      const [call] = await db.select({
+        buyerProfileStatus: callsTable.buyerProfileStatus,
+        status: callsTable.status,
+      }).from(callsTable).where(eq(callsTable.id, seeded.callId));
+      expect(call).toEqual({ buyerProfileStatus: "failed", status: "failed" });
+    });
+  });
+
   it("reuses evaluation checkpoints only for the same scoring configuration", async () => {
     await withRepositoryTransaction(async ({ db, repository }) => {
       const seeded = await seedCall(db);
