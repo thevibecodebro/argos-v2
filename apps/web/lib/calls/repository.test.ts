@@ -83,6 +83,32 @@ describe("calls repositories", () => {
     expect(processingUpdate.set.mock.calls[0]?.[0]).not.toHaveProperty("attemptCount");
   });
 
+  it("promotes an exhausted V1 job to V2 without requiring a new upload", async () => {
+    const processingUpdate = {
+      set: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      returning: vi.fn().mockResolvedValue([{ id: "job-legacy", processingVersion: 2 }]),
+    };
+    const callUpdate = { set: vi.fn().mockReturnThis(), where: vi.fn().mockResolvedValue(undefined) };
+    const tx = { update: vi.fn().mockReturnValueOnce(processingUpdate).mockReturnValueOnce(callUpdate) };
+    const repository = new DrizzleCallsRepository({
+      transaction: vi.fn((callback) => callback(tx)),
+    } as never);
+    const previous = process.env.CALL_PROCESSING_V2_ENABLED;
+    process.env.CALL_PROCESSING_V2_ENABLED = "true";
+
+    try {
+      await repository.retryCallProcessingJob("call-legacy");
+    } finally {
+      if (previous === undefined) delete process.env.CALL_PROCESSING_V2_ENABLED;
+      else process.env.CALL_PROCESSING_V2_ENABLED = previous;
+    }
+
+    expect(processingUpdate.set).toHaveBeenCalledWith(
+      expect.objectContaining({ attemptCount: 0 }),
+    );
+  });
+
   it("enrolls Supabase fallback uploads in V2 when the rollout flag is enabled", async () => {
     const rpc = vi.fn().mockResolvedValue({ error: null });
     const supabase = { rpc };
@@ -131,14 +157,22 @@ describe("calls repositories", () => {
     });
     const rpc = vi.fn().mockReturnValue({ maybeSingle });
     const repository = new SupabaseCallsRepository({ rpc } as never);
+    const previous = process.env.CALL_PROCESSING_V2_ENABLED;
+    process.env.CALL_PROCESSING_V2_ENABLED = "true";
 
-    await expect(repository.retryCallProcessingJob("call-v2")).resolves.toMatchObject({
-      id: "job-v2",
-      processingVersion: 2,
-      status: "pending",
-    });
+    try {
+      await expect(repository.retryCallProcessingJob("call-v2")).resolves.toMatchObject({
+        id: "job-v2",
+        processingVersion: 2,
+        status: "pending",
+      });
+    } finally {
+      if (previous === undefined) delete process.env.CALL_PROCESSING_V2_ENABLED;
+      else process.env.CALL_PROCESSING_V2_ENABLED = previous;
+    }
     expect(rpc).toHaveBeenCalledWith("retry_call_processing_job", {
       target_call_id: "call-v2",
+      target_processing_version: 2,
     });
   });
 });

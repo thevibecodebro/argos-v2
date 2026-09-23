@@ -188,13 +188,20 @@ export class DrizzleCallsRepository implements CallsRepository {
 
   async retryCallProcessingJob(callId: string) {
     const now = new Date();
+    const targetProcessingVersion = configuredProcessingVersion();
 
     return this.db.transaction(async (tx) => {
       const [job] = await tx
         .update(callProcessingJobsTable)
         .set({
           status: "pending",
-          generation: sql`case when ${callProcessingJobsTable.processingVersion} = 2 then ${callProcessingJobsTable.generation} + 1 else ${callProcessingJobsTable.generation} end`,
+          processingVersion: sql`greatest(${callProcessingJobsTable.processingVersion}, ${targetProcessingVersion})`,
+          generation: sql`case
+            when greatest(${callProcessingJobsTable.processingVersion}, ${targetProcessingVersion}) = 2
+            then ${callProcessingJobsTable.generation} + 1
+            else ${callProcessingJobsTable.generation}
+          end`,
+          ...(targetProcessingVersion === 2 ? { attemptCount: 0 } : {}),
           failureCount: 0,
           completedChunks: 0,
           totalChunks: null,
@@ -212,10 +219,12 @@ export class DrizzleCallsRepository implements CallsRepository {
         .where(and(
           eq(callProcessingJobsTable.callId, callId),
           eq(callProcessingJobsTable.status, "failed"),
-          or(
-            eq(callProcessingJobsTable.processingVersion, 2),
-            sql`${callProcessingJobsTable.attemptCount} < ${callProcessingJobsTable.maxAttempts}`,
-          ),
+          targetProcessingVersion === 2
+            ? sql`true`
+            : or(
+                eq(callProcessingJobsTable.processingVersion, 2),
+                sql`${callProcessingJobsTable.attemptCount} < ${callProcessingJobsTable.maxAttempts}`,
+              ),
         ))
         .returning(callProcessingJobSelection);
 

@@ -134,7 +134,10 @@ revoke all on function public.create_or_reset_call_processing_job(uuid, integer,
 grant execute on function public.create_or_reset_call_processing_job(uuid, integer, uuid, text, text, text, integer, text)
   to service_role;
 
-create or replace function public.retry_call_processing_job(target_call_id uuid)
+create or replace function public.retry_call_processing_job(
+  target_call_id uuid,
+  target_processing_version integer
+)
 returns setof public.call_processing_jobs
 language plpgsql
 security definer
@@ -148,13 +151,18 @@ begin
       select 1 from public.call_processing_jobs
       where call_id = target_call_id
         and status = 'failed'
-        and (processing_version = 2 or attempt_count < max_attempts)
+        and (target_processing_version = 2 or processing_version = 2 or attempt_count < max_attempts)
     );
 
   return query
   update public.call_processing_jobs
   set status = 'pending',
-    generation = case when processing_version = 2 then generation + 1 else generation end,
+    processing_version = greatest(processing_version, target_processing_version),
+    generation = case
+      when greatest(processing_version, target_processing_version) = 2 then generation + 1
+      else generation
+    end,
+    attempt_count = case when target_processing_version = 2 then 0 else attempt_count end,
     failure_count = 0,
     completed_chunks = 0,
     total_chunks = null,
@@ -170,13 +178,13 @@ begin
     updated_at = now()
   where call_id = target_call_id
     and status = 'failed'
-    and (processing_version = 2 or attempt_count < max_attempts)
+    and (target_processing_version = 2 or processing_version = 2 or attempt_count < max_attempts)
   returning *;
 end;
 $$;
 
-revoke all on function public.retry_call_processing_job(uuid) from public, anon, authenticated;
-grant execute on function public.retry_call_processing_job(uuid) to service_role;
+revoke all on function public.retry_call_processing_job(uuid, integer) from public, anon, authenticated;
+grant execute on function public.retry_call_processing_job(uuid, integer) to service_role;
 
 alter table public.notifications add column if not exists dedupe_key text;
 create unique index if not exists notifications_dedupe_key_uq

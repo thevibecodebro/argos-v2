@@ -264,7 +264,10 @@ export class SupabaseCallsRepository implements CallsRepository {
   async retryCallProcessingJob(callId: string) {
     const supabase: any = this.supabase;
     const { data, error } = await supabase
-      .rpc("retry_call_processing_job", { target_call_id: callId })
+      .rpc("retry_call_processing_job", {
+        target_call_id: callId,
+        target_processing_version: configuredProcessingVersion(),
+      })
       .maybeSingle();
 
     if (error) {
