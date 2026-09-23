@@ -146,26 +146,36 @@ export class CallProcessingRepository {
     return job ?? null;
   }
 
-  async findPendingSourceCleanup() {
-    const rows = extractRows<{ jobId: string; storagePaths: string[] }>(await this.db.execute(sql`
-      select id as "jobId", pending_source_cleanup_paths as "storagePaths"
-      from call_processing_jobs
-      where cardinality(pending_source_cleanup_paths) > 0
-      order by updated_at asc
-      limit 1
-    `));
-    return rows[0] ?? null;
-  }
-
-  async clearPendingSourceCleanup(jobId: string, storagePaths: string[]) {
-    await this.db.execute(sql`
-      update call_processing_jobs
-      set pending_source_cleanup_paths = array(
-        select path from unnest(pending_source_cleanup_paths) as path
-        where not (path = any(${storagePaths}::text[]))
-      ), updated_at = now()
-      where id = ${jobId}
-    `);
+  async processPendingSourceCleanup(
+    removeSourceAssets: (storagePaths: string[]) => Promise<void>,
+  ) {
+    return this.db.transaction(async (tx) => {
+      const rows = extractRows<{
+        jobId: string;
+        sourceStoragePath: string;
+        storagePaths: string[];
+      }>(await tx.execute(sql`
+        select id as "jobId", source_storage_path as "sourceStoragePath",
+          pending_source_cleanup_paths as "storagePaths"
+        from call_processing_jobs
+        where cardinality(pending_source_cleanup_paths) > 0
+        order by updated_at asc
+        limit 1
+        for update skip locked
+      `));
+      const cleanup = rows[0];
+      if (!cleanup) return false;
+      const obsoletePaths = cleanup.storagePaths.filter(
+        (path) => path !== cleanup.sourceStoragePath,
+      );
+      if (obsoletePaths.length > 0) await removeSourceAssets(obsoletePaths);
+      await tx.execute(sql`
+        update call_processing_jobs
+        set pending_source_cleanup_paths = '{}'::text[], updated_at = now()
+        where id = ${cleanup.jobId}
+      `);
+      return true;
+    });
   }
 
   async organizationHasCallScoringCapability(callId: string) {

@@ -1,4 +1,4 @@
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import {
   callProcessingJobsTable,
   callsTable,
@@ -80,10 +80,14 @@ export class DrizzleZoomWebhookRepository implements ZoomWebhookRepository {
       if (job && ["pending", "running", "retrying", "complete"].includes(job.status)) {
         const cleanupPaths = input.recording.storagePath !== call?.recordingStoragePath
           ? Array.from(new Set([
-              ...job.pendingSourceCleanupPaths,
+              ...job.pendingSourceCleanupPaths.filter(
+                (path) => path !== input.recording.storagePath,
+              ),
               input.recording.storagePath,
             ]))
-          : job.pendingSourceCleanupPaths;
+          : job.pendingSourceCleanupPaths.filter(
+              (path) => path !== input.recording.storagePath,
+            );
         if (cleanupPaths.length > 0) {
           await tx
             .update(callProcessingJobsTable)
@@ -101,7 +105,9 @@ export class DrizzleZoomWebhookRepository implements ZoomWebhookRepository {
         call.recordingStoragePath !== input.recording.storagePath
       ) ? [call.recordingStoragePath] : [];
       const pendingSourceCleanupPaths = Array.from(new Set([
-        ...(job?.pendingSourceCleanupPaths ?? []),
+        ...(job?.pendingSourceCleanupPaths ?? []).filter(
+          (path) => path !== input.recording.storagePath,
+        ),
         ...cleanupPaths,
       ]));
 
@@ -122,10 +128,7 @@ export class DrizzleZoomWebhookRepository implements ZoomWebhookRepository {
     });
 
     if (result.cleanupPaths.length > 0) {
-      await removeSourceAssets(result.cleanupPaths).then(async () => {
-        if (!result.jobId) return;
-        await this.clearPendingSourceCleanupPaths(result.jobId, result.cleanupPaths);
-      }).catch((error) => {
+      await this.cleanupPendingSourcePaths(result.jobId, removeSourceAssets).catch((error) => {
         console.error("Failed to remove superseded Zoom source assets", error);
       });
     }
@@ -133,15 +136,30 @@ export class DrizzleZoomWebhookRepository implements ZoomWebhookRepository {
     return result.replaced;
   }
 
-  private async clearPendingSourceCleanupPaths(jobId: string, storagePaths: string[]) {
-    await this.db.execute(sql`
-      update call_processing_jobs
-      set pending_source_cleanup_paths = array(
-        select path from unnest(pending_source_cleanup_paths) as path
-        where not (path = any(${storagePaths}::text[]))
-      ), updated_at = now()
-      where id = ${jobId}
-    `);
+  private async cleanupPendingSourcePaths(
+    jobId: string,
+    removeSourceAssets: (storagePaths: string[]) => Promise<void>,
+  ) {
+    await this.db.transaction(async (tx) => {
+      const [job] = await tx
+        .select({
+          pendingSourceCleanupPaths: callProcessingJobsTable.pendingSourceCleanupPaths,
+          sourceStoragePath: callProcessingJobsTable.sourceStoragePath,
+        })
+        .from(callProcessingJobsTable)
+        .where(eq(callProcessingJobsTable.id, jobId))
+        .limit(1)
+        .for("update");
+      if (!job) return;
+      const cleanupPaths = job.pendingSourceCleanupPaths.filter(
+        (path) => path !== job.sourceStoragePath,
+      );
+      if (cleanupPaths.length > 0) await removeSourceAssets(cleanupPaths);
+      await tx
+        .update(callProcessingJobsTable)
+        .set({ pendingSourceCleanupPaths: [] })
+        .where(eq(callProcessingJobsTable.id, jobId));
+    });
   }
 
   async findActiveCallProcessingSubscription(input: {

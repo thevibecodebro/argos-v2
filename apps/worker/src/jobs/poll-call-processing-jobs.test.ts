@@ -3,11 +3,15 @@ import { pollCallProcessingJobs } from "./poll-call-processing-jobs";
 
 describe("pollCallProcessingJobs", () => {
   it("clears persisted source cleanup work only after storage deletion succeeds", async () => {
-    const cleanup = { jobId: "job-1", storagePaths: ["recordings/call-1/old.m4a"] };
+    const storagePaths = ["recordings/call-1/old.m4a"];
     const repository = {
       claimNextJob: vi.fn().mockResolvedValue(null),
-      clearPendingSourceCleanup: vi.fn().mockResolvedValue(undefined),
-      findPendingSourceCleanup: vi.fn().mockResolvedValue(cleanup),
+      processPendingSourceCleanup: vi.fn(async (
+        removeSourceAssets: (paths: string[]) => Promise<void>,
+      ) => {
+        await removeSourceAssets(storagePaths);
+        return true;
+      }),
     };
     const cleanupSourceAssets = vi.fn().mockResolvedValue(undefined);
 
@@ -18,18 +22,19 @@ describe("pollCallProcessingJobs", () => {
       repository,
     });
 
-    expect(cleanupSourceAssets).toHaveBeenCalledWith(cleanup.storagePaths);
-    expect(repository.clearPendingSourceCleanup).toHaveBeenCalledWith(cleanup.jobId, cleanup.storagePaths);
+    expect(cleanupSourceAssets).toHaveBeenCalledWith(storagePaths);
+    expect(repository.processPendingSourceCleanup).toHaveBeenCalledWith(cleanupSourceAssets);
   });
 
   it("retains persisted source cleanup work when storage deletion fails", async () => {
     const cleanupError = new Error("storage unavailable");
     const repository = {
       claimNextJob: vi.fn().mockResolvedValue(null),
-      clearPendingSourceCleanup: vi.fn(),
-      findPendingSourceCleanup: vi.fn().mockResolvedValue({
-        jobId: "job-1",
-        storagePaths: ["recordings/call-1/old.m4a"],
+      processPendingSourceCleanup: vi.fn(async (
+        removeSourceAssets: (paths: string[]) => Promise<void>,
+      ) => {
+        await removeSourceAssets(["recordings/call-1/old.m4a"]);
+        return true;
       }),
     };
     const onCleanupError = vi.fn();
@@ -43,7 +48,7 @@ describe("pollCallProcessingJobs", () => {
     });
 
     expect(onCleanupError).toHaveBeenCalledWith(cleanupError);
-    expect(repository.clearPendingSourceCleanup).not.toHaveBeenCalled();
+    expect(repository.processPendingSourceCleanup).toHaveBeenCalledOnce();
   });
 
   it("claims one pending job and hands it to the processor", async () => {

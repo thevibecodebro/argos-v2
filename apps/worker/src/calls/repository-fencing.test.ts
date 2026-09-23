@@ -2,6 +2,30 @@ import { describe, expect, it, vi } from "vitest";
 import { CallProcessingRepository } from "./repository";
 
 describe("CallProcessingRepository chunk fencing", () => {
+  it("never deletes a pending path that became the current source", async () => {
+    const tx = {
+      execute: vi.fn()
+        .mockResolvedValueOnce([{
+          jobId: "job-1",
+          sourceStoragePath: "recordings/call-1/source-a.m4a",
+          storagePaths: [
+            "recordings/call-1/source-a.m4a",
+            "recordings/call-1/source-b.m4a",
+          ],
+        }])
+        .mockResolvedValueOnce([]),
+    };
+    const repository = new CallProcessingRepository({
+      transaction: vi.fn((callback) => callback(tx)),
+    } as never);
+    const removeSourceAssets = vi.fn().mockResolvedValue(undefined);
+
+    await expect(repository.processPendingSourceCleanup(removeSourceAssets)).resolves.toBe(true);
+
+    expect(removeSourceAssets).toHaveBeenCalledWith(["recordings/call-1/source-b.m4a"]);
+    expect(tx.execute).toHaveBeenCalledTimes(2);
+  });
+
   it.each([
     ["call status", "updateCallStatusForLease", "transcribing"],
     ["buyer profile status", "updateBuyerProfileStatusForLease", "processing"],

@@ -38,7 +38,10 @@ describe("DrizzleZoomWebhookRepository", () => {
     });
     const jobQuery = query([{
       id: "job-1",
-      pendingSourceCleanupPaths: ["recordings/call-1/older.m4a"],
+      pendingSourceCleanupPaths: [
+        "recordings/call-1/new.m4a",
+        "recordings/call-1/older.m4a",
+      ],
       sourceStoragePath: "recordings/call-1/old.m4a",
       status: "failed",
     }]);
@@ -97,7 +100,7 @@ describe("DrizzleZoomWebhookRepository", () => {
     });
     const jobQuery = query([{
       id: "job-1",
-      pendingSourceCleanupPaths: [],
+      pendingSourceCleanupPaths: ["replacement.mp4"],
       sourceStoragePath: "old.mp4",
       status: "running",
     }]);
@@ -136,7 +139,7 @@ describe("DrizzleZoomWebhookRepository", () => {
       },
     }, removeSourceAssets)).resolves.toBe(false);
 
-    expect(fromOrder).toEqual([callProcessingJobsTable, callsTable]);
+    expect(fromOrder).toEqual([callProcessingJobsTable, callsTable, callProcessingJobsTable]);
     expect(jobQuery.for).toHaveBeenCalledWith("update");
     expect(callQuery.for).toHaveBeenCalledWith("update");
     expect(updateSet).toHaveBeenCalledWith({

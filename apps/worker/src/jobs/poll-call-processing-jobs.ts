@@ -7,7 +7,7 @@ type ClaimedCallProcessingJob = NonNullable<
 type PollCallProcessingJobsInput = {
   repository: Pick<
     CallProcessingRepository,
-    "claimNextJob" | "clearPendingSourceCleanup" | "findPendingSourceCleanup"
+    "claimNextJob" | "processPendingSourceCleanup"
   >;
   cleanupSourceAssets?: (storagePaths: string[]) => Promise<void>;
   onCleanupError?: (error: unknown) => void;
@@ -35,11 +35,7 @@ export async function pollCallProcessingJobs(
   do {
     if (input.cleanupSourceAssets) {
       try {
-        const cleanup = await input.repository.findPendingSourceCleanup();
-        if (cleanup) {
-          await input.cleanupSourceAssets(cleanup.storagePaths);
-          await input.repository.clearPendingSourceCleanup(cleanup.jobId, cleanup.storagePaths);
-        }
+        await input.repository.processPendingSourceCleanup(input.cleanupSourceAssets);
       } catch (error) {
         input.onCleanupError?.(error);
       }
