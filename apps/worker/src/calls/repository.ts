@@ -424,6 +424,13 @@ export class CallProcessingRepository {
 
   async saveCompletedChunk(lease: Lease, input: ChunkCheckpoint & { latencyMs: number; providerRequestId: string | null }): Promise<WriteOutcome> {
     return this.db.transaction(async (tx) => {
+      const leaseRows = extractRows(await tx.execute(sql`
+        select id from call_processing_jobs
+        where id = ${lease.jobId} and lease_token = ${lease.token}::uuid
+          and status = 'running' and lock_expires_at > now()
+        for update
+      `));
+      if (leaseRows.length !== 1) return "lost_lease" as const;
       const rows = extractRows(await tx.execute(sql`
         update call_processing_chunks as chunk
         set status = 'complete', transcript = ${JSON.stringify(input.transcript)}::jsonb,
@@ -440,14 +447,17 @@ export class CallProcessingRepository {
         returning chunk.id
       `));
       if (rows.length !== 1) return "lost_lease" as const;
-      await tx.execute(sql`
+      const progressRows = extractRows(await tx.execute(sql`
         update call_processing_jobs
         set completed_chunks = (
           select count(*)::integer from call_processing_chunks
           where job_id = ${lease.jobId} and manifest_fingerprint = ${input.fingerprint} and status = 'complete'
         ), updated_at = now()
-        where id = ${lease.jobId} and lease_token = ${lease.token}::uuid and status = 'running'
-      `);
+        where id = ${lease.jobId} and lease_token = ${lease.token}::uuid
+          and status = 'running' and lock_expires_at > now()
+        returning id
+      `));
+      if (progressRows.length !== 1) return "lost_lease" as const;
       return "written" as const;
     });
   }
