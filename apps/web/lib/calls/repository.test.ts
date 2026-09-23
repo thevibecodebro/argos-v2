@@ -109,6 +109,37 @@ describe("calls repositories", () => {
     );
   });
 
+  it("does not downgrade an existing V2 job when resetting with enrollment disabled", async () => {
+    const onConflictDoUpdate = vi.fn().mockResolvedValue(undefined);
+    const values = vi.fn().mockReturnValue({ onConflictDoUpdate });
+    const repository = new DrizzleCallsRepository({
+      insert: vi.fn().mockReturnValue({ values }),
+    } as never);
+    const previous = process.env.CALL_PROCESSING_V2_ENABLED;
+    process.env.CALL_PROCESSING_V2_ENABLED = "false";
+
+    try {
+      await repository.createOrResetCallProcessingJob({
+        callId: "call-v2",
+        sourceOrigin: "zoom_recording",
+        sourceStoragePath: "recordings/call-v2/source/demo.mp3",
+        sourceFileName: "demo.mp3",
+        sourceContentType: "audio/mpeg",
+        sourceSizeBytes: 1024,
+      });
+    } finally {
+      if (previous === undefined) delete process.env.CALL_PROCESSING_V2_ENABLED;
+      else process.env.CALL_PROCESSING_V2_ENABLED = previous;
+    }
+
+    expect(values).toHaveBeenCalledWith(expect.objectContaining({ processingVersion: 1 }));
+    expect(onConflictDoUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      set: expect.objectContaining({
+        processingVersion: expect.objectContaining({ queryChunks: expect.any(Array) }),
+      }),
+    }));
+  });
+
   it("enrolls Supabase fallback uploads in V2 when the rollout flag is enabled", async () => {
     const rpc = vi.fn().mockResolvedValue({ error: null });
     const supabase = { rpc };

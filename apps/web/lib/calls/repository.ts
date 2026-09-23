@@ -123,6 +123,7 @@ export class DrizzleCallsRepository implements CallsRepository {
     sourceContentType: string | null;
     sourceSizeBytes: number | null;
   }) {
+    const processingVersion = configuredProcessingVersion();
     await this.db
       .insert(callProcessingJobsTable)
       .values({
@@ -134,7 +135,7 @@ export class DrizzleCallsRepository implements CallsRepository {
         sourceContentType: input.sourceContentType,
         sourceSizeBytes: input.sourceSizeBytes,
         status: "pending",
-        processingVersion: configuredProcessingVersion(),
+        processingVersion,
       })
       .onConflictDoUpdate({
         target: callProcessingJobsTable.callId,
@@ -146,7 +147,7 @@ export class DrizzleCallsRepository implements CallsRepository {
           sourceContentType: input.sourceContentType,
           sourceSizeBytes: input.sourceSizeBytes,
           status: "pending",
-          processingVersion: configuredProcessingVersion(),
+          processingVersion: sql`greatest(${callProcessingJobsTable.processingVersion}, ${processingVersion})`,
           generation: sql`${callProcessingJobsTable.generation} + 1`,
           attemptCount: 0,
           failureCount: 0,

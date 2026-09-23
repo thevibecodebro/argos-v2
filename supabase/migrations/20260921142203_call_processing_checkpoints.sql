@@ -110,7 +110,7 @@ as $$
     source_content_type = excluded.source_content_type,
     source_size_bytes = excluded.source_size_bytes,
     status = 'pending',
-    processing_version = excluded.processing_version,
+    processing_version = greatest(public.call_processing_jobs.processing_version, excluded.processing_version),
     generation = public.call_processing_jobs.generation + 1,
     attempt_count = 0,
     failure_count = 0,
