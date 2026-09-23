@@ -147,7 +147,7 @@ describe("processGhlCallImport", () => {
       sourceFileName: "msg-1.wav",
       sourceContentType: "audio/x-wav",
       sourceSizeBytes: 9,
-    });
+    }, expect.any(Function));
     expect(repository.markGhlCallImportImported).toHaveBeenCalledWith("import-1", {
       callId: "call-1",
     });

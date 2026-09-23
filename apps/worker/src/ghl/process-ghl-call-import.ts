@@ -52,7 +52,7 @@ export type GhlCallImportRepository = {
     sourceFileName: string;
     sourceContentType: string | null;
     sourceSizeBytes: number | null;
-  }): Promise<string | void>;
+  }, beforeCreate?: () => Promise<void>): Promise<string | void>;
   findActiveCallProcessingSubscription(input: {
     orgId: string | null;
     userId: string | null;
@@ -257,29 +257,26 @@ export async function processGhlCallImport(input: ProcessGhlCallImportInput) {
     });
     return;
   }
-  const queuedStoragePath = await input.repository.createOrResetCallProcessingJob({
-    callId: call.id,
-    rubricId,
-    sourceOrigin: "ghl_recording",
-    sourceStoragePath: sourceAsset.storagePath,
-    sourceFileName: recording.fileName,
-    sourceContentType: sourceAsset.contentType,
-    sourceSizeBytes: sourceAsset.fileSizeBytes,
-  });
-  const acceptedStoragePath = queuedStoragePath ?? sourceAsset.storagePath;
   const removeSourceAssets = input.removeSourceAssets ?? removeCallSourceAssets;
+  const queuedStoragePath = await input.repository.createOrResetCallProcessingJob(
+    {
+      callId: call.id,
+      rubricId,
+      sourceOrigin: "ghl_recording",
+      sourceStoragePath: sourceAsset.storagePath,
+      sourceFileName: recording.fileName,
+      sourceContentType: sourceAsset.contentType,
+      sourceSizeBytes: sourceAsset.fileSizeBytes,
+    },
+    async () => {
+      if (call.recordingStoragePath && call.recordingStoragePath !== sourceAsset.storagePath) {
+        await removeSourceAssets([call.recordingStoragePath]);
+      }
+    },
+  );
+  const acceptedStoragePath = queuedStoragePath ?? sourceAsset.storagePath;
   if (acceptedStoragePath !== sourceAsset.storagePath) {
     await removeSourceAssets([sourceAsset.storagePath]);
-  } else {
-    if (call.recordingStoragePath && call.recordingStoragePath !== sourceAsset.storagePath) {
-      await removeSourceAssets([call.recordingStoragePath]);
-    }
-    await input.repository.updateCallRecordingStorage(call.id, {
-      storageBucket: sourceAsset.storageBucket,
-      storagePath: sourceAsset.storagePath,
-      contentType: sourceAsset.contentType,
-      fileSizeBytes: sourceAsset.fileSizeBytes,
-    });
   }
   await input.repository.markGhlCallImportImported(importRecord.id, {
     callId: call.id,

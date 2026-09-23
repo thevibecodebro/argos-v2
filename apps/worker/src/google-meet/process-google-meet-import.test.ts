@@ -111,7 +111,7 @@ describe("processGoogleMeetImport", () => {
       sourceOrigin: "google_meet_recording",
       sourceSizeBytes: 9,
       sourceStoragePath: "recordings/call-1/source/google-meet-recording-1.mp4",
-    });
+    }, expect.any(Function));
     expect(repository.markGoogleMeetImportImported).toHaveBeenCalledWith(
       "import-1",
       { callId: "call-1" },
@@ -126,7 +126,10 @@ describe("processGoogleMeetImport", () => {
         id: "call-1",
         recordingStoragePath: oldStoragePath,
       }),
-      createOrResetCallProcessingJob: vi.fn().mockResolvedValue(newStoragePath),
+      createOrResetCallProcessingJob: vi.fn(async (_input, beforeCreate) => {
+        await beforeCreate?.();
+        return newStoragePath;
+      }),
     });
     const removeSourceAssets = vi.fn().mockResolvedValue(undefined);
 
@@ -151,15 +154,7 @@ describe("processGoogleMeetImport", () => {
     });
 
     expect(removeSourceAssets).toHaveBeenCalledWith([oldStoragePath]);
-    expect(removeSourceAssets.mock.invocationCallOrder[0]).toBeLessThan(
-      vi.mocked(repository.updateCallRecordingStorage).mock.invocationCallOrder[0],
-    );
-    expect(repository.updateCallRecordingStorage).toHaveBeenCalledWith("call-1", {
-      contentType: "video/mp4",
-      fileSizeBytes: 9,
-      storageBucket: "call-recordings",
-      storagePath: newStoragePath,
-    });
+    expect(repository.updateCallRecordingStorage).not.toHaveBeenCalled();
   });
 
   it("preserves a same-key source when capability is revoked after storage", async () => {

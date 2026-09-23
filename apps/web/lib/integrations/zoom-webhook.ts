@@ -55,6 +55,18 @@ export interface ZoomWebhookRepository {
     sourceContentType: string | null;
     sourceSizeBytes: number | null;
   }): Promise<void>;
+  replaceCallRecordingAndResetProcessingJob(input: {
+    callId: string;
+    recording: CallRecordingStorage;
+    job: {
+      rubricId: string | null;
+      sourceContentType: string | null;
+      sourceFileName: string;
+      sourceOrigin: "zoom_recording";
+      sourceSizeBytes: number;
+      sourceStoragePath: string;
+    };
+  }, removeSourceAssets: (storagePaths: string[]) => Promise<void>): Promise<boolean>;
   findActiveCallProcessingSubscription: CallProcessingEntitlementsRepository["findActiveCallProcessingSubscription"];
   findCallByZoomRecordingId(input: {
     orgId: string;
@@ -422,27 +434,26 @@ export async function processZoomWebhookRequest(
       return { status: 200, body: { received: true } };
     }
 
-    const previousStoragePath = existing?.recordingStoragePath;
-    if (previousStoragePath && previousStoragePath !== sourceAsset.storagePath) {
-      await removeSourceAssets([previousStoragePath]);
-    }
-
-    await repository.updateCallRecordingStorage(callId, {
-      storageBucket: sourceAsset.storageBucket,
-      storagePath: sourceAsset.storagePath,
-      contentType: sourceAsset.contentType,
-      fileSizeBytes: sourceAsset.fileSizeBytes,
-    });
-
-    await repository.createOrResetCallProcessingJob({
-      callId,
-      rubricId,
-      sourceOrigin: "zoom_recording",
-      sourceStoragePath: sourceAsset.storagePath,
-      sourceFileName: recordingAsset.fileName,
-      sourceContentType: recordingAsset.contentType,
-      sourceSizeBytes: recordingAsset.audioBytes.length,
-    });
+    await repository.replaceCallRecordingAndResetProcessingJob(
+      {
+        callId,
+        recording: {
+          storageBucket: sourceAsset.storageBucket,
+          storagePath: sourceAsset.storagePath,
+          contentType: sourceAsset.contentType,
+          fileSizeBytes: sourceAsset.fileSizeBytes,
+        },
+        job: {
+          rubricId,
+          sourceOrigin: "zoom_recording",
+          sourceStoragePath: sourceAsset.storagePath,
+          sourceFileName: recordingAsset.fileName,
+          sourceContentType: recordingAsset.contentType,
+          sourceSizeBytes: recordingAsset.audioBytes.length,
+        },
+      },
+      removeSourceAssets,
+    );
   } catch (error) {
     await Promise.resolve(repository.updateCallStatus(callId, "failed")).catch(() => undefined);
     throw error;

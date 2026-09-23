@@ -54,6 +54,49 @@ export class DrizzleZoomWebhookRepository implements ZoomWebhookRepository {
     await this.callsRepository.createOrResetCallProcessingJob(input);
   }
 
+  async replaceCallRecordingAndResetProcessingJob(
+    input: Parameters<ZoomWebhookRepository["replaceCallRecordingAndResetProcessingJob"]>[0],
+    removeSourceAssets: (storagePaths: string[]) => Promise<void>,
+  ) {
+    return this.db.transaction(async (tx) => {
+      const [call] = await tx
+        .select({ recordingStoragePath: callsTable.recordingStoragePath })
+        .from(callsTable)
+        .where(eq(callsTable.id, input.callId))
+        .limit(1)
+        .for("update");
+      const [job] = await tx
+        .select({
+          sourceStoragePath: callProcessingJobsTable.sourceStoragePath,
+          status: callProcessingJobsTable.status,
+        })
+        .from(callProcessingJobsTable)
+        .where(eq(callProcessingJobsTable.callId, input.callId))
+        .limit(1);
+
+      if (job && ["pending", "running", "retrying", "complete"].includes(job.status)) {
+        if (input.recording.storagePath !== call?.recordingStoragePath) {
+          await removeSourceAssets([input.recording.storagePath]);
+        }
+        return false;
+      }
+      if (
+        call?.recordingStoragePath &&
+        call.recordingStoragePath !== input.recording.storagePath
+      ) {
+        await removeSourceAssets([call.recordingStoragePath]);
+      }
+
+      const callsRepository = new DrizzleCallsRepository(tx as ArgosDb);
+      await callsRepository.updateCallRecordingStorage(input.callId, input.recording);
+      await callsRepository.createOrResetCallProcessingJob({
+        callId: input.callId,
+        ...input.job,
+      });
+      return true;
+    });
+  }
+
   async findActiveCallProcessingSubscription(input: {
     orgId: string | null;
     userId: string | null;

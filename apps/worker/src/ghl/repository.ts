@@ -270,29 +270,47 @@ export class GhlImportRepository implements GhlCallImportRepository {
     sourceFileName: string;
     sourceContentType: string | null;
     sourceSizeBytes: number | null;
-  }) {
-    await this.db
-      .insert(callProcessingJobsTable)
-      .values({
-        callId: input.callId,
-        rubricId: input.rubricId ?? null,
-        sourceOrigin: input.sourceOrigin,
-        sourceStoragePath: input.sourceStoragePath,
-        sourceFileName: input.sourceFileName,
-        sourceContentType: input.sourceContentType,
-        sourceSizeBytes: input.sourceSizeBytes,
-        status: "pending",
-        processingVersion: process.env.CALL_PROCESSING_V2_ENABLED === "true" ? 2 : 1,
-      })
-      .onConflictDoNothing({
-        target: callProcessingJobsTable.callId,
-      });
-    const [existing] = await this.db
-      .select({ sourceStoragePath: callProcessingJobsTable.sourceStoragePath })
-      .from(callProcessingJobsTable)
-      .where(eq(callProcessingJobsTable.callId, input.callId))
-      .limit(1);
-    return existing?.sourceStoragePath;
+  }, beforeCreate?: () => Promise<void>) {
+    return this.db.transaction(async (tx) => {
+      await tx
+        .select({ id: callsTable.id })
+        .from(callsTable)
+        .where(eq(callsTable.id, input.callId))
+        .limit(1)
+        .for("update");
+      const [existing] = await tx
+        .select({ sourceStoragePath: callProcessingJobsTable.sourceStoragePath })
+        .from(callProcessingJobsTable)
+        .where(eq(callProcessingJobsTable.callId, input.callId))
+        .limit(1);
+      if (existing) return existing.sourceStoragePath;
+
+      await beforeCreate?.();
+      await tx
+        .update(callsTable)
+        .set({
+          recordingUrl: null,
+          recordingStorageBucket: "call-recordings",
+          recordingStoragePath: input.sourceStoragePath,
+          recordingContentType: input.sourceContentType,
+          recordingFileSizeBytes: input.sourceSizeBytes,
+        })
+        .where(eq(callsTable.id, input.callId));
+      await tx
+        .insert(callProcessingJobsTable)
+        .values({
+          callId: input.callId,
+          rubricId: input.rubricId ?? null,
+          sourceOrigin: input.sourceOrigin,
+          sourceStoragePath: input.sourceStoragePath,
+          sourceFileName: input.sourceFileName,
+          sourceContentType: input.sourceContentType,
+          sourceSizeBytes: input.sourceSizeBytes,
+          status: "pending",
+          processingVersion: process.env.CALL_PROCESSING_V2_ENABLED === "true" ? 2 : 1,
+        });
+      return input.sourceStoragePath;
+    });
   }
 
   async markGhlCallImportImported(importId: string, input: { callId: string }) {

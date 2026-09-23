@@ -337,21 +337,41 @@ export class GoogleMeetImportRepository
     sourceOrigin: "google_meet_recording";
     sourceSizeBytes: number;
     sourceStoragePath: string;
-  }) {
-    await this.db
-      .insert(callProcessingJobsTable)
-      .values({
-        ...input,
-        status: "pending",
-        processingVersion: process.env.CALL_PROCESSING_V2_ENABLED === "true" ? 2 : 1,
-      })
-      .onConflictDoNothing({ target: callProcessingJobsTable.callId });
-    const [existing] = await this.db
-      .select({ sourceStoragePath: callProcessingJobsTable.sourceStoragePath })
-      .from(callProcessingJobsTable)
-      .where(eq(callProcessingJobsTable.callId, input.callId))
-      .limit(1);
-    return existing?.sourceStoragePath;
+  }, beforeCreate?: () => Promise<void>) {
+    return this.db.transaction(async (tx) => {
+      await tx
+        .select({ id: callsTable.id })
+        .from(callsTable)
+        .where(eq(callsTable.id, input.callId))
+        .limit(1)
+        .for("update");
+      const [existing] = await tx
+        .select({ sourceStoragePath: callProcessingJobsTable.sourceStoragePath })
+        .from(callProcessingJobsTable)
+        .where(eq(callProcessingJobsTable.callId, input.callId))
+        .limit(1);
+      if (existing) return existing.sourceStoragePath;
+
+      await beforeCreate?.();
+      await tx
+        .update(callsTable)
+        .set({
+          recordingContentType: input.sourceContentType,
+          recordingFileSizeBytes: input.sourceSizeBytes,
+          recordingStorageBucket: "call-recordings",
+          recordingStoragePath: input.sourceStoragePath,
+          recordingUrl: null,
+        })
+        .where(eq(callsTable.id, input.callId));
+      await tx
+        .insert(callProcessingJobsTable)
+        .values({
+          ...input,
+          status: "pending",
+          processingVersion: process.env.CALL_PROCESSING_V2_ENABLED === "true" ? 2 : 1,
+        });
+      return input.sourceStoragePath;
+    });
   }
 
   async updateGoogleMeetTokens(

@@ -1,6 +1,5 @@
 import { eq, sql } from "drizzle-orm";
 import {
-  callProcessingJobsTable,
   createDb,
   ghlCallImportsTable,
   organizationsTable,
@@ -174,19 +173,33 @@ describeWithDatabase("GhlImportRepository", () => {
 
 describe("GhlImportRepository job enqueue idempotency", () => {
   it("does not reset an existing call-processing job for a replayed GHL import", async () => {
-    const insertBuilder = createInsertBuilder();
-    const selectBuilder = {
+    const lockBuilder = {
+      from: vi.fn(),
+      where: vi.fn(),
+      limit: vi.fn(),
+      for: vi.fn(async () => [{ id: "00000000-0000-4000-8000-000000000001" }]),
+    };
+    lockBuilder.from.mockReturnValue(lockBuilder);
+    lockBuilder.where.mockReturnValue(lockBuilder);
+    lockBuilder.limit.mockReturnValue(lockBuilder);
+    const jobBuilder = {
       from: vi.fn(),
       limit: vi.fn(async () => [{
         sourceStoragePath: "recordings/call-1/source/msg-1.wav",
       }]),
       where: vi.fn(),
     };
-    selectBuilder.from.mockReturnValue(selectBuilder);
-    selectBuilder.where.mockReturnValue(selectBuilder);
+    jobBuilder.from.mockReturnValue(jobBuilder);
+    jobBuilder.where.mockReturnValue(jobBuilder);
+    const tx = {
+      insert: vi.fn(),
+      select: vi.fn()
+        .mockReturnValueOnce(lockBuilder)
+        .mockReturnValueOnce(jobBuilder),
+      update: vi.fn(),
+    };
     const db = {
-      insert: vi.fn(() => insertBuilder),
-      select: vi.fn(() => selectBuilder),
+      transaction: vi.fn(async (callback) => callback(tx)),
     };
     const repository = new GhlImportRepository(db as never);
 
@@ -200,9 +213,7 @@ describe("GhlImportRepository job enqueue idempotency", () => {
       sourceSizeBytes: 9,
     });
 
-    expect(insertBuilder.onConflictDoNothing).toHaveBeenCalledWith({
-      target: callProcessingJobsTable.callId,
-    });
-    expect(insertBuilder.onConflictDoUpdate).not.toHaveBeenCalled();
+    expect(tx.insert).not.toHaveBeenCalled();
+    expect(tx.update).not.toHaveBeenCalled();
   });
 });
