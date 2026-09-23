@@ -316,6 +316,7 @@ export async function extractBuyerPersonalityFromTranscript(input: {
     ));
   } catch (error) {
     if (error instanceof ProviderRequestError) throw error;
+    if (input.signal?.aborted) throw input.signal.reason ?? error;
     throw createProviderTransportError("Buyer personality", error, startedAt, input.signal);
   }
   if (!response.ok) {

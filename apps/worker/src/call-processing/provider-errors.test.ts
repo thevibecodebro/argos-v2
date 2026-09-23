@@ -76,4 +76,42 @@ describe("transcription provider errors", () => {
     expect(profileFailure).toBeInstanceOf(ProviderRequestError);
     expect(profileFailure.details.category).toBe("quota");
   });
+
+  it("preserves an external abort reason through scoring", async () => {
+    const controller = new AbortController();
+    const leaseLoss = new Error("job lease lost");
+    vi.stubGlobal("fetch", vi.fn((_url, init: RequestInit) => new Promise((_resolve, reject) => {
+      init.signal?.addEventListener("abort", () => reject(init.signal?.reason));
+    })));
+
+    const request = scoreTranscriptFromLines({
+      callTopic: "Discovery",
+      durationSeconds: 30,
+      transcript: [{ timestampSeconds: 0, speaker: "Speaker A", text: "Hello" }],
+      config,
+      signal: controller.signal,
+    });
+    controller.abort(leaseLoss);
+
+    await expect(request).rejects.toBe(leaseLoss);
+  });
+
+  it("preserves an external abort reason through buyer profiling", async () => {
+    const controller = new AbortController();
+    const leaseLoss = new Error("job lease lost");
+    vi.stubGlobal("fetch", vi.fn((_url, init: RequestInit) => new Promise((_resolve, reject) => {
+      init.signal?.addEventListener("abort", () => reject(init.signal?.reason));
+    })));
+
+    const request = extractBuyerPersonalityFromTranscript({
+      callTopic: "Discovery",
+      durationSeconds: 30,
+      transcript: [{ timestampSeconds: 0, speaker: "Speaker A", text: "Hello" }],
+      config,
+      signal: controller.signal,
+    });
+    controller.abort(leaseLoss);
+
+    await expect(request).rejects.toBe(leaseLoss);
+  });
 });

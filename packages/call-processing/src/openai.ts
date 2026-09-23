@@ -414,6 +414,7 @@ export async function scoreTranscriptFromLines(input: {
     ));
   } catch (error) {
     if (error instanceof ProviderRequestError) throw error;
+    if (input.signal?.aborted) throw input.signal.reason ?? error;
     throw createProviderTransportError("Call scoring", error, startedAt, input.signal);
   }
 
