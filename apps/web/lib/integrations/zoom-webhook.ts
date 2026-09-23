@@ -420,16 +420,6 @@ export async function processZoomWebhookRequest(
       return { status: 200, body: { received: true } };
     }
 
-    await repository.createOrResetCallProcessingJob({
-      callId,
-      rubricId,
-      sourceOrigin: "zoom_recording",
-      sourceStoragePath: sourceAsset.storagePath,
-      sourceFileName: recordingAsset.fileName,
-      sourceContentType: recordingAsset.contentType,
-      sourceSizeBytes: recordingAsset.audioBytes.length,
-    });
-
     const previousStoragePath = existing?.recordingStoragePath;
     if (previousStoragePath && previousStoragePath !== sourceAsset.storagePath) {
       await removeSourceAssets([previousStoragePath]);
@@ -440,6 +430,16 @@ export async function processZoomWebhookRequest(
       storagePath: sourceAsset.storagePath,
       contentType: sourceAsset.contentType,
       fileSizeBytes: sourceAsset.fileSizeBytes,
+    });
+
+    await repository.createOrResetCallProcessingJob({
+      callId,
+      rubricId,
+      sourceOrigin: "zoom_recording",
+      sourceStoragePath: sourceAsset.storagePath,
+      sourceFileName: recordingAsset.fileName,
+      sourceContentType: recordingAsset.contentType,
+      sourceSizeBytes: recordingAsset.audioBytes.length,
     });
   } catch (error) {
     await Promise.resolve(repository.updateCallStatus(callId, "failed")).catch(() => undefined);
