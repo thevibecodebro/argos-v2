@@ -415,7 +415,9 @@ export async function processZoomWebhookRequest(
       dependencies.canIngestOrganization &&
       !(await dependencies.canIngestOrganization(integration.orgId))
     ) {
-      await removeSourceAssets([sourceAsset.storagePath]);
+      if (sourceAsset.storagePath !== existing?.recordingStoragePath) {
+        await removeSourceAssets([sourceAsset.storagePath]);
+      }
       await repository.updateCallStatus(callId, "failed");
       return { status: 200, body: { received: true } };
     }

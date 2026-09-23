@@ -249,7 +249,9 @@ export async function processGhlCallImport(input: ProcessGhlCallImportInput) {
   });
 
   if (!(await input.repository.organizationHasIntegrationCapability(integration.orgId))) {
-    await (input.removeSourceAssets ?? removeCallSourceAssets)([sourceAsset.storagePath]);
+    if (sourceAsset.storagePath !== call.recordingStoragePath) {
+      await (input.removeSourceAssets ?? removeCallSourceAssets)([sourceAsset.storagePath]);
+    }
     await input.repository.markGhlCallImportSkipped(importRecord.id, {
       reason: "capability_disabled",
     });

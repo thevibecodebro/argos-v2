@@ -162,6 +162,49 @@ describe("processGoogleMeetImport", () => {
     });
   });
 
+  it("preserves a same-key source when capability is revoked after storage", async () => {
+    const storagePath = "recordings/call-1/source/google-meet-recording-1.mp4";
+    const repository = createRepository({
+      organizationHasIntegrationCapability: vi.fn()
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce(false),
+      createCallForGoogleMeetImport: vi.fn().mockResolvedValue({
+        id: "call-1",
+        recordingStoragePath: storagePath,
+      }),
+    });
+    const removeSourceAssets = vi.fn().mockResolvedValue(undefined);
+
+    await processGoogleMeetImport({
+      client: {
+        downloadDriveFile: vi.fn().mockResolvedValue({
+          bytes: Buffer.from("same video"),
+          contentType: "video/mp4",
+        }),
+      },
+      getActiveRubricId: vi.fn().mockResolvedValue(null),
+      importRecord,
+      maxSourceBytes: 500_000_000,
+      repository,
+      storeSourceAsset: vi.fn().mockResolvedValue({
+        contentType: "video/mp4",
+        fileSizeBytes: 10,
+        storageBucket: "call-recordings",
+        storagePath,
+      }),
+      removeSourceAssets,
+    });
+
+    expect(removeSourceAssets).not.toHaveBeenCalled();
+    expect(repository.createOrResetCallProcessingJob).not.toHaveBeenCalled();
+    expect(repository.markGoogleMeetImportSkipped).toHaveBeenCalledWith(
+      "import-1",
+      { reason: "capability_disabled" },
+    );
+  });
+
   it("re-evaluates title rules before billing checks or recording download", async () => {
     const repository = createRepository({
       getIngestionTitleFilterConfig: vi.fn().mockResolvedValue({

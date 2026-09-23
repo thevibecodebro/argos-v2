@@ -412,6 +412,11 @@ export class CallProcessingRepository {
       on conflict (job_id, manifest_fingerprint, chunk_index) do update
         set status = 'running', attempt_count = call_processing_chunks.attempt_count + 1,
           audio_hash = excluded.audio_hash, error_code = null, error_message = null, updated_at = now()
+        where exists (
+          select 1 from call_processing_jobs
+          where id = ${lease.jobId} and lease_token = ${lease.token}::uuid
+            and status = 'running' and lock_expires_at > now()
+        )
       returning attempt_count as "attemptCount"
     `));
     return rows[0]?.attemptCount ?? "lost_lease";

@@ -197,7 +197,9 @@ export async function processGoogleMeetImport(
   });
 
   if (!(await input.repository.organizationHasIntegrationCapability(record.orgId))) {
-    await (input.removeSourceAssets ?? removeCallSourceAssets)([sourceAsset.storagePath]);
+    if (sourceAsset.storagePath !== call.recordingStoragePath) {
+      await (input.removeSourceAssets ?? removeCallSourceAssets)([sourceAsset.storagePath]);
+    }
     return skip(input.repository, record.id, "capability_disabled");
   }
   const queuedStoragePath = await input.repository.createOrResetCallProcessingJob({
