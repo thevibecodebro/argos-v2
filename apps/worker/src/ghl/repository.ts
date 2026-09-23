@@ -205,7 +205,15 @@ export class GhlImportRepository implements GhlCallImportRepository {
         .limit(1);
 
       if (existingImport?.callId) {
-        return { id: existingImport.callId };
+        const [existingCall] = await tx
+          .select({ recordingStoragePath: callsTable.recordingStoragePath })
+          .from(callsTable)
+          .where(eq(callsTable.id, existingImport.callId))
+          .limit(1);
+        return {
+          id: existingImport.callId,
+          recordingStoragePath: existingCall?.recordingStoragePath ?? null,
+        };
       }
 
       const [call] = await tx
@@ -232,7 +240,7 @@ export class GhlImportRepository implements GhlCallImportRepository {
         })
         .where(eq(ghlCallImportsTable.id, input.importId));
 
-      return call;
+      return { ...call, recordingStoragePath: null };
     });
   }
 
@@ -279,6 +287,12 @@ export class GhlImportRepository implements GhlCallImportRepository {
       .onConflictDoNothing({
         target: callProcessingJobsTable.callId,
       });
+    const [existing] = await this.db
+      .select({ sourceStoragePath: callProcessingJobsTable.sourceStoragePath })
+      .from(callProcessingJobsTable)
+      .where(eq(callProcessingJobsTable.callId, input.callId))
+      .limit(1);
+    return existing?.sourceStoragePath;
   }
 
   async markGhlCallImportImported(importId: string, input: { callId: string }) {

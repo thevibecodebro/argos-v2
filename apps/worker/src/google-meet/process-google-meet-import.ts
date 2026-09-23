@@ -4,6 +4,7 @@ import {
   type IngestionTitleFilterConfig,
 } from "@argos-v2/call-processing";
 import type { GoogleTokenSet } from "@argos-v2/google-workspace-client";
+import { removeCallSourceAssets } from "../calls/storage";
 import { decisionToSkippedReason } from "./sync-google-meet";
 
 export type GoogleMeetImportSkippedReason =
@@ -41,7 +42,7 @@ export type GoogleMeetImportRepository = {
     orgId: string;
     repId: string;
     rubricId: string | null;
-  }): Promise<{ id: string }>;
+  }): Promise<{ id: string; recordingStoragePath?: string | null }>;
   createOrResetCallProcessingJob(input: {
     callId: string;
     rubricId: string | null;
@@ -50,7 +51,7 @@ export type GoogleMeetImportRepository = {
     sourceOrigin: "google_meet_recording";
     sourceSizeBytes: number;
     sourceStoragePath: string;
-  }): Promise<void>;
+  }): Promise<string | void>;
   findActiveCallProcessingSubscription(input: {
     orgId: string | null;
     userId: string | null;
@@ -110,6 +111,7 @@ type ProcessGoogleMeetImportInput = {
     storageBucket: "call-recordings";
     storagePath: string;
   }>;
+  removeSourceAssets?: (storagePaths: string[]) => Promise<void>;
 };
 
 export async function processGoogleMeetImport(
@@ -194,16 +196,11 @@ export async function processGoogleMeetImport(
     fileName,
   });
 
-  await input.repository.updateCallRecordingStorage(call.id, {
-    contentType: sourceAsset.contentType,
-    fileSizeBytes: sourceAsset.fileSizeBytes,
-    storageBucket: sourceAsset.storageBucket,
-    storagePath: sourceAsset.storagePath,
-  });
   if (!(await input.repository.organizationHasIntegrationCapability(record.orgId))) {
+    await (input.removeSourceAssets ?? removeCallSourceAssets)([sourceAsset.storagePath]);
     return skip(input.repository, record.id, "capability_disabled");
   }
-  await input.repository.createOrResetCallProcessingJob({
+  const queuedStoragePath = await input.repository.createOrResetCallProcessingJob({
     callId: call.id,
     rubricId,
     sourceContentType: sourceAsset.contentType,
@@ -212,6 +209,21 @@ export async function processGoogleMeetImport(
     sourceSizeBytes: sourceAsset.fileSizeBytes,
     sourceStoragePath: sourceAsset.storagePath,
   });
+  const acceptedStoragePath = queuedStoragePath ?? sourceAsset.storagePath;
+  const removeSourceAssets = input.removeSourceAssets ?? removeCallSourceAssets;
+  if (acceptedStoragePath !== sourceAsset.storagePath) {
+    await removeSourceAssets([sourceAsset.storagePath]);
+  } else {
+    if (call.recordingStoragePath && call.recordingStoragePath !== sourceAsset.storagePath) {
+      await removeSourceAssets([call.recordingStoragePath]);
+    }
+    await input.repository.updateCallRecordingStorage(call.id, {
+      contentType: sourceAsset.contentType,
+      fileSizeBytes: sourceAsset.fileSizeBytes,
+      storageBucket: sourceAsset.storageBucket,
+      storagePath: sourceAsset.storagePath,
+    });
+  }
   await input.repository.markGoogleMeetImportImported(record.id, {
     callId: call.id,
   });

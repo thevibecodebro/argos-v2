@@ -175,8 +175,18 @@ describeWithDatabase("GhlImportRepository", () => {
 describe("GhlImportRepository job enqueue idempotency", () => {
   it("does not reset an existing call-processing job for a replayed GHL import", async () => {
     const insertBuilder = createInsertBuilder();
+    const selectBuilder = {
+      from: vi.fn(),
+      limit: vi.fn(async () => [{
+        sourceStoragePath: "recordings/call-1/source/msg-1.wav",
+      }]),
+      where: vi.fn(),
+    };
+    selectBuilder.from.mockReturnValue(selectBuilder);
+    selectBuilder.where.mockReturnValue(selectBuilder);
     const db = {
       insert: vi.fn(() => insertBuilder),
+      select: vi.fn(() => selectBuilder),
     };
     const repository = new GhlImportRepository(db as never);
 

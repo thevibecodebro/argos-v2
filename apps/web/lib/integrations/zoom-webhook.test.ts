@@ -1379,12 +1379,14 @@ describe("processZoomWebhookRequest", () => {
       fileSizeBytes: 10,
     });
     const rubricsRepository = createRubricsRepository();
+    const removeSourceAssets = vi.fn().mockResolvedValue(undefined);
     const repository = createRepository({
       createOrResetCallProcessingJob: vi.fn().mockResolvedValue(undefined),
       findCallByZoomRecordingId: vi.fn().mockResolvedValue({
         id: "call-1",
         status: "failed",
         jobStatus: "failed",
+        recordingStoragePath: "recordings/call-1/source/previous.m4a",
       }),
       findPreferredCallOwner: vi.fn().mockResolvedValue({ id: "user-1" }),
       findZoomIntegrationByAccountId: vi.fn().mockResolvedValue({
@@ -1430,6 +1432,7 @@ describe("processZoomWebhookRequest", () => {
           },
         },
         {
+          removeSourceAssets,
           rubricsRepository,
           storeSourceAsset,
         },
@@ -1463,6 +1466,15 @@ describe("processZoomWebhookRequest", () => {
         sourceContentType: "audio/mp4",
         sourceSizeBytes: 10,
       });
+      expect(removeSourceAssets).toHaveBeenCalledWith([
+        "recordings/call-1/source/previous.m4a",
+      ]);
+      expect(
+        vi.mocked(repository.createOrResetCallProcessingJob).mock.invocationCallOrder[0],
+      ).toBeLessThan(removeSourceAssets.mock.invocationCallOrder[0]);
+      expect(removeSourceAssets.mock.invocationCallOrder[0]).toBeLessThan(
+        vi.mocked(repository.updateCallRecordingStorage).mock.invocationCallOrder[0],
+      );
     } finally {
       vi.unstubAllGlobals();
     }

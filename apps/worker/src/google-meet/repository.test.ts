@@ -10,8 +10,18 @@ describe("GoogleMeetImportRepository", () => {
       values: vi.fn(),
     };
     builder.values.mockReturnValue(builder);
+    const selectBuilder = {
+      from: vi.fn(),
+      limit: vi.fn(async () => [{
+        sourceStoragePath: "recordings/call-1/source/google-meet-recording-1.mp4",
+      }]),
+      where: vi.fn(),
+    };
+    selectBuilder.from.mockReturnValue(selectBuilder);
+    selectBuilder.where.mockReturnValue(selectBuilder);
     const repository = new GoogleMeetImportRepository({
       insert: vi.fn(() => builder),
+      select: vi.fn(() => selectBuilder),
     } as never);
 
     await repository.createOrResetCallProcessingJob({
@@ -58,7 +68,7 @@ describe("GoogleMeetImportRepository", () => {
       rubricId: null,
     });
 
-    expect(call).toEqual({ id: existing[0].callId });
+    expect(call).toEqual({ id: existing[0].callId, recordingStoragePath: null });
     expect(selectBuilder.for).toHaveBeenCalledWith("update");
     expect(tx.insert).not.toHaveBeenCalled();
   });

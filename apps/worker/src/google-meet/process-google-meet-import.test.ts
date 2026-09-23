@@ -118,6 +118,50 @@ describe("processGoogleMeetImport", () => {
     );
   });
 
+  it("removes a superseded source before pointing the call at its replacement", async () => {
+    const oldStoragePath = "recordings/call-1/source/old.mp4";
+    const newStoragePath = "recordings/call-1/source/new.mp4";
+    const repository = createRepository({
+      createCallForGoogleMeetImport: vi.fn().mockResolvedValue({
+        id: "call-1",
+        recordingStoragePath: oldStoragePath,
+      }),
+      createOrResetCallProcessingJob: vi.fn().mockResolvedValue(newStoragePath),
+    });
+    const removeSourceAssets = vi.fn().mockResolvedValue(undefined);
+
+    await processGoogleMeetImport({
+      client: {
+        downloadDriveFile: vi.fn().mockResolvedValue({
+          bytes: Buffer.from("new video"),
+          contentType: "video/mp4",
+        }),
+      },
+      getActiveRubricId: vi.fn().mockResolvedValue("rubric-1"),
+      importRecord,
+      maxSourceBytes: 500_000_000,
+      repository,
+      storeSourceAsset: vi.fn().mockResolvedValue({
+        contentType: "video/mp4",
+        fileSizeBytes: 9,
+        storageBucket: "call-recordings",
+        storagePath: newStoragePath,
+      }),
+      removeSourceAssets,
+    });
+
+    expect(removeSourceAssets).toHaveBeenCalledWith([oldStoragePath]);
+    expect(removeSourceAssets.mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(repository.updateCallRecordingStorage).mock.invocationCallOrder[0],
+    );
+    expect(repository.updateCallRecordingStorage).toHaveBeenCalledWith("call-1", {
+      contentType: "video/mp4",
+      fileSizeBytes: 9,
+      storageBucket: "call-recordings",
+      storagePath: newStoragePath,
+    });
+  });
+
   it("re-evaluates title rules before billing checks or recording download", async () => {
     const repository = createRepository({
       getIngestionTitleFilterConfig: vi.fn().mockResolvedValue({

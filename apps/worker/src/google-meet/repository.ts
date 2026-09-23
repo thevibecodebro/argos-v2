@@ -278,7 +278,15 @@ export class GoogleMeetImportRepository
         .limit(1)
         .for("update");
       if (existing?.callId) {
-        return { id: existing.callId };
+        const [existingCall] = await tx
+          .select({ recordingStoragePath: callsTable.recordingStoragePath })
+          .from(callsTable)
+          .where(eq(callsTable.id, existing.callId))
+          .limit(1);
+        return {
+          id: existing.callId,
+          recordingStoragePath: existingCall?.recordingStoragePath ?? null,
+        };
       }
 
       const [call] = await tx
@@ -296,7 +304,7 @@ export class GoogleMeetImportRepository
         .update(googleMeetImportsTable)
         .set({ callId: call.id, updatedAt: new Date() })
         .where(eq(googleMeetImportsTable.id, input.importId));
-      return call;
+      return { ...call, recordingStoragePath: null };
     });
   }
 
@@ -338,6 +346,12 @@ export class GoogleMeetImportRepository
         processingVersion: process.env.CALL_PROCESSING_V2_ENABLED === "true" ? 2 : 1,
       })
       .onConflictDoNothing({ target: callProcessingJobsTable.callId });
+    const [existing] = await this.db
+      .select({ sourceStoragePath: callProcessingJobsTable.sourceStoragePath })
+      .from(callProcessingJobsTable)
+      .where(eq(callProcessingJobsTable.callId, input.callId))
+      .limit(1);
+    return existing?.sourceStoragePath;
   }
 
   async updateGoogleMeetTokens(

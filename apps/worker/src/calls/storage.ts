@@ -195,3 +195,24 @@ export async function storeCallSourceAsset(
     fileSizeBytes: input.bytes.length,
   };
 }
+
+export async function removeCallSourceAssets(
+  storagePaths: string[],
+  dependencies: {
+    env?: WorkerEnv;
+    supabase?: StorageClient;
+  } = {},
+) {
+  if (storagePaths.length === 0) return;
+  const env = dependencies.env ?? getWorkerEnv();
+  if (!env.supabaseUrl) throw new Error("Missing required environment variable: SUPABASE_URL");
+  if (!env.supabaseServiceRoleKey) {
+    throw new Error("Missing required environment variable: SUPABASE_SERVICE_ROLE_KEY");
+  }
+  const supabase = dependencies.supabase
+    ?? createClient(env.supabaseUrl, env.supabaseServiceRoleKey);
+  const { error } = await supabase.storage.from("call-recordings").remove(storagePaths);
+  if (error) {
+    throw new Error(`Failed to remove superseded source recording: ${error.message}`);
+  }
+}

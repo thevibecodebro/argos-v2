@@ -70,6 +70,7 @@ export class DrizzleZoomWebhookRepository implements ZoomWebhookRepository {
         id: callsTable.id,
         status: callsTable.status,
         jobStatus: callProcessingJobsTable.status,
+        recordingStoragePath: callsTable.recordingStoragePath,
       })
       .from(callsTable)
       .leftJoin(callProcessingJobsTable, eq(callProcessingJobsTable.callId, callsTable.id))

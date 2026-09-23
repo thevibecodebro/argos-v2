@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import {
   downloadSourceAsset,
+  removeCallSourceAssets,
   storeCallSourceAsset,
   streamResponseBodyToFile,
 } from "./storage";
@@ -36,6 +37,27 @@ describe("storeCallSourceAsset", () => {
     ).rejects.toThrow("Invalid recording filename.");
 
     expect(upload).not.toHaveBeenCalled();
+  });
+});
+
+describe("removeCallSourceAssets", () => {
+  it("removes superseded worker source objects", async () => {
+    const remove = vi.fn().mockResolvedValue({ error: null });
+    const from = vi.fn().mockReturnValue({ remove });
+
+    await removeCallSourceAssets(
+      ["recordings/call-1/source/old.wav"],
+      {
+        env: {
+          supabaseServiceRoleKey: "service-role",
+          supabaseUrl: "https://supabase.local",
+        } as any,
+        supabase: { storage: { from } } as any,
+      },
+    );
+
+    expect(from).toHaveBeenCalledWith("call-recordings");
+    expect(remove).toHaveBeenCalledWith(["recordings/call-1/source/old.wav"]);
   });
 });
 

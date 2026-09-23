@@ -147,3 +147,15 @@ export async function storeZoomCallSource(
 ): Promise<SourceAsset> {
   return storeCallSourceAsset(input, dependencies);
 }
+
+export async function removeCallSourceAssets(
+  storagePaths: string[],
+  dependencies: StoreCallSourceDependencies = {},
+) {
+  if (storagePaths.length === 0) return;
+  const supabase = dependencies.supabase ?? createSupabaseAdminClient();
+  const { error } = await supabase.storage.from("call-recordings").remove(storagePaths);
+  if (error) {
+    throw new Error(`Failed to remove superseded source recording: ${error.message}`);
+  }
+}
