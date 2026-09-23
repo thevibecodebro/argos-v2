@@ -219,7 +219,7 @@ describe("processGhlCallImport", () => {
     });
   });
 
-  it("removes a superseded source after the replacement job commits", async () => {
+  it("leaves superseded source cleanup to the durable worker queue", async () => {
     const oldStoragePath = "recordings/call-1/source/old.wav";
     const newStoragePath = "recordings/call-1/source/new.wav";
     const order: string[] = [];
@@ -264,8 +264,8 @@ describe("processGhlCallImport", () => {
       getActiveRubricId: vi.fn().mockResolvedValue(null),
     });
 
-    expect(removeSourceAssets).toHaveBeenCalledWith([oldStoragePath]);
-    expect(order).toEqual(["committed", "removed"]);
+    expect(removeSourceAssets).not.toHaveBeenCalled();
+    expect(order).toEqual(["committed"]);
   });
 
   it("preserves a same-key source when capability is revoked after storage", async () => {

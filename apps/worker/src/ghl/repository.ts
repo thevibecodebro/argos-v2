@@ -272,8 +272,8 @@ export class GhlImportRepository implements GhlCallImportRepository {
     sourceSizeBytes: number | null;
   }) {
     return this.db.transaction(async (tx) => {
-      await tx
-        .select({ id: callsTable.id })
+      const [currentCall] = await tx
+        .select({ id: callsTable.id, recordingStoragePath: callsTable.recordingStoragePath })
         .from(callsTable)
         .where(eq(callsTable.id, input.callId))
         .limit(1)
@@ -305,6 +305,9 @@ export class GhlImportRepository implements GhlCallImportRepository {
           sourceFileName: input.sourceFileName,
           sourceContentType: input.sourceContentType,
           sourceSizeBytes: input.sourceSizeBytes,
+          pendingSourceCleanupPaths: currentCall?.recordingStoragePath && currentCall.recordingStoragePath !== input.sourceStoragePath
+            ? [currentCall.recordingStoragePath]
+            : [],
           status: "pending",
           processingVersion: process.env.CALL_PROCESSING_V2_ENABLED === "true" ? 2 : 1,
         });

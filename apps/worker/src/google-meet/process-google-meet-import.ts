@@ -215,8 +215,7 @@ export async function processGoogleMeetImport(
   const acceptedStoragePath = queuedStoragePath ?? sourceAsset.storagePath;
   if (acceptedStoragePath !== sourceAsset.storagePath) {
     await removeSourceAssets([sourceAsset.storagePath]);
-  } else if (call.recordingStoragePath && call.recordingStoragePath !== sourceAsset.storagePath) {
-    await removeSourceAssets([call.recordingStoragePath]);
+
   }
   await input.repository.markGoogleMeetImportImported(record.id, {
     callId: call.id,

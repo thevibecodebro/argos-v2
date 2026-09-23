@@ -118,7 +118,7 @@ describe("processGoogleMeetImport", () => {
     );
   });
 
-  it("removes a superseded source after pointing the call at its replacement", async () => {
+  it("leaves superseded source cleanup to the durable worker queue", async () => {
     const oldStoragePath = "recordings/call-1/source/old.mp4";
     const newStoragePath = "recordings/call-1/source/new.mp4";
     const order: string[] = [];
@@ -156,8 +156,8 @@ describe("processGoogleMeetImport", () => {
       removeSourceAssets,
     });
 
-    expect(removeSourceAssets).toHaveBeenCalledWith([oldStoragePath]);
-    expect(order).toEqual(["committed", "removed"]);
+    expect(removeSourceAssets).not.toHaveBeenCalled();
+    expect(order).toEqual(["committed"]);
     expect(repository.updateCallRecordingStorage).not.toHaveBeenCalled();
   });
 

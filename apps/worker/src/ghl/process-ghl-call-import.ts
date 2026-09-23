@@ -270,8 +270,7 @@ export async function processGhlCallImport(input: ProcessGhlCallImportInput) {
   const acceptedStoragePath = queuedStoragePath ?? sourceAsset.storagePath;
   if (acceptedStoragePath !== sourceAsset.storagePath) {
     await removeSourceAssets([sourceAsset.storagePath]);
-  } else if (call.recordingStoragePath && call.recordingStoragePath !== sourceAsset.storagePath) {
-    await removeSourceAssets([call.recordingStoragePath]);
+
   }
   await input.repository.markGhlCallImportImported(importRecord.id, {
     callId: call.id,
