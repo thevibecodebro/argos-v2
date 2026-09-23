@@ -84,8 +84,8 @@ describe("calls repositories", () => {
   });
 
   it("enrolls Supabase fallback uploads in V2 when the rollout flag is enabled", async () => {
-    const upsert = vi.fn().mockResolvedValue({ error: null });
-    const supabase = { from: vi.fn().mockReturnValue({ upsert }) };
+    const rpc = vi.fn().mockResolvedValue({ error: null });
+    const supabase = { rpc };
     const repository = new SupabaseCallsRepository(supabase as never);
     const previous = process.env.CALL_PROCESSING_V2_ENABLED;
     process.env.CALL_PROCESSING_V2_ENABLED = "true";
@@ -104,9 +104,9 @@ describe("calls repositories", () => {
       else process.env.CALL_PROCESSING_V2_ENABLED = previous;
     }
 
-    expect(upsert).toHaveBeenCalledWith(
-      expect.objectContaining({ processing_version: 2 }),
-      { onConflict: "call_id" },
+    expect(rpc).toHaveBeenCalledWith(
+      "create_or_reset_call_processing_job",
+      expect.objectContaining({ target_processing_version: 2 }),
     );
   });
 

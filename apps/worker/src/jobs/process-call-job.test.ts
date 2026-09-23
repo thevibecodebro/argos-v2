@@ -491,7 +491,7 @@ describe("processCallJob", () => {
   });
 
   it("resumes downstream work from a checkpoint pinned to the same source and transcription configuration", async () => {
-    const transcript = [{ timestampSeconds: 0, speaker: "Speaker A", text: "Hello" }];
+    const transcript = [{ timestampSeconds: 0, speaker: "Chunk 1 Speaker A", text: "Hello" }];
     const evaluation = {
       rubricId: null, confidence: "high", callStageReached: "commitment", overallScore: 90,
       categoryScores: [], frameControlScore: null, rapportScore: null, discoveryScore: null,

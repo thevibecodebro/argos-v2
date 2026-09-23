@@ -215,28 +215,16 @@ export class SupabaseCallsRepository implements CallsRepository {
   }) {
     const supabase: any = this.supabase;
     const { error } = await supabase
-      .from("call_processing_jobs")
-      .upsert(
-        {
-          call_id: input.callId,
-          rubric_id: input.rubricId ?? null,
-          source_origin: input.sourceOrigin,
-          source_storage_path: input.sourceStoragePath,
-          source_file_name: input.sourceFileName,
-          source_content_type: input.sourceContentType,
-          source_size_bytes: input.sourceSizeBytes,
-          status: "pending",
-          processing_version: configuredProcessingVersion(),
-          attempt_count: 0,
-          next_run_at: new Date().toISOString(),
-          locked_at: null,
-          lock_expires_at: null,
-          last_stage: null,
-          last_error: null,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "call_id" },
-      );
+      .rpc("create_or_reset_call_processing_job", {
+        target_call_id: input.callId,
+        target_processing_version: configuredProcessingVersion(),
+        target_rubric_id: input.rubricId ?? null,
+        target_source_content_type: input.sourceContentType,
+        target_source_file_name: input.sourceFileName,
+        target_source_origin: input.sourceOrigin,
+        target_source_size_bytes: input.sourceSizeBytes,
+        target_source_storage_path: input.sourceStoragePath,
+      });
 
     if (error) {
       throw new Error(error.message);

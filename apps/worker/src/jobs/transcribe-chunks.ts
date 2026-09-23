@@ -32,7 +32,7 @@ export class ChunkAttemptsExhaustedError extends Error {
 type Chunk = { endSeconds: number; filePath: string; startSeconds: number };
 
 export const TRANSCRIPTION_NORMALIZATION_VERSION = "mono-16khz-32kbps-v1";
-export const TRANSCRIPT_FORMAT_VERSION = 2;
+export const TRANSCRIPT_FORMAT_VERSION = 1;
 
 type ResumableChunkRepository = {
   beginChunkAttempt(lease: Lease, input: Omit<ChunkCheckpoint, "transcript">): Promise<number | "lost_lease">;

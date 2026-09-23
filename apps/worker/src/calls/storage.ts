@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { createWriteStream } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
@@ -176,7 +177,8 @@ export async function storeCallSourceAsset(
 
   const supabase = dependencies.supabase ?? createClient(supabaseUrl, supabaseServiceRoleKey);
   const fileName = assertSafeStorageFileName(input.fileName);
-  const storagePath = `recordings/${input.callId}/source/${fileName}`;
+  const contentHash = createHash("sha256").update(input.bytes).digest("hex");
+  const storagePath = `recordings/${input.callId}/source/${contentHash}/${fileName}`;
   const { error } = await supabase.storage.from("call-recordings").upload(storagePath, input.bytes, {
     contentType: input.contentType ?? "application/octet-stream",
     upsert: true,

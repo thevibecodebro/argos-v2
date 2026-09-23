@@ -104,6 +104,12 @@ describe("getWorkerEnv", () => {
     );
   });
 
+  it("rejects heartbeat intervals without enough lease-renewal margin", () => {
+    expect(() => getWorkerEnv({ CALL_PROCESSING_HEARTBEAT_INTERVAL_MS: "900000" })).toThrow(
+      "CALL_PROCESSING_HEARTBEAT_INTERVAL_MS must be at most 300000",
+    );
+  });
+
   it("throws when call processing is enabled without required environment variables", () => {
     expect(() => getWorkerEnv({
       CALL_PROCESSING_ENABLED: "true",

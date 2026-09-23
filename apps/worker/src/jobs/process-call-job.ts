@@ -532,8 +532,11 @@ export async function processCallJob(input: ProcessCallJobInput) {
     if (input.job.processingVersion === 2 && input.job.leaseToken) {
       const lease: Lease = { jobId: input.job.id, token: input.job.leaseToken };
       const message = error instanceof Error ? error.message : String(error);
+      const stageFailureCount = input.job.lastStage === currentStage
+        ? input.job.failureCount
+        : 0;
       const retryable = !(error instanceof ChunkAttemptsExhaustedError)
-        && isRetryableError(message, input.job.failureCount + 1, input.job.maxFailures);
+        && isRetryableError(message, stageFailureCount + 1, input.job.maxFailures);
       const outcome = retryable
         ? await input.repository.markV2RetryableFailure(lease, {
             lastError: message,

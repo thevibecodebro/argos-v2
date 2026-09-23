@@ -341,6 +341,69 @@ describeWithDatabase("CallProcessingRepository", () => {
     });
   });
 
+  it("starts a fresh retry budget when a different processing stage fails", async () => {
+    await withRepositoryTransaction(async ({ db, repository }) => {
+      const seeded = await seedCall(db);
+      const job = await repository.insertJob({
+        callId: seeded.callId,
+        sourceOrigin: "manual_upload",
+        sourceStoragePath: "recordings/call-stage/source/audio.mp3",
+        sourceFileName: "audio.mp3",
+        status: "running",
+      });
+      const lease = { jobId: job.id, token: crypto.randomUUID() };
+
+      await db.update(callProcessingJobsTable).set({
+        processingVersion: 2,
+        failureCount: 2,
+        lastStage: "download",
+        leaseToken: lease.token,
+        lockExpiresAt: new Date(Date.now() + 60_000),
+        processingDeadlineAt: new Date(Date.now() + 120_000),
+      }).where(eq(callProcessingJobsTable.id, job.id));
+
+      await expect(repository.markV2RetryableFailure(lease, {
+        lastError: "scoring timed out",
+        lastStage: "score",
+        nextRunAt: new Date(Date.now() + 60_000),
+      })).resolves.toBe("written");
+
+      await expect(repository.findJobById(job.id)).resolves.toMatchObject({
+        failureCount: 1,
+        lastStage: "score",
+        status: "retrying",
+      });
+    });
+  });
+
+  it("fails an in-progress buyer profile when the processing deadline expires", async () => {
+    await withRepositoryTransaction(async ({ db, repository }) => {
+      const seeded = await seedCall(db);
+      const job = await repository.insertJob({
+        callId: seeded.callId,
+        sourceOrigin: "manual_upload",
+        sourceStoragePath: "recordings/call-profile-deadline/source/audio.mp3",
+        sourceFileName: "audio.mp3",
+        status: "pending",
+      });
+      const now = new Date("2026-04-18T10:00:00.000Z");
+
+      await db.update(callsTable).set({ buyerProfileStatus: "processing" })
+        .where(eq(callsTable.id, seeded.callId));
+      await db.update(callProcessingJobsTable).set({
+        processingVersion: 2,
+        processingDeadlineAt: new Date("2026-04-18T09:59:00.000Z"),
+      }).where(eq(callProcessingJobsTable.id, job.id));
+
+      await expect(repository.claimNextJob(now)).resolves.toBeNull();
+      const [call] = await db.select({
+        buyerProfileStatus: callsTable.buyerProfileStatus,
+        status: callsTable.status,
+      }).from(callsTable).where(eq(callsTable.id, seeded.callId));
+      expect(call).toEqual({ buyerProfileStatus: "failed", status: "failed" });
+    });
+  });
+
   it("reuses evaluation checkpoints only for the same scoring configuration", async () => {
     await withRepositoryTransaction(async ({ db, repository }) => {
       const seeded = await seedCall(db);

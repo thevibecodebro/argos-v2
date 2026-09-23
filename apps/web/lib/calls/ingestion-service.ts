@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { assertSafeStorageFileName } from "@argos-v2/call-processing";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -36,7 +36,8 @@ export async function storeCallSourceAsset(
 ): Promise<SourceAsset> {
   const supabase = dependencies.supabase ?? createSupabaseAdminClient();
   const fileName = assertSafeStorageFileName(input.fileName);
-  const storagePath = `recordings/${input.callId}/source/${fileName}`;
+  const contentHash = createHash("sha256").update(input.bytes).digest("hex");
+  const storagePath = `recordings/${input.callId}/source/${contentHash}/${fileName}`;
 
   const { error } = await supabase.storage.from("call-recordings").upload(storagePath, input.bytes, {
     contentType: input.contentType ?? "application/octet-stream",

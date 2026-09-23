@@ -31,8 +31,11 @@ describe("storeManualCallSource", () => {
     );
 
     expect(from).toHaveBeenCalledWith("call-recordings");
+    const contentAddressedPath = expect.stringMatching(
+      /^recordings\/call-1\/source\/[a-f0-9]{64}\/demo\.mp3$/,
+    );
     expect(upload).toHaveBeenCalledWith(
-      "recordings/call-1/source/demo.mp3",
+      contentAddressedPath,
       Buffer.from("audio"),
       {
         contentType: "audio/mpeg",
@@ -41,7 +44,7 @@ describe("storeManualCallSource", () => {
     );
     expect(result).toEqual({
       storageBucket: "call-recordings",
-      storagePath: "recordings/call-1/source/demo.mp3",
+      storagePath: contentAddressedPath,
       contentType: "audio/mpeg",
       fileSizeBytes: 5,
     });

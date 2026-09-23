@@ -194,7 +194,11 @@ export class CallProcessingRepository {
           and processing_deadline_at <= ${now}
         returning call_id
       )
-      update calls set status = 'failed'
+      update calls set status = 'failed',
+        buyer_profile_status = case
+          when buyer_profile_status = 'processing' then 'failed'
+          else buyer_profile_status
+        end
       where id in (select call_id from expired)
     `);
     const rows = extractRows<ClaimedCallProcessingJobRecord>(
@@ -487,13 +491,14 @@ export class CallProcessingRepository {
   }): Promise<WriteOutcome> {
     const rows = extractRows(await this.db.execute(sql`
       update call_processing_jobs
-      set status = 'retrying', failure_count = failure_count + 1,
+      set status = 'retrying',
+        failure_count = case when last_stage = ${input.lastStage} then failure_count + 1 else 1 end,
         next_run_at = ${input.nextRunAt}, last_stage = ${input.lastStage},
         last_error = ${input.lastError}, locked_at = null, lock_expires_at = null,
         lease_token = null, heartbeat_at = null, updated_at = now()
       where id = ${lease.jobId} and lease_token = ${lease.token}::uuid
         and status = 'running' and lock_expires_at > now()
-        and failure_count + 1 < max_failures
+        and (case when last_stage = ${input.lastStage} then failure_count + 1 else 1 end) < max_failures
       returning id
     `));
     return rows.length === 1 ? "written" : "lost_lease";
@@ -508,7 +513,8 @@ export class CallProcessingRepository {
     return this.db.transaction(async (tx) => {
       const rows = extractRows(await tx.execute(sql`
         update call_processing_jobs
-        set status = 'failed', failure_count = failure_count + 1,
+        set status = 'failed',
+          failure_count = case when last_stage = ${input.lastStage} then failure_count + 1 else 1 end,
           last_stage = ${input.lastStage}, last_error = ${input.lastError},
           locked_at = null, lock_expires_at = null, lease_token = null,
           heartbeat_at = null, updated_at = now()

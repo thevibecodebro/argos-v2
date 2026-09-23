@@ -79,6 +79,61 @@ revoke all on table public.call_processing_checkpoints from public, anon, authen
 grant select, insert, update, delete on table public.call_processing_chunks to service_role;
 grant select, insert, update, delete on table public.call_processing_checkpoints to service_role;
 
+create or replace function public.create_or_reset_call_processing_job(
+  target_call_id uuid,
+  target_processing_version integer,
+  target_rubric_id uuid,
+  target_source_content_type text,
+  target_source_file_name text,
+  target_source_origin text,
+  target_source_size_bytes integer,
+  target_source_storage_path text
+)
+returns setof public.call_processing_jobs
+language sql
+security definer
+set search_path = public
+as $$
+  insert into public.call_processing_jobs (
+    call_id, rubric_id, source_origin, source_storage_path, source_file_name,
+    source_content_type, source_size_bytes, status, processing_version
+  ) values (
+    target_call_id, target_rubric_id, target_source_origin, target_source_storage_path,
+    target_source_file_name, target_source_content_type, target_source_size_bytes,
+    'pending', target_processing_version
+  )
+  on conflict (call_id) do update set
+    rubric_id = excluded.rubric_id,
+    source_origin = excluded.source_origin,
+    source_storage_path = excluded.source_storage_path,
+    source_file_name = excluded.source_file_name,
+    source_content_type = excluded.source_content_type,
+    source_size_bytes = excluded.source_size_bytes,
+    status = 'pending',
+    processing_version = excluded.processing_version,
+    generation = public.call_processing_jobs.generation + 1,
+    attempt_count = 0,
+    failure_count = 0,
+    completed_chunks = 0,
+    total_chunks = null,
+    next_run_at = now(),
+    locked_at = null,
+    lock_expires_at = null,
+    lease_token = null,
+    heartbeat_at = null,
+    processing_started_at = null,
+    processing_deadline_at = null,
+    last_stage = null,
+    last_error = null,
+    updated_at = now()
+  returning *;
+$$;
+
+revoke all on function public.create_or_reset_call_processing_job(uuid, integer, uuid, text, text, text, integer, text)
+  from public, anon, authenticated;
+grant execute on function public.create_or_reset_call_processing_job(uuid, integer, uuid, text, text, text, integer, text)
+  to service_role;
+
 create or replace function public.retry_call_processing_job(target_call_id uuid)
 returns setof public.call_processing_jobs
 language plpgsql

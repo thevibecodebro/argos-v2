@@ -130,12 +130,12 @@ describe("shared call-processing package", () => {
     expect(merged).toEqual([
       {
         timestampSeconds: 0,
-        speaker: "Speaker A",
+        speaker: "Chunk 1 Speaker A",
         text: "Opening line",
       },
       {
         timestampSeconds: 300,
-        speaker: "Speaker B",
+        speaker: "Chunk 2 Speaker B",
         text: "Later chunk opening",
       },
     ]);

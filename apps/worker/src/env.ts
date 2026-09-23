@@ -156,6 +156,11 @@ export function getWorkerEnv(env: WorkerEnvSource = process.env): WorkerEnv {
     30_000,
     "CALL_PROCESSING_HEARTBEAT_INTERVAL_MS",
   );
+  if (processingHeartbeatIntervalMs > 5 * 60 * 1000) {
+    throw new Error(
+      "CALL_PROCESSING_HEARTBEAT_INTERVAL_MS must be at most 300000 to renew the 15-minute lease safely",
+    );
+  }
   const processingMaxElapsedMs = parseInteger(
     env.CALL_PROCESSING_MAX_ELAPSED_MS,
     6 * 60 * 60 * 1_000,

@@ -199,13 +199,17 @@ export function normalizeTranscriptionPayload(payload: TranscriptionResponse) {
 
 export function mergeTranscriptLines(transcriptGroups: TranscriptGroup[]) {
   return transcriptGroups
-    .flatMap((group) => {
+    .flatMap((group, groupIndex) => {
       if (Array.isArray(group)) {
         return group;
       }
 
       return group.transcript.map((line) => ({
         ...line,
+        // Keep identities distinct for scoring because diarization labels restart
+        // for every independent provider request. The web presentation layer
+        // removes this namespace when it displays the transcript.
+        speaker: `Chunk ${groupIndex + 1} ${line.speaker}`,
         timestampSeconds: line.timestampSeconds + group.offsetSeconds,
       }));
     })
