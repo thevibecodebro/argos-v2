@@ -485,6 +485,13 @@ function canViewProcessingJob(role: AppUserRole | null) {
   return role === "admin";
 }
 
+export function normalizeTranscriptSpeakerLabels(transcript: TranscriptLine[]) {
+  return transcript.map((line) => ({
+    ...line,
+    speaker: line.speaker.replace(/^Chunk \d+ (Speaker .+)$/, "$1"),
+  }));
+}
+
 function serializeDetail(
   call: CallDetailRecord,
   processingJob: CallProcessingJobRecord | null = null,
@@ -495,7 +502,9 @@ function serializeDetail(
     rubric: call.rubric ? { ...call.rubric } : null,
     categoryScores: ((call.categoryScores?.length ? call.categoryScores : buildLegacyCategoryScores(call))
       .map(serializeCategoryScore)),
-    transcript: Array.isArray(call.transcript) ? call.transcript : null,
+    transcript: Array.isArray(call.transcript)
+      ? normalizeTranscriptSpeakerLabels(call.transcript)
+      : null,
     buyerPersonalityGeneratedAt: call.buyerPersonalityGeneratedAt?.toISOString() ?? null,
     moments: call.moments.map(serializeMoment),
     processingJob: processingJob ? serializeProcessingJob(processingJob) : null,

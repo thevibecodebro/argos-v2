@@ -199,17 +199,13 @@ export function normalizeTranscriptionPayload(payload: TranscriptionResponse) {
 
 export function mergeTranscriptLines(transcriptGroups: TranscriptGroup[]) {
   return transcriptGroups
-    .flatMap((group, groupIndex) => {
+    .flatMap((group) => {
       if (Array.isArray(group)) {
         return group;
       }
 
       return group.transcript.map((line) => ({
         ...line,
-        // Diarization labels restart for every independently transcribed chunk.
-        // Namespace them so Speaker A in one chunk is never falsely treated as
-        // the same person as Speaker A in another chunk.
-        speaker: `Chunk ${groupIndex + 1} ${line.speaker}`,
         timestampSeconds: line.timestampSeconds + group.offsetSeconds,
       }));
     })

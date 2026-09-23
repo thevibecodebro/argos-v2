@@ -7,11 +7,26 @@ import {
   exportCallData,
   getCallDetail,
   listCalls,
+  normalizeTranscriptSpeakerLabels,
   redactCallHighlightFields,
   retryCallProcessingJob,
   toggleMomentHighlight,
   type CallsRepository,
 } from "./service";
+
+describe("normalizeTranscriptSpeakerLabels", () => {
+  it("removes legacy chunk namespaces while preserving transcript turns", () => {
+    expect(normalizeTranscriptSpeakerLabels([
+      { timestampSeconds: 0, speaker: "Chunk 1 Speaker A", text: "Opening" },
+      { timestampSeconds: 300, speaker: "Chunk 2 Speaker A", text: "Continuing" },
+      { timestampSeconds: 305, speaker: "Speaker B", text: "Response" },
+    ])).toEqual([
+      { timestampSeconds: 0, speaker: "Speaker A", text: "Opening" },
+      { timestampSeconds: 300, speaker: "Speaker A", text: "Continuing" },
+      { timestampSeconds: 305, speaker: "Speaker B", text: "Response" },
+    ]);
+  });
+});
 
 describe("redactCallHighlightFields", () => {
   it("removes highlight state and notes without mutating the call", () => {

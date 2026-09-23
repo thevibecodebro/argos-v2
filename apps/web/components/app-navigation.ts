@@ -6,6 +6,7 @@ import {
 } from "@/lib/access/managed-capabilities";
 
 export type NavItem = {
+  anyCapabilities?: ManagedCapabilityKey[];
   capability?: ManagedCapabilityKey;
   href: string;
   label: string;
@@ -20,6 +21,7 @@ export type NavGroup = {
 };
 
 export type BottomTabItem = {
+  anyCapabilities?: ManagedCapabilityKey[];
   capability?: ManagedCapabilityKey;
   href: string;
   label: string;
@@ -33,7 +35,12 @@ export const navGroups: NavGroup[] = [
     icon: "query_stats",
     items: [
       { href: "/dashboard", label: "Dashboard", icon: "dashboard", capability: "call_scoring" },
-      { href: "/calls", label: "Calls", icon: "library_books", capability: "call_scoring" },
+      {
+        href: "/calls",
+        label: "Recordings",
+        icon: "library_books",
+        anyCapabilities: ["call_upload", "call_ingestion", "call_scoring"],
+      },
       { href: "/highlights", label: "Highlights", icon: "auto_awesome", capability: "highlights" },
     ],
   },
@@ -67,7 +74,12 @@ export const navGroups: NavGroup[] = [
 // Mobile bottom tab bar — five slots with a centered upload action (Option A).
 export const bottomTabs: BottomTabItem[] = [
   { href: "/dashboard", label: "Home", icon: "dashboard", capability: "call_scoring" },
-  { href: "/calls", label: "Calls", icon: "library_books", capability: "call_scoring" },
+  {
+    href: "/calls",
+    label: "Recordings",
+    icon: "library_books",
+    anyCapabilities: ["call_upload", "call_ingestion", "call_scoring"],
+  },
   { href: "/upload", label: "Upload", icon: "upload", fab: true, capability: "call_upload" },
   { href: "/training", label: "Coach", icon: "school", capability: "training" },
   { href: "/settings", label: "Me", icon: "person" },
@@ -85,15 +97,22 @@ export function getVisibleNavGroups(
     })
     .map((group) => ({
       ...group,
-      items: group.items.filter(
-        (item) => !item.capability || !access || hasManagedCapability(access, item.capability),
-      ),
+      items: group.items.filter((item) => isNavigationItemVisible(item, access)),
     }))
     .filter((group) => group.items.length > 0);
 }
 
 export function getVisibleBottomTabs(access?: EffectiveOrganizationCapabilities) {
-  return bottomTabs.filter(
-    (item) => !item.capability || !access || hasManagedCapability(access, item.capability),
-  );
+  return bottomTabs.filter((item) => isNavigationItemVisible(item, access));
+}
+
+function isNavigationItemVisible(
+  item: Pick<NavItem, "anyCapabilities" | "capability">,
+  access?: EffectiveOrganizationCapabilities,
+) {
+  if (!access) return true;
+  if (item.anyCapabilities) {
+    return item.anyCapabilities.some((capability) => hasManagedCapability(access, capability));
+  }
+  return !item.capability || hasManagedCapability(access, item.capability);
 }
