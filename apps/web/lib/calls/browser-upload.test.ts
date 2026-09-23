@@ -2,6 +2,53 @@ import { describe, expect, it, vi } from "vitest";
 import { uploadCallFromBrowser } from "./browser-upload";
 
 describe("uploadCallFromBrowser", () => {
+  it("uploads prepared audio instead of the selected video", async () => {
+    const video = new File([new Uint8Array(1_000)], "meeting.mp4", { type: "video/mp4" });
+    const audio = new File([new Uint8Array(100)], "meeting.m4a", { type: "audio/mp4" });
+    const prepareAudio = vi.fn().mockResolvedValue({ kind: "audio", file: audio, durationSeconds: 60 });
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(Response.json({ path: "prepared-audio-path" }))
+      .mockResolvedValueOnce(Response.json({ id: "call-1", status: "uploaded", createdAt: "2026-09-23T00:00:00Z" }));
+    const uploadResumable = vi.fn().mockImplementation(async ({ onProgress }) => onProgress(100));
+
+    await uploadCallFromBrowser({ file: video }, {
+      fetchImpl: fetchImpl as typeof fetch,
+      getAccessToken: async () => "token",
+      prepareAudio,
+      uploadResumable,
+    });
+
+    expect(prepareAudio).toHaveBeenCalledWith(video, expect.any(Function));
+    expect(JSON.parse(String(fetchImpl.mock.calls[0][1].body))).toMatchObject({
+      fileName: "meeting.m4a", fileSizeBytes: 100, contentType: "audio/mp4",
+    });
+    expect(uploadResumable.mock.calls[0][0].file).toBe(audio);
+    expect(JSON.parse(String(fetchImpl.mock.calls[1][1].body))).toMatchObject({
+      fileName: "meeting.m4a", fileSizeBytes: 100, contentType: "audio/mp4",
+    });
+  });
+
+  it("reuses prepared audio and the same target when completion response is lost", async () => {
+    const video = new File([new Uint8Array(1_000)], "retry.mp4", { type: "video/mp4" });
+    const audio = new File([new Uint8Array(100)], "retry.m4a", { type: "audio/mp4" });
+    const prepareAudio = vi.fn().mockResolvedValue({ kind: "audio", file: audio, durationSeconds: 60 });
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(Response.json({ path: "audio-path" }))
+      .mockRejectedValueOnce(new TypeError("Response lost"))
+      .mockResolvedValueOnce(Response.json({ id: "call-1", status: "uploaded", createdAt: "2026-09-23T00:00:00Z" }));
+    const uploadResumable = vi.fn().mockResolvedValue(undefined);
+    const onProgress = vi.fn();
+    const dependencies = { fetchImpl: fetchImpl as typeof fetch, getAccessToken: async () => "token", prepareAudio, uploadResumable, onProgress };
+
+    await expect(uploadCallFromBrowser({ file: video }, dependencies)).rejects.toThrow("Response lost");
+    onProgress.mockClear();
+    await expect(uploadCallFromBrowser({ file: video }, dependencies)).resolves.toMatchObject({ id: "call-1" });
+    expect(prepareAudio).toHaveBeenCalledTimes(1);
+    expect(uploadResumable).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(String(fetchImpl.mock.calls[2][1].body)).storagePath).toBe("audio-path");
+    expect(onProgress.mock.calls.map(([progress]) => progress)).toEqual([100, 100]);
+  });
+
   it("prepares the upload, sends the file to storage, and completes queueing", async () => {
     const uploadResumable = vi.fn().mockImplementation(async (input) => {
       input.onProgress(50);
@@ -63,7 +110,7 @@ describe("uploadCallFromBrowser", () => {
         method: "POST",
       }),
     );
-    expect(progressValues).toEqual([15, 35, 60, 85, 100]);
+    expect(progressValues).toEqual([0, 0, 50, 100, 100]);
   });
 
   it("surfaces plain-text upstream errors instead of throwing a JSON parse error", async () => {

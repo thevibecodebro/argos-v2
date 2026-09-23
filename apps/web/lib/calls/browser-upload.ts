@@ -4,6 +4,8 @@ import {
   type UploadSuccessPayload,
 } from "./upload-contract";
 import { uploadToAuthenticatedResumableUrl } from "./resumable-upload";
+import { prepareRecordingAudio } from "./prepare-recording-audio-in-worker";
+import type { PreparedRecording } from "./prepare-recording-audio";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type UploadTargetPayload = {
@@ -15,6 +17,9 @@ type BrowserUploadDependencies = {
   fetchImpl?: typeof fetch;
   getAccessToken?: () => Promise<string | null>;
   onProgress?: (progress: number) => void;
+  onPhase?: (description: string) => void;
+  onPrepared?: (details: { originalBytes: number; uploadBytes: number; audioOnly: boolean }) => void;
+  prepareAudio?: typeof prepareRecordingAudio;
   uploadResumable?: typeof uploadToAuthenticatedResumableUrl;
 };
 
@@ -25,7 +30,14 @@ type BrowserUploadInput = {
 
 // Queue retries reuse the same File object. Keep the prepared target even when
 // completion's response is lost; a new target would bypass source deduplication.
-const uploadAttempts = new WeakMap<File, { path: string | null; orgId?: string; uploaded: boolean }>();
+const uploadAttempts = new WeakMap<File, {
+  path: string | null;
+  orgId?: string;
+  uploaded: boolean;
+  uploadFile: File;
+  preparationKind: PreparedRecording["kind"];
+  fallbackReason?: string;
+}>();
 
 export async function uploadCallFromBrowser(
   input: BrowserUploadInput,
@@ -35,8 +47,29 @@ export async function uploadCallFromBrowser(
   const getAccessToken = dependencies.getAccessToken ?? getCurrentAccessToken;
   const uploadResumable = dependencies.uploadResumable ?? uploadToAuthenticatedResumableUrl;
 
-  dependencies.onProgress?.(15);
   let attempt = uploadAttempts.get(input.file);
+  if (!attempt) {
+    dependencies.onPhase?.("Preparing the recording on this device…");
+    dependencies.onProgress?.(0);
+    const prepareAudio = dependencies.prepareAudio ?? prepareRecordingAudio;
+    const prepared = await prepareAudio(input.file, (fraction) => {
+      dependencies.onPhase?.(`Preparing audio locally — ${Math.round(fraction * 100)}%`);
+    });
+    attempt = {
+      path: null,
+      uploaded: false,
+      uploadFile: prepared.file,
+      preparationKind: prepared.kind,
+      fallbackReason: prepared.kind === "fallback" ? prepared.reason : undefined,
+    };
+    uploadAttempts.set(input.file, attempt);
+  }
+  const uploadFile = attempt.uploadFile;
+  dependencies.onPrepared?.({
+    originalBytes: input.file.size,
+    uploadBytes: uploadFile.size,
+    audioOnly: attempt.preparationKind === "audio",
+  });
   if (!attempt?.path) {
     const prepareResponse = await fetchImpl("/api/calls/upload/prepare", {
       method: "POST",
@@ -45,9 +78,9 @@ export async function uploadCallFromBrowser(
       },
       body: JSON.stringify({
         orgId: attempt?.orgId,
-        fileName: input.file.name,
-        fileSizeBytes: input.file.size,
-        contentType: input.file.type || null,
+        fileName: uploadFile.name,
+        fileSizeBytes: uploadFile.size,
+        contentType: uploadFile.type || null,
       }),
     });
     const preparePayload = await readResponsePayload(prepareResponse);
@@ -61,7 +94,7 @@ export async function uploadCallFromBrowser(
       );
     }
 
-    attempt = { path: preparePayload.path, orgId: preparePayload.orgId ?? attempt?.orgId, uploaded: false };
+    attempt = { ...attempt, path: preparePayload.path, orgId: preparePayload.orgId ?? attempt.orgId, uploaded: false };
     uploadAttempts.set(input.file, attempt);
   }
 
@@ -70,14 +103,24 @@ export async function uploadCallFromBrowser(
     throw new Error("Your session expired. Sign in again and retry the upload.");
   }
 
-  dependencies.onProgress?.(35);
+  if (!attempt.uploaded) {
+    dependencies.onPhase?.(attempt.preparationKind === "audio"
+      ? "Uploading audio only. Keep this page open while it transfers."
+      : attempt.fallbackReason
+        ? `${attempt.fallbackReason} Uploading the original video. Keep this page open.`
+        : "Uploading the recording. Keep this page open while it transfers.");
+    dependencies.onProgress?.(0);
+  } else {
+    dependencies.onPhase?.("Registering the uploaded recording…");
+    dependencies.onProgress?.(100);
+  }
   try {
     if (!attempt.uploaded) {
       await uploadResumable({
-        file: input.file,
+        file: uploadFile,
         getAccessToken,
         onProgress: (progress) => {
-          dependencies.onProgress?.(35 + Math.round(progress / 2));
+          dependencies.onProgress?.(progress);
         },
         path: attempt.path!,
       });
@@ -89,6 +132,7 @@ export async function uploadCallFromBrowser(
     );
   }
 
+  dependencies.onPhase?.("Registering the uploaded recording…");
   const completeResponse = await fetchImpl("/api/calls/upload/complete", {
     method: "POST",
     headers: {
@@ -98,9 +142,9 @@ export async function uploadCallFromBrowser(
       orgId: attempt.orgId,
       callTopic: input.callTopic?.trim() || null,
       consentConfirmed: true,
-      contentType: input.file.type || null,
-      fileName: input.file.name,
-      fileSizeBytes: input.file.size,
+      contentType: uploadFile.type || null,
+      fileName: uploadFile.name,
+      fileSizeBytes: uploadFile.size,
       storagePath: attempt.path,
     }),
   });
@@ -113,7 +157,7 @@ export async function uploadCallFromBrowser(
       // target. Ambiguous failures and workspace mismatches keep the old path.
       const expiryOrgId = (completePayload as { details?: { orgId?: unknown } }).details?.orgId;
       const orgId = attempt.orgId ?? (typeof expiryOrgId === "string" ? expiryOrgId : undefined);
-      if (orgId) uploadAttempts.set(input.file, { path: null, orgId, uploaded: false });
+      if (orgId) uploadAttempts.set(input.file, { ...attempt, path: null, orgId, uploaded: false });
     }
 
     throw new Error(
@@ -125,6 +169,7 @@ export async function uploadCallFromBrowser(
   }
 
   dependencies.onProgress?.(100);
+  dependencies.onPhase?.("Upload complete. Argos is processing the recording.");
   return completePayload;
 }
 
