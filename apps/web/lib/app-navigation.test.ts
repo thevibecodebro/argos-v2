@@ -65,4 +65,22 @@ describe("getVisibleNavGroups", () => {
       expect.arrayContaining([expect.objectContaining({ href: "/calls" })]),
     );
   });
+
+  it("shows Recordings when uploads are enabled without call scoring", () => {
+    const access = {
+      capabilities: ["call_upload", "roleplay", "custom_scenarios"],
+      grantId: "grant-recordings",
+      mode: "managed" as const,
+      version: 1,
+    } satisfies import("@/lib/access/managed-capabilities").EffectiveOrganizationCapabilities;
+
+    const recordings = getVisibleNavGroups("manager", access)
+      .flatMap((group) => group.items)
+      .find((item) => item.href === "/calls");
+
+    expect(recordings).toMatchObject({ label: "Recordings" });
+    expect(getVisibleBottomTabs(access)).toEqual(
+      expect.arrayContaining([expect.objectContaining({ href: "/calls", label: "Recordings" })]),
+    );
+  });
 });
