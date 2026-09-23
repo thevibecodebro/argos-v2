@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   LostJobLeaseError,
-  ProcessingDeadlineExceededError,
   withJobLease,
 } from "./job-lease";
 
@@ -52,35 +51,18 @@ describe("withJobLease", () => {
     vi.useRealTimers();
   });
 
-  it("aborts active work when the processing deadline is reached", async () => {
+  it("does not enforce a database deadline using the worker wall clock", async () => {
     vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-09-23T12:00:00Z"));
-    const work = withJobLease({
-      deadlineAt: new Date("2026-09-23T12:00:05Z"),
+    vi.setSystemTime(new Date("2026-09-23T13:00:00Z"));
+
+    await expect(withJobLease({
+      deadlineAt: new Date("2026-09-23T12:05:00Z"),
       heartbeatIntervalMs: 60_000,
       lease: { jobId: "job-deadline", token: "token-1" },
       renewLease: vi.fn().mockResolvedValue("written"),
-      work: (signal) => new Promise((_resolve, reject) => {
-        signal.addEventListener("abort", () => reject(signal.reason));
-      }),
-    });
-    const assertion = expect(work).rejects.toBeInstanceOf(ProcessingDeadlineExceededError);
-    await vi.advanceTimersByTimeAsync(5_000);
-    await assertion;
+      work: async () => "done",
+    })).resolves.toBe("done");
+
     vi.useRealTimers();
-  });
-
-  it("does not start work when the processing deadline already passed", async () => {
-    const work = vi.fn();
-
-    await expect(withJobLease({
-      deadlineAt: new Date(Date.now() - 1),
-      heartbeatIntervalMs: 60_000,
-      lease: { jobId: "job-expired", token: "token-1" },
-      renewLease: vi.fn().mockResolvedValue("written"),
-      work,
-    })).rejects.toBeInstanceOf(ProcessingDeadlineExceededError);
-
-    expect(work).not.toHaveBeenCalled();
   });
 });
