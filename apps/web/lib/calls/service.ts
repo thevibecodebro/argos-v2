@@ -946,7 +946,13 @@ export async function retryCallProcessingJob(
     };
   }
 
-  if (existingJob.processingVersion !== 2 && existingJob.attemptCount >= existingJob.maxAttempts) {
+  const canPromoteToV2 = process.env.CALL_PROCESSING_V2_ENABLED === "true";
+
+  if (
+    existingJob.processingVersion !== 2
+    && !canPromoteToV2
+    && existingJob.attemptCount >= existingJob.maxAttempts
+  ) {
     return {
       ok: false,
       status: 400,
