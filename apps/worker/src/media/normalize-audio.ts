@@ -35,6 +35,8 @@ export async function normalizeAudio(
       "16000",
       "-b:a",
       "32k",
+      "-fs",
+      String(maxOutputBytes),
       input.outputPath,
     ];
   if (input.signal) await spawn(input.ffmpegBinary, ffmpegArgs, { signal: input.signal });
@@ -42,7 +44,7 @@ export async function normalizeAudio(
 
   const outputStats = await readStat(input.outputPath);
 
-  if (outputStats.size > maxOutputBytes) {
+  if (outputStats.size >= maxOutputBytes) {
     throw new Error(
       `Normalized audio output exceeds the configured output limit of ${maxOutputBytes} bytes.`,
     );

@@ -21,6 +21,13 @@ export class JobRetryScheduledError extends Error {
   }
 }
 
+export class ChunkAttemptsExhaustedError extends Error {
+  constructor(readonly chunkIndex: number, readonly errorCode: string, options?: ErrorOptions) {
+    super(`Chunk ${chunkIndex} transcription attempts exhausted (${errorCode})`, options);
+    this.name = "ChunkAttemptsExhaustedError";
+  }
+}
+
 type Chunk = { endSeconds: number; filePath: string; startSeconds: number };
 
 type ResumableChunkRepository = {
@@ -111,6 +118,19 @@ export async function transcribeChunksResumable(input: {
     };
     const attemptCount = await input.repository.beginChunkAttempt(input.lease, checkpoint);
     if (attemptCount === "lost_lease") throw new LostJobLeaseError(input.lease);
+    if (attemptCount > maxAttempts) {
+      const error = new ChunkAttemptsExhaustedError(chunk.index, "attempt_limit");
+      assertWritten(await input.repository.saveChunkFailure(input.lease, {
+        attemptCount,
+        errorCode: error.errorCode,
+        errorMessage: error.message,
+        fingerprint,
+        index: chunk.index,
+        nextRunAt: null,
+        providerRequestId: null,
+      }), input.lease);
+      throw error;
+    }
     const bytes = await read(chunk.filePath);
     const startedAt = Date.now();
     input.onEvent?.({
@@ -167,10 +187,7 @@ export async function transcribeChunksResumable(input: {
       }), input.lease);
       if (!nextRunAt) {
         input.onEvent?.({ event: "call_processing.chunk_failed", jobId: input.job.id, chunkIndex: chunk.index, attemptCount, errorCode: safeErrorCode(error) });
-        throw new Error(
-          `Chunk ${chunk.index} transcription attempts exhausted (${safeErrorCode(error)})`,
-          { cause: error },
-        );
+        throw new ChunkAttemptsExhaustedError(chunk.index, safeErrorCode(error), { cause: error });
       }
       assertWritten(await input.repository.releaseForRetry(input.lease, {
         lastError: error instanceof Error ? error.message : "Transcription failed",

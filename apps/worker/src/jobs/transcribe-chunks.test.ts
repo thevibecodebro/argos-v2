@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { TranscriptionRequestError } from "@argos-v2/call-processing";
-import { JobRetryScheduledError, transcribeChunksResumable } from "./transcribe-chunks";
+import {
+  ChunkAttemptsExhaustedError,
+  JobRetryScheduledError,
+  transcribeChunksResumable,
+} from "./transcribe-chunks";
 
 function createRepository() {
   const completed = new Map<number, any>();
@@ -55,5 +59,30 @@ describe("transcribeChunksResumable", () => {
     await expect(run()).resolves.toMatchObject({ durationSeconds: 40 });
     expect(calls).toEqual([0, 1, 2, 2, 3]);
     expect(repository.saveTranscriptCheckpoint).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not dispatch another provider request after the chunk attempt limit", async () => {
+    const repository = createRepository();
+    repository.beginChunkAttempt.mockResolvedValue(4);
+    const transcribe = vi.fn();
+
+    await expect(transcribeChunksResumable({
+      chunks: [{ filePath: "/tmp/0.mp3", startSeconds: 0, endSeconds: 10 }],
+      durationSeconds: 10,
+      job: { generation: 1, id: "job-exhausted", sourceSizeBytes: 40 },
+      lease: { jobId: "job-exhausted", token: "token-1" },
+      model: "model-1",
+      readFile: vi.fn(async (path) => Buffer.from(String(path))) as never,
+      repository: repository as never,
+      timeoutMs: 120_000,
+      transcribe: transcribe as never,
+    })).rejects.toBeInstanceOf(ChunkAttemptsExhaustedError);
+
+    expect(transcribe).not.toHaveBeenCalled();
+    expect(repository.releaseForRetry).not.toHaveBeenCalled();
+    expect(repository.saveChunkFailure).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ attemptCount: 4, errorCode: "attempt_limit", nextRunAt: null }),
+    );
   });
 });

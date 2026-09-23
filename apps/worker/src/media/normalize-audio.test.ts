@@ -26,6 +26,8 @@ describe("normalizeAudio", () => {
         "16000",
         "-b:a",
         "32k",
+        "-fs",
+        String(64 * 1024 * 1024),
         "/tmp/normalized.mp3",
       ]),
     );
@@ -57,5 +59,31 @@ describe("normalizeAudio", () => {
         { probeDuration: vi.fn(), spawn, stat },
       ),
     ).rejects.toThrow("exceeds the configured output limit");
+  });
+
+  it("rejects output that reaches the ffmpeg write-time cap", async () => {
+    const maxOutputBytes = 64 * 1024 * 1024;
+    const spawn = vi.fn().mockResolvedValue(undefined);
+
+    await expect(
+      normalizeAudio(
+        {
+          inputPath: "/tmp/source.mp4",
+          outputPath: "/tmp/normalized.mp3",
+          ffmpegBinary: "/usr/local/bin/ffmpeg",
+          maxOutputBytes,
+        },
+        {
+          probeDuration: vi.fn(),
+          spawn,
+          stat: vi.fn().mockResolvedValue({ size: maxOutputBytes }),
+        },
+      ),
+    ).rejects.toThrow("exceeds the configured output limit");
+
+    expect(spawn).toHaveBeenCalledWith(
+      "/usr/local/bin/ffmpeg",
+      expect.arrayContaining(["-fs", String(maxOutputBytes)]),
+    );
   });
 });

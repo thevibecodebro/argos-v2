@@ -490,8 +490,9 @@ describe("processCallJob", () => {
     }));
   });
 
-  it("resumes downstream work from a version 2 transcript checkpoint", async () => {
-    const transcript = [{ timestampSeconds: 0, speaker: "Speaker A", text: "Hello" }];
+  it("resumes downstream work only after recomputing the exact version 2 fingerprint", async () => {
+    const providerTranscript = [{ timestampSeconds: 0, speaker: "Speaker A", text: "Hello" }];
+    const transcript = [{ timestampSeconds: 0, speaker: "Chunk 1 Speaker A", text: "Hello" }];
     const evaluation = {
       rubricId: null, confidence: "high", callStageReached: "commitment", overallScore: 90,
       categoryScores: [], frameControlScore: null, rapportScore: null, discoveryScore: null,
@@ -508,11 +509,18 @@ describe("processCallJob", () => {
         transcript,
       }),
       finalizeV2Job: vi.fn().mockResolvedValue("written"),
+      beginChunkAttempt: vi.fn().mockResolvedValue(1),
+      listCompletedChunks: vi.fn().mockResolvedValue([]),
+      releaseForRetry: vi.fn().mockResolvedValue("written"),
+      saveChunkFailure: vi.fn().mockResolvedValue("written"),
+      saveCompletedChunk: vi.fn().mockResolvedValue("written"),
+      saveTranscriptCheckpoint: vi.fn().mockResolvedValue("written"),
+      setChunkManifest: vi.fn().mockResolvedValue("written"),
       updateCallStatus: vi.fn().mockResolvedValue(undefined),
       updateCallStatusForLease: vi.fn().mockResolvedValue("written"),
       markV2TerminalFailure: vi.fn().mockResolvedValue("written"),
     };
-    const downloadSourceAsset = vi.fn();
+    const downloadSourceAsset = vi.fn().mockResolvedValue("/tmp/source.mp4");
     const scoreTranscriptFromLines = vi.fn();
 
     await processCallJob({
@@ -524,15 +532,70 @@ describe("processCallJob", () => {
       } as never,
       repository: repository as never,
       downloadSourceAsset,
+      normalizeAudio: vi.fn().mockResolvedValue({
+        outputPath: "/tmp/normalized.mp3",
+        sizeBytes: 1024,
+        durationSeconds: 600,
+      }),
+      chunkAudioFile: vi.fn().mockResolvedValue([
+        { filePath: "/tmp/chunk-0.mp3", startSeconds: 0, endSeconds: 600 },
+      ]),
+      readFile: vi.fn().mockResolvedValue(Buffer.from("audio")),
+      transcribeAudioBuffer: vi.fn().mockResolvedValue({ durationSeconds: 600, transcript: providerTranscript }),
       scoreTranscriptFromLines,
     });
 
-    expect(downloadSourceAsset).not.toHaveBeenCalled();
+    expect(downloadSourceAsset).toHaveBeenCalledTimes(1);
+    expect(repository.findTranscriptCheckpoint).toHaveBeenCalledWith(
+      "job-v2",
+      1,
+      expect.any(String),
+    );
     expect(scoreTranscriptFromLines).not.toHaveBeenCalled();
     expect(repository.finalizeV2Job).toHaveBeenCalledWith(expect.objectContaining({
       callId: "call-v2",
       evaluation,
       transcript,
     }));
+  });
+
+  it("marks an exhausted version 2 chunk terminal instead of retrying the whole job", async () => {
+    const repository = {
+      getCallProcessingCapabilities: vi.fn().mockResolvedValue({ canGenerateBuyerPersonality: false, canScoreCall: true }),
+      beginChunkAttempt: vi.fn().mockResolvedValue(4),
+      listCompletedChunks: vi.fn().mockResolvedValue([]),
+      setChunkManifest: vi.fn().mockResolvedValue("written"),
+      saveChunkFailure: vi.fn().mockResolvedValue("written"),
+      markV2RetryableFailure: vi.fn().mockResolvedValue("written"),
+      markV2TerminalFailure: vi.fn().mockResolvedValue("written"),
+      updateCallStatusForLease: vi.fn().mockResolvedValue("written"),
+    };
+
+    await expect(processCallJob({
+      job: {
+        id: "job-exhausted", callId: "call-exhausted", repId: "rep-1", callTopic: "Discovery",
+        attemptCount: 2, maxAttempts: 3, failureCount: 1, maxFailures: 3,
+        processingVersion: 2, generation: 1, leaseToken: "00000000-0000-4000-8000-000000000001",
+        sourceStoragePath: "recordings/call-exhausted/source/demo.mp4",
+      } as never,
+      repository: repository as never,
+      downloadSourceAsset: vi.fn().mockResolvedValue("/tmp/source.mp4"),
+      normalizeAudio: vi.fn().mockResolvedValue({
+        outputPath: "/tmp/normalized.mp3",
+        sizeBytes: 1024,
+        durationSeconds: 600,
+      }),
+      chunkAudioFile: vi.fn().mockResolvedValue([
+        { filePath: "/tmp/chunk-0.mp3", startSeconds: 0, endSeconds: 600 },
+      ]),
+      readFile: vi.fn().mockResolvedValue(Buffer.from("audio")),
+      transcribeAudioBuffer: vi.fn(),
+    })).rejects.toThrow("attempts exhausted");
+
+    expect(repository.markV2RetryableFailure).not.toHaveBeenCalled();
+    expect(repository.markV2TerminalFailure).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ callId: "call-exhausted", lastStage: "transcribe" }),
+    );
   });
 });

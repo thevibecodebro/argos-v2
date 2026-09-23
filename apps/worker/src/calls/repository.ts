@@ -313,6 +313,7 @@ export class CallProcessingRepository {
         and lease_token = ${lease.token}::uuid
         and status = 'running'
         and lock_expires_at > now()
+        and processing_deadline_at > now()
       returning id
     `));
     return rows.length === 1 ? "written" : "lost_lease";
@@ -547,7 +548,7 @@ export class CallProcessingRepository {
     return rows.length === 1 ? "written" : "lost_lease";
   }
 
-  async findTranscriptCheckpoint(jobId: string, generation: number): Promise<{
+  async findTranscriptCheckpoint(jobId: string, generation: number, fingerprint: string): Promise<{
     buyerPersonality: {
       generatedAt: Date;
       model: string;
@@ -570,6 +571,7 @@ export class CallProcessingRepository {
         merged_transcript as transcript, buyer_personality as "buyerPersonality", evaluation
       from call_processing_checkpoints
       where job_id = ${jobId}
+        and manifest_fingerprint = ${fingerprint}
         and configuration ->> 'generation' = ${String(generation)}
         and duration_seconds is not null and merged_transcript is not null
       order by updated_at desc

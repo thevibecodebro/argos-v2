@@ -56,6 +56,7 @@ if (env.callProcessingEnabled) {
         if (job.processingVersion === 2) {
           if (!job.leaseToken) throw new Error(`Version 2 job ${job.id} has no lease token`);
           await withJobLease({
+            deadlineAt: job.processingDeadlineAt,
             heartbeatIntervalMs: env.processingHeartbeatIntervalMs,
             lease: { jobId: job.id, token: job.leaseToken },
             renewLease: (lease) => repository.renewLease(lease),

@@ -256,6 +256,33 @@ describeWithDatabase("CallProcessingRepository", () => {
     });
   });
 
+  it("refuses to renew a lease after the processing deadline", async () => {
+    await withRepositoryTransaction(async ({ db, repository }) => {
+      const seeded = await seedCall(db);
+      const job = await repository.insertJob({
+        callId: seeded.callId,
+        sourceOrigin: "manual_upload",
+        sourceStoragePath: "recordings/call-deadline/source/audio.mp3",
+        sourceFileName: "audio.mp3",
+        status: "running",
+      });
+      const leaseToken = crypto.randomUUID();
+
+      await db
+        .update(callProcessingJobsTable)
+        .set({
+          processingVersion: 2,
+          leaseToken,
+          lockExpiresAt: new Date(Date.now() + 60_000),
+          processingDeadlineAt: new Date(Date.now() - 60_000),
+        })
+        .where(eq(callProcessingJobsTable.id, job.id));
+
+      await expect(repository.renewLease({ jobId: job.id, token: leaseToken }))
+        .resolves.toBe("lost_lease");
+    });
+  });
+
   it("does not reclaim jobs that have exhausted the retry budget", async () => {
     await withRepositoryTransaction(async ({ db, repository }) => {
       const seeded = await seedCall(db);

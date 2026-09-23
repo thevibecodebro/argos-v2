@@ -7,7 +7,15 @@ export class LostJobLeaseError extends Error {
   }
 }
 
+export class ProcessingDeadlineExceededError extends Error {
+  constructor(readonly lease: Lease, readonly deadlineAt: Date) {
+    super(`Processing deadline exceeded for job ${lease.jobId}`);
+    this.name = "ProcessingDeadlineExceededError";
+  }
+}
+
 export async function withJobLease<T>(input: {
+  deadlineAt?: Date | null;
   heartbeatIntervalMs: number;
   lease: Lease;
   renewLease: (lease: Lease) => Promise<WriteOutcome>;
@@ -15,6 +23,16 @@ export async function withJobLease<T>(input: {
 }): Promise<T> {
   const controller = new AbortController();
   let renewal: Promise<void> = Promise.resolve();
+  const deadlineDelayMs = input.deadlineAt ? input.deadlineAt.getTime() - Date.now() : null;
+  if (input.deadlineAt && deadlineDelayMs !== null && deadlineDelayMs <= 0) {
+    controller.abort(new ProcessingDeadlineExceededError(input.lease, input.deadlineAt));
+  }
+  const deadlineTimer = deadlineDelayMs === null || deadlineDelayMs <= 0 ? null : setTimeout(() => {
+    if (!controller.signal.aborted && input.deadlineAt) {
+      controller.abort(new ProcessingDeadlineExceededError(input.lease, input.deadlineAt));
+    }
+  }, deadlineDelayMs);
+  deadlineTimer?.unref?.();
 
   const heartbeat = () => {
     renewal = input.renewLease(input.lease).then((outcome) => {
@@ -30,6 +48,9 @@ export async function withJobLease<T>(input: {
   timer.unref?.();
 
   try {
+    if (controller.signal.aborted) {
+      throw controller.signal.reason;
+    }
     const result = await input.work(controller.signal);
     if (controller.signal.aborted) {
       throw controller.signal.reason instanceof Error
@@ -39,6 +60,7 @@ export async function withJobLease<T>(input: {
     return result;
   } finally {
     clearInterval(timer);
+    if (deadlineTimer) clearTimeout(deadlineTimer);
     await renewal.catch(() => undefined);
   }
 }

@@ -21,7 +21,11 @@ import { normalizeAudio } from "../media/normalize-audio";
 import type { CallProcessingRepository } from "../calls/repository";
 import type { Lease } from "../calls/processing-checkpoints";
 import { LostJobLeaseError } from "./job-lease";
-import { JobRetryScheduledError, transcribeChunksResumable } from "./transcribe-chunks";
+import {
+  ChunkAttemptsExhaustedError,
+  JobRetryScheduledError,
+  transcribeChunksResumable,
+} from "./transcribe-chunks";
 
 type ClaimedCallProcessingJob = NonNullable<
   Awaited<ReturnType<CallProcessingRepository["claimNextJob"]>>
@@ -282,11 +286,8 @@ export async function processCallJob(input: ProcessCallJobInput) {
   try {
     await updateCallStatusSafely("transcribing");
 
-    const resumedCheckpoint = input.job.processingVersion === 2
-      ? await input.repository.findTranscriptCheckpoint(input.job.id, input.job.generation)
-      : null;
-    let transcription: { durationSeconds: number; fingerprint?: string; transcript: TranscriptLine[] } | null = resumedCheckpoint;
-    if (!transcription) {
+    let transcription: { durationSeconds: number; fingerprint?: string; transcript: TranscriptLine[] };
+    {
       currentStage = "download";
       const downloadedSourcePath = await downloadSourceAssetImpl({
         expectedSizeBytes: input.job.sourceSizeBytes,
@@ -305,30 +306,30 @@ export async function processCallJob(input: ProcessCallJobInput) {
       });
 
       if (input.job.processingVersion === 2) {
-      if (!input.job.leaseToken) throw new Error("Version 2 job is missing its processing lease token");
-      currentStage = "chunk";
-      const chunks = await chunkAudioFileImpl({
-        filePath: normalized.outputPath,
-        sizeBytes: normalized.sizeBytes,
-        maxChunkBytes: 24 * 1024 * 1024,
-        durationSeconds: normalized.durationSeconds,
-        ffmpegBinary,
-        signal: input.signal,
-      });
-      currentStage = "transcribe";
-      transcription = await transcribeChunksResumable({
-        chunks,
-        durationSeconds: normalized.durationSeconds,
-        job: { generation: input.job.generation, id: input.job.id, sourceSizeBytes: input.job.sourceSizeBytes },
-        lease: { jobId: input.job.id, token: input.job.leaseToken },
-        model: process.env.OPENAI_CALL_TRANSCRIPTION_MODEL?.trim() || "gpt-4o-transcribe-diarize",
-        onEvent: (event) => console.info(JSON.stringify(event)),
-        readFile: readFileImpl,
-        repository: input.repository,
-        signal: input.signal,
-        timeoutMs: env.transcriptionTimeoutMs,
-        transcribe: transcribeAudioBufferImpl,
-      });
+        if (!input.job.leaseToken) throw new Error("Version 2 job is missing its processing lease token");
+        currentStage = "chunk";
+        const chunks = await chunkAudioFileImpl({
+          filePath: normalized.outputPath,
+          sizeBytes: normalized.sizeBytes,
+          maxChunkBytes: 24 * 1024 * 1024,
+          durationSeconds: normalized.durationSeconds,
+          ffmpegBinary,
+          signal: input.signal,
+        });
+        currentStage = "transcribe";
+        transcription = await transcribeChunksResumable({
+          chunks,
+          durationSeconds: normalized.durationSeconds,
+          job: { generation: input.job.generation, id: input.job.id, sourceSizeBytes: input.job.sourceSizeBytes },
+          lease: { jobId: input.job.id, token: input.job.leaseToken },
+          model: process.env.OPENAI_CALL_TRANSCRIPTION_MODEL?.trim() || "gpt-4o-transcribe-diarize",
+          onEvent: (event) => console.info(JSON.stringify(event)),
+          readFile: readFileImpl,
+          repository: input.repository,
+          signal: input.signal,
+          timeoutMs: env.transcriptionTimeoutMs,
+          transcribe: transcribeAudioBufferImpl,
+        });
       } else {
         transcription = await transcribeNormalizedAudio({
           chunkAudioFileImpl,
@@ -345,6 +346,14 @@ export async function processCallJob(input: ProcessCallJobInput) {
         });
       }
     }
+
+    const resumedCheckpoint = input.job.processingVersion === 2 && transcription.fingerprint
+      ? await input.repository.findTranscriptCheckpoint(
+          input.job.id,
+          input.job.generation,
+          transcription.fingerprint,
+        )
+      : null;
 
     let buyerPersonality: {
       generatedAt: Date;
@@ -461,7 +470,8 @@ export async function processCallJob(input: ProcessCallJobInput) {
     if (input.job.processingVersion === 2 && input.job.leaseToken) {
       const lease: Lease = { jobId: input.job.id, token: input.job.leaseToken };
       const message = error instanceof Error ? error.message : String(error);
-      const retryable = isRetryableError(message, input.job.failureCount + 1, input.job.maxFailures);
+      const retryable = !(error instanceof ChunkAttemptsExhaustedError)
+        && isRetryableError(message, input.job.failureCount + 1, input.job.maxFailures);
       const outcome = retryable
         ? await input.repository.markV2RetryableFailure(lease, {
             lastError: message,
