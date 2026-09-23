@@ -581,12 +581,12 @@ export class CallProcessingRepository {
       select duration_seconds as "durationSeconds", manifest_fingerprint as fingerprint,
         merged_transcript as transcript,
         case
-          when configuration ->> 'buyerPersonalityFingerprint' = ${expected.buyerPersonalityFingerprint}
+          when configuration ->> 'buyerPersonalityFingerprint' = ${expected.buyerPersonalityFingerprint}::text
           then buyer_personality
           else null
         end as "buyerPersonality",
         case
-          when configuration ->> 'evaluationFingerprint' = ${expected.evaluationFingerprint}
+          when configuration ->> 'evaluationFingerprint' = ${expected.evaluationFingerprint}::text
           then evaluation
           else null
         end as evaluation
@@ -625,7 +625,7 @@ export class CallProcessingRepository {
         generatedAt: input.buyerPersonality.generatedAt.toISOString(),
       })}::jsonb,
         configuration = coalesce(configuration, '{}'::jsonb) || jsonb_build_object(
-          'buyerPersonalityFingerprint', ${input.buyerPersonalityFingerprint}
+          'buyerPersonalityFingerprint', ${input.buyerPersonalityFingerprint}::text
         ),
         updated_at = now()
       where checkpoint.job_id = ${lease.jobId}
@@ -649,7 +649,7 @@ export class CallProcessingRepository {
       update call_processing_checkpoints as checkpoint
       set evaluation = ${JSON.stringify(input.evaluation)}::jsonb,
         configuration = coalesce(configuration, '{}'::jsonb) || jsonb_build_object(
-          'evaluationFingerprint', ${input.evaluationFingerprint}
+          'evaluationFingerprint', ${input.evaluationFingerprint}::text
         ),
         updated_at = now()
       where checkpoint.job_id = ${lease.jobId}
