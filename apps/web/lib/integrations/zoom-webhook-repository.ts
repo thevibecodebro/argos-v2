@@ -58,7 +58,7 @@ export class DrizzleZoomWebhookRepository implements ZoomWebhookRepository {
     input: Parameters<ZoomWebhookRepository["replaceCallRecordingAndResetProcessingJob"]>[0],
     removeSourceAssets: (storagePaths: string[]) => Promise<void>,
   ) {
-    return this.db.transaction(async (tx) => {
+    const result = await this.db.transaction(async (tx) => {
       const [job] = await tx
         .select({
           sourceStoragePath: callProcessingJobsTable.sourceStoragePath,
@@ -76,17 +76,17 @@ export class DrizzleZoomWebhookRepository implements ZoomWebhookRepository {
         .for("update");
 
       if (job && ["pending", "running", "retrying", "complete"].includes(job.status)) {
-        if (input.recording.storagePath !== call?.recordingStoragePath) {
-          await removeSourceAssets([input.recording.storagePath]);
-        }
-        return false;
+        return {
+          cleanupPaths: input.recording.storagePath !== call?.recordingStoragePath
+            ? [input.recording.storagePath]
+            : [],
+          replaced: false,
+        };
       }
-      if (
+      const cleanupPaths = (
         call?.recordingStoragePath &&
         call.recordingStoragePath !== input.recording.storagePath
-      ) {
-        await removeSourceAssets([call.recordingStoragePath]);
-      }
+      ) ? [call.recordingStoragePath] : [];
 
       const callsRepository = new DrizzleCallsRepository(tx as ArgosDb);
       await callsRepository.updateCallRecordingStorage(input.callId, input.recording);
@@ -94,8 +94,16 @@ export class DrizzleZoomWebhookRepository implements ZoomWebhookRepository {
         callId: input.callId,
         ...input.job,
       });
-      return true;
+      return { cleanupPaths, replaced: true };
     });
+
+    if (result.cleanupPaths.length > 0) {
+      await removeSourceAssets(result.cleanupPaths).catch((error) => {
+        console.error("Failed to remove superseded Zoom source assets", error);
+      });
+    }
+
+    return result.replaced;
   }
 
   async findActiveCallProcessingSubscription(input: {
