@@ -60,6 +60,10 @@ function mapProcessingJob(row: any) {
   };
 }
 
+function configuredProcessingVersion() {
+  return process.env.CALL_PROCESSING_V2_ENABLED === "true" ? 2 : 1;
+}
+
 export class SupabaseCallsRepository implements CallsRepository {
   constructor(private readonly supabase = getSupabaseAdminClient()) {}
 
@@ -222,7 +226,7 @@ export class SupabaseCallsRepository implements CallsRepository {
           source_content_type: input.sourceContentType,
           source_size_bytes: input.sourceSizeBytes,
           status: "pending",
-          processing_version: 1,
+          processing_version: configuredProcessingVersion(),
           attempt_count: 0,
           next_run_at: new Date().toISOString(),
           locked_at: null,

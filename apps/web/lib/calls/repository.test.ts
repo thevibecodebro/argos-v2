@@ -82,4 +82,31 @@ describe("calls repositories", () => {
     expect(processingUpdate.set).toHaveBeenCalled();
     expect(processingUpdate.set.mock.calls[0]?.[0]).not.toHaveProperty("attemptCount");
   });
+
+  it("enrolls Supabase fallback uploads in V2 when the rollout flag is enabled", async () => {
+    const upsert = vi.fn().mockResolvedValue({ error: null });
+    const supabase = { from: vi.fn().mockReturnValue({ upsert }) };
+    const repository = new SupabaseCallsRepository(supabase as never);
+    const previous = process.env.CALL_PROCESSING_V2_ENABLED;
+    process.env.CALL_PROCESSING_V2_ENABLED = "true";
+
+    try {
+      await repository.createOrResetCallProcessingJob({
+        callId: "call-v2",
+        sourceOrigin: "manual_upload",
+        sourceStoragePath: "recordings/call-v2/source/demo.mp3",
+        sourceFileName: "demo.mp3",
+        sourceContentType: "audio/mpeg",
+        sourceSizeBytes: 1024,
+      });
+    } finally {
+      if (previous === undefined) delete process.env.CALL_PROCESSING_V2_ENABLED;
+      else process.env.CALL_PROCESSING_V2_ENABLED = previous;
+    }
+
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ processing_version: 2 }),
+      { onConflict: "call_id" },
+    );
+  });
 });

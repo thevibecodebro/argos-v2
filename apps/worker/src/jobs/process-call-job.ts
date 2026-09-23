@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { basename, extname, join } from "node:path";
 import ffmpegStatic from "ffmpeg-static";
 import {
+  BUYER_PERSONALITY_SCHEMA_VERSION,
   DEFAULT_CALL_SCORING_RUBRIC,
   extractBuyerPersonalityFromTranscript,
   mergeTranscriptLines,
@@ -19,7 +20,7 @@ import {
 } from "../media/chunk-audio";
 import { normalizeAudio } from "../media/normalize-audio";
 import type { CallProcessingRepository } from "../calls/repository";
-import type { Lease } from "../calls/processing-checkpoints";
+import { fingerprintConfiguration, type Lease } from "../calls/processing-checkpoints";
 import { LostJobLeaseError } from "./job-lease";
 import {
   ChunkAttemptsExhaustedError,
@@ -34,6 +35,8 @@ type ClaimedCallProcessingJob = NonNullable<
 type JobStage = "download" | "normalize" | "chunk" | "transcribe" | "profile" | "score" | "persist";
 
 const MAX_NORMALIZED_AUDIO_BYTES = 500 * 1024 * 1024;
+const BUYER_PERSONALITY_PROMPT_VERSION = 1;
+const CALL_SCORING_PROMPT_VERSION = 1;
 
 type ProcessCallJobInput = {
   job: ClaimedCallProcessingJob;
@@ -347,11 +350,33 @@ export async function processCallJob(input: ProcessCallJobInput) {
       }
     }
 
+    const scoringRubric = capabilities.canScoreCall
+      ? await resolveScoringRubric({ job: input.job, repository: input.repository })
+      : null;
+    const buyerPersonalityFingerprint = capabilities.canGenerateBuyerPersonality
+      ? fingerprintConfiguration({
+          callTopic: input.job.callTopic,
+          model: process.env.OPENAI_BUYER_PERSONALITY_MODEL?.trim()
+            || process.env.OPENAI_TRAINING_MODEL?.trim()
+            || "gpt-5-mini",
+          promptVersion: BUYER_PERSONALITY_PROMPT_VERSION,
+          schemaVersion: BUYER_PERSONALITY_SCHEMA_VERSION,
+        })
+      : null;
+    const evaluationFingerprint = scoringRubric
+      ? fingerprintConfiguration({
+          callTopic: input.job.callTopic,
+          model: process.env.OPENAI_CALL_SCORING_MODEL?.trim() || "gpt-5-mini",
+          promptVersion: CALL_SCORING_PROMPT_VERSION,
+          rubric: scoringRubric,
+        })
+      : null;
     const resumedCheckpoint = input.job.processingVersion === 2 && transcription.fingerprint
       ? await input.repository.findTranscriptCheckpoint(
           input.job.id,
           input.job.generation,
           transcription.fingerprint,
+          { buyerPersonalityFingerprint, evaluationFingerprint },
         )
       : null;
 
@@ -380,7 +405,11 @@ export async function processCallJob(input: ProcessCallJobInput) {
         if (input.job.processingVersion === 2 && input.job.leaseToken && transcription.fingerprint) {
           const outcome = await input.repository.saveBuyerPersonalityCheckpoint(
             { jobId: input.job.id, token: input.job.leaseToken },
-            { buyerPersonality, fingerprint: transcription.fingerprint },
+            {
+              buyerPersonality,
+              buyerPersonalityFingerprint: buyerPersonalityFingerprint!,
+              fingerprint: transcription.fingerprint,
+            },
           );
           if (outcome === "lost_lease") {
             throw new LostJobLeaseError({ jobId: input.job.id, token: input.job.leaseToken });
@@ -397,21 +426,21 @@ export async function processCallJob(input: ProcessCallJobInput) {
     if (capabilities.canScoreCall && !evaluation) {
       currentStage = "score";
       await updateCallStatusSafely("evaluating");
-      const rubric = await resolveScoringRubric({
-        job: input.job,
-        repository: input.repository,
-      });
       evaluation = await scoreTranscriptFromLinesImpl({
         callTopic: input.job.callTopic,
         durationSeconds: transcription.durationSeconds,
-        rubric,
+        rubric: scoringRubric!,
         transcript: transcription.transcript,
         signal: input.signal,
       });
       if (input.job.processingVersion === 2 && input.job.leaseToken && transcription.fingerprint) {
         const outcome = await input.repository.saveEvaluationCheckpoint(
           { jobId: input.job.id, token: input.job.leaseToken },
-          { evaluation, fingerprint: transcription.fingerprint },
+          {
+            evaluation,
+            evaluationFingerprint: evaluationFingerprint!,
+            fingerprint: transcription.fingerprint,
+          },
         );
         if (outcome === "lost_lease") {
           throw new LostJobLeaseError({ jobId: input.job.id, token: input.job.leaseToken });

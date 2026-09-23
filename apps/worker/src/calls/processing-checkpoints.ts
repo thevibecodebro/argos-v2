@@ -23,6 +23,10 @@ function stableJson(value: unknown): string {
   return JSON.stringify(value);
 }
 
+export function fingerprintConfiguration(value: unknown) {
+  return sha256(stableJson(value));
+}
+
 export function sha256(value: Uint8Array | string) {
   return createHash("sha256").update(value).digest("hex");
 }

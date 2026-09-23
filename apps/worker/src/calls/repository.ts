@@ -473,7 +473,8 @@ export class CallProcessingRepository {
       set status = 'retrying', next_run_at = ${input.nextRunAt}, last_stage = 'transcribe',
         last_error = ${input.lastError}, locked_at = null, lock_expires_at = null,
         lease_token = null, heartbeat_at = null, updated_at = now()
-      where id = ${lease.jobId} and lease_token = ${lease.token}::uuid and status = 'running'
+      where id = ${lease.jobId} and lease_token = ${lease.token}::uuid
+        and status = 'running' and lock_expires_at > now()
       returning id
     `));
     return rows.length === 1 ? "written" : "lost_lease";
@@ -491,7 +492,8 @@ export class CallProcessingRepository {
         last_error = ${input.lastError}, locked_at = null, lock_expires_at = null,
         lease_token = null, heartbeat_at = null, updated_at = now()
       where id = ${lease.jobId} and lease_token = ${lease.token}::uuid
-        and status = 'running' and failure_count + 1 < max_failures
+        and status = 'running' and lock_expires_at > now()
+        and failure_count + 1 < max_failures
       returning id
     `));
     return rows.length === 1 ? "written" : "lost_lease";
@@ -510,7 +512,8 @@ export class CallProcessingRepository {
           last_stage = ${input.lastStage}, last_error = ${input.lastError},
           locked_at = null, lock_expires_at = null, lease_token = null,
           heartbeat_at = null, updated_at = now()
-        where id = ${lease.jobId} and lease_token = ${lease.token}::uuid and status = 'running'
+        where id = ${lease.jobId} and lease_token = ${lease.token}::uuid
+          and status = 'running' and lock_expires_at > now()
         returning id
       `));
       if (rows.length !== 1) return "lost_lease" as const;
@@ -548,7 +551,15 @@ export class CallProcessingRepository {
     return rows.length === 1 ? "written" : "lost_lease";
   }
 
-  async findTranscriptCheckpoint(jobId: string, generation: number, fingerprint: string): Promise<{
+  async findTranscriptCheckpoint(
+    jobId: string,
+    generation: number,
+    fingerprint: string,
+    expected: {
+      buyerPersonalityFingerprint: string | null;
+      evaluationFingerprint: string | null;
+    },
+  ): Promise<{
     buyerPersonality: {
       generatedAt: Date;
       model: string;
@@ -568,7 +579,17 @@ export class CallProcessingRepository {
       transcript: TranscriptLine[];
     }>(await this.db.execute(sql`
       select duration_seconds as "durationSeconds", manifest_fingerprint as fingerprint,
-        merged_transcript as transcript, buyer_personality as "buyerPersonality", evaluation
+        merged_transcript as transcript,
+        case
+          when configuration ->> 'buyerPersonalityFingerprint' = ${expected.buyerPersonalityFingerprint}
+          then buyer_personality
+          else null
+        end as "buyerPersonality",
+        case
+          when configuration ->> 'evaluationFingerprint' = ${expected.evaluationFingerprint}
+          then evaluation
+          else null
+        end as evaluation
       from call_processing_checkpoints
       where job_id = ${jobId}
         and manifest_fingerprint = ${fingerprint}
@@ -594,6 +615,7 @@ export class CallProcessingRepository {
       profile: BuyerPersonalityProfile;
       status: "ready" | "needs_review";
     };
+    buyerPersonalityFingerprint: string;
     fingerprint: string;
   }): Promise<WriteOutcome> {
     const rows = extractRows(await this.db.execute(sql`
@@ -601,7 +623,11 @@ export class CallProcessingRepository {
       set buyer_personality = ${JSON.stringify({
         ...input.buyerPersonality,
         generatedAt: input.buyerPersonality.generatedAt.toISOString(),
-      })}::jsonb, updated_at = now()
+      })}::jsonb,
+        configuration = coalesce(configuration, '{}'::jsonb) || jsonb_build_object(
+          'buyerPersonalityFingerprint', ${input.buyerPersonalityFingerprint}
+        ),
+        updated_at = now()
       where checkpoint.job_id = ${lease.jobId}
         and checkpoint.manifest_fingerprint = ${input.fingerprint}
         and exists (
@@ -616,11 +642,16 @@ export class CallProcessingRepository {
 
   async saveEvaluationCheckpoint(lease: Lease, input: {
     evaluation: CallEvaluation;
+    evaluationFingerprint: string;
     fingerprint: string;
   }): Promise<WriteOutcome> {
     const rows = extractRows(await this.db.execute(sql`
       update call_processing_checkpoints as checkpoint
-      set evaluation = ${JSON.stringify(input.evaluation)}::jsonb, updated_at = now()
+      set evaluation = ${JSON.stringify(input.evaluation)}::jsonb,
+        configuration = coalesce(configuration, '{}'::jsonb) || jsonb_build_object(
+          'evaluationFingerprint', ${input.evaluationFingerprint}
+        ),
+        updated_at = now()
       where checkpoint.job_id = ${lease.jobId}
         and checkpoint.manifest_fingerprint = ${input.fingerprint}
         and exists (

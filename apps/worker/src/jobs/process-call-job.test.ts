@@ -550,6 +550,7 @@ describe("processCallJob", () => {
       "job-v2",
       1,
       expect.any(String),
+      expect.objectContaining({ evaluationFingerprint: expect.any(String) }),
     );
     expect(scoreTranscriptFromLines).not.toHaveBeenCalled();
     expect(repository.finalizeV2Job).toHaveBeenCalledWith(expect.objectContaining({
