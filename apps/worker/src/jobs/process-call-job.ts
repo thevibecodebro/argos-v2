@@ -44,6 +44,14 @@ type JobStage = "download" | "normalize" | "chunk" | "transcribe" | "profile" | 
 const MAX_NORMALIZED_AUDIO_BYTES = 500 * 1024 * 1024;
 const BUYER_PERSONALITY_PROMPT_VERSION = 1;
 const CALL_SCORING_PROMPT_VERSION = 1;
+const RETRYABLE_POSTGRES_CODES = new Set([
+  "40001", // serialization_failure
+  "40P01", // deadlock_detected
+  "55P03", // lock_not_available
+  "57P01", // admin_shutdown
+  "57P02", // crash_shutdown
+  "57P03", // cannot_connect_now
+]);
 
 type ProcessCallJobInput = {
   job: ClaimedCallProcessingJob;
@@ -105,9 +113,17 @@ export function isRetryableProcessingError(
     return ["network", "rate_limit", "server", "timeout"].includes(error.details.category);
   }
 
+  const databaseCode = error && typeof error === "object" && "code" in error
+    && typeof error.code === "string"
+    ? error.code
+    : null;
+  if (databaseCode?.startsWith("08") || (databaseCode && RETRYABLE_POSTGRES_CODES.has(databaseCode))) {
+    return true;
+  }
+
   const message = error instanceof Error ? error.message : String(error);
 
-  return /429|5\d\d|timeout|timed out|rate limit|temporar|ECONNRESET|fetch failed/i.test(
+  return /429|5\d\d|timeout|timed out|rate limit|temporar|ECONNRESET|fetch failed|deadlock|could not serialize|serialization failure/i.test(
     message,
   );
 }

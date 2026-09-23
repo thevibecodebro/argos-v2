@@ -25,6 +25,22 @@ describe("processCallJob", () => {
       1,
       3,
     )).toBe(false);
+
+    expect(isRetryableProcessingError(
+      Object.assign(new Error("deadlock detected"), { code: "40P01" }),
+      1,
+      3,
+    )).toBe(true);
+    expect(isRetryableProcessingError(
+      Object.assign(new Error("could not serialize access"), { code: "40001" }),
+      1,
+      3,
+    )).toBe(true);
+    expect(isRetryableProcessingError(
+      Object.assign(new Error("duplicate key"), { code: "23505" }),
+      1,
+      3,
+    )).toBe(false);
   });
 
   it("fails closed before downloading when neither processing path is enabled", async () => {
