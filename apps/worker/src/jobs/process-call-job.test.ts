@@ -658,4 +658,53 @@ describe("processCallJob", () => {
       expect.objectContaining({ callId: "call-exhausted", lastStage: "transcribe" }),
     );
   });
+
+  it("honors a provider retry delay longer than the default downstream backoff", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-23T20:00:00.000Z"));
+    const retryableError = new ProviderRequestError("rate limited", {
+      category: "rate_limit",
+      elapsedMs: 100,
+      providerRequestId: "req-1",
+      retryAfterMs: 10 * 60 * 1000,
+      status: 429,
+    });
+    const transcript = [{ timestampSeconds: 0, speaker: "Chunk 1 Speaker A", text: "Hello" }];
+    const repository = {
+      getCallProcessingCapabilities: vi.fn().mockResolvedValue({ canGenerateBuyerPersonality: false, canScoreCall: true }),
+      findReusableTranscriptCheckpoint: vi.fn().mockResolvedValue({
+        buyerPersonality: null,
+        durationSeconds: 600,
+        evaluation: null,
+        fingerprint: "manifest-1",
+        transcript,
+      }),
+      markV2RetryableFailure: vi.fn().mockResolvedValue("written"),
+      markV2TerminalFailure: vi.fn().mockResolvedValue("written"),
+      updateCallStatusForLease: vi.fn().mockResolvedValue("written"),
+    };
+
+    try {
+      await expect(processCallJob({
+        job: {
+          id: "job-rate-limit", callId: "call-rate-limit", repId: "rep-1", callTopic: "Discovery",
+          attemptCount: 1, maxAttempts: 3, failureCount: 0, maxFailures: 3,
+          processingVersion: 2, generation: 1, leaseToken: "00000000-0000-4000-8000-000000000001",
+          sourceStoragePath: "recordings/call-rate-limit/source/demo.mp4",
+        } as never,
+        repository: repository as never,
+        scoreTranscriptFromLines: vi.fn().mockRejectedValue(retryableError),
+      })).rejects.toBe(retryableError);
+    } finally {
+      vi.useRealTimers();
+    }
+
+    expect(repository.markV2RetryableFailure).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        lastStage: "score",
+        nextRunAt: new Date("2026-09-23T20:10:00.000Z"),
+      }),
+    );
+  });
 });

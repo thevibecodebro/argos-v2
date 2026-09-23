@@ -548,11 +548,14 @@ export async function processCallJob(input: ProcessCallJobInput) {
         : 0;
       const retryable = !(error instanceof ChunkAttemptsExhaustedError)
         && isRetryableProcessingError(error, stageFailureCount + 1, input.job.maxFailures);
+      const providerRetryAfterMs = error instanceof ProviderRequestError
+        ? error.details.retryAfterMs ?? 0
+        : 0;
       const outcome = retryable
         ? await input.repository.markV2RetryableFailure(lease, {
             lastError: message,
             lastStage: currentStage,
-            nextRunAt: new Date(Date.now() + 2 * 60 * 1000),
+            nextRunAt: new Date(Date.now() + Math.max(2 * 60 * 1000, providerRetryAfterMs)),
           })
         : await input.repository.markV2TerminalFailure(lease, {
             buyerProfileFailed: capabilities.canGenerateBuyerPersonality,

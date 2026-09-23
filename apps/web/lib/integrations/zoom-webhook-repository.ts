@@ -59,12 +59,6 @@ export class DrizzleZoomWebhookRepository implements ZoomWebhookRepository {
     removeSourceAssets: (storagePaths: string[]) => Promise<void>,
   ) {
     return this.db.transaction(async (tx) => {
-      const [call] = await tx
-        .select({ recordingStoragePath: callsTable.recordingStoragePath })
-        .from(callsTable)
-        .where(eq(callsTable.id, input.callId))
-        .limit(1)
-        .for("update");
       const [job] = await tx
         .select({
           sourceStoragePath: callProcessingJobsTable.sourceStoragePath,
@@ -72,7 +66,14 @@ export class DrizzleZoomWebhookRepository implements ZoomWebhookRepository {
         })
         .from(callProcessingJobsTable)
         .where(eq(callProcessingJobsTable.callId, input.callId))
-        .limit(1);
+        .limit(1)
+        .for("update");
+      const [call] = await tx
+        .select({ recordingStoragePath: callsTable.recordingStoragePath })
+        .from(callsTable)
+        .where(eq(callsTable.id, input.callId))
+        .limit(1)
+        .for("update");
 
       if (job && ["pending", "running", "retrying", "complete"].includes(job.status)) {
         if (input.recording.storagePath !== call?.recordingStoragePath) {

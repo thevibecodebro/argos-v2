@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { organizationIngestionTitleFiltersTable } from "@argos-v2/db";
+import {
+  callProcessingJobsTable,
+  callsTable,
+  organizationIngestionTitleFiltersTable,
+} from "@argos-v2/db";
 
 const eqSpy = vi.hoisted(() => vi.fn());
 
@@ -18,6 +22,50 @@ vi.mock("drizzle-orm", async () => {
 import { DrizzleZoomWebhookRepository } from "./zoom-webhook-repository";
 
 describe("DrizzleZoomWebhookRepository", () => {
+  it("locks the processing job before the call during source replacement", async () => {
+    const fromOrder: unknown[] = [];
+    const query = (rows: unknown[]) => ({
+      where: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      for: vi.fn().mockResolvedValue(rows),
+    });
+    const jobQuery = query([{ sourceStoragePath: "old.mp4", status: "running" }]);
+    const callQuery = query([{ recordingStoragePath: "old.mp4" }]);
+    const tx = {
+      select: vi.fn(() => ({
+        from: vi.fn((table) => {
+          fromOrder.push(table);
+          return table === callProcessingJobsTable ? jobQuery : callQuery;
+        }),
+      })),
+    };
+    const repository = new DrizzleZoomWebhookRepository({
+      transaction: vi.fn((callback) => callback(tx)),
+    } as never);
+
+    await expect(repository.replaceCallRecordingAndResetProcessingJob({
+      callId: "call-1",
+      recording: {
+        contentType: "video/mp4",
+        fileSizeBytes: 1024,
+        storageBucket: "call-recordings",
+        storagePath: "replacement.mp4",
+      },
+      job: {
+        rubricId: null,
+        sourceContentType: "video/mp4",
+        sourceFileName: "replacement.mp4",
+        sourceOrigin: "zoom_recording",
+        sourceSizeBytes: 1024,
+        sourceStoragePath: "replacement.mp4",
+      },
+    }, vi.fn().mockResolvedValue(undefined))).resolves.toBe(false);
+
+    expect(fromOrder).toEqual([callProcessingJobsTable, callsTable]);
+    expect(jobQuery.for).toHaveBeenCalledWith("update");
+    expect(callQuery.for).toHaveBeenCalledWith("update");
+  });
+
   it("maps title filter rows from the requested tenant and derives configured true", async () => {
     const rows = [
       { kind: "exclude", phrase: "Internal" },
