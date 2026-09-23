@@ -168,6 +168,9 @@ export async function uploadCallFromBrowser(
     );
   }
 
+  // A completed queue item will not retry. Release the converted audio before
+  // the next item starts; a full batch can otherwise retain many large files.
+  uploadAttempts.delete(input.file);
   dependencies.onProgress?.(100);
   dependencies.onPhase?.("Upload complete. Argos is processing the recording.");
   return completePayload;

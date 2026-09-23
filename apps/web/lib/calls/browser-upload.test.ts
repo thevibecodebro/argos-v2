@@ -49,6 +49,29 @@ describe("uploadCallFromBrowser", () => {
     expect(onProgress.mock.calls.map(([progress]) => progress)).toEqual([100, 100]);
   });
 
+  it("releases prepared audio from the retry cache after completion", async () => {
+    const video = new File([new Uint8Array(1_000)], "completed.mp4", { type: "video/mp4" });
+    const audio = new File([new Uint8Array(100)], "completed.m4a", { type: "audio/mp4" });
+    const prepareAudio = vi.fn().mockResolvedValue({ kind: "audio", file: audio, durationSeconds: 60 });
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(Response.json({ path: "first-path" }))
+      .mockResolvedValueOnce(Response.json({ id: "call-1", status: "uploaded", createdAt: "2026-09-23T00:00:00Z" }))
+      .mockResolvedValueOnce(Response.json({ path: "second-path" }))
+      .mockResolvedValueOnce(Response.json({ id: "call-2", status: "uploaded", createdAt: "2026-09-23T00:00:00Z" }));
+    const dependencies = {
+      fetchImpl: fetchImpl as typeof fetch,
+      getAccessToken: async () => "token",
+      prepareAudio,
+      uploadResumable: vi.fn().mockResolvedValue(undefined),
+    };
+
+    await uploadCallFromBrowser({ file: video }, dependencies);
+    await uploadCallFromBrowser({ file: video }, dependencies);
+
+    expect(prepareAudio).toHaveBeenCalledTimes(2);
+    expect(dependencies.uploadResumable).toHaveBeenCalledTimes(2);
+  });
+
   it("prepares the upload, sends the file to storage, and completes queueing", async () => {
     const uploadResumable = vi.fn().mockImplementation(async (input) => {
       input.onProgress(50);
