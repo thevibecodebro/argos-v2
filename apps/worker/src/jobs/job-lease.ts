@@ -39,8 +39,8 @@ export async function withJobLease<T>(input: {
       if (outcome === "lost_lease" && !controller.signal.aborted) {
         controller.abort(new LostJobLeaseError(input.lease));
       }
-    }).catch((error) => {
-      if (!controller.signal.aborted) controller.abort(error);
+    }).catch(() => {
+      if (!controller.signal.aborted) controller.abort(new LostJobLeaseError(input.lease));
     });
   };
 

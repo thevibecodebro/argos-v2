@@ -89,4 +89,28 @@ describe("transcribeChunksResumable", () => {
       expect.objectContaining({ attemptCount: 4, errorCode: "attempt_limit", nextRunAt: null }),
     );
   });
+
+  it("does not rewrite a completed chunk as failed when checkpoint persistence errors", async () => {
+    const repository = createRepository();
+    const persistenceError = new Error("database acknowledgement lost");
+    repository.saveCompletedChunk.mockRejectedValue(persistenceError);
+
+    await expect(transcribeChunksResumable({
+      chunks: [{ filePath: "/tmp/0.mp3", startSeconds: 0, endSeconds: 10 }],
+      durationSeconds: 10,
+      job: { generation: 1, id: "job-write-error", sourceSizeBytes: 40, sourceStoragePath: "recordings/job-write-error/source.mp3" },
+      lease: { jobId: "job-write-error", token: "token-1" },
+      model: "model-1",
+      readFile: vi.fn(async (path) => Buffer.from(String(path))) as never,
+      repository: repository as never,
+      timeoutMs: 120_000,
+      transcribe: vi.fn().mockResolvedValue({
+        durationSeconds: 10,
+        transcript: [{ speaker: "A", text: "complete", timestampSeconds: 0 }],
+      }) as never,
+    })).rejects.toBe(persistenceError);
+
+    expect(repository.saveChunkFailure).not.toHaveBeenCalled();
+    expect(repository.releaseForRetry).not.toHaveBeenCalled();
+  });
 });

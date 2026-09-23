@@ -148,29 +148,14 @@ export async function transcribeChunksResumable(input: {
       bytes: bytes.length,
       model: input.model,
     });
+    let result: Awaited<ReturnType<typeof input.transcribe>>;
     try {
-      const result = await input.transcribe({
+      result = await input.transcribe({
         audioBytes: bytes,
         contentType: "audio/mpeg",
         fileName: chunk.filePath.split("/").at(-1) ?? `chunk-${chunk.index}.mp3`,
         signal: input.signal,
         timeoutMs: input.timeoutMs,
-      });
-      const saved = await input.repository.saveCompletedChunk(input.lease, {
-        ...checkpoint,
-        latencyMs: Date.now() - startedAt,
-        providerRequestId: null,
-        transcript: result.transcript,
-      });
-      assertWritten(saved, input.lease);
-      completed.set(chunk.index, { ...checkpoint, transcript: result.transcript });
-      input.onEvent?.({
-        event: "call_processing.chunk_completed",
-        jobId: input.job.id,
-        chunkIndex: chunk.index,
-        totalChunks: manifests.length,
-        attemptCount,
-        elapsedMs: Date.now() - startedAt,
       });
     } catch (error) {
       if (input.signal?.aborted) throw input.signal.reason ?? error;
@@ -201,6 +186,22 @@ export async function transcribeChunksResumable(input: {
       input.onEvent?.({ event: "call_processing.chunk_retry_scheduled", jobId: input.job.id, chunkIndex: chunk.index, attemptCount, errorCode: safeErrorCode(error), nextRunAt: nextRunAt.toISOString() });
       throw new JobRetryScheduledError(nextRunAt);
     }
+    const saved = await input.repository.saveCompletedChunk(input.lease, {
+      ...checkpoint,
+      latencyMs: Date.now() - startedAt,
+      providerRequestId: null,
+      transcript: result.transcript,
+    });
+    assertWritten(saved, input.lease);
+    completed.set(chunk.index, { ...checkpoint, transcript: result.transcript });
+    input.onEvent?.({
+      event: "call_processing.chunk_completed",
+      jobId: input.job.id,
+      chunkIndex: chunk.index,
+      totalChunks: manifests.length,
+      attemptCount,
+      elapsedMs: Date.now() - startedAt,
+    });
   }
 
   const ordered = [...completed.values()].sort((left, right) => left.index - right.index);

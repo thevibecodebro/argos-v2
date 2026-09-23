@@ -22,6 +22,22 @@ describe("withJobLease", () => {
     vi.useRealTimers();
   });
 
+  it("treats renewal transport errors as unknown ownership", async () => {
+    vi.useFakeTimers();
+    const work = withJobLease({
+      heartbeatIntervalMs: 1_000,
+      lease: { jobId: "job-1", token: "token-1" },
+      renewLease: vi.fn().mockRejectedValue(new Error("database connection reset")),
+      work: (signal) => new Promise((_resolve, reject) => {
+        signal.addEventListener("abort", () => reject(signal.reason));
+      }),
+    });
+    const assertion = expect(work).rejects.toBeInstanceOf(LostJobLeaseError);
+    await vi.advanceTimersByTimeAsync(1_000);
+    await assertion;
+    vi.useRealTimers();
+  });
+
   it("clears the heartbeat when work completes", async () => {
     vi.useFakeTimers();
     const renewLease = vi.fn().mockResolvedValue("written");
