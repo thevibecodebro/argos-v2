@@ -109,4 +109,36 @@ describe("calls repositories", () => {
       { onConflict: "call_id" },
     );
   });
+
+  it("retries V2 jobs through the atomic Supabase function", async () => {
+    const maybeSingle = vi.fn().mockResolvedValue({
+      data: {
+        id: "job-v2",
+        status: "pending",
+        attempt_count: 2,
+        max_attempts: 3,
+        processing_version: 2,
+        failure_count: 0,
+        max_failures: 3,
+        completed_chunks: 0,
+        total_chunks: null,
+        next_run_at: "2026-09-23T14:30:00.000Z",
+        last_stage: null,
+        last_error: null,
+        updated_at: "2026-09-23T14:30:00.000Z",
+      },
+      error: null,
+    });
+    const rpc = vi.fn().mockReturnValue({ maybeSingle });
+    const repository = new SupabaseCallsRepository({ rpc } as never);
+
+    await expect(repository.retryCallProcessingJob("call-v2")).resolves.toMatchObject({
+      id: "job-v2",
+      processingVersion: 2,
+      status: "pending",
+    });
+    expect(rpc).toHaveBeenCalledWith("retry_call_processing_job", {
+      target_call_id: "call-v2",
+    });
+  });
 });

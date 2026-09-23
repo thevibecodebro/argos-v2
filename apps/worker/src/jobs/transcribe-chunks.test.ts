@@ -44,7 +44,7 @@ describe("transcribeChunksResumable", () => {
     const run = () => transcribeChunksResumable({
       chunks: [0, 1, 2, 3].map((index) => ({ filePath: `/tmp/${index}.mp3`, startSeconds: index * 10, endSeconds: (index + 1) * 10 })),
       durationSeconds: 40,
-      job: { generation: 1, id: "job-1", sourceSizeBytes: 40 },
+      job: { generation: 1, id: "job-1", sourceSizeBytes: 40, sourceStoragePath: "recordings/job-1/source.mp3" },
       lease: { jobId: "job-1", token: "token-1" },
       model: "model-1",
       now: () => new Date("2026-09-21T12:00:00Z"),
@@ -59,6 +59,10 @@ describe("transcribeChunksResumable", () => {
     await expect(run()).resolves.toMatchObject({ durationSeconds: 40 });
     expect(calls).toEqual([0, 1, 2, 2, 3]);
     expect(repository.saveTranscriptCheckpoint).toHaveBeenCalledTimes(1);
+    expect(repository.saveTranscriptCheckpoint).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ resumeFingerprint: expect.any(String) }),
+    );
   });
 
   it("does not dispatch another provider request after the chunk attempt limit", async () => {
@@ -69,7 +73,7 @@ describe("transcribeChunksResumable", () => {
     await expect(transcribeChunksResumable({
       chunks: [{ filePath: "/tmp/0.mp3", startSeconds: 0, endSeconds: 10 }],
       durationSeconds: 10,
-      job: { generation: 1, id: "job-exhausted", sourceSizeBytes: 40 },
+      job: { generation: 1, id: "job-exhausted", sourceSizeBytes: 40, sourceStoragePath: "recordings/job-exhausted/source.mp3" },
       lease: { jobId: "job-exhausted", token: "token-1" },
       model: "model-1",
       readFile: vi.fn(async (path) => Buffer.from(String(path))) as never,

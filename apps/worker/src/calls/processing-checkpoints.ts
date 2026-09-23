@@ -41,3 +41,14 @@ export function createManifestFingerprint(input: {
 }) {
   return sha256(stableJson(input));
 }
+
+export function createTranscriptResumeFingerprint(input: {
+  generation: number;
+  model: string;
+  normalizationVersion: string;
+  sourceSizeBytes: number | null;
+  sourceStoragePath: string;
+  transcriptFormatVersion: number;
+}) {
+  return fingerprintConfiguration(input);
+}

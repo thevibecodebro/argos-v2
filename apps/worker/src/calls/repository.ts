@@ -529,6 +529,7 @@ export class CallProcessingRepository {
     durationSeconds: number;
     fingerprint: string;
     generation: number;
+    resumeFingerprint: string;
     transcript: TranscriptLine[];
     transcriptHash: string;
   }): Promise<WriteOutcome> {
@@ -537,7 +538,8 @@ export class CallProcessingRepository {
         job_id, manifest_fingerprint, transcript_hash, duration_seconds, merged_transcript, configuration, updated_at
       )
       select ${lease.jobId}, ${input.fingerprint}, ${input.transcriptHash}, ${input.durationSeconds},
-        ${JSON.stringify(input.transcript)}::jsonb, ${JSON.stringify({ generation: input.generation })}::jsonb, now()
+        ${JSON.stringify(input.transcript)}::jsonb,
+        ${JSON.stringify({ generation: input.generation, resumeFingerprint: input.resumeFingerprint })}::jsonb, now()
       where exists (
         select 1 from call_processing_jobs
         where id = ${lease.jobId} and lease_token = ${lease.token}::uuid
@@ -545,10 +547,56 @@ export class CallProcessingRepository {
       )
       on conflict (job_id, manifest_fingerprint) do update
         set transcript_hash = excluded.transcript_hash, duration_seconds = excluded.duration_seconds,
-          merged_transcript = excluded.merged_transcript, updated_at = now()
+          merged_transcript = excluded.merged_transcript, configuration = excluded.configuration, updated_at = now()
       returning id
     `));
     return rows.length === 1 ? "written" : "lost_lease";
+  }
+
+  async findReusableTranscriptCheckpoint(
+    jobId: string,
+    generation: number,
+    resumeFingerprint: string,
+    expected: {
+      buyerPersonalityFingerprint: string | null;
+      evaluationFingerprint: string | null;
+    },
+  ) {
+    const rows = extractRows<{
+      durationSeconds: number;
+      buyerPersonality: null | { generatedAt: string; model: string; profile: BuyerPersonalityProfile; status: "ready" | "needs_review" };
+      evaluation: CallEvaluation | null;
+      fingerprint: string;
+      transcript: TranscriptLine[];
+    }>(await this.db.execute(sql`
+      select duration_seconds as "durationSeconds", manifest_fingerprint as fingerprint,
+        merged_transcript as transcript,
+        case
+          when configuration ->> 'buyerPersonalityFingerprint' = ${expected.buyerPersonalityFingerprint}::text
+          then buyer_personality
+          else null
+        end as "buyerPersonality",
+        case
+          when configuration ->> 'evaluationFingerprint' = ${expected.evaluationFingerprint}::text
+          then evaluation
+          else null
+        end as evaluation
+      from call_processing_checkpoints
+      where job_id = ${jobId}
+        and configuration ->> 'generation' = ${String(generation)}
+        and configuration ->> 'resumeFingerprint' = ${resumeFingerprint}
+        and duration_seconds is not null and merged_transcript is not null
+      order by updated_at desc
+      limit 1
+    `));
+    const row = rows[0];
+    return row ? {
+      ...row,
+      buyerPersonality: row.buyerPersonality ? {
+        ...row.buyerPersonality,
+        generatedAt: new Date(row.buyerPersonality.generatedAt),
+      } : null,
+    } : null;
   }
 
   async findTranscriptCheckpoint(

@@ -275,23 +275,8 @@ export class SupabaseCallsRepository implements CallsRepository {
 
   async retryCallProcessingJob(callId: string) {
     const supabase: any = this.supabase;
-    const now = new Date().toISOString();
     const { data, error } = await supabase
-      .from("call_processing_jobs")
-      .update({
-        status: "pending",
-        attempt_count: 0,
-        next_run_at: now,
-        locked_at: null,
-        lock_expires_at: null,
-        last_stage: null,
-        last_error: null,
-        updated_at: now,
-      })
-      .eq("call_id", callId)
-      .eq("status", "failed")
-      .eq("processing_version", 1)
-      .select("id, status, attempt_count, max_attempts, processing_version, failure_count, max_failures, completed_chunks, total_chunks, next_run_at, last_stage, last_error, updated_at")
+      .rpc("retry_call_processing_job", { target_call_id: callId })
       .maybeSingle();
 
     if (error) {
@@ -300,15 +285,6 @@ export class SupabaseCallsRepository implements CallsRepository {
 
     if (!data) {
       return null;
-    }
-
-    const { error: callError } = await supabase
-      .from("calls")
-      .update({ status: "uploaded" })
-      .eq("id", callId);
-
-    if (callError) {
-      throw new Error(callError.message);
     }
 
     return mapProcessingJob(data);

@@ -7,6 +7,7 @@ import {
 } from "@argos-v2/call-processing";
 import {
   createManifestFingerprint,
+  createTranscriptResumeFingerprint,
   sha256,
   type ChunkCheckpoint,
   type Lease,
@@ -30,6 +31,9 @@ export class ChunkAttemptsExhaustedError extends Error {
 
 type Chunk = { endSeconds: number; filePath: string; startSeconds: number };
 
+export const TRANSCRIPTION_NORMALIZATION_VERSION = "mono-16khz-32kbps-v1";
+export const TRANSCRIPT_FORMAT_VERSION = 1;
+
 type ResumableChunkRepository = {
   beginChunkAttempt(lease: Lease, input: Omit<ChunkCheckpoint, "transcript">): Promise<number | "lost_lease">;
   listCompletedChunks(jobId: string, fingerprint: string): Promise<ChunkCheckpoint[]>;
@@ -41,7 +45,8 @@ type ResumableChunkRepository = {
   }): Promise<WriteOutcome>;
   saveCompletedChunk(lease: Lease, input: ChunkCheckpoint & { latencyMs: number; providerRequestId: string | null }): Promise<WriteOutcome>;
   saveTranscriptCheckpoint(lease: Lease, input: {
-    durationSeconds: number; fingerprint: string; generation: number; transcript: TranscriptLine[]; transcriptHash: string;
+    durationSeconds: number; fingerprint: string; generation: number; resumeFingerprint: string;
+    transcript: TranscriptLine[]; transcriptHash: string;
   }): Promise<WriteOutcome>;
 };
 
@@ -61,7 +66,7 @@ function safeErrorCode(error: unknown) {
 export async function transcribeChunksResumable(input: {
   chunks: Chunk[];
   durationSeconds: number;
-  job: { generation: number; id: string; sourceSizeBytes: number | null };
+  job: { generation: number; id: string; sourceSizeBytes: number | null; sourceStoragePath: string };
   lease: Lease;
   maxAttempts?: number;
   model: string;
@@ -87,9 +92,9 @@ export async function transcribeChunksResumable(input: {
     chunks: manifests.map(({ audioHash, endSeconds, startSeconds }) => ({ audioHash, endSeconds, startSeconds })),
     generation: input.job.generation,
     model: input.model,
-    normalizationVersion: "mono-16khz-32kbps-v1",
+    normalizationVersion: TRANSCRIPTION_NORMALIZATION_VERSION,
     sourceSizeBytes: input.job.sourceSizeBytes,
-    transcriptFormatVersion: 1,
+    transcriptFormatVersion: TRANSCRIPT_FORMAT_VERSION,
   });
   const completed = new Map(
     (await input.repository.listCompletedChunks(input.job.id, fingerprint)).map((chunk) => [chunk.index, chunk]),
@@ -208,6 +213,14 @@ export async function transcribeChunksResumable(input: {
     durationSeconds: input.durationSeconds,
     fingerprint,
     generation: input.job.generation,
+    resumeFingerprint: createTranscriptResumeFingerprint({
+      generation: input.job.generation,
+      model: input.model,
+      normalizationVersion: TRANSCRIPTION_NORMALIZATION_VERSION,
+      sourceSizeBytes: input.job.sourceSizeBytes,
+      sourceStoragePath: input.job.sourceStoragePath,
+      transcriptFormatVersion: TRANSCRIPT_FORMAT_VERSION,
+    }),
     transcript,
     transcriptHash: sha256(JSON.stringify(transcript)),
   }), input.lease);

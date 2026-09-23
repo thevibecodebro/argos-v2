@@ -79,6 +79,50 @@ revoke all on table public.call_processing_checkpoints from public, anon, authen
 grant select, insert, update, delete on table public.call_processing_chunks to service_role;
 grant select, insert, update, delete on table public.call_processing_checkpoints to service_role;
 
+create or replace function public.retry_call_processing_job(target_call_id uuid)
+returns setof public.call_processing_jobs
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update public.calls
+  set status = 'uploaded'
+  where id = target_call_id
+    and exists (
+      select 1 from public.call_processing_jobs
+      where call_id = target_call_id
+        and status = 'failed'
+        and (processing_version = 2 or attempt_count < max_attempts)
+    );
+
+  return query
+  update public.call_processing_jobs
+  set status = 'pending',
+    generation = case when processing_version = 2 then generation + 1 else generation end,
+    failure_count = 0,
+    completed_chunks = 0,
+    total_chunks = null,
+    next_run_at = now(),
+    locked_at = null,
+    lock_expires_at = null,
+    lease_token = null,
+    heartbeat_at = null,
+    processing_started_at = null,
+    processing_deadline_at = null,
+    last_stage = null,
+    last_error = null,
+    updated_at = now()
+  where call_id = target_call_id
+    and status = 'failed'
+    and (processing_version = 2 or attempt_count < max_attempts)
+  returning *;
+end;
+$$;
+
+revoke all on function public.retry_call_processing_job(uuid) from public, anon, authenticated;
+grant execute on function public.retry_call_processing_job(uuid) to service_role;
+
 alter table public.notifications add column if not exists dedupe_key text;
 create unique index if not exists notifications_dedupe_key_uq
   on public.notifications (dedupe_key) where dedupe_key is not null;

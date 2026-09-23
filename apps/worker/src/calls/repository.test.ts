@@ -389,6 +389,7 @@ describeWithDatabase("CallProcessingRepository", () => {
         durationSeconds: 600,
         fingerprint,
         generation: 1,
+        resumeFingerprint: "source-and-transcription-v1",
         transcript,
         transcriptHash: "transcript-hash",
       })).resolves.toBe("written");
@@ -406,6 +407,14 @@ describeWithDatabase("CallProcessingRepository", () => {
         buyerPersonalityFingerprint: null,
         evaluationFingerprint: "scoring-v2",
       })).resolves.toMatchObject({ evaluation: null });
+      await expect(repository.findReusableTranscriptCheckpoint(job.id, 1, "source-and-transcription-v1", {
+        buyerPersonalityFingerprint: null,
+        evaluationFingerprint: "scoring-v1",
+      })).resolves.toMatchObject({ evaluation: { overallScore: 90 }, fingerprint });
+      await expect(repository.findReusableTranscriptCheckpoint(job.id, 1, "different-source", {
+        buyerPersonalityFingerprint: null,
+        evaluationFingerprint: "scoring-v1",
+      })).resolves.toBeNull();
     });
   });
 

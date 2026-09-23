@@ -490,8 +490,7 @@ describe("processCallJob", () => {
     }));
   });
 
-  it("resumes downstream work only after recomputing the exact version 2 fingerprint", async () => {
-    const providerTranscript = [{ timestampSeconds: 0, speaker: "Speaker A", text: "Hello" }];
+  it("resumes downstream work from a checkpoint pinned to the same source and transcription configuration", async () => {
     const transcript = [{ timestampSeconds: 0, speaker: "Chunk 1 Speaker A", text: "Hello" }];
     const evaluation = {
       rubricId: null, confidence: "high", callStageReached: "commitment", overallScore: 90,
@@ -501,7 +500,7 @@ describe("processCallJob", () => {
     };
     const repository = {
       getCallProcessingCapabilities: vi.fn().mockResolvedValue({ canGenerateBuyerPersonality: false, canScoreCall: true }),
-      findTranscriptCheckpoint: vi.fn().mockResolvedValue({
+      findReusableTranscriptCheckpoint: vi.fn().mockResolvedValue({
         buyerPersonality: null,
         durationSeconds: 600,
         evaluation,
@@ -522,6 +521,8 @@ describe("processCallJob", () => {
     };
     const downloadSourceAsset = vi.fn().mockResolvedValue("/tmp/source.mp4");
     const scoreTranscriptFromLines = vi.fn();
+    const transcribeAudioBuffer = vi.fn();
+    const mkdtemp = vi.fn();
 
     await processCallJob({
       job: {
@@ -532,6 +533,7 @@ describe("processCallJob", () => {
       } as never,
       repository: repository as never,
       downloadSourceAsset,
+      mkdtemp,
       normalizeAudio: vi.fn().mockResolvedValue({
         outputPath: "/tmp/normalized.mp3",
         sizeBytes: 1024,
@@ -541,12 +543,14 @@ describe("processCallJob", () => {
         { filePath: "/tmp/chunk-0.mp3", startSeconds: 0, endSeconds: 600 },
       ]),
       readFile: vi.fn().mockResolvedValue(Buffer.from("audio")),
-      transcribeAudioBuffer: vi.fn().mockResolvedValue({ durationSeconds: 600, transcript: providerTranscript }),
+      transcribeAudioBuffer,
       scoreTranscriptFromLines,
     });
 
-    expect(downloadSourceAsset).toHaveBeenCalledTimes(1);
-    expect(repository.findTranscriptCheckpoint).toHaveBeenCalledWith(
+    expect(downloadSourceAsset).not.toHaveBeenCalled();
+    expect(mkdtemp).not.toHaveBeenCalled();
+    expect(transcribeAudioBuffer).not.toHaveBeenCalled();
+    expect(repository.findReusableTranscriptCheckpoint).toHaveBeenCalledWith(
       "job-v2",
       1,
       expect.any(String),
@@ -565,6 +569,7 @@ describe("processCallJob", () => {
       getCallProcessingCapabilities: vi.fn().mockResolvedValue({ canGenerateBuyerPersonality: false, canScoreCall: true }),
       beginChunkAttempt: vi.fn().mockResolvedValue(4),
       listCompletedChunks: vi.fn().mockResolvedValue([]),
+      findReusableTranscriptCheckpoint: vi.fn().mockResolvedValue(null),
       setChunkManifest: vi.fn().mockResolvedValue("written"),
       saveChunkFailure: vi.fn().mockResolvedValue("written"),
       markV2RetryableFailure: vi.fn().mockResolvedValue("written"),

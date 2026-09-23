@@ -20,11 +20,17 @@ import {
 } from "../media/chunk-audio";
 import { normalizeAudio } from "../media/normalize-audio";
 import type { CallProcessingRepository } from "../calls/repository";
-import { fingerprintConfiguration, type Lease } from "../calls/processing-checkpoints";
+import {
+  createTranscriptResumeFingerprint,
+  fingerprintConfiguration,
+  type Lease,
+} from "../calls/processing-checkpoints";
 import { LostJobLeaseError } from "./job-lease";
 import {
   ChunkAttemptsExhaustedError,
   JobRetryScheduledError,
+  TRANSCRIPTION_NORMALIZATION_VERSION,
+  TRANSCRIPT_FORMAT_VERSION,
   transcribeChunksResumable,
 } from "./transcribe-chunks";
 
@@ -45,6 +51,7 @@ type ProcessCallJobInput = {
     | "createNotification"
     | "findRubricById"
     | "findTranscriptCheckpoint"
+    | "findReusableTranscriptCheckpoint"
     | "finalizeV2Job"
     | "getCallProcessingCapabilities"
     | "markJobComplete"
@@ -259,10 +266,6 @@ export async function processCallJob(input: ProcessCallJobInput) {
   const env = input.env ?? getWorkerEnv();
   const ffmpegBinary = resolveFfmpegBinary(env);
 
-  if (!ffmpegBinary) {
-    throw new Error("FFmpeg binary is not configured. Set FFMPEG_BINARY or install ffmpeg-static.");
-  }
-
   const downloadSourceAssetImpl = input.downloadSourceAsset ?? downloadSourceAsset;
   const normalizeAudioImpl = input.normalizeAudio ?? normalizeAudio;
   const transcribeAudioBufferImpl = input.transcribeAudioBuffer ?? transcribeAudioBuffer;
@@ -274,23 +277,70 @@ export async function processCallJob(input: ProcessCallJobInput) {
   const readFileImpl = input.readFile ?? readFile;
   const mkdtempImpl = input.mkdtemp ?? mkdtemp;
   const rmImpl = input.rm ?? rm;
-  const tempDir = await mkdtempImpl(join(tmpdir(), `call-job-${input.job.callId}-`));
-  const sourceName =
-    ("sourceFileName" in input.job &&
-    typeof input.job.sourceFileName === "string" &&
-    input.job.sourceFileName.trim().length > 0
-      ? input.job.sourceFileName
-      : basename(input.job.sourceStoragePath)) || "source.bin";
-  const sourceExtension = extname(sourceName) || ".bin";
-  const sourcePath = join(tempDir, `source${sourceExtension}`);
-  const normalizedPath = join(tempDir, "normalized.mp3");
+  const transcriptionModel = process.env.OPENAI_CALL_TRANSCRIPTION_MODEL?.trim()
+    || "gpt-4o-transcribe-diarize";
+  let tempDir: string | null = null;
   let currentStage: JobStage = "download";
 
   try {
+    const scoringRubric = capabilities.canScoreCall
+      ? await resolveScoringRubric({ job: input.job, repository: input.repository })
+      : null;
+    const buyerPersonalityFingerprint = capabilities.canGenerateBuyerPersonality
+      ? fingerprintConfiguration({
+          callTopic: input.job.callTopic,
+          model: process.env.OPENAI_BUYER_PERSONALITY_MODEL?.trim()
+            || process.env.OPENAI_TRAINING_MODEL?.trim()
+            || "gpt-5-mini",
+          promptVersion: BUYER_PERSONALITY_PROMPT_VERSION,
+          schemaVersion: BUYER_PERSONALITY_SCHEMA_VERSION,
+        })
+      : null;
+    const evaluationFingerprint = scoringRubric
+      ? fingerprintConfiguration({
+          callTopic: input.job.callTopic,
+          model: process.env.OPENAI_CALL_SCORING_MODEL?.trim() || "gpt-5-mini",
+          promptVersion: CALL_SCORING_PROMPT_VERSION,
+          rubric: scoringRubric,
+        })
+      : null;
+    const transcriptResumeFingerprint = input.job.processingVersion === 2
+      ? createTranscriptResumeFingerprint({
+          generation: input.job.generation,
+          model: transcriptionModel,
+          normalizationVersion: TRANSCRIPTION_NORMALIZATION_VERSION,
+          sourceSizeBytes: input.job.sourceSizeBytes,
+          sourceStoragePath: input.job.sourceStoragePath,
+          transcriptFormatVersion: TRANSCRIPT_FORMAT_VERSION,
+        })
+      : null;
     await updateCallStatusSafely("transcribing");
 
+    let resumedCheckpoint = input.job.processingVersion === 2 && transcriptResumeFingerprint
+      ? await input.repository.findReusableTranscriptCheckpoint(
+          input.job.id,
+          input.job.generation,
+          transcriptResumeFingerprint,
+          { buyerPersonalityFingerprint, evaluationFingerprint },
+        )
+      : null;
     let transcription: { durationSeconds: number; fingerprint?: string; transcript: TranscriptLine[] };
-    {
+    if (resumedCheckpoint) {
+      transcription = resumedCheckpoint;
+    } else {
+      if (!ffmpegBinary) {
+        throw new Error("FFmpeg binary is not configured. Set FFMPEG_BINARY or install ffmpeg-static.");
+      }
+      tempDir = await mkdtempImpl(join(tmpdir(), `call-job-${input.job.callId}-`));
+      const sourceName =
+        ("sourceFileName" in input.job &&
+        typeof input.job.sourceFileName === "string" &&
+        input.job.sourceFileName.trim().length > 0
+          ? input.job.sourceFileName
+          : basename(input.job.sourceStoragePath)) || "source.bin";
+      const sourceExtension = extname(sourceName) || ".bin";
+      const sourcePath = join(tempDir, `source${sourceExtension}`);
+      const normalizedPath = join(tempDir, "normalized.mp3");
       currentStage = "download";
       const downloadedSourcePath = await downloadSourceAssetImpl({
         expectedSizeBytes: input.job.sourceSizeBytes,
@@ -323,9 +373,14 @@ export async function processCallJob(input: ProcessCallJobInput) {
         transcription = await transcribeChunksResumable({
           chunks,
           durationSeconds: normalized.durationSeconds,
-          job: { generation: input.job.generation, id: input.job.id, sourceSizeBytes: input.job.sourceSizeBytes },
+          job: {
+            generation: input.job.generation,
+            id: input.job.id,
+            sourceSizeBytes: input.job.sourceSizeBytes,
+            sourceStoragePath: input.job.sourceStoragePath,
+          },
           lease: { jobId: input.job.id, token: input.job.leaseToken },
-          model: process.env.OPENAI_CALL_TRANSCRIPTION_MODEL?.trim() || "gpt-4o-transcribe-diarize",
+          model: transcriptionModel,
           onEvent: (event) => console.info(JSON.stringify(event)),
           readFile: readFileImpl,
           repository: input.repository,
@@ -349,29 +404,7 @@ export async function processCallJob(input: ProcessCallJobInput) {
         });
       }
     }
-
-    const scoringRubric = capabilities.canScoreCall
-      ? await resolveScoringRubric({ job: input.job, repository: input.repository })
-      : null;
-    const buyerPersonalityFingerprint = capabilities.canGenerateBuyerPersonality
-      ? fingerprintConfiguration({
-          callTopic: input.job.callTopic,
-          model: process.env.OPENAI_BUYER_PERSONALITY_MODEL?.trim()
-            || process.env.OPENAI_TRAINING_MODEL?.trim()
-            || "gpt-5-mini",
-          promptVersion: BUYER_PERSONALITY_PROMPT_VERSION,
-          schemaVersion: BUYER_PERSONALITY_SCHEMA_VERSION,
-        })
-      : null;
-    const evaluationFingerprint = scoringRubric
-      ? fingerprintConfiguration({
-          callTopic: input.job.callTopic,
-          model: process.env.OPENAI_CALL_SCORING_MODEL?.trim() || "gpt-5-mini",
-          promptVersion: CALL_SCORING_PROMPT_VERSION,
-          rubric: scoringRubric,
-        })
-      : null;
-    const resumedCheckpoint = input.job.processingVersion === 2 && transcription.fingerprint
+    resumedCheckpoint ??= input.job.processingVersion === 2 && transcription.fingerprint
       ? await input.repository.findTranscriptCheckpoint(
           input.job.id,
           input.job.generation,
@@ -527,6 +560,8 @@ export async function processCallJob(input: ProcessCallJobInput) {
     }
     throw error;
   } finally {
-    await rmImpl(tempDir, { recursive: true, force: true }).catch(() => undefined);
+    if (tempDir) {
+      await rmImpl(tempDir, { recursive: true, force: true }).catch(() => undefined);
+    }
   }
 }
