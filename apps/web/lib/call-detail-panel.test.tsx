@@ -331,6 +331,54 @@ describe("CallDetailPanel", () => {
     expect(html).not.toContain(">play_arrow</span>");
   });
 
+  it("renders fluid speaker labels while keeping raw IDs in buyer selection values", async () => {
+    const html = await renderCallDetailPanel({
+      call: {
+        ...baseCall,
+        transcript: [{
+          timestampSeconds: 0,
+          speaker: "Chunk 2 Speaker A",
+          text: "I need to compare the options.",
+        }],
+        buyerProfileStatus: "needs_review",
+        buyerPersonalityProfile: {
+          schemaVersion: 1,
+          confidence: "low",
+          buyerSpeakerLabels: ["Chunk 2 Speaker A"],
+          speakerRationale: "Review required",
+          summary: "Buyer is comparing options.",
+          communicationStyle: {
+            directness: "medium",
+            warmth: "medium",
+            skepticism: "medium",
+            patience: "medium",
+            detailOrientation: "medium",
+            decisionStyle: "mixed",
+            questionStyle: "Comparative",
+          },
+          motivations: [],
+          concerns: [],
+          objections: [],
+          decisionCriteria: [],
+          engagementTriggers: [],
+          resistanceTriggers: [],
+          languagePatterns: [],
+          roleplayBehavior: {
+            openingPosture: "Evaluating",
+            conversationalRules: [],
+            escalationRules: [],
+            evidenceNeededToMoveForward: [],
+            realisticResolutionConditions: [],
+          },
+        },
+      },
+    });
+
+    expect(html).toContain(">Speaker A</span>");
+    expect(html).not.toContain(">Chunk 2 Speaker A</span>");
+    expect(html).toContain('value="Chunk 2 Speaker A" selected="">Speaker A</option>');
+  });
+
   it("renders highlight notes for read-only viewers without management controls", async () => {
     const html = await renderCallDetailPanel({ canManage: false });
 

@@ -18,6 +18,7 @@ export function BuyerPersonalityPanel({
   speakerLabels: string[];
   speakerSamples?: Record<string, string[]>;
 }) {
+  const formatSpeakerLabel = (speaker: string) => speaker.replace(/^Chunk \d+ (Speaker .+)$/, "$1");
   const router = useRouter();
   const [selectedSpeaker, setSelectedSpeaker] = useState(profile?.buyerSpeakerLabels[0] ?? speakerLabels[0] ?? "");
   const [busy, setBusy] = useState(false);
@@ -80,7 +81,9 @@ export function BuyerPersonalityPanel({
             <label className="block text-sm font-semibold text-[var(--forge-text)]">
               Which speaker is the buyer?
               <select className="mt-2 w-full rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 py-2" onChange={(event) => setSelectedSpeaker(event.target.value)} value={selectedSpeaker}>
-                {speakerLabels.map((speaker) => <option key={speaker} value={speaker}>{speaker}</option>)}
+                {speakerLabels.map((speaker) => (
+                  <option key={speaker} value={speaker}>{formatSpeakerLabel(speaker)}</option>
+                ))}
               </select>
             </label>
             {(speakerSamples?.[selectedSpeaker] ?? []).length ? (

@@ -21,7 +21,7 @@ const OPENAI_TRANSCRIPTION_TIMEOUT_MS = 120_000;
 const OPENAI_CHAT_COMPLETION_TIMEOUT_MS = 60_000;
 const MAX_SCORING_TRANSCRIPT_PROMPT_CHARS = 60_000;
 
-export type TranscriptionFailureCategory =
+export type ProviderFailureCategory =
   | "aborted"
   | "authentication"
   | "invalid_request"
@@ -31,7 +31,26 @@ export type TranscriptionFailureCategory =
   | "server"
   | "timeout";
 
-export class TranscriptionRequestError extends Error {
+export type TranscriptionFailureCategory = ProviderFailureCategory;
+
+export class ProviderRequestError extends Error {
+  constructor(
+    message: string,
+    readonly details: {
+      category: ProviderFailureCategory;
+      elapsedMs: number;
+      providerRequestId: string | null;
+      retryAfterMs: number | null;
+      status: number | null;
+    },
+    options?: ErrorOptions,
+  ) {
+    super(message, options);
+    this.name = "ProviderRequestError";
+  }
+}
+
+export class TranscriptionRequestError extends ProviderRequestError {
   constructor(
     message: string,
     readonly details: {
@@ -43,7 +62,7 @@ export class TranscriptionRequestError extends Error {
     },
     options?: ErrorOptions,
   ) {
-    super(message, options);
+    super(message, details, options);
     this.name = "TranscriptionRequestError";
   }
 }
@@ -55,7 +74,7 @@ function readRetryAfterMs(value: string | null): number | null {
   return Number.isNaN(retryAt) ? null : Math.max(0, retryAt - Date.now());
 }
 
-function classifyTranscriptionStatus(status: number, body: string): TranscriptionFailureCategory {
+export function classifyProviderStatus(status: number, body: string): ProviderFailureCategory {
   if (status === 401 || status === 403) return "authentication";
   if (status === 408) return "timeout";
   if (status === 429) {
@@ -63,6 +82,45 @@ function classifyTranscriptionStatus(status: number, body: string): Transcriptio
   }
   if (status >= 500) return "server";
   return "invalid_request";
+}
+
+export function createProviderHttpError(
+  operation: string,
+  response: Response,
+  body: string,
+  startedAt: number,
+) {
+  return new ProviderRequestError(
+    `${operation} provider rejected the request with HTTP ${response.status}`,
+    {
+      category: classifyProviderStatus(response.status, body),
+      elapsedMs: Date.now() - startedAt,
+      providerRequestId: response.headers.get("x-request-id"),
+      retryAfterMs: readRetryAfterMs(response.headers.get("retry-after")),
+      status: response.status,
+    },
+  );
+}
+
+export function createProviderTransportError(
+  operation: string,
+  error: unknown,
+  startedAt: number,
+  signal?: AbortSignal,
+) {
+  const aborted = signal?.aborted === true;
+  const timedOut = error instanceof Error && /timed out/i.test(error.message);
+  return new ProviderRequestError(
+    aborted ? `${operation} request was aborted` : timedOut ? `${operation} request timed out` : `${operation} network request failed`,
+    {
+      category: aborted ? "aborted" : timedOut ? "timeout" : "network",
+      elapsedMs: Date.now() - startedAt,
+      providerRequestId: null,
+      retryAfterMs: null,
+      status: null,
+    },
+    { cause: error },
+  );
 }
 
 export type CallScoringInput = {
@@ -290,7 +348,7 @@ export async function transcribeAudioBuffer(input: {
     throw new TranscriptionRequestError(
       `Transcription provider rejected the request with HTTP ${response.status}`,
       {
-        category: classifyTranscriptionStatus(response.status, errorBody),
+        category: classifyProviderStatus(response.status, errorBody),
         elapsedMs: Date.now() - startedAt,
         providerRequestId: response.headers.get("x-request-id"),
         retryAfterMs: readRetryAfterMs(response.headers.get("retry-after")),
@@ -312,7 +370,9 @@ export async function scoreTranscriptFromLines(input: {
 }): Promise<CallEvaluation> {
   const resolved = resolveCallScoringConfig(input.config);
   const rubric = validateScoringRubric(input.rubric ?? DEFAULT_CALL_SCORING_RUBRIC);
-  const { response, body } = await fetchWithTimeout<
+  const startedAt = Date.now();
+  let response: Response;
+  let body:
     | string
     | {
         choices?: Array<{
@@ -320,46 +380,50 @@ export async function scoreTranscriptFromLines(input: {
             content?: string | null;
           };
         }>;
-      }
-  >(
-    `${resolved.baseUrl}/chat/completions`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resolved.apiKey}`,
-        "Content-Type": "application/json",
+      };
+  try {
+    ({ response, body } = await fetchWithTimeout(
+      `${resolved.baseUrl}/chat/completions`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resolved.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: resolved.scoringModel,
+          response_format: { type: "json_object" },
+          messages: [
+            {
+              role: "system",
+              content: buildCallScoringSystemPrompt(rubric),
+            },
+            {
+              role: "user",
+              content: buildScoringUserPrompt(input),
+            },
+          ],
+        }),
       },
-      body: JSON.stringify({
-        model: resolved.scoringModel,
-        response_format: { type: "json_object" },
-        messages: [
-          {
-            role: "system",
-            content: buildCallScoringSystemPrompt(rubric),
-          },
-          {
-            role: "user",
-            content: buildScoringUserPrompt(input),
-          },
-        ],
-      }),
-    },
-    OPENAI_CHAT_COMPLETION_TIMEOUT_MS,
-    (response) =>
-      response.ok
-        ? (response.json() as Promise<{
-            choices?: Array<{
-              message?: {
-                content?: string | null;
-              };
-            }>;
-          }>)
-        : response.text().catch(() => ""),
-    input.signal,
-  );
+      OPENAI_CHAT_COMPLETION_TIMEOUT_MS,
+      (response) =>
+        response.ok
+          ? response.json()
+          : response.text().catch(() => ""),
+      input.signal,
+    ));
+  } catch (error) {
+    if (error instanceof ProviderRequestError) throw error;
+    throw createProviderTransportError("Call scoring", error, startedAt, input.signal);
+  }
 
   if (!response.ok) {
-    throw new Error(`OpenAI call scoring request failed: ${response.status}`);
+    throw createProviderHttpError(
+      "Call scoring",
+      response,
+      typeof body === "string" ? body : "",
+      startedAt,
+    );
   }
 
   const payload = body as {

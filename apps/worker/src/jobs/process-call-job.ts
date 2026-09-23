@@ -5,6 +5,7 @@ import ffmpegStatic from "ffmpeg-static";
 import {
   BUYER_PERSONALITY_SCHEMA_VERSION,
   DEFAULT_CALL_SCORING_RUBRIC,
+  ProviderRequestError,
   extractBuyerPersonalityFromTranscript,
   mergeTranscriptLines,
   scoreTranscriptFromLines,
@@ -91,10 +92,20 @@ function resolveFfmpegBinary(env: WorkerEnv) {
   return env.ffmpegBinary ?? ffmpegStatic ?? null;
 }
 
-function isRetryableError(message: string, attemptCount: number, maxAttempts: number) {
+export function isRetryableProcessingError(
+  error: unknown,
+  attemptCount: number,
+  maxAttempts: number,
+) {
   if (attemptCount >= maxAttempts) {
     return false;
   }
+
+  if (error instanceof ProviderRequestError) {
+    return ["network", "rate_limit", "server", "timeout"].includes(error.details.category);
+  }
+
+  const message = error instanceof Error ? error.message : String(error);
 
   return /429|5\d\d|timeout|timed out|rate limit|temporar|ECONNRESET|fetch failed/i.test(
     message,
@@ -182,7 +193,7 @@ async function classifyAndPersistFailure(input: {
   const message = input.error instanceof Error ? input.error.message : String(input.error);
   const now = new Date();
 
-  if (isRetryableError(message, input.job.attemptCount, input.job.maxAttempts)) {
+  if (isRetryableProcessingError(input.error, input.job.attemptCount, input.job.maxAttempts)) {
     await input.repository.markRetryableFailure(input.job.id, {
       now,
       attemptCount: input.job.attemptCount,
@@ -536,7 +547,7 @@ export async function processCallJob(input: ProcessCallJobInput) {
         ? input.job.failureCount
         : 0;
       const retryable = !(error instanceof ChunkAttemptsExhaustedError)
-        && isRetryableError(message, stageFailureCount + 1, input.job.maxFailures);
+        && isRetryableProcessingError(error, stageFailureCount + 1, input.job.maxFailures);
       const outcome = retryable
         ? await input.repository.markV2RetryableFailure(lease, {
             lastError: message,

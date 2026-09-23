@@ -157,6 +157,10 @@ function initials(speaker: string) {
     .join("");
 }
 
+function formatSpeakerLabel(speaker: string) {
+  return speaker.replace(/^Chunk \d+ (Speaker .+)$/, "$1");
+}
+
 function getSpeakerSamples(transcript: CallDetail["transcript"]) {
   const samples: Record<string, string[]> = {};
   for (const line of transcript ?? []) {
@@ -642,7 +646,8 @@ export function CallDetailPanel({
         {transcriptLines.length ? (
           <div className="max-h-[520px] divide-y divide-[var(--forge-border)] overflow-y-auto">
             {transcriptLines.map((line, index) => {
-              const speakerInitials = initials(line.speaker);
+              const speakerLabel = formatSpeakerLabel(line.speaker);
+              const speakerInitials = initials(speakerLabel);
 
               return (
                 <div
@@ -654,7 +659,7 @@ export function CallDetailPanel({
                   </div>
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-semibold text-[var(--forge-text)]">{line.speaker}</span>
+                      <span className="text-sm font-semibold text-[var(--forge-text)]">{speakerLabel}</span>
                       <span className="text-xs text-[var(--forge-muted)]">
                         {formatTimestamp(line.timestampSeconds)}
                       </span>

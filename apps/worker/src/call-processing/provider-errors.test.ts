@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { transcribeAudioBuffer, TranscriptionRequestError } from "@argos-v2/call-processing";
+import {
+  extractBuyerPersonalityFromTranscript,
+  ProviderRequestError,
+  scoreTranscriptFromLines,
+  transcribeAudioBuffer,
+  TranscriptionRequestError,
+} from "@argos-v2/call-processing";
 
 const config = { apiKey: "test-key", baseUrl: "https://provider.example", transcriptionModel: "test-model" };
 
@@ -42,5 +48,32 @@ describe("transcription provider errors", () => {
     controller.abort();
     const failure = await request.catch((error) => error);
     expect(failure.details.category).toBe("aborted");
+  });
+
+  it("classifies downstream timeout and quota responses structurally", async () => {
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(new Response("request timeout", { status: 408 }))
+      .mockResolvedValueOnce(new Response(
+        JSON.stringify({ error: { code: "insufficient_quota" } }),
+        { status: 429 },
+      )));
+
+    const scoringFailure = await scoreTranscriptFromLines({
+      callTopic: "Discovery",
+      durationSeconds: 30,
+      transcript: [{ timestampSeconds: 0, speaker: "Speaker A", text: "Hello" }],
+      config,
+    }).catch((error) => error);
+    const profileFailure = await extractBuyerPersonalityFromTranscript({
+      callTopic: "Discovery",
+      durationSeconds: 30,
+      transcript: [{ timestampSeconds: 0, speaker: "Speaker A", text: "Hello" }],
+      config,
+    }).catch((error) => error);
+
+    expect(scoringFailure).toBeInstanceOf(ProviderRequestError);
+    expect(scoringFailure.details.category).toBe("timeout");
+    expect(profileFailure).toBeInstanceOf(ProviderRequestError);
+    expect(profileFailure.details.category).toBe("quota");
   });
 });

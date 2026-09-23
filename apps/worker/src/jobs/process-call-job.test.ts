@@ -1,7 +1,32 @@
+import { ProviderRequestError } from "@argos-v2/call-processing";
 import { describe, expect, it, vi } from "vitest";
-import { processCallJob } from "./process-call-job";
+import { isRetryableProcessingError, processCallJob } from "./process-call-job";
 
 describe("processCallJob", () => {
+  it("retries provider timeouts but stops on exhausted quota", () => {
+    const details = {
+      elapsedMs: 100,
+      providerRequestId: null,
+      retryAfterMs: null,
+      status: 408,
+    };
+
+    expect(isRetryableProcessingError(
+      new ProviderRequestError("timed out", { ...details, category: "timeout" }),
+      1,
+      3,
+    )).toBe(true);
+    expect(isRetryableProcessingError(
+      new ProviderRequestError("quota exhausted", {
+        ...details,
+        category: "quota",
+        status: 429,
+      }),
+      1,
+      3,
+    )).toBe(false);
+  });
+
   it("fails closed before downloading when neither processing path is enabled", async () => {
     const repository = {
       getCallProcessingCapabilities: vi.fn().mockResolvedValue({ canGenerateBuyerPersonality: false, canScoreCall: false }),
