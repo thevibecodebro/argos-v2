@@ -183,19 +183,19 @@ export class CallProcessingRepository {
     };
   }
 
-  async claimNextJob(now = new Date(), processingMaxElapsedMs = 6 * 60 * 60 * 1_000): Promise<ClaimedCallProcessingJobRecord | null> {
-    const leaseExpiresAt = new Date(now.getTime() + 15 * 60 * 1000);
-    const processingDeadlineAt = new Date(now.getTime() + processingMaxElapsedMs);
+  async claimNextJob(now: Date | null = null, processingMaxElapsedMs = 6 * 60 * 60 * 1_000): Promise<ClaimedCallProcessingJobRecord | null> {
+    const databaseNow = now ? sql`${now}::timestamptz` : sql`now()`;
+    const processingDeadlineAt = sql`${databaseNow} + (${processingMaxElapsedMs} * interval '1 millisecond')`;
     await this.db.execute(sql`
       with expired as (
         update call_processing_jobs
         set status = 'failed', last_error = 'Processing exceeded the configured elapsed-time limit',
           locked_at = null, lock_expires_at = null, lease_token = null, heartbeat_at = null,
-          updated_at = ${now}
+          updated_at = ${databaseNow}
         where processing_version = 2
           and status in ('pending', 'retrying', 'running')
           and processing_deadline_at is not null
-          and processing_deadline_at <= ${now}
+          and processing_deadline_at <= ${databaseNow}
         returning call_id
       )
       update calls set status = 'failed',
@@ -212,30 +212,30 @@ export class CallProcessingRepository {
           set
             status = 'running',
             attempt_count = attempt_count + 1,
-            locked_at = ${now},
-            lock_expires_at = ${leaseExpiresAt},
+            locked_at = ${databaseNow},
+            lock_expires_at = ${databaseNow} + interval '15 minutes',
             lease_token = gen_random_uuid(),
-            heartbeat_at = ${now},
-            processing_started_at = coalesce(processing_started_at, ${now}),
+            heartbeat_at = ${databaseNow},
+            processing_started_at = coalesce(processing_started_at, ${databaseNow}),
             processing_deadline_at = coalesce(processing_deadline_at, ${processingDeadlineAt}),
-            updated_at = ${now}
+            updated_at = ${databaseNow}
           where id = (
             select id
             from call_processing_jobs
             where (
                 (processing_version = 1 and attempt_count < max_attempts)
                 or
-                (processing_version = 2 and failure_count < max_failures and coalesce(processing_deadline_at, ${processingDeadlineAt}) > ${now})
+                (processing_version = 2 and failure_count < max_failures and coalesce(processing_deadline_at, ${processingDeadlineAt}) > ${databaseNow})
               )
               and (
                 (
                   status in ('pending', 'retrying')
-                  and next_run_at <= ${now}
-                  and (lock_expires_at is null or lock_expires_at <= ${now})
+                  and next_run_at <= ${databaseNow}
+                  and (lock_expires_at is null or lock_expires_at <= ${databaseNow})
                 )
                 or (
                   status = 'running'
-                  and lock_expires_at <= ${now}
+                  and lock_expires_at <= ${databaseNow}
                 )
               )
             order by next_run_at asc, created_at asc
@@ -571,6 +571,11 @@ export class CallProcessingRepository {
       on conflict (job_id, manifest_fingerprint) do update
         set transcript_hash = excluded.transcript_hash, duration_seconds = excluded.duration_seconds,
           merged_transcript = excluded.merged_transcript, configuration = excluded.configuration, updated_at = now()
+        where exists (
+          select 1 from call_processing_jobs
+          where id = ${lease.jobId} and lease_token = ${lease.token}::uuid
+            and status = 'running' and lock_expires_at > now()
+        )
       returning id
     `));
     return rows.length === 1 ? "written" : "lost_lease";

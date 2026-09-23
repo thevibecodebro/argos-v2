@@ -31,7 +31,7 @@ export async function pollCallProcessingJobs(
     let claimed: ClaimedCallProcessingJob | null;
     try {
       claimed = await input.repository.claimNextJob(
-        input.now ?? new Date(),
+        input.now ?? null,
         input.processingMaxElapsedMs,
       );
     } catch (error) {

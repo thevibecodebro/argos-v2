@@ -37,6 +37,7 @@ describe("pollCallProcessingJobs", () => {
     })).rejects.toBe(stopped);
 
     expect(repository.claimNextJob).toHaveBeenCalledTimes(2);
+    expect(repository.claimNextJob).toHaveBeenCalledWith(null, undefined);
     expect(processJob).toHaveBeenCalledWith(job);
     expect(onPollError).toHaveBeenCalledWith(outage);
     expect(onPollSuccess).toHaveBeenCalledTimes(1);
