@@ -36,6 +36,7 @@ type UploadQueueItem = {
   file: File;
   id: string;
   progress: number;
+  uploadBytes?: number;
   status: UploadQueueStatus;
 };
 
@@ -206,6 +207,7 @@ export function UploadCallPanel() {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [phaseLabel, setPhaseLabel] = useState<string | null>(null);
   const [queue, setQueue] = useState<UploadQueueItem[]>([]);
 
   function handleFiles(nextFiles: File[]) {
@@ -279,11 +281,12 @@ export function UploadCallPanel() {
     let failedUploads = 0;
 
     for (const item of uploadableItems) {
-      setProgress(15);
+      setProgress(0);
+      setPhaseLabel("Preparing the recording on this device…");
       setQueue((currentQueue) =>
         currentQueue.map((queueItem) =>
           queueItem.id === item.id
-            ? { ...queueItem, error: undefined, progress: 15, status: "uploading" }
+            ? { ...queueItem, error: undefined, progress: 0, status: "uploading" }
             : queueItem,
         ),
       );
@@ -299,6 +302,12 @@ export function UploadCallPanel() {
             file: item.file,
           },
           {
+            onPhase: setPhaseLabel,
+            onPrepared: ({ uploadBytes }) => {
+              setQueue((currentQueue) => currentQueue.map((queueItem) =>
+                queueItem.id === item.id ? { ...queueItem, uploadBytes } : queueItem,
+              ));
+            },
             onProgress: (nextProgress) => {
               setProgress(nextProgress);
               setQueue((currentQueue) =>
@@ -307,7 +316,7 @@ export function UploadCallPanel() {
                     ? {
                         ...queueItem,
                         progress: nextProgress,
-                        status: nextProgress >= 100 ? "analyzing" : "uploading",
+                        status: "uploading",
                       }
                     : queueItem,
                 ),
@@ -349,6 +358,7 @@ export function UploadCallPanel() {
 
     setIsUploading(false);
     setProgress(0);
+    setPhaseLabel(null);
 
     if (failedUploads === 0) {
       const completedCallIds = [...alreadyUploadedCallIds, ...successfulCallIds];
@@ -368,7 +378,7 @@ export function UploadCallPanel() {
     : failedCount > 0
       ? "Retry failed uploads or remove them from the queue."
       : "Ready to upload and process selected recordings.";
-  const progressLabel = getUploadProgressLabel(progress);
+  const progressLabel = phaseLabel ?? getUploadProgressLabel(progress);
   const uploadStatusCopy = getUploadStatusCopy({
     error,
     failedCount,
@@ -539,7 +549,9 @@ export function UploadCallPanel() {
                             {item.file.name}
                           </p>
                           <p className="mt-1 text-xs text-[var(--forge-muted)]">
-                            {formatBytes(item.file.size)}
+                            {formatBytes(item.file.size)} selected
+                            {item.uploadBytes !== undefined && item.uploadBytes !== item.file.size
+                              ? ` · ${formatBytes(item.uploadBytes)} audio to upload` : ""}
                           </p>
                           {item.error ? (
                             <p className="mt-2 text-xs leading-5 text-[var(--forge-danger)]">
@@ -610,7 +622,7 @@ export function UploadCallPanel() {
               <p className="text-sm text-[var(--forge-muted)]">
                 Accepted: MP3, WAV, M4A, MP4, and WebM. Up to {formatUploadLimit(CALL_UPLOAD_MAX_BYTES)} each.
               </p>
-              <p className="text-xs text-[var(--forge-muted)]">Video files are processed from their audio track.</p>
+              <p className="text-xs text-[var(--forge-muted)]">MP4 files with one AAC audio track upload audio only; the video stays on your device. Other videos use the original file.</p>
               <p className="text-xs font-medium text-[var(--forge-muted)]">
                 Upload up to {MAX_BULK_UPLOAD_FILES} recordings in one batch.
               </p>
@@ -637,19 +649,19 @@ export function UploadCallPanel() {
         ) : (
           <ForgeStatusPanel
             announce={isUploading ? "polite" : "off"}
-            description={uploadStatusCopy.description}
+            description={isUploading ? progressLabel : uploadStatusCopy.description}
             icon={uploadStatusCopy.icon}
             title={uploadStatusCopy.title}
             tone={uploadStatusCopy.tone}
           >
             {isUploading ? (
-              <div className="space-y-2" data-upload-state={progress < 100 ? "uploading" : "analyzing"}>
+              <div className="space-y-2" data-upload-state={phaseLabel?.startsWith("Preparing") ? "preparing" : "uploading"}>
                 <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.22em] text-[var(--forge-muted)]">
-                  <span>{progress < 100 ? "Current file progress" : "Analysis starting"}</span>
-                  <span>{progress}%</span>
+                  <span>{phaseLabel?.startsWith("Preparing") ? "Preparing audio" : "Current file transfer"}</span>
+                  <span>{phaseLabel?.startsWith("Preparing") ? "Local" : `${progress}%`}</span>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-[var(--forge-surface-3)]">
-                  <div className="h-full rounded-full bg-[var(--forge-gold)] transition-all" style={{ width: `${progress}%` }} />
+                  <div className="h-full rounded-full bg-[var(--forge-gold)] transition-all" style={{ width: phaseLabel?.startsWith("Preparing") ? "100%" : `${progress}%`, opacity: phaseLabel?.startsWith("Preparing") ? 0.3 : 1 }} />
                 </div>
               </div>
             ) : null}
