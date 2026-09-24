@@ -899,6 +899,25 @@ describe("DrizzlePlatformRepository", () => {
     expect(operations.filter((operation) => operation.kind === "select")).toHaveLength(10);
   });
 
+  it("serializes aggregate timestamps returned as strings by Postgres", async () => {
+    const createdAt = new Date("2026-06-01T15:00:00.000Z");
+    const { repository } = createRepositoryHarness([
+      [{ id: "org-1", name: "Acme Health", slug: "acme-health", plan: "trial", createdAt }],
+      [],
+      [],
+      [{ averageScore: null, failedCalls: 0, lastCallAt: "2026-09-24T12:13:00.000Z", processingCalls: 0, reviewedCalls: 0, totalCalls: 1 }],
+      [{ completedTrainingAssignments: 0, totalTrainingAssignments: 0 }],
+      [{ lastRoleplayAt: "2026-09-23T09:00:00.000Z", roleplaySessions: 1 }],
+      [],
+      [],
+      [],
+    ]);
+
+    const snapshot = await repository.getOrganizationDetailSnapshot("acme-health");
+    expect(snapshot?.callStats.lastCallAt).toBe("2026-09-24T12:13:00.000Z");
+    expect(snapshot?.roleplayStats.lastRoleplayAt).toBe("2026-09-23T09:00:00.000Z");
+  });
+
   it("returns null when organization detail slug is missing", async () => {
     const { repository } = createRepositoryHarness([[]]);
 

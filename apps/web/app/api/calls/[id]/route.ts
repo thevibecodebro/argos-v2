@@ -1,4 +1,4 @@
-import { requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
+import { requireAnyAuthenticatedManagedCapability, requireAuthenticatedManagedCapability } from "@/lib/access/managed-capabilities-server";
 import { hasManagedCapability } from "@/lib/access/managed-capabilities";
 import { createCallsRepository } from "@/lib/calls/create-repository";
 import { deleteCallData, getCallDetail, redactCallHighlightFields, renameCall } from "@/lib/calls/service";
@@ -67,7 +67,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const capabilityAccess = await requireAuthenticatedManagedCapability("call_scoring");
+    const capabilityAccess = await requireAnyAuthenticatedManagedCapability(["call_upload", "call_ingestion", "call_scoring"]);
     if (!capabilityAccess.ok) return capabilityAccess.response;
     const authUser = capabilityAccess.user;
 

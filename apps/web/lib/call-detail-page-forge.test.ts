@@ -20,6 +20,7 @@ const {
 
 vi.mock("next/navigation", () => ({
   notFound: notFoundMock,
+  useRouter: () => ({ replace: vi.fn(), refresh: vi.fn() }),
 }));
 
 vi.mock("@/components/panel-loaders/call-detail-panel-loader", () => ({
@@ -107,6 +108,15 @@ describe("CallDetailPage forge treatment", () => {
     expect(html).not.toContain("#6dddff");
     expect(html).not.toContain("backdrop-blur-md");
     expect(html).not.toContain(">Call Detail<");
+  });
+
+  it("shows recording deletion only to organization admins", async () => {
+    const managerHtml = await renderRoute(CallDetailPage({ params: Promise.resolve({ id: "call-1" }) }));
+    expect(managerHtml).not.toContain("Delete recording Pricing review");
+
+    getCachedCurrentUserProfileMock.mockResolvedValueOnce({ role: "admin" });
+    const adminHtml = await renderRoute(CallDetailPage({ params: Promise.resolve({ id: "call-1" }) }));
+    expect(adminHtml).toContain("Delete recording Pricing review");
   });
 
   it("keeps the route wired to the review bench panel without metric strips", () => {

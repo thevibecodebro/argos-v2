@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getAuthenticatedSupabaseUser = vi.fn();
 const requireAuthenticatedManagedCapability = vi.fn();
+const requireAnyAuthenticatedManagedCapability = vi.fn();
 const createCallsRepository = vi.fn();
 const deleteCallData = vi.fn();
 const getCallDetail = vi.fn();
@@ -13,6 +14,7 @@ vi.mock("@/lib/auth/get-authenticated-user", () => ({
 }));
 
 vi.mock("@/lib/access/managed-capabilities-server", () => ({
+  requireAnyAuthenticatedManagedCapability,
   requireAuthenticatedManagedCapability,
 }));
 
@@ -41,6 +43,7 @@ describe("call delete route", () => {
     vi.resetModules();
     getAuthenticatedSupabaseUser.mockReset();
     requireAuthenticatedManagedCapability.mockReset();
+    requireAnyAuthenticatedManagedCapability.mockReset();
     createCallsRepository.mockReset();
     deleteCallData.mockReset();
     getCallDetail.mockReset();
@@ -49,6 +52,12 @@ describe("call delete route", () => {
     createCallsRepository.mockReturnValue({ calls: true });
     getAuthenticatedSupabaseUser.mockResolvedValue({ id: "admin-1" });
     requireAuthenticatedManagedCapability.mockImplementation(async () => {
+      const user = await getAuthenticatedSupabaseUser();
+      return user
+        ? { ok: true, user, orgId: "org-1", access: { mode: "legacy" } }
+        : { ok: false, response: Response.json({ error: "Unauthorized" }, { status: 401 }) };
+    });
+    requireAnyAuthenticatedManagedCapability.mockImplementation(async () => {
       const user = await getAuthenticatedSupabaseUser();
       return user
         ? { ok: true, user, orgId: "org-1", access: { mode: "legacy" } }
@@ -83,6 +92,7 @@ describe("call delete route", () => {
         removeStorageObjects: expect.any(Function),
       }),
     );
+    expect(requireAnyAuthenticatedManagedCapability).toHaveBeenCalledWith(["call_upload", "call_ingestion", "call_scoring"]);
   });
 
   it("returns generic errors if deletion throws", async () => {

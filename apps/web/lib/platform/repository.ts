@@ -524,7 +524,7 @@ export class DrizzlePlatformRepository {
         .select({
           averageScore: sql<number | null>`round(avg(${callsTable.overallScore}) filter (where ${callsTable.status} = 'complete' and ${callsTable.overallScore} is not null))::int`,
           failedCalls: sql<number>`count(*) filter (where ${callsTable.status} = 'failed')::int`,
-          lastCallAt: sql<Date | null>`max(${callsTable.createdAt})`,
+          lastCallAt: sql<Date | string | null>`max(${callsTable.createdAt})`,
           orgId: callsTable.orgId,
           processingCalls: sql<number>`count(*) filter (where ${callsTable.status} in ('uploaded', 'transcribing', 'evaluating'))::int`,
           reviewedCalls: sql<number>`count(*) filter (where ${callsTable.status} = 'complete')::int`,
@@ -551,7 +551,7 @@ export class DrizzlePlatformRepository {
         .groupBy(trainingModulesTable.orgId),
       this.db
         .select({
-          lastRoleplayAt: sql<Date | null>`max(${roleplaySessionsTable.createdAt})`,
+          lastRoleplayAt: sql<Date | string | null>`max(${roleplaySessionsTable.createdAt})`,
           orgId: roleplaySessionsTable.orgId,
           roleplaySessions: sql<number>`count(*)::int`,
         })
@@ -1209,7 +1209,7 @@ export class DrizzlePlatformRepository {
         .select({
           averageScore: sql<number | null>`round(avg(${callsTable.overallScore}) filter (where ${callsTable.status} = 'complete' and ${callsTable.overallScore} is not null))::int`,
           failedCalls: sql<number>`count(*) filter (where ${callsTable.status} = 'failed')::int`,
-          lastCallAt: sql<Date | null>`max(${callsTable.createdAt})`,
+          lastCallAt: sql<Date | string | null>`max(${callsTable.createdAt})`,
           processingCalls: sql<number>`count(*) filter (where ${callsTable.status} in ('uploaded', 'transcribing', 'evaluating'))::int`,
           reviewedCalls: sql<number>`count(*) filter (where ${callsTable.status} = 'complete')::int`,
           totalCalls: sql<number>`count(*)::int`,
@@ -1226,7 +1226,7 @@ export class DrizzlePlatformRepository {
         .where(eq(trainingModulesTable.orgId, organization.id)),
       this.db
         .select({
-          lastRoleplayAt: sql<Date | null>`max(${roleplaySessionsTable.createdAt})`,
+          lastRoleplayAt: sql<Date | string | null>`max(${roleplaySessionsTable.createdAt})`,
           roleplaySessions: sql<number>`count(*)::int`,
         })
         .from(roleplaySessionsTable)
@@ -1286,7 +1286,7 @@ export class DrizzlePlatformRepository {
             ? null
             : toNumber(callStats.averageScore),
         failedCalls: toNumber(callStats?.failedCalls),
-        lastCallAt: callStats?.lastCallAt?.toISOString() ?? null,
+        lastCallAt: toIsoTimestamp(callStats?.lastCallAt),
         processingCalls: toNumber(callStats?.processingCalls),
         reviewedCalls: toNumber(callStats?.reviewedCalls),
         totalCalls: toNumber(callStats?.totalCalls),
@@ -1328,7 +1328,7 @@ export class DrizzlePlatformRepository {
         slug: organization.slug,
       },
       roleplayStats: {
-        lastRoleplayAt: roleplayStats?.lastRoleplayAt?.toISOString() ?? null,
+        lastRoleplayAt: toIsoTimestamp(roleplayStats?.lastRoleplayAt),
         roleplaySessions: toNumber(roleplayStats?.roleplaySessions),
       },
       trainingStats: {
@@ -1364,6 +1364,12 @@ export class DrizzlePlatformRepository {
 
 function toNumber(value: number | string | null | undefined) {
   return Number(value ?? 0);
+}
+
+function toIsoTimestamp(value: Date | string | null | undefined) {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
 function getLatestDate(values: Array<Date | string | null>) {
