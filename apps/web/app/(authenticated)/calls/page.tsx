@@ -1,5 +1,5 @@
 import { ResponsiveAside } from "@/components/responsive-aside";
-import { Suspense } from "react";
+import { Fragment, Suspense } from "react";
 import Link from "next/link";
 import { getCachedAuthenticatedSupabaseUser } from "@/lib/auth/request-user";
 import { createCallsRepository } from "@/lib/calls/create-repository";
@@ -19,6 +19,7 @@ import {
   OperationalWorkspace,
 } from "@/components/operational-workspace";
 import { CallsFilters } from "./calls-filters";
+import { DeleteRecordingButton } from "@/components/delete-recording-button";
 import { requireAnyManagedCapabilityForPage } from "@/lib/access/managed-capabilities-server";
 import { hasManagedCapability } from "@/lib/access/managed-capabilities";
 
@@ -151,11 +152,11 @@ export default async function CallsPage({
                       const topic = call.callTopic ?? "Untitled call";
 
                       return (
+                        <Fragment key={call.id}>
                         <Link
                           className="block min-w-0 rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_3.5%,transparent)] p-4 transition hover:border-[color-mix(in_srgb,var(--forge-gold)_30%,transparent)] hover:bg-[color-mix(in_srgb,var(--forge-gold)_5.5%,transparent)]"
                           data-mobile-call-card="true"
                           href={`/calls/${call.id}`}
-                          key={call.id}
                         >
                           <div className="flex items-start gap-3">
                             <div
@@ -211,6 +212,12 @@ export default async function CallsPage({
                             </div>
                           </div>
                         </Link>
+                        {viewer?.role === "admin" ? (
+                          <div className="-mt-1 flex justify-end px-2 pb-1">
+                            <DeleteRecordingButton callId={call.id} callTopic={topic} />
+                          </div>
+                        ) : null}
+                        </Fragment>
                       );
                     })
                   ) : (
@@ -356,6 +363,9 @@ export default async function CallsPage({
                                 {formatTimestamp(call.createdAt)}
                               </td>
                               <td className="px-4 py-3 text-right">
+                                {viewer?.role === "admin" ? (
+                                  <DeleteRecordingButton callId={call.id} callTopic={topic} />
+                                ) : null}
                                 <Link
                                   aria-label={`Open ${topic}`}
                                   className="inline-flex rounded-lg border border-transparent p-2 text-[var(--forge-muted)] transition hover:border-[var(--forge-border)] hover:bg-[color-mix(in_srgb,var(--forge-gold)_8%,transparent)] hover:text-[var(--forge-gold)]"

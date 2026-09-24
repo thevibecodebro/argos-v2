@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
 import { CallDetailPanel } from "@/components/panel-loaders/call-detail-panel-loader";
+import { DeleteRecordingButton } from "@/components/delete-recording-button";
 import {
   OperationalToolbar,
   OperationalWorkspace,
@@ -80,6 +81,11 @@ export default async function CallDetailPage({
           canRetryProcessing={profile?.role === "admin"}
           scoringEnabled={scoringEnabled}
         />
+        {profile?.role === "admin" ? (
+          <div className="flex justify-end pt-4">
+            <DeleteRecordingButton callId={call.id} callTopic={topic} detailPage />
+          </div>
+        ) : null}
       </OperationalWorkspace>
     </AuthenticatedPageContainer>
   );
