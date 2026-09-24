@@ -10,6 +10,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@argos-v2/ui";
+import { MobileWorkspaceMenu } from "./mobile-workspace-menu";
 import { ArgosLogo } from "./argos-logo";
 import {
   getVisibleBottomTabs,
@@ -178,6 +179,7 @@ export function AuthenticatedAppShell({
     function handleCommandShortcut(event: KeyboardEvent) {
       if (event.key === "k" && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
+        if (document.querySelector("dialog[open]")) return;
         setCommandOpen((open) => !open);
       }
     }
@@ -242,6 +244,8 @@ export function AuthenticatedAppShell({
       >
         {navigationPendingState.announcement}
       </p>
+
+      <a href="#workspace-content" className="workspace-skip-link">Skip to content</a>
 
       {/* ===== Primary rail — full on desktop, icon-only on tablet, hidden on phones ===== */}
       <aside
@@ -348,7 +352,7 @@ export function AuthenticatedAppShell({
 
       <div
         className={cn(
-          "min-h-dvh pb-20 transition-[padding] duration-300 md:pb-0 md:pl-20",
+          "min-h-dvh pb-[calc(5rem+env(safe-area-inset-bottom))] transition-[padding] duration-300 md:pb-0 md:pl-20",
           primaryRailCollapsed ? "lg:pl-20" : "lg:pl-64",
         )}
         data-auth-shell-content="true"
@@ -360,6 +364,13 @@ export function AuthenticatedAppShell({
           )}
         >
           <div className="flex min-w-0 items-center gap-2">
+            <MobileWorkspaceMenu
+              currentPath={currentPath}
+              groups={visibleGroups}
+              organizationName={user.orgName}
+              onNavigate={handleRouteLinkClick}
+              organizationSwitcher={platformSwitcher ? <PlatformOrganizationSwitcher activeSession={platformSwitcher.activeSession} organizations={platformSwitcher.organizations} /> : undefined}
+            />
             {/* Compact brand mark on phones, where the rail is hidden. */}
             <span className="md:hidden" data-topbar-brand="true">
               <ArgosLogo
@@ -389,7 +400,7 @@ export function AuthenticatedAppShell({
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             <button
               aria-label="Search and commands"
-              className="forge-icon-button flex h-10 w-10 items-center justify-center rounded-xl md:hidden"
+              className="forge-icon-button flex h-11 w-11 items-center justify-center rounded-xl md:hidden"
               data-command-trigger="mobile"
               onClick={() => setCommandOpen(true)}
               type="button"
@@ -397,7 +408,7 @@ export function AuthenticatedAppShell({
               <ForgeIcon name="search" size={20} />
             </button>
             {canUploadCalls ? <Link
-              className="forge-button forge-button-primary flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-semibold sm:px-4"
+              className="forge-button forge-button-primary hidden h-11 items-center sm:flex gap-2 rounded-xl px-3 text-sm font-semibold sm:px-4"
               data-global-create="upload"
               data-navigation-pending={
                 navigationPendingState.pendingHref === "/upload"
@@ -417,7 +428,7 @@ export function AuthenticatedAppShell({
                 aria-expanded={accountOpen}
                 aria-haspopup="menu"
                 aria-label="Account menu"
-                className="forge-icon-button flex h-10 w-10 items-center justify-center rounded-full font-[var(--font-display)] text-sm font-bold text-[var(--forge-topbar-text)]"
+                className="forge-icon-button flex h-11 w-11 items-center justify-center rounded-full font-[var(--font-display)] text-sm font-bold text-[var(--forge-topbar-text)]"
                 onClick={() => setAccountOpen((v) => !v)}
                 ref={accountTriggerRef}
                 type="button"
@@ -504,7 +515,7 @@ export function AuthenticatedAppShell({
             open={feedbackOpen}
           />
         ) : null}
-        <main className="min-h-dvh pt-16">
+        <main className="min-h-dvh pt-16" id="workspace-content" tabIndex={-1}>
           <RoleOnboardingGuide
             currentPath={currentPath}
             replaySignal={guideReplaySignal}

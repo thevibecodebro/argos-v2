@@ -1,8 +1,11 @@
+import { ResponsiveAside } from "@/components/responsive-aside";
 import {
   ForgeButton,
   ForgeChip,
   ForgeEmptyState,
   ForgeIcon,
+  ForgeManagementTable,
+  ForgeMobileTableCards,
 } from "@/components/forge";
 import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
 import {
@@ -29,7 +32,7 @@ export default async function HighlightsPage() {
 
   const selectedHighlight = highlights[0] ?? null;
   const sectionClassName = selectedHighlight
-    ? "grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_320px]"
+    ? "grid min-w-0 gap-3 2xl:grid-cols-[minmax(0,1fr)_320px]"
     : "grid min-w-0 gap-3";
 
   return (
@@ -39,10 +42,9 @@ export default async function HighlightsPage() {
         data-highlights-surface="operational-evidence"
       >
         <OperationalToolbar
-          actions={[{ href: "/calls", label: "Back to call library", variant: "secondary" }]}
-          description="Review saved coaching moments and recommendations."
+          actions={[{ href: "/calls", label: "Back to recordings", variant: "secondary" }]}
           eyebrow="Review"
-          status={{ icon: "auto_awesome", label: `${highlights.length} items`, tone: "muted" }}
+          status={{ icon: "auto_awesome", label: `${highlights.length} ${highlights.length === 1 ? "item" : "items"}`, tone: "muted" }}
           title="Highlights"
         />
 
@@ -51,27 +53,27 @@ export default async function HighlightsPage() {
           data-highlight-selection-flow="explicit"
         >
           <div
-            className="min-w-0 overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[var(--forge-table-bg)] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)]"
+            className="min-w-0"
             data-forge-table="true"
             data-highlights-library="operational-table"
           >
-            <div className="border-b border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.4%,transparent)] px-4 py-3">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
-                    Saved moments
-                  </p>
-                  <p className="mt-1 text-sm text-[var(--forge-muted)]">
-                    Open the source call for transcript context and scorecard notes.
-                  </p>
-                </div>
-                <ForgeChip tone="muted">
-                  {highlights.length} {highlights.length === 1 ? "item" : "items"}
-                </ForgeChip>
-              </div>
-            </div>
-
             {highlights.length ? (
+              <ForgeManagementTable mobileCards={
+                <ForgeMobileTableCards>
+                  {highlights.map((highlight, index) => (
+                    <article className="min-w-0 space-y-3 break-words" key={highlight.id}>
+                      <ForgeChip tone={index === 0 ? "gold" : "cyan"}>{highlight.category ?? "Highlight"}{highlight.severity ? ` · ${highlight.severity}` : ""}</ForgeChip>
+                      <h2 className="text-sm font-semibold leading-6">{highlight.observation ?? "No observation recorded."}</h2>
+                      <dl className="space-y-3 text-sm">
+                        <div><dt className="text-xs text-[var(--forge-muted)]">Recommendation</dt><dd className="mt-1 leading-6">{highlight.recommendation ?? "No recommendation yet."}</dd></div>
+                        {highlight.highlightNote ? <div><dt className="text-xs text-[var(--forge-muted)]">Manager note</dt><dd className="mt-1 leading-6">{highlight.highlightNote}</dd></div> : null}
+                        <div><dt className="text-xs text-[var(--forge-muted)]">Source</dt><dd className="mt-1">{highlight.callTopic ?? "Source call"}<span className="mt-1 block text-xs text-[var(--forge-muted)]">{formatTimestamp(highlight.callCreatedAt)}</span></dd></div>
+                      </dl>
+                      <ForgeButton className="min-h-11" href={`/calls/${highlight.callId}`} trailingIcon="arrow_forward" variant="secondary">Open call</ForgeButton>
+                    </article>
+                  ))}
+                </ForgeMobileTableCards>
+              }>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[860px] border-collapse">
                   <thead>
@@ -127,6 +129,7 @@ export default async function HighlightsPage() {
                   </tbody>
                 </table>
               </div>
+              </ForgeManagementTable>
             ) : (
               <div className="p-4">
                 <ForgeEmptyState
@@ -139,7 +142,8 @@ export default async function HighlightsPage() {
           </div>
 
           {selectedHighlight ? (
-            <OperationalPreviewDrawer
+            <ResponsiveAside title="Evidence details">
+          <OperationalPreviewDrawer
               actions={[{ href: `/calls/${selectedHighlight.callId}`, label: "Open call", variant: "primary" }]}
               data-selected-object-drawer="true"
               description={selectedHighlight.recommendation ?? "Inspect this recommendation and source call."}
@@ -173,6 +177,7 @@ export default async function HighlightsPage() {
                 </div>
               </div>
             </OperationalPreviewDrawer>
+          </ResponsiveAside>
           ) : null}
         </section>
       </OperationalWorkspace>

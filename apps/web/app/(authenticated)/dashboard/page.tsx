@@ -107,7 +107,6 @@ export default async function DashboardPage() {
                   { href: "/training", icon: "school", label: "Open training", variant: "primary" },
               ]
           }
-          description="Start with the items that need attention, then move into the right workspace."
           eyebrow="Work queue"
           status={{ icon: "dashboard", label: roleLabel, tone: "muted" }}
           title="Dashboard"
@@ -578,7 +577,7 @@ function buildTodayQueueItems({
         signal: "0 calls",
         statusLabel: "Setup",
         tone: "gold",
-        typeLabel: "Calls",
+        typeLabel: "Recordings",
       });
     }
 

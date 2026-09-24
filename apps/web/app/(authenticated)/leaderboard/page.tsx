@@ -1,8 +1,11 @@
+import { ResponsiveAside } from "@/components/responsive-aside";
 import Link from "next/link";
 import {
   ForgeChip,
   ForgeEmptyState,
   ForgeIcon,
+  ForgeManagementTable,
+  ForgeMobileTableCards,
 } from "@/components/forge";
 import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
 import {
@@ -32,7 +35,7 @@ export default async function LeaderboardPage() {
   const rows = buildLeaderboardRows(qualityRows, volumeRows, improvementRows);
   const selected = rows[0] ?? null;
   const sectionClassName = selected
-    ? "grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_320px]"
+    ? "grid min-w-0 gap-3 2xl:grid-cols-[minmax(0,1fr)_320px]"
     : "grid min-w-0 gap-3";
 
   return (
@@ -40,7 +43,6 @@ export default async function LeaderboardPage() {
       <OperationalWorkspace data-leaderboard-route="rank-table">
         <OperationalToolbar
           actions={[{ href: "/team", label: "Open team view", variant: "secondary" }]}
-          description="Compare rank, score quality, call volume, and improvement across your team."
           eyebrow="People"
           status={{ icon: "leaderboard", label: `${rows.length} ranked reps`, tone: "muted" }}
           title="Leaderboard"
@@ -48,10 +50,29 @@ export default async function LeaderboardPage() {
 
         <section className={sectionClassName}>
           <div
-            className="min-w-0 overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[var(--forge-table-bg)] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)]"
+            className="min-w-0"
             data-forge-table="true"
           >
             {rows.length ? (
+              <ForgeManagementTable mobileCards={
+                <ForgeMobileTableCards>
+                  {rows.map((entry) => (
+                    <article className="min-w-0 space-y-3 break-words" key={entry.userId}>
+                      <div className="flex items-start justify-between gap-3">
+                        <h2 className="min-w-0 text-sm font-semibold">{entry.name}</h2>
+                        <span className="forge-tabular-nums shrink-0 text-sm font-semibold text-[var(--forge-gold)]">#{entry.rank}</span>
+                      </div>
+                      <dl className="grid grid-cols-3 gap-3 text-sm">
+                        <div><dt className="text-xs text-[var(--forge-muted)]">Score</dt><dd className={`forge-tabular-nums mt-1 font-semibold ${scoreColor(entry.score)}`}>{entry.score ?? "--"}</dd></div>
+                        <div><dt className="text-xs text-[var(--forge-muted)]">Calls</dt><dd className="forge-tabular-nums mt-1">{entry.calls ?? "--"}</dd></div>
+                        <div><dt className="text-xs text-[var(--forge-muted)]">Movement</dt><dd className="forge-tabular-nums mt-1 text-[var(--forge-success)]">{entry.improvement != null ? `+${entry.improvement}` : "--"}</dd></div>
+                      </dl>
+                      <p className="text-sm text-[var(--forge-muted)]">{entry.score != null && entry.score < 70 ? "Needs review" : "Maintain quality"}</p>
+                      <Link aria-label={`Review ${entry.name}`} className="forge-focus-ring inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[var(--forge-gold)]" href={`/team/${entry.userId}`}>Review<ForgeIcon name="arrow_forward" size={16} /></Link>
+                    </article>
+                  ))}
+                </ForgeMobileTableCards>
+              }>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[860px] border-collapse">
                   <thead>
@@ -111,6 +132,7 @@ export default async function LeaderboardPage() {
                   </tbody>
                 </table>
               </div>
+              </ForgeManagementTable>
             ) : (
               <div className="p-4">
                 <ForgeEmptyState
@@ -123,6 +145,7 @@ export default async function LeaderboardPage() {
           </div>
 
           {selected ? (
+            <ResponsiveAside title="Ranking details">
             <OperationalPreviewDrawer
               actions={[{ href: `/team/${selected.userId}`, label: "Open profile", variant: "primary" }]}
               data-selected-object-drawer="true"
@@ -137,6 +160,7 @@ export default async function LeaderboardPage() {
                 <InsightRow label="Coaching action" value={selected.score != null && selected.score < 70 ? "Review calls" : "Maintain pace"} />
               </div>
             </OperationalPreviewDrawer>
+            </ResponsiveAside>
           ) : null}
         </section>
       </OperationalWorkspace>

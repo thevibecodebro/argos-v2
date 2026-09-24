@@ -25,23 +25,26 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
-describe("UploadCallPanel forge step flow", () => {
-  it("renders a clear three-step upload flow with disabled guidance", () => {
+describe("UploadCallPanel upload form", () => {
+  it("puts file selection before optional context with disabled guidance", () => {
     const html = renderToStaticMarkup(createElement(UploadCallPanel));
 
+    expect(html).not.toContain("Add call context");
+    expect(html).not.toContain("Upload and process");
+    expect(html.indexOf('data-upload-dropzone="keyboard-accessible"')).toBeLessThan(
+      html.indexOf('placeholder='),
+    );
     expect(html).toContain("Choose recordings");
-    expect(html).toContain("Add call context");
-    expect(html).toContain("Upload and process");
-    expect(html).toContain("Choose one or more recordings before processing can start.");
+    expect(html).not.toContain("Recordings required");
     expect(html).toContain(`accept="${ACCEPTED_TYPES.join(",")}"`);
     expect(html).toMatch(/<input(?=[^>]*type="file")(?=[^>]*multiple="")/);
     expect(html).toContain(`Upload up to ${MAX_BULK_UPLOAD_FILES} recordings in one batch.`);
-    expect(html).toContain("Accepted: MP3, WAV, M4A, MP4, and WebM. Up to 2 GB each.");
+    expect(html).toContain("MP3, WAV, M4A, MP4, and WebM. Up to 2 GB each.");
     expect(html).toContain("MP4 files with one AAC audio track upload audio only; the video stays on your device.");
     expect(html.toLowerCase()).not.toMatch(/scorecard|scored|scoring/);
     expect(html).toContain("disabled=\"\"");
     expect(html).toContain('data-upload-step-flow="forge"');
-    expect(html).toContain('data-forge-status-panel="muted"');
+    expect(html).not.toContain('data-forge-status-panel="muted"');
     expect(html).not.toContain(">upload_file</span>");
     expect(html).not.toContain(">info</span>");
   });
@@ -69,7 +72,7 @@ describe("UploadCallPanel forge step flow", () => {
     expect(getUploadActionLabel({ fileCount: 0, isUploading: false, uploadedCount: 0 })).toBe("Upload recordings");
     expect(getUploadActionLabel({ fileCount: 3, isUploading: false, uploadedCount: 0 })).toBe("Upload 3 recordings");
     expect(getUploadActionLabel({ fileCount: 3, isUploading: true, uploadedCount: 1 })).toBe("Uploading 2 of 3");
-    expect(getUploadActionLabel({ fileCount: 3, isUploading: false, uploadedCount: 3 })).toBe("View call library");
+    expect(getUploadActionLabel({ fileCount: 3, isUploading: false, uploadedCount: 3 })).toBe("View recordings");
   });
 
   it("uses file names as bulk call context with an optional shared prefix", () => {

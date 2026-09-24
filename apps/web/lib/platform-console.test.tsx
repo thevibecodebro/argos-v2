@@ -171,7 +171,9 @@ describe("PlatformShell", () => {
     expect(html).toContain('data-platform-organization-switcher-search="true"');
     expect(html).toContain('data-platform-organization-option="org-1"');
     expect(html).toContain('data-platform-session-endpoint="/api/platform/sessions"');
-    expect(html).toContain('aria-controls="platform-organization-switcher-menu"');
+    const menuId = html.match(/aria-controls="([^"]+-menu)"/)?.[1];
+    expect(menuId).toBeTruthy();
+    expect(html).toContain(`id="${menuId}"`);
     expect(html).toContain('aria-expanded="false"');
     expect(html).toContain("Switch organization");
     expect(html).toContain("Acme Health");

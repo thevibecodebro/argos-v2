@@ -1,3 +1,4 @@
+import { ResponsiveAside } from "@/components/responsive-aside";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
@@ -6,7 +7,8 @@ import {
   ForgeEmptyState,
   ForgeErrorState,
   ForgeScoreMeter,
-  ForgeTableShell,
+  ForgeManagementTable,
+  ForgeMobileTableCards,
   type ForgeTone,
 } from "@/components/forge";
 import {
@@ -42,7 +44,6 @@ export default async function RoleplayHistoryPage() {
         <OperationalWorkspace data-roleplay-route="history">
           <OperationalToolbar
             actions={[{ href: "/roleplay", icon: "mic", label: "Practice", variant: "secondary" }]}
-            description="Review completed roleplays and reopen a session when you need the full practice context."
             eyebrow="Coach"
             title="Roleplay history"
           />
@@ -58,7 +59,7 @@ export default async function RoleplayHistoryPage() {
   const completedSessions = result.data.sessions.filter((session) => session.status === "complete");
   const selectedSession = completedSessions[0] ?? null;
   const sectionClassName = selectedSession
-    ? "grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_320px]"
+    ? "grid min-w-0 gap-3 2xl:grid-cols-[minmax(0,1fr)_320px]"
     : "grid min-w-0 gap-3";
 
   return (
@@ -66,15 +67,30 @@ export default async function RoleplayHistoryPage() {
       <OperationalWorkspace data-roleplay-route="history">
         <OperationalToolbar
           actions={[{ href: "/roleplay", icon: "mic", label: "Practice", variant: "secondary" }]}
-          description="Review completed roleplays and reopen a session when you need the full practice context."
           eyebrow="Coach"
           status={{ icon: "history", label: `${completedSessions.length} completed`, tone: "muted" }}
           title="Roleplay history"
         />
 
         <section className={sectionClassName}>
-          <div data-forge-table="true">
-            <ForgeTableShell className="min-w-0 overflow-hidden">
+          <div className="min-w-0" data-forge-table="true">
+            <ForgeManagementTable mobileCards={
+              <ForgeMobileTableCards>
+                {completedSessions.length ? completedSessions.map((session) => (
+                  <article className="min-w-0 space-y-3 break-words" key={session.id}>
+                    <h2 className="text-sm font-semibold">{scenarioLabel(session)}</h2>
+                    {isGeneratedSession(session) ? <ForgeChip tone="gold">Generated from call</ForgeChip> : null}
+                    <dl className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="col-span-2"><dt className="text-xs text-[var(--forge-muted)]">Persona</dt><dd className="mt-1">{getSessionPersonaLabel(session)}</dd></div>
+                      <div><dt className="text-xs text-[var(--forge-muted)]">Score</dt><dd className="forge-tabular-nums mt-1 font-semibold">{session.overallScore ?? 0}%</dd></div>
+                      <div><dt className="text-xs text-[var(--forge-muted)]">Duration</dt><dd className="forge-tabular-nums mt-1">{formatDuration(session)}</dd></div>
+                      <div className="col-span-2"><dt className="text-xs text-[var(--forge-muted)]">Date</dt><dd className="mt-1">{formatDate(session.createdAt)}</dd></div>
+                    </dl>
+                    <Link aria-label={`Review ${scenarioLabel(session)}`} className="forge-focus-ring inline-flex min-h-11 items-center text-sm font-semibold text-[var(--forge-gold)] underline" href={`/roleplay?sessionId=${session.id}`}>Review</Link>
+                  </article>
+                )) : <ForgeEmptyState description="Completed practice sessions will appear here." title="No roleplay sessions" />}
+              </ForgeMobileTableCards>
+            }>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[840px] border-collapse text-left">
                   <thead>
@@ -140,10 +156,11 @@ export default async function RoleplayHistoryPage() {
                   </tbody>
                 </table>
               </div>
-            </ForgeTableShell>
+            </ForgeManagementTable>
           </div>
 
           {selectedSession ? (
+            <ResponsiveAside title="Session details">
             <OperationalPreviewDrawer
               actions={[
                 {
@@ -155,7 +172,6 @@ export default async function RoleplayHistoryPage() {
                 { href: "/roleplay", icon: "mic", label: "Practice", variant: "secondary" },
               ]}
               data-selected-object-drawer="true"
-              description="Open this session for transcript, scorecard, and coaching context."
               eyebrow="Selected session"
               title={scenarioLabel(selectedSession)}
             >
@@ -166,6 +182,7 @@ export default async function RoleplayHistoryPage() {
                 <PreviewRow label="Date" value={formatDate(selectedSession.createdAt)} />
               </div>
             </OperationalPreviewDrawer>
+            </ResponsiveAside>
           ) : null}
         </section>
       </OperationalWorkspace>

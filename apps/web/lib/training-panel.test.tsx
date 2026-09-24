@@ -482,7 +482,7 @@ describe("training panels", () => {
     expect(html).not.toContain('data-secondary-rail="training-builder"');
     expect(html).not.toContain('data-forge-workspace-layout="one-rail"');
     expect(html).toContain("Course player");
-    expect(html).toContain("Course structure");
+    expect(html).toContain("Modules");
     expect(html).toContain("Curriculum map");
     expect(html).toContain("Lesson");
     expect(html).toContain("Quiz");
@@ -534,9 +534,9 @@ describe("training panels", () => {
     );
 
     expect(html).toContain('aria-label="Curriculum map"');
-    expect(html).toContain("Course structure");
+    expect(html).toContain("Modules");
     expect(html).toContain('aria-current="page"');
-    expect(html).toContain(">Open<");
+    expect(html).toContain('aria-label="Current module"');
     expect(html).not.toContain(">Module 1<");
   });
 
@@ -628,7 +628,7 @@ describe("training panels", () => {
     expect(html).toContain('data-training-course-shell="learner"');
     expect(html).toContain("Loading training");
     expect(html).toContain("Course player");
-    expect(html).toContain("Course structure");
+    expect(html).toContain("Modules");
     expect(html).toContain("Curriculum map");
     expect(html).toContain('data-training-course-structure="inline"');
     expect(html).not.toContain('data-forge-workspace-layout="one-rail"');
@@ -671,9 +671,10 @@ describe("training panels", () => {
     expect(shellHtml).not.toContain('data-operational-preview-drawer="true"');
     expect(shellHtml).not.toContain('data-forge-workspace-layout="two-rails"');
     expect(shellHtml).not.toContain('data-training-admin-rail=""');
-    expect(stageHtml).toContain("relative space-y-6");
-    expect(stageHtml).toContain("rounded-[1.25rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface-2)]/45 p-6");
-    expect(tocHtml).toContain("rounded-[1.5rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-panel-bg)] p-6");
+    expect(stageHtml).toContain("training-lesson");
+    expect(stageHtml.match(/A focused discovery module\./g)).toHaveLength(1);
+    expect(tocHtml).toContain("<details");
+    expect(tocHtml).toContain("<summary");
     expect(`${stageHtml}${tocHtml}`).not.toContain("#74b1ff");
   });
 

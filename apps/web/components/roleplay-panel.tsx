@@ -122,7 +122,7 @@ function formatRoleplayCategoryLabel(slug: string | null) {
 
 function getSessionLabel(session: RoleplaySession | null) {
   if (!session) {
-    return "No active simulation";
+    return "No active roleplay";
   }
 
   if (session.origin === "generated_from_call") {
@@ -131,7 +131,7 @@ function getSessionLabel(session: RoleplaySession | null) {
       : "Generated Roleplay: All Focus Areas";
   }
 
-  return `Live Simulation: ${session.personaDetails?.objectionType ?? "Objections Handling"}`;
+  return `Roleplay: ${session.personaDetails?.objectionType ?? "Objections Handling"}`;
 }
 
 function getSessionPersonaLabel(session: RoleplaySession) {
@@ -752,17 +752,21 @@ export function RoleplayPanel({
         data-roleplay-workspace="simple-practice"
       >
         <main className="min-w-0 space-y-3" data-forge-workspace-main="true">
-          <section
+          <details
+            key={`${activeSession?.id ?? "new"}-${activeSession?.status ?? "setup"}`}
+            open={activeSession?.status !== "active"}
             aria-label="Scenario"
             className="scroll-mt-24 rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.6%,transparent)] p-3 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)]"
             data-roleplay-scenario-picker=""
             id="roleplay-scenario"
           >
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <summary className="min-h-11 cursor-pointer rounded-lg py-2 text-sm font-semibold text-[var(--forge-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--forge-focus)]">
+              {activeSession?.status === "active"
+                ? `Change scenario · ${activeSession.personaDetails?.name ?? "Current session"}`
+                : "Choose a scenario"}
+            </summary>
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
-                <p className="text-[0.66rem] font-semibold uppercase tracking-[0.1em] text-[var(--forge-gold)]">
-                  Scenario
-                </p>
                 <h2 className="mt-1 text-base font-semibold text-[var(--forge-text)]">
                   Target persona
                 </h2>
@@ -772,14 +776,14 @@ export function RoleplayPanel({
                 </p>
               </div>
               <button
-                className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--forge-gold)] px-4 py-2 text-xs font-bold text-[var(--forge-bg)] transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-45"
+                className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--forge-gold)] px-4 py-2 text-xs font-bold text-[var(--forge-on-accent)] transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-45"
                 data-roleplay-primary-action="start-simulation"
                 disabled={!selectedPersonaId || isMutating}
                 onClick={() => void createSession()}
                 type="button"
               >
                 <ForgeIcon name="insights" size={16} />
-                {isMutating ? "Starting..." : "Start simulation"}
+                {isMutating ? "Starting..." : "Start roleplay"}
               </button>
             </div>
 
@@ -819,7 +823,7 @@ export function RoleplayPanel({
                 );
               })}
             </div>
-          </section>
+          </details>
 
           <section
             aria-labelledby="roleplay-practice-title"
@@ -869,10 +873,10 @@ export function RoleplayPanel({
                         ? "Stop voice practice"
                         : "Start voice practice"
                     }
-                    className={`flex min-h-10 items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
+                    className={`flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
                       isVoiceActive
                         ? "bg-[var(--forge-danger)]/20 text-[var(--forge-danger)]"
-                        : "bg-[var(--forge-gold)] text-[var(--forge-bg)]"
+                        : "bg-[var(--forge-gold)] text-[var(--forge-on-accent)]"
                     }`}
                     disabled={isVoiceControlDisabled}
                     onClick={() =>
@@ -916,7 +920,7 @@ export function RoleplayPanel({
 
             {/* Transcript */}
             <div
-              className="mb-5 flex min-h-[320px] max-h-[min(64vh,620px)] flex-col gap-3 overflow-y-auto rounded-lg border border-[var(--forge-border)] bg-[var(--forge-transcript-bg)] p-4"
+              className="mb-5 flex min-h-40 sm:min-h-[320px] max-h-[min(64vh,620px)] flex-col gap-3 overflow-y-auto rounded-lg border border-[var(--forge-border)] bg-[var(--forge-transcript-bg)] p-4"
               aria-label="Roleplay transcript"
               aria-live="polite"
               aria-relevant="additions text"
@@ -990,11 +994,10 @@ export function RoleplayPanel({
                     <ForgeIcon name="psychology" size={26} />
                   </div>
                   <p className=" text-lg font-bold text-[var(--forge-text)]">
-                    No active simulation
+                    No active roleplay
                   </p>
                   <p className="mt-2 max-w-sm text-sm text-[var(--forge-muted)]">
-                    Choose a persona in the scenario picker, then start a
-                    simulation.
+                    Choose a scenario, then select Start roleplay.
                   </p>
                 </div>
               )}
@@ -1066,7 +1069,7 @@ export function RoleplayPanel({
               </div>
               <button
                 aria-label="End and score current session"
-                className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-5 font-extrabold text-[var(--forge-bg)] shadow-lg transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 sm:h-20 sm:w-auto sm:min-w-[7.5rem] sm:flex-col sm:gap-1 sm:px-6"
+                className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-[var(--forge-gold)] px-5 font-semibold text-[var(--forge-on-accent)] transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 sm:h-20 sm:w-auto sm:min-w-[7.5rem] sm:flex-col sm:gap-1 sm:px-6"
                 disabled={
                   !activeSession ||
                   activeSession.status === "complete" ||
@@ -1093,9 +1096,7 @@ export function RoleplayPanel({
         </main>
 
         <OperationalPreviewDrawer
-          description="Current scoring, readiness, and post-session guidance."
-          eyebrow="Simulation score"
-          title="Session Scorecard"
+          title="Scorecard"
           data-roleplay-score-drawer=""
           id="roleplay-score"
         >
@@ -1187,25 +1188,20 @@ export function RoleplayPanel({
               <ForgeStatusPanel
                 description={
                   activeSession
-                    ? "Complete the current roleplay to generate your performance analytics and improvement tips."
-                    : "Start a simulation from the scenario picker. Scoring, readiness, and next actions appear here."
+                    ? "Select End & Score when you finish practicing."
+                    : "Choose a scenario and start practicing."
                 }
                 icon="query_stats"
                 title={
                   activeSession
-                    ? "Waiting for session completion..."
-                    : "Select a scenario to begin scoring."
+                    ? "Session in progress"
+                    : "No session yet"
                 }
                 tone="muted"
               />
             )}
 
-            <ForgeStatusPanel
-              description="When handling time-sensitive objections, acknowledge the constraint immediately before proposing a phased solution. It builds trust faster."
-              icon="lightbulb"
-              title="Practice tip"
-              tone="cyan"
-            />
+
           </div>
         </OperationalPreviewDrawer>
       </div>

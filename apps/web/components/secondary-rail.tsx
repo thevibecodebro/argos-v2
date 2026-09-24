@@ -2,12 +2,15 @@
 
 import {
   useEffect,
+  useId,
+  useRef,
   useState,
   type ButtonHTMLAttributes,
   type HTMLAttributes,
   type ReactNode,
 } from "react";
 import Link from "next/link";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@argos-v2/ui";
 import { ForgeIcon } from "./forge";
 
@@ -50,6 +53,14 @@ export function SecondaryRail({
   title,
   ...props
 }: SecondaryRailProps) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const bodyId = useId();
+  const mobileTrigger = useRef<HTMLButtonElement>(null);
+  const body = useRef<HTMLDivElement>(null);
+  const [activeLabel, setActiveLabel] = useState<string | null>(null);
+  useEffect(() => {
+    setActiveLabel(body.current?.querySelector('[aria-current="page"]')?.getAttribute("aria-label") ?? null);
+  }, [children]);
   const storageKey = `argos.secondaryRail.${railId}.collapsed`;
   const [collapsed, setCollapsed] = useState(false);
 
@@ -73,9 +84,21 @@ export function SecondaryRail({
       aria-label={title}
       className={cn("secondary-rail", className)}
       data-secondary-rail={railId}
+      data-mobile-open={mobileOpen ? "true" : "false"}
       data-secondary-rail-collapsed={collapsed ? "true" : "false"}
       {...props}
     >
+      <button
+        ref={mobileTrigger}
+        aria-expanded={mobileOpen}
+        aria-controls={bodyId}
+        className="secondary-rail-mobile-trigger"
+        type="button"
+        onClick={() => setMobileOpen(value => !value)}
+      >
+        <span>{activeLabel ? `${title}: ${activeLabel}` : title}</span>
+        {mobileOpen ? <ChevronUp aria-hidden="true" size={20} /> : <ChevronDown aria-hidden="true" size={20} />}
+      </button>
       <div className="secondary-rail-header">
         <div className="secondary-rail-header-text min-w-0">
           {eyebrow ? <p className="forge-page-eyebrow">{eyebrow}</p> : null}
@@ -95,7 +118,13 @@ export function SecondaryRail({
         </button>
       </div>
 
-      <div className="secondary-rail-body">{children}</div>
+      <div className="secondary-rail-body" ref={body} id={bodyId} onClick={event => {
+        const target = event.target as HTMLElement;
+        if (target.closest("a[href], button[aria-current]")) {
+          setMobileOpen(false);
+          if (window.matchMedia("(max-width: 63.999rem)").matches) mobileTrigger.current?.focus();
+        }
+      }}>{children}</div>
     </aside>
   );
 }

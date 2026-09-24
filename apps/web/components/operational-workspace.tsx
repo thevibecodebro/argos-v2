@@ -71,7 +71,7 @@ export function OperationalToolbar({
   children,
   className,
   description,
-  eyebrow,
+  eyebrow: _eyebrow,
   status,
   title,
   ...props
@@ -79,7 +79,7 @@ export function OperationalToolbar({
   return (
     <section
       className={cn(
-        "rounded-xl border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] px-3 py-3 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)] sm:px-4",
+        "border-b border-[var(--forge-border)] pb-4",
         className,
       )}
       data-operational-toolbar="true"
@@ -88,9 +88,8 @@ export function OperationalToolbar({
     >
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
-          {eyebrow ? <p className={operationalEyebrowClass}>{eyebrow}</p> : null}
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="truncate text-xl font-[540] tracking-[-0.01em] text-[var(--forge-text)]">
+            <h1 className="break-words text-xl font-[540] tracking-[-0.01em] text-[var(--forge-text)]">
               {title}
             </h1>
             {status ? (

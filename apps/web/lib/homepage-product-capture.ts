@@ -12,7 +12,7 @@ export const HOMEPAGE_PRODUCT_CAPTURE_ROUTES = [
     slug: "dashboard",
   },
   {
-    alt: "Argos call library showing reviewed sales conversations with scores and reps.",
+    alt: "Argos recordings showing reviewed sales conversations with scores and reps.",
     emphasis: "your team actually had.",
     headline: "Start with the conversations",
     id: "call-library",
@@ -52,7 +52,7 @@ export const HOMEPAGE_PRODUCT_CAPTURE_ROUTES = [
     slug: "training",
   },
   {
-    alt: "Argos roleplay showing a call-based practice simulation and scorecard.",
+    alt: "Argos roleplay showing a call-based practice session and scorecard.",
     emphasis: "before the next live call.",
     headline: "Practice the pushback",
     id: "roleplay-practice",

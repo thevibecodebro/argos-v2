@@ -44,7 +44,7 @@ describe("authenticated route states", () => {
     const notFoundHtml = renderToStaticMarkup(
       createElement(AuthenticatedRouteNotFound, {
         actionHref: "/calls",
-        actionLabel: "Back to call library",
+        actionLabel: "Back to recordings",
         description: "This call is unavailable.",
         eyebrow: "Review bench",
         title: "Call review",

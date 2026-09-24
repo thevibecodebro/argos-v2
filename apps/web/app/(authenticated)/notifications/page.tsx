@@ -29,7 +29,6 @@ export default async function NotificationsPage() {
     <AuthenticatedPageContainer>
       <OperationalWorkspace data-notifications-route="account-inbox">
         <OperationalToolbar
-          description="Review account activity and open the related record."
           eyebrow="Inbox"
           status={{ icon: "notifications", label: `${unreadCount} unread`, tone: unreadCount > 0 ? "gold" : "muted" }}
           title="Notifications"
