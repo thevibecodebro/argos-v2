@@ -218,6 +218,10 @@ export function CallDetailPanel({
   }, [call.processingJob]);
 
   useEffect(() => {
+    setMoments(call.moments);
+  }, [call.moments]);
+
+  useEffect(() => {
     if (!["uploaded", "transcribing", "evaluating"].includes(call.status)) return;
     let active = true;
     let requestInFlight = false;
