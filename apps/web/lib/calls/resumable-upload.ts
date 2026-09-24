@@ -52,6 +52,7 @@ export function uploadToAuthenticatedResumableUrl(
     ?? ((file: File, options: UploadOptions) => new Upload(file, options));
 
   return new Promise<void>((resolve, reject) => {
+    let highestProgress = 0;
     const upload = createUpload(input.file, {
       chunkSize: TUS_CHUNK_SIZE_BYTES,
       endpoint: buildResumableUploadEndpoint(supabaseUrl),
@@ -76,9 +77,13 @@ export function uploadToAuthenticatedResumableUrl(
       },
       onProgress: (bytesUploaded, bytesTotal) => {
         const progress = bytesTotal > 0 ? Math.round((bytesUploaded / bytesTotal) * 100) : 0;
-        input.onProgress(progress);
+        highestProgress = Math.max(highestProgress, Math.min(99, progress));
+        input.onProgress(highestProgress);
       },
-      onSuccess: () => resolve(),
+      onSuccess: () => {
+        input.onProgress(100);
+        resolve();
+      },
       removeFingerprintOnSuccess: true,
       retryDelays: [0, 3_000, 5_000, 10_000, 20_000],
       storeFingerprintForResuming: false,

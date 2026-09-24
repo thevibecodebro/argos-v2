@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ForgeDialog } from "@/components/forge-dialog";
 import {
@@ -212,6 +212,40 @@ export function CallDetailPanel({
     DEFAULT_GENERATED_ROLEPLAY_BUYER_VOICE,
   );
   const [focusCategorySlug, setFocusCategorySlug] = useState("all");
+
+  useEffect(() => {
+    setProcessingJob(call.processingJob);
+  }, [call.processingJob]);
+
+  useEffect(() => {
+    if (!["uploaded", "transcribing", "evaluating"].includes(call.status)) return;
+    let active = true;
+    let requestInFlight = false;
+    const poll = async () => {
+      if (requestInFlight || document.visibilityState === "hidden") return;
+      requestInFlight = true;
+      try {
+        const response = await fetch(`/api/calls/${call.id}/status`, { cache: "no-store" });
+        if (!response.ok || !active) return;
+        const result = await response.json() as {
+          status: string;
+          processingJob: CallProcessingJob | null;
+        };
+        setProcessingJob(result.processingJob);
+        if (result.status !== call.status) router.refresh();
+      } catch {
+        // A transient status request should not interrupt the open review page.
+      } finally {
+        requestInFlight = false;
+      }
+    };
+    void poll();
+    const interval = window.setInterval(() => { void poll(); }, 5_000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [call.id, call.status, router]);
 
   const busyAnnouncement = isSubmitting
     ? "Saving coaching note."

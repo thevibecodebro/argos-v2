@@ -1,5 +1,6 @@
 import { ProviderRequestError } from "@argos-v2/call-processing";
 import { describe, expect, it, vi } from "vitest";
+import { getWorkerEnv } from "../env";
 import { isRetryableProcessingError, processCallJob } from "./process-call-job";
 
 describe("processCallJob", () => {
@@ -175,17 +176,27 @@ describe("processCallJob", () => {
       durationSeconds: 600,
     };
     const scoreTranscriptFromLines = vi.fn().mockResolvedValue(evaluation);
+    let releaseProfile!: () => void;
+    const profilePending = new Promise<void>((resolve) => { releaseProfile = resolve; });
+    const extractBuyerPersonalityFromTranscript = vi.fn(async () => {
+      await profilePending;
+      throw new Error("malformed structured output");
+    });
 
-    await processCallJob({
+    const processing = processCallJob({
       job: { id: "job-both", callId: "call-both", repId: "rep-1", callTopic: "Discovery", attemptCount: 1, maxAttempts: 3, sourceStoragePath: "recordings/call-both/source/demo.mp4" } as never,
       repository: repository as never,
       downloadSourceAsset: vi.fn().mockResolvedValue("/tmp/source.mp4"),
       normalizeAudio: vi.fn().mockResolvedValue({ outputPath: "/tmp/normalized.mp3", sizeBytes: 1024, durationSeconds: 300 }),
       readFile: vi.fn().mockResolvedValue(Buffer.from("normalized audio")),
       transcribeAudioBuffer: vi.fn().mockResolvedValue({ durationSeconds: 600, transcript: [{ timestampSeconds: 0, speaker: "Speaker A", text: "Hello" }] }),
-      extractBuyerPersonalityFromTranscript: vi.fn().mockRejectedValue(new Error("malformed structured output")),
+      extractBuyerPersonalityFromTranscript,
       scoreTranscriptFromLines,
     });
+    await vi.waitFor(() => expect(scoreTranscriptFromLines).toHaveBeenCalledTimes(1));
+    expect(repository.persistProcessedCall).not.toHaveBeenCalled();
+    releaseProfile();
+    await processing;
 
     expect(repository.updateBuyerProfileStatus).toHaveBeenLastCalledWith("call-both", "failed");
     expect(scoreTranscriptFromLines).toHaveBeenCalledTimes(1);
@@ -673,6 +684,44 @@ describe("processCallJob", () => {
       expect.anything(),
       expect.objectContaining({ callId: "call-exhausted", lastStage: "transcribe" }),
     );
+  });
+
+  it("uses configured transcription concurrency for version 2 jobs", async () => {
+    const repository = {
+      getCallProcessingCapabilities: vi.fn().mockResolvedValue({ canGenerateBuyerPersonality: false, canScoreCall: true }),
+      findReusableTranscriptCheckpoint: vi.fn().mockResolvedValue(null),
+      listCompletedChunks: vi.fn().mockResolvedValue([]),
+      setChunkManifest: vi.fn().mockResolvedValue("written"),
+      beginChunkAttempt: vi.fn().mockResolvedValue(1),
+      saveChunkFailure: vi.fn().mockResolvedValue("written"),
+      markV2TerminalFailure: vi.fn().mockResolvedValue("written"),
+      updateCallStatusForLease: vi.fn().mockResolvedValue("written"),
+    };
+    const transcribeAudioBuffer = vi.fn().mockRejectedValue(new Error("provider failed"));
+
+    await expect(processCallJob({
+      job: {
+        id: "job-concurrent", callId: "call-concurrent", repId: "rep-1", callTopic: "Discovery",
+        attemptCount: 1, maxAttempts: 3, failureCount: 0, maxFailures: 3,
+        processingVersion: 2, generation: 1, leaseToken: "00000000-0000-4000-8000-000000000001",
+        sourceStoragePath: "recordings/call-concurrent/source/demo.mp4",
+      } as never,
+      repository: repository as never,
+      env: getWorkerEnv({ CALL_PROCESSING_TRANSCRIBE_CONCURRENCY: "2" }),
+      downloadSourceAsset: vi.fn().mockResolvedValue("/tmp/source.mp4"),
+      normalizeAudio: vi.fn().mockResolvedValue({
+        outputPath: "/tmp/normalized.mp3", sizeBytes: 1024, durationSeconds: 1200,
+      }),
+      chunkAudioFile: vi.fn().mockResolvedValue([
+        { filePath: "/tmp/chunk-0.mp3", startSeconds: 0, endSeconds: 600 },
+        { filePath: "/tmp/chunk-1.mp3", startSeconds: 600, endSeconds: 1200 },
+      ]),
+      readFile: vi.fn().mockResolvedValue(Buffer.from("audio")),
+      transcribeAudioBuffer,
+    })).rejects.toThrow("Chunk 0 transcription attempts exhausted");
+
+    expect(transcribeAudioBuffer).toHaveBeenCalledTimes(2);
+    expect(repository.saveChunkFailure).toHaveBeenCalledTimes(2);
   });
 
   it("honors a provider retry delay longer than the default downstream backoff", async () => {
