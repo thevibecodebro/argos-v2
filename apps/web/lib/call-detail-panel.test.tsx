@@ -308,6 +308,20 @@ describe("CallDetailPanel", () => {
     expect(html).not.toContain(">play_arrow</span>");
   });
 
+  it("shows a completed stored recording's transcript as ready without a legacy URL", async () => {
+    const html = await renderCallDetailPanel({
+      call: {
+        ...baseCall,
+        status: "complete",
+        recordingUrl: null,
+        transcript: [{ timestampSeconds: 1, speaker: "Speaker A", text: "Hello." }],
+      },
+    });
+    expect(html).toContain("Transcript ready");
+    expect(html).not.toContain("Recording unavailable");
+    expect(html).toContain("Audio playback is not available in this panel.");
+  });
+
   it("renders honest media status when no recording is linked", async () => {
     const html = await renderCallDetailPanel();
 

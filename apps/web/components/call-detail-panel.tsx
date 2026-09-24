@@ -122,6 +122,15 @@ export function getCallMediaState({
     };
   }
 
+  if (!hasRecording && hasTranscript) {
+    return {
+      description: "The transcript is available for review. Audio playback is not available in this panel.",
+      icon: "subject",
+      title: "Transcript ready",
+      tone: "success" as const,
+    };
+  }
+
   if (!hasRecording) {
     return {
       description: "Attach or process a recording before audio playback can be offered here.",
