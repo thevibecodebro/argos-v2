@@ -1,3 +1,4 @@
+import { ResponsiveAside } from "@/components/responsive-aside";
 import { Suspense } from "react";
 import Link from "next/link";
 import { getCachedAuthenticatedSupabaseUser } from "@/lib/auth/request-user";
@@ -72,17 +73,16 @@ export default async function CallsPage({
     <AuthenticatedPageContainer className="py-4 sm:py-5" size="wide">
       <OperationalWorkspace data-calls-layout="table-first">
         <OperationalToolbar
-          description={scoringEnabled ? "Find and review scored calls." : "Find recordings, transcripts, and buyer personalities for roleplay."}
           status={
             hasActiveFilters
               ? { icon: "filter_list", label: "Filters applied", tone: "ember" }
               : undefined
           }
-          title={scoringEnabled ? "Calls" : "Recordings"}
+          title="Recordings"
         />
 
         <section
-          className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_320px]"
+          className="grid min-w-0 gap-3 2xl:grid-cols-[minmax(0,1fr)_320px]"
           data-operational-list-workspace="calls"
         >
           <div
@@ -405,6 +405,7 @@ export default async function CallsPage({
             </div>
           </div>
 
+          <ResponsiveAside title="Recording summary">
           <OperationalPreviewDrawer
             actions={
               selectedCall
@@ -483,6 +484,7 @@ export default async function CallsPage({
               </dl>
             ) : null}
           </OperationalPreviewDrawer>
+          </ResponsiveAside>
         </section>
 
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.4%,transparent)] px-3 py-2">

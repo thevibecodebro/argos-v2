@@ -83,3 +83,23 @@ it('late SDP cannot reattach a connection after unmount', async () => {
     expect(tracksStop).toHaveBeenCalled();
     expect(peers[0].close).toHaveBeenCalled();
 });
+it('keeps active practice compact and closes setup after changing scenarios', async () => {
+    await mount();
+    const setup = container.querySelector<HTMLDetailsElement>('#roleplay-scenario')!;
+    expect(setup.open).toBe(false);
+    expect(setup.querySelector('summary')?.textContent).toContain('Change scenario');
+    setup.open = true;
+    expect(setup.querySelector('[data-roleplay-scenario-list]')).toBeTruthy();
+    await act(async () => {
+        (setup.querySelector('[data-roleplay-primary-action="start-simulation"]') as HTMLButtonElement).click();
+        await new Promise(setImmediate);
+    });
+    expect(container.querySelector<HTMLDetailsElement>('#roleplay-scenario')!.open).toBe(false);
+    expect(fetchMock).toHaveBeenCalledWith('/api/roleplay/sessions', expect.objectContaining({ method: 'POST' }));
+});
+it('opens scenario selection when there is no active session', async () => {
+    await act(async () => root!.render(createElement(RoleplayPanel, {
+        initialPersonas: [persona], initialSessions: [], voiceEnabled: false,
+    } as any)));
+    expect(container.querySelector<HTMLDetailsElement>('#roleplay-scenario')!.open).toBe(true);
+});

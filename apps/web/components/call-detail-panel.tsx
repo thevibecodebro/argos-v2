@@ -642,6 +642,8 @@ export function CallDetailPanel({
       <section
         className="overflow-hidden rounded-lg border border-[var(--forge-border)] bg-[var(--forge-transcript-bg)]"
         data-call-transcript-primary="true"
+        id="call-transcript"
+        style={{ scrollMarginTop: "5rem" }}
       >
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--forge-border)] px-4 py-3">
           <div>
@@ -842,6 +844,8 @@ export function CallDetailPanel({
       <aside
         className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-3 xl:sticky xl:top-20 xl:self-start"
         data-call-coaching-pane="true"
+        id="call-coaching"
+        style={{ scrollMarginTop: "5rem" }}
       >
         <h2 className="text-base font-semibold text-[var(--forge-text)]">Coaching action</h2>
         <p className="mt-1 text-sm leading-5 text-[var(--forge-muted)]">
@@ -867,6 +871,10 @@ export function CallDetailPanel({
         {busyAnnouncement}
       </div>
       <div className="space-y-3" data-call-detail-panel="forge-review-bench">
+        <nav aria-label="Call review sections" className="flex gap-2 xl:hidden">
+          <a href="#call-transcript" className="forge-button forge-button-secondary px-4 py-2 text-sm">Transcript</a>
+          <a href="#call-coaching" className="forge-button forge-button-secondary px-4 py-2 text-sm">Coaching action</a>
+        </nav>
         <div
           className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_340px]"
           data-call-detail-workbench="transcript-evidence"

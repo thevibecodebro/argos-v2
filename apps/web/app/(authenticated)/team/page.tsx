@@ -40,7 +40,6 @@ export default async function TeamPage() {
       <OperationalWorkspace data-team-route="roster-first">
         <OperationalToolbar
           actions={[{ href: "/leaderboard", label: "Open leaderboard", variant: "secondary" }]}
-          description="Review team performance, coaching focus, and rep-level score movement."
           eyebrow="People"
           status={{ icon: "group", label: `${reps.length} active reps`, tone: "muted" }}
           title="Team"

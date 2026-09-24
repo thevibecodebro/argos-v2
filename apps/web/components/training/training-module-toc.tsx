@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+import { ChevronDown, Check, Play } from "lucide-react";
 import { SecondaryRailButton, SecondaryRailGroup } from "@/components/secondary-rail";
 import type { TrainingModuleSummary } from "@/lib/training/service";
 
@@ -14,6 +16,18 @@ export function TrainingModuleToc({
   onSelectModule: (moduleId: string) => void;
   variant?: "panel" | "rail";
 }) {
+  const disclosure = useRef<HTMLDetailsElement>(null);
+  const selectedIndex = modules.findIndex((module) => module.id === selectedModuleId);
+
+  useEffect(() => {
+    if (variant !== "panel") return;
+    const viewport = window.matchMedia("(min-width: 64rem)");
+    const syncDisclosure = () => { if (disclosure.current) disclosure.current.open = viewport.matches; };
+    syncDisclosure();
+    viewport.addEventListener("change", syncDisclosure);
+    return () => viewport.removeEventListener("change", syncDisclosure);
+  }, [variant]);
+
   if (variant === "rail") {
     return (
       <div aria-label="Curriculum map" data-training-module-tree="rail">
@@ -39,45 +53,44 @@ export function TrainingModuleToc({
   }
 
   return (
-    <section
-      aria-label="Curriculum map"
-      data-training-module-tree=""
-      className="rounded-[1.5rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-panel-bg)] p-6 shadow-[0_18px_60px_color-mix(in_srgb,var(--forge-bg)_10%,transparent)]"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-gold)]">Course structure</p>
-          <p className="mt-1 text-xs text-[var(--forge-muted)]">Curriculum map</p>
-        </div>
-        <span className="rounded-full border border-[var(--forge-border-strong)]/12 bg-[var(--forge-surface-2)]/70 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
-          {modules.length} module{modules.length === 1 ? "" : "s"}
+    <details ref={disclosure} className="training-module-picker" data-training-module-tree="">
+      <summary className="training-module-picker-summary">
+        <span className="font-semibold">Modules</span>
+        <span className="ml-auto text-sm text-[var(--forge-muted)]">
+          {selectedIndex >= 0 ? `${selectedIndex + 1} of ${modules.length}` : `${modules.length} modules`}
         </span>
-      </div>
-      <div className="mt-5 divide-y divide-[var(--forge-border)] overflow-hidden rounded-[1.15rem] border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)]">
-        {modules.map((module) => (
-          <button
-            aria-current={module.id === selectedModuleId ? "page" : undefined}
-            className={
-              module.id === selectedModuleId
-                ? "w-full bg-[var(--forge-gold)]/10 px-4 py-3.5 text-left transition"
-                : "w-full px-4 py-3.5 text-left transition hover:bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)]"
-            }
-            key={module.id}
-            onClick={() => onSelectModule(module.id)}
-            type="button"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-[var(--forge-text)]">{module.title}</p>
-                <p className="mt-1 truncate text-xs text-[var(--forge-muted)]">
-                  {module.skillCategory} · {module.progress?.status ?? "assigned"}
-                </p>
-              </div>
-              <span className="text-xs font-semibold text-[var(--forge-gold)]">Open</span>
-            </div>
-          </button>
-        ))}
-      </div>
-    </section>
+        <ChevronDown aria-hidden="true" size={18} />
+      </summary>
+      <nav aria-label="Curriculum map" className="training-module-list">
+        {modules.map((module) => {
+          const selected = module.id === selectedModuleId;
+          const complete = module.progress?.status === "passed";
+          return (
+            <button
+              aria-current={selected ? "page" : undefined}
+              className="training-module-row"
+              key={module.id}
+              onClick={() => {
+                onSelectModule(module.id);
+                if (disclosure.current && !window.matchMedia("(min-width: 64rem)").matches) {
+                  disclosure.current.open = false;
+                  disclosure.current.querySelector("summary")?.focus();
+                }
+              }}
+              type="button"
+            >
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold leading-5">{module.title}</span>
+                <span className="mt-1 block text-xs text-[var(--forge-muted)]">
+                  {module.skillCategory} · {(module.progress?.status ?? "assigned").replaceAll("_", " ")}
+                </span>
+              </span>
+              {complete ? <Check aria-label="Completed" size={18} /> : selected ? <Play aria-label="Current module" size={16} /> : null}
+            </button>
+          );
+        })}
+        {!modules.length ? <p className="p-3 text-sm text-[var(--forge-muted)]">Your assigned modules will appear here.</p> : null}
+      </nav>
+    </details>
   );
 }

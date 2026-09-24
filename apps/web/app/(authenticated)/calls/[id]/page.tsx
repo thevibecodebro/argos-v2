@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
 import { CallDetailPanel } from "@/components/panel-loaders/call-detail-panel-loader";
@@ -63,24 +62,15 @@ export default async function CallDetailPage({
       <OperationalWorkspace data-call-detail-route="review-bench">
         <OperationalToolbar
           actions={[
-            { href: "/calls", icon: "arrow_back", label: "Call Library", variant: "secondary" },
+            { href: "/calls", icon: "arrow_back", label: "Recordings", variant: "secondary" },
             ...(canUseHighlights
-              ? [{ href: "/highlights", icon: "insights", label: "Open Highlights", variant: "primary" as const }]
+              ? [{ href: "/highlights", icon: "insights", label: "Open Highlights", variant: "secondary" as const }]
               : []),
           ]}
-          description={`Access scoped to ${profile?.role ?? "member"} permissions.`}
           eyebrow="Call detail"
           status={{ icon: "query_stats", label: call.status, tone: statusTone(call.status) }}
           title={topic}
-        >
-          <nav className="flex min-w-0 items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
-            <Link className="transition hover:text-[var(--forge-gold)]" href="/calls">
-              Call Library
-            </Link>
-            <span>/</span>
-            <span className="truncate text-[var(--forge-gold)]">{topic}</span>
-          </nav>
-        </OperationalToolbar>
+        />
 
         <CallDetailPanel
           annotations={annotationsResult.ok ? annotationsResult.data.annotations : []}

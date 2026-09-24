@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { cn } from "@argos-v2/ui";
 import { ForgeIcon } from "@/components/forge";
 import {
@@ -33,6 +33,9 @@ export function PlatformOrganizationSwitcher({
   organizationCount,
   organizations,
 }: PlatformOrganizationSwitcherProps) {
+  const switcherId = useId();
+  const menuId = `${switcherId}-menu`;
+  const searchId = `${switcherId}-search`;
   const [session, setSession] = useState(activeSession);
   const [organizationQuery, setOrganizationQuery] = useState("");
   const [switchingOrgId, setSwitchingOrgId] = useState<string | null>(null);
@@ -142,7 +145,7 @@ export function PlatformOrganizationSwitcher({
       ref={switcherRef}
     >
       <button
-        aria-controls="platform-organization-switcher-menu"
+        aria-controls={menuId}
         aria-expanded={switcherOpen}
         aria-haspopup="dialog"
         className="w-full text-left"
@@ -180,9 +183,9 @@ export function PlatformOrganizationSwitcher({
         data-platform-organization-switcher-menu="true"
         data-state={switcherOpen ? "open" : "closed"}
         hidden={!switcherOpen}
-        id="platform-organization-switcher-menu"
+        id={menuId}
       >
-        <label className="sr-only" htmlFor="platform-organization-switch-search">
+        <label className="sr-only" htmlFor={searchId}>
           Search organizations
         </label>
         <div className="relative">
@@ -192,7 +195,7 @@ export function PlatformOrganizationSwitcher({
           <input
             className="min-h-10 w-full rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface)] pl-9 pr-3 text-sm text-[var(--forge-text)] outline-none transition placeholder:text-[var(--forge-muted)] focus:border-[var(--forge-gold)]/60"
             data-platform-organization-switcher-search="true"
-            id="platform-organization-switch-search"
+            id={searchId}
             onChange={(event) => setOrganizationQuery(event.target.value)}
             placeholder="Search for an organization"
             type="search"

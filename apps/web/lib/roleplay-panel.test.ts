@@ -158,7 +158,7 @@ describe("RoleplayPanel", () => {
       }),
     );
 
-    expect(html).toContain("Session Scorecard");
+    expect(html).toContain("Scorecard");
     expect(html).toContain('data-roleplay-mobile-sections="true"');
     expect(html).toContain('aria-label="Roleplay sections"');
     expect(html).toContain('href="#roleplay-scenario"');
@@ -250,10 +250,10 @@ describe("RoleplayPanel", () => {
     expect(html).toContain('id="roleplay-practice"');
     expect(html).toContain('data-roleplay-score-drawer=""');
     expect(html).toContain('id="roleplay-score"');
-    expect(html).toContain("Start simulation");
-    expect(html).toContain("No active simulation");
-    expect(html).toContain("Choose a persona in the scenario picker, then start a simulation.");
-    expect(html).toContain("Select a scenario to begin scoring.");
+    expect(html).toContain("Start roleplay");
+    expect(html).toContain("No active roleplay");
+    expect(html).toContain("Choose a scenario, then select Start roleplay.");
+    expect(html).toContain("No session yet");
     expect(html).toContain('data-roleplay-transcript="simple-log"');
     expect(html).toContain('data-roleplay-mode-control="true"');
     expect(html).not.toContain("Practice mode");

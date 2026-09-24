@@ -91,7 +91,7 @@ export function getUploadActionLabel({
   }
 
   if (uploadedCount === fileCount) {
-    return "View call library";
+    return "View recordings";
   }
 
   if (failedCount > 0) {
@@ -419,48 +419,6 @@ export function UploadCallPanel() {
   return (
     <ForgeSurface className="p-5 sm:p-6" data-upload-step-flow="forge">
       <div className="space-y-5">
-        <div className="grid gap-3 md:grid-cols-3">
-          {[
-            {
-              label: "Choose recordings",
-              detail: queue.length ? getSelectedFilesLabel(queue.length) : `Select or drop up to ${MAX_BULK_UPLOAD_FILES} recordings.`,
-              active: queue.length > 0,
-            },
-            {
-              label: "Add call context",
-              detail: callTopic.trim() ? `Prefix: ${callTopic.trim()}` : "Optional prefix. File names stay unique in bulk uploads.",
-              active: Boolean(callTopic.trim()),
-            },
-            {
-              label: "Upload and process",
-              detail: isUploading ? progressLabel : disabledReason,
-              active: isUploading,
-            },
-          ].map((step, index) => (
-            <ForgeSurface className="p-4" key={step.label} variant="inset">
-              <div className="flex items-start gap-3">
-                <span
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${
-                    step.active
-                      ? "border-[color-mix(in_srgb,var(--forge-gold)_38%,transparent)] bg-[color-mix(in_srgb,var(--forge-gold)_12%,transparent)] text-[var(--forge-gold)]"
-                      : "border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)] text-[var(--forge-muted)]"
-                  }`}
-                >
-                  {index + 1}
-                </span>
-                <div className="min-w-0">
-                  <p className="font-[var(--font-display)] text-sm font-semibold text-[var(--forge-text)]">
-                    {step.label}
-                  </p>
-                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--forge-muted)]">
-                    {step.detail}
-                  </p>
-                </div>
-              </div>
-            </ForgeSurface>
-          ))}
-        </div>
-
         <input
           accept={ACCEPTED_TYPES.join(",")}
           aria-label="Call recording files"
@@ -480,7 +438,7 @@ export function UploadCallPanel() {
 
         <div
           aria-label={canSelectFile ? "Choose call recordings to upload" : undefined}
-          className={`rounded-xl border-2 border-dashed p-8 text-center transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--forge-gold)]/20 ${
+          className={`rounded-xl border-2 border-dashed p-5 sm:p-8 text-center transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--forge-gold)]/20 ${
             isDragging
               ? "border-[var(--forge-gold)]/60 bg-[var(--forge-gold)]/8"
               : queue.length
@@ -566,7 +524,7 @@ export function UploadCallPanel() {
                           {item.status === "uploaded" && item.callId ? (
                             <a
                               aria-label={`Open ${item.file.name}`}
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--forge-border)] text-[var(--forge-muted)] transition hover:border-[color-mix(in_srgb,var(--forge-gold)_32%,transparent)] hover:text-[var(--forge-gold)]"
+                              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-[var(--forge-border)] text-[var(--forge-muted)] transition hover:border-[color-mix(in_srgb,var(--forge-gold)_32%,transparent)] hover:text-[var(--forge-gold)]"
                               href={getUploadedCallHref(item.callId)}
                               onClick={(event) => event.stopPropagation()}
                             >
@@ -575,7 +533,7 @@ export function UploadCallPanel() {
                           ) : null}
                           <button
                             aria-label={`Remove ${item.file.name}`}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--forge-border)] text-[var(--forge-muted)] transition hover:border-[rgba(255,120,92,0.36)] hover:text-[var(--forge-danger)] disabled:cursor-not-allowed disabled:opacity-40"
+                            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-[var(--forge-border)] text-[var(--forge-muted)] transition hover:border-[rgba(255,120,92,0.36)] hover:text-[var(--forge-danger)] disabled:cursor-not-allowed disabled:opacity-40"
                             disabled={isUploading}
                             onClick={(event) => {
                               event.stopPropagation();
@@ -618,11 +576,10 @@ export function UploadCallPanel() {
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)] text-[var(--forge-gold)]">
                 <ForgeIcon name="upload_file" size={24} />
               </div>
-              <p className="text-lg font-semibold text-[var(--forge-text)]">Drop recording or audio here</p>
+              <p className="text-lg font-semibold text-[var(--forge-text)]">Choose recordings</p>
               <p className="text-sm text-[var(--forge-muted)]">
-                Accepted: MP3, WAV, M4A, MP4, and WebM. Up to {formatUploadLimit(CALL_UPLOAD_MAX_BYTES)} each.
+                Tap to browse or drop files here. MP3, WAV, M4A, MP4, and WebM. Up to {formatUploadLimit(CALL_UPLOAD_MAX_BYTES)} each.
               </p>
-              <p className="text-xs text-[var(--forge-muted)]">MP4 files with one AAC audio track upload audio only; the video stays on your device. Other videos use the original file.</p>
               <p className="text-xs font-medium text-[var(--forge-muted)]">
                 Upload up to {MAX_BULK_UPLOAD_FILES} recordings in one batch.
               </p>
@@ -630,8 +587,13 @@ export function UploadCallPanel() {
           )}
         </div>
 
+        <details className="text-sm text-[var(--forge-muted)]">
+          <summary className="min-h-11 cursor-pointer py-3">How video uploads work</summary>
+          <p className="text-xs text-[var(--forge-muted)]">MP4 files with one AAC audio track upload audio only; the video stays on your device. Other videos use the original file.</p>
+        </details>
+
         <label className="block space-y-2">
-          <span className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
+          <span className="text-sm font-medium text-[var(--forge-muted)]">
             Call Context
           </span>
           <input
@@ -646,7 +608,7 @@ export function UploadCallPanel() {
 
         {error ? (
           <ForgeErrorState description={uploadStatusCopy.description} title={uploadStatusCopy.title} />
-        ) : (
+        ) : queue.length > 0 ? (
           <ForgeStatusPanel
             announce={isUploading ? "polite" : "off"}
             description={isUploading ? progressLabel : uploadStatusCopy.description}
@@ -666,14 +628,9 @@ export function UploadCallPanel() {
               </div>
             ) : null}
           </ForgeStatusPanel>
-        )}
+        ) : null}
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap gap-2">
-            <ForgeChip icon="shield" tone="muted">{formatUploadLimit(CALL_UPLOAD_MAX_BYTES)} each</ForgeChip>
-            <ForgeChip icon="queue" tone="muted">{MAX_BULK_UPLOAD_FILES} files per batch</ForgeChip>
-            <ForgeChip icon="graphic_eq" tone="muted">Audio or video</ForgeChip>
-          </div>
           <ForgeButton
             disabled={queue.length === 0 || isUploading}
             icon={isUploading ? "query_stats" : uploadedCount === queue.length && queue.length > 0 ? "library_books" : failedCount > 0 ? "refresh" : "upload"}

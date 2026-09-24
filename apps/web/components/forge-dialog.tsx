@@ -21,6 +21,9 @@ type ForgeDialogProps = {
   title: string;
 };
 
+const openDialogs: HTMLDialogElement[] = [];
+let savedBodyOverflow = "";
+
 const FOCUSABLE_SELECTOR = [
   "a[href]",
   "area[href]",
@@ -57,6 +60,7 @@ export function ForgeDialog({
   open,
   title,
 }: ForgeDialogProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const onOpenChangeRef = useRef(onOpenChange);
@@ -84,10 +88,17 @@ export function ForgeDialog({
       return;
     }
 
+    const dialog = dialogRef.current;
+    if (dialog && !dialog.open && typeof dialog.showModal === "function") dialog.showModal();
+    if (openDialogs.length === 0) savedBodyOverflow = document.body.style.overflow;
+    if (dialog) openDialogs.push(dialog);
+    document.body.style.overflow = "hidden";
+
     const focusableElements = getFocusableElements(panel);
     focusWithoutScroll(focusableElements[0] ?? panel);
 
     function handleKeyDown(event: globalThis.KeyboardEvent) {
+      if (openDialogs.at(-1) !== dialog) return;
       const currentPanel = panelRef.current;
       if (!currentPanel) {
         return;
@@ -138,6 +149,12 @@ export function ForgeDialog({
 
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
+      if (dialog) {
+        const index = openDialogs.indexOf(dialog);
+        if (index >= 0) openDialogs.splice(index, 1);
+      }
+      if (openDialogs.length === 0) document.body.style.overflow = savedBodyOverflow;
+      if (dialog?.open) dialog.close();
 
       const previousFocus = previousFocusRef.current;
       if (previousFocus && document.contains(previousFocus)) {
@@ -147,7 +164,7 @@ export function ForgeDialog({
     };
   }, [open]);
 
-  const handleBackdropClick = useCallback((event: MouseEvent<HTMLDivElement>) => {
+  const handleBackdropClick = useCallback((event: MouseEvent<HTMLDialogElement>) => {
     if (event.target === event.currentTarget) {
       requestClose();
     }
@@ -158,22 +175,24 @@ export function ForgeDialog({
   }
 
   return (
-    <div
+    <dialog
+      ref={dialogRef}
+      aria-describedby={description ? descriptionId : undefined}
+      aria-labelledby={titleId}
+      aria-modal="true"
+      role="dialog"
+      onCancel={event => { event.preventDefault(); requestClose(); }}
       className="forge-dialog-overlay fixed inset-0 z-50 flex items-center justify-center bg-[var(--forge-overlay-bg)] px-4 py-6 text-[var(--forge-text)]"
       data-forge-dialog-overlay="true"
       onClick={handleBackdropClick}
     >
       <div
-        aria-describedby={description ? descriptionId : undefined}
-        aria-labelledby={titleId}
-        aria-modal="true"
         className={cn(
           "forge-dialog-panel forge-surface flex max-h-[min(42rem,calc(100dvh-2rem))] w-full max-w-2xl flex-col overflow-hidden rounded-[1.5rem] border border-[var(--forge-border-strong)] bg-[var(--forge-surface)] text-[var(--forge-text)] shadow-[0_30px_100px_color-mix(in_srgb,var(--forge-bg)_38%,transparent)]",
           className,
         )}
         data-forge-dialog-panel="true"
         ref={panelRef}
-        role="dialog"
         tabIndex={-1}
       >
         <div className="flex flex-none items-start justify-between gap-4 border-b border-[var(--forge-border)] px-5 py-4 sm:px-6">
@@ -192,7 +211,7 @@ export function ForgeDialog({
           </div>
           <button
             aria-label="Close dialog"
-            className="forge-focus-ring forge-icon-button inline-flex h-10 w-10 flex-none items-center justify-center rounded-full text-[var(--forge-gold)] transition hover:border-[color-mix(in_srgb,var(--forge-gold)_35%,transparent)] hover:bg-[color-mix(in_srgb,var(--forge-gold)_10%,transparent)]"
+            className="forge-focus-ring forge-icon-button inline-flex h-11 w-11 flex-none items-center justify-center rounded-full text-[var(--forge-gold)] transition hover:border-[color-mix(in_srgb,var(--forge-gold)_35%,transparent)] hover:bg-[color-mix(in_srgb,var(--forge-gold)_10%,transparent)]"
             onClick={requestClose}
             type="button"
           >
@@ -213,6 +232,6 @@ export function ForgeDialog({
           </div>
         ) : null}
       </div>
-    </div>
+    </dialog>
   );
 }

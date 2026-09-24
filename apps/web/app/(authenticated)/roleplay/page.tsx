@@ -52,7 +52,6 @@ export default async function RoleplayPage({
       <AuthenticatedPageContainer>
         <OperationalWorkspace data-roleplay-route="operational-workspace">
           <OperationalToolbar
-            description="Practice sales conversations from call evidence and coaching scenarios."
             eyebrow="Coach"
             title="Roleplay"
           />
@@ -70,7 +69,6 @@ export default async function RoleplayPage({
       <OperationalWorkspace data-roleplay-route="operational-workspace">
         <OperationalToolbar
           actions={[{ href: "/roleplay/history", icon: "history", label: "History", variant: "secondary" }]}
-          description="Practice sales conversations from call evidence and coaching scenarios."
           eyebrow="Coach"
           status={{ icon: "psychology", label: `${result.data.personas.length} personas`, tone: "muted" }}
           title="Roleplay"

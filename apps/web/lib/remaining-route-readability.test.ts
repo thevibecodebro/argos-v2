@@ -16,7 +16,7 @@ const routeContracts = [
   },
   {
     path: "../app/(authenticated)/roleplay/history/page.tsx",
-    primaryObjects: ["ForgeTableShell"],
+    primaryObjects: ["ForgeManagementTable"],
     route: "roleplay history",
     routeMarker: 'data-roleplay-route="history"',
   },

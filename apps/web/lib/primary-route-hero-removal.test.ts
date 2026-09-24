@@ -614,7 +614,7 @@ describe("primary route hero removal", () => {
       "Review team performance with week-over-week trend, call volume, and coaching flags.",
     );
     expect(teamHtml).toContain(">Team<");
-    expect(teamHtml).toContain(
+    expect(teamHtml).not.toContain(
       "Review team performance, coaching focus, and rep-level score movement.",
     );
 
@@ -623,7 +623,7 @@ describe("primary route hero removal", () => {
       "Compare top-quality, top-volume, and most-improved slices across your team.",
     );
     expect(leaderboardHtml).toContain(">Leaderboard<");
-    expect(leaderboardHtml).toContain(
+    expect(leaderboardHtml).not.toContain(
       "Compare rank, score quality, call volume, and improvement across your team.",
     );
 
@@ -688,7 +688,7 @@ describe("primary route hero removal", () => {
 
     expect(notificationsHtml).toContain("Notifications panel marker");
     expect(notificationsHtml).toContain(">Notifications<");
-    expect(notificationsHtml).toContain(
+    expect(notificationsHtml).not.toContain(
       "Review account activity and open the related record.",
     );
   });
@@ -932,6 +932,32 @@ describe("primary route hero removal", () => {
     expect(callsHtml).not.toContain("backdrop-blur-md");
   });
 
+  it("keeps leaderboard ranking, metrics, and review links together in mobile rows", async () => {
+    const rep = { firstName: "Avery", lastName: "Manager", rank: 1, userId: "rep-mobile" };
+    getDashboardLeaderboardMock.mockResolvedValue({
+      topQuality: [{ ...rep, value: 62 }],
+      topVolume: [{ ...rep, value: 14 }],
+      mostImproved: [{ ...rep, value: 8 }],
+    });
+    const html = await renderRoute(LeaderboardPage());
+    const mobile = html.slice(html.indexOf('data-forge-mobile-table-cards="true"')).split("</article>")[0];
+    for (const text of ["Avery Manager", "#1", "62", "14", "+8", "Needs review", 'href="/team/rep-mobile"']) {
+      expect(mobile).toContain(text);
+    }
+    expect(html).toContain("hidden md:block");
+    expect(html).toContain("min-w-[860px]");
+  });
+
+  it("keeps full highlight evidence and source actions available in mobile rows", async () => {
+    const html = await renderRoute(HighlightsPage());
+    const mobile = html.slice(html.indexOf('data-forge-mobile-table-cards="true"')).split("</article>")[0];
+    for (const text of ["Objection Handling", "High", "Handled pricing pushback", "Repeat the same framing", "Saved for Friday coaching.", "Source call", 'href="/calls/call-1"']) {
+      expect(mobile).toContain(text);
+    }
+    expect(mobile).not.toContain("line-clamp");
+    expect(html).toContain("hidden md:block");
+  });
+
   it("removes the highlights hero while keeping the back-to-library action", async () => {
     const highlightsHtml = await renderRoute(HighlightsPage());
 
@@ -1163,6 +1189,11 @@ describe("primary route hero removal", () => {
     expect(historyHtml).toContain("ROI &amp; Budget");
     expect(historyHtml).toContain("87");
     expect(historyHtml).toContain('href="/roleplay?sessionId=session-1"');
+    const mobile = historyHtml.slice(historyHtml.indexOf('data-forge-mobile-table-cards="true"')).split("</article>")[0];
+    for (const text of ["ROI &amp; Budget", "Dana Mercer", "87", "00:00", new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date("2026-04-03T00:00:00.000Z")), 'href="/roleplay?sessionId=session-1"']) {
+      expect(mobile).toContain(text);
+    }
+    expect(historyHtml).toContain("hidden md:block");
   });
 
   it("translates generated Stitch patterns onto deeper drill-down workflows", async () => {

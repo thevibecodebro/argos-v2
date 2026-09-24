@@ -43,7 +43,7 @@ export function TrainingCourseShell({
   }
 
   return (
-    <div className="space-y-3" data-training-course-shell={mode}>
+    <div className="training-learner-layout" data-training-course-shell={mode}>
       <div data-training-course-structure="inline">
         {structureRail}
       </div>

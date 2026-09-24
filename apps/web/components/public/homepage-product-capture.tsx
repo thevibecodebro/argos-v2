@@ -217,7 +217,7 @@ function CallsCapture() {
       actionLabel="Upload call"
       description="Find and review scored calls."
       status="6 records"
-      title="Calls"
+      title="Recordings"
     >
       <div className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
         <section className="min-w-0">
@@ -319,7 +319,7 @@ function ScorecardCapture() {
 function HighlightsCapture() {
   return (
     <CaptureWorkspace
-      actionLabel="Back to call library"
+      actionLabel="Back to recordings"
       description="Review saved coaching moments and recommendations."
       status="4 items"
       title="Highlights"
@@ -445,7 +445,7 @@ function RoleplayCapture() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[0.66rem] font-semibold uppercase tracking-[0.12em] text-[var(--forge-gold)]">Generated from call</p>
-                <h2 className="mt-1 text-base font-semibold text-[var(--forge-text)]">Price pushback simulation</h2>
+                <h2 className="mt-1 text-base font-semibold text-[var(--forge-text)]">Price pushback roleplay</h2>
                 <p className="mt-1 text-sm text-[var(--forge-muted)]">Focus: Objection handling from Atlas pricing pushback.</p>
               </div>
               <ForgeChip tone="gold">Active</ForgeChip>
@@ -476,7 +476,7 @@ function RoleplayCapture() {
         </main>
         <OperationalPreviewDrawer
           description="Current scoring, readiness, and post-session guidance."
-          eyebrow="Simulation score"
+          eyebrow="Roleplay score"
           title="Session Scorecard"
         >
           <ForgeStatCard description="Rep acknowledged the price concern and returned to business impact before offering the next step." label="Overall score" tone="gold" value="78" />

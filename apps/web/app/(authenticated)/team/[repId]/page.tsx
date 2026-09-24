@@ -84,7 +84,7 @@ export default async function RepProfilePage({
           </div>
           <OperationalPreviewDrawer
             actions={[
-              { href: "/calls", icon: "subject", label: "Open call library", variant: "secondary" },
+              { href: "/calls", icon: "subject", label: "Open recordings", variant: "secondary" },
               { href: "/training", icon: "school", label: "Open training", variant: "secondary" },
             ]}
             data-selected-object-drawer="true"

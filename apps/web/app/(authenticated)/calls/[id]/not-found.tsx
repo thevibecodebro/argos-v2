@@ -4,7 +4,7 @@ export default function NotFound() {
   return (
     <AuthenticatedRouteNotFound
       actionHref="/calls"
-      actionLabel="Back to call library"
+      actionLabel="Back to recordings"
       description="This call is unavailable in your current workspace or has not finished creating review data."
       eyebrow="Review bench"
       icon="call_log"

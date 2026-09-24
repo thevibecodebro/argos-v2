@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 import type { TrainingModuleSummary } from "@/lib/training/service";
 import type { TrainingStageView } from "./training-stage-state";
 
@@ -29,40 +29,34 @@ export function TrainingModuleStage({
 }) {
   if (!selectedModule) {
     return (
-      <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-panel-bg)] p-6 shadow-[0_18px_60px_color-mix(in_srgb,var(--forge-bg)_10%,transparent)]">
+      <section aria-label={canManage ? "Module preview" : "Course player"} className="training-lesson">
         <p className="text-sm text-[var(--forge-muted)]">No module selected.</p>
       </section>
     );
   }
 
-  const workspaceLabel = canManage ? "Curriculum" : "Course player";
-  const stageLabel = canManage ? "Module preview" : "Lesson workspace";
+  function handleTabKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (!selectedModule?.hasQuiz || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const next = event.key === "Home" ? "lesson" : event.key === "End" ? "quiz" : stageView === "lesson" ? "quiz" : "lesson";
+    onSelectView(next);
+    event.currentTarget.querySelector<HTMLButtonElement>(`#training-stage-tab-${next}`)?.focus();
+  }
 
   return (
-    <section className="relative overflow-hidden rounded-[1.75rem] border border-[var(--forge-border)] bg-[var(--forge-panel-bg)] p-6 shadow-[0_24px_80px_color-mix(in_srgb,var(--forge-bg)_14%,transparent)] sm:p-7">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.05),transparent_24%,transparent_72%,rgba(255,255,255,0.02))]" />
-      <div className="relative space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[var(--forge-gold)]">{stageLabel}</p>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--forge-muted)]">
-            Training / {workspaceLabel}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-start justify-between gap-5">
-          <div className="space-y-3">
-            <h2 className="text-3xl font-semibold tracking-tight text-[var(--forge-text)]">{selectedModule.title}</h2>
-            <p className="max-w-3xl text-sm leading-7 text-[var(--forge-muted)]">{selectedModule.description}</p>
-          </div>
-          <div className="rounded-full border border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface-2)]/70 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--forge-muted)]">
-            {selectedModule.skillCategory}
-          </div>
-        </div>
+    <section aria-label={canManage ? "Module preview" : "Course player"} className="training-lesson">
+      <div className="space-y-5">
+        <header className="space-y-2">
+          <h2 className="text-xl font-semibold leading-snug text-[var(--forge-text)] sm:text-2xl">{selectedModule.title}</h2>
+          <p className="text-sm text-[var(--forge-muted)]">{selectedModule.skillCategory}</p>
+        </header>
 
         {stageBand}
 
         <div
           aria-label="Training module stage"
-          className="inline-flex rounded-full border border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface-2)]/70 p-1"
+          className="training-stage-tabs"
+          onKeyDown={handleTabKeyDown}
           role="tablist"
         >
           <button
@@ -70,10 +64,11 @@ export function TrainingModuleStage({
             aria-selected={stageView === "lesson"}
             className={
               stageView === "lesson"
-                ? "rounded-full bg-[var(--forge-gold)]/12 px-4 py-2 text-xs font-semibold text-[var(--forge-gold)]"
-                : "px-4 py-2 text-xs font-semibold text-[var(--forge-muted)]"
+                ? "training-stage-tab training-stage-tab-active"
+                : "training-stage-tab"
             }
             id="training-stage-tab-lesson"
+            tabIndex={stageView === "lesson" ? 0 : -1}
             onClick={() => onSelectView("lesson")}
             role="tab"
             type="button"
@@ -86,10 +81,11 @@ export function TrainingModuleStage({
               aria-selected={stageView === "quiz"}
               className={
                 stageView === "quiz"
-                  ? "rounded-full bg-[var(--forge-gold)]/12 px-4 py-2 text-xs font-semibold text-[var(--forge-gold)]"
-                  : "px-4 py-2 text-xs font-semibold text-[var(--forge-muted)]"
+                  ? "training-stage-tab training-stage-tab-active"
+                  : "training-stage-tab"
               }
               id="training-stage-tab-quiz"
+            tabIndex={stageView === "quiz" ? 0 : -1}
               onClick={() => onSelectView("quiz")}
               role="tab"
               type="button"
@@ -101,13 +97,14 @@ export function TrainingModuleStage({
 
         <div
           aria-labelledby={`training-stage-tab-${stageView}`}
-          className="rounded-[1.25rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface-2)]/45 p-6"
+          className="training-lesson-content"
+          tabIndex={0}
           id={`training-stage-panel-${stageView}`}
           role="tabpanel"
         >
           {stageView === "lesson" ? (
             <div className="space-y-4">
-              <p className="text-sm leading-7 text-[var(--forge-text)]">{selectedModule.description}</p>
+              <p className="whitespace-pre-line text-base leading-7 text-[var(--forge-text)]">{selectedModule.description}</p>
               <p className="text-xs text-[var(--forge-muted)]">
                 {canManage
                   ? "Managers review this module before editing content, drafting quiz material, or assigning it to reps."
@@ -132,7 +129,7 @@ export function TrainingModuleStage({
         ) : null}
 
         <button
-          className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-5 py-3 text-sm font-semibold text-[var(--forge-on-accent)] transition hover:brightness-110 disabled:opacity-50"
+          className="forge-button forge-button-primary min-h-11 w-full rounded-lg px-5 py-3 text-sm font-semibold disabled:opacity-50 sm:w-auto"
           disabled={primaryActionDisabled}
           onClick={onPrimaryAction}
           type="button"
