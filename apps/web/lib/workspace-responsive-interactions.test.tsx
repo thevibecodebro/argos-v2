@@ -3,7 +3,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MobileWorkspaceMenu } from "../components/mobile-workspace-menu";
-import { SecondaryRail, SecondaryRailLink } from "../components/secondary-rail";
+import { SecondaryRail, SecondaryRailButton, SecondaryRailLink } from "../components/secondary-rail";
 import { getVisibleNavGroups } from "../components/app-navigation";
 
 let root: Root;
@@ -43,5 +43,17 @@ describe("workspace responsive navigation", () => {
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
     await act(async()=>container.querySelector<HTMLAnchorElement>('a[href="#teams"]')!.click());
     expect(trigger.getAttribute("aria-expanded")).toBe("false");
+  });
+  it("collapses after selecting an inactive module button", async () => {
+    const onSelect = vi.fn();
+    await mount(<SecondaryRail railId="modules" title="Modules"><SecondaryRailButton active icon="book" label="Introduction" /><SecondaryRailButton icon="book" label="Objections" onClick={onSelect} /></SecondaryRail>);
+    const trigger = container.querySelector<HTMLButtonElement>(".secondary-rail-mobile-trigger")!;
+    vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+    await act(async () => trigger.click());
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    await act(async () => container.querySelector<HTMLButtonElement>('button[aria-label="Objections"]')!.click());
+    expect(onSelect).toHaveBeenCalledOnce();
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    expect(document.activeElement).toBe(trigger);
   });
 });

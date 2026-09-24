@@ -120,7 +120,7 @@ export function SecondaryRail({
 
       <div className="secondary-rail-body" ref={body} id={bodyId} onClick={event => {
         const target = event.target as HTMLElement;
-        if (target.closest("a[href], button[aria-current]")) {
+        if (target.closest("a[href], button.secondary-rail-item")) {
           setMobileOpen(false);
           if (window.matchMedia("(max-width: 63.999rem)").matches) mobileTrigger.current?.focus();
         }
