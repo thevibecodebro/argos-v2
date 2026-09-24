@@ -85,9 +85,13 @@ describe("uploadToAuthenticatedResumableUrl", () => {
     );
 
     (capturedOptions?.onProgress as (sent: number, total: number) => void)(5, 10);
-    expect(onProgress).toHaveBeenCalledWith(50);
+    (capturedOptions?.onProgress as (sent: number, total: number) => void)(4, 10);
+    (capturedOptions?.onProgress as (sent: number, total: number) => void)(7, 10);
+    (capturedOptions?.onProgress as (sent: number, total: number) => void)(10, 10);
+    expect(onProgress.mock.calls.map(([percent]) => percent)).toEqual([50, 50, 70, 99]);
 
     (capturedOptions?.onSuccess as () => void)();
     await expect(promise).resolves.toBeUndefined();
+    expect(onProgress).toHaveBeenLastCalledWith(100);
   });
 });

@@ -29,6 +29,18 @@ export class ChunkAttemptsExhaustedError extends Error {
   }
 }
 
+class DeferredChunkRetryError extends Error {
+  constructor(
+    readonly chunkIndex: number,
+    readonly attemptCount: number,
+    readonly errorCode: string,
+    readonly nextRunAt: Date,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
 type Chunk = { endSeconds: number; filePath: string; startSeconds: number };
 
 export const TRANSCRIPTION_NORMALIZATION_VERSION = "mono-16khz-32kbps-v1";
@@ -65,6 +77,7 @@ function safeErrorCode(error: unknown) {
 
 export async function transcribeChunksResumable(input: {
   chunks: Chunk[];
+  concurrency?: number;
   durationSeconds: number;
   job: { generation: number; id: string; sourceSizeBytes: number | null; sourceStoragePath: string };
   lease: Lease;
@@ -110,9 +123,12 @@ export async function transcribeChunksResumable(input: {
     totalChunks: manifests.length,
   });
 
-  for (const chunk of manifests) {
+  const pending = manifests.filter((chunk) => !completed.has(chunk.index));
+  const workerCount = Math.min(pending.length, Math.max(1, Math.min(input.concurrency ?? 1, 4)));
+  let nextIndex = 0;
+  let stopDispatch = false;
+  const processChunk = async (chunk: (typeof manifests)[number]) => {
     input.signal?.throwIfAborted();
-    if (completed.has(chunk.index)) continue;
 
     const checkpoint = {
       audioHash: chunk.audioHash,
@@ -179,12 +195,13 @@ export async function transcribeChunksResumable(input: {
         input.onEvent?.({ event: "call_processing.chunk_failed", jobId: input.job.id, chunkIndex: chunk.index, attemptCount, errorCode: safeErrorCode(error) });
         throw new ChunkAttemptsExhaustedError(chunk.index, safeErrorCode(error), { cause: error });
       }
-      assertWritten(await input.repository.releaseForRetry(input.lease, {
-        lastError: error instanceof Error ? error.message : "Transcription failed",
+      throw new DeferredChunkRetryError(
+        chunk.index,
+        attemptCount,
+        safeErrorCode(error),
         nextRunAt,
-      }), input.lease);
-      input.onEvent?.({ event: "call_processing.chunk_retry_scheduled", jobId: input.job.id, chunkIndex: chunk.index, attemptCount, errorCode: safeErrorCode(error), nextRunAt: nextRunAt.toISOString() });
-      throw new JobRetryScheduledError(nextRunAt);
+        error instanceof Error ? error.message : "Transcription failed",
+      );
     }
     const saved = await input.repository.saveCompletedChunk(input.lease, {
       ...checkpoint,
@@ -202,6 +219,33 @@ export async function transcribeChunksResumable(input: {
       attemptCount,
       elapsedMs: Date.now() - startedAt,
     });
+  };
+  const outcomes = await Promise.allSettled(Array.from({ length: workerCount }, async () => {
+    while (!stopDispatch) {
+      const chunk = pending[nextIndex++];
+      if (!chunk) return;
+      try {
+        await processChunk(chunk);
+      } catch (error) {
+        stopDispatch = true;
+        throw error;
+      }
+    }
+  }));
+  const failures = outcomes.flatMap((outcome) => outcome.status === "rejected" ? [outcome.reason as unknown] : []);
+  const fatal = failures.find((error) => !(error instanceof DeferredChunkRetryError));
+  if (fatal) throw fatal;
+  const retries = failures.filter((error): error is DeferredChunkRetryError => error instanceof DeferredChunkRetryError);
+  if (retries.length) {
+    const nextRunAt = new Date(Math.max(...retries.map((error) => error.nextRunAt.getTime())));
+    assertWritten(await input.repository.releaseForRetry(input.lease, {
+      lastError: retries[0]!.message,
+      nextRunAt,
+    }), input.lease);
+    for (const retry of retries) {
+      input.onEvent?.({ event: "call_processing.chunk_retry_scheduled", jobId: input.job.id, chunkIndex: retry.chunkIndex, attemptCount: retry.attemptCount, errorCode: retry.errorCode, nextRunAt: retry.nextRunAt.toISOString() });
+    }
+    throw new JobRetryScheduledError(nextRunAt);
   }
 
   const ordered = [...completed.values()].sort((left, right) => left.index - right.index);

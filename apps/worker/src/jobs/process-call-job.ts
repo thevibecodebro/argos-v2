@@ -399,6 +399,7 @@ export async function processCallJob(input: ProcessCallJobInput) {
         currentStage = "transcribe";
         transcription = await transcribeChunksResumable({
           chunks,
+          concurrency: env.transcribeConcurrency,
           durationSeconds: normalized.durationSeconds,
           job: {
             generation: input.job.generation,
@@ -446,28 +447,62 @@ export async function processCallJob(input: ProcessCallJobInput) {
       profile: Awaited<ReturnType<typeof extractBuyerPersonalityFromTranscript>>["profile"];
       status: "ready" | "needs_review";
     } | null = resumedCheckpoint?.buyerPersonality ?? null;
-    if (capabilities.canGenerateBuyerPersonality && !buyerPersonality) {
-      currentStage = "profile";
-      await updateBuyerProfileStatusSafely("processing");
-      try {
-        const extracted = await extractBuyerPersonalityImpl({
+    const profileTask = (async () => {
+      if (capabilities.canGenerateBuyerPersonality && !buyerPersonality) {
+        currentStage = "profile";
+        await updateBuyerProfileStatusSafely("processing");
+        try {
+          const extracted = await extractBuyerPersonalityImpl({
+            callTopic: input.job.callTopic,
+            durationSeconds: transcription.durationSeconds,
+            transcript: transcription.transcript,
+            signal: input.signal,
+          });
+          buyerPersonality = {
+            generatedAt: new Date(),
+            model: extracted.model,
+            profile: extracted.profile,
+            status: extracted.profile.confidence === "low" ? "needs_review" : "ready",
+          };
+          if (input.job.processingVersion === 2 && input.job.leaseToken && transcription.fingerprint) {
+            const outcome = await input.repository.saveBuyerPersonalityCheckpoint(
+              { jobId: input.job.id, token: input.job.leaseToken },
+              {
+                buyerPersonality,
+                buyerPersonalityFingerprint: buyerPersonalityFingerprint!,
+                fingerprint: transcription.fingerprint,
+              },
+            );
+            if (outcome === "lost_lease") {
+              throw new LostJobLeaseError({ jobId: input.job.id, token: input.job.leaseToken });
+            }
+          }
+        } catch (error) {
+          await updateBuyerProfileStatusSafely("failed");
+          if (!capabilities.canScoreCall) throw error;
+          console.error("Buyer personality extraction failed; continuing call scoring", error);
+        }
+      }
+    })();
+
+    let evaluation = resumedCheckpoint?.evaluation ?? null;
+    const scoreTask = (async () => {
+      if (capabilities.canScoreCall && !evaluation) {
+        currentStage = "score";
+        await updateCallStatusSafely("evaluating");
+        evaluation = await scoreTranscriptFromLinesImpl({
           callTopic: input.job.callTopic,
           durationSeconds: transcription.durationSeconds,
+          rubric: scoringRubric!,
           transcript: transcription.transcript,
           signal: input.signal,
         });
-        buyerPersonality = {
-          generatedAt: new Date(),
-          model: extracted.model,
-          profile: extracted.profile,
-          status: extracted.profile.confidence === "low" ? "needs_review" : "ready",
-        };
         if (input.job.processingVersion === 2 && input.job.leaseToken && transcription.fingerprint) {
-          const outcome = await input.repository.saveBuyerPersonalityCheckpoint(
+          const outcome = await input.repository.saveEvaluationCheckpoint(
             { jobId: input.job.id, token: input.job.leaseToken },
             {
-              buyerPersonality,
-              buyerPersonalityFingerprint: buyerPersonalityFingerprint!,
+              evaluation,
+              evaluationFingerprint: evaluationFingerprint!,
               fingerprint: transcription.fingerprint,
             },
           );
@@ -475,37 +510,18 @@ export async function processCallJob(input: ProcessCallJobInput) {
             throw new LostJobLeaseError({ jobId: input.job.id, token: input.job.leaseToken });
           }
         }
-      } catch (error) {
-        await updateBuyerProfileStatusSafely("failed");
-        if (!capabilities.canScoreCall) throw error;
-        console.error("Buyer personality extraction failed; continuing call scoring", error);
       }
+    })();
+    // Both AI outputs use the same immutable transcript. Wait for both to settle
+    // before failing the job so no checkpoint write outlives its lease.
+    const [profileResult, scoringResult] = await Promise.allSettled([profileTask, scoreTask]);
+    if (profileResult.status === "rejected") {
+      currentStage = "profile";
+      throw profileResult.reason;
     }
-
-    let evaluation = resumedCheckpoint?.evaluation ?? null;
-    if (capabilities.canScoreCall && !evaluation) {
+    if (scoringResult.status === "rejected") {
       currentStage = "score";
-      await updateCallStatusSafely("evaluating");
-      evaluation = await scoreTranscriptFromLinesImpl({
-        callTopic: input.job.callTopic,
-        durationSeconds: transcription.durationSeconds,
-        rubric: scoringRubric!,
-        transcript: transcription.transcript,
-        signal: input.signal,
-      });
-      if (input.job.processingVersion === 2 && input.job.leaseToken && transcription.fingerprint) {
-        const outcome = await input.repository.saveEvaluationCheckpoint(
-          { jobId: input.job.id, token: input.job.leaseToken },
-          {
-            evaluation,
-            evaluationFingerprint: evaluationFingerprint!,
-            fingerprint: transcription.fingerprint,
-          },
-        );
-        if (outcome === "lost_lease") {
-          throw new LostJobLeaseError({ jobId: input.job.id, token: input.job.leaseToken });
-        }
-      }
+      throw scoringResult.reason;
     }
 
     currentStage = "persist";

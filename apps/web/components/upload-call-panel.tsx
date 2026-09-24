@@ -623,7 +623,7 @@ export function UploadCallPanel() {
                   <span>{phaseLabel?.startsWith("Preparing") ? "Local" : `${progress}%`}</span>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-[var(--forge-surface-3)]">
-                  <div className="h-full rounded-full bg-[var(--forge-gold)] transition-all" style={{ width: phaseLabel?.startsWith("Preparing") ? "100%" : `${progress}%`, opacity: phaseLabel?.startsWith("Preparing") ? 0.3 : 1 }} />
+                  <div className={`h-full rounded-full bg-[var(--forge-gold)] transition-all ${phaseLabel?.startsWith("Preparing") ? "animate-pulse" : ""}`} style={{ width: phaseLabel?.startsWith("Preparing") ? "30%" : `${progress}%`, opacity: phaseLabel?.startsWith("Preparing") ? 0.3 : 1 }} />
                 </div>
               </div>
             ) : null}

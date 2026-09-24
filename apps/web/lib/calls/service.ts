@@ -1295,7 +1295,7 @@ export async function getCallStatus(
   authUserId: string,
   callId: string,
   accessRepository: AccessRepository = createAccessRepository(),
-): Promise<ServiceResult<{ id: string; status: string; overallScore: number | null }>> {
+): Promise<ServiceResult<{ id: string; status: string; overallScore: number | null; processingJob: CallProcessingJob | null }>> {
   const detail = await getCallDetail(repository, authUserId, callId, accessRepository);
 
   if (!detail.ok) {
@@ -1308,6 +1308,7 @@ export async function getCallStatus(
       id: detail.data.id,
       status: detail.data.status,
       overallScore: detail.data.overallScore,
+      processingJob: detail.data.processingJob,
     },
   };
 }
