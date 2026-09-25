@@ -19,7 +19,8 @@ import { fetchWithTimeout } from "./fetch-timeout";
 
 const OPENAI_TRANSCRIPTION_TIMEOUT_MS = 120_000;
 const OPENAI_CHAT_COMPLETION_TIMEOUT_MS = 60_000;
-const MAX_SCORING_TRANSCRIPT_PROMPT_CHARS = 120_000;
+const MAX_SCORING_TRANSCRIPT_PROMPT_CHARS = 60_000;
+const MAX_GPT5_MINI_DIRECT_SCORING_TRANSCRIPT_BYTES = 120_000;
 const MAX_SCORING_SECTION_CHARS = 40_000;
 const SCORING_EVIDENCE_CONCURRENCY = 3;
 
@@ -373,7 +374,10 @@ export async function scoreTranscriptFromLines(input: {
   const resolved = resolveCallScoringConfig(input.config);
   const rubric = validateScoringRubric(input.rubric ?? DEFAULT_CALL_SCORING_RUBRIC);
   const transcriptText = input.transcript.map(formatScoringTranscriptLine).join("\n");
-  const evidence = transcriptText.length <= MAX_SCORING_TRANSCRIPT_PROMPT_CHARS
+  const useExpandedDirectContext = resolved.scoringModel === "gpt-5-mini" &&
+    resolved.baseUrl === "https://api.openai.com/v1" &&
+    Buffer.byteLength(transcriptText, "utf8") <= MAX_GPT5_MINI_DIRECT_SCORING_TRANSCRIPT_BYTES;
+  const evidence = transcriptText.length <= MAX_SCORING_TRANSCRIPT_PROMPT_CHARS || useExpandedDirectContext
     ? { kind: "transcript" as const, text: transcriptText }
     : {
         kind: "section_evidence" as const,

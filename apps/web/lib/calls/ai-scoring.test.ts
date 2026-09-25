@@ -506,6 +506,35 @@ describe("scoreCallRecording", () => {
     expect(prompt).not.toContain("[Transcript truncated for length before scoring]");
   });
 
+  it.each([
+    { name: "a different scoring model", text: "A".repeat(98_000), scoringModel: "small-model" },
+    { name: "multibyte transcript text", text: "漢".repeat(70_000), scoringModel: "gpt-5-mini" },
+  ])("uses bounded sections for $name", async ({ text, scoringModel }) => {
+    fetchMock.mockImplementation(async (_url, init) => {
+      const body = JSON.parse(String(init?.body));
+      const content = body.messages[0].content.startsWith("Extract concrete evidence")
+        ? { evidence: [], stageSignals: [] }
+        : {
+            confidence: "low",
+            callStageReached: "opening",
+            categoryScores: Object.fromEntries(CALL_SCORING_CATEGORIES.map((category) => [category.slug, 0])),
+            strengths: [], improvements: [], recommendedDrills: [], moments: [],
+          };
+      return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(content) } }] }), { status: 200 });
+    });
+
+    await scoreTranscriptFromLines({
+      callTopic: null,
+      durationSeconds: 3600,
+      transcript: [{ timestampSeconds: 0, speaker: "Speaker A", text }],
+      config: { scoringModel },
+    });
+
+    expect(fetchMock.mock.calls.length).toBeGreaterThan(1);
+    const finalBody = JSON.parse(String(fetchMock.mock.calls.at(-1)?.[1]?.body));
+    expect(finalBody.messages[1].content).toContain("extracted from every section");
+  });
+
   it("extracts evidence from every part of a long transcript before scoring", async () => {
     const reply = (content: unknown) => new Response(
       JSON.stringify({ choices: [{ message: { content: JSON.stringify(content) } }] }),
