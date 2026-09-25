@@ -640,7 +640,7 @@ describe("processCallJob", () => {
         evaluationFingerprint: fingerprintConfiguration({
           callTopic: "Discovery",
           model: process.env.OPENAI_CALL_SCORING_MODEL?.trim() || "gpt-5-mini",
-          promptVersion: 2,
+          promptVersion: 3,
           rubric: DEFAULT_CALL_SCORING_RUBRIC,
         }),
       }),
