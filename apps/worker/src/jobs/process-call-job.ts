@@ -43,7 +43,7 @@ type JobStage = "download" | "normalize" | "chunk" | "transcribe" | "profile" | 
 
 const MAX_NORMALIZED_AUDIO_BYTES = 500 * 1024 * 1024;
 const BUYER_PERSONALITY_PROMPT_VERSION = 1;
-const CALL_SCORING_PROMPT_VERSION = 2;
+const CALL_SCORING_PROMPT_VERSION = 3;
 const RETRYABLE_POSTGRES_CODES = new Set([
   "40001", // serialization_failure
   "40P01", // deadlock_detected
