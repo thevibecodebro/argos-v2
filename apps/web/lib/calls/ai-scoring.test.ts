@@ -532,6 +532,7 @@ describe("scoreCallRecording", () => {
     expect(prompts[1].split("<speaker-role-context>")[1]).toContain("FIRST_LINE");
     expect(prompts[2]).toContain("FIRST_EVIDENCE");
     expect(prompts[2]).toContain("LAST_EVIDENCE");
+    expect(prompts[2]).toContain("Do not discard an observation solely because its actorRole is unknown");
     expect(prompts.join("\n")).not.toContain("[Transcript truncated for length before scoring]");
   });
 
