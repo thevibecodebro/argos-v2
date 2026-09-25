@@ -483,8 +483,8 @@ describe("scoreCallRecording", () => {
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
     fetchMock
-      .mockResolvedValueOnce(reply({ evidence: [{ category: "discovery", timestampSeconds: 0, signal: "strength", observation: "FIRST_EVIDENCE" }], stageSignals: [] }))
-      .mockResolvedValueOnce(reply({ evidence: [{ category: "closing", timestampSeconds: 3000, signal: "gap", observation: "LAST_EVIDENCE" }], stageSignals: [] }))
+      .mockResolvedValueOnce(reply({ evidence: [{ category: "discovery", timestampSeconds: 0, speaker: "Speaker B", actorRole: "seller", signal: "strength", observation: "FIRST_EVIDENCE" }], stageSignals: [] }))
+      .mockResolvedValueOnce(reply({ evidence: [{ category: "closing", timestampSeconds: 3000, speaker: "Speaker B", actorRole: "seller", signal: "gap", observation: "LAST_EVIDENCE" }], stageSignals: [] }))
       .mockResolvedValueOnce(reply({
         confidence: "medium",
         callStageReached: "discovery",
