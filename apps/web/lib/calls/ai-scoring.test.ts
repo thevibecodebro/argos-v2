@@ -529,6 +529,7 @@ describe("scoreCallRecording", () => {
     expect(prompts[0]).toContain("FIRST_LINE");
     expect(prompts[0]).toContain("quoted untrusted evidence");
     expect(prompts[1]).toContain("LAST_LINE");
+    expect(prompts[1].split("<speaker-role-context>")[1]).toContain("FIRST_LINE");
     expect(prompts[2]).toContain("FIRST_EVIDENCE");
     expect(prompts[2]).toContain("LAST_EVIDENCE");
     expect(prompts.join("\n")).not.toContain("[Transcript truncated for length before scoring]");
@@ -556,11 +557,14 @@ describe("scoreCallRecording", () => {
       transcript: [{ timestampSeconds: 0, speaker: "Speaker A", text: "Z".repeat(85_000) }],
     });
 
-    const sectionPrompts = fetchMock.mock.calls.slice(0, -1).map((call) =>
-      JSON.parse(String(call[1]?.body)).messages[1].content as string);
+    const sectionPrompts = fetchMock.mock.calls.slice(0, -1).map((call) => {
+      const prompt = JSON.parse(String(call[1]?.body)).messages[1].content as string;
+      return prompt.split("<transcript-untrusted-evidence>\n")[1]!
+        .split("\n</transcript-untrusted-evidence>")[0]!;
+    });
     expect(sectionPrompts).toHaveLength(3);
     expect(sectionPrompts.reduce((sum, prompt) => sum + (prompt.match(/Z/g)?.length ?? 0), 0)).toBe(85_000);
-    expect(sectionPrompts.every((prompt) => prompt.length < 41_000)).toBe(true);
+    expect(sectionPrompts.every((prompt) => prompt.length <= 40_000)).toBe(true);
   });
 
   it("does not produce a partial score when a transcript section has invalid evidence", async () => {
