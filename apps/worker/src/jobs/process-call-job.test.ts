@@ -1,5 +1,6 @@
-import { ProviderRequestError } from "@argos-v2/call-processing";
+import { DEFAULT_CALL_SCORING_RUBRIC, ProviderRequestError } from "@argos-v2/call-processing";
 import { describe, expect, it, vi } from "vitest";
+import { fingerprintConfiguration } from "../calls/processing-checkpoints";
 import { getWorkerEnv } from "../env";
 import { isRetryableProcessingError, processCallJob } from "./process-call-job";
 
@@ -635,7 +636,14 @@ describe("processCallJob", () => {
       "job-v2",
       1,
       expect.any(String),
-      expect.objectContaining({ evaluationFingerprint: expect.any(String) }),
+      expect.objectContaining({
+        evaluationFingerprint: fingerprintConfiguration({
+          callTopic: "Discovery",
+          model: process.env.OPENAI_CALL_SCORING_MODEL?.trim() || "gpt-5-mini",
+          promptVersion: 2,
+          rubric: DEFAULT_CALL_SCORING_RUBRIC,
+        }),
+      }),
     );
     expect(scoreTranscriptFromLines).not.toHaveBeenCalled();
     expect(repository.finalizeV2Job).toHaveBeenCalledWith(expect.objectContaining({
