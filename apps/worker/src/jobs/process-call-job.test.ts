@@ -209,6 +209,7 @@ describe("processCallJob", () => {
     expect(repository.createNotification).toHaveBeenCalledWith(expect.objectContaining({ type: "call_scored" }));
   });
   it("downloads, normalizes, transcribes, scores, persists, and completes a queued call", async () => {
+    const onProcessingEvent = vi.fn();
     const repository = {
       getCallProcessingCapabilities: vi.fn().mockResolvedValue({ canGenerateBuyerPersonality: false, canScoreCall: true }),
       createNotification: vi.fn().mockResolvedValue(undefined),
@@ -276,7 +277,14 @@ describe("processCallJob", () => {
       readFile: vi.fn().mockResolvedValue(Buffer.from("audio")),
       transcribeAudioBuffer,
       scoreTranscriptFromLines,
+      onProcessingEvent,
     });
+
+    const completedStages = onProcessingEvent.mock.calls
+      .map(([event]) => event)
+      .filter((event) => event.event === "call_processing.stage_completed")
+      .map((event) => event.stage);
+    expect(completedStages).toEqual(["download", "normalize", "transcribe", "score", "persist"]);
 
     expect(repository.updateCallStatus).toHaveBeenNthCalledWith(1, "call-1", "transcribing");
     expect(downloadSourceAsset).toHaveBeenCalledWith(

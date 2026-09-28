@@ -34,6 +34,7 @@ import {
   TRANSCRIPT_FORMAT_VERSION,
   transcribeChunksResumable,
 } from "./transcribe-chunks";
+import { createProcessingTimer } from "./processing-timing";
 
 type ClaimedCallProcessingJob = NonNullable<
   Awaited<ReturnType<CallProcessingRepository["claimNextJob"]>>
@@ -94,6 +95,7 @@ type ProcessCallJobInput = {
   mkdtemp?: typeof mkdtemp;
   rm?: typeof rm;
   signal?: AbortSignal;
+  onProcessingEvent?: (event: Record<string, unknown>) => void;
 };
 
 function resolveFfmpegBinary(env: WorkerEnv) {
@@ -306,6 +308,15 @@ export async function processCallJob(input: ProcessCallJobInput) {
   const rmImpl = input.rm ?? rm;
   const transcriptionModel = process.env.OPENAI_CALL_TRANSCRIPTION_MODEL?.trim()
     || "gpt-4o-transcribe-diarize";
+  const emitProcessingEvent = input.onProcessingEvent
+    ?? ((event: Record<string, unknown>) => console.info(JSON.stringify(event)));
+  const timer = createProcessingTimer({
+    attemptCount: input.job.attemptCount,
+    callId: input.job.callId,
+    generation: input.job.generation ?? 1,
+    jobId: input.job.id,
+    emit: emitProcessingEvent,
+  });
   let tempDir: string | null = null;
   let currentStage: JobStage = "download";
 
@@ -369,35 +380,36 @@ export async function processCallJob(input: ProcessCallJobInput) {
       const sourcePath = join(tempDir, `source${sourceExtension}`);
       const normalizedPath = join(tempDir, "normalized.mp3");
       currentStage = "download";
-      const downloadedSourcePath = await downloadSourceAssetImpl({
+      const downloadedSourcePath = await timer.measure("download", () => downloadSourceAssetImpl({
         expectedSizeBytes: input.job.sourceSizeBytes,
         storagePath: input.job.sourceStoragePath,
         targetPath: sourcePath,
         signal: input.signal,
-      });
+      }));
 
       currentStage = "normalize";
-      const normalized = await normalizeAudioImpl({
+      const normalized = await timer.measure("normalize", () => normalizeAudioImpl({
         inputPath: downloadedSourcePath,
         outputPath: normalizedPath,
         ffmpegBinary,
         maxOutputBytes: Math.min(env.maxSourceBytes, MAX_NORMALIZED_AUDIO_BYTES),
         signal: input.signal,
-      });
+      }));
 
       if (input.job.processingVersion === 2) {
         if (!input.job.leaseToken) throw new Error("Version 2 job is missing its processing lease token");
+        const leaseToken = input.job.leaseToken;
         currentStage = "chunk";
-        const chunks = await chunkAudioFileImpl({
+        const chunks = await timer.measure("chunk", () => chunkAudioFileImpl({
           filePath: normalized.outputPath,
           sizeBytes: normalized.sizeBytes,
           maxChunkBytes: 24 * 1024 * 1024,
           durationSeconds: normalized.durationSeconds,
           ffmpegBinary,
           signal: input.signal,
-        });
+        }));
         currentStage = "transcribe";
-        transcription = await transcribeChunksResumable({
+        transcription = await timer.measure("transcribe", () => transcribeChunksResumable({
           chunks,
           concurrency: env.transcribeConcurrency,
           durationSeconds: normalized.durationSeconds,
@@ -407,17 +419,17 @@ export async function processCallJob(input: ProcessCallJobInput) {
             sourceSizeBytes: input.job.sourceSizeBytes,
             sourceStoragePath: input.job.sourceStoragePath,
           },
-          lease: { jobId: input.job.id, token: input.job.leaseToken },
+          lease: { jobId: input.job.id, token: leaseToken },
           model: transcriptionModel,
-          onEvent: (event) => console.info(JSON.stringify(event)),
+          onEvent: emitProcessingEvent,
           readFile: readFileImpl,
           repository: input.repository,
           signal: input.signal,
           timeoutMs: env.transcriptionTimeoutMs,
           transcribe: transcribeAudioBufferImpl,
-        });
+        }));
       } else {
-        transcription = await transcribeNormalizedAudio({
+        transcription = await timer.measure("transcribe", () => transcribeNormalizedAudio({
           chunkAudioFileImpl,
           concurrency: env.transcribeConcurrency,
           durationSeconds: normalized.durationSeconds,
@@ -429,7 +441,7 @@ export async function processCallJob(input: ProcessCallJobInput) {
           readFileImpl,
           sizeBytes: normalized.sizeBytes,
           transcribeAudioBufferImpl,
-        });
+        }));
       }
     }
     resumedCheckpoint ??= input.job.processingVersion === 2 && transcription.fingerprint
@@ -452,12 +464,12 @@ export async function processCallJob(input: ProcessCallJobInput) {
         currentStage = "profile";
         await updateBuyerProfileStatusSafely("processing");
         try {
-          const extracted = await extractBuyerPersonalityImpl({
+          const extracted = await timer.measure("profile", () => extractBuyerPersonalityImpl({
             callTopic: input.job.callTopic,
             durationSeconds: transcription.durationSeconds,
             transcript: transcription.transcript,
             signal: input.signal,
-          });
+          }));
           buyerPersonality = {
             generatedAt: new Date(),
             model: extracted.model,
@@ -490,13 +502,13 @@ export async function processCallJob(input: ProcessCallJobInput) {
       if (capabilities.canScoreCall && !evaluation) {
         currentStage = "score";
         await updateCallStatusSafely("evaluating");
-        evaluation = await scoreTranscriptFromLinesImpl({
+        evaluation = await timer.measure("score", () => scoreTranscriptFromLinesImpl({
           callTopic: input.job.callTopic,
           durationSeconds: transcription.durationSeconds,
           rubric: scoringRubric!,
           transcript: transcription.transcript,
           signal: input.signal,
-        });
+        }));
         if (input.job.processingVersion === 2 && input.job.leaseToken && transcription.fingerprint) {
           const outcome = await input.repository.saveEvaluationCheckpoint(
             { jobId: input.job.id, token: input.job.leaseToken },
@@ -525,50 +537,52 @@ export async function processCallJob(input: ProcessCallJobInput) {
     }
 
     currentStage = "persist";
-    const currentCapabilities = await input.repository.getCallProcessingCapabilities(input.job.callId);
-    if (
-      (capabilities.canGenerateBuyerPersonality && !currentCapabilities.canGenerateBuyerPersonality) ||
-      (capabilities.canScoreCall && !currentCapabilities.canScoreCall)
-    ) {
-      throw new Error("recording processing capability disabled during processing");
-    }
-    const notification = {
-      userId: input.job.repId,
-      type: evaluation ? "call_scored" as const : "recording_ready" as const,
-      title: evaluation ? "Call scored" : "Recording ready",
-      body: evaluation
-        ? `${input.job.callTopic ?? "Call"} finished scoring with an ${evaluation.overallScore} overall score.`
-        : `${input.job.callTopic ?? "Recording"} is transcribed and ready for buyer-personality roleplay.`,
-      link: `/calls/${input.job.callId}`,
-    };
-    if (input.job.processingVersion === 2) {
-      if (!input.job.leaseToken) throw new Error("Version 2 job is missing its processing lease token");
-      const outcome = await input.repository.finalizeV2Job({
-        buyerPersonality,
-        callId: input.job.callId,
-        durationSeconds: transcription.durationSeconds,
-        evaluation,
-        generation: input.job.generation,
-        lease: { jobId: input.job.id, token: input.job.leaseToken },
-        notification,
-        transcript: transcription.transcript,
-      });
-      if (outcome === "lost_lease") {
-        throw new LostJobLeaseError({ jobId: input.job.id, token: input.job.leaseToken });
+    await timer.measure("persist", async () => {
+      const currentCapabilities = await input.repository.getCallProcessingCapabilities(input.job.callId);
+      if (
+        (capabilities.canGenerateBuyerPersonality && !currentCapabilities.canGenerateBuyerPersonality) ||
+        (capabilities.canScoreCall && !currentCapabilities.canScoreCall)
+      ) {
+        throw new Error("recording processing capability disabled during processing");
       }
-    } else {
-      await input.repository.persistProcessedCall({
-        callId: input.job.callId,
-        durationSeconds: transcription.durationSeconds,
-        transcript: transcription.transcript,
-        buyerPersonality,
-        evaluation,
-      });
-      await input.repository.markJobComplete(input.job.id);
-      await input.repository.createNotification(notification).catch((error) => {
-        console.error("Failed to create recording notification", error);
-      });
-    }
+      const notification = {
+        userId: input.job.repId,
+        type: evaluation ? "call_scored" as const : "recording_ready" as const,
+        title: evaluation ? "Call scored" : "Recording ready",
+        body: evaluation
+          ? `${input.job.callTopic ?? "Call"} finished scoring with an ${evaluation.overallScore} overall score.`
+          : `${input.job.callTopic ?? "Recording"} is transcribed and ready for buyer-personality roleplay.`,
+        link: `/calls/${input.job.callId}`,
+      };
+      if (input.job.processingVersion === 2) {
+        if (!input.job.leaseToken) throw new Error("Version 2 job is missing its processing lease token");
+        const outcome = await input.repository.finalizeV2Job({
+          buyerPersonality,
+          callId: input.job.callId,
+          durationSeconds: transcription.durationSeconds,
+          evaluation,
+          generation: input.job.generation,
+          lease: { jobId: input.job.id, token: input.job.leaseToken },
+          notification,
+          transcript: transcription.transcript,
+        });
+        if (outcome === "lost_lease") {
+          throw new LostJobLeaseError({ jobId: input.job.id, token: input.job.leaseToken });
+        }
+      } else {
+        await input.repository.persistProcessedCall({
+          callId: input.job.callId,
+          durationSeconds: transcription.durationSeconds,
+          transcript: transcription.transcript,
+          buyerPersonality,
+          evaluation,
+        });
+        await input.repository.markJobComplete(input.job.id);
+        await input.repository.createNotification(notification).catch((error) => {
+          console.error("Failed to create recording notification", error);
+        });
+      }
+    });
   } catch (error) {
     if (error instanceof JobRetryScheduledError) return;
     if (error instanceof LostJobLeaseError) throw error;
