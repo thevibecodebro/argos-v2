@@ -349,6 +349,45 @@ describe("getManagerDashboard", () => {
 });
 
 describe("getRepDashboard", () => {
+  it("recommends practice from repeated low scores under the active rubric", async () => {
+    const accessRepository = createAccessRepository({
+      findActorByAuthUserId: vi.fn().mockResolvedValue({ id: "rep-1", role: "rep", orgId: "org-1" }),
+      findMembershipsByOrgId: vi.fn().mockResolvedValue([]),
+      findGrantsByUserId: vi.fn().mockResolvedValue([]),
+    });
+    const rubricsRepository = createRubricsRepository({
+      findActiveRubricByOrgId: vi.fn().mockResolvedValue({ id: "rubric-active", orgId: "org-1", name: "Sales", status: "active", version: 2 }),
+    });
+    const calls = [52, 61, 78].map((score, index) => ({
+      id: `call-${index + 1}`,
+      repId: "rep-1",
+      callTopic: `Discovery ${index + 1}`,
+      createdAt: new Date(`2026-03-${25 - index}T12:00:00.000Z`),
+      overallScore: score,
+      durationSeconds: 1200,
+      rubricId: "rubric-active",
+      buyerProfileStatus: index === 0 ? "ready" : "processing",
+      categoryScores: [{ slug: "discovery", name: "Discovery", score, sortOrder: 1 }],
+      frameControlScore: null, rapportScore: null, discoveryScore: null,
+      painExpansionScore: null, solutionScore: null, objectionScore: null, closingScore: null,
+    }));
+    const repository = createRepository({
+      findCurrentUserByAuthId: vi.fn().mockResolvedValue({
+        id: "rep-1", email: "rep@argos.ai", role: "rep", firstName: "Riley", lastName: "Stone",
+        org: { id: "org-1", name: "Demo", slug: "demo", plan: "trial" },
+      }),
+      findRecentCallsByRepId: vi.fn().mockResolvedValue([]),
+      findScoredCallsByRepIdSince: vi.fn().mockResolvedValue(calls),
+    });
+
+    const result = await getRepDashboard(repository, "rep-1", undefined,
+      new Date("2026-03-27T00:00:00.000Z"), accessRepository as never, rubricsRepository);
+
+    expect(result?.focusRecommendation).toMatchObject({
+      categorySlug: "discovery", weakCallCount: 2, practiceCallId: "call-1",
+    });
+  });
+
   it("blocks cross-org rep drill-ins for admins", async () => {
     const accessRepository = createAccessRepository({
       findActorByAuthUserId: vi.fn().mockResolvedValue({

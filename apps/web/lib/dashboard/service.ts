@@ -10,6 +10,7 @@ import { getActiveRubric, type RubricsRepository } from "@/lib/rubrics/service";
 import { CALL_SCORE_LABELS_BY_FIELD } from "@/lib/calls/rubric";
 import type { WorkspaceTheme } from "@/lib/organizations/workspace-theme";
 import type { AppUserRole } from "@/lib/users/roles";
+import { buildCrossCallFocusRecommendation, type CrossCallFocusRecommendation } from "./cross-call-focus";
 
 export type DashboardUserRecord = {
   id: string;
@@ -58,6 +59,7 @@ export type DashboardScoredCallRecord = {
   rubricId?: string | null;
   rubricName?: string | null;
   rubricVersion?: number | null;
+  buyerProfileStatus?: string | null;
   categoryScores?: Array<{
     slug: string;
     name: string;
@@ -117,6 +119,7 @@ export type RepDashboard = {
   weeklyTrend: WeeklyPoint[];
   lowestCategories: CategoryScore[];
   categoryAnalyticsContextLabel?: string | null;
+  focusRecommendation?: CrossCallFocusRecommendation | null;
   recentCalls: Array<{
     id: string;
     status: string;
@@ -388,6 +391,7 @@ async function resolveDynamicCategoryAnalytics(
     averages,
     calls: selectedCalls,
     label,
+    activeRubricId,
   };
 }
 
@@ -711,6 +715,11 @@ export async function getRepDashboard(
     weeklyTrend,
     lowestCategories,
     categoryAnalyticsContextLabel: dynamicCategoryAnalytics?.label ?? null,
+    focusRecommendation: buildCrossCallFocusRecommendation(
+      trendCalls,
+      dynamicCategoryAnalytics?.activeRubricId ?? null,
+      now,
+    ),
     recentCalls: recentCalls.map(serializeRecentCall),
   };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ForgeDialog } from "@/components/forge-dialog";
 import {
@@ -26,6 +26,7 @@ type CallDetailPanelProps = {
   canGenerateRoleplay: boolean;
   canManage: boolean;
   canRetryProcessing: boolean;
+  initialFocusCategorySlug?: string | null;
   scoringEnabled?: boolean;
 };
 
@@ -186,6 +187,7 @@ export function CallDetailPanel({
   canGenerateRoleplay,
   canManage,
   canRetryProcessing,
+  initialFocusCategorySlug = null,
   scoringEnabled = true,
 }: CallDetailPanelProps) {
   const router = useRouter();
@@ -212,6 +214,7 @@ export function CallDetailPanel({
     DEFAULT_GENERATED_ROLEPLAY_BUYER_VOICE,
   );
   const [focusCategorySlug, setFocusCategorySlug] = useState("all");
+  const openedFocusRef = useRef<string | null>(null);
 
   useEffect(() => {
     setProcessingJob(call.processingJob);
@@ -400,7 +403,7 @@ export function CallDetailPanel({
     }
   }
 
-  async function openGenerateRoleplayModal() {
+  const openGenerateRoleplayModal = useCallback(async (preferredFocusSlug?: string | null) => {
     setIsGenerateModalOpen(true);
     setIsLoadingGeneratePreview(true);
     setGenerateError(null);
@@ -431,14 +434,25 @@ export function CallDetailPanel({
         focusOptions: payload?.focusOptions ?? [{ slug: "all", label: "All" }],
         defaultFocusSlug,
       });
-      setFocusCategorySlug(defaultFocusSlug);
+      const preferredIsAvailable = payload?.focusOptions?.some(
+        (option) => option.slug === preferredFocusSlug,
+      );
+      setFocusCategorySlug(preferredIsAvailable && preferredFocusSlug ? preferredFocusSlug : defaultFocusSlug);
     } catch {
       setGenerateError("Unable to prepare roleplay.");
       setGeneratePreview(null);
     } finally {
       setIsLoadingGeneratePreview(false);
     }
-  }
+  }, [call.id]);
+
+  useEffect(() => {
+    if (!initialFocusCategorySlug || !canGenerateRoleplay || call.status !== "complete") return;
+    const requestKey = `${call.id}:${initialFocusCategorySlug}`;
+    if (openedFocusRef.current === requestKey) return;
+    openedFocusRef.current = requestKey;
+    void openGenerateRoleplayModal(initialFocusCategorySlug);
+  }, [call.id, call.status, canGenerateRoleplay, initialFocusCategorySlug, openGenerateRoleplayModal]);
 
   function closeGenerateRoleplayModal() {
     if (isGeneratingRoleplay) {

@@ -33,6 +33,7 @@ import {
 } from "@/components/operational-workspace";
 import { requireManagedCapabilityForPage } from "@/lib/access/managed-capabilities-server";
 import { hasManagedCapability } from "@/lib/access/managed-capabilities";
+import { CrossCallFocusCard } from "@/components/cross-call-focus-card";
 
 export default async function DashboardPage() {
   const authUser = await getCachedAuthenticatedSupabaseUser();
@@ -62,6 +63,11 @@ export default async function DashboardPage() {
     analyticsAccess.access,
     "practice_reporting",
   );
+  const canPracticeFromCall =
+    hasManagedCapability(analyticsAccess.access, "roleplay") &&
+    hasManagedCapability(analyticsAccess.access, "custom_scenarios") &&
+    (hasManagedCapability(analyticsAccess.access, "call_upload") ||
+      hasManagedCapability(analyticsAccess.access, "call_ingestion"));
 
   const isExecutive = profile.role === "executive";
   const isManager = isExecutive || profile.role === "manager" || profile.role === "admin";
@@ -115,6 +121,7 @@ export default async function DashboardPage() {
         {isExecutive ? (
           <TodayDashboardView
             badges={badges?.badges ?? []}
+            canPracticeFromCall={canPracticeFromCall}
             executiveDashboard={executiveDashboard}
             isExecutive
             isManager={isManager}
@@ -125,6 +132,7 @@ export default async function DashboardPage() {
         ) : isManager ? (
           <TodayDashboardView
             badges={badges?.badges ?? []}
+            canPracticeFromCall={canPracticeFromCall}
             executiveDashboard={executiveDashboard}
             isExecutive={false}
             isManager={isManager}
@@ -135,6 +143,7 @@ export default async function DashboardPage() {
         ) : (
           <TodayDashboardView
             badges={badges?.badges ?? []}
+            canPracticeFromCall={canPracticeFromCall}
             executiveDashboard={executiveDashboard}
             isExecutive={false}
             isManager={false}
@@ -255,6 +264,7 @@ type SetupStatusResult = Awaited<ReturnType<typeof getSetupStatus>>;
 
 function TodayDashboardView({
   badges,
+  canPracticeFromCall,
   executiveDashboard,
   isExecutive,
   isManager,
@@ -263,6 +273,7 @@ function TodayDashboardView({
   setupStatus,
 }: {
   badges: Badge[];
+  canPracticeFromCall: boolean;
   executiveDashboard: ExecutiveDashboard | null;
   isExecutive: boolean;
   isManager: boolean;
@@ -331,6 +342,13 @@ function TodayDashboardView({
           </div>
         ))}
       </div>
+
+      {!isManager && repDashboard?.focusRecommendation ? (
+        <CrossCallFocusCard
+          canPractice={canPracticeFromCall}
+          recommendation={repDashboard.focusRecommendation}
+        />
+      ) : null}
 
       <section className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_300px]">
       <div
