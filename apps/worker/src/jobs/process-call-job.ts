@@ -312,7 +312,7 @@ export async function processCallJob(input: ProcessCallJobInput) {
   const rmImpl = input.rm ?? rm;
   // Provider identity invalidates checkpoints created with the previous provider.
   const transcriptionModel = env.transcriptionProvider === "deepgram"
-    ? "deepgram:nova-3:en:diarized-v1"
+    ? "deepgram:nova-3:auto-language:diarized-v1"
     : process.env.OPENAI_CALL_TRANSCRIPTION_MODEL?.trim() || "gpt-4o-transcribe-diarize";
   let tempDir: string | null = null;
   let currentStage: JobStage = "download";

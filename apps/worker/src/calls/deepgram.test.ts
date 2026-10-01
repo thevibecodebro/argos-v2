@@ -15,6 +15,9 @@ describe("Deepgram transcription", () => {
       { timestampSeconds: 5019, speaker: "Speaker C", text: "Goodbye" },
     ] });
     expect(fetchMock.mock.calls[0]![0]).toContain("diarize=true");
+    const query = new URL(fetchMock.mock.calls[0]![0] as string).searchParams;
+    expect(query.get("detect_language")).toBe("true");
+    expect(query.has("language")).toBe(false);
   });
   it("classifies quota and retry delays without leaking provider body", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("billing exhausted secret-key", { status: 429, headers: { "retry-after": "5", "dg-request-id": "dg-123" } })));

@@ -42,7 +42,7 @@ export async function transcribeDeepgramAudioBuffer(input: {
   let body: DeepgramResponse | string;
   try {
     ({ response, body } = await fetchWithTimeout<DeepgramResponse | string>(
-      "https://api.deepgram.com/v1/listen?model=nova-3&language=en&diarize=true&utterances=true&smart_format=true",
+      "https://api.deepgram.com/v1/listen?model=nova-3&detect_language=true&diarize=true&utterances=true&smart_format=true",
       { method: "POST", headers: { Authorization: `Token ${key}`, "Content-Type": input.contentType || "application/octet-stream" }, body: new Uint8Array(input.audioBytes) },
       input.timeoutMs ?? 120_000,
       response => response.ok ? response.json() : response.text(),
