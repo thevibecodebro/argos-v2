@@ -924,6 +924,30 @@ describe("DrizzlePlatformRepository", () => {
     await expect(repository.getOrganizationDetailSnapshot("missing")).resolves.toBeNull();
   });
 
+  it.each([
+    ["driver timestamp strings", "2026-06-02 15:00:00+00", "2026-06-03 15:00:00+00", "2026-06-02T15:00:00.000Z", "2026-06-03T15:00:00.000Z"],
+    ["Date objects", new Date("2026-06-02T15:00:00.000Z"), new Date("2026-06-03T15:00:00.000Z"), "2026-06-02T15:00:00.000Z", "2026-06-03T15:00:00.000Z"],
+    ["empty aggregates", null, null, null, null],
+  ])("serializes organization activity from %s", async (_label, lastCallAt, lastRoleplayAt, expectedCallAt, expectedRoleplayAt) => {
+    const createdAt = new Date("2026-06-01T15:00:00.000Z");
+    const { repository } = createRepositoryHarness([
+      [{ id: "org-1", name: "Acme Health", slug: "acme-health", plan: "trial", createdAt }],
+      [],
+      [],
+      [{ averageScore: 82, failedCalls: 0, lastCallAt, processingCalls: 0, reviewedCalls: 4, totalCalls: 4 }],
+      [{ completedTrainingAssignments: 0, totalTrainingAssignments: 0 }],
+      [{ lastRoleplayAt, roleplaySessions: 2 }],
+      [],
+      [],
+      [],
+    ]);
+
+    const snapshot = await repository.getOrganizationDetailSnapshot("acme-health");
+
+    expect(snapshot?.callStats.lastCallAt).toBe(expectedCallAt);
+    expect(snapshot?.roleplayStats.lastRoleplayAt).toBe(expectedRoleplayAt);
+  });
+
   it("lists platform audit events with an optional organization filter", async () => {
     const createdAt = new Date("2026-06-16T15:00:00.000Z");
     const { operations, repository } = createRepositoryHarness([

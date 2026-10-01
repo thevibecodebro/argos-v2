@@ -18,6 +18,13 @@ type DrawerExposesVariant =
     : false;
 
 describe("operational workspace primitives", () => {
+  it("keeps selected-object actions outside the expandable details", () => {
+    const html = renderToStaticMarkup(createElement(OperationalPreviewDrawer, {title: "Selected call", actions: [{href:"/calls/1",label:"Open call",variant:"primary"}]}, createElement("p", null, "Longer evidence")));
+    expect(html).toContain("<details");
+    expect(html).toContain("<summary");
+    expect(html.indexOf('href="/calls/1"')).toBeLessThan(html.indexOf("<details"));
+    expect(html).toContain("Longer evidence");
+  });
   it("renders quiet product toolbar, metric strip, and preview drawer primitives", () => {
     const html = renderToStaticMarkup(
       createElement(

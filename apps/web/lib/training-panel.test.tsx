@@ -445,7 +445,7 @@ describe("training panels", () => {
     expect(html).toContain('aria-modal="true"');
     expect(html).toContain('aria-labelledby=');
     expect(html).toContain('aria-describedby=');
-    expect(html).toContain("Create module");
+    expect(html).not.toContain("uppercase");
     expect(html).toContain("Training modal");
     expect(html).toContain("Shape the lesson in a focused overlay.");
     expect(html).toContain("Modal body");
@@ -602,7 +602,7 @@ describe("training panels", () => {
     );
 
     expect(html).toContain("Create your first module");
-    expect(html).toContain("Generate a draft sequence with AI");
+    expect(html).toContain("You can draft with AI");
     expect(html).toContain("Create module");
     expect(html).not.toContain("Generate with AI");
     expect(html).not.toContain("Build your curriculum");
@@ -672,6 +672,8 @@ describe("training panels", () => {
     expect(shellHtml).not.toContain('data-forge-workspace-layout="two-rails"');
     expect(shellHtml).not.toContain('data-training-admin-rail=""');
     expect(stageHtml).toContain("training-lesson");
+    expect(stageHtml).toContain("Assignment progress</summary>");
+    expect(stageHtml.indexOf("Plan assignments</button>")).toBeLessThan(stageHtml.indexOf("Assignment progress</summary>"));
     expect(stageHtml.match(/A focused discovery module\./g)).toHaveLength(1);
     expect(tocHtml).toContain("<details");
     expect(tocHtml).toContain("<summary");

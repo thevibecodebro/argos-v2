@@ -65,7 +65,7 @@ describe("PeoplePanel", () => {
     expect(html).toContain('data-forge-mobile-table-cards="true"');
     expect(html).toContain("Search members");
     expect(html).toContain("Role filter");
-    expect(html).toContain("Member management");
+    expect(html).toContain("Members");
     expect(html).toContain("Invite rep");
     expect(html).toContain("Invite manager");
     expect(html).not.toContain("Invite member");

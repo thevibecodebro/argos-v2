@@ -14,6 +14,18 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("RoleplayPanel", () => {
+  it("shows the selected buyer and challenge before starting practice", () => {
+    const html = renderToStaticMarkup(createElement(RoleplayPanel, {
+      initialPersonas: [{id: "buyer", name: "Dana Mercer", role: "CFO", company: "Apex", industry: "Manufacturing", difficulty: "advanced", objectionType: "ROI & Budget", description: "Numbers-first evaluator.", avatarInitials: "DM", voice: "marin"}],
+      initialSessions: [], voiceEnabled: false,
+    }));
+    expect(html).toContain("Practice with Dana Mercer");
+    expect(html).toContain("Challenge");
+    expect(html).toContain("ROI &amp; Budget");
+    expect(html).toContain("Change buyer");
+    expect(html).toMatch(/<details[^>]*>[\s\S]*?<summary/);
+  });
+
   it("announces roleplay async error and voice statuses", () => {
     expect(roleplayPanelSource).toContain("Roleplay update failed");
     expect(roleplayPanelSource).toContain("Voice practice status");

@@ -56,6 +56,19 @@ describe("CallsFilters forge treatment", () => {
     expect(html).not.toContain(">filter_list</span>");
   });
 
+  it("collapses optional controls by default and exposes active filter state", () => {
+    useSearchParamsMock.mockReturnValue(new URLSearchParams());
+    const defaultHtml = renderToStaticMarkup(createElement(CallsFilters, { initialSearch: "" }));
+    expect(defaultHtml).toContain("Filters &amp; sort");
+    expect(defaultHtml).toMatch(/<details[^>]*data-calls-advanced-filters="true"/);
+    expect(defaultHtml).not.toMatch(/<details[^>]*open=""[^>]*data-calls-advanced-filters/);
+    useSearchParamsMock.mockReturnValue(new URLSearchParams("status=failed"));
+    const activeHtml = renderToStaticMarkup(createElement(CallsFilters, { initialSearch: "" }));
+    expect(activeHtml).toMatch(/<details[^>]*open=""[^>]*data-calls-advanced-filters="true"/);
+    expect(activeHtml).toContain('id="sort"');
+    expect(activeHtml).toContain('id="minScore"');
+  });
+
   it("keeps mobile call cards shrinkable inside narrow viewports", () => {
     expect(callsPageSource).toContain(
       'className="block min-w-0 rounded-xl border border-[var(--forge-border)]',

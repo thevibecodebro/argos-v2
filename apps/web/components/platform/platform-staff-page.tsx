@@ -106,8 +106,7 @@ export function PlatformStaffPage({
       <ForgeSurface className="p-4" variant="panel">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="forge-page-eyebrow">Agency staff</p>
-            <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">Staff controls</h2>
+            <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">Agency staff</h2>
           </div>
         </div>
 

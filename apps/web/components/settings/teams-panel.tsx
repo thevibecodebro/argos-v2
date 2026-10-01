@@ -665,10 +665,7 @@ export function TeamsPanel({
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-medium text-[var(--forge-muted)]">
-              Selected team editor
-            </p>
-            <h3 className="mt-2 text-xl font-semibold text-[var(--forge-text)]">
+            <h3 className="text-base font-semibold text-[var(--forge-text)]">
               {selectedTeam ? selectedTeam.name : "Create or select a team"}
             </h3>
             <p className="mt-2 text-sm text-[var(--forge-muted)]">

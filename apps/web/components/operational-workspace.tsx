@@ -1,4 +1,5 @@
 import type { HTMLAttributes, ReactNode } from "react";
+import { OperationalDisclosure } from "./operational-disclosure";
 import { cn } from "@argos-v2/ui";
 import {
   ForgeButton,
@@ -48,7 +49,7 @@ type OperationalPreviewDrawerProps = HTMLAttributes<HTMLElement> & {
 };
 
 const operationalEyebrowClass =
-  "mb-1 text-[0.68rem] font-semibold uppercase tracking-[0.07em] text-[var(--forge-faint)]";
+  "sr-only";
 
 export function OperationalWorkspace({
   children,
@@ -79,7 +80,7 @@ export function OperationalToolbar({
   return (
     <section
       className={cn(
-        "border-b border-[var(--forge-border)] pb-4",
+        "min-w-0 py-2",
         className,
       )}
       data-operational-toolbar="true"
@@ -89,7 +90,7 @@ export function OperationalToolbar({
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="break-words text-xl font-[540] tracking-[-0.01em] text-[var(--forge-text)]">
+            <h1 className="min-w-0 break-words text-xl font-[540] tracking-[-0.01em] text-[var(--forge-text)]">
               {title}
             </h1>
             {status ? (
@@ -106,7 +107,7 @@ export function OperationalToolbar({
         </div>
 
         {actions?.length ? (
-          <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+          <div className="flex flex-wrap items-center gap-2 [&>a]:min-h-11 lg:justify-end">
             {actions.map((action) => (
               <ForgeButton
                 href={action.href}
@@ -134,7 +135,7 @@ export function OperationalMetricStrip({
   return (
     <dl
       className={cn(
-        "grid gap-px overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[var(--forge-border)] sm:grid-cols-2 xl:grid-cols-4",
+        "grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[var(--forge-border)] sm:grid-cols-2 xl:grid-cols-4",
         className,
       )}
       data-operational-metric-strip="true"
@@ -184,7 +185,7 @@ export function OperationalPreviewDrawer({
   return (
     <aside
       className={cn(
-        "rounded-xl border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-3 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)]",
+        "min-w-0 rounded-xl border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-4",
         className,
       )}
       data-operational-preview-drawer="true"
@@ -195,14 +196,8 @@ export function OperationalPreviewDrawer({
       <h2 className="mt-1 text-base font-semibold text-[var(--forge-text)]">
         {title}
       </h2>
-      {description ? (
-        <p className="mt-1 text-sm leading-5 text-[var(--forge-muted)]">
-          {description}
-        </p>
-      ) : null}
-      {children ? <div className="mt-3 space-y-3">{children}</div> : null}
       {actions?.length ? (
-        <div className="mt-4 grid gap-2">
+        <div className="mt-3 grid gap-2 [&>a]:min-h-11">
           {actions.map((action) => (
             <ForgeButton
               href={action.href}
@@ -215,6 +210,12 @@ export function OperationalPreviewDrawer({
             </ForgeButton>
           ))}
         </div>
+      ) : null}
+      {description || children ? (
+        <OperationalDisclosure title={`${title} details`}>
+          {description ? <p className="text-sm leading-6 text-[var(--forge-muted)]">{description}</p> : null}
+          {children}
+        </OperationalDisclosure>
       ) : null}
     </aside>
   );

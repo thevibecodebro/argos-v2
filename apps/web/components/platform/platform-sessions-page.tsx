@@ -120,7 +120,6 @@ export function PlatformSessionsPage({
           <ForgeSurface className="p-4" variant="panel">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="forge-page-eyebrow">Access trail</p>
                 <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">Recent access</h2>
               </div>
               <ForgeChip icon="history" tone="muted">
@@ -183,7 +182,6 @@ export function PlatformSessionsPage({
           <ForgeSurface className="p-4" data-platform-audit-events="true" variant="panel">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="forge-page-eyebrow">Agency audit</p>
                 <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">Audit events</h2>
               </div>
               <ForgeChip icon="history" tone="muted">

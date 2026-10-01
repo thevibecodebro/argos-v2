@@ -1511,14 +1511,13 @@ function IngestionTitleRulesEditor({
   return (
     <ForgeSurface
       as="section"
-      className="p-6"
+      className="p-4 sm:p-6"
       data-ingestion-title-rules="true"
       variant="panel"
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-medium text-[var(--forge-muted)]">Auto-ingestion</p>
-          <h2 className="mt-2 text-xl font-semibold text-[var(--forge-text)]">
+          <h2 className="text-base font-semibold text-[var(--forge-text)]">
             Auto-ingestion title rules
           </h2>
         </div>

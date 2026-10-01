@@ -173,7 +173,6 @@ export function PlatformOrganizationDetailPage({
         >
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0">
-              <p className="forge-page-eyebrow">Admin invite</p>
               <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">
                 Initial admin has not accepted yet
               </h2>
@@ -207,7 +206,6 @@ export function PlatformOrganizationDetailPage({
         <ForgeSurface className="min-w-0 p-4" data-platform-org-health="true" variant="panel">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="forge-page-eyebrow">Health</p>
               <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">
                 Agency alerts
               </h2>
@@ -242,8 +240,7 @@ export function PlatformOrganizationDetailPage({
         </ForgeSurface>
 
         <ForgeSurface className="p-4" data-platform-org-billing="true" variant="panel">
-          <p className="forge-page-eyebrow">Billing</p>
-          <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">Plan ops</h2>
+          <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">Billing</h2>
           <dl className="mt-4 grid gap-2 text-sm">
             <DetailRow label="Plan" value={formatPlan(organization.organization.plan)} />
             <DetailRow
@@ -267,7 +264,6 @@ export function PlatformOrganizationDetailPage({
         <ForgeSurface className="min-w-0 p-4" data-platform-org-access="true" variant="panel">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="forge-page-eyebrow">Access</p>
               <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">
                 Recent agency access
               </h2>
@@ -326,7 +322,6 @@ export function PlatformOrganizationDetailPage({
 
         <ForgeSurface className="min-w-0 p-4" data-platform-org-audit="true" variant="panel">
           <div>
-            <p className="forge-page-eyebrow">Audit</p>
             <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">Audit events</h2>
           </div>
 
@@ -510,7 +505,6 @@ function CoachingAccessPanel({
     >
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="forge-page-eyebrow">Software access</p>
           <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">
             Managed feature access
           </h2>

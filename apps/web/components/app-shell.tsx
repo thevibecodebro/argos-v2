@@ -267,7 +267,7 @@ export function AuthenticatedAppShell({
               {user.orgLogoUrl ? (
                 <img
                   alt={`${user.orgName ?? "Organization"} logo`}
-                  className="max-h-10 max-w-36 object-contain"
+                  className="max-h-12 max-w-36 rounded-md bg-[#64748B] p-2 object-contain"
                   data-primary-rail-org-logo="true"
                   decoding="async"
                   height={40}
@@ -276,7 +276,7 @@ export function AuthenticatedAppShell({
                 />
               ) : (
                 <ArgosLogo
-                  className="block w-28"
+                  className="block w-28 rounded-md bg-[#0A0A0A] px-2 py-2"
                   decorative
                   imageClassName="block h-auto w-full"
                   placement="primary-rail"
@@ -374,7 +374,7 @@ export function AuthenticatedAppShell({
             {/* Compact brand mark on phones, where the rail is hidden. */}
             <span className="md:hidden" data-topbar-brand="true">
               <ArgosLogo
-                className="block w-24"
+                className="block w-24 rounded-md bg-[#0A0A0A] px-2 py-2"
                 decorative
                 imageClassName="block h-auto w-full"
                 placement="topbar"

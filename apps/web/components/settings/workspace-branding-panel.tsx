@@ -299,20 +299,9 @@ export function WorkspaceBrandingPanel({
   return (
     <div className="min-w-0" data-workspace-branding-panel="true">
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <aside className="order-1 space-y-3 xl:sticky xl:top-20 xl:order-2 xl:self-start">
-          <ThemePreview
-            editingMode={editingMode}
-            organizationName={organizationName}
-            theme={previewTheme}
-            validationMessage={parsedTheme.ok ? null : parsedTheme.error}
-          />
-          <ValidationPanel
-            contrastFailures={contrastFailures}
-            validationMessage={parsedTheme.ok ? null : parsedTheme.error}
-          />
-        </aside>
 
-        <section className="order-2 min-w-0 space-y-3 xl:order-1">
+
+        <section className="min-w-0 space-y-3" data-branding-controls="true">
           <section className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-3">
             <div className="grid gap-3 md:grid-cols-2">
               <div>
@@ -324,8 +313,8 @@ export function WorkspaceBrandingPanel({
                     <button
                       className={
                         editingMode === mode
-                          ? "forge-button forge-button-primary forge-focus-ring min-h-10 rounded-lg px-3 py-2 text-sm"
-                          : "forge-button forge-button-ghost forge-focus-ring min-h-10 rounded-lg px-3 py-2 text-sm"
+                          ? "forge-button forge-button-primary forge-focus-ring min-h-11 rounded-lg px-3 py-2 text-sm"
+                          : "forge-button forge-button-ghost forge-focus-ring min-h-11 rounded-lg px-3 py-2 text-sm"
                       }
                       data-branding-mode-tab={mode}
                       key={mode}
@@ -346,8 +335,8 @@ export function WorkspaceBrandingPanel({
                     <button
                       className={
                         draftTheme.activeMode === mode
-                          ? "forge-button forge-button-primary forge-focus-ring min-h-10 rounded-lg px-3 py-2 text-sm"
-                          : "forge-button forge-button-ghost forge-focus-ring min-h-10 rounded-lg px-3 py-2 text-sm"
+                          ? "forge-button forge-button-primary forge-focus-ring min-h-11 rounded-lg px-3 py-2 text-sm"
+                          : "forge-button forge-button-ghost forge-focus-ring min-h-11 rounded-lg px-3 py-2 text-sm"
                       }
                       key={mode}
                       onClick={() => setActiveMode(mode)}
@@ -377,7 +366,7 @@ export function WorkspaceBrandingPanel({
                 </p>
               </div>
               <button
-                className="forge-button forge-button-ghost forge-focus-ring min-h-9 rounded-lg px-3 py-2 text-xs"
+                className="forge-button forge-button-ghost forge-focus-ring min-h-11 rounded-lg px-3 py-2 text-xs"
                 onClick={() => setIsRestoreOpen(true)}
                 type="button"
               >
@@ -438,31 +427,40 @@ export function WorkspaceBrandingPanel({
             title="Simple controls"
           />
 
-          <NavigationColorGroup
-            controls={LEFT_NAVIGATION_COLORS}
-            navigation={currentModeTheme.navigation}
-            onChange={updateNavigationColor}
-            title="Left navigation"
-          />
-
-          <NavigationColorGroup
-            controls={TOP_NAVIGATION_COLORS}
-            navigation={currentModeTheme.navigation}
-            onChange={updateNavigationColor}
-            title="Top navigation"
-          />
-
-          <details className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-3">
-            <summary className="cursor-pointer text-sm font-semibold text-[var(--forge-text)]">
-              Advanced colors
+          <details className="border-t border-[var(--forge-border)] pt-3" data-branding-navigation-controls="true">
+            <summary className="forge-focus-ring flex min-h-11 cursor-pointer items-center text-sm font-semibold text-[var(--forge-text)]">
+              Navigation and advanced colors
+              <ForgeIcon className="ml-auto" name="expand_more" size={18} />
             </summary>
-            <div className="mt-3">
-              <ColorGroup
-                controls={ADVANCED_COLORS}
-                colors={currentModeTheme.colors}
-                onChange={updateColor}
-                title="Advanced controls"
+            <div className="space-y-3 pt-3">
+              <NavigationColorGroup
+                controls={LEFT_NAVIGATION_COLORS}
+                navigation={currentModeTheme.navigation}
+                onChange={updateNavigationColor}
+                title="Left navigation"
               />
+
+              <NavigationColorGroup
+                controls={TOP_NAVIGATION_COLORS}
+                navigation={currentModeTheme.navigation}
+                onChange={updateNavigationColor}
+                title="Top navigation"
+              />
+
+              <details className="border-t border-[var(--forge-border)] pt-3">
+                <summary className="forge-focus-ring flex min-h-11 cursor-pointer items-center text-sm font-semibold text-[var(--forge-text)]">
+                  Advanced colors
+                  <ForgeIcon className="ml-auto" name="expand_more" size={18} />
+                </summary>
+                <div className="mt-3">
+                  <ColorGroup
+                    controls={ADVANCED_COLORS}
+                    colors={currentModeTheme.colors}
+                    onChange={updateColor}
+                    title="Advanced controls"
+                  />
+                </div>
+              </details>
             </div>
           </details>
 
@@ -483,7 +481,7 @@ export function WorkspaceBrandingPanel({
                 <label className="grid gap-1 text-xs font-semibold text-[var(--forge-text)]">
                   Reason
                   <input
-                    className="min-h-10 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
+                    className="min-h-11 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
                     disabled={isArchiving}
                     onChange={(event) => setArchiveReason(event.currentTarget.value)}
                     placeholder="Closing account"
@@ -493,7 +491,7 @@ export function WorkspaceBrandingPanel({
                 <label className="grid gap-1 text-xs font-semibold text-[var(--forge-text)]">
                   Type slug to confirm
                   <input
-                    className="min-h-10 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
+                    className="min-h-11 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
                     disabled={isArchiving}
                     onChange={(event) => setArchiveSlug(event.currentTarget.value)}
                     placeholder={organizationSlug}
@@ -501,7 +499,7 @@ export function WorkspaceBrandingPanel({
                   />
                 </label>
                 <button
-                  className="forge-button forge-button-primary forge-focus-ring min-h-10 rounded-lg px-4 py-2 text-sm"
+                  className="forge-button forge-button-primary forge-focus-ring min-h-11 rounded-lg px-4 py-2 text-sm"
                   disabled={
                     isArchiving ||
                     !archiveReason.trim() ||
@@ -516,6 +514,18 @@ export function WorkspaceBrandingPanel({
             </section>
           ) : null}
         </section>
+        <aside className="space-y-3 xl:sticky xl:top-20 xl:self-start">
+          <ThemePreview
+            editingMode={editingMode}
+            organizationName={organizationName}
+            theme={previewTheme}
+            validationMessage={parsedTheme.ok ? null : parsedTheme.error}
+          />
+          <ValidationPanel
+            contrastFailures={contrastFailures}
+            validationMessage={parsedTheme.ok ? null : parsedTheme.error}
+          />
+        </aside>
       </div>
 
       <div
@@ -528,7 +538,7 @@ export function WorkspaceBrandingPanel({
           </p>
           <div className="flex gap-2">
             <button
-              className="forge-button forge-button-ghost forge-focus-ring min-h-10 flex-1 rounded-lg px-4 py-2 text-sm sm:flex-none"
+              className="forge-button forge-button-ghost forge-focus-ring min-h-11 flex-1 rounded-lg px-4 py-2 text-sm sm:flex-none"
               disabled={!isDirty || isSaving}
               onClick={cancelChanges}
               type="button"
@@ -536,7 +546,7 @@ export function WorkspaceBrandingPanel({
               Cancel
             </button>
             <button
-              className="forge-button forge-button-primary forge-focus-ring min-h-10 flex-1 rounded-lg px-4 py-2 text-sm sm:flex-none"
+              className="forge-button forge-button-primary forge-focus-ring min-h-11 flex-1 rounded-lg px-4 py-2 text-sm sm:flex-none"
               disabled={!isDirty || isSaving || !parsedTheme.ok}
               onClick={saveChanges}
               type="button"
@@ -562,14 +572,14 @@ export function WorkspaceBrandingPanel({
           </p>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
             <button
-              className="forge-button forge-button-ghost forge-focus-ring min-h-10 rounded-lg px-4 py-2 text-sm"
+              className="forge-button forge-button-ghost forge-focus-ring min-h-11 rounded-lg px-4 py-2 text-sm"
               onClick={() => setIsRestoreOpen(false)}
               type="button"
             >
               Keep custom colors
             </button>
             <button
-              className="forge-button forge-button-primary forge-focus-ring min-h-10 rounded-lg px-4 py-2 text-sm"
+              className="forge-button forge-button-primary forge-focus-ring min-h-11 rounded-lg px-4 py-2 text-sm"
               disabled={isSaving}
               onClick={restoreDefaults}
               type="button"
@@ -624,7 +634,7 @@ function ColorGroup({
               />
               <input
                 aria-label={`${control.label} hex value`}
-                className="forge-focus-ring min-h-10 min-w-0 flex-1 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-field-bg)] px-3 text-sm font-semibold text-[var(--forge-text)]"
+                className="forge-focus-ring min-h-11 min-w-0 flex-1 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-field-bg)] px-3 text-sm font-semibold text-[var(--forge-text)]"
                 inputMode="text"
                 onChange={(event) => onChange(control.field, event.target.value)}
                 spellCheck={false}
@@ -682,7 +692,7 @@ function NavigationColorGroup({
               />
               <input
                 aria-label={`${control.label} hex value`}
-                className="forge-focus-ring min-h-10 min-w-0 flex-1 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-field-bg)] px-3 text-sm font-semibold text-[var(--forge-text)]"
+                className="forge-focus-ring min-h-11 min-w-0 flex-1 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-field-bg)] px-3 text-sm font-semibold text-[var(--forge-text)]"
                 inputMode="text"
                 onChange={(event) => onChange(control.field, event.target.value)}
                 spellCheck={false}
@@ -715,7 +725,7 @@ function ThemePreview({
     >
       <div className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-bg)] p-3 text-[var(--forge-text)]">
         <div className="mb-3 overflow-hidden rounded-lg border border-[var(--forge-sidebar-border)]">
-          <div className="flex min-h-9 items-center justify-between border-b border-[var(--forge-topbar-border)] bg-[var(--forge-topbar-bg)] px-3 text-[var(--forge-topbar-text)]">
+          <div className="flex min-h-11 items-center justify-between border-b border-[var(--forge-topbar-border)] bg-[var(--forge-topbar-bg)] px-3 text-[var(--forge-topbar-text)]">
             <span className="text-xs font-bold">{editingMode === "dark" ? "Dark" : "Light"} mode</span>
             <span className="h-5 w-5 rounded-full border border-[var(--forge-topbar-border)]" />
           </div>
@@ -752,7 +762,7 @@ function ThemePreview({
               Buttons, text, panels, dividers, and status colors update here before saving.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
-              <button className="forge-button forge-button-primary min-h-9 rounded-lg px-3 py-2 text-xs" type="button">
+              <button className="forge-button forge-button-primary min-h-11 rounded-lg px-3 py-2 text-xs" type="button">
                 Approve
               </button>
               <button className="rounded-lg border border-[var(--forge-border)] px-3 py-2 text-xs text-[var(--forge-text)]" type="button">

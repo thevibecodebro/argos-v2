@@ -19,13 +19,11 @@ export function TrainingCourseShell({
   if (isManager) {
     return (
       <div
-        className="grid min-w-0 gap-3"
+        className="grid min-w-0 gap-3 xl:grid-cols-[auto_minmax(0,1fr)]"
         data-training-builder-workbench=""
         data-training-course-shell={mode}
       >
         <SecondaryRail
-          description="Choose the module to edit, assign, or review."
-          eyebrow="Curriculum"
           railId="training-builder"
           title="Modules"
           data-training-builder-secondary-rail=""

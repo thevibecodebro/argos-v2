@@ -26,14 +26,14 @@ export function TrainingManagerStatusBand({ metrics }: TrainingManagerStatusBand
   ];
 
   return (
-    <div className="grid gap-3 md:grid-cols-3">
+    <div className="grid gap-4 sm:grid-cols-3">
       {items.map((item) => (
         <div
-          className="rounded-[1.25rem] border border-[var(--forge-border-strong)]/12 bg-[var(--forge-surface-2)]/60 px-4 py-4"
+          className="py-2"
           key={item.label}
         >
-          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--forge-muted)]">{item.label}</p>
-          <p className="mt-3 text-2xl font-semibold tracking-tight text-[var(--forge-text)]">{item.value}</p>
+          <p className="text-xs font-medium text-[var(--forge-muted)]">{item.label}</p>
+          <p className="forge-tabular-nums mt-1 text-xl font-semibold text-[var(--forge-text)]">{item.value}</p>
           <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">{item.detail}</p>
         </div>
       ))}

@@ -4,7 +4,6 @@ import {
   ForgeEmptyState,
   ForgeManagementTable,
   ForgeMobileTableCards,
-  ForgeSurface,
 } from "@/components/forge";
 import {
   OperationalMetricStrip,
@@ -27,12 +26,6 @@ export function PlatformDashboardPage({ dashboard }: PlatformDashboardPageProps)
       <OperationalToolbar
         actions={[
           {
-            href: "/platform/organizations",
-            icon: "business",
-            label: "Organizations",
-            variant: "secondary",
-          },
-          {
             href: "/platform/organizations/new",
             icon: "add_business",
             label: "Create organization",
@@ -42,6 +35,8 @@ export function PlatformDashboardPage({ dashboard }: PlatformDashboardPageProps)
         description="Organization health, usage, and risk."
         title="Argos Admin Dashboard"
       >
+        <details open={Boolean(dashboard.filters.query || dashboard.filters.plan !== "all" || dashboard.filters.activity !== "all" || dashboard.filters.callStatus !== "all")} >
+          <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium text-[var(--forge-text)]">Filters · {dashboard.filters.range === "7d" ? "7 days" : dashboard.filters.range === "90d" ? "90 days" : "30 days"}</summary>
         <form
           action="/platform/dashboard"
           className="grid min-w-0 gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(180px,1fr)_120px_140px_150px_150px_auto]"
@@ -52,7 +47,7 @@ export function PlatformDashboardPage({ dashboard }: PlatformDashboardPageProps)
             Search organizations
           </label>
           <input
-            className="min-h-10 min-w-0 rounded-lg border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60 sm:col-span-2 xl:col-span-1"
+            className="min-h-11 min-w-0 rounded-lg border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60 sm:col-span-2 xl:col-span-1"
             defaultValue={dashboard.filters.query}
             id="platform-dashboard-search"
             name="q"
@@ -105,57 +100,24 @@ export function PlatformDashboardPage({ dashboard }: PlatformDashboardPageProps)
             Apply
           </ForgeButton>
         </form>
+        </details>
       </OperationalToolbar>
 
-      <OperationalMetricStrip
-        data-platform-dashboard-metrics="true"
-        metrics={[
-          {
-            icon: "business",
-            label: "Active organizations",
-            tone: "cyan",
-            value: dashboard.summary.activeOrganizations,
-          },
-          {
-            icon: "fact_check",
-            label: "Calls reviewed",
-            tone: "gold",
-            value: dashboard.summary.callsReviewed,
-          },
-          {
-            icon: "done_all",
-            label: "Review completion",
-            tone: "success",
-            value: `${dashboard.summary.reviewCompletionRate}%`,
-          },
-          {
-            icon: "warning",
-            label: "At risk",
-            tone: dashboard.summary.atRiskOrganizations > 0 ? "ember" : "success",
-            value: dashboard.summary.atRiskOrganizations,
-          },
-          {
-            icon: "groups",
-            label: "Active seats",
-            tone: "muted",
-            value: dashboard.summary.activeSeats,
-          },
-        ]}
-      />
+
 
       {dashboard.alerts.length ? (
-        <ForgeSurface
-          className="p-3"
+        <section
+          aria-label="Platform alerts"
+          className="py-1"
           data-platform-dashboard-alerts="true"
-          variant="panel"
         >
           <div className="flex flex-wrap items-center gap-2">
-            <p className="mr-1 font-[var(--font-display)] text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[var(--forge-muted)]">
+            <p className="mr-1 text-sm font-semibold text-[var(--forge-muted)]">
               Platform alerts
             </p>
             {dashboard.alerts.map((alert) => (
               <a
-                className="flex min-h-9 min-w-0 items-center gap-2 rounded-lg border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-xs font-semibold text-[var(--forge-text)] transition hover:border-[color-mix(in_srgb,var(--forge-gold)_34%,transparent)]"
+                className="flex min-h-11 min-w-0 items-center gap-2 rounded-lg border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-xs font-semibold text-[var(--forge-text)] transition hover:border-[color-mix(in_srgb,var(--forge-gold)_34%,transparent)]"
                 href={alert.href}
                 key={alert.href}
               >
@@ -166,19 +128,17 @@ export function PlatformDashboardPage({ dashboard }: PlatformDashboardPageProps)
               </a>
             ))}
           </div>
-        </ForgeSurface>
+        </section>
       ) : null}
 
-      <ForgeSurface
-        className="p-4"
+      <section
+        className="min-w-0"
         data-platform-risk-queue="true"
-        variant="panel"
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="forge-page-eyebrow">Risk queue</p>
             <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">
-              Organizations needing attention
+              Organizations
             </h2>
           </div>
           <ForgeChip icon="table_chart" tone="muted">
@@ -193,16 +153,16 @@ export function PlatformDashboardPage({ dashboard }: PlatformDashboardPageProps)
               <ForgeMobileTableCards>
                 {dashboard.rows.map((row) => (
                   <a
-                    className="block rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4 text-left transition hover:border-[color-mix(in_srgb,var(--forge-gold)_32%,transparent)]"
+                    className="block border-b border-[var(--forge-border)] py-4 text-left last:border-b-0 hover:bg-[var(--forge-surface-2)] focus-visible:outline-2 focus-visible:outline-[var(--forge-focus)]"
                     href={`/platform/organizations/${encodeURIComponent(row.slug)}`}
                     key={`${row.id}:mobile`}
                   >
                     <p className="truncate text-sm font-semibold text-[var(--forge-text)]">{row.name}</p>
                     <p className="mt-1 truncate text-sm text-[var(--forge-muted)]">{row.slug}</p>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <ForgeChip tone="gold">{formatPlan(row.plan)}</ForgeChip>
-                      <ForgeChip tone={row.riskReasons.length ? "ember" : "success"}>
-                        {row.riskReasons.length ? row.riskReasons[0] : "Healthy"}
+                      <span className="text-xs text-[var(--forge-muted)]">{formatPlan(row.plan)}</span>
+                      <ForgeChip className="whitespace-normal break-words" tone={row.riskReasons.length ? "ember" : "success"}>
+                        {row.riskReasons.length ? row.riskReasons.join(" · ") : "Healthy"}
                       </ForgeChip>
                     </div>
                   </a>
@@ -220,7 +180,7 @@ export function PlatformDashboardPage({ dashboard }: PlatformDashboardPageProps)
                 <col className="w-[10%]" />
                 <col className="w-[26%]" />
               </colgroup>
-              <thead className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--forge-muted)]">
+              <thead className="text-[10px] font-semibold uppercase tracking-[0.04em] text-[var(--forge-muted)]">
                 <tr>
                   <th className="px-3 py-3">Organization</th>
                   <th className="px-3 py-3">Plan</th>
@@ -244,7 +204,7 @@ export function PlatformDashboardPage({ dashboard }: PlatformDashboardPageProps)
                       <p className="mt-1 truncate text-xs text-[var(--forge-muted)]">{row.slug}</p>
                     </td>
                     <td className="px-3 py-3">
-                      <ForgeChip tone="gold">{formatPlan(row.plan)}</ForgeChip>
+                      <span className="text-xs text-[var(--forge-muted)]">{formatPlan(row.plan)}</span>
                     </td>
                     <td className="px-3 py-3 text-xs text-[var(--forge-muted)]">
                       {formatDate(row.lastActivityAt)}
@@ -288,7 +248,46 @@ export function PlatformDashboardPage({ dashboard }: PlatformDashboardPageProps)
             title="No organizations match these filters"
           />
         )}
-      </ForgeSurface>
+      </section>
+      <details className="border-t border-[var(--forge-border)] pt-3">
+        <summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold text-[var(--forge-text)]">Platform performance</summary>
+      <OperationalMetricStrip
+        data-platform-dashboard-metrics="true"
+        metrics={[
+          {
+            icon: "business",
+            label: "Active organizations",
+            tone: "cyan",
+            value: dashboard.summary.activeOrganizations,
+          },
+          {
+            icon: "fact_check",
+            label: "Calls reviewed",
+            tone: "gold",
+            value: dashboard.summary.callsReviewed,
+          },
+          {
+            icon: "done_all",
+            label: "Review completion",
+            tone: "success",
+            value: `${dashboard.summary.reviewCompletionRate}%`,
+          },
+          {
+            icon: "warning",
+            label: "At risk",
+            tone: dashboard.summary.atRiskOrganizations > 0 ? "ember" : "success",
+            value: dashboard.summary.atRiskOrganizations,
+          },
+          {
+            icon: "groups",
+            label: "Active seats",
+            tone: "muted",
+            value: dashboard.summary.activeSeats,
+          },
+        ]}
+      />
+      </details>
+
     </OperationalWorkspace>
   );
 }
@@ -308,7 +307,7 @@ function DashboardSelect({
     <label className="grid min-w-0 gap-1 text-xs text-[var(--forge-muted)]">
       <span>{label}</span>
       <select
-        className="min-h-10 min-w-0 rounded-lg border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
+        className="min-h-11 min-w-0 rounded-lg border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
         defaultValue={value}
         name={name}
       >

@@ -64,10 +64,14 @@ export default async function HighlightsPage() {
                     <article className="min-w-0 space-y-3 break-words" key={highlight.id}>
                       <ForgeChip tone={index === 0 ? "gold" : "cyan"}>{highlight.category ?? "Highlight"}{highlight.severity ? ` · ${highlight.severity}` : ""}</ForgeChip>
                       <h2 className="text-sm font-semibold leading-6">{highlight.observation ?? "No observation recorded."}</h2>
-                      <dl className="space-y-3 text-sm">
+                      <details className="min-w-0">
+                        <summary className="flex min-h-11 cursor-pointer items-center text-sm text-[var(--forge-muted)]">Recommendation &amp; note</summary>
+                        <dl className="space-y-3 py-2 text-sm">
                         <div><dt className="text-xs text-[var(--forge-muted)]">Recommendation</dt><dd className="mt-1 leading-6">{highlight.recommendation ?? "No recommendation yet."}</dd></div>
                         {highlight.highlightNote ? <div><dt className="text-xs text-[var(--forge-muted)]">Manager note</dt><dd className="mt-1 leading-6">{highlight.highlightNote}</dd></div> : null}
-                        <div><dt className="text-xs text-[var(--forge-muted)]">Source</dt><dd className="mt-1">{highlight.callTopic ?? "Source call"}<span className="mt-1 block text-xs text-[var(--forge-muted)]">{formatTimestamp(highlight.callCreatedAt)}</span></dd></div>
+                        </dl>
+                      </details>
+                      <dl className="text-sm"><div><dt className="text-xs text-[var(--forge-muted)]">Source</dt><dd className="mt-1">{highlight.callTopic ?? "Source call"}<span className="mt-1 block text-xs text-[var(--forge-muted)]">{formatTimestamp(highlight.callCreatedAt)}</span></dd></div>
                       </dl>
                       <ForgeButton className="min-h-11" href={`/calls/${highlight.callId}`} trailingIcon="arrow_forward" variant="secondary">Open call</ForgeButton>
                     </article>

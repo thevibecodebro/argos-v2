@@ -151,7 +151,8 @@ describe("PlatformShell", () => {
       ),
     );
 
-    expect(disabledHtml).toContain('data-platform-organization-view-link="disabled"');
+    expect(disabledHtml).not.toContain('data-platform-organization-view-link=');
+    expect(disabledHtml).not.toContain('href="/dashboard"');
     expect(activeHtml).toContain('data-platform-organization-view-link="active"');
     expect(activeHtml).toContain('href="/dashboard"');
   });
@@ -242,8 +243,10 @@ describe("platform page components", () => {
     expect(html).toContain('data-platform-dashboard-filters="true"');
     expect(html).toContain('data-platform-dashboard-alerts="true"');
     expect(html).toContain('data-platform-risk-queue="true"');
+    expect(html.indexOf("Organizations")).toBeLessThan(html.indexOf("Platform performance"));
+    expect(html).toContain("Filters · 30 days");
     expect(html).toContain("Dashboard");
-    expect(html).toContain("Organizations needing attention");
+    expect(html).toContain("Organizations");
     expect(html).toContain("Organizations with failed-call risk");
     expect(html).toContain("Platform alerts");
     expect(html).toContain("Active organizations");

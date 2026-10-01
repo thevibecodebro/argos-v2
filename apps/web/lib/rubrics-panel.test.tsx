@@ -155,10 +155,10 @@ describe("RubricsPanel", () => {
     expect(html).not.toContain('xl:order-3');
     expect(html).toContain('aria-label="Rubric admin controls"');
     expect(html).toContain('data-settings-nav-theme="forge"');
-    expect(html).toContain("Source and versions");
+    expect(html).toContain("Source options");
     expect(html).toContain("Active Rubric");
     expect(html).toContain("Revenue Scorecard v4");
-    expect(html).toContain("Category editor");
+    expect(html).toContain('data-rubric-category-editor=""');
     expect(html).toContain("Published scoring categories");
     expect(html).toContain('data-rubric-category-row=""');
     expect(html).toContain("Build Rapport");

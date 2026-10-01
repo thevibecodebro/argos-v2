@@ -767,13 +767,17 @@ export function RoleplayPanel({
             </summary>
             <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
-                <h2 className="mt-1 text-base font-semibold text-[var(--forge-text)]">
-                  Target persona
+                <h2 className="text-base font-semibold text-[var(--forge-text)]">
+                  {selectedPersona ? `Practice with ${selectedPersona.name}` : "Choose a buyer"}
                 </h2>
-                <p className="mt-1 max-w-2xl text-sm leading-5 text-[var(--forge-muted)]">
-                  Choose one buyer profile, then start a focused practice
-                  session.
-                </p>
+                {selectedPersona ? (
+                  <div className="mt-2 space-y-2 text-sm text-[var(--forge-muted)]">
+                    <p>{selectedPersona.role} · {selectedPersona.company}</p>
+                    <p className="max-w-prose leading-6">{selectedPersona.description}</p>
+                    <p><span className="font-medium text-[var(--forge-text)]">Challenge:</span> {selectedPersona.objectionType}</p>
+                    <p className="capitalize">{selectedPersona.difficulty}</p>
+                  </div>
+                ) : <p className="mt-2 text-sm text-[var(--forge-muted)]">Choose one buyer to start practice.</p>}
               </div>
               <button
                 className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--forge-gold)] px-4 py-2 text-xs font-bold text-[var(--forge-on-accent)] transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-45"
@@ -787,8 +791,10 @@ export function RoleplayPanel({
               </button>
             </div>
 
+            <details className="mt-3 border-t border-[var(--forge-border)]" open={!selectedPersona || undefined}>
+              <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium text-[var(--forge-text)] focus-visible:outline-2 focus-visible:outline-[var(--forge-gold)]">Change buyer ({personas.length})</summary>
             <div
-              className="mt-3 divide-y divide-[var(--forge-border)] overflow-hidden rounded-lg border border-[var(--forge-border)]"
+              className="divide-y divide-[var(--forge-border)] overflow-hidden rounded-lg border border-[var(--forge-border)]"
               data-roleplay-scenario-list="true"
             >
               {personas.map((persona) => {
@@ -823,6 +829,7 @@ export function RoleplayPanel({
                 );
               })}
             </div>
+            </details>
           </details>
 
           <section

@@ -24,18 +24,12 @@ export function SettingsSectionHeader({
   actions,
   children,
   description,
-  eyebrow,
   title,
 }: SettingsSectionHeaderProps) {
   return (
     <div className="flex flex-col gap-3 border-b border-[var(--forge-border)] px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0">
-        {eyebrow ? (
-          <p className="text-xs font-medium text-[var(--forge-muted)]">
-            {eyebrow}
-          </p>
-        ) : null}
-        <h2 className="mt-1 text-base font-semibold text-[var(--forge-text)]">
+        <h2 className="text-base font-semibold text-[var(--forge-text)]">
           {title}
         </h2>
         {description ? (

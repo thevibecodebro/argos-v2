@@ -29,7 +29,7 @@ export function TrainingModuleStage({
 }) {
   if (!selectedModule) {
     return (
-      <section aria-label={canManage ? "Module preview" : "Course player"} className="training-lesson">
+      <section aria-label={canManage ? "Module preview" : "Course player"} className="training-lesson min-w-0">
         <p className="text-sm text-[var(--forge-muted)]">No module selected.</p>
       </section>
     );
@@ -44,14 +44,12 @@ export function TrainingModuleStage({
   }
 
   return (
-    <section aria-label={canManage ? "Module preview" : "Course player"} className="training-lesson">
+    <section aria-label={canManage ? "Module preview" : "Course player"} className="training-lesson min-w-0">
       <div className="space-y-5">
         <header className="space-y-2">
-          <h2 className="text-xl font-semibold leading-snug text-[var(--forge-text)] sm:text-2xl">{selectedModule.title}</h2>
+          <h2 className="break-words text-xl font-semibold leading-snug text-[var(--forge-text)] sm:text-2xl">{selectedModule.title}</h2>
           <p className="text-sm text-[var(--forge-muted)]">{selectedModule.skillCategory}</p>
         </header>
-
-        {stageBand}
 
         <div
           aria-label="Training module stage"
@@ -85,7 +83,7 @@ export function TrainingModuleStage({
                   : "training-stage-tab"
               }
               id="training-stage-tab-quiz"
-            tabIndex={stageView === "quiz" ? 0 : -1}
+              tabIndex={stageView === "quiz" ? 0 : -1}
               onClick={() => onSelectView("quiz")}
               role="tab"
               type="button"
@@ -104,10 +102,10 @@ export function TrainingModuleStage({
         >
           {stageView === "lesson" ? (
             <div className="space-y-4">
-              <p className="whitespace-pre-line text-base leading-7 text-[var(--forge-text)]">{selectedModule.description}</p>
+              <p className="max-w-[70ch] whitespace-pre-wrap break-words text-base leading-7 text-[var(--forge-text)]">{selectedModule.description}</p>
               <p className="text-xs text-[var(--forge-muted)]">
                 {canManage
-                  ? "Managers review this module before editing content, drafting quiz material, or assigning it to reps."
+                  ? "Review the lesson before editing or assigning it."
                   : selectedModule.hasQuiz
                     ? "Work through the lesson, then open the quiz when you are ready."
                     : "Work through the lesson, then mark the module complete when you are ready."}
@@ -136,6 +134,12 @@ export function TrainingModuleStage({
         >
           {primaryAction}
         </button>
+        {stageBand ? (
+          <details className="border-t border-[var(--forge-border)] pt-3">
+            <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium text-[var(--forge-text)]">Assignment progress</summary>
+            {stageBand}
+          </details>
+        ) : null}
       </div>
     </section>
   );

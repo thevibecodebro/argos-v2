@@ -69,7 +69,7 @@ export default async function RepProfilePage({
             { href: "/team", icon: "arrow_back", label: "Back to team", variant: "secondary" },
             { href: "/calls", icon: "subject", label: "Open calls", variant: "primary" },
           ]}
-          description="Review score trends, focus categories, badges, and recent calls for the selected team member."
+          description="Review calls and coaching focus."
           eyebrow="Coaching"
           status={{
             icon: rep.needsCoaching ? "warning" : "check_circle",
