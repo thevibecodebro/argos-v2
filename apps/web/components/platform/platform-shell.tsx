@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { cn } from "@argos-v2/ui";
 import { ArgosLogo } from "@/components/argos-logo";
 import { ForgeChip, ForgeIcon } from "@/components/forge";
@@ -93,8 +94,8 @@ export function PlatformShell({
                 imageClassName="block h-auto w-full"
                 placement="primary-rail"
               />
-              <p className="mt-0.5 font-[var(--font-display)] text-[0.62rem] font-bold uppercase tracking-[0.24em] text-[var(--forge-gold)]">
-                Argos Admin Dashboard
+              <p className="mt-2 text-xs font-medium text-[var(--forge-muted)]">
+                Admin workspace
               </p>
             </div>
             <button
@@ -133,46 +134,26 @@ export function PlatformShell({
           ))}
         </nav>
 
-        <div
-          className={cn(
-            "mt-4 border-t border-[var(--forge-border)] pt-3",
-            primaryRailCollapsed && "lg:px-0",
-          )}
-        >
-          {activeSession ? (
-            <a
+        {activeSession ? (
+          <div className="mt-4 border-t border-[var(--forge-border)] pt-3">
+            <Link
               aria-label="Open Organization"
               className={cn(
-                "forge-nav-link flex items-center gap-3 rounded-2xl px-3 py-2.5 font-[var(--font-display)] text-[0.7rem] font-bold uppercase tracking-[0.16em]",
+                "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-[var(--forge-sidebar-text)] hover:bg-[color-mix(in_srgb,var(--forge-sidebar-text)_6%,transparent)] focus-visible:outline-2 focus-visible:outline-[var(--forge-focus)]",
                 primaryRailCollapsed && "lg:h-11 lg:justify-center lg:px-0",
               )}
               data-navigation-link="/dashboard"
               data-platform-organization-view-link="active"
               href="/dashboard"
+              prefetch={false}
               title={primaryRailCollapsed ? "Open Organization" : undefined}
             >
               <ForgeIcon name="open_in_new" size={18} />
-              <span className={cn("truncate", primaryRailCollapsed && "lg:sr-only")}>
-                Open Organization
-              </span>
-            </a>
-          ) : (
-            <div
-              aria-label="Open Organization"
-              className={cn(
-                "forge-nav-link flex items-center gap-3 rounded-2xl px-3 py-2.5 font-[var(--font-display)] text-[0.7rem] font-bold uppercase tracking-[0.16em] opacity-60",
-                primaryRailCollapsed && "lg:h-11 lg:justify-center lg:px-0",
-              )}
-              data-platform-organization-view-link="disabled"
-              title={primaryRailCollapsed ? "Open Organization" : undefined}
-            >
-              <ForgeIcon name="lock" size={18} />
-              <span className={cn("truncate", primaryRailCollapsed && "lg:sr-only")}>
-                Open Organization
-              </span>
-            </div>
-          )}
-        </div>
+              <span className={cn("truncate", primaryRailCollapsed && "lg:sr-only")}>Open Organization</span>
+            </Link>
+          </div>
+        ) : null}
+
       </aside>
 
       <div
@@ -246,13 +227,14 @@ function PlatformNavLink({
   onClick: () => void;
 }) {
   return (
-    <a
+    <Link
+      prefetch={false}
       aria-current={active ? "page" : undefined}
       aria-label={label}
       className={cn(
-        "forge-nav-link flex items-center gap-3 rounded-2xl px-3 py-2.5 font-[var(--font-display)] text-[0.7rem] font-bold uppercase tracking-[0.16em]",
+        "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-[var(--forge-sidebar-text)] hover:bg-[color-mix(in_srgb,var(--forge-sidebar-text)_6%,transparent)] focus-visible:outline-2 focus-visible:outline-[var(--forge-focus)]",
         collapsed && "lg:h-11 lg:justify-center lg:px-0",
-        active && "forge-nav-link--active",
+        active && "bg-[var(--forge-sidebar-active-bg)] text-[var(--forge-sidebar-active-text)]",
       )}
       data-navigation-link={href}
       href={href}
@@ -263,7 +245,7 @@ function PlatformNavLink({
       <span className={cn("truncate", collapsed && "lg:sr-only")}>
         {label}
       </span>
-    </a>
+    </Link>
   );
 }
 
