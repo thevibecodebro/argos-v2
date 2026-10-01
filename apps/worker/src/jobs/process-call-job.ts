@@ -10,6 +10,7 @@ import {
   mergeTranscriptLines,
   scoreTranscriptFromLines,
   transcribeAudioBuffer,
+  transcribeDeepgramAudioBuffer,
   type ScoringRubric,
   type TranscriptLine,
 } from "@argos-v2/call-processing";
@@ -137,11 +138,12 @@ async function transcribeNormalizedAudio(input: {
   onStageChange?: (stage: JobStage) => void;
   readFileImpl: typeof readFile;
   sizeBytes: number;
+  wholeRecording?: boolean;
   transcribeAudioBufferImpl: typeof transcribeAudioBuffer;
 }) {
   if (
-    input.sizeBytes <= 24 * 1024 * 1024 &&
-    input.durationSeconds <= MAX_TRANSCRIPTION_CHUNK_DURATION_SECONDS
+    input.wholeRecording || (input.sizeBytes <= 24 * 1024 * 1024 &&
+    input.durationSeconds <= MAX_TRANSCRIPTION_CHUNK_DURATION_SECONDS)
   ) {
     input.onStageChange?.("transcribe");
     const bytes = await input.readFileImpl(input.filePath);
@@ -295,7 +297,11 @@ export async function processCallJob(input: ProcessCallJobInput) {
 
   const downloadSourceAssetImpl = input.downloadSourceAsset ?? downloadSourceAsset;
   const normalizeAudioImpl = input.normalizeAudio ?? normalizeAudio;
-  const transcribeAudioBufferImpl = input.transcribeAudioBuffer ?? transcribeAudioBuffer;
+  const transcribeAudioBufferImpl: typeof transcribeAudioBuffer = input.transcribeAudioBuffer ?? (
+    env.transcriptionProvider === "deepgram"
+      ? audio => transcribeDeepgramAudioBuffer({ ...audio, apiKey: env.deepgramApiKey ?? undefined, timeoutMs: env.transcriptionTimeoutMs, signal: input.signal })
+      : audio => transcribeAudioBuffer({ ...audio, timeoutMs: env.transcriptionTimeoutMs, signal: input.signal })
+  );
   const scoreTranscriptFromLinesImpl =
     input.scoreTranscriptFromLines ?? scoreTranscriptFromLines;
   const extractBuyerPersonalityImpl =
@@ -304,8 +310,10 @@ export async function processCallJob(input: ProcessCallJobInput) {
   const readFileImpl = input.readFile ?? readFile;
   const mkdtempImpl = input.mkdtemp ?? mkdtemp;
   const rmImpl = input.rm ?? rm;
-  const transcriptionModel = process.env.OPENAI_CALL_TRANSCRIPTION_MODEL?.trim()
-    || "gpt-4o-transcribe-diarize";
+  // Provider identity invalidates checkpoints created with the previous provider.
+  const transcriptionModel = env.transcriptionProvider === "deepgram"
+    ? "deepgram:nova-3:en:diarized-v1"
+    : process.env.OPENAI_CALL_TRANSCRIPTION_MODEL?.trim() || "gpt-4o-transcribe-diarize";
   let tempDir: string | null = null;
   let currentStage: JobStage = "download";
 
@@ -388,7 +396,10 @@ export async function processCallJob(input: ProcessCallJobInput) {
       if (input.job.processingVersion === 2) {
         if (!input.job.leaseToken) throw new Error("Version 2 job is missing its processing lease token");
         currentStage = "chunk";
-        const chunks = await chunkAudioFileImpl({
+        // One whole-recording request keeps diarization identities consistent.
+        const chunks = env.transcriptionProvider === "deepgram"
+          ? [{ filePath: normalized.outputPath, startSeconds: 0, endSeconds: normalized.durationSeconds }]
+          : await chunkAudioFileImpl({
           filePath: normalized.outputPath,
           sizeBytes: normalized.sizeBytes,
           maxChunkBytes: 24 * 1024 * 1024,
@@ -429,6 +440,7 @@ export async function processCallJob(input: ProcessCallJobInput) {
           readFileImpl,
           sizeBytes: normalized.sizeBytes,
           transcribeAudioBufferImpl,
+          wholeRecording: env.transcriptionProvider === "deepgram",
         });
       }
     }

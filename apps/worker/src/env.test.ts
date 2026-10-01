@@ -9,6 +9,11 @@ const callProcessingEnv = {
 };
 
 describe("getWorkerEnv", () => {
+  it("requires a Deepgram key when processing uses Deepgram", () => {
+    expect(() => getWorkerEnv({ ...callProcessingEnv, CALL_PROCESSING_ENABLED: "true", CALL_TRANSCRIPTION_PROVIDER: "deepgram" })).toThrow("DEEPGRAM_API_KEY");
+    expect(getWorkerEnv({ CALL_TRANSCRIPTION_PROVIDER: "deepgram", DEEPGRAM_API_KEY: "test" })).toMatchObject({ transcriptionProvider: "deepgram", deepgramApiKey: "test" });
+    expect(() => getWorkerEnv({ CALL_TRANSCRIPTION_PROVIDER: "unknown" })).toThrow("CALL_TRANSCRIPTION_PROVIDER");
+  });
   it("returns defaults when optional values are missing", () => {
     expect(getWorkerEnv({})).toEqual({
       callProcessingEnabled: false,
@@ -37,6 +42,8 @@ describe("getWorkerEnv", () => {
       supabaseUrl: null,
       transcribeConcurrency: 3,
       transcriptionTimeoutMs: 120_000,
+      transcriptionProvider: "openai",
+      deepgramApiKey: null,
     });
   });
 
@@ -77,6 +84,8 @@ describe("getWorkerEnv", () => {
       supabaseUrl: "https://argos.example.supabase.co",
       transcribeConcurrency: 4,
       transcriptionTimeoutMs: 120_000,
+      transcriptionProvider: "openai",
+      deepgramApiKey: null,
     });
   });
 
@@ -156,6 +165,8 @@ describe("getWorkerEnv", () => {
       supabaseUrl: "https://argos.example.supabase.co",
       transcribeConcurrency: 2,
       transcriptionTimeoutMs: 120_000,
+      transcriptionProvider: "openai",
+      deepgramApiKey: null,
     });
   });
 

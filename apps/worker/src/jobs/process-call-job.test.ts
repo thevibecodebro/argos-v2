@@ -5,6 +5,37 @@ import { getWorkerEnv } from "../env";
 import { isRetryableProcessingError, processCallJob } from "./process-call-job";
 
 describe("processCallJob", () => {
+  it.each([1, 2])("sends a long V%s call to Deepgram without speaker-resetting chunks", async (processingVersion) => {
+    const repository = {
+      getCallProcessingCapabilities: vi.fn().mockResolvedValue({ canGenerateBuyerPersonality: false, canScoreCall: true }),
+      findRubricById: vi.fn().mockResolvedValue(null), persistProcessedCall: vi.fn(), createNotification: vi.fn().mockResolvedValue(undefined),
+      updateCallStatus: vi.fn(), markJobComplete: vi.fn(), markTerminalFailure: vi.fn(), markRetryableFailure: vi.fn(),
+      updateCallStatusForLease: vi.fn().mockResolvedValue("written"),
+      findReusableTranscriptCheckpoint: vi.fn().mockResolvedValue(null), findTranscriptCheckpoint: vi.fn().mockResolvedValue(null),
+      listCompletedChunks: vi.fn().mockResolvedValue([]), setChunkManifest: vi.fn().mockResolvedValue("written"),
+      beginChunkAttempt: vi.fn().mockResolvedValue(1), saveCompletedChunk: vi.fn().mockResolvedValue("written"),
+      saveTranscriptCheckpoint: vi.fn().mockResolvedValue("written"), saveEvaluationCheckpoint: vi.fn().mockResolvedValue("written"),
+      finalizeV2Job: vi.fn().mockResolvedValue("written"),
+    };
+    const chunkAudioFile = vi.fn().mockResolvedValue([]);
+    const transcribe = vi.fn().mockResolvedValue({ durationSeconds: 5030, transcript: [{ timestampSeconds: 5019, speaker: "Speaker C", text: "Goodbye" }] });
+    await processCallJob({
+      job: { id: "dg-job", callId: "dg-call", repId: "rep", attemptCount: 1, maxAttempts: 3, sourceStoragePath: "recordings/call.mp3", sourceSizeBytes: 80_000_000, processingVersion, generation: 1, leaseToken: "lease" } as never,
+      repository: repository as never,
+      env: getWorkerEnv({ CALL_TRANSCRIPTION_PROVIDER: "deepgram", DEEPGRAM_API_KEY: "test" }),
+      downloadSourceAsset: vi.fn().mockResolvedValue("/tmp/source.mp3"),
+      normalizeAudio: vi.fn().mockResolvedValue({ outputPath: "/tmp/normalized.mp3", sizeBytes: 80_000_000, durationSeconds: 5030 }),
+      chunkAudioFile, readFile: vi.fn().mockResolvedValue(Buffer.from("audio")), transcribeAudioBuffer: transcribe,
+      scoreTranscriptFromLines: vi.fn().mockResolvedValue({ overallScore: 80 }),
+    });
+    expect(chunkAudioFile).not.toHaveBeenCalled();
+    expect(transcribe).toHaveBeenCalledTimes(1);
+    if (processingVersion === 2) {
+      expect(repository.finalizeV2Job).toHaveBeenCalled();
+      expect(repository.setChunkManifest).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ totalChunks: 1 }));
+      expect(repository.saveTranscriptCheckpoint).toHaveBeenCalled();
+    } else expect(repository.markJobComplete).toHaveBeenCalled();
+  });
   it("retries provider timeouts but stops on exhausted quota", () => {
     const details = {
       elapsedMs: 100,
