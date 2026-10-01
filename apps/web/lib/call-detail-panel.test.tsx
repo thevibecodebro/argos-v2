@@ -128,6 +128,18 @@ const baseCall: CallDetail = {
 };
 
 describe("CallDetailPanel", () => {
+  it("keeps feedback available through labelled native disclosures", async () => {
+    const html = await renderCallDetailPanel({call: {...baseCall, strengths: ["Clear discovery"], improvements: ["Confirm impact"]}});
+    expect(html).toMatch(/<details[^>]*>[\s\S]*?<summary[^>]*>Strengths/);
+    expect(html).toContain("Clear discovery");
+    expect(html).toContain('href="#call-coaching"');
+    expect(html).toContain('id="call-coaching"');
+    expect(html).toContain('href="#call-evidence"');
+    expect(html).toContain('id="call-evidence"');
+    expect(html).toContain('href="#call-transcript"');
+    expect(html).toContain('id="call-transcript"');
+  });
+
   it("classifies explicit media and analysis states", async () => {
     const { getCallMediaState } = await import("../components/call-detail-panel");
 

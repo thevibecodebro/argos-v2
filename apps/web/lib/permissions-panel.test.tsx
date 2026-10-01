@@ -105,7 +105,7 @@ describe("PermissionsPanel", () => {
       }),
     );
 
-    expect(html).toContain("Team Preset Assignments");
+    expect(html).toContain("data-permissions-assignment-matrix");
     expect(html).toContain('data-permissions-workspace="matrix"');
     expect(html).toContain('data-settings-editor-workbench="permissions"');
     expect(html).toContain('data-permissions-control-drawer=""');

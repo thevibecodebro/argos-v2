@@ -313,24 +313,6 @@ function TodayDashboardView({
 
   return (
     <div className="flex min-w-0 flex-col gap-3" data-dashboard-today-queue="true">
-      <div className="grid gap-3 sm:grid-cols-3" data-dashboard-stat-strip="true">
-        {stats.map((stat) => (
-          <div
-            className="rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface)] p-4"
-            key={stat.label}
-          >
-            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.07em] text-[var(--forge-muted)]">
-              {stat.label}
-            </p>
-            <p
-              className={`forge-tabular-nums mt-2 text-[1.75rem] font-[540] leading-none ${toneTextClass(stat.tone)}`}
-            >
-              {stat.value}
-            </p>
-            <p className="mt-1.5 text-xs text-[var(--forge-muted)]">{stat.hint}</p>
-          </div>
-        ))}
-      </div>
 
       <section className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_300px]">
       <div
@@ -513,6 +495,28 @@ function TodayDashboardView({
         </Link>
       </div>
       </section>
+      <details className="min-w-0 rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface)]" data-dashboard-summary="true">
+        <summary className="flex min-h-11 cursor-pointer items-center px-4 text-sm font-semibold text-[var(--forge-text)]">Performance summary</summary>
+        <div className="grid gap-3 p-4 sm:grid-cols-3" data-dashboard-stat-strip="true">
+        {stats.map((stat) => (
+          <div
+            className="rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface)] p-4"
+            key={stat.label}
+          >
+            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.07em] text-[var(--forge-muted)]">
+              {stat.label}
+            </p>
+            <p
+              className={`forge-tabular-nums mt-2 text-[1.75rem] font-[540] leading-none ${toneTextClass(stat.tone)}`}
+            >
+              {stat.value}
+            </p>
+            <p className="mt-1.5 text-xs text-[var(--forge-muted)]">{stat.hint}</p>
+          </div>
+        ))}
+      </div>
+
+      </details>
     </div>
   );
 }

@@ -153,7 +153,6 @@ export function PlatformOrganizationsPage({
         >
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0">
-              <p className="forge-page-eyebrow">Organization list</p>
               <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">Organizations</h2>
             </div>
             <div className="flex flex-wrap gap-2" data-platform-organization-status-filters="true">

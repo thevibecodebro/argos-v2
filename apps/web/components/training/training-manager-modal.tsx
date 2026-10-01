@@ -15,7 +15,6 @@ type TrainingManagerModalProps = {
 export function TrainingManagerModal({
   children,
   description,
-  eyebrow,
   onClose,
   open,
   title,
@@ -106,7 +105,7 @@ export function TrainingManagerModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--forge-overlay-bg)] px-4 py-8 "
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--forge-overlay-bg)] px-3 py-3 sm:px-4 sm:py-8"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
@@ -117,15 +116,14 @@ export function TrainingManagerModal({
         aria-modal="true"
         aria-describedby={descriptionId}
         aria-labelledby={titleId}
-        className="w-full max-w-4xl rounded-[1.5rem] border border-[var(--forge-border)] bg-[var(--forge-panel-bg)] p-6 shadow-[0_24px_80px_color-mix(in_srgb,var(--forge-bg)_14%,transparent)]"
+        className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-4xl flex-col rounded-2xl bg-[var(--forge-surface)] p-4 shadow-[0_8px_24px_rgba(41,40,39,0.12)] sm:p-6"
         role="dialog"
         ref={dialogRef}
         tabIndex={-1}
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-gold)]">{eyebrow}</p>
-            <h2 className="mt-2 text-2xl font-semibold text-[var(--forge-text)]" id={titleId}>
+            <h2 className="text-xl font-semibold text-[var(--forge-text)]" id={titleId}>
               {title}
             </h2>
             <p className="mt-2 text-sm text-[var(--forge-muted)]" id={descriptionId}>
@@ -134,7 +132,7 @@ export function TrainingManagerModal({
           </div>
           <button
             aria-label="Close manager modal"
-            className="rounded-full border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-2 text-[var(--forge-muted)] transition hover:text-[var(--forge-text)]"
+            className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-2 text-[var(--forge-muted)] transition hover:text-[var(--forge-text)]"
             onClick={onClose}
             type="button"
           >
@@ -142,7 +140,7 @@ export function TrainingManagerModal({
           </button>
         </div>
 
-        <div className="mt-6 max-h-[calc(100vh-12rem)] overflow-y-auto pr-1">{children}</div>
+        <div className="mt-4 min-h-0 overflow-y-auto pr-1">{children}</div>
       </div>
     </div>
   );

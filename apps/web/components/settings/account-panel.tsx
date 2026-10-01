@@ -3,7 +3,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ForgeButton, ForgeChip, ForgeSurface } from "@/components/forge";
+import { ForgeButton, ForgeChip, ForgeIcon, ForgeSurface } from "@/components/forge";
 import type { CurrentUserDetails } from "@/lib/users/service";
 import { SettingsMetaRow, SettingsSectionHeader } from "./settings-readability";
 
@@ -151,7 +151,6 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
         variant="panel"
       >
         <SettingsSectionHeader
-          description="Manage the profile information tied to your workspace access."
           eyebrow="Account"
           title="Your profile"
         />
@@ -222,7 +221,7 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
               </div>
             ) : (
               <div>
-                <p className="text-2xl font-semibold text-[var(--forge-text)]">
+                <p className="text-lg font-semibold text-[var(--forge-text)]">
                   {displayName}
                 </p>
                 <div className="mt-3 max-w-xl">
@@ -259,13 +258,12 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
         variant="panel"
       >
         <SettingsSectionHeader
-          description="Workspace identity, logo, and API-facing identifiers."
           eyebrow="Organization"
           title={currentUser.org?.name ?? "No organization"}
         />
         {currentUser.org ? (
           <div className="space-y-4 p-4 sm:p-6">
-            <div className="flex flex-col gap-4 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex min-w-0 items-center gap-4">
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-1)]">
                   {currentUser.org.logoUrl ? (
@@ -336,39 +334,45 @@ export function AccountPanel({ initialUser }: AccountPanelProps) {
                 {logoStatus}
               </p>
             ) : null}
-            <div className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-2">
-              <SettingsMetaRow
-                label="Org ID"
-                value={
-                  <span className="font-mono">{currentUser.org.slug}</span>
-                }
-              />
-              <SettingsMetaRow
-                label="API usage"
-                value="Webhook and API references"
-              />
-              <SettingsMetaRow
-                label="Plan"
-                value={
-                  <span className="capitalize">{currentUser.org.plan}</span>
-                }
-              />
-              <SettingsMetaRow
-                label="Created"
-                value={formatDate(currentUser.org.createdAt) ?? "Unknown"}
-              />
-              <div className="flex justify-end py-2">
-                <ForgeButton
-                  aria-label="Copy org ID"
-                  onClick={() => void copySlug()}
-                  size="sm"
-                  type="button"
-                  variant="secondary"
-                >
-                  {copied ? "Copied org ID" : "Copy org ID"}
-                </ForgeButton>
+            <details className="group border-t border-[var(--forge-border)] pt-2" data-account-workspace-details="true">
+              <summary className="forge-focus-ring flex min-h-11 cursor-pointer items-center text-sm font-medium text-[var(--forge-text)]">
+                Workspace details
+                <ForgeIcon className="ml-auto transition-transform group-open:rotate-180" name="expand_more" size={18} />
+              </summary>
+              <div>
+                <SettingsMetaRow
+                  label="Org ID"
+                  value={
+                    <span className="font-mono">{currentUser.org.slug}</span>
+                  }
+                />
+                <SettingsMetaRow
+                  label="API usage"
+                  value="Webhook and API references"
+                />
+                <SettingsMetaRow
+                  label="Plan"
+                  value={
+                    <span className="capitalize">{currentUser.org.plan}</span>
+                  }
+                />
+                <SettingsMetaRow
+                  label="Created"
+                  value={formatDate(currentUser.org.createdAt) ?? "Unknown"}
+                />
+                <div className="flex justify-end py-2">
+                  <ForgeButton
+                    aria-label="Copy org ID"
+                    onClick={() => void copySlug()}
+                    size="sm"
+                    type="button"
+                    variant="secondary"
+                  >
+                    {copied ? "Copied org ID" : "Copy org ID"}
+                  </ForgeButton>
+                </div>
               </div>
-            </div>
+            </details>
           </div>
         ) : (
           <p className="p-4 text-sm text-[var(--forge-muted)] sm:p-6">

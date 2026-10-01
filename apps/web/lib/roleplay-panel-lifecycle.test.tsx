@@ -27,6 +27,12 @@ class FakePeer {
 }
 beforeEach(() => {
     Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+    // jsdom lacks matchMedia; exercise the real disclosure with a phone viewport.
+    vi.stubGlobal('matchMedia', vi.fn((query: string) => ({
+        matches: false, media: query, onchange: null,
+        addEventListener: vi.fn(), removeEventListener: vi.fn(),
+        addListener: vi.fn(), removeListener: vi.fn(), dispatchEvent: vi.fn(),
+    })));
     vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => { });
     vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
     HTMLElement.prototype.scrollIntoView = vi.fn();
@@ -90,6 +96,12 @@ it('keeps active practice compact and closes setup after changing scenarios', as
     expect(setup.querySelector('summary')?.textContent).toContain('Change scenario');
     setup.open = true;
     expect(setup.querySelector('[data-roleplay-scenario-list]')).toBeTruthy();
+    const buyers = setup.querySelector<HTMLDetailsElement>('details')!;
+    expect(buyers.open).toBe(false);
+    expect(buyers.querySelector('summary')?.textContent).toContain('Change buyer');
+    buyers.open = true;
+    expect(buyers.open).toBe(true);
+    expect(buyers.querySelector('[data-roleplay-scenario-list]')).toBeTruthy();
     await act(async () => {
         (setup.querySelector('[data-roleplay-primary-action="start-simulation"]') as HTMLButtonElement).click();
         await new Promise(setImmediate);

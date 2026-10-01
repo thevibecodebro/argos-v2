@@ -104,8 +104,8 @@ export function NotificationsPanel({
   }
 
   return (
-    <ForgeSurface as="section" className="space-y-5 p-6" variant="panel">
-      <div className="flex items-center justify-between gap-4">
+    <ForgeSurface as="section" className="space-y-5 p-4 sm:p-6" variant="panel">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-sm font-semibold text-[var(--forge-text)]">
@@ -140,7 +140,8 @@ export function NotificationsPanel({
           { label: "Read", value: "read" as const },
         ].map((option) => (
           <button
-            className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
+            aria-pressed={filter === option.value}
+            className={`min-h-11 rounded-lg px-3 py-2 text-xs font-semibold transition ${
               filter === option.value
                 ? "bg-[color-mix(in_srgb,var(--forge-gold)_14%,transparent)] text-[var(--forge-gold)]"
                 : "text-[var(--forge-muted)] hover:bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)] hover:text-[var(--forge-text)]"
@@ -158,16 +159,16 @@ export function NotificationsPanel({
         {grouped.length ? (
           grouped.map(([day, items]) => (
             <div key={day}>
-              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
+              <p className="text-sm font-medium text-[var(--forge-muted)]">
                 {new Intl.DateTimeFormat("en-US", { dateStyle: "full" }).format(new Date(day))}
               </p>
-              <div className="mt-3 space-y-3">
+              <div className="mt-3 divide-y divide-[var(--forge-border)]">
                 {items.map((notification) => (
                   <button
-                    className={`w-full rounded-xl border px-4 py-4 text-left transition ${
+                    className={`w-full rounded-lg px-3 py-4 text-left transition ${
                       notification.read
-                        ? "border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50"
-                        : "border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/5"
+                        ? "bg-transparent"
+                        : "bg-[var(--forge-gold)]/5"
                     }`}
                     key={notification.id}
                     onClick={() => {
@@ -175,7 +176,7 @@ export function NotificationsPanel({
                     }}
                     type="button"
                   >
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:gap-4">
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="text-sm font-semibold text-[var(--forge-text)]">{notification.title}</p>
@@ -183,7 +184,7 @@ export function NotificationsPanel({
                         </div>
                         <p className="mt-2 text-sm leading-7 text-[var(--forge-muted)]">{notification.body}</p>
                       </div>
-                      <span className="shrink-0 text-xs uppercase tracking-[0.22em] text-[var(--forge-muted)]">
+                      <span className="shrink-0 text-xs text-[var(--forge-muted)]">
                         {timeAgo(notification.createdAt)}
                       </span>
                     </div>

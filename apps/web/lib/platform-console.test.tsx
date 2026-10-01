@@ -242,6 +242,8 @@ describe("platform page components", () => {
     expect(html).toContain('data-platform-dashboard-filters="true"');
     expect(html).toContain('data-platform-dashboard-alerts="true"');
     expect(html).toContain('data-platform-risk-queue="true"');
+    expect(html.indexOf("Organizations needing attention")).toBeLessThan(html.indexOf("Platform performance"));
+    expect(html).toContain("Filters · 30 days");
     expect(html).toContain("Dashboard");
     expect(html).toContain("Organizations needing attention");
     expect(html).toContain("Organizations with failed-call risk");

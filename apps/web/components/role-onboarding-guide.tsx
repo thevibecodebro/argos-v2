@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { cn } from "@argos-v2/ui";
-import { ForgeChip, ForgeIcon, type ForgeTone } from "./forge";
+import { ForgeIcon, type ForgeTone } from "./forge";
+import { OperationalDisclosure } from "./operational-disclosure";
 import type { AppUserRole } from "@/lib/users/roles";
 
 type GuideKind = "rep-start" | "team-coaching" | "workspace-launch";
@@ -186,25 +187,16 @@ export function RoleOnboardingGuide({
       className="px-3 pt-3 sm:px-4 lg:px-6"
       data-role-onboarding-guide={guide.id}
     >
-      <div className="overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.8%,transparent)] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4.5%,transparent)]">
-        <div className="flex flex-col gap-3 border-b border-[var(--forge-border)] px-3 py-3 sm:px-4 lg:flex-row lg:items-start lg:justify-between">
+      <div className="overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.8%,transparent)]">
+        <div className="flex flex-col gap-3 px-3 py-3 sm:px-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="text-[0.66rem] font-semibold uppercase tracking-[0.1em] text-[var(--forge-muted)]">
-                First run
-              </p>
-              <ForgeChip tone={guide.tone}>{guide.chip}</ForgeChip>
-            </div>
-            <h2 className="mt-2 text-base font-semibold text-[var(--forge-text)]">
+            <h2 className="text-base font-semibold text-[var(--forge-text)]">
               {guide.title}
             </h2>
-            <p className="mt-1 max-w-3xl text-sm leading-5 text-[var(--forge-muted)]">
-              {guide.description}
-            </p>
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             <Link
-              className="forge-button forge-button-primary forge-focus-ring min-h-9 rounded-lg px-3 py-2 text-xs"
+              className="forge-button forge-button-primary forge-focus-ring min-h-11 rounded-lg px-3 py-2 text-xs"
               href={guide.primaryHref}
             >
               <ForgeIcon name="arrow_forward" size={15} />
@@ -212,7 +204,7 @@ export function RoleOnboardingGuide({
             </Link>
             <button
               aria-label="Dismiss product guide"
-              className="forge-button forge-button-ghost forge-focus-ring min-h-9 rounded-lg px-3 py-2 text-xs"
+              className="forge-button forge-button-ghost forge-focus-ring min-h-11 rounded-lg px-3 py-2 text-xs"
               onClick={dismissGuide}
               type="button"
             >
@@ -221,31 +213,38 @@ export function RoleOnboardingGuide({
             </button>
           </div>
         </div>
-        <div className="grid gap-px bg-[var(--forge-border)] sm:grid-cols-2 xl:grid-cols-4">
-          {guide.items.map((item) => (
-            <Link
-              className={cn(
-                "group min-h-24 bg-[var(--forge-item-bg)] px-3 py-3 transition",
-                "hover:bg-[color-mix(in_srgb,var(--forge-gold)_5.5%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--forge-gold)]",
-              )}
-              href={item.href}
-              key={item.label}
-            >
-              <span className="flex items-start gap-3">
-                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_3.5%,transparent)] text-[var(--forge-gold)] transition group-hover:border-[color-mix(in_srgb,var(--forge-gold)_34%,transparent)]">
-                  <ForgeIcon name={item.icon} size={17} />
-                </span>
-                <span className="min-w-0">
-                  <span className="block text-sm font-semibold text-[var(--forge-text)]">
-                    {item.label}
+        <div className="px-3 sm:px-4">
+          <OperationalDisclosure title="Explore the guide">
+            <p className="max-w-3xl text-sm leading-5 text-[var(--forge-muted)]">
+              {guide.description}
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {guide.items.map((item) => (
+                <Link
+                  className={cn(
+                    "group min-h-11 rounded-lg py-2 transition",
+                    "hover:bg-[color-mix(in_srgb,var(--forge-gold)_5.5%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--forge-gold)]",
+                  )}
+                  href={item.href}
+                  key={item.label}
+                >
+                  <span className="flex items-start gap-3">
+                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_3.5%,transparent)] text-[var(--forge-gold)] transition group-hover:border-[color-mix(in_srgb,var(--forge-gold)_34%,transparent)]">
+                      <ForgeIcon name={item.icon} size={17} />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold text-[var(--forge-text)]">
+                        {item.label}
+                      </span>
+                      <span className="mt-1 block text-xs leading-5 text-[var(--forge-muted)]">
+                        {item.description}
+                      </span>
+                    </span>
                   </span>
-                  <span className="mt-1 block text-xs leading-5 text-[var(--forge-muted)]">
-                    {item.description}
-                  </span>
-                </span>
-              </span>
-            </Link>
-          ))}
+                </Link>
+              ))}
+            </div>
+          </OperationalDisclosure>
         </div>
       </div>
     </section>

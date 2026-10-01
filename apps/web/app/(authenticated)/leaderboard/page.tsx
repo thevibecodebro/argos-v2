@@ -65,7 +65,7 @@ export default async function LeaderboardPage() {
                       <dl className="grid grid-cols-3 gap-3 text-sm">
                         <div><dt className="text-xs text-[var(--forge-muted)]">Score</dt><dd className={`forge-tabular-nums mt-1 font-semibold ${scoreColor(entry.score)}`}>{entry.score ?? "--"}</dd></div>
                         <div><dt className="text-xs text-[var(--forge-muted)]">Calls</dt><dd className="forge-tabular-nums mt-1">{entry.calls ?? "--"}</dd></div>
-                        <div><dt className="text-xs text-[var(--forge-muted)]">Movement</dt><dd className="forge-tabular-nums mt-1 text-[var(--forge-success)]">{entry.improvement != null ? `+${entry.improvement}` : "--"}</dd></div>
+                        <div><dt className="text-xs text-[var(--forge-muted)]">Movement</dt><dd className="forge-tabular-nums mt-1 text-[var(--forge-success)]">{formatMovement(entry.improvement)}</dd></div>
                       </dl>
                       <p className="text-sm text-[var(--forge-muted)]">{entry.score != null && entry.score < 70 ? "Needs review" : "Maintain quality"}</p>
                       <Link aria-label={`Review ${entry.name}`} className="forge-focus-ring inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[var(--forge-gold)]" href={`/team/${entry.userId}`}>Review<ForgeIcon name="arrow_forward" size={16} /></Link>
@@ -111,7 +111,7 @@ export default async function LeaderboardPage() {
                         </td>
                         <td className="forge-tabular-nums px-4 py-4 text-sm text-[var(--forge-text)]">{entry.calls ?? "--"}</td>
                         <td className="forge-tabular-nums px-4 py-4 text-sm text-[var(--forge-success)]">
-                          {entry.improvement != null ? `+${entry.improvement}` : "--"}
+                          {formatMovement(entry.improvement)}
                         </td>
                         <td className="px-4 py-4">
                           <ForgeChip tone={entry.score != null && entry.score < 70 ? "ember" : "muted"}>
@@ -248,6 +248,11 @@ function scoreColor(value: number | null | undefined) {
   if (value >= 70) return "text-[var(--forge-gold)]";
   if (value >= 60) return "text-[var(--forge-ember)]";
   return "text-[var(--forge-danger)]";
+}
+
+function formatMovement(value: number | null) {
+  if (value == null) return "--";
+  return value > 0 ? `+${value}` : String(value);
 }
 
 function InsightRow({

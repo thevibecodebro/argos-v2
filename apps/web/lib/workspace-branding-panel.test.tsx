@@ -49,6 +49,24 @@ describe("WorkspaceBrandingPanel", () => {
     );
   });
 
+  it("puts editable branding before the preview and keeps secondary color fields mounted", () => {
+    const html = renderToStaticMarkup(createElement(WorkspaceBrandingPanel, {
+      initialTheme: null,
+      organizationName: "Argos Team",
+      organizationSlug: "argos-team",
+    }));
+    const disclosure = html.match(/<details[^>]*data-branding-navigation-controls="true"[^>]*>([\s\S]*?)<\/details>/);
+
+    expect(html.indexOf('data-branding-controls="true"')).toBeLessThan(html.indexOf('data-branding-preview="true"'));
+    expect(disclosure).not.toBeNull();
+    expect(disclosure?.[0]).not.toContain(" open");
+    expect(disclosure?.[1]).toContain("Navigation and advanced colors");
+    expect(disclosure?.[1]).toContain('data-branding-nav-row="leftBackground"');
+    expect(disclosure?.[1]).toContain('data-branding-nav-row="topBackground"');
+    expect(disclosure?.[1]).toContain("Advanced colors");
+    expect(html).toContain("Branding is up to date.");
+  });
+
   it("shows the current logo with replace and remove controls when one exists", () => {
     const html = renderToStaticMarkup(
       createElement(WorkspaceBrandingPanel, {

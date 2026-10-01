@@ -30,7 +30,7 @@ const shellPanelClass =
   "rounded-xl border border-[var(--forge-border)] bg-[var(--forge-table-bg)] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)]";
 
 const insetPanelClass =
-  "rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.6%,transparent)]";
+  "border-b border-[var(--forge-border)] last:border-b-0";
 
 const badgeIconById: Record<string, string> = {
   first_call: "call",
@@ -60,7 +60,7 @@ export function TeamRosterView({ dashboard }: TeamRosterViewProps) {
               Rep roster
             </p>
             <p className="mt-1 text-sm text-[var(--forge-muted)]">
-              Scan score, call volume, trend, and coaching status before opening a rep profile.
+              Open a rep to review calls and coaching.
             </p>
           </div>
           <ForgeChip tone={coachingFlagsCount > 0 ? "ember" : "muted"}>
@@ -70,10 +70,10 @@ export function TeamRosterView({ dashboard }: TeamRosterViewProps) {
 
         {reps.length ? (
           <>
-            <div className="grid gap-2 p-3 md:hidden">
+            <div className="divide-y divide-[var(--forge-border)] md:hidden">
               {reps.map((rep) => (
                 <Link
-                  className="rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.6%,transparent)] p-3 transition hover:border-[color-mix(in_srgb,var(--forge-gold)_30%,transparent)] hover:bg-[color-mix(in_srgb,var(--forge-gold)_5.5%,transparent)]"
+                  className="block min-w-0 p-4 transition hover:border-[color-mix(in_srgb,var(--forge-gold)_30%,transparent)] hover:bg-[color-mix(in_srgb,var(--forge-gold)_5.5%,transparent)]"
                   href={`/team/${rep.id}`}
                   key={rep.id}
                 >
@@ -82,9 +82,7 @@ export function TeamRosterView({ dashboard }: TeamRosterViewProps) {
                       <p className="truncate text-sm font-semibold text-[var(--forge-text)]">
                         {formatRepName(rep)}
                       </p>
-                      <p className="mt-1 text-xs text-[var(--forge-muted)]">
-                        {rep.needsCoaching ? "Needs coaching" : "Stable this week"}
-                      </p>
+
                     </div>
                     <StatusChip
                       label={rep.needsCoaching ? "Needs coaching" : "Stable"}
@@ -248,19 +246,13 @@ export function TeamRepProfileView({
           )}
         </article>
 
-        <article className={cn(shellPanelClass, "p-4")}>
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div className="space-y-2">
-              <SectionEyebrow>Weekly trend</SectionEyebrow>
-              <p className="text-sm leading-7 text-[var(--forge-muted)]">Past 12 weeks of scored-call performance.</p>
-            </div>
-            <span className="rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
-              {totalTrendCalls} calls reviewed
-            </span>
-          </div>
-
+        <details className={cn(shellPanelClass, "p-4")} data-rep-trend="disclosure">
+          <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-3 text-sm font-semibold text-[var(--forge-text)]">
+            <span>Weekly trend</span>
+            <span className="forge-tabular-nums text-xs font-normal text-[var(--forge-muted)]">{totalTrendCalls} calls</span>
+          </summary>
           <WeeklyTrendBars points={repDashboard.weeklyTrend} />
-        </article>
+        </details>
       </section>
 
       <section className="grid gap-3">
@@ -271,7 +263,7 @@ export function TeamRepProfileView({
               <p className="text-sm leading-7 text-[var(--forge-muted)]">Most recent scored calls available for review.</p>
             </div>
             <Link
-              className="rounded-lg border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--forge-gold)] transition hover:border-[var(--forge-gold)]/35 hover:bg-[var(--forge-gold)]/[0.15] active:scale-[0.98]"
+              className="rounded-lg border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/10 inline-flex min-h-11 items-center px-3 py-2 text-sm font-semibold text-[var(--forge-gold)] transition hover:border-[var(--forge-gold)]/35 hover:bg-[var(--forge-gold)]/[0.15] active:scale-[0.98]"
               href="/calls"
             >
               Open calls
@@ -293,7 +285,7 @@ export function TeamRepProfileView({
                     <p className="text-sm font-semibold text-[var(--forge-text)]">
                       {call.callTopic ?? "Untitled call"}
                     </p>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs uppercase tracking-[0.18em] text-[var(--forge-muted)]">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--forge-muted)]">
                       <span>{formatTimestamp(call.createdAt)}</span>
                       <span>{call.status}</span>
                       {typeof call.durationSeconds === "number" ? (
@@ -307,7 +299,7 @@ export function TeamRepProfileView({
                       <p className={cn("text-lg font-semibold", scoreTextTone(call.overallScore))}>
                         {formatScore(call.overallScore)}
                       </p>
-                      <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-[var(--forge-muted)]">
+                      <p className="mt-1 text-xs text-[var(--forge-muted)]">
                         Overall score
                       </p>
                     </div>
@@ -325,11 +317,8 @@ export function TeamRepProfileView({
           )}
         </article>
 
-        <article className={cn(shellPanelClass, "p-4")}>
-          <div className="space-y-2">
-            <SectionEyebrow>Badges &amp; milestones</SectionEyebrow>
-            <p className="text-sm leading-7 text-[var(--forge-muted)]">Progress markers already earned or still in progress.</p>
-          </div>
+        <details className={cn(shellPanelClass, "p-4")} data-rep-milestones="disclosure">
+          <summary className="flex min-h-11 cursor-pointer items-center text-sm font-semibold text-[var(--forge-text)]">Badges &amp; milestones</summary>
 
           {(badges?.badges ?? []).length ? (
             <div className="mt-6 grid gap-3">
@@ -360,7 +349,7 @@ export function TeamRepProfileView({
                       <StatusChip label={badge.earned ? "Earned" : "In progress"} tone={badge.earned ? "gold" : "muted"} />
                     </div>
                     <p className="text-sm leading-6 text-[var(--forge-muted)]">{badge.description}</p>
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--forge-muted)]">
+                    <p className="text-xs text-[var(--forge-muted)]">
                       {badge.earnedAt ? `Earned ${formatShortDate(badge.earnedAt)}` : "Not earned yet"}
                     </p>
                   </div>
@@ -370,7 +359,7 @@ export function TeamRepProfileView({
           ) : (
             <EmptyInsetState body="No badges available yet." icon="workspace_premium" />
           )}
-        </article>
+        </details>
       </section>
     </div>
   );
@@ -623,7 +612,7 @@ function StatusChip({
 }
 
 function SectionEyebrow({ children }: { children: string }) {
-  return <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-gold)]">{children}</p>;
+  return <h2 className="text-base font-semibold text-[var(--forge-text)]">{children}</h2>;
 }
 
 function formatRepName(rep: Pick<RepCard, "firstName" | "lastName">) {

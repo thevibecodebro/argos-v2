@@ -8,10 +8,12 @@ describe("dashboard readability", () => {
       "utf8",
     );
     const statStrip = source.match(
-      /data-dashboard-stat-strip="true"[\s\S]+?data-dashboard-queue-table="true"/,
+      /data-dashboard-stat-strip="true"[\s\S]+?<\/details>/,
     )?.[0];
 
     expect(statStrip).toBeDefined();
+    expect(source.indexOf('data-dashboard-queue-table="true"')).toBeLessThan(source.indexOf('data-dashboard-summary="true"'));
+    expect(source).toContain("Performance summary");
     expect(statStrip).toContain("text-[var(--forge-muted)]");
     expect(statStrip).not.toContain("text-[var(--forge-faint)]");
   });

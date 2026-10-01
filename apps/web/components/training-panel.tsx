@@ -828,7 +828,7 @@ function TrainingExperiencePanel({
               </div>
               <button
                 aria-describedby={!aiAvailable ? "training-create-ai-unavailable" : undefined}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-2 text-sm font-semibold text-[var(--forge-on-accent)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--forge-gold)] px-4 py-2 text-sm font-semibold text-[var(--forge-on-accent)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={!aiAvailable || isManagerBusy}
                 onClick={openGenerateModal}
                 type="button"
@@ -893,7 +893,7 @@ function TrainingExperiencePanel({
           />
           <div className="flex justify-end">
             <button
-              className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-3 text-sm font-semibold text-[var(--forge-on-accent)] transition hover:brightness-110 disabled:opacity-50"
+              className="rounded-xl bg-[var(--forge-gold)] px-4 py-3 text-sm font-semibold text-[var(--forge-on-accent)] transition hover:brightness-110 disabled:opacity-50"
               disabled={isManagerBusy}
               onClick={() => {
                 void submitModuleForm();
@@ -954,7 +954,7 @@ function TrainingExperiencePanel({
             </div>
             <div className="flex justify-end">
               <button
-                className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-3 text-sm font-semibold text-[var(--forge-on-accent)] transition hover:brightness-110 disabled:opacity-50"
+                className="rounded-xl bg-[var(--forge-gold)] px-4 py-3 text-sm font-semibold text-[var(--forge-on-accent)] transition hover:brightness-110 disabled:opacity-50"
                 disabled={isManagerBusy}
                 onClick={() => {
                   void submitGenerate();
@@ -1089,7 +1089,7 @@ function TrainingExperiencePanel({
           </div>
           <div className="flex justify-end">
             <button
-              className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-4 py-3 text-sm font-semibold text-[var(--forge-on-accent)] transition hover:brightness-110 disabled:opacity-50"
+              className="rounded-xl bg-[var(--forge-gold)] px-4 py-3 text-sm font-semibold text-[var(--forge-on-accent)] transition hover:brightness-110 disabled:opacity-50"
               disabled={isManagerBusy}
               onClick={() => {
                 void submitAssignment();
@@ -1142,7 +1142,7 @@ function TrainingExperiencePanel({
         ))}
         {!canManage ? (
           <button
-            className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-5 py-3 text-sm font-semibold text-[var(--forge-on-accent)] transition hover:brightness-110 disabled:opacity-50"
+            className="rounded-xl bg-[var(--forge-gold)] px-5 py-3 text-sm font-semibold text-[var(--forge-on-accent)] transition hover:brightness-110 disabled:opacity-50"
             disabled={isSubmitting}
             onClick={() => {
               void submitProgress();
@@ -1175,26 +1175,16 @@ function TrainingExperiencePanel({
       stageView={resolvedStageView}
       statusMessage={statusMessage}
     />
-  ) : canManage ? (
-    <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-panel-bg)] p-6 shadow-[0_18px_60px_color-mix(in_srgb,var(--forge-bg)_10%,transparent)]">
-      <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[var(--forge-gold)]">Curriculum</p>
-      <div className="mt-4 rounded-[1.25rem] border border-dashed border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface-2)]/40 p-5">
-        <h2 className="text-2xl font-semibold text-[var(--forge-text)]">Create your first module</h2>
-        <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--forge-muted)]">
-          Start with a single lesson. Generate a draft sequence with AI when you want a faster starting point. Once
-          modules exist, assignment and editing flows stay available from the curriculum toolbar.
-        </p>
-      </div>
-    </section>
   ) : (
-    <section className="rounded-[1.75rem] border border-[var(--forge-border-strong)]/10 bg-[var(--forge-panel-bg)] p-6 shadow-[0_18px_60px_color-mix(in_srgb,var(--forge-bg)_10%,transparent)]">
-      <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[var(--forge-gold)]">Course player</p>
-      <div className="mt-4 rounded-[1.25rem] border border-dashed border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface-2)]/40 p-5">
-        <h2 className="text-2xl font-semibold text-[var(--forge-text)]">Nothing is assigned yet</h2>
-        <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--forge-muted)]">
-          Your manager will place modules here when new training is ready. Check back soon to start practice.
-        </p>
-      </div>
+    <section className="rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface)] p-4 sm:p-6">
+      <h2 className="text-lg font-semibold text-[var(--forge-text)]">
+        {canManage ? "Create your first module" : "Nothing is assigned yet"}
+      </h2>
+      <p className="mt-2 max-w-[70ch] text-sm leading-6 text-[var(--forge-muted)]">
+        {canManage
+          ? "Create a lesson using Create module. You can draft with AI, then edit and assign it."
+          : "Assigned lessons will appear here when your manager adds training."}
+      </p>
     </section>
   );
 

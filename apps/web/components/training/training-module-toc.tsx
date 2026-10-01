@@ -80,8 +80,8 @@ export function TrainingModuleToc({
               type="button"
             >
               <span className="min-w-0">
-                <span className="block text-sm font-semibold leading-5">{module.title}</span>
-                <span className="mt-1 block text-xs text-[var(--forge-muted)]">
+                <span className="block break-words text-sm font-semibold leading-5">{module.title}</span>
+                <span className="mt-1 block break-words text-xs text-[var(--forge-muted)]">
                   {module.skillCategory} · {(module.progress?.status ?? "assigned").replaceAll("_", " ")}
                 </span>
               </span>

@@ -497,11 +497,8 @@ export function PeoplePanel({
       <SettingsEditorPanel data-people-member-table="">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-medium text-[var(--forge-muted)]">
-              Member management
-            </p>
-            <h3 className="mt-2 text-xl font-semibold text-[var(--forge-text)]">
-              People table
+            <h3 className="text-base font-semibold text-[var(--forge-text)]">
+              Members
             </h3>
             <p className="mt-2 text-sm text-[var(--forge-muted)]">
               Search members, stage role changes, and remove inactive access.

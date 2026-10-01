@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { OperationalDisclosure } from "@/components/operational-disclosure";
 import { ForgeErrorState, ForgeIcon, ForgeStatusPanel } from "@/components/forge";
 import type { OnboardingAccessMode } from "@/lib/onboarding/service";
 
@@ -40,7 +41,7 @@ function autoSlug(value: string) {
 
 const panelClass =
   "forge-surface rounded-xl border border-[var(--forge-border)] bg-[var(--forge-panel-bg)] p-4 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)] sm:p-5";
-const labelClass = "text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[var(--forge-muted)]";
+const labelClass = "text-sm font-medium text-[var(--forge-muted)]";
 const inputClass = "forge-form-control mt-2 min-h-11 rounded-lg px-3 py-2.5 text-sm outline-none";
 const primaryButtonClass =
   "forge-button forge-button-primary forge-focus-ring min-h-11 justify-center rounded-lg px-4 py-2.5 text-sm disabled:opacity-50";
@@ -148,12 +149,10 @@ export function OnboardingPanel({
 
   return (
     <div className="grid min-h-[calc(100dvh-3.5rem)] grid-cols-1 lg:grid-cols-[16rem_minmax(0,1fr)_20rem]">
-      <SetupRail currentStep={step} userEmail={userEmail} />
 
       <section className="min-w-0 px-4 py-6 sm:px-6 lg:px-10 lg:py-12">
         <div className="mx-auto w-full max-w-2xl">
           <div className="mb-5 text-left sm:text-center">
-            <p className="forge-page-eyebrow">Workspace access</p>
             <h1 className="mt-3 text-2xl font-semibold text-[var(--forge-text)]">
               Welcome to Argos
             </h1>
@@ -299,7 +298,8 @@ export function OnboardingPanel({
         </div>
       </section>
 
-      <ReadinessDrawer accessMode={accessMode} currentStep={step} />
+      <div className="px-4 lg:order-first lg:px-0"><OperationalDisclosure title="Setup progress"><SetupRail currentStep={step} userEmail={userEmail} /></OperationalDisclosure></div>
+      <div className="px-4 lg:px-0"><OperationalDisclosure title="Workspace readiness"><ReadinessDrawer accessMode={accessMode} currentStep={step} /></OperationalDisclosure></div>
     </div>
   );
 }
@@ -340,7 +340,7 @@ function FlowTabs({
             className={[
               "forge-focus-ring min-h-11 rounded-md px-3 text-xs font-bold uppercase tracking-[0.08em] transition",
               isActive
-                ? "bg-[var(--forge-gold)] text-[#291800]"
+                ? "bg-[var(--forge-gold)] text-[var(--forge-on-accent)]"
                 : "text-[var(--forge-muted)] hover:bg-[color-mix(in_srgb,var(--forge-text)_4.5%,transparent)] hover:text-[var(--forge-text)]",
               tab.disabled ? "cursor-not-allowed opacity-45 hover:bg-transparent" : "",
             ].join(" ")}

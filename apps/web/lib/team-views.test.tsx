@@ -142,8 +142,10 @@ describe("TeamRepProfileView", () => {
     expect(html).toContain('data-rep-coaching-bench="true"');
     expect(html).toContain("Focus areas");
     expect(html).toContain("Weekly trend");
+    expect(html).toContain('data-rep-trend="disclosure"');
     expect(html).toContain("Recent calls");
     expect(html).toContain("Badges &amp; milestones");
+    expect(html).toContain('data-rep-milestones="disclosure"');
     expect(html).toContain("Certified");
     expect(html).toContain('data-forge-icon-name="school"');
     expect(html).toContain('data-forge-icon-name="theater_comedy"');

@@ -22,6 +22,20 @@ describe("AccountPanel", () => {
     expect(html).not.toContain('href="/billing/portal"');
   });
 
+  it("keeps profile editing prominent and workspace identifiers available on demand", () => {
+    const html = renderToStaticMarkup(createElement(AccountPanel, { initialUser: currentUser() }));
+    const details = html.match(/<details[^>]*data-account-workspace-details="true"[^>]*>([\s\S]*?)<\/details>/);
+
+    expect(html).toContain("Edit profile");
+    expect(details).not.toBeNull();
+    expect(details?.[0]).not.toContain(" open");
+    expect(details?.[1]).toContain("Workspace details");
+    expect(details?.[1]).toContain("Copy org ID");
+    expect(details?.[1]).toContain("Webhook and API references");
+    expect(details?.[1]).toContain("Created");
+    expect(html.indexOf("Edit profile")).toBeLessThan(html.indexOf("Workspace details"));
+  });
+
   it("does not expose billing management to non-admin organization members", () => {
     const html = renderToStaticMarkup(
       createElement(AccountPanel, {

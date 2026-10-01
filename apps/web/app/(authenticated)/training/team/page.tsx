@@ -32,7 +32,7 @@ export default async function TrainingTeamPage() {
             { href: "/training", icon: "school", label: "My training", variant: "secondary" },
             { href: "/training/builder", icon: "edit_note", label: "Curriculum", variant: "secondary" },
           ]}
-          description="Scan team progress, spot stalled assignments, and choose the next coaching follow-up."
+          description="Review assignments and follow up on stalled training."
           eyebrow="Coach"
           status={{ icon: "groups", label: `${teamRows.length} reps`, tone: "muted" }}
           title="Team progress"
@@ -41,7 +41,25 @@ export default async function TrainingTeamPage() {
         <section className={sectionClassName}>
           <div data-forge-table="true">
             <ForgeTableShell className="min-w-0 overflow-hidden">
-              <div className="overflow-x-auto">
+              <div className="divide-y divide-[var(--forge-border)] md:hidden" data-training-mobile-progress="true">
+                {teamRows.length ? teamRows.map((row) => (
+                  <article className="min-w-0 space-y-3 p-4" key={row.repId}>
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <a className="inline-flex min-h-11 items-center break-words font-semibold text-[var(--forge-text)] hover:underline" href={`/team/${row.repId}`}>{formatRepName(row)}</a>
+                        <p className="break-all text-xs text-[var(--forge-muted)]">{row.email}</p>
+                      </div>
+                      <ForgeChip tone={completionTone(row.completionRate)}>{completionLabel(row)}</ForgeChip>
+                    </div>
+                    <dl className="grid grid-cols-3 gap-3 text-sm">
+                      <div><dt className="text-xs text-[var(--forge-muted)]">Assigned</dt><dd className="forge-tabular-nums mt-1">{row.assigned}</dd></div>
+                      <div><dt className="text-xs text-[var(--forge-muted)]">Passed</dt><dd className="forge-tabular-nums mt-1">{row.passed}</dd></div>
+                      <div><dt className="text-xs text-[var(--forge-muted)]">Completion</dt><dd className="forge-tabular-nums mt-1">{row.completionRate}%</dd></div>
+                    </dl>
+                  </article>
+                )) : <ForgeEmptyState description="Assigned lessons will appear here once reps start training." title="No team training progress" />}
+              </div>
+              <div className="hidden overflow-x-auto md:block">
                 <table className="w-full min-w-[720px] border-collapse">
                   <thead>
                     <tr className="border-b border-[var(--forge-border)] text-left text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
@@ -96,7 +114,7 @@ export default async function TrainingTeamPage() {
                 { href: `/team/${selectedRep.repId}`, icon: "person", label: "Open profile", variant: "secondary" },
               ]}
               data-selected-object-drawer="true"
-              description="Use this rep as the next training follow-up. Keep the table for scan, then move to the profile or builder when action is needed."
+              description="Follow up on this rep’s training."
               eyebrow="Next follow-up"
               title={formatRepName(selectedRep)}
             >

@@ -162,6 +162,7 @@ export default async function RoleplayHistoryPage() {
           {selectedSession ? (
             <ResponsiveAside title="Session details">
             <OperationalPreviewDrawer
+              className="[&>h2]:break-words"
               actions={[
                 {
                   href: `/roleplay?sessionId=${selectedSession.id}`,
@@ -229,9 +230,9 @@ function PreviewRow({
   value: number | string;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-[var(--forge-border)] py-2 last:border-b-0">
+    <div className="flex min-w-0 items-start justify-between gap-3 border-b border-[var(--forge-border)] py-2 last:border-b-0">
       <span className="text-[var(--forge-muted)]">{label}</span>
-      <span className="font-semibold text-[var(--forge-text)]">{value}</span>
+      <span className="min-w-0 break-words text-right font-semibold text-[var(--forge-text)]">{value}</span>
     </div>
   );
 }

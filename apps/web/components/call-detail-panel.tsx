@@ -575,27 +575,22 @@ export function CallDetailPanel({
 
   function renderGenerateRoleplayAction() {
     return (
-      <ForgeSurface className="p-3" variant="inset">
-        <div className="flex flex-col gap-3">
-          <div>
-            <h3 className="text-sm font-semibold text-[var(--forge-text)]">Practice from this call</h3>
-            <p className="mt-1 text-sm leading-5 text-[var(--forge-muted)]">
-              Generate a saved roleplay scenario from the completed review.
-            </p>
-          </div>
-          <ForgeButton
-            icon="record_voice_over"
-            onClick={() => {
-              void openGenerateRoleplayModal();
-            }}
-            size="sm"
-            type="button"
-            variant="primary"
-          >
-            Generate Roleplay
-          </ForgeButton>
-        </div>
-      </ForgeSurface>
+      <div className="flex flex-col gap-3">
+        <p className="text-sm leading-5 text-[var(--forge-muted)]">
+          Practice a skill from this call.
+        </p>
+        <ForgeButton
+          icon="record_voice_over"
+          onClick={() => {
+            void openGenerateRoleplayModal();
+          }}
+          size="sm"
+          type="button"
+          variant="primary"
+        >
+          Generate Roleplay
+        </ForgeButton>
+      </div>
     );
   }
 
@@ -678,10 +673,11 @@ export function CallDetailPanel({
 
     return (
       <section
-        className="overflow-hidden rounded-lg border border-[var(--forge-border)] bg-[var(--forge-transcript-bg)]"
+        className="scroll-mt-24 overflow-hidden rounded-lg border border-[var(--forge-border)] bg-[var(--forge-transcript-bg)]"
         data-call-transcript-primary="true"
         id="call-transcript"
         style={{ scrollMarginTop: "5rem" }}
+        tabIndex={-1}
       >
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--forge-border)] px-4 py-3">
           <div>
@@ -845,8 +841,10 @@ export function CallDetailPanel({
   function renderEvidenceSection() {
     return (
       <section
-        className="overflow-hidden rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)]"
+        className="scroll-mt-24 overflow-hidden rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)]"
         data-call-evidence-panel="true"
+        id="call-evidence"
+        tabIndex={-1}
       >
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--forge-border)] px-4 py-3">
           <div>
@@ -880,24 +878,27 @@ export function CallDetailPanel({
   function renderCoachingPane() {
     return (
       <aside
-        className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-3 xl:sticky xl:top-20 xl:self-start"
+        className="order-first scroll-mt-24 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-4 xl:order-last xl:sticky xl:top-20 xl:self-start"
         data-call-coaching-pane="true"
         id="call-coaching"
         style={{ scrollMarginTop: "5rem" }}
+        tabIndex={-1}
       >
         <h2 className="text-base font-semibold text-[var(--forge-text)]">Coaching action</h2>
-        <p className="mt-1 text-sm leading-5 text-[var(--forge-muted)]">
-          Review readiness, create practice, and leave one coaching note.
-        </p>
         <div className="mt-3 space-y-3">
-          {renderMediaStatePanel()}
-          {processingJob ? renderProcessingJobPanel() : null}
           {call.status === "complete" && canGenerateRoleplay &&
           (call.buyerProfileStatus === "ready" || (scoringEnabled && call.buyerProfileStatus === undefined))
             ? renderGenerateRoleplayAction()
             : null}
-          {renderCoachingNoteForm()}
-          {renderAnnotationList()}
+          {renderMediaStatePanel()}
+          {processingJob ? renderProcessingJobPanel() : null}
+          <details className="border-t border-[var(--forge-border)] pt-2">
+            <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium text-[var(--forge-text)] focus-visible:outline-2 focus-visible:outline-[var(--forge-gold)]">
+              Coaching notes ({annotations.length})
+            </summary>
+            {renderCoachingNoteForm()}
+            {renderAnnotationList()}
+          </details>
         </div>
       </aside>
     );
@@ -910,25 +911,33 @@ export function CallDetailPanel({
       </div>
       <div className="space-y-3" data-call-detail-panel="forge-review-bench">
         <nav aria-label="Call review sections" className="flex gap-2 xl:hidden">
-          <a href="#call-transcript" className="forge-button forge-button-secondary px-4 py-2 text-sm">Transcript</a>
-          <a href="#call-coaching" className="forge-button forge-button-secondary px-4 py-2 text-sm">Coaching action</a>
+          {[
+            ["#call-coaching", "Coaching"],
+            ...(scoringEnabled ? [["#call-evidence", "Evidence"]] : []),
+            ["#call-transcript", "Transcript"],
+          ].map(([href, label]) => (
+            <a className="flex min-h-11 flex-1 items-center justify-center rounded-lg border border-[var(--forge-border)] px-3 text-sm font-medium text-[var(--forge-text)] hover:bg-[var(--forge-surface-2)] focus-visible:outline-2 focus-visible:outline-[var(--forge-gold)]" href={href} key={href}>{label}</a>
+          ))}
         </nav>
         <div
           className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_340px]"
           data-call-detail-workbench="transcript-evidence"
         >
+          {renderCoachingPane()}
           <section className="min-w-0 space-y-3">
             {renderTranscriptSection()}
-            <BuyerPersonalityPanel
-              callId={call.id}
-              profile={call.buyerPersonalityProfile ?? null}
-              speakerLabels={[...new Set((call.transcript ?? []).map((line) => line.speaker))]}
-              speakerSamples={getSpeakerSamples(call.transcript)}
-              status={call.buyerProfileStatus ?? null}
-            />
+            <details className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-4">
+              <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium text-[var(--forge-text)] focus-visible:outline-2 focus-visible:outline-[var(--forge-gold)]">Buyer personality</summary>
+              <BuyerPersonalityPanel
+                callId={call.id}
+                profile={call.buyerPersonalityProfile ?? null}
+                speakerLabels={[...new Set((call.transcript ?? []).map((line) => line.speaker))]}
+                speakerSamples={getSpeakerSamples(call.transcript)}
+                status={call.buyerProfileStatus ?? null}
+              />
+            </details>
             {scoringEnabled ? renderEvidenceSection() : null}
           </section>
-          {renderCoachingPane()}
         </div>
       </div>
 
@@ -1048,10 +1057,8 @@ function SummaryList({
   title: string;
 }) {
   return (
-    <div>
-      <p className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-muted)]">
-        {title}
-      </p>
+    <details className="border-t border-[var(--forge-border)] pt-2">
+      <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium text-[var(--forge-text)] focus-visible:outline-2 focus-visible:outline-[var(--forge-gold)]">{title} <span className="text-[var(--forge-muted)]">({items.length})</span></summary>
       <ul className="mt-3 space-y-2 text-sm text-[var(--forge-muted)]">
         {items.length ? (
           items.map((item) => (
@@ -1071,6 +1078,6 @@ function SummaryList({
           </li>
         )}
       </ul>
-    </div>
+    </details>
   );
 }
