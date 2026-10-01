@@ -18,10 +18,16 @@ import { hasManagedCapability } from "@/lib/access/managed-capabilities";
 
 export default async function CallDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ focus?: string | string[] }>;
 }) {
   const { id } = await params;
+  const focus = (await searchParams)?.focus;
+  const initialFocusCategorySlug = typeof focus === "string" && /^[a-z0-9_]+$/.test(focus)
+    ? focus
+    : null;
   const authUser = await getCachedAuthenticatedSupabaseUser();
 
   if (!authUser) {
@@ -79,6 +85,7 @@ export default async function CallDetailPage({
           canManage={canManage}
           canGenerateRoleplay={canGenerateRoleplay}
           canRetryProcessing={profile?.role === "admin"}
+          initialFocusCategorySlug={initialFocusCategorySlug}
           scoringEnabled={scoringEnabled}
         />
         {profile?.role === "admin" ? (

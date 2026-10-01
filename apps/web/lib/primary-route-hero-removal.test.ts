@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -118,7 +119,8 @@ vi.mock("@/components/panel-loaders/account-panel-loader", () => ({
 }));
 
 vi.mock("@/components/panel-loaders/call-detail-panel-loader", () => ({
-  CallDetailPanel: () => "Call detail panel marker",
+  CallDetailPanel: ({ initialFocusCategorySlug }: { initialFocusCategorySlug?: string | null }) =>
+    createElement("span", { "data-initial-focus": initialFocusCategorySlug ?? "none" }, "Call detail panel marker"),
 }));
 
 vi.mock("@/components/panel-loaders/compliance-panel-loader", () => ({
@@ -772,6 +774,16 @@ describe("primary route hero removal", () => {
   });
 
   it("removes dashboard hero titles for rep, manager, and executive views while keeping route content", async () => {
+    getRepDashboardMock.mockResolvedValue({
+      monthlyAvgScore: 63,
+      recentCalls: [],
+      lowestCategories: [{ category: "Discovery", avgScore: 63 }],
+      focusRecommendation: {
+        categorySlug: "discovery", categoryName: "Discovery", averageScore: 63,
+        scoredCallCount: 3, weakCallCount: 2, practiceCallId: "call-1",
+        sourceCalls: [{ id: "call-1", callTopic: "Discovery follow-up", createdAt: "2026-04-01T15:00:00.000Z", score: 52 }],
+      },
+    });
     getManagerDashboardMock.mockResolvedValue({
       reps: [
         {
@@ -805,6 +817,8 @@ describe("primary route hero removal", () => {
     expect(repHtml).toContain('href="/training"');
     expect(repHtml).toContain('href="/calls/call-1"');
     expect(repHtml).toContain('data-dashboard-route="dashboard"');
+    expect(repHtml).toContain('data-cross-call-focus="true"');
+    expect(repHtml).toContain('/calls/call-1?focus=discovery');
     expect(repHtml).toContain('data-dashboard-today-queue="true"');
     expect(repHtml).toContain('data-dashboard-mobile-queue-cards="true"');
     expect(repHtml).toContain('data-dashboard-desktop-queue-table="true"');
@@ -823,6 +837,7 @@ describe("primary route hero removal", () => {
     // Upload moved to the global shell action; the page no longer duplicates it.
     expect(managerHtml).toContain("Morgan Lee");
     expect(managerHtml).toContain('data-dashboard-route="dashboard"');
+    expect(managerHtml).not.toContain('data-cross-call-focus="true"');
     expect(managerHtml).toContain('data-dashboard-today-queue="true"');
     expect(managerHtml).toContain('data-dashboard-mobile-queue-cards="true"');
     expect(managerHtml).toContain('data-dashboard-desktop-queue-table="true"');
@@ -853,6 +868,15 @@ describe("primary route hero removal", () => {
     expect(executiveHtml).not.toContain("Rep Skill Matrix");
     expect(executiveHtml).not.toContain(">Executive Dashboard<");
     expect(executiveHtml).not.toContain(">Team Dashboard<");
+  });
+
+  it("passes a requested focus category from the call URL to the roleplay panel", async () => {
+    const html = await renderRoute(CallDetailPage({
+      params: Promise.resolve({ id: "call-1" }),
+      searchParams: Promise.resolve({ focus: "discovery" }),
+    }));
+
+    expect(html).toContain('data-initial-focus="discovery"');
   });
 
   it("keeps Dashboard route source copy focused on the attention queue", () => {

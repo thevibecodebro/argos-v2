@@ -95,6 +95,7 @@ export class DrizzleDashboardRepository implements DashboardRepository {
         overallScore: callsTable.overallScore,
         durationSeconds: callsTable.durationSeconds,
         rubricId: callsTable.rubricId,
+        buyerProfileStatus: callsTable.buyerProfileStatus,
         frameControlScore: callsTable.frameControlScore,
         rapportScore: callsTable.rapportScore,
         discoveryScore: callsTable.discoveryScore,
