@@ -29,6 +29,8 @@ export type WorkerEnv = {
   supabaseUrl: string | null;
   transcribeConcurrency: number;
   transcriptionTimeoutMs: number;
+  transcriptionProvider: "openai" | "deepgram";
+  deepgramApiKey: string | null;
 };
 
 function parsePort(value: string | undefined): number {
@@ -92,6 +94,11 @@ function readEnv(env: WorkerEnvSource, ...keys: string[]) {
 }
 
 export function getWorkerEnv(env: WorkerEnvSource = process.env): WorkerEnv {
+  const transcriptionProvider = env.CALL_TRANSCRIPTION_PROVIDER?.trim() || "openai";
+  if (transcriptionProvider !== "openai" && transcriptionProvider !== "deepgram") {
+    throw new Error("Invalid CALL_TRANSCRIPTION_PROVIDER; expected openai or deepgram");
+  }
+  const deepgramApiKey = readEnv(env, "DEEPGRAM_API_KEY");
   const callProcessingEnabled = parseBoolean(env.CALL_PROCESSING_ENABLED, false);
   const callProcessingV2Enabled = parseBoolean(env.CALL_PROCESSING_V2_ENABLED, false);
   const databaseUrl = readEnv(env, "DATABASE_URL");
@@ -188,6 +195,10 @@ export function getWorkerEnv(env: WorkerEnvSource = process.env): WorkerEnv {
       throw new Error("Missing required environment variable: SUPABASE_URL");
     }
 
+    if (callProcessingEnabled && transcriptionProvider === "deepgram" && !deepgramApiKey) {
+      throw new Error("Missing required environment variable: DEEPGRAM_API_KEY");
+    }
+
     if (callProcessingEnabled && !openaiApiKey) {
       throw new Error(
         "Missing required environment variable: OPENAI_CALL_PROCESSING_API_KEY or OPENAI_API_KEY",
@@ -242,5 +253,7 @@ export function getWorkerEnv(env: WorkerEnvSource = process.env): WorkerEnv {
     supabaseUrl,
     transcribeConcurrency,
     transcriptionTimeoutMs,
+    transcriptionProvider,
+    deepgramApiKey,
   };
 }
