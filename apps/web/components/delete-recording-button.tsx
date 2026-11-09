@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Trash2 } from "lucide-react";
 import { ForgeDialog } from "@/components/forge-dialog";
 import { ForgeButton } from "@/components/forge";
 
@@ -42,13 +43,12 @@ export function DeleteRecordingButton({ callId, callTopic, detailPage = false }:
     <>
       <ForgeButton
         aria-label={`Delete recording ${callTopic}`}
-        icon="delete"
         onClick={() => { setError(null); setOpen(true); }}
         size="sm"
         type="button"
         variant="danger"
       >
-        Delete
+        <span className="inline-flex items-center gap-2"><Trash2 aria-hidden="true" className="shrink-0" size={16} />Delete</span>
       </ForgeButton>
       <ForgeDialog
         description={`Delete “${callTopic}” and its recording, transcript, scorecard, and related call data? This cannot be undone.`}
