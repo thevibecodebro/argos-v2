@@ -148,6 +148,7 @@ export function VoiceBalanceCard({
               <>
                 <ForgeButton
                   href={getBillingCheckoutHref("solo", { returnTo })}
+                  prefetch={false}
                   size="sm"
                   variant="primary"
                 >
@@ -155,6 +156,7 @@ export function VoiceBalanceCard({
                 </ForgeButton>
                 <ForgeButton
                   href={getBillingCheckoutHref("team", { returnTo })}
+                  prefetch={false}
                   size="sm"
                   variant="secondary"
                 >
@@ -281,6 +283,7 @@ export function VoiceBalanceSummary({
             {balance.canManageBasePlan ? (
               <ForgeButton
                 href={`/billing/portal?return_to=${encodeURIComponent(returnTo)}`}
+                prefetch={false}
                 size="sm"
                 variant="secondary"
               >

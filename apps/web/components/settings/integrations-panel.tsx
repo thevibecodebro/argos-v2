@@ -1,6 +1,6 @@
 "use client";
 
-import { useReducer, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   canonicalizeIngestionTitleText,
@@ -57,14 +57,16 @@ export type IntegrationsPanelProps = {
   };
 };
 
-function formatConnectedAt(value: string | null | undefined) {
-  if (!value) {
-    return null;
-  }
+function IntegrationTimestamp({ value, prefix = "" }: { value: string | null | undefined; prefix?: string }) {
+  const [useLocalTime, setUseLocalTime] = useState(false);
+  useEffect(() => setUseLocalTime(true), []);
+  if (!value) return null;
 
-  return new Intl.DateTimeFormat("en-US", {
+  // Server and initial browser render agree; mounted timestamps retain local time.
+  return prefix + new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
     timeStyle: "short",
+    ...(!useLocalTime ? { timeZone: "UTC" } : {}),
   }).format(new Date(value));
 }
 
@@ -492,7 +494,7 @@ function ZoomCard({
           ) : null}
           {connectedAtState ? (
             <p className="text-sm text-[var(--forge-muted)]">
-              Connected {formatConnectedAt(connectedAtState)}
+              Connected <IntegrationTimestamp value={connectedAtState} />
             </p>
           ) : null}
         </div>
@@ -740,7 +742,7 @@ function GhlCard({
           ) : null}
           {connectedAtState ? (
             <p className="text-sm text-[var(--forge-muted)]">
-              Connected {formatConnectedAt(connectedAtState)}
+              Connected <IntegrationTimestamp value={connectedAtState} />
             </p>
           ) : null}
           <div className={`${styles.statusRows} mt-4 text-sm text-[var(--forge-muted)]`}>
@@ -782,9 +784,9 @@ function GhlCard({
               </span>
               <span className="font-medium text-[var(--forge-text)]">
                 {lastSyncCompletedAt
-                  ? formatConnectedAt(lastSyncCompletedAt)
+                  ? <IntegrationTimestamp value={lastSyncCompletedAt} />
                   : lastSyncStartedAt
-                    ? `Started ${formatConnectedAt(lastSyncStartedAt)}`
+                    ? <IntegrationTimestamp prefix="Started " value={lastSyncStartedAt} />
                   : "No completed sync yet"}
               </span>
             </p>
@@ -1109,7 +1111,7 @@ function GoogleMeetCard({
               </p>
             ) : null}
             {connectedAtState ? (
-              <p>Connected {formatConnectedAt(connectedAtState)}</p>
+              <p>Connected <IntegrationTimestamp value={connectedAtState} /></p>
             ) : null}
           </div>
 
@@ -1146,9 +1148,9 @@ function GoogleMeetCard({
               <span className="block text-xs">Last sync</span>
               <span className="font-medium text-[var(--forge-text)]">
                 {lastSyncCompletedAt
-                  ? formatConnectedAt(lastSyncCompletedAt)
+                  ? <IntegrationTimestamp value={lastSyncCompletedAt} />
                   : lastSyncStartedAt
-                    ? `Started ${formatConnectedAt(lastSyncStartedAt)}`
+                    ? <IntegrationTimestamp prefix="Started " value={lastSyncStartedAt} />
                     : "No completed sync yet"}
               </span>
             </p>
