@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-// Actual filter/workspace components with synthetic, in-memory Next routing.
-// These tests cover state/timers, not browser hit testing or real Next requests.
+// Actual filter/workspace components with synthetic URL commits for Next and
+// native links. Commits retain component identity to stress state/timer races;
+// these tests do not prove full-document navigation, bfcache, or real Next requests.
 import { act, createElement, type AnchorHTMLAttributes } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -23,7 +24,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: AnchorHTMLAttributes<HTMLAnchorElement>) =>
     createElement("a", {
-      ...props, href,
+      ...props, href, "data-test-next-link": "true",
       onClick: (event) => {
         event.preventDefault();
         if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -93,6 +94,20 @@ describe("Calls filter navigation", () => {
     container = document.createElement("div");
     document.body.append(container);
     root = createRoot(container);
+    // jsdom cannot perform full-document navigation. Intercept only native
+    // anchors here; the Next Link mock above owns its own click behavior.
+    container.addEventListener("click", (event) => {
+      const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
+      if (!(anchor instanceof HTMLAnchorElement) || anchor.hasAttribute("data-test-next-link")) return;
+      event.preventDefault();
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey ||
+        anchor.hasAttribute("download") || (anchor.target && anchor.target !== "_self") ||
+        anchor.getAttribute("href")?.includes("#")) return;
+      const destination = new URL(anchor.href);
+      if (destination.origin !== window.location.origin) return;
+      routing.linkHref = `${destination.pathname}${destination.search}`;
+      if (!routing.deferLinks) routing.navigate(routing.linkHref);
+    });
     routing.navigate = (href) => {
       routing.params = new URL(href, "http://synthetic.invalid").searchParams;
       render();
