@@ -26,17 +26,21 @@ describe("Review workspaces", () => {
     expect(html).not.toContain("preview-drawer");
   });
 
-  it("keeps review and authorized deletion available in both recording layouts", () => {
+  it("keeps Review primary and authorized deletion behind More actions in both recording layouts", () => {
     const html = renderToStaticMarkup(createElement(CallsWorkspace, props));
     const desktop = html.split('<tbody>')[1]!.split('</tbody>')[0]!;
     const mobile = html.split('data-mobile-call-card="true"')[1]!;
     for (const layout of [desktop, mobile]) {
-      expect(layout).toContain('aria-label="Delete recording Long conversation with a skeptical buyer"');
+      expect(layout).toContain('aria-label="More actions for Long conversation with a skeptical buyer"');
+      expect(layout).toContain('aria-haspopup="menu"');
+      expect(layout).not.toContain('aria-label="Delete recording');
+      expect(layout.indexOf('aria-label="Review ')).toBeLessThan(layout.indexOf('aria-label="More actions for '));
       expect(layout).toContain('aria-label="Review Long conversation with a skeptical buyer"');
       expect(layout).toContain('href="/calls/call-fixture"');
     }
     const readOnly = renderToStaticMarkup(createElement(CallsWorkspace, { ...props, canDelete: false }));
     expect(readOnly).not.toContain('aria-label="Delete recording');
+    expect(readOnly).not.toContain('aria-label="More actions for ');
     expect(readOnly).toContain('href="/calls/call-fixture"');
   });
 
