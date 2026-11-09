@@ -1120,7 +1120,8 @@ function TrainingExperiencePanel({
             <div className="mt-3 space-y-2">
               {question.options.map((option, optionIndex) => (
                 <button
-                  className={`w-full rounded-xl border px-4 py-3 text-left text-sm transition ${
+                  aria-pressed={answers[questionIndex] === optionIndex}
+                  className={`min-h-11 w-full rounded-lg border px-4 py-3 text-left text-sm transition ${
                     answers[questionIndex] === optionIndex
                       ? "border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/8 text-[var(--forge-gold)]"
                       : "border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface-2)]/50 text-[var(--forge-text)] hover:border-[var(--forge-gold)]/30"
@@ -1142,7 +1143,7 @@ function TrainingExperiencePanel({
         ))}
         {!canManage ? (
           <button
-            className="rounded-xl bg-[linear-gradient(135deg,var(--forge-gold),var(--forge-ember))] px-5 py-3 text-sm font-semibold text-[var(--forge-on-accent)] transition hover:brightness-110 disabled:opacity-50"
+            className="min-h-11 rounded-lg bg-[var(--forge-gold)] px-5 py-3 text-sm font-semibold text-[var(--forge-on-accent)] transition hover:brightness-110 disabled:opacity-50"
             disabled={isSubmitting}
             onClick={() => {
               void submitProgress();

@@ -1,5 +1,6 @@
 "use client";
 
+import styles from "./review-workspace.module.css";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -7,7 +8,6 @@ import {
   ForgeChip,
   ForgeErrorState,
   ForgeIcon,
-  ForgeStatusPanel,
   ForgeSurface,
   type ForgeTone,
 } from "@/components/forge";
@@ -417,7 +417,7 @@ export function UploadCallPanel() {
   }
 
   return (
-    <ForgeSurface className="p-5 sm:p-6" data-upload-step-flow="forge">
+    <ForgeSurface className={styles.uploadForm} data-upload-step-flow="forge">
       <div className="space-y-5">
         <input
           accept={ACCEPTED_TYPES.join(",")}
@@ -437,8 +437,8 @@ export function UploadCallPanel() {
         />
 
         <div
-          aria-label={canSelectFile ? "Choose call recordings to upload" : undefined}
-          className={`rounded-xl border-2 border-dashed p-5 sm:p-8 text-center transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--forge-gold)]/20 ${
+          aria-label={canSelectFile && queue.length === 0 ? "Choose call recordings to upload" : undefined}
+          className={`rounded-lg border border-dashed p-5 text-center transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--forge-focus)]/20 ${
             isDragging
               ? "border-[var(--forge-gold)]/60 bg-[var(--forge-gold)]/8"
               : queue.length
@@ -446,7 +446,7 @@ export function UploadCallPanel() {
                 : "border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 hover:border-[var(--forge-border-strong)]/40"
           }`}
           data-upload-dropzone={canSelectFile ? "keyboard-accessible" : undefined}
-          onClick={canSelectFile ? openFilePicker : undefined}
+          onClick={canSelectFile && queue.length === 0 ? openFilePicker : undefined}
           onDragLeave={() => setIsDragging(false)}
           onDragOver={(event) => {
             event.preventDefault();
@@ -465,7 +465,7 @@ export function UploadCallPanel() {
             handleFiles(Array.from(event.dataTransfer.files ?? []));
           }}
           onKeyDown={
-            canSelectFile
+            canSelectFile && queue.length === 0
               ? (event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
@@ -474,8 +474,8 @@ export function UploadCallPanel() {
                 }
               : undefined
           }
-          role={canSelectFile ? "button" : undefined}
-          tabIndex={canSelectFile ? 0 : undefined}
+          role={canSelectFile && queue.length === 0 ? "button" : undefined}
+          tabIndex={canSelectFile && queue.length === 0 ? 0 : undefined}
         >
           {queue.length ? (
             <div className="space-y-4">
@@ -558,6 +558,8 @@ export function UploadCallPanel() {
                 })}
               </div>
 
+              <div className="flex flex-wrap justify-center gap-3">
+              <ForgeButton disabled={!canSelectFile} onClick={openFilePicker} type="button" variant="secondary">Add recordings</ForgeButton>
               <ForgeButton
                 disabled={isUploading}
                 onClick={(event) => {
@@ -570,6 +572,7 @@ export function UploadCallPanel() {
               >
                 Clear queue
               </ForgeButton>
+              </div>
             </div>
           ) : (
             <div className="space-y-3">
@@ -593,11 +596,10 @@ export function UploadCallPanel() {
         </details>
 
         <label className="block space-y-2">
-          <span className="text-sm font-medium text-[var(--forge-muted)]">
-            Call Context
-          </span>
+          <span className="text-sm font-medium text-[var(--forge-text)]">Call context <span className="text-[var(--forge-muted)]">(optional)</span></span>
+          <p className="text-xs text-[var(--forge-muted)]">For multiple files, this is added before each file name.</p>
           <input
-            className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3 text-base text-[var(--forge-text)] outline-none transition placeholder:text-[var(--forge-muted)] focus:border-[var(--forge-gold)]/60 focus:ring-4 focus:ring-[var(--forge-gold)]/10"
+            className="w-full rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface)] px-4 py-3 text-base text-[var(--forge-text)] outline-none transition placeholder:text-[var(--forge-muted)] focus:border-[var(--forge-gold)]/60 focus:ring-4 focus:ring-[var(--forge-gold)]/10"
             disabled={isUploading}
             onChange={(event) => setCallTopic(event.target.value)}
             placeholder="Discovery"
@@ -608,14 +610,10 @@ export function UploadCallPanel() {
 
         {error ? (
           <ForgeErrorState description={uploadStatusCopy.description} title={uploadStatusCopy.title} />
-        ) : queue.length > 0 ? (
-          <ForgeStatusPanel
-            announce={isUploading ? "polite" : "off"}
-            description={isUploading ? progressLabel : uploadStatusCopy.description}
-            icon={uploadStatusCopy.icon}
-            title={uploadStatusCopy.title}
-            tone={uploadStatusCopy.tone}
-          >
+        ) : (
+          <div aria-live={isUploading ? "polite" : "off"} className={styles.uploadStatus} data-upload-status={isUploading ? "working" : "ready"}>
+            {queue.length > 0 && <h3>{uploadStatusCopy.title}</h3>}
+            <p>{isUploading ? progressLabel : uploadStatusCopy.description}</p>
             {isUploading ? (
               <div className="space-y-2" data-upload-state={phaseLabel?.startsWith("Preparing") ? "preparing" : "uploading"}>
                 <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.22em] text-[var(--forge-muted)]">
@@ -627,8 +625,8 @@ export function UploadCallPanel() {
                 </div>
               </div>
             ) : null}
-          </ForgeStatusPanel>
-        ) : null}
+          </div>
+        )}
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <ForgeButton

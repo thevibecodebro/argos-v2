@@ -105,7 +105,7 @@ describe("PermissionsPanel", () => {
       }),
     );
 
-    expect(html).toContain("Team Preset Assignments");
+    expect(html).toContain("Manager permissions");
     expect(html).toContain('data-permissions-workspace="matrix"');
     expect(html).toContain('data-settings-editor-workbench="permissions"');
     expect(html).toContain('data-permissions-control-drawer=""');
@@ -119,8 +119,11 @@ describe("PermissionsPanel", () => {
     expect(html).toContain("Riley Stone");
     expect(html).toContain("Coach");
     expect(html).toContain("Primary Manager");
+    expect(html).toContain('data-permissions-preset-reference="true"');
+    expect(html).toContain("view team calls, coach team calls, view team analytics");
+    expect(html).not.toContain('data-settings-drawer-group="Counts"');
     expect(html.match(/data-permissions-assignment-matrix=""/g)).toHaveLength(1);
-    expect(html.indexOf("Expansion · 1 managers · 0 reps")).toBeGreaterThan(
+    expect(html.indexOf("Expansion · 1 managers · 0 reps")).toBeLessThan(
       html.indexOf('data-permissions-assignment-matrix=""'),
     );
   });

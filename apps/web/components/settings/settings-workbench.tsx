@@ -1,6 +1,7 @@
 import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from "react";
 import { cn } from "@argos-v2/ui";
 import { ForgeIcon } from "../forge";
+import styles from "./settings-workbench.module.css";
 
 type SettingsEditorWorkbenchProps = HTMLAttributes<HTMLDivElement> & {
   children?: ReactNode;
@@ -23,15 +24,12 @@ export function SettingsEditorWorkbench({
 }: SettingsEditorWorkbenchProps) {
   return (
     <div
-      className={cn(
-        "grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_320px]",
-        className,
-      )}
+      className={cn(styles.workbench, className)}
       data-settings-editor-workbench={workbench}
       {...props}
     >
-      <div className="min-w-0">{children}</div>
       {drawer}
+      <div className="min-w-0">{children}</div>
     </div>
   );
 }
@@ -43,10 +41,7 @@ export function SettingsEditorPanel({
 }: HTMLAttributes<HTMLElement>) {
   return (
     <section
-      className={cn(
-        "rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-bg)] p-3 sm:p-4",
-        className,
-      )}
+      className={cn(styles.panel, className)}
       {...props}
     >
       {children}
@@ -60,15 +55,12 @@ export function SettingsEditorDrawer({
   ...props
 }: HTMLAttributes<HTMLElement>) {
   return (
-    <aside
-      className={cn(
-        "rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-bg)] p-3 xl:sticky xl:top-3 xl:self-start",
-        className,
-      )}
+    <section
+      className={cn(styles.controls, className)}
       {...props}
     >
       {children}
-    </aside>
+    </section>
   );
 }
 
@@ -93,7 +85,7 @@ export function SettingsDrawerGroup({
 }
 
 export function SettingsDrawerButton({
-  active = false,
+  active,
   children,
   className,
   icon,
@@ -103,15 +95,16 @@ export function SettingsDrawerButton({
   return (
     <button
       className={cn(
-        "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-[var(--forge-muted)] transition hover:bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)] hover:text-[var(--forge-text)] disabled:cursor-not-allowed disabled:opacity-45",
-        active && "bg-[color-mix(in_srgb,var(--forge-gold)_12%,transparent)] text-[var(--forge-gold)]",
+        styles.controlButton,
+        active && styles.active,
         className,
       )}
+      aria-pressed={active}
       type={type}
       {...props}
     >
       {icon ? <ForgeIcon name={icon} size={16} /> : null}
-      <span className="min-w-0 truncate">{children}</span>
+      <span className="min-w-0">{children}</span>
     </button>
   );
 }

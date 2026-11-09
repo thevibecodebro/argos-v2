@@ -10,7 +10,6 @@ import {
   ForgeMobileTableCards,
 } from "../forge";
 import {
-  SettingsDrawerButton,
   SettingsEditorDrawer,
   SettingsEditorPanel,
   SettingsEditorWorkbench,
@@ -210,47 +209,20 @@ export function PeoplePanel({
   const inviteControls = (
     <SettingsEditorDrawer data-people-invite-drawer="" id="people-invite">
       <div className="space-y-5">
-        <div className="space-y-3">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-medium text-[var(--forge-muted)]">
-                Invites
-              </p>
-              <p className="mt-2 text-sm text-[var(--forge-muted)]">
-                Links expire in 7 days. Revoke a pending invite to invalidate it
-                immediately.
-              </p>
-            </div>
-            <span className="rounded-full border border-[var(--forge-border-strong)]/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
-              {pendingInvites.length}
-            </span>
-          </div>
-          {!showInviteForm ? (
-            <div
-              className="grid gap-2"
-              data-people-invite-actions="role-specific"
-            >
-              <SettingsDrawerButton
-                icon="person_add"
-                onClick={() => openInviteForm("rep")}
-                type="button"
-              >
-                Invite rep
-              </SettingsDrawerButton>
-              <SettingsDrawerButton
-                icon="supervisor_account"
-                onClick={() => openInviteForm("manager")}
-                type="button"
-              >
-                Invite manager
-              </SettingsDrawerButton>
-            </div>
-          ) : null}
-        </div>
+        {!showInviteForm ? (
+          <ForgeButton
+            icon="person_add"
+            onClick={() => openInviteForm("rep")}
+            type="button"
+            variant="primary"
+          >
+            Invite user
+          </ForgeButton>
+        ) : null}
 
         {showInviteForm ? (
           <div
-            className="space-y-4 rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4"
+            className="grid gap-4 border-t border-[var(--forge-border)] pt-5 sm:grid-cols-2"
             data-people-invite-form="true"
           >
             <label className="block">
@@ -258,7 +230,7 @@ export function PeoplePanel({
                 Email
               </span>
               <input
-                className="mt-2 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3 text-sm text-[var(--forge-text)] outline-none transition placeholder:text-[color-mix(in_srgb,var(--forge-text)_34%,transparent)] focus:border-[var(--forge-gold)]/60"
+                className="mt-2 w-full rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface)] px-4 py-3 text-sm text-[var(--forge-text)] outline-none transition placeholder:text-[color-mix(in_srgb,var(--forge-text)_34%,transparent)] focus:border-[var(--forge-focus)]"
                 onChange={(e) => setInviteEmail(e.target.value)}
                 placeholder="teammate@company.com"
                 type="email"
@@ -271,7 +243,7 @@ export function PeoplePanel({
                 Role
               </span>
               <select
-                className="mt-2 w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
+                className="mt-2 w-full rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface)] px-4 py-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-focus)]"
                 onChange={(e) => {
                   setInviteRole(e.target.value as typeof inviteRole);
                   setInviteTeamIds([]);
@@ -318,12 +290,12 @@ export function PeoplePanel({
             ) : null}
 
             {inviteError ? (
-              <p className="text-sm text-[var(--forge-danger)]">
+              <p className="text-sm text-[var(--forge-danger)]" role="alert">
                 {inviteError}
               </p>
             ) : null}
 
-            <div className="grid gap-2">
+            <div className="flex flex-wrap items-end gap-2 sm:col-span-2">
               <ForgeButton
                 disabled={!inviteEmail.trim() || inviteSending}
                 icon="person"
@@ -350,27 +322,26 @@ export function PeoplePanel({
           </div>
         ) : null}
 
-        <div className="space-y-3">
-          <p className="text-xs font-medium text-[var(--forge-muted)]">
-            Pending invites
-          </p>
+        <details className="border-t border-[var(--forge-border)] pt-2" data-people-pending-invites="true">
+          <summary>Pending invites ({pendingInvites.length})</summary>
+          <p className="mb-3 text-sm text-[var(--forge-muted)]">Invites expire after 7 days. Revoking an invite removes its access link.</p>
           {pendingInvites.length === 0 ? (
             <p className="text-sm text-[var(--forge-muted)]">
               No pending invites. Use the invite control above to add teammates.
             </p>
           ) : (
-            <ul className="space-y-2">
+            <ul className="divide-y divide-[var(--forge-border)]">
               {pendingInvites.map((invite) => (
                 <li
                   key={invite.id}
-                  className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3"
+                  className="py-3"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-[var(--forge-text)]">
+                      <p className="break-all text-sm font-medium text-[var(--forge-text)]">
                         {invite.email}
                       </p>
-                      <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[var(--forge-muted)]">
+                      <p className="mt-1 text-xs text-[var(--forge-muted)]">
                         {invite.role} · expires{" "}
                         {new Date(invite.expiresAt).toLocaleDateString()}
                       </p>
@@ -385,7 +356,7 @@ export function PeoplePanel({
                     </button>
                   </div>
                   {revokeErrors[invite.id] ? (
-                    <p className="mt-2 text-xs text-[var(--forge-danger)]">
+                    <p className="mt-2 text-xs text-[var(--forge-danger)]" role="alert">
                       {revokeErrors[invite.id]}
                     </p>
                   ) : null}
@@ -393,7 +364,7 @@ export function PeoplePanel({
               ))}
             </ul>
           )}
-        </div>
+        </details>
       </div>
     </SettingsEditorDrawer>
   );
@@ -412,7 +383,7 @@ export function PeoplePanel({
 
     if (isSelf) {
       return (
-        <span className="text-xs uppercase tracking-[0.16em] text-[var(--forge-muted)]">
+        <span className="text-xs text-[var(--forge-muted)]">
           Protected
         </span>
       );
@@ -423,7 +394,7 @@ export function PeoplePanel({
         <label>
           <span className="sr-only">Role for {memberName}</span>
           <select
-            className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60 disabled:opacity-50"
+            className="rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-focus)] disabled:opacity-50"
             disabled={isSavingRole}
             onChange={(e) =>
               setStagedRoles((current) => ({
@@ -497,23 +468,15 @@ export function PeoplePanel({
       <SettingsEditorPanel data-people-member-table="">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-medium text-[var(--forge-muted)]">
-              Member management
-            </p>
-            <h3 className="mt-2 text-xl font-semibold text-[var(--forge-text)]">
-              People table
-            </h3>
-            <p className="mt-2 text-sm text-[var(--forge-muted)]">
-              Search members, stage role changes, and remove inactive access.
-            </p>
+            <h3 className="text-base font-semibold text-[var(--forge-text)]">Members</h3>
           </div>
-          <span className="rounded-full border border-[var(--forge-border-strong)]/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
+          <span className="text-sm tabular-nums text-[var(--forge-muted)]">
             {members.length} {members.length === 1 ? "member" : "members"}
           </span>
         </div>
 
         {memberError ? (
-          <div className="mt-4 rounded-xl border border-[color-mix(in_srgb,var(--forge-danger)_26%,transparent)] bg-[color-mix(in_srgb,var(--forge-danger)_10%,transparent)] px-4 py-3 text-sm text-[var(--forge-danger)]">
+          <div role="alert" className="mt-4 rounded-xl border border-[color-mix(in_srgb,var(--forge-danger)_26%,transparent)] bg-[color-mix(in_srgb,var(--forge-danger)_10%,transparent)] px-4 py-3 text-sm text-[var(--forge-danger)]">
             {memberError}
           </div>
         ) : null}
@@ -522,7 +485,7 @@ export function PeoplePanel({
           <label className="space-y-2 text-sm text-[var(--forge-muted)]">
             <span>Search members</span>
             <input
-              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
+              className="w-full rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-focus)]"
               onChange={(event) => setMemberSearch(event.target.value)}
               placeholder="Name, email, or role"
               value={memberSearch}
@@ -531,7 +494,7 @@ export function PeoplePanel({
           <label className="space-y-2 text-sm text-[var(--forge-muted)]">
             <span>Role filter</span>
             <select
-              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
+              className="w-full rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-focus)]"
               onChange={(event) =>
                 setRoleFilter(event.target.value as typeof roleFilter)
               }
@@ -548,7 +511,7 @@ export function PeoplePanel({
 
         {members.length === 0 ? (
           <p className="mt-5 text-sm text-[var(--forge-muted)]">
-            Invite teammates from the drawer to add the first member.
+            Invite a user above to add the first member.
           </p>
         ) : visibleMembers.length === 0 ? (
           <p className="mt-5 text-sm text-[var(--forge-muted)]">
@@ -557,6 +520,7 @@ export function PeoplePanel({
         ) : (
           <SettingsTableShell className="mt-5">
             <ForgeManagementTable
+              className="[&>div:first-child]:hidden [&>div:last-child]:block xl:[&>div:first-child]:block xl:[&>div:last-child]:hidden"
               mobileCards={
                 <ForgeMobileTableCards>
                   {visibleMembers.map((member) => {
@@ -569,7 +533,7 @@ export function PeoplePanel({
 
                     return (
                       <div
-                        className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4"
+                        className="rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface)] p-4"
                         key={`${member.id}:mobile`}
                       >
                         <div className="flex items-center gap-3">
@@ -615,7 +579,7 @@ export function PeoplePanel({
                     <th className="px-4 py-3 text-right">Controls</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[var(--forge-border-strong)]/10">
+                <tbody className="divide-y divide-[var(--forge-border)]">
                   {visibleMembers.map((member) => {
                     const memberName =
                       [member.firstName, member.lastName]
@@ -653,7 +617,7 @@ export function PeoplePanel({
                         <td className="px-4 py-3 text-sm capitalize text-[var(--forge-text)]">
                           {member.role ?? "rep"}
                         </td>
-                        <td className="px-4 py-3 text-xs uppercase tracking-[0.18em] text-[var(--forge-muted)]">
+                        <td className="px-4 py-3 text-xs text-[var(--forge-muted)]">
                           {member.callCount} calls · joined{" "}
                           {formatDate(member.joinedAt)}
                         </td>

@@ -1,12 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ForgeButton,
   ForgeChip,
   ForgeEmptyState,
-  ForgeSurface,
 } from "@/components/forge";
 import type { NotificationItem } from "@/lib/notifications/service";
 
@@ -15,8 +14,18 @@ type NotificationsPanelProps = {
   initialUnreadCount: number;
 };
 
+export async function requestNotificationRead(url: string) {
+  const response = await fetch(url, { method: "POST" });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null) as { error?: string } | null;
+    throw new Error(payload?.error || "Could not update notifications. Try again.");
+  }
+}
+
 function timeAgo(value: string) {
-  const diff = Date.now() - new Date(value).getTime();
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "Date unavailable";
+  const diff = Date.now() - date.getTime();
   const minutes = Math.floor(diff / 60_000);
 
   if (minutes < 1) return "just now";
@@ -27,7 +36,7 @@ function timeAgo(value: string) {
   return new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
     timeStyle: "short",
-  }).format(new Date(value));
+  }).format(date);
 }
 
 export function NotificationsPanel({
@@ -38,6 +47,8 @@ export function NotificationsPanel({
   const [notifications, setNotifications] = useState(initialNotifications);
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
   const [isMutating, setIsMutating] = useState(false);
+  const mutationInFlight = useRef(false);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "unread" | "read">("all");
 
   const filteredNotifications = useMemo(() => {
@@ -57,7 +68,9 @@ export function NotificationsPanel({
 
     for (const notification of filteredNotifications) {
       const date = new Date(notification.createdAt);
-      const key = date.toISOString().slice(0, 10);
+      const key = Number.isFinite(date.getTime())
+        ? new Intl.DateTimeFormat("en-US", { dateStyle: "full" }).format(date)
+        : "Date unavailable";
       const current = groups.get(key) ?? [];
       current.push(notification);
       groups.set(key, current);
@@ -67,30 +80,45 @@ export function NotificationsPanel({
   }, [filteredNotifications]);
 
   async function markOne(notification: NotificationItem) {
-    if (!notification.read) {
-      setIsMutating(true);
-      await fetch(`/api/notifications/${notification.id}/read`, { method: "POST" });
-      setNotifications((current) =>
-        current.map((item) =>
-          item.id === notification.id ? { ...item, read: true } : item,
-        ),
-      );
-      setUnreadCount((current) => Math.max(0, current - 1));
+    if (mutationInFlight.current) return;
+    mutationInFlight.current = true;
+    setIsMutating(true);
+    setError(null);
+    try {
+      if (!notification.read) {
+        await requestNotificationRead(`/api/notifications/${notification.id}/read`);
+        setNotifications((current) =>
+          current.map((item) => item.id === notification.id ? { ...item, read: true } : item),
+        );
+        setUnreadCount((current) => Math.max(0, current - 1));
+      }
+      if (notification.link) {
+        router.push(notification.link);
+        router.refresh();
+      }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not update notifications. Try again.");
+    } finally {
+      mutationInFlight.current = false;
       setIsMutating(false);
-    }
-
-    if (notification.link) {
-      router.push(notification.link);
-      router.refresh();
     }
   }
 
   async function markAllRead() {
+    if (mutationInFlight.current) return;
+    mutationInFlight.current = true;
     setIsMutating(true);
-    await fetch("/api/notifications/read-all", { method: "POST" });
-    setNotifications((current) => current.map((item) => ({ ...item, read: true })));
-    setUnreadCount(0);
-    setIsMutating(false);
+    setError(null);
+    try {
+      await requestNotificationRead("/api/notifications/read-all");
+      setNotifications((current) => current.map((item) => ({ ...item, read: true })));
+      setUnreadCount(0);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not update notifications. Try again.");
+    } finally {
+      mutationInFlight.current = false;
+      setIsMutating(false);
+    }
   }
 
   if (notifications.length === 0) {
@@ -104,20 +132,20 @@ export function NotificationsPanel({
   }
 
   return (
-    <ForgeSurface as="section" className="space-y-5 p-6" variant="panel">
-      <div className="flex items-center justify-between gap-4">
+    <section className="min-w-0 space-y-5" aria-busy={isMutating}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm font-semibold text-[var(--forge-text)]">
+            <p aria-live="polite" className="text-sm font-[540] text-[var(--forge-text)]">
               {unreadCount === 0 ? "All caught up" : `${unreadCount} unread`}
             </p>
             <ForgeChip tone={unreadCount > 0 ? "gold" : "muted"}>
               {notifications.length} total
             </ForgeChip>
           </div>
-          <p className="mt-1 text-sm text-[var(--forge-muted)]">Scoring, coaching, and training activity across your account.</p>
         </div>
         <ForgeButton
+          className="min-h-11"
           disabled={unreadCount === 0 || isMutating}
           onClick={() => {
             void markAllRead();
@@ -130,9 +158,13 @@ export function NotificationsPanel({
         </ForgeButton>
       </div>
 
+      {error ? <p className="text-sm text-[var(--forge-danger)]" role="alert">{error}</p> : null}
+
       <div
-        className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--forge-border)] bg-[var(--forge-control-bg)] p-2"
+        aria-label="Filter notifications"
+        className="flex flex-wrap items-center gap-2 border-b border-[var(--forge-border)] pb-3"
         data-notification-filters="active"
+        role="group"
       >
         {[
           { label: "All", value: "all" as const },
@@ -140,7 +172,8 @@ export function NotificationsPanel({
           { label: "Read", value: "read" as const },
         ].map((option) => (
           <button
-            className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
+            aria-pressed={filter === option.value}
+            className={`min-h-11 rounded-lg px-4 py-2 text-sm font-[540] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--forge-focus)] ${
               filter === option.value
                 ? "bg-[color-mix(in_srgb,var(--forge-gold)_14%,transparent)] text-[var(--forge-gold)]"
                 : "text-[var(--forge-muted)] hover:bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)] hover:text-[var(--forge-text)]"
@@ -158,30 +191,31 @@ export function NotificationsPanel({
         {grouped.length ? (
           grouped.map(([day, items]) => (
             <div key={day}>
-              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">
-                {new Intl.DateTimeFormat("en-US", { dateStyle: "full" }).format(new Date(day))}
+              <p className="text-sm font-medium text-[var(--forge-muted)]">
+                {day}
               </p>
-              <div className="mt-3 space-y-3">
+              <div className="mt-3 divide-y divide-[var(--forge-border)] overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface)]">
                 {items.map((notification) => (
                   <button
-                    className={`w-full rounded-xl border px-4 py-4 text-left transition ${
+                    className={`w-full px-4 py-5 text-left hover:bg-[var(--forge-surface-2)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--forge-focus)] disabled:cursor-wait sm:px-5 ${
                       notification.read
                         ? "border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50"
                         : "border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/5"
                     }`}
+                    disabled={isMutating}
                     key={notification.id}
                     onClick={() => {
                       void markOne(notification);
                     }}
                     type="button"
                   >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
+                    <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:gap-4">
+                      <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-sm font-semibold text-[var(--forge-text)]">{notification.title}</p>
+                          <p className="break-words text-sm font-[540] text-[var(--forge-text)]">{notification.title}</p>
                           {!notification.read ? <ForgeChip tone="gold">Unread</ForgeChip> : null}
                         </div>
-                        <p className="mt-2 text-sm leading-7 text-[var(--forge-muted)]">{notification.body}</p>
+                        <p className="mt-2 max-w-[72ch] break-words text-sm leading-6 text-[var(--forge-muted)]">{notification.body}</p>
                       </div>
                       <span className="shrink-0 text-xs uppercase tracking-[0.22em] text-[var(--forge-muted)]">
                         {timeAgo(notification.createdAt)}
@@ -200,6 +234,6 @@ export function NotificationsPanel({
           />
         )}
       </div>
-    </ForgeSurface>
+    </section>
   );
 }

@@ -15,12 +15,9 @@ import {
   ForgeChip,
   ForgeErrorState,
   ForgeIcon,
-  ForgeStatCard,
-  ForgeSegmentedTab,
-  ForgeSegmentedTabs,
   ForgeStatusPanel,
 } from "./forge";
-import { OperationalPreviewDrawer } from "./operational-workspace";
+import styles from "./roleplay-practice.module.css";
 import { VoiceBalanceCard } from "./billing/voice-balance-card";
 
 type RoleplayPanelProps = {
@@ -43,13 +40,6 @@ function labelCallStage(value: string | undefined) {
     default:
       return "Opening";
   }
-}
-
-function roleplayScoreTone(score: number | null | undefined) {
-  if (typeof score !== "number") return "muted";
-  if (score >= 80) return "cyan";
-  if (score >= 65) return "gold";
-  return "danger";
 }
 
 function parseRealtimeEvent(rawEvent: string): RoleplayMessage | null {
@@ -125,13 +115,19 @@ function getSessionLabel(session: RoleplaySession | null) {
     return "No active roleplay";
   }
 
+  const statusLabel = session.status === "complete"
+    ? "Completed practice"
+    : session.status === "evaluating"
+      ? "Scoring practice"
+      : null;
   if (session.origin === "generated_from_call") {
-    return session.focusMode === "category"
-      ? `Generated Roleplay: ${formatRoleplayCategoryLabel(session.focusCategorySlug)}`
-      : "Generated Roleplay: All Focus Areas";
+    const focus = session.focusMode === "category"
+      ? formatRoleplayCategoryLabel(session.focusCategorySlug)
+      : "All Focus Areas";
+    return `${statusLabel ?? "Generated Roleplay"}: ${focus}`;
   }
 
-  return `Roleplay: ${session.personaDetails?.objectionType ?? "Objections Handling"}`;
+  return `${statusLabel ?? "Live Simulation"}: ${session.personaDetails?.objectionType ?? "Objections Handling"}`;
 }
 
 function getSessionPersonaLabel(session: RoleplaySession) {
@@ -158,6 +154,25 @@ function getInitialActiveSession(
   }
 
   return initialSessions[0] ?? null;
+}
+
+export function getRoleplaySessionSelection({
+  lastConsumedSessionId,
+  requestedSessionId,
+  activeSessionId,
+  sessions,
+}: {
+  lastConsumedSessionId: string | null | undefined;
+  requestedSessionId: string | null | undefined;
+  activeSessionId: string | undefined;
+  sessions: RoleplaySession[];
+}): { type: "none" } | { type: "select"; session: RoleplaySession } | { type: "load"; sessionId: string } {
+  const requestedId = requestedSessionId ?? null;
+  if (lastConsumedSessionId === requestedId || !requestedId || requestedId === activeSessionId) {
+    return { type: "none" };
+  }
+  const session = sessions.find((candidate) => candidate.id === requestedId);
+  return session ? { type: "select", session } : { type: "load", sessionId: requestedId };
 }
 
 export function isRoleplayVoiceControlDisabled({
@@ -211,7 +226,7 @@ export function RoleplayPanel({
       }
     });
   }
-  const requestedSessionIdRef = useRef<string | null>(initialSessionId ?? null);
+  const requestedSessionIdRef = useRef<string | null | undefined>(undefined);
   const initialActiveSession = getInitialActiveSession(
     initialSessions,
     initialSessionId,
@@ -244,31 +259,22 @@ export function RoleplayPanel({
   }, [activeSession]);
 
   useEffect(() => {
-    const requestedSessionId =
-      initialSessionId ?? requestedSessionIdRef.current;
-
-    if (!requestedSessionId || requestedSessionId === activeSession?.id) {
-      return;
-    }
-
-    const existing = sessions.find(
-      (session) => session.id === requestedSessionId,
-    );
-
-    if (existing) {
+    // Route selection is consumed once per route change. Local updates (including
+    // a new practice session) must not reapply an earlier review request.
+    const selection = getRoleplaySessionSelection({
+      lastConsumedSessionId: requestedSessionIdRef.current,
+      requestedSessionId: initialSessionId,
+      activeSessionId: activeSession?.id,
+      sessions,
+    });
+    requestedSessionIdRef.current = initialSessionId ?? null;
+    if (selection.type === "select") {
       stopActiveRoleplayAudio({ announce: false });
-      setActiveSession(existing);
-
-      if (existing.persona) {
-        setSelectedPersonaId(existing.persona);
-      }
-
-      requestedSessionIdRef.current = requestedSessionId;
-      return;
+      setActiveSession(selection.session);
+      if (selection.session.persona) setSelectedPersonaId(selection.session.persona);
+    } else if (selection.type === "load") {
+      void loadSession(selection.sessionId);
     }
-
-    requestedSessionIdRef.current = requestedSessionId;
-    void loadSession(requestedSessionId);
   }, [activeSession?.id, initialSessionId, sessions]);
 
   useEffect(() => {
@@ -632,15 +638,15 @@ export function RoleplayPanel({
     setIsMutating(false);
   }
 
-  async function createSession() {
-    if (!selectedPersonaId) return;
+  async function createSession(personaId = selectedPersonaId) {
+    if (!personas.some((persona) => persona.id === personaId)) return;
     stopActiveRoleplayAudio({ announce: false });
     setError(null);
     setIsMutating(true);
     const res = await fetch("/api/roleplay/sessions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ personaId: selectedPersonaId }),
+      body: JSON.stringify({ personaId }),
     });
     const payload = (await res.json()) as RoleplaySession & { error?: string };
     if (!res.ok) {
@@ -649,9 +655,10 @@ export function RoleplayPanel({
       return;
     }
     commitSession(payload);
+    setSelectedPersonaId(personaId);
     setDraft("");
     setIsMutating(false);
-    startTransition(() => router.refresh());
+    startTransition(() => router.replace(`/roleplay?sessionId=${encodeURIComponent(payload.id)}`));
   }
 
   async function sendMessage() {
@@ -704,12 +711,8 @@ export function RoleplayPanel({
   }
 
   const selectedPersona =
-    personas.find((p) => p.id === selectedPersonaId) ??
-    activeSession?.personaDetails ??
-    null;
+    personas.find((p) => p.id === selectedPersonaId) ?? null;
   const activeScorecard = activeSession?.scorecard ?? null;
-  const activeSessionWithScorecard =
-    activeSession && activeScorecard ? activeSession : null;
   const baseVoiceControlDisabled = isRoleplayVoiceControlDisabled({
     activeSessionStatus: activeSession?.status,
     isStartingVoice,
@@ -721,490 +724,135 @@ export function RoleplayPanel({
   const generatedActiveSession =
     activeSession?.origin === "generated_from_call" ? activeSession : null;
 
-  return (
-    <>
-      {voiceEnabled ? <div className="mb-3">
-        <VoiceBalanceCard
-          onVoiceAvailabilityChange={setVoiceAvailable}
-          refreshKey={balanceRefreshKey}
-          returnTo="/roleplay"
-        />
-      </div> : null}
-      <div className="mb-4 lg:hidden" data-roleplay-mobile-sections="true">
-        <ForgeSegmentedTabs
-          className="overflow-x-auto"
-          label="Roleplay sections"
-        >
-          <ForgeSegmentedTab href="#roleplay-scenario" icon="tactic">
-            Scenario
-          </ForgeSegmentedTab>
-          <ForgeSegmentedTab href="#roleplay-practice" icon="mic">
-            Practice
-          </ForgeSegmentedTab>
-          <ForgeSegmentedTab href="#roleplay-score" icon="query_stats">
-            Score
-          </ForgeSegmentedTab>
-        </ForgeSegmentedTabs>
+  const isComplete = activeSession?.status === "complete";
+  const isEvaluating = activeSession?.status === "evaluating";
+  const sessionPersona = activeSession?.personaDetails;
+  const repeatPersonaId = personas.find((persona) => persona.id === activeSession?.persona)?.id;
+
+  const buyerSetup = (
+    <div className={styles.setup}>
+      <div className={styles.setupHeading}>
+        <div className={styles.avatar} aria-hidden="true">{selectedPersona?.avatarInitials ?? <ForgeIcon name="person" size={20} />}</div>
+        <div>
+          <h2>{selectedPersona ? `Practice with ${selectedPersona.name}` : "Choose a buyer"}</h2>
+          {selectedPersona && <p className={styles.muted}>{selectedPersona.role} · {selectedPersona.company}</p>}
+        </div>
       </div>
+      {selectedPersona ? <>
+        <p className={styles.description}>{selectedPersona.description}</p>
+        <dl className={styles.facts}>
+          <div><dt>Challenge</dt><dd>{selectedPersona.objectionType}</dd></div>
+          <div><dt>Difficulty</dt><dd className={styles.capitalize}>{selectedPersona.difficulty}</dd></div>
+        </dl>
+      </> : <p className={styles.muted}>{personas.length ? "Choose an available buyer below to start practice." : "No buyers are available. Reload the page to check again."}</p>}
+      {personas.length > 0 && <details className={styles.buyerDisclosure} open={!selectedPersona || undefined}>
+        <summary>Change buyer ({personas.length})</summary>
+        <div className={styles.buyerList} data-roleplay-scenario-list="true">
+          {personas.map((persona) => (
+            <button aria-pressed={persona.id === selectedPersonaId} className={styles.buyerOption} key={persona.id} onClick={() => setSelectedPersonaId(persona.id)} type="button">
+              <span className={styles.smallAvatar} aria-hidden="true">{persona.avatarInitials}</span>
+              <span><strong>{persona.name}</strong><span>{persona.role} · {persona.company}</span><span>{persona.description}</span></span>
+              {persona.id === selectedPersonaId && <ForgeIcon name="check" size={18} />}
+            </button>
+          ))}
+        </div>
+      </details>}
+      <div className={styles.startRow}>
+        <button className={styles.primaryButton} data-roleplay-primary-action="start-simulation" disabled={!selectedPersona || isMutating || isVoiceActive || isStartingVoice || isEvaluating} onClick={() => void createSession()} type="button">
+          <ForgeIcon name="insights" size={18} />{isMutating ? "Starting…" : "Start simulation"}
+        </button>
+        {!activeSession && <p className={styles.muted}>Practice the conversation. End it when you’re ready for feedback.</p>}
+      </div>
+    </div>
+  );
 
-      <div
-        className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_320px]"
-        data-roleplay-workspace="simple-practice"
-      >
-        <main className="min-w-0 space-y-3" data-forge-workspace-main="true">
-          <details
-            key={`${activeSession?.id ?? "new"}-${activeSession?.status ?? "setup"}`}
-            open={activeSession?.status !== "active"}
-            aria-label="Scenario"
-            className="scroll-mt-24 rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.6%,transparent)] p-3 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)]"
-            data-roleplay-scenario-picker=""
-            id="roleplay-scenario"
-          >
-            <summary className="min-h-11 cursor-pointer rounded-lg py-2 text-sm font-semibold text-[var(--forge-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--forge-focus)]">
-              {activeSession?.status === "active"
-                ? `Change scenario · ${activeSession.personaDetails?.name ?? "Current session"}`
-                : "Choose a scenario"}
-            </summary>
-            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0">
-                <h2 className="mt-1 text-base font-semibold text-[var(--forge-text)]">
-                  Target persona
-                </h2>
-                <p className="mt-1 max-w-2xl text-sm leading-5 text-[var(--forge-muted)]">
-                  Choose one buyer profile, then start a focused practice
-                  session.
-                </p>
+  return (
+    <div className={styles.workspace} data-roleplay-workspace="simple-practice" data-roleplay-state={activeSession ? isComplete ? "complete" : "active" : "ready"}>
+      {voiceEnabled && <div className={styles.voiceBalance} data-roleplay-voice-balance="full-width"><VoiceBalanceCard onVoiceAvailabilityChange={setVoiceAvailable} refreshKey={balanceRefreshKey} returnTo="/roleplay" /></div>}
+      {error && <ForgeErrorState description={error} title="Roleplay update failed" />}
+      {voiceEnabled && voiceStatus && <ForgeStatusPanel announce="polite" description={voiceStatus} icon="mic" title="Voice practice status" tone="gold" />}
+
+      {!activeSession ? (
+        <section aria-label="Scenario" className={styles.ready} data-roleplay-scenario-picker="" id="roleplay-scenario">
+          {buyerSetup}
+        </section>
+      ) : <>
+        {isComplete && (
+          <section aria-labelledby="roleplay-score-title" className={styles.scorecard} data-roleplay-scorecard="visible" id="roleplay-score" tabIndex={-1}>
+            <div className={styles.scoreHeading}>
+              <h2 id="roleplay-score-title">Session Scorecard</h2>
+              <div className={styles.scoreHeadingActions}><span className={styles.muted}>Practice complete</span>
+                <button className={styles.primaryButton} data-roleplay-primary-action="practice-again" disabled={!repeatPersonaId || isMutating || isVoiceActive || isStartingVoice || isEvaluating} onClick={() => { if (repeatPersonaId) void createSession(repeatPersonaId); }} title={repeatPersonaId ? "Practice again with the same buyer" : "Choose an available buyer below to start another simulation"} type="button">Practice again</button>
+                {!repeatPersonaId && <a className={styles.chooseBuyerLink} href="#roleplay-scenario">Choose another buyer</a>}
               </div>
-              <button
-                className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--forge-gold)] px-4 py-2 text-xs font-bold text-[var(--forge-on-accent)] transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-45"
-                data-roleplay-primary-action="start-simulation"
-                disabled={!selectedPersonaId || isMutating}
-                onClick={() => void createSession()}
-                type="button"
-              >
-                <ForgeIcon name="insights" size={16} />
-                {isMutating ? "Starting..." : "Start roleplay"}
-              </button>
             </div>
-
-            <div
-              className="mt-3 divide-y divide-[var(--forge-border)] overflow-hidden rounded-lg border border-[var(--forge-border)]"
-              data-roleplay-scenario-list="true"
-            >
-              {personas.map((persona) => {
-                const isSelected = persona.id === selectedPersonaId;
-                return (
-                  <button
-                    aria-pressed={isSelected}
-                    className={`flex w-full items-start gap-3 px-3 py-3 text-left transition ${
-                      isSelected
-                        ? "bg-[color-mix(in_srgb,var(--forge-gold)_9%,transparent)] text-[var(--forge-text)]"
-                        : "bg-[var(--forge-item-bg)] hover:bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)]"
-                    }`}
-                    key={persona.id}
-                    onClick={() => setSelectedPersonaId(persona.id)}
-                    type="button"
-                  >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[var(--forge-border)] text-sm font-semibold text-[var(--forge-muted)]">
-                      {persona.avatarInitials}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold text-[var(--forge-text)]">
-                        {persona.name}
-                      </span>
-                      <span className="mt-0.5 block truncate text-xs text-[var(--forge-muted)]">
-                        {persona.role}, {persona.company}
-                      </span>
-                      <span className="mt-1 block text-xs leading-5 text-[var(--forge-muted)]">
-                        {persona.description}
-                      </span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </details>
-
-          <section
-            aria-labelledby="roleplay-practice-title"
-            className="min-w-0 scroll-mt-24"
-            data-roleplay-simulation-stage=""
-            id="roleplay-practice"
-          >
-            <h2 className="sr-only" id="roleplay-practice-title">
-              Practice
-            </h2>
-            <div className="mb-4 flex flex-col gap-3 rounded-xl bg-[var(--forge-surface)] p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
-              <div className="flex items-start gap-3 sm:items-center sm:gap-4">
-                <div className="relative">
-                  {activeSession?.status === "active" && (
-                    <span className="absolute -right-1 -top-1 h-2 w-2 animate-pulse rounded-full bg-[var(--forge-danger)]" />
-                  )}
-                  <ForgeIcon
-                    className="text-[var(--forge-gold)]"
-                    name="psychology"
-                    size={20}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-semibold text-[var(--forge-text)]">
-                      {getSessionLabel(activeSession)}
-                    </span>
-                    {generatedActiveSession && (
-                      <ForgeChip tone="gold">Generated from call</ForgeChip>
-                    )}
-                  </div>
-                  {generatedActiveSession?.scenarioBrief && (
-                    <p className="text-xs text-[var(--forge-muted)]">
-                      {generatedActiveSession.scenarioBrief}
-                    </p>
-                  )}
+            {activeScorecard ? <>
+              <div className={styles.scoreSummary}>
+                <p className={styles.overallScore}><strong>{activeSession.overallScore ?? "—"}</strong><span>Overall score{activeSession.overallScore != null ? " / 100" : " unavailable"}</span></p>
+                <div><p>{activeScorecard.summary}</p><p className={styles.scoreMeta}>Confidence: <span className={styles.capitalize}>{activeScorecard.confidence}</span> · Stage: {labelCallStage(activeScorecard.callStageReached)}</p>
+                  {activeScorecard.rubricName && <p className={styles.muted}>{activeScorecard.rubricName}{activeScorecard.rubricVersion != null ? ` · v${activeScorecard.rubricVersion}` : ""}</p>}
                 </div>
               </div>
-              {voiceEnabled ? <div
-                className="flex w-full flex-col gap-2 rounded-lg bg-[var(--forge-surface-3)] p-2 sm:w-auto"
-                data-roleplay-mode-control="true"
-              >
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <button
-                    aria-label={
-                      isVoiceActive
-                        ? "Stop voice practice"
-                        : "Start voice practice"
-                    }
-                    className={`flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
-                      isVoiceActive
-                        ? "bg-[var(--forge-danger)]/20 text-[var(--forge-danger)]"
-                        : "bg-[var(--forge-gold)] text-[var(--forge-on-accent)]"
-                    }`}
-                    disabled={isVoiceControlDisabled}
-                    onClick={() =>
-                      isVoiceActive
-                        ? stopVoicePractice()
-                        : void startVoicePractice()
-                    }
-                    title={
-                      isVoiceActive
-                        ? "Stop voice practice"
-                        : "Start voice practice"
-                    }
-                    type="button"
-                  >
-                    <ForgeIcon name="power" size={14} />
-                    {isStartingVoice
-                      ? "Starting…"
-                      : isVoiceActive
-                        ? "Stop voice"
-                        : "Start voice"}
-                  </button>
+              <div className={styles.feedbackGrid}>
+                <dl className={styles.categoryRows} aria-label="Category scores">
+                  {Object.entries(activeScorecard.categoryScores).map(([category, value]) => (
+                    <div key={category}><dt>{activeScorecard.categoryLabels?.[category] ?? ROLEPLAY_CATEGORY_LABELS[category as RoleplayCategory] ?? formatRoleplayCategoryLabel(category)}</dt><dd>{value ?? "—"}<span className={styles.srOnly}>{value != null ? " out of 100" : " score unavailable"}</span></dd></div>
+                  ))}
+                </dl>
+                <div className={styles.coaching}>
+                  <h3>Strengths</h3>
+                  {activeScorecard.strengths.length ? <ul>{activeScorecard.strengths.map((item) => <li key={item}>{item}</li>)}</ul> : <p className={styles.muted}>No strengths recorded.</p>}
+                  <h3>Improve</h3>
+                  {activeScorecard.improvements.length ? <ul>{activeScorecard.improvements.map((item) => <li key={item}>{item}</li>)}</ul> : <p className={styles.muted}>No improvements recorded.</p>}
                 </div>
-              </div> : null}
-            </div>
-
-            {generatedActiveSession?.scenarioSummary && (
-              <div className="mb-4 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-transcript-bg)] px-4 py-4">
-                <p className="text-xs font-semibold text-[var(--forge-muted)]">
-                  Generated from call · Focus:{" "}
-                  {generatedActiveSession.focusMode === "all"
-                    ? "All"
-                    : formatRoleplayCategoryLabel(
-                        generatedActiveSession.focusCategorySlug,
-                      )}
-                </p>
-                <p className="mt-3 text-sm leading-relaxed text-[var(--forge-text)]">
-                  {generatedActiveSession.scenarioSummary}
-                </p>
               </div>
-            )}
-
-            {/* Transcript */}
-            <div
-              className="mb-5 flex min-h-40 sm:min-h-[320px] max-h-[min(64vh,620px)] flex-col gap-3 overflow-y-auto rounded-lg border border-[var(--forge-border)] bg-[var(--forge-transcript-bg)] p-4"
-              aria-label="Roleplay transcript"
-              aria-live="polite"
-              aria-relevant="additions text"
-              data-roleplay-transcript="simple-log"
-              role="log"
-              tabIndex={0}
-            >
-              {activeSession ? (
-                displayedTranscript.length > 0 ? (
-                  displayedTranscript.map((msg, i) => (
-                    <div
-                      className={`flex max-w-full items-start gap-3 sm:max-w-[85%] sm:gap-4 ${msg.role === "user" ? "self-end flex-row-reverse" : ""}`}
-                      key={`${msg.role}-${i}`}
-                    >
-                      <div
-                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded ${
-                          msg.role === "user"
-                            ? "bg-[var(--forge-gold)]/20"
-                            : "bg-[var(--forge-surface-3)]"
-                        }`}
-                      >
-                        <ForgeIcon
-                          className="text-[var(--forge-gold)]"
-                          name={msg.role === "user" ? "person" : "psychology"}
-                          size={14}
-                        />
-                      </div>
-                      <div
-                        className={`rounded-2xl border p-4 ${
-                          msg.role === "user"
-                            ? "rounded-tr-none border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/10"
-                            : "rounded-tl-none border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface-3)]/60"
-                        }`}
-                      >
-                        <p className="text-sm leading-relaxed text-[var(--forge-text)]">
-                          {msg.content}
-                        </p>
-                        <div className="mt-2 flex items-center justify-between gap-3">
-                          <span className="text-xs font-semibold text-[var(--forge-muted)]">
-                            {msg.role === "user"
-                              ? "You"
-                              : getSessionPersonaLabel(activeSession)}
-                          </span>
-                          {voiceEnabled && msg.role === "assistant" && (
-                            <button
-                              className="text-xs font-semibold text-[var(--forge-gold)]"
-                              onClick={() =>
-                                void playTranscriptLine(msg.content)
-                              }
-                              type="button"
-                            >
-                              {speakingLine === msg.content
-                                ? "Playing..."
-                                : "Listen"}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="flex flex-1 items-center justify-center text-center">
-                    <p className="text-sm text-[var(--forge-muted)]">
-                      Session started — the prospect is waiting for you.
-                    </p>
+            </> : <p className={styles.muted}>This session is complete. A scorecard is not available.</p>}
+          </section>
+        )}
+        <div className={styles.sessionLayout}>
+          <section aria-labelledby="roleplay-practice-title" className={styles.conversation} data-roleplay-simulation-stage="" id="roleplay-practice">
+            <header className={styles.conversationHeading}>
+              <div><h2 id="roleplay-practice-title">{isComplete ? "Session transcript" : `Conversation with ${getSessionPersonaLabel(activeSession)}`}</h2><p className={styles.muted}>{getSessionLabel(activeSession)}</p></div>
+              {voiceEnabled && <div data-roleplay-mode-control="true"><button aria-label={isVoiceActive ? "Stop voice practice" : "Start voice practice"} className={styles.secondaryButton} disabled={isVoiceControlDisabled || (!isVoiceActive && (isMutating || isEvaluating))} onClick={() => isVoiceActive ? stopVoicePractice() : void startVoicePractice()} type="button"><ForgeIcon name="mic" size={16} />{isStartingVoice ? "Starting…" : isVoiceActive ? "Stop voice" : "Start voice"}</button></div>}
+            </header>
+            <div className={styles.transcript} aria-label="Roleplay transcript" aria-live="polite" aria-relevant="additions text" data-roleplay-transcript="simple-log" role="log" tabIndex={0}>
+              {displayedTranscript.length ? displayedTranscript.map((message, index) => (
+                <div className={styles.message} data-speaker={message.role} key={`${message.role}-${index}`}>
+                  <div className={styles.messageLabel}><strong>{message.role === "user" ? "You" : getSessionPersonaLabel(activeSession)}</strong>
+                    {voiceEnabled && message.role === "assistant" && <button className={styles.listenButton} onClick={() => void playTranscriptLine(message.content)} type="button">{speakingLine === message.content ? "Playing…" : "Listen"}</button>}
                   </div>
-                )
-              ) : (
-                <div className="flex flex-1 flex-col items-center justify-center text-center">
-                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-3)] text-[var(--forge-muted)]">
-                    <ForgeIcon name="psychology" size={26} />
-                  </div>
-                  <p className=" text-lg font-bold text-[var(--forge-text)]">
-                    No active roleplay
-                  </p>
-                  <p className="mt-2 max-w-sm text-sm text-[var(--forge-muted)]">
-                    Choose a scenario, then select Start roleplay.
-                  </p>
+                  <p>{message.content}</p>
                 </div>
-              )}
+              )) : <p className={styles.emptyTranscript}>Session started — the prospect is waiting for you.</p>}
               <div ref={transcriptEndRef} />
             </div>
-
-            {error ? (
-              <ForgeErrorState
-                className="mb-4"
-                description={error}
-                title="Roleplay update failed"
-              />
-            ) : null}
-            {voiceEnabled && voiceStatus ? (
-              <ForgeStatusPanel
-                announce="polite"
-                className="mb-4"
-                description={voiceStatus}
-                icon="mic"
-                title="Voice practice status"
-                tone="gold"
-              />
-            ) : null}
-
-            {/* Input */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
-              <div className="flex flex-1 flex-col gap-2">
-                <label
-                  className="text-xs font-semibold text-[var(--forge-muted)]"
-                  htmlFor="roleplay-response"
-                >
-                  Roleplay response
-                </label>
-                <div className="relative">
-                  <textarea
-                    className="h-20 w-full resize-none rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-depth)] p-4 pr-12 text-sm text-[var(--forge-text)] outline-none placeholder:text-[color-mix(in_srgb,var(--forge-text)_40%,transparent)] focus:border-[var(--forge-gold)]/50 focus:ring-1 focus:ring-[var(--forge-gold)]/20 disabled:opacity-40"
-                    disabled={
-                      !activeSession ||
-                      activeSession.status === "complete" ||
-                      isMutating
-                    }
-                    id="roleplay-response"
-                    onChange={(e) => setDraft(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        void sendMessage();
-                      }
-                    }}
-                    placeholder="Type your response or click the mic to speak..."
-                    value={draft}
-                  />
-                  <button
-                    aria-label="Send response"
-                    className="absolute bottom-3 right-3 rounded-lg p-1 text-[var(--forge-gold)] transition-transform hover:scale-110 active:scale-95 disabled:cursor-not-allowed disabled:text-[var(--forge-muted)] disabled:opacity-35 disabled:hover:scale-100"
-                    disabled={
-                      !activeSession ||
-                      !draft.trim() ||
-                      activeSession.status === "complete" ||
-                      isMutating
-                    }
-                    onClick={() => void sendMessage()}
-                    title="Send response"
-                    type="button"
-                  >
-                    <ForgeIcon name="send" size={18} />
-                  </button>
-                </div>
+            {!isComplete && <div className={styles.composer}>
+              <label htmlFor="roleplay-response">Roleplay response</label>
+              <textarea className={styles.response} disabled={isMutating || isEvaluating} id="roleplay-response" onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !isMutating && !isEvaluating) { event.preventDefault(); void sendMessage(); } }} placeholder="Type your response…" value={draft} />
+              <div className={styles.composerActions}>
+                <button aria-label="Send response" className={styles.primaryButton} disabled={!draft.trim() || isMutating || isEvaluating} onClick={() => void sendMessage()} title="Send response" type="button"><ForgeIcon name="send" size={16} />{isMutating ? "Working…" : "Send response"}</button>
+                <button aria-label="End and score current session" className={styles.secondaryButton} disabled={isMutating || isEvaluating} onClick={() => void completeSession()} title="End and score current session" type="button"><ForgeIcon name="insights" size={16} />{isEvaluating ? "Scoring…" : "End & score"}</button>
               </div>
-              <button
-                aria-label="End and score current session"
-                className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-[var(--forge-gold)] px-5 font-semibold text-[var(--forge-on-accent)] transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 sm:h-20 sm:w-auto sm:min-w-[7.5rem] sm:flex-col sm:gap-1 sm:px-6"
-                disabled={
-                  !activeSession ||
-                  activeSession.status === "complete" ||
-                  isMutating
-                }
-                onClick={() => void completeSession()}
-                title="End and score current session"
-                type="button"
-              >
-                <ForgeIcon name="insights" size={24} />
-                <span className="whitespace-nowrap text-[10px] uppercase tracking-normal">
-                  End &amp; Score
-                </span>
-              </button>
-            </div>
-
-            <audio
-              autoPlay
-              className="hidden"
-              playsInline
-              ref={remoteAudioRef}
-            />
+            </div>}
           </section>
-        </main>
-
-        <OperationalPreviewDrawer
-          title="Scorecard"
-          data-roleplay-score-drawer=""
-          id="roleplay-score"
-        >
-          <div className="space-y-5">
-            {activeSessionWithScorecard ? (
-              <div className="space-y-4">
-                <ForgeStatCard
-                  className="px-4 py-4"
-                  description={activeScorecard?.summary}
-                  label="Overall score"
-                  tone={roleplayScoreTone(
-                    activeSessionWithScorecard.overallScore,
-                  )}
-                  value={activeSessionWithScorecard.overallScore ?? "—"}
-                />
-                {activeScorecard?.rubricName ? (
-                  <ForgeChip tone="gold">
-                    {activeScorecard.rubricName}
-                    {activeScorecard.rubricVersion != null
-                      ? ` · v${activeScorecard.rubricVersion}`
-                      : ""}
-                  </ForgeChip>
-                ) : null}
-
-                <div className="grid grid-cols-2 gap-3">
-                  <ForgeStatCard
-                    className="px-4 py-3"
-                    valueSize="compact"
-                    label="Confidence"
-                    tone="muted"
-                    value={activeScorecard?.confidence ?? "—"}
-                  />
-                  <ForgeStatCard
-                    className="px-4 py-3"
-                    valueSize="compact"
-                    label="Stage"
-                    tone="gold"
-                    value={
-                      activeScorecard
-                        ? labelCallStage(activeScorecard.callStageReached)
-                        : "—"
-                    }
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  {Object.entries(activeScorecard?.categoryScores ?? {}).map(
-                    ([cat, val]) => (
-                      <ForgeStatCard
-                        className="px-4 py-3"
-                        key={cat}
-                        label={
-                          activeScorecard?.categoryLabels?.[cat] ??
-                          ROLEPLAY_CATEGORY_LABELS[
-                            cat as keyof typeof ROLEPLAY_CATEGORY_LABELS
-                          ] ??
-                          cat
-                        }
-                        tone={roleplayScoreTone(val)}
-                        value={val ?? "—"}
-                      />
-                    ),
-                  )}
-                </div>
-
-                <div className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-4">
-                  <p className="text-xs font-semibold text-[var(--forge-success)]">
-                    Strengths
-                  </p>
-                  <ul className="mt-2 space-y-1 text-sm text-[var(--forge-text)]">
-                    {(activeScorecard?.strengths ?? []).map((s) => (
-                      <li key={s}>• {s}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-4">
-                  <p className="text-xs font-semibold text-[var(--forge-ember)]">
-                    Improve
-                  </p>
-                  <ul className="mt-2 space-y-1 text-sm text-[var(--forge-text)]">
-                    {(activeScorecard?.improvements ?? []).map((s) => (
-                      <li key={s}>• {s}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            ) : (
-              <ForgeStatusPanel
-                description={
-                  activeSession
-                    ? "Select End & Score when you finish practicing."
-                    : "Choose a scenario and start practicing."
-                }
-                icon="query_stats"
-                title={
-                  activeSession
-                    ? "Session in progress"
-                    : "No session yet"
-                }
-                tone="muted"
-              />
-            )}
-
-
-          </div>
-        </OperationalPreviewDrawer>
-      </div>
-    </>
+          <aside className={styles.scenario} aria-label="Scenario" data-roleplay-scenario-picker="" id="roleplay-scenario">
+            <h2>Scenario</h2>
+            {generatedActiveSession ? <>
+              <ForgeChip tone="muted">Generated from call</ForgeChip>
+              <p className={styles.focus}>Focus: {generatedActiveSession.focusMode === "all" ? "All" : formatRoleplayCategoryLabel(generatedActiveSession.focusCategorySlug)}</p>
+              {generatedActiveSession.scenarioBrief && <p>{generatedActiveSession.scenarioBrief}</p>}
+              {generatedActiveSession.scenarioSummary && <p>{generatedActiveSession.scenarioSummary}</p>}
+            </> : <>
+              <h3>{getSessionPersonaLabel(activeSession)}</h3>
+              {sessionPersona && <><p className={styles.muted}>{sessionPersona.role} · {sessionPersona.company}</p><p>{sessionPersona.description}</p></>}
+              <dl className={styles.facts}><div><dt>Challenge</dt><dd>{sessionPersona?.objectionType ?? "Objection handling"}</dd></div><div><dt>Difficulty</dt><dd className={styles.capitalize}>{activeSession.difficulty}</dd></div></dl>
+            </>}
+            {!isComplete && <p className={styles.scoringNote} id="roleplay-score">End the conversation to see your score and coaching feedback.</p>}
+            <details className={styles.nextPractice}><summary>Start another simulation</summary>{buyerSetup}</details>
+          </aside>
+        </div>
+      </>}
+      <audio autoPlay className="hidden" playsInline ref={remoteAudioRef} />
+    </div>
   );
 }

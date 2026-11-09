@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import { RoleplayPanel } from "@/components/panel-loaders/roleplay-panel-loader";
 import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
+import { RoleplayPageHeader } from "@/components/roleplay-page-header";
 import { ForgeErrorState } from "@/components/forge";
 import {
-  OperationalToolbar,
   OperationalWorkspace,
 } from "@/components/operational-workspace";
 import { getCachedAuthenticatedSupabaseUser } from "@/lib/auth/request-user";
@@ -51,10 +51,7 @@ export default async function RoleplayPage({
     return (
       <AuthenticatedPageContainer>
         <OperationalWorkspace data-roleplay-route="operational-workspace">
-          <OperationalToolbar
-            eyebrow="Coach"
-            title="Roleplay"
-          />
+          <RoleplayPageHeader activeTab="practice" />
           <ForgeErrorState
             description={result.error}
             title="Roleplay unavailable"
@@ -67,12 +64,7 @@ export default async function RoleplayPage({
   return (
     <AuthenticatedPageContainer>
       <OperationalWorkspace data-roleplay-route="operational-workspace">
-        <OperationalToolbar
-          actions={[{ href: "/roleplay/history", icon: "history", label: "History", variant: "secondary" }]}
-          eyebrow="Coach"
-          status={{ icon: "psychology", label: `${result.data.personas.length} personas`, tone: "muted" }}
-          title="Roleplay"
-        />
+        <RoleplayPageHeader activeTab="practice" />
 
         <RoleplayPanel
           initialPersonas={result.data.personas}

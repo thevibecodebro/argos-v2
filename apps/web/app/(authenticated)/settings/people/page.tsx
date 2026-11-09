@@ -1,3 +1,4 @@
+import { loadSettingsRailItems } from "../settings-navigation-data";
 import { redirect } from "next/navigation";
 import { PeoplePanel } from "@/components/panel-loaders/people-panel-loader";
 import {
@@ -59,12 +60,13 @@ export default async function SettingsPeoplePage({
 
   return (
     <SettingsOperationalLayout
-      actions={[{ href: "/settings/people?invite=rep#people-invite", icon: "person_add", label: "Invite user", variant: "primary" }]}
+      railItems={await loadSettingsRailItems()}
       description="Manage users, invitations, and account access."
       route="people"
       title="People"
     >
       <PeoplePanel
+        key={initialInviteRole ?? "people"}
         currentUserId={authUser.id}
         initialInviteRole={initialInviteRole}
         initialMembers={membersResult?.ok ? membersResult.data : []}

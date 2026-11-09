@@ -2,6 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { SettingsSecondaryRail } from "../components/settings/settings-secondary-rail";
+import { getSettingsRailItems } from "../components/settings/settings-navigation";
 
 vi.mock("next/link", () => ({
   default: ({ children, href, ...props }: { children: React.ReactNode; href: string }) =>
@@ -17,6 +18,22 @@ const adminItems = [
 ];
 
 describe("SettingsSecondaryRail", () => {
+  it("keeps non-admin navigation on Account and hides unavailable admin features", () => {
+    expect(getSettingsRailItems("manager").map((item) => item.key)).toEqual(["account"]);
+    const limited = getSettingsRailItems("admin", {
+      capabilities: ["roleplay"], grantId: "synthetic-grant", mode: "managed", version: 1,
+    }).map((item) => item.key);
+    expect(limited).toContain("people");
+    expect(limited).toContain("permissions");
+    expect(limited).not.toContain("branding");
+    expect(limited).not.toContain("integrations");
+    const provider = getSettingsRailItems("admin", {
+      capabilities: ["call_ingestion", "integration_zoom"], grantId: "synthetic-grant", mode: "managed", version: 1,
+    }).map((item) => item.key);
+    expect(provider).toContain("integrations");
+    expect(provider).not.toContain("branding");
+  });
+
   it("shows the Rubrics entry to admins and marks it active on the rubric route", () => {
     const html = renderToStaticMarkup(
       createElement(SettingsSecondaryRail, { activeKey: "rubrics", items: adminItems }),

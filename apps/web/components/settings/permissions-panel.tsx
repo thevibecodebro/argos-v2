@@ -9,8 +9,6 @@ import {
   ForgeMobileTableCards,
 } from "../forge";
 import {
-  SettingsDrawerButton,
-  SettingsDrawerGroup,
   SettingsEditorDrawer,
   SettingsEditorPanel,
   SettingsEditorWorkbench,
@@ -351,7 +349,7 @@ export function PermissionsPanel({
             <label className="block">
               <span className="sr-only">Preset for manager</span>
               <select
-                className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60 disabled:opacity-50"
+                className="w-full rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-focus)] disabled:opacity-50"
                 disabled={isPending}
                 onChange={(event) => {
                   setStagedPresetByKey((current) => ({
@@ -384,7 +382,7 @@ export function PermissionsPanel({
                 {isPending ? "Saving..." : "Apply"}
               </ForgeButton>
             ) : (
-              <span className="text-xs uppercase tracking-[0.16em] text-[var(--forge-muted)]">
+              <span className="text-xs text-[var(--forge-muted)]">
                 Saved
               </span>
             )}
@@ -396,85 +394,49 @@ export function PermissionsPanel({
 
   const permissionControls = (
     <SettingsEditorDrawer data-permissions-control-drawer="">
-      <div className="space-y-5">
-        <SettingsDrawerGroup label="Team context">
-          {teams.length === 0 ? (
-            <p className="px-3 text-sm text-[var(--forge-muted)]">
-              Create a team before assigning permissions.
-            </p>
-          ) : (
-            teams.map((team) => {
+      <div className="grid items-start gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <label className="grid gap-2 text-sm text-[var(--forge-muted)]">
+          <span>Team</span>
+          <select
+            className="w-full border px-3 py-2"
+            disabled={!teams.length}
+            onChange={(event) => setSelectedTeamId(event.target.value)}
+            value={selectedTeam?.id ?? ""}
+          >
+            {!teams.length ? <option value="">Create a team first</option> : teams.map((team) => {
               const managerCount = memberships.filter(
-                (membership) =>
-                  membership.teamId === team.id &&
-                  membership.membershipType === "manager",
+                (membership) => membership.teamId === team.id && membership.membershipType === "manager",
               ).length;
               const repCount = memberships.filter(
-                (membership) =>
-                  membership.teamId === team.id &&
-                  membership.membershipType === "rep",
+                (membership) => membership.teamId === team.id && membership.membershipType === "rep",
               ).length;
-
               return (
-                <SettingsDrawerButton
-                  active={selectedTeam?.id === team.id}
-                  icon="verified_user"
-                  key={team.id}
-                  onClick={() => setSelectedTeamId(team.id)}
-                  type="button"
-                >
+                <option key={team.id} value={team.id}>
                   {team.name} · {managerCount} managers · {repCount} reps
-                </SettingsDrawerButton>
+                </option>
               );
-            })
-          )}
-        </SettingsDrawerGroup>
-
-        <SettingsDrawerGroup label="Permission presets">
+            })}
+          </select>
+        </label>
+        <details data-permissions-preset-reference="true">
+          <summary>Permission presets</summary>
           {presets.length === 0 ? (
-            <p className="px-3 text-sm text-[var(--forge-muted)]">
-              No permission presets configured.
-            </p>
+            <p className="text-sm text-[var(--forge-muted)]">No permission presets configured.</p>
           ) : (
-            presets.map((preset) => (
-              <div
-                className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3"
-                key={preset.id}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm font-semibold text-[var(--forge-text)]">
+            <dl className="mt-2 divide-y divide-[var(--forge-border)]">
+              {presets.map((preset) => (
+                <div className="py-3" key={preset.id}>
+                  <dt className="text-sm font-medium text-[var(--forge-text)]">
                     {preset.name}
-                  </p>
-                  <ForgeChip tone="gold">{preset.role}</ForgeChip>
+                  </dt>
+                  <dd className="mt-1 text-sm text-[var(--forge-muted)]">
+                    {preset.permissions.map((permission) => permission.replaceAll("_", " ")).join(", ")}
+                  </dd>
                 </div>
-                <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[var(--forge-muted)]">
-                  {preset.permissions.length} permissions
-                </p>
-              </div>
-            ))
+              ))}
+            </dl>
           )}
-        </SettingsDrawerGroup>
-
-        <SettingsDrawerGroup label="Counts">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3">
-              <p className="text-xs font-medium text-[var(--forge-muted)]">
-                Teams
-              </p>
-              <p className="mt-1 text-2xl font-semibold text-[var(--forge-text)]">
-                {teams.length}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3">
-              <p className="text-xs font-medium text-[var(--forge-muted)]">
-                Reps
-              </p>
-              <p className="mt-1 text-2xl font-semibold text-[var(--forge-text)]">
-                {localReps.length}
-              </p>
-            </div>
-          </div>
-        </SettingsDrawerGroup>
+        </details>
       </div>
     </SettingsEditorDrawer>
   );
@@ -485,15 +447,12 @@ export function PermissionsPanel({
       drawer={permissionControls}
       workbench="permissions"
     >
-      <div className="space-y-5" data-permissions-assignment-matrix="">
+      <div className="space-y-8" data-permissions-assignment-matrix="">
         <SettingsEditorPanel>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-medium text-[var(--forge-muted)]">
-                Team Preset Assignments
-              </p>
-              <h3 className="mt-2 text-xl font-semibold text-[var(--forge-text)]">
-                {selectedTeam ? selectedTeam.name : "Select a team"}
+              <h3 className="text-base font-semibold text-[var(--forge-text)]">
+                Manager permissions
               </h3>
               <p className="mt-2 text-sm text-[var(--forge-muted)]">
                 Apply a permission preset to each manager membership on the
@@ -513,12 +472,12 @@ export function PermissionsPanel({
           </div>
 
           {error ? (
-            <div className="mt-4 rounded-xl border border-[color-mix(in_srgb,var(--forge-danger)_26%,transparent)] bg-[color-mix(in_srgb,var(--forge-danger)_10%,transparent)] px-4 py-3 text-sm text-[var(--forge-danger)]">
+            <div role="alert" className="mt-4 rounded-xl border border-[color-mix(in_srgb,var(--forge-danger)_26%,transparent)] bg-[color-mix(in_srgb,var(--forge-danger)_10%,transparent)] px-4 py-3 text-sm text-[var(--forge-danger)]">
               {error}
             </div>
           ) : null}
           {notice ? (
-            <div className="mt-4 rounded-xl border border-[color-mix(in_srgb,var(--forge-success)_24%,transparent)] bg-[color-mix(in_srgb,var(--forge-success)_10%,transparent)] px-4 py-3 text-sm text-[var(--forge-success)]">
+            <div role="status" className="mt-4 rounded-xl border border-[color-mix(in_srgb,var(--forge-success)_24%,transparent)] bg-[color-mix(in_srgb,var(--forge-success)_10%,transparent)] px-4 py-3 text-sm text-[var(--forge-success)]">
               {notice}
             </div>
           ) : null}
@@ -549,7 +508,7 @@ export function PermissionsPanel({
 
                       return (
                         <div
-                          className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4"
+                          className="rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface)] p-4"
                           key={`${stateKey}:card`}
                         >
                           <p className="text-sm font-semibold text-[var(--forge-text)]">
@@ -564,7 +523,7 @@ export function PermissionsPanel({
                           <label className="mt-3 block">
                             <span className="sr-only">Preset for manager</span>
                             <select
-                              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60 disabled:opacity-50"
+                              className="w-full rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-focus)] disabled:opacity-50"
                               disabled={isPending}
                               onChange={(event) => {
                                 setStagedPresetByKey((current) => ({
@@ -615,7 +574,7 @@ export function PermissionsPanel({
                     <th className="px-4 py-3 text-right">Apply</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[var(--forge-border-strong)]/10">
+                <tbody className="divide-y divide-[var(--forge-border)]">
                   {renderPresetRows()}
                 </tbody>
               </table>
@@ -624,9 +583,7 @@ export function PermissionsPanel({
         </SettingsEditorPanel>
 
         <SettingsEditorPanel>
-          <p className="text-xs font-medium text-[var(--forge-muted)]">
-            Primary Manager
-          </p>
+          <h3 className="text-base font-semibold text-[var(--forge-text)]">Primary Manager</h3>
           <p className="mt-2 text-sm text-[var(--forge-muted)]">
             Assign one accountable manager per rep while preserving multi-team
             memberships.
@@ -653,7 +610,7 @@ export function PermissionsPanel({
 
                       return (
                         <div
-                          className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4"
+                          className="rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface)] p-4"
                           key={`${rep.id}:mobile`}
                         >
                           <p className="text-sm font-semibold text-[var(--forge-text)]">
@@ -668,7 +625,7 @@ export function PermissionsPanel({
                               Primary manager for {rep.name}
                             </span>
                             <select
-                              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60 disabled:opacity-50"
+                              className="w-full rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-focus)] disabled:opacity-50"
                               disabled={isPending}
                               onChange={(event) => {
                                 setStagedManagerByRepId((current) => ({
@@ -715,7 +672,7 @@ export function PermissionsPanel({
                       <th className="px-4 py-3 text-right">Apply</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[var(--forge-border-strong)]/10">
+                  <tbody className="divide-y divide-[var(--forge-border)]">
                     {visiblePrimaryManagerReps.map((rep) => {
                       const currentManagerId =
                         stagedManagerByRepId[rep.id] ??
@@ -740,7 +697,7 @@ export function PermissionsPanel({
                                 Primary manager for {rep.name}
                               </span>
                               <select
-                                className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60 disabled:opacity-50"
+                                className="w-full rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-focus)] disabled:opacity-50"
                                 disabled={isPending}
                                 onChange={(event) => {
                                   setStagedManagerByRepId((current) => ({
@@ -773,7 +730,7 @@ export function PermissionsPanel({
                                 {isPending ? "Saving..." : "Apply"}
                               </ForgeButton>
                             ) : (
-                              <span className="text-xs uppercase tracking-[0.16em] text-[var(--forge-muted)]">
+                              <span className="text-xs text-[var(--forge-muted)]">
                                 Saved
                               </span>
                             )}

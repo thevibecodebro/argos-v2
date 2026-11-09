@@ -46,17 +46,22 @@ export function TrainingModuleStage({
   return (
     <section aria-label={canManage ? "Module preview" : "Course player"} className="training-lesson">
       <div className="space-y-5">
-        <header className="space-y-2">
-          <h2 className="text-xl font-semibold leading-snug text-[var(--forge-text)] sm:text-2xl">{selectedModule.title}</h2>
-          <p className="text-sm text-[var(--forge-muted)]">{selectedModule.skillCategory}</p>
-        </header>
-
-        {stageBand}
+        <div className="min-w-0 space-y-2">
+          <h2 className="break-words text-xl font-semibold text-[var(--forge-text)] sm:text-2xl">{selectedModule.title}</h2>
+          <p className="text-xs text-[var(--forge-muted)]">{selectedModule.skillCategory}{canManage ? " · Module preview" : ""}</p>
+          {!canManage ? (
+            <p className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--forge-muted)]" data-training-lesson-progress="true">
+              <span>{selectedModule.progress?.status === "passed" ? "Completed" : selectedModule.progress?.status === "failed" ? "Try again" : selectedModule.progress?.status === "in_progress" ? "In progress" : "Assigned"}</span>
+              {selectedModule.progress?.score != null ? <span>Quiz score {selectedModule.progress.score}%</span> : null}
+              {selectedModule.progress?.dueDate ? <span>Due {new Intl.DateTimeFormat("en-US", {dateStyle:"medium",timeZone:"UTC"}).format(new Date(selectedModule.progress.dueDate))}</span> : null}
+            </p>
+          ) : null}
+        </div>
 
         <div
           aria-label="Training module stage"
-          className="training-stage-tabs"
           onKeyDown={handleTabKeyDown}
+          className="inline-flex max-w-full flex-wrap gap-1 rounded-lg bg-[var(--forge-surface-2)] p-1"
           role="tablist"
         >
           <button
@@ -128,14 +133,20 @@ export function TrainingModuleStage({
           </div>
         ) : null}
 
-        <button
-          className="forge-button forge-button-primary min-h-11 w-full rounded-lg px-5 py-3 text-sm font-semibold disabled:opacity-50 sm:w-auto"
+        {canManage || stageView === "lesson" ? <button
+          className="min-h-11 w-full rounded-lg bg-[var(--forge-gold)] px-5 py-3 sm:w-auto text-sm font-semibold text-[var(--forge-on-accent)] transition hover:brightness-110 disabled:opacity-50"
           disabled={primaryActionDisabled}
           onClick={onPrimaryAction}
           type="button"
         >
           {primaryAction}
-        </button>
+        </button> : null}
+        {stageBand ? (
+          <details className="border-t border-[var(--forge-border)] pt-3">
+            <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium text-[var(--forge-text)]">Assignment progress</summary>
+            {stageBand}
+          </details>
+        ) : null}
       </div>
     </section>
   );

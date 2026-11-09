@@ -1,6 +1,7 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import { cn } from "@argos-v2/ui";
 import { ForgeChip, type ForgeTone } from "@/components/forge";
+import styles from "./settings-workbench.module.css";
 
 type SettingsSectionHeaderProps = {
   actions?: ReactNode;
@@ -81,7 +82,7 @@ export function SettingsTableShell({
   return (
     <div
       className={cn(
-        "min-w-0 overflow-hidden rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-bg)]",
+        styles.tableShell,
         className,
       )}
       data-settings-table-shell="true"

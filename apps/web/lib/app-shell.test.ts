@@ -112,6 +112,49 @@ describe("AuthenticatedAppShell", () => {
     expect(html).toContain("Manager");
   });
 
+  it("keeps System outside the scrolling main groups", () => {
+    const html = renderToStaticMarkup(createElement(AuthenticatedAppShell, { user: managerUser, children: createElement("div", null, "Body") }));
+    expect(html).toContain('data-primary-rail-scroll="true"');
+    expect(html).toContain('data-primary-rail-footer="true"');
+    expect(html.indexOf('data-primary-rail-scroll="true"')).toBeLessThan(html.indexOf('data-primary-rail-section="Review"'));
+    expect(html.indexOf('data-primary-rail-footer="true"')).toBeLessThan(html.indexOf('data-primary-rail-section="System"'));
+    expect(html.indexOf('data-primary-rail-section="People"')).toBeLessThan(html.indexOf('data-primary-rail-footer="true"'));
+  });
+
+  it.each(["/roleplay", "/roleplay/history", "/training/lesson"])('selects mobile Coach on %s', (pathname) => {
+    usePathnameMock.mockReturnValue(pathname);
+    const html = renderToStaticMarkup(createElement(AuthenticatedAppShell, { user: managerUser, children: createElement("div", null, "Body") }));
+    expect(html).toMatch(/<a[^>]*aria-current="page"[^>]*aria-label="Coach"[^>]*data-mobile-tab="\/training"/);
+  });
+
+  it("renders roleplay-only mobile Coach at its accessible destination", () => {
+    usePathnameMock.mockReturnValue("/roleplay/history");
+    const html = renderToStaticMarkup(createElement(AuthenticatedAppShell, {
+      user: managerUser,
+      access: { capabilities: ["roleplay"], grantId: "test-grant", mode: "managed", version: 1 },
+      children: createElement("div", null, "Body"),
+    }));
+    expect(html).toMatch(/<a[^>]*aria-current="page"[^>]*aria-label="Coach"[^>]*data-mobile-tab="\/roleplay"[^>]*href="\/roleplay"/);
+    expect(html).not.toContain('data-mobile-tab="/dashboard"');
+    expect(html).not.toContain('data-navigation-link="/team"');
+    expect(html).not.toContain('href="/training"');
+  });
+
+  it("balances unequal mobile tab counts around a fixed Upload slot", () => {
+    const html = renderToStaticMarkup(createElement(AuthenticatedAppShell, {
+      user: managerUser,
+      access: { capabilities: ["call_upload", "call_scoring", "training"], grantId: "grant", mode: "managed", version: 1 },
+      children: createElement("div", null, "Body"),
+    }));
+    expect(html).toMatch(/class="flex min-w-0 flex-1 items-stretch" data-mobile-tab-group="before"/);
+    expect(html).toMatch(/class="flex w-16 shrink-0 items-stretch" data-mobile-tab-center="true"/);
+    expect(html).toMatch(/class="flex min-w-0 flex-1 items-stretch" data-mobile-tab-group="after"/);
+    expect(html).not.toContain('data-mobile-tab="/dashboard"');
+    expect(html).toContain('data-mobile-tab="/calls"');
+    expect(html).toContain('data-mobile-tab="/training"');
+    expect(html).toContain('data-mobile-tab="/settings"');
+  });
+
   it("shows the platform organization switcher inside tenant pages during a platform session", () => {
     const html = renderToStaticMarkup(
       createElement(AuthenticatedAppShell, {

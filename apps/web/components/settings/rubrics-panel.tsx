@@ -2,16 +2,15 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ForgeReadinessPanel, ForgeStatusPanel } from "../forge";
+import styles from "./configuration-panels.module.css";
+import { ForgeStatusPanel } from "../forge";
 import {
   SettingsDrawerButton,
-  SettingsDrawerGroup,
   SettingsEditorDrawer,
   SettingsEditorPanel,
   SettingsEditorWorkbench,
 } from "./settings-workbench";
 import {
-  SettingsMetaRow,
   SettingsSectionHeader,
   SettingsTableShell,
 } from "./settings-readability";
@@ -54,10 +53,10 @@ const GUIDANCE_FIELDS: Array<{ field: GuidanceField; label: string }> = [
 
 const RUBRIC_FIELD_FOCUS_CLASS =
   "outline-none transition focus-visible:border-[var(--forge-gold)] focus-visible:ring-2 focus-visible:ring-[var(--forge-gold)]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--forge-surface)]";
-const RUBRIC_RAIL_FIELD_CLASS = `w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-text)] ${RUBRIC_FIELD_FOCUS_CLASS}`;
-const RUBRIC_RAIL_FILE_FIELD_CLASS = `mt-3 block w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-text)] ${RUBRIC_FIELD_FOCUS_CLASS}`;
-const RUBRIC_DRAFT_FIELD_CLASS = `w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-3 text-sm text-[var(--forge-text)] ${RUBRIC_FIELD_FOCUS_CLASS}`;
-const RUBRIC_CATEGORY_FIELD_CLASS = `w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2.5 text-sm text-[var(--forge-text)] ${RUBRIC_FIELD_FOCUS_CLASS}`;
+const RUBRIC_RAIL_FIELD_CLASS = `min-h-11 w-full rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2 text-sm text-[var(--forge-text)] ${RUBRIC_FIELD_FOCUS_CLASS}`;
+const RUBRIC_RAIL_FILE_FIELD_CLASS = `mt-3 block min-h-11 w-full rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2 text-sm text-[var(--forge-text)] ${RUBRIC_FIELD_FOCUS_CLASS}`;
+const RUBRIC_DRAFT_FIELD_CLASS = `min-h-11 w-full rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-3 text-sm text-[var(--forge-text)] ${RUBRIC_FIELD_FOCUS_CLASS}`;
+const RUBRIC_CATEGORY_FIELD_CLASS = `min-h-11 w-full rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2.5 text-sm text-[var(--forge-text)] ${RUBRIC_FIELD_FOCUS_CLASS}`;
 const RUBRIC_CATEGORY_TEXTAREA_CLASS = `min-h-20 ${RUBRIC_CATEGORY_FIELD_CLASS}`;
 
 function copyRubricInput(rubric: RubricInput): RubricInput {
@@ -552,393 +551,104 @@ export function RubricsPanel({
 
   const builderDrawer = (
     <SettingsEditorDrawer data-rubric-builder-drawer="">
-      <div className="space-y-5">
-        <SettingsSectionHeader
-          description="Choose the next draft source without changing the live version."
-          eyebrow="Source and versions"
-          title="Scoring sources"
-        />
-        <SettingsDrawerGroup label="Active version">
-          <div className="rounded-2xl border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/8 px-4 py-3">
-            <p className="text-xs font-medium text-[var(--forge-gold)]">
-              Active Rubric
-            </p>
-            <p className="mt-2 text-sm font-semibold text-[var(--forge-text)]">
-              {activeRubric ? activeRubric.name : "No active rubric yet"}
-            </p>
-            {activeRubric ? (
-              <div className="mt-2">
-                <SettingsMetaRow
-                  label="Version"
-                  value={`v${activeRubric.version}`}
-                />
-                <SettingsMetaRow
-                  label="Categories"
-                  value={activeRubric.categoryCount}
-                />
-              </div>
-            ) : (
-              <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">
-                Publish the first rubric version to start attaching it to new
-                scoring jobs.
-              </p>
-            )}
-          </div>
-        </SettingsDrawerGroup>
-
-        <SettingsDrawerGroup label="Source options">
+      <nav aria-label="Rubric admin controls" className={styles.steps} data-settings-nav-theme="forge">
+        {BUILDER_STEPS.map((item) => (
           <SettingsDrawerButton
-            disabled={!activeRubric}
-            icon="content_copy"
-            onClick={() => {
-              if (!activeRubric) {
-                return;
-              }
-
+            active={step === item.id}
+            aria-current={step === item.id ? "step" : undefined}
+            disabled={item.id !== "source" && !draft}
+            key={item.id}
+            onClick={() => setStep(item.id)}
+            type="button"
+          >{item.label}</SettingsDrawerButton>
+        ))}
+      </nav>
+      <details className={styles.disclosure} open={step === "source"} data-rubric-source-options="true">
+        <summary>Source options</summary>
+        <p className={styles.description}>Start a draft without changing the active rubric.</p>
+        <div className={styles.sourceGrid}>
+          <div className={styles.sourceGroup}>
+            <SettingsDrawerButton disabled={!activeRubric} icon="content_copy" onClick={() => {
+              if (!activeRubric) return;
               setSourceIssues([]);
-              beginDraft(
-                copyRubricToInput(activeRubric),
-                "New Draft from Active",
-                "manual",
-              );
-            }}
-            type="button"
-          >
-            New Draft from Active
-          </SettingsDrawerButton>
-          <SettingsDrawerButton
-            icon="auto_fix"
-            onClick={() => {
+              beginDraft(copyRubricToInput(activeRubric), "New Draft from Active", "manual");
+            }} type="button">New Draft from Active</SettingsDrawerButton>
+            <SettingsDrawerButton icon="auto_fix" onClick={() => {
               setSourceIssues([]);
-              beginDraft(
-                defaultTemplate,
-                "Started from Default Template",
-                "manual",
-              );
-            }}
-            type="button"
-          >
-            Start from Default Template
-          </SettingsDrawerButton>
-        </SettingsDrawerGroup>
-
-        <SettingsDrawerGroup label="Clone or import">
-          <label className="block space-y-2 px-3">
-            <span className="text-xs font-medium text-[var(--forge-muted)]">
-              Clone Historical Version
-            </span>
-            <select
-              className={RUBRIC_RAIL_FIELD_CLASS}
-              data-rubric-focus-hardened="true"
-              onChange={(event) => setSelectedHistoryId(event.target.value)}
-              value={selectedHistoryId}
-            >
-              <option value="">Select a historical version</option>
-              {historicalVersions.map((entry) => (
-                <option key={entry.id} value={entry.id}>
-                  v{entry.version} · {entry.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <SettingsDrawerButton
-            className="mt-3"
-            icon="account_tree"
-            onClick={() => void handleCloneHistory()}
-            type="button"
-          >
-            Clone
-          </SettingsDrawerButton>
-
-          <div className="mt-5 space-y-1">
-            <SettingsDrawerButton
-              active={importMode === "csv_import"}
-              icon="table"
-              onClick={() => setImportMode("csv_import")}
-              type="button"
-            >
-              Import CSV
-            </SettingsDrawerButton>
-            <SettingsDrawerButton
-              active={importMode === "json_import"}
-              icon="data_object"
-              onClick={() => setImportMode("json_import")}
-              type="button"
-            >
-              Import JSON
-            </SettingsDrawerButton>
+              beginDraft(defaultTemplate, "Started from Default Template", "manual");
+            }} type="button">Start from Default Template</SettingsDrawerButton>
+            <label className="mt-3 block space-y-2">
+              <span className="text-xs font-medium text-[var(--forge-muted)]">Clone Historical Version</span>
+              <select className={RUBRIC_RAIL_FIELD_CLASS} data-rubric-focus-hardened="true" onChange={(event) => setSelectedHistoryId(event.target.value)} value={selectedHistoryId}>
+                <option value="">Select a historical version</option>
+                {historicalVersions.map((entry) => <option key={entry.id} value={entry.id}>v{entry.version} · {entry.name}</option>)}
+              </select>
+            </label>
+            <SettingsDrawerButton icon="account_tree" onClick={() => void handleCloneHistory()} type="button">Clone</SettingsDrawerButton>
           </div>
-          <input
-            accept={
-              importMode === "csv_import"
-                ? ".csv,text/csv"
-                : ".json,application/json"
-            }
-            aria-label={`Import ${importMode === "csv_import" ? "CSV" : "JSON"} rubric file`}
-            className={RUBRIC_RAIL_FILE_FIELD_CLASS}
-            data-rubric-focus-hardened="true"
-            onChange={(event) => setImportFile(event.target.files?.[0] ?? null)}
-            type="file"
-          />
-          <SettingsDrawerButton
-            className="mt-3"
-            icon="preview"
-            onClick={() => void handleImportPreview()}
-            type="button"
-          >
-            Preview Import
-          </SettingsDrawerButton>
-        </SettingsDrawerGroup>
-
-        <SettingsDrawerGroup label={`Version History (${history.length})`}>
-          <SettingsTableShell className="space-y-2 p-3">
-            {history.length === 0 ? (
-              <p className="text-sm text-[var(--forge-muted)]">
-                No rubric versions yet.
-              </p>
-            ) : (
-              history.map((entry) => (
-                <div
-                  className="rounded-xl border border-[var(--forge-border-strong)]/12 bg-[var(--forge-surface-2)]/60 px-3 py-3"
-                  key={entry.id}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="truncate text-sm font-semibold text-[var(--forge-text)]">
-                      v{entry.version} · {entry.name}
-                    </p>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                        entry.isActive
-                          ? "bg-[color-mix(in_srgb,var(--forge-success)_15%,transparent)] text-[var(--forge-success)]"
-                          : "border border-[var(--forge-border-strong)]/20 text-[var(--forge-muted)]"
-                      }`}
-                    >
-                      {entry.isActive ? "Active" : entry.status}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-xs text-[var(--forge-muted)]">
-                    {entry.categoryCount} categories · Updated{" "}
-                    {formatDate(entry.updatedAt)}
-                  </p>
-                </div>
-              ))
-            )}
-          </SettingsTableShell>
-        </SettingsDrawerGroup>
-
-        <section className="space-y-5" data-rubric-readiness-panel="">
-          <SettingsSectionHeader
-            eyebrow="Admin controls"
-            title="Readiness panel"
-          />
-          <div aria-live="polite" className="sr-only" role="status">
-            {rubricPendingStatusMessage}
+          <div className={styles.sourceGroup}>
+            <div className="grid grid-cols-2 gap-2">
+              <SettingsDrawerButton active={importMode === "csv_import"} icon="table" onClick={() => setImportMode("csv_import")} type="button">Import CSV</SettingsDrawerButton>
+              <SettingsDrawerButton active={importMode === "json_import"} icon="data_object" onClick={() => setImportMode("json_import")} type="button">Import JSON</SettingsDrawerButton>
+            </div>
+            <input accept={importMode === "csv_import" ? ".csv,text/csv" : ".json,application/json"} aria-label={`Import ${importMode === "csv_import" ? "CSV" : "JSON"} rubric file`} className={RUBRIC_RAIL_FILE_FIELD_CLASS} data-rubric-focus-hardened="true" onChange={(event) => setImportFile(event.target.files?.[0] ?? null)} type="file" />
+            <SettingsDrawerButton icon="preview" onClick={() => void handleImportPreview()} type="button">Preview Import</SettingsDrawerButton>
           </div>
-
-          {statusMessage ? (
-            <ForgeStatusPanel
-              announce="polite"
-              description={statusMessage}
-              icon="check_circle"
-              title="Rubric updated"
-              tone="success"
-            />
-          ) : null}
-
-          {errorMessage ? (
-            <ForgeStatusPanel
-              announce="assertive"
-              description={errorMessage}
-              icon="warning"
-              title="Rubric update failed"
-              tone="danger"
-            />
-          ) : null}
-
-          <nav
-            aria-label="Rubric admin controls"
-            className="space-y-5"
-            data-settings-nav-theme="forge"
-          >
-            <SettingsDrawerGroup label="Workflow">
-              {BUILDER_STEPS.map((item) => {
-                const disabled = item.id !== "source" && !draft;
-
-                return (
-                  <SettingsDrawerButton
-                    active={step === item.id}
-                    aria-current={step === item.id ? "step" : undefined}
-                    disabled={disabled}
-                    icon={
-                      item.id === "source"
-                        ? "input"
-                        : item.id === "edit"
-                          ? "edit_note"
-                          : item.id === "review"
-                            ? "rule"
-                            : "publish"
-                    }
-                    key={item.id}
-                    onClick={() => setStep(item.id)}
-                    type="button"
-                  >
-                    {item.label}
-                  </SettingsDrawerButton>
-                );
-              })}
-            </SettingsDrawerGroup>
-
-            <SettingsDrawerGroup label="Readiness">
-              <ForgeReadinessPanel
-                description={draftSourceLabel}
-                items={[
-                  { label: "Validation issues", value: draftIssues.length },
-                  { label: "Import warnings", value: sourceIssues.length },
-                  {
-                    label: "Server draft",
-                    value: serverDraft
-                      ? `v${serverDraft.version}`
-                      : "Not prepared",
-                  },
-                ]}
-                label="Draft status"
-                statusLabel={
-                  draftIssues.length > 0
-                    ? "Needs fixes"
-                    : draft
-                      ? "Ready to review"
-                      : "Not started"
-                }
-                statusTone={
-                  draftIssues.length > 0
-                    ? "danger"
-                    : draft
-                      ? "success"
-                      : "muted"
-                }
-                tone={
-                  draftIssues.length > 0 ? "danger" : draft ? "gold" : "muted"
-                }
-                value={
-                  draft
-                    ? `${draft.categories.length} categories`
-                    : "No draft started"
-                }
-              />
-              <div className="rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_3.5%,transparent)] px-3 py-3">
-                <p className="text-xs font-medium text-[var(--forge-muted)]">
-                  Validation issues
-                </p>
-                {draftIssues.length > 0 ? (
-                  <ul className="mt-2 space-y-2 text-xs leading-5 text-[var(--forge-danger)]">
-                    {draftIssues.map((issue, index) => (
-                      <li
-                        key={`${issue.row ?? "global"}-${issue.field}-${index}`}
-                      >
-                        Row {issue.row ?? "global"} · {issue.field}:{" "}
-                        {issue.message}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">
-                    {draft
-                      ? "No validation issues."
-                      : "Start a draft to run validation."}
-                  </p>
-                )}
-              </div>
-              <div className="rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_3.5%,transparent)] px-3 py-3">
-                <p className="text-xs font-medium text-[var(--forge-muted)]">
-                  Import warnings
-                </p>
-                {sourceIssues.length > 0 ? (
-                  <ul className="mt-2 space-y-2 text-xs leading-5 text-[var(--forge-ember)]">
-                    {sourceIssues.map((issue, index) => (
-                      <li
-                        key={`${issue.row ?? "import"}-${issue.field}-${index}`}
-                      >
-                        Row {issue.row ?? "global"} · {issue.field}:{" "}
-                        {issue.message}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">
-                    No import warnings.
-                  </p>
-                )}
-              </div>
-              <div className="rounded-xl border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_3.5%,transparent)] px-3 py-3">
-                <p className="text-xs font-medium text-[var(--forge-muted)]">
-                  Server draft
-                </p>
-                <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">
-                  {serverDraft
-                    ? `Draft version ${serverDraft.version} · ${serverDraft.categoryCount} categories`
-                    : "Prepare publish to create a server draft."}
-                </p>
-              </div>
-            </SettingsDrawerGroup>
-
-            <SettingsDrawerGroup label="Publish controls">
-              <div
-                className="space-y-1"
-                data-rubric-publish-controls="streamlined"
-              >
-                <SettingsDrawerButton
-                  active={Boolean(draft) && !serverDraft}
-                  disabled={!draft || isRubricBusy}
-                  icon="task_alt"
-                  onClick={() => void handlePreparePublish()}
-                  type="button"
-                >
-                  Prepare Publish
-                </SettingsDrawerButton>
-                {draft && step !== "edit" ? (
-                  <SettingsDrawerButton
-                    icon="edit_note"
-                    onClick={() => setStep("edit")}
-                    type="button"
-                  >
-                    Back to Edit
-                  </SettingsDrawerButton>
-                ) : null}
-                {draft && step === "publish" ? (
-                  <SettingsDrawerButton
-                    icon="rule"
-                    onClick={() => setStep("review")}
-                    type="button"
-                  >
-                    Back to Review
-                  </SettingsDrawerButton>
-                ) : null}
-                <SettingsDrawerButton
-                  active={Boolean(serverDraft)}
-                  disabled={!serverDraft || isRubricBusy}
-                  icon="publish"
-                  onClick={() => void handlePublish()}
-                  type="button"
-                >
-                  {rubricRequestStatus === "publish"
-                    ? "Publishing..."
-                    : "Publish Draft"}
-                </SettingsDrawerButton>
-              </div>
-            </SettingsDrawerGroup>
-          </nav>
-        </section>
-      </div>
+        </div>
+      </details>
+      <details className={styles.disclosure}>
+        <summary>Version History <span className="text-xs font-normal text-[var(--forge-muted)]">{history.length} versions</span></summary>
+        {history.length === 0 ? <p className="py-3 text-sm text-[var(--forge-muted)]">No rubric versions yet.</p> : history.map((entry) => (
+          <div className={styles.versionRow} key={entry.id}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="min-w-0 break-words text-sm font-medium">v{entry.version} · {entry.name}</p>
+              <span className={entry.isActive ? "text-xs text-[var(--forge-success)]" : "text-xs text-[var(--forge-muted)]"}>{entry.isActive ? "Active" : entry.status}</span>
+            </div>
+            <p className="mt-1 text-xs text-[var(--forge-muted)]">{entry.categoryCount} categories · Updated {formatDate(entry.updatedAt)}</p>
+          </div>
+        ))}
+      </details>
     </SettingsEditorDrawer>
   );
 
+  const publishControls = (
+    <section className={styles.publish} data-rubric-readiness-panel="" aria-labelledby="rubric-readiness-title">
+      <div aria-live="polite" className="sr-only" role="status">{rubricPendingStatusMessage}</div>
+      {statusMessage ? <ForgeStatusPanel announce="polite" description={statusMessage} icon="check_circle" title="Rubric updated" tone="success" /> : null}
+      {errorMessage ? <ForgeStatusPanel announce="assertive" description={errorMessage} icon="warning" title="Rubric update failed" tone="danger" /> : null}
+      <h2 className={styles.heading} id="rubric-readiness-title">Review and publish</h2>
+      <p className={styles.description}>
+        {draft ? `${draft.categories.length} categories · Total weight ${draft.categories.reduce((sum, category) => sum + category.weight, 0)}` : "Start a draft to review scoring rules."}
+      </p>
+      <div className={styles.validation}>
+        <h3 className="text-sm font-medium">Validation issues</h3>
+        {draftIssues.length > 0 ? <ul className="space-y-1 text-sm leading-6 text-[var(--forge-danger)]">{draftIssues.map((issue, index) => (
+          <li key={`${issue.row ?? "global"}-${issue.field}-${index}`}>{issue.row ? `Category ${issue.row} · ` : ""}{issue.message}</li>
+        ))}</ul> : <p className="mt-1 text-sm text-[var(--forge-muted)]">{draft ? "No validation issues." : "Start a draft to run validation."}</p>}
+      </div>
+      {sourceIssues.length > 0 ? <div className={styles.validation}>
+        <h3 className="text-sm font-medium">Import warnings</h3>
+        <ul className="space-y-1 text-sm leading-6 text-[var(--forge-ember)]">{sourceIssues.map((issue, index) => (
+          <li key={`${issue.row ?? "import"}-${issue.field}-${index}`}>Row {issue.row ?? "global"} · {issue.field}: {issue.message}</li>
+        ))}</ul>
+      </div> : null}
+      <p className="text-sm leading-6 text-[var(--forge-muted)]">
+        {serverDraft ? `Server draft v${serverDraft.version} is prepared. Publishing makes it active for new scoring jobs.` : "Prepare publish to save a server draft. The active rubric stays in use until you publish."}
+      </p>
+      <div className={styles.publishActions} data-rubric-publish-controls="streamlined">
+        <SettingsDrawerButton active={Boolean(draft) && !serverDraft} disabled={!draft || isRubricBusy} icon="task_alt" onClick={() => void handlePreparePublish()} type="button">{rubricRequestStatus === "prepare" ? "Preparing..." : "Prepare Publish"}</SettingsDrawerButton>
+        <SettingsDrawerButton active={Boolean(serverDraft)} disabled={!serverDraft || isRubricBusy} icon="publish" onClick={() => void handlePublish()} type="button">{rubricRequestStatus === "publish" ? "Publishing..." : "Publish Draft"}</SettingsDrawerButton>
+      </div>
+    </section>
+  );
+
   return (
-    <SettingsEditorWorkbench drawer={builderDrawer} workbench="rubrics">
-      <main className="min-w-0" data-rubric-category-editor="">
+    <SettingsEditorWorkbench className={styles.root} drawer={builderDrawer} workbench="rubrics">
+      <div className={styles.rubricEditor} data-rubric-category-editor="">
         <SettingsEditorPanel>
           <SettingsSectionHeader
             actions={
-              <span className="rounded-full border border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface-2)]/70 px-3 py-1 text-xs font-medium text-[var(--forge-muted)]">
+              <span className="text-xs text-[var(--forge-muted)]">
                 {draft
                   ? `${draft.categories.length} draft categories`
                   : `${activeRubric?.categoryCount ?? 0} active categories`}
@@ -946,10 +656,9 @@ export function RubricsPanel({
             }
             description={
               draft
-                ? "Edit scoring categories as compact rows, then use readiness controls to prepare and publish."
-                : "Choose a source to start a scoring draft. The current active rubric is shown below for reference."
+                ? "Set category weights and scoring guidance, then review and publish."
+                : "Active rubric. Start a draft above to change scoring."
             }
-            eyebrow="Category editor"
             title={
               draft
                 ? draft.name || "Untitled rubric draft"
@@ -959,8 +668,8 @@ export function RubricsPanel({
 
           {draft ? (
             <div className="mt-6 space-y-5">
-              <div className="rounded-2xl border border-[var(--forge-border-strong)]/12 bg-[var(--forge-surface-2)]/55 p-4">
-                <p className="text-xs font-medium text-[var(--forge-gold)]">
+              <div className="border-b border-[var(--forge-border)] py-3">
+                <p className="text-xs font-medium text-[var(--forge-muted)]">
                   Draft Source
                 </p>
                 <p className="mt-2 text-sm text-[var(--forge-text)]">
@@ -1009,25 +718,22 @@ export function RubricsPanel({
                 </label>
               </div>
 
-              <SettingsTableShell className="space-y-3 p-3">
+              <SettingsTableShell className="space-y-0">
                 {draft.categories.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/40 p-5 text-sm text-[var(--forge-muted)]">
+                  <div className="rounded-2xl border border-dashed border-[var(--forge-border)] bg-[var(--forge-surface-2)]/40 p-5 text-sm text-[var(--forge-muted)]">
                     No categories in this draft yet.
                   </div>
                 ) : (
                   draft.categories.map((category, index) => (
                     <details
-                      className="group rounded-2xl border border-[var(--forge-border-strong)]/14 bg-[var(--forge-surface-2)]/55"
+                      className="group border-b border-[var(--forge-border)]"
                       data-rubric-category-row=""
                       key={`${category.slug || "category"}-${index}`}
                       open={index === 0}
                     >
-                      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-4 py-3">
+                      <summary className="flex min-h-11 cursor-pointer list-none flex-wrap items-center justify-between gap-3 py-4">
                         <div className="min-w-0">
-                          <p className="text-xs font-medium text-[var(--forge-gold)]">
-                            Category {index + 1}
-                          </p>
-                          <p className="mt-1 truncate text-sm font-semibold text-[var(--forge-text)]">
+                          <p className="break-words text-sm font-semibold text-[var(--forge-text)]">
                             {category.name || "Untitled category"} ·{" "}
                             {category.slug || "missing-slug"} · weight{" "}
                             {category.weight}
@@ -1198,7 +904,7 @@ export function RubricsPanel({
 
                         <div className="mt-4 flex justify-end border-t border-[var(--forge-border-strong)]/10 pt-4">
                           <button
-                            className="rounded-xl border border-[color-mix(in_srgb,var(--forge-danger)_26%,transparent)] px-3 py-2 text-sm font-medium text-[var(--forge-danger)] transition hover:bg-[color-mix(in_srgb,var(--forge-danger)_10%,transparent)] focus-visible:ring-2 focus-visible:ring-[var(--forge-danger)]/35"
+                            className="rounded-md border border-[color-mix(in_srgb,var(--forge-danger)_26%,transparent)] px-3 py-2 text-sm font-medium text-[var(--forge-danger)] transition hover:bg-[color-mix(in_srgb,var(--forge-danger)_10%,transparent)] focus-visible:ring-2 focus-visible:ring-[var(--forge-danger)]/35"
                             data-rubric-category-remove-action="body"
                             onClick={() => {
                               updateDraft((current) => ({
@@ -1227,7 +933,7 @@ export function RubricsPanel({
 
               <div className="flex flex-wrap gap-3">
                 <button
-                  className="rounded-xl border border-[var(--forge-border-strong)]/20 px-4 py-3 text-sm font-semibold text-[var(--forge-muted)] transition hover:text-[var(--forge-text)]"
+                  className="rounded-md border border-[var(--forge-border)] px-4 py-3 text-sm font-semibold text-[var(--forge-muted)] transition hover:text-[var(--forge-text)]"
                   onClick={() =>
                     updateDraft((current) => ({
                       ...current,
@@ -1242,7 +948,7 @@ export function RubricsPanel({
                   Add Category
                 </button>
                 <button
-                  className="rounded-xl border border-[var(--forge-border-strong)]/20 px-4 py-3 text-sm font-semibold text-[var(--forge-muted)] transition hover:text-[var(--forge-text)]"
+                  className="rounded-md border border-[var(--forge-border)] px-4 py-3 text-sm font-semibold text-[var(--forge-muted)] transition hover:text-[var(--forge-text)]"
                   onClick={() => setStep("source")}
                   type="button"
                 >
@@ -1252,25 +958,25 @@ export function RubricsPanel({
             </div>
           ) : (
             <div className="mt-6 space-y-3">
-              <div className="rounded-2xl border border-dashed border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/40 p-5">
-                <h4 className="text-lg font-semibold text-[var(--forge-text)]">
+              <div className="py-2">
+                <h4 className="text-sm font-medium text-[var(--forge-text)]">
                   Choose a source to start a scoring draft.
                 </h4>
                 <p className="mt-2 text-sm leading-7 text-[var(--forge-muted)]">
-                  Use the drawer to start from the active rubric, the default
-                  template, a historical version, or an import preview.
+                  Start from the active rubric, a template, a historical version,
+                  or a CSV or JSON file using Source options above.
                 </p>
               </div>
 
               {activeRubric?.categories.length ? (
                 <div className="space-y-3">
-                  <p className="text-xs font-medium text-[var(--forge-gold)]">
+                  <p className="text-xs font-medium text-[var(--forge-muted)]">
                     Published scoring categories
                   </p>
-                  <SettingsTableShell className="space-y-3 p-3">
+                  <SettingsTableShell className="space-y-0">
                     {activeRubric.categories.map((category, index) => (
                       <div
-                        className="rounded-2xl border border-[var(--forge-border-strong)]/12 bg-[var(--forge-surface-2)]/55 p-4"
+                        className="border-b border-[var(--forge-border)] py-3"
                         data-rubric-category-row=""
                         key={category.id}
                       >
@@ -1295,7 +1001,7 @@ export function RubricsPanel({
                             <p className="text-xs font-medium text-[var(--forge-muted)]">
                               Weight
                             </p>
-                            <p className="mt-1 text-sm text-[var(--forge-text)]">
+                            <p className="forge-tabular-nums mt-1 text-sm text-[var(--forge-text)]">
                               {category.weight}
                             </p>
                           </div>
@@ -1311,7 +1017,8 @@ export function RubricsPanel({
             </div>
           )}
         </SettingsEditorPanel>
-      </main>
+      </div>
+      {publishControls}
     </SettingsEditorWorkbench>
   );
 }

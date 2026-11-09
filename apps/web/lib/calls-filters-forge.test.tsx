@@ -56,10 +56,27 @@ describe("CallsFilters forge treatment", () => {
     expect(html).not.toContain(">filter_list</span>");
   });
 
-  it("keeps mobile call cards shrinkable inside narrow viewports", () => {
-    expect(callsPageSource).toContain(
-      'className="block min-w-0 rounded-xl border border-[var(--forge-border)]',
-    );
+  it("collapses optional controls by default and exposes active filter state", () => {
+    useSearchParamsMock.mockReturnValue(new URLSearchParams());
+    const defaultHtml = renderToStaticMarkup(createElement(CallsFilters, { initialSearch: "" }));
+    expect(defaultHtml).toContain("Filters &amp; sort");
+    expect(defaultHtml).toMatch(/<details[^>]*data-calls-advanced-filters="true"/);
+    expect(defaultHtml).not.toMatch(/<details[^>]*open=""[^>]*data-calls-advanced-filters/);
+    useSearchParamsMock.mockReturnValue(new URLSearchParams("status=failed"));
+    const activeHtml = renderToStaticMarkup(createElement(CallsFilters, { initialSearch: "" }));
+    expect(activeHtml).toMatch(/<details[^>]*open=""[^>]*data-calls-advanced-filters="true"/);
+    expect(activeHtml).toContain('id="sort"');
+    expect(activeHtml).toContain('id="minScore"');
+  });
+
+  it("keeps mobile call rows shrinkable inside narrow viewports", () => {
+    const source = readFileSync(new URL("../components/calls-workspace.tsx", import.meta.url), "utf8");
+    const css = readFileSync(new URL("../components/review-workspace.module.css", import.meta.url), "utf8");
+    expect(callsPageSource).toContain("CallsWorkspace");
+    expect(source).toContain('data-mobile-call-card="true"');
+    expect(css).toContain(".mobileRow");
+    expect(css).toContain("overflow-wrap:anywhere");
+    expect(css).toContain("grid-template-columns:repeat(2,minmax(0,1fr))");
   });
 
   it("removes score controls when the recording workspace has scoring disabled", () => {

@@ -8,7 +8,8 @@ import {
   type IngestionTitleDecisionReason,
   type IngestionTitleFilterConfig,
 } from "@argos-v2/call-processing";
-import { ForgeButton, ForgeIcon, ForgeSurface } from "@/components/forge";
+import { ForgeButton, ForgeIcon } from "@/components/forge";
+import styles from "./configuration-panels.module.css";
 import { SettingsStatus } from "./settings-readability";
 
 export type IntegrationsPanelProps = {
@@ -428,13 +429,11 @@ function ZoomCard({
   }
 
   return (
-    <ForgeSurface as="section" className="p-6" variant="panel">
+    <section className={styles.integration}>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-medium text-[var(--forge-muted)]">Zoom</p>
-          <p className="mt-2 text-xl font-semibold text-[var(--forge-text)]">
-            Call Recording Ingest
-          </p>
+          <h2 className={styles.heading}>Zoom</h2>
+          <p className={styles.description}>Call Recording Ingest</p>
         </div>
 
         {isConnected ? (
@@ -445,11 +444,10 @@ function ZoomCard({
       </div>
 
       <p className="mt-3 text-sm leading-7 text-[var(--forge-muted)]">
-        Connect your Zoom account to automatically import call recordings and
-        transcripts.
+        Import eligible call recordings and transcripts from your Zoom account.
       </p>
 
-      <div className="mt-4 flex items-start gap-2 rounded-[8px] border border-[var(--forge-border)] bg-black/10 p-3">
+      <div className={styles.notice}>
         <ForgeIcon
           className={
             titleFilterEnforcementEnabled && autoIngestionConfigured
@@ -502,7 +500,7 @@ function ZoomCard({
 
       {!available && !isConnected ? (
         <p className="mt-3 text-sm text-[color-mix(in_srgb,var(--forge-ember)_82%,transparent)]">
-          OAuth credentials for Zoom are not yet configured in this environment.
+          Zoom connection is not available for this workspace yet.
         </p>
       ) : null}
 
@@ -570,7 +568,7 @@ function ZoomCard({
           </ForgeButton>
         )}
       </div>
-    </ForgeSurface>
+    </section>
   );
 }
 
@@ -711,15 +709,11 @@ function GhlCard({
   }
 
   return (
-    <ForgeSurface as="section" className="p-6" variant="panel">
+    <section className={styles.integration}>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-medium text-[var(--forge-muted)]">
-            Go High Level
-          </p>
-          <p className="mt-2 text-xl font-semibold text-[var(--forge-text)]">
-            CRM &amp; Workflow Automation
-          </p>
+          <h2 className={styles.heading}>Go High Level</h2>
+          <p className={styles.description}>CRM &amp; Workflow Automation</p>
         </div>
 
         {isConnected ? (
@@ -749,7 +743,7 @@ function GhlCard({
               Connected {formatConnectedAt(connectedAtState)}
             </p>
           ) : null}
-          <div className="mt-4 grid gap-2 rounded-[8px] border border-[var(--forge-border)] bg-black/10 p-3 text-sm text-[var(--forge-muted)] sm:grid-cols-2">
+          <div className={`${styles.statusRows} mt-4 text-sm text-[var(--forge-muted)]`}>
             <p>
               <span className="block text-xs text-[var(--forge-muted)]">
                 Call Recording Sync
@@ -812,7 +806,7 @@ function GhlCard({
             </label>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <select
-                className="min-h-10 rounded-[8px] border border-[var(--forge-border)] bg-black/20 px-3 py-2 text-sm text-[var(--forge-text)] outline-none focus:border-[var(--forge-ember)]"
+                className="min-h-11 rounded-[8px] border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none focus:border-[var(--forge-focus)]"
                 disabled={isSavingFallbackOwner || fallbackOwnerOptions.length === 0}
                 id="ghl-fallback-owner"
                 onChange={(event) => {
@@ -865,8 +859,7 @@ function GhlCard({
 
       {!available && !isConnected ? (
         <p className="mt-3 text-sm text-[color-mix(in_srgb,var(--forge-ember)_82%,transparent)]">
-          Go High Level is disabled until ARGOS_GHL_ENABLED is true and OAuth
-          credentials are configured.
+          Go High Level connection is not available for this workspace yet.
         </p>
       ) : null}
 
@@ -976,7 +969,7 @@ function GhlCard({
           </ForgeButton>
         )}
       </div>
-    </ForgeSurface>
+    </section>
   );
 }
 
@@ -1091,15 +1084,11 @@ function GoogleMeetCard({
   }
 
   return (
-    <ForgeSurface as="section" className="p-6" variant="panel">
+    <section className={styles.integration}>
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-xs font-medium text-[var(--forge-muted)]">
-            Google Meet
-          </p>
-          <p className="mt-2 text-xl font-semibold text-[var(--forge-text)]">
-            Google Workspace recordings
-          </p>
+          <h2 className={styles.heading}>Google Meet</h2>
+          <p className={styles.description}>Google Workspace recordings</p>
         </div>
         <SettingsStatus
           label={isConnected ? "Connected" : "Not connected"}
@@ -1108,9 +1097,7 @@ function GoogleMeetCard({
       </div>
 
       <p className="mt-3 text-sm leading-7 text-[var(--forge-muted)]">
-        Import completed Google Meet recordings after each meeting, resolve the
-        Calendar title, and send eligible calls through the existing scoring
-        pipeline.
+        Import completed Google Meet recordings for review, scoring, and coaching.
       </p>
 
       {isConnected ? (
@@ -1126,7 +1113,7 @@ function GoogleMeetCard({
             ) : null}
           </div>
 
-          <div className="grid gap-2 rounded-[8px] border border-[var(--forge-border)] bg-black/10 p-3 text-sm text-[var(--forge-muted)] sm:grid-cols-2">
+          <div className={`${styles.statusRows} text-sm text-[var(--forge-muted)]`}>
             <p>
               <span className="block text-xs">Auto-ingestion</span>
               <span className="font-medium text-[var(--forge-text)]">
@@ -1181,7 +1168,7 @@ function GoogleMeetCard({
             </label>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <select
-                className="min-h-10 rounded-[8px] border border-[var(--forge-border)] bg-black/20 px-3 py-2 text-sm text-[var(--forge-text)] outline-none focus:border-[var(--forge-ember)]"
+                className="min-h-11 rounded-[8px] border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none focus:border-[var(--forge-focus)]"
                 disabled={isMutating || fallbackOwnerOptions.length === 0}
                 id="google-meet-default-owner"
                 onChange={(event) => {
@@ -1227,7 +1214,7 @@ function GoogleMeetCard({
 
       {!available && !isConnected ? (
         <p className="mt-3 text-sm text-[color-mix(in_srgb,var(--forge-ember)_82%,transparent)]">
-          Google Meet is disabled until ARGOS_GOOGLE_MEET_ENABLED is true and OAuth credentials are configured.
+          Google Meet connection is not available for this workspace yet.
         </p>
       ) : null}
       {actionError ? (
@@ -1311,7 +1298,7 @@ function GoogleMeetCard({
           </ForgeButton>
         )}
       </div>
-    </ForgeSurface>
+    </section>
   );
 }
 
@@ -1384,7 +1371,7 @@ function TitleFilterListEditor({
         }}
       >
         <input
-          className="min-h-10 min-w-0 flex-1 rounded-[8px] border border-[var(--forge-border)] bg-black/20 px-3 py-2 text-sm text-[var(--forge-text)] outline-none placeholder:text-[var(--forge-faint)] focus:border-[var(--forge-ember)]"
+          className="min-h-11 min-w-0 flex-1 rounded-[8px] border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none placeholder:text-[var(--forge-muted)] focus:border-[var(--forge-focus)]"
           disabled={disabled || phrases.length >= 50}
           id={inputId}
           maxLength={80}
@@ -1412,7 +1399,7 @@ function TitleFilterListEditor({
         ) : (
           phrases.map((phrase, index) => (
             <div
-              className="flex min-w-0 items-center justify-between gap-3 rounded-[8px] border border-[var(--forge-border)] bg-black/10 px-3 py-2"
+              className="flex min-w-0 items-center justify-between gap-3 rounded-[8px] border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2"
               key={`${phrase}-${index}`}
             >
               <span className="min-w-0 break-words text-sm text-[var(--forge-text)]">
@@ -1420,7 +1407,7 @@ function TitleFilterListEditor({
               </span>
               <ForgeButton
                 aria-label={`Remove ${kind} phrase ${phrase}`}
-                className="h-9 w-9 shrink-0 p-0"
+                className="h-11 w-11 shrink-0 p-0"
                 disabled={disabled}
                 icon="close"
                 onClick={() => onRemove(index)}
@@ -1509,12 +1496,7 @@ function IngestionTitleRulesEditor({
   }
 
   return (
-    <ForgeSurface
-      as="section"
-      className="p-6"
-      data-ingestion-title-rules="true"
-      variant="panel"
-    >
+    <section className={styles.rules} data-ingestion-title-rules="true">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="text-xs font-medium text-[var(--forge-muted)]">Auto-ingestion</p>
@@ -1586,7 +1568,7 @@ function IngestionTitleRulesEditor({
             Test a title
           </label>
           <input
-            className="mt-3 min-h-10 w-full rounded-[8px] border border-[var(--forge-border)] bg-black/20 px-3 py-2 text-sm text-[var(--forge-text)] outline-none placeholder:text-[var(--forge-faint)] focus:border-[var(--forge-ember)]"
+            className="mt-3 min-h-11 w-full rounded-[8px] border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none placeholder:text-[var(--forge-muted)] focus:border-[var(--forge-focus)]"
             id="ingestion-title-preview"
             onChange={(event) => setTestTitle(event.target.value)}
             placeholder="Paste a meeting title"
@@ -1595,7 +1577,7 @@ function IngestionTitleRulesEditor({
         </div>
         <div
           aria-live="polite"
-          className="flex min-h-10 items-center gap-2 rounded-[8px] border border-[var(--forge-border)] bg-black/10 px-3 py-2 text-sm font-medium text-[var(--forge-text)]"
+          className="flex min-h-11 items-center gap-2 rounded-[8px] border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2 text-sm font-medium text-[var(--forge-text)]"
           data-ingestion-title-preview={preview.reason}
         >
           <ForgeIcon
@@ -1630,7 +1612,7 @@ function IngestionTitleRulesEditor({
           {isSaving ? "Saving..." : "Save title rules"}
         </ForgeButton>
       </div>
-    </ForgeSurface>
+    </section>
   );
 }
 
@@ -1648,12 +1630,7 @@ export function IntegrationsPanel({
   );
 
   return (
-    <div className="space-y-5">
-      <IngestionTitleRulesEditor
-        dispatchRulesState={dispatchRulesState}
-        rulesState={rulesState}
-        titleFilterEnforcementEnabled={titleFilterEnforcementEnabled}
-      />
+    <div className={`${styles.root} ${styles.integrationList}`} data-settings-integrations="true">
       {zoom ? (
         <ZoomCard
           autoIngestionConfigured={rulesState.savedConfig.configured}
@@ -1703,6 +1680,11 @@ export function IntegrationsPanel({
           fallbackOwnerOptions={ghl.fallbackOwnerOptions}
         />
       ) : null}
+      <IngestionTitleRulesEditor
+        dispatchRulesState={dispatchRulesState}
+        rulesState={rulesState}
+        titleFilterEnforcementEnabled={titleFilterEnforcementEnabled}
+      />
     </div>
   );
 }

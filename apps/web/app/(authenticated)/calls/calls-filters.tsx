@@ -121,7 +121,7 @@ export function CallsFilters({ initialSearch, scoringEnabled = true }: Props) {
 
   return (
     <div
-      className="grid items-stretch gap-2 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.62fr)_minmax(0,0.72fr)_auto]"
+      className="grid items-stretch gap-2"
       data-calls-filter-bar="operational"
       data-calls-filter-surface="inline"
       data-filter-pending={isPending ? "true" : undefined}
@@ -148,95 +148,25 @@ export function CallsFilters({ initialSearch, scoringEnabled = true }: Props) {
         />
       </div>
 
-      <div className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 py-2">
-        <p className="mb-0.5 text-[0.64rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
-          Status
-        </p>
-        <label className="sr-only" htmlFor="status">
-          Status
-        </label>
-        <select
-          className="w-full border-none bg-transparent px-0 py-0 text-sm font-semibold text-[var(--forge-text)] outline-none focus:ring-0"
-          id="status"
-          onChange={(e) => replaceUrl(buildUrl({ status: e.target.value }))}
-          value={currentStatus}
-        >
-          {STATUS_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 py-2">
-        <p className="mb-0.5 text-[0.64rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
-          Sort By
-        </p>
-        <label className="sr-only" htmlFor="sort">
-          Sort order
-        </label>
-        <select
-          className="w-full border-none bg-transparent px-0 py-0 text-sm font-semibold text-[var(--forge-text)] outline-none focus:ring-0"
-          id="sort"
-          onChange={(e) => replaceUrl(buildUrl({ sort: e.target.value }))}
-          value={currentSort}
-        >
-          {SORT_OPTIONS.filter((option) => scoringEnabled || !option.value.startsWith("overallScore")).map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <ForgeButton
-        aria-label={hasActiveFilters ? "Clear filters" : "No filters to clear"}
-        className={hasActiveFilters ? "min-h-11" : "min-h-11 opacity-45"}
-        disabled={!hasActiveFilters}
-        icon="filter_list"
-        onClick={clearFilters}
-        type="button"
-        variant="secondary"
-      >
-        Clear
-      </ForgeButton>
-
-      {scoringEnabled ? <details
-        className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] lg:col-span-full"
-        open={Boolean(currentMinScore || currentMaxScore)}
-      >
-        <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-sm font-semibold text-[var(--forge-text)] marker:hidden">
-          <span className="flex min-w-0 items-center gap-2">
-            <ForgeIcon
-              className="text-[var(--forge-muted)]"
-              name="tune"
-              size={16}
-            />
-            <span>Score range</span>
-          </span>
-          <span className="text-xs font-semibold text-[var(--forge-muted)]">
-            {scoreRangeLabel}
-          </span>
-        </summary>
-        <div className="grid gap-2 border-t border-[var(--forge-border)] p-2 sm:grid-cols-2">
+      <details className="min-w-0 sm:col-span-full" open={currentStatus !== "all" || currentSort !== "createdAt:desc" || Boolean(currentMinScore || currentMaxScore)} data-calls-advanced-filters="true">
+        <summary className="flex min-h-11 cursor-pointer items-center gap-2 text-sm font-semibold text-[var(--forge-text)]">Filters &amp; sort</summary>
+        <div className="grid items-stretch gap-2 sm:grid-cols-3">
           <div className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 py-2">
             <p className="mb-0.5 text-[0.64rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
-              Min Score
+              Status
             </p>
-            <label className="sr-only" htmlFor="minScore">
-              Minimum score
+            <label className="sr-only" htmlFor="status">
+              Status
             </label>
             <select
               className="w-full border-none bg-transparent px-0 py-0 text-sm font-semibold text-[var(--forge-text)] outline-none focus:ring-0"
-              id="minScore"
-              onChange={(e) => handleMinScoreChange(e.target.value)}
-              value={currentMinScore}
+              id="status"
+              onChange={(e) => replaceUrl(buildUrl({ status: e.target.value }))}
+              value={currentStatus}
             >
-              <option value="">Any</option>
-              {[50, 60, 70, 80, 90].map((v) => (
-                <option key={v} value={v}>
-                  {v}+
+              {STATUS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>
@@ -244,27 +174,102 @@ export function CallsFilters({ initialSearch, scoringEnabled = true }: Props) {
 
           <div className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 py-2">
             <p className="mb-0.5 text-[0.64rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
-              Max Score
+              Sort By
             </p>
-            <label className="sr-only" htmlFor="maxScore">
-              Maximum score
+            <label className="sr-only" htmlFor="sort">
+              Sort order
             </label>
             <select
               className="w-full border-none bg-transparent px-0 py-0 text-sm font-semibold text-[var(--forge-text)] outline-none focus:ring-0"
-              id="maxScore"
-              onChange={(e) => handleMaxScoreChange(e.target.value)}
-              value={currentMaxScore}
+              id="sort"
+              onChange={(e) => replaceUrl(buildUrl({ sort: e.target.value }))}
+              value={currentSort}
             >
-              <option value="">Any</option>
-              {[60, 70, 80, 90, 100].map((v) => (
-                <option key={v} value={v}>
-                  {v}
+              {SORT_OPTIONS.filter((option) => scoringEnabled || !option.value.startsWith("overallScore")).map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>
           </div>
+
+          <ForgeButton
+            aria-label={hasActiveFilters ? "Clear filters" : "No filters to clear"}
+            className={hasActiveFilters ? "min-h-11" : "min-h-11 opacity-45"}
+            disabled={!hasActiveFilters}
+            icon="filter_list"
+            onClick={clearFilters}
+            type="button"
+            variant="secondary"
+          >
+            Clear
+          </ForgeButton>
+
+          {scoringEnabled ? <details
+            className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] sm:col-span-full"
+            open={Boolean(currentMinScore || currentMaxScore)}
+          >
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-sm font-semibold text-[var(--forge-text)] marker:hidden">
+              <span className="flex min-w-0 items-center gap-2">
+                <ForgeIcon
+                  className="text-[var(--forge-muted)]"
+                  name="tune"
+                  size={16}
+                />
+                <span>Score range</span>
+              </span>
+              <span className="text-xs font-semibold text-[var(--forge-muted)]">
+                {scoreRangeLabel}
+              </span>
+            </summary>
+            <div className="grid gap-2 border-t border-[var(--forge-border)] p-2 sm:grid-cols-2">
+              <div className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 py-2">
+                <p className="mb-0.5 text-[0.64rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
+                  Min Score
+                </p>
+                <label className="sr-only" htmlFor="minScore">
+                  Minimum score
+                </label>
+                <select
+                  className="w-full border-none bg-transparent px-0 py-0 text-sm font-semibold text-[var(--forge-text)] outline-none focus:ring-0"
+                  id="minScore"
+                  onChange={(e) => handleMinScoreChange(e.target.value)}
+                  value={currentMinScore}
+                >
+                  <option value="">Any</option>
+                  {[50, 60, 70, 80, 90].map((v) => (
+                    <option key={v} value={v}>
+                      {v}+
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 py-2">
+                <p className="mb-0.5 text-[0.64rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
+                  Max Score
+                </p>
+                <label className="sr-only" htmlFor="maxScore">
+                  Maximum score
+                </label>
+                <select
+                  className="w-full border-none bg-transparent px-0 py-0 text-sm font-semibold text-[var(--forge-text)] outline-none focus:ring-0"
+                  id="maxScore"
+                  onChange={(e) => handleMaxScoreChange(e.target.value)}
+                  value={currentMaxScore}
+                >
+                  <option value="">Any</option>
+                  {[60, 70, 80, 90, 100].map((v) => (
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </details> : null}
         </div>
-      </details> : null}
+      </details>
     </div>
   );
 }

@@ -1,741 +1,119 @@
 import Link from "next/link";
 import { cn } from "@argos-v2/ui";
-import {
-  ForgeChip,
-  ForgeEmptyState,
-  ForgeIcon,
-  ForgeScoreMeter,
-  ForgeStatCard,
-  type ForgeTone,
-} from "@/components/forge";
-import type {
-  ManagerDashboard,
-  RepBadges,
-  RepCard,
-  RepDashboard,
-  WeeklyPoint,
-} from "@/lib/dashboard/service";
+import { ForgeChip, ForgeEmptyState, ForgeIcon } from "@/components/forge";
+import type { ManagerDashboard, RepBadges, RepCard, RepDashboard, WeeklyPoint } from "@/lib/dashboard/service";
 
-type TeamRosterViewProps = {
-  dashboard: ManagerDashboard | null;
-};
-
-type TeamRepProfileViewProps = {
-  badges: RepBadges | null;
-  rep: RepCard;
-  repDashboard: RepDashboard;
-};
-
-const shellPanelClass =
-  "rounded-xl border border-[var(--forge-border)] bg-[var(--forge-table-bg)] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)]";
-
-const insetPanelClass =
-  "rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.6%,transparent)]";
-
-const badgeIconById: Record<string, string> = {
-  first_call: "call",
-  calls_10: "stacked_line_chart",
-  calls_50: "workspace_premium",
-  elite_performer: "military_tech",
-  sharp_closer: "track_changes",
-  discovery_pro: "travel_explore",
-  rapport_builder: "groups_2",
-  certified: "school",
-  roleplay_5x: "theater_comedy",
-};
+type TeamRosterViewProps = { dashboard: ManagerDashboard | null };
+type TeamRepProfileViewProps = { badges: RepBadges | null; rep: RepCard; repDashboard: RepDashboard };
+const panelClass = "min-w-0 overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface)]";
+const badgeIcons: Record<string, string> = { first_call: "call", calls_10: "stacked_line_chart", calls_50: "workspace_premium", elite_performer: "military_tech", sharp_closer: "track_changes", discovery_pro: "travel_explore", rapport_builder: "groups_2", certified: "school", roleplay_5x: "theater_comedy" };
 
 export function TeamRosterView({ dashboard }: TeamRosterViewProps) {
   const reps = dashboard?.reps ?? [];
-  const coachingFlagsCount = dashboard?.coachingFlagsCount ?? 0;
-
+  const coachingCount = dashboard?.coachingFlagsCount ?? 0;
   return (
-    <div className="space-y-3" data-team-workspace="roster-first">
-      <section
-        className="overflow-hidden rounded-xl border border-[var(--forge-border)] bg-[var(--forge-table-bg)] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)]"
-        data-team-roster-table="true"
-      >
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.4%,transparent)] px-4 py-3">
-          <div>
-            <p className="text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
-              Rep roster
-            </p>
-            <p className="mt-1 text-sm text-[var(--forge-muted)]">
-              Scan score, call volume, trend, and coaching status before opening a rep profile.
-            </p>
-          </div>
-          <ForgeChip tone={coachingFlagsCount > 0 ? "ember" : "muted"}>
-            {coachingFlagsCount} need review
-          </ForgeChip>
+    <div data-team-workspace="roster-first">
+      <section className={panelClass} data-team-roster-table="true">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--forge-border)] px-4 py-4">
+          <h2 className="text-sm font-semibold text-[var(--forge-text)]">Rep roster <span className="ml-1 font-normal text-[var(--forge-muted)]">({reps.length})</span></h2>
+          <ForgeChip tone={coachingCount > 0 ? "ember" : "muted"}>{coachingCount} need review</ForgeChip>
         </div>
-
-        {reps.length ? (
-          <>
-            <div className="grid gap-2 p-3 md:hidden">
-              {reps.map((rep) => (
-                <Link
-                  className="rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_2.6%,transparent)] p-3 transition hover:border-[color-mix(in_srgb,var(--forge-gold)_30%,transparent)] hover:bg-[color-mix(in_srgb,var(--forge-gold)_5.5%,transparent)]"
-                  href={`/team/${rep.id}`}
-                  key={rep.id}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-[var(--forge-text)]">
-                        {formatRepName(rep)}
-                      </p>
-                      <p className="mt-1 text-xs text-[var(--forge-muted)]">
-                        {rep.needsCoaching ? "Needs coaching" : "Stable this week"}
-                      </p>
-                    </div>
-                    <StatusChip
-                      label={rep.needsCoaching ? "Needs coaching" : "Stable"}
-                      tone={rep.needsCoaching ? "ember" : "muted"}
-                    />
-                  </div>
-                  <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
-                    <CompactCell label="Avg score" value={formatScore(rep.compositeScore)} />
-                    <CompactCell label="Calls" value={rep.callCount} />
-                    <CompactCell label="Trend" value={formatDelta(rep.weekOverWeekDelta)} />
-                  </div>
-                </Link>
-              ))}
-            </div>
-
-            <div className="hidden overflow-x-auto md:block">
-              <table className="w-full min-w-[760px] border-collapse">
-                <thead>
-                  <tr className="border-b border-[var(--forge-border)] text-left text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
-                    <th className="px-4 py-3" scope="col">Rep</th>
-                    <th className="px-4 py-3" scope="col">Score</th>
-                    <th className="px-4 py-3" scope="col">Calls</th>
-                    <th className="px-4 py-3" scope="col">Trend</th>
-                    <th className="px-4 py-3" scope="col">Status</th>
-                    <th className="px-4 py-3 text-right" scope="col">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--forge-border)]">
-                  {reps.map((rep) => (
-                    <tr
-                      className="transition hover:bg-[color-mix(in_srgb,var(--forge-gold)_4.5%,transparent)]"
-                      key={rep.id}
-                    >
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-3">
-                          <RepAvatar rep={rep} size="md" />
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold text-[var(--forge-text)]">
-                              {formatRepName(rep)}
-                            </p>
-                            <p className="mt-1 text-xs text-[var(--forge-muted)]">
-                              Coaching profile
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className={`forge-tabular-nums px-4 py-4 text-sm font-semibold ${scoreTextClass(rep.compositeScore)}`}>
-                        {formatScore(rep.compositeScore)}
-                      </td>
-                      <td className="forge-tabular-nums px-4 py-4 text-sm text-[var(--forge-text)]">{rep.callCount}</td>
-                      <td className="px-4 py-4 text-sm text-[var(--forge-muted)]">
-                        {formatDelta(rep.weekOverWeekDelta)}
-                      </td>
-                      <td className="px-4 py-4">
-                        <StatusChip
-                          label={rep.needsCoaching ? "Needs coaching" : "Stable"}
-                          tone={rep.needsCoaching ? "ember" : "muted"}
-                        />
-                      </td>
-                      <td className="px-4 py-4 text-right">
-                        <Link
-                          className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--forge-gold)] hover:underline"
-                          href={`/team/${rep.id}`}
-                        >
-                          Open profile
-                          <ForgeIcon name="arrow_forward" size={15} />
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        ) : (
-          <EmptyState
-            body="Share the org slug with reps or upload more calls to populate the team roster."
-            icon="group_off"
-            title="No team members found"
-          />
-        )}
-      </section>
-    </div>
-  );
-
-}
-
-function CompactCell({
-  label,
-  value,
-}: {
-  label: string;
-  value: number | string;
-}) {
-  return (
-    <div>
-      <p className="font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
-        {label}
-      </p>
-      <p className="mt-1 font-semibold text-[var(--forge-text)]">{value}</p>
-    </div>
-  );
-}
-
-function scoreTextClass(value: number | null | undefined) {
-  const tone = scoreTone(value);
-  if (tone === "success") return "text-[var(--forge-success)]";
-  if (tone === "gold") return "text-[var(--forge-gold)]";
-  if (tone === "ember") return "text-[var(--forge-ember)]";
-  if (tone === "danger") return "text-[var(--forge-danger)]";
-  return "text-[var(--forge-muted)]";
-}
-
-export function TeamRepProfileView({
-  badges,
-  rep,
-  repDashboard,
-}: TeamRepProfileViewProps) {
-  const recentCalls = repDashboard.recentCalls;
-  const totalTrendCalls = repDashboard.weeklyTrend.reduce((sum, point) => sum + point.callCount, 0);
-
-  return (
-    <div className="space-y-3" data-rep-profile-workbench="true">
-      <section className="grid gap-3" data-rep-coaching-bench="true">
-        <article className={cn(shellPanelClass, "p-4")}>
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div className="space-y-2">
-              <SectionEyebrow>Focus areas</SectionEyebrow>
-              {repDashboard.categoryAnalyticsContextLabel ? (
-                <p className="text-sm leading-7 text-[var(--forge-muted)]">
-                  {repDashboard.categoryAnalyticsContextLabel}
-                </p>
-              ) : (
-                <p className="text-sm leading-7 text-[var(--forge-muted)]">
-                  Lowest-scoring categories across recent calls.
-                </p>
-              )}
-            </div>
-          </div>
-
-          {repDashboard.lowestCategories.length ? (
-            <div className="mt-6 space-y-4">
-              {repDashboard.lowestCategories.map((category) => (
-                <div className="space-y-2" key={category.category}>
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-sm font-medium text-[var(--forge-text)]">{category.category}</span>
-                    <span className={cn("text-sm font-semibold", scoreTextTone(category.avgScore))}>
-                      {Math.round(category.avgScore)}
-                    </span>
-                  </div>
-                  <ForgeScoreMeter
-                    label={`${category.category} average score`}
-                    tone={toForgeTone(scoreTone(category.avgScore))}
-                    value={category.avgScore}
-                  />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <EmptyInsetState body="No focus categories yet for this rep." icon="signal_cellular_nodata" />
-          )}
-        </article>
-
-        <article className={cn(shellPanelClass, "p-4")}>
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div className="space-y-2">
-              <SectionEyebrow>Weekly trend</SectionEyebrow>
-              <p className="text-sm leading-7 text-[var(--forge-muted)]">Past 12 weeks of scored-call performance.</p>
-            </div>
-            <span className="rounded-lg border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_4%,transparent)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--forge-muted)]">
-              {totalTrendCalls} calls reviewed
-            </span>
-          </div>
-
-          <WeeklyTrendBars points={repDashboard.weeklyTrend} />
-        </article>
-      </section>
-
-      <section className="grid gap-3">
-        <article className={cn(shellPanelClass, "p-4")}>
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div className="space-y-2">
-              <SectionEyebrow>Recent calls</SectionEyebrow>
-              <p className="text-sm leading-7 text-[var(--forge-muted)]">Most recent scored calls available for review.</p>
-            </div>
-            <Link
-              className="rounded-lg border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--forge-gold)] transition hover:border-[var(--forge-gold)]/35 hover:bg-[var(--forge-gold)]/[0.15] active:scale-[0.98]"
-              href="/calls"
-            >
-              Open calls
-            </Link>
-          </div>
-
-          {recentCalls.length ? (
-            <div className="mt-6 space-y-3">
-              {recentCalls.map((call) => (
-                <Link
-                  className={cn(
-                    insetPanelClass,
-                    "group flex flex-col gap-3 p-4 transition duration-300 hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/5 active:scale-[0.99] sm:flex-row sm:items-center sm:justify-between",
-                  )}
-                  href={`/calls/${call.id}`}
-                  key={call.id}
-                >
-                  <div className="space-y-2">
-                    <p className="text-sm font-semibold text-[var(--forge-text)]">
-                      {call.callTopic ?? "Untitled call"}
-                    </p>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs uppercase tracking-[0.18em] text-[var(--forge-muted)]">
-                      <span>{formatTimestamp(call.createdAt)}</span>
-                      <span>{call.status}</span>
-                      {typeof call.durationSeconds === "number" ? (
-                        <span>{formatDuration(call.durationSeconds)}</span>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-4 sm:justify-end">
-                    <div className="text-right">
-                      <p className={cn("text-lg font-semibold", scoreTextTone(call.overallScore))}>
-                        {formatScore(call.overallScore)}
-                      </p>
-                      <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-[var(--forge-muted)]">
-                        Overall score
-                      </p>
-                    </div>
-                    <ForgeIcon
-                      className="text-[var(--forge-gold)] transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-                      name="arrow_outward"
-                      size={20}
-                    />
-                  </div>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <EmptyInsetState body="No recent calls for this rep yet." icon="call_log" />
-          )}
-        </article>
-
-        <article className={cn(shellPanelClass, "p-4")}>
-          <div className="space-y-2">
-            <SectionEyebrow>Badges &amp; milestones</SectionEyebrow>
-            <p className="text-sm leading-7 text-[var(--forge-muted)]">Progress markers already earned or still in progress.</p>
-          </div>
-
-          {(badges?.badges ?? []).length ? (
-            <div className="mt-6 grid gap-3">
-              {(badges?.badges ?? []).map((badge) => (
-                <div
-                  className={cn(
-                    insetPanelClass,
-                    "flex items-start gap-4 p-4",
-                    badge.earned
-                      ? "border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/[0.08]"
-                      : "opacity-80",
-                  )}
-                  key={badge.id}
-                >
-                  <div
-                    className={cn(
-                      "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border text-[var(--forge-text)]",
-                      badge.earned
-                        ? "border-[var(--forge-gold)]/25 bg-[var(--forge-gold)]/[0.12] text-[var(--forge-gold)]"
-                        : "border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface-2)]/35 text-[var(--forge-muted)]",
-                    )}
-                  >
-                    <ForgeIcon name={badgeIconById[badge.id] ?? "bookmark"} size={20} />
-                  </div>
-                  <div className="min-w-0 space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-semibold text-[var(--forge-text)]">{badge.name}</p>
-                      <StatusChip label={badge.earned ? "Earned" : "In progress"} tone={badge.earned ? "gold" : "muted"} />
-                    </div>
-                    <p className="text-sm leading-6 text-[var(--forge-muted)]">{badge.description}</p>
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--forge-muted)]">
-                      {badge.earnedAt ? `Earned ${formatShortDate(badge.earnedAt)}` : "Not earned yet"}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <EmptyInsetState body="No badges available yet." icon="workspace_premium" />
-          )}
-        </article>
-      </section>
-    </div>
-  );
-}
-
-function HighlightStat({
-  description,
-  icon,
-  label,
-  tone,
-  value,
-}: {
-  description: string;
-  icon: string;
-  label: string;
-  tone: Tone;
-  value: number | string;
-}) {
-  return (
-    <ForgeStatCard
-      className="p-4 sm:p-5"
-      description={description}
-      icon={icon}
-      label={label}
-      tone={toForgeTone(tone)}
-      value={value}
-      variant="inset"
-    />
-  );
-}
-
-function MetricPanel({
-  description,
-  icon,
-  label,
-  tone,
-  value,
-}: {
-  description: string;
-  icon: string;
-  label: string;
-  tone: Tone;
-  value: number | string;
-}) {
-  return (
-    <ForgeStatCard
-      className="p-5"
-      description={description}
-      icon={icon}
-      label={label}
-      tone={toForgeTone(tone)}
-      value={value}
-      variant="panel"
-    />
-  );
-}
-
-function CompactMetric({
-  label,
-  value,
-}: {
-  label: string;
-  value: number | string;
-}) {
-  return (
-    <ForgeStatCard
-      className="p-3"
-      label={label}
-      tone="muted"
-      value={value}
-      valueSize="compact"
-      variant="inset"
-    />
-  );
-}
-
-function ScoreMetric({ score }: { score: number | null }) {
-  return (
-    <div className="flex min-w-0 flex-col justify-center gap-2">
-      <p className={cn("text-lg font-semibold", scoreTextTone(score))}>{formatScore(score)}</p>
-      <ScoreMeter score={score} />
-    </div>
-  );
-}
-
-function ScoreMeter({ score }: { score: number | null }) {
-  return (
-    <ForgeScoreMeter
-      className="w-24"
-      label="Rep average score"
-      tone={toForgeTone(scoreTone(score))}
-      value={score}
-    />
-  );
-}
-
-function DeltaTrack({ delta }: { delta: number | null }) {
-  const left = `${deltaTrackLeft(delta)}%`;
-
-  return (
-    <div className="relative h-4">
-      <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-[var(--forge-border-strong)]/10" />
-      <div className="absolute left-1/2 top-1/2 h-2.5 w-px -translate-x-1/2 -translate-y-1/2 bg-[var(--forge-border-strong)]/20" />
-      <span
-        className={cn(
-          "absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[var(--forge-border-strong)]/10 shadow-[0_0_0_4px_color-mix(in_srgb,var(--forge-gold)_4%,transparent)]",
-          deltaTrackTone(delta),
-        )}
-        style={{ left }}
-      />
-    </div>
-  );
-}
-
-function WeeklyTrendBars({ points }: { points: WeeklyPoint[] }) {
-  if (!points.some((point) => typeof point.avgScore === "number")) {
-    return <EmptyInsetState body="No weekly trend available yet." icon="analytics" className="mt-6" />;
-  }
-
-  return (
-    <div className="mt-6 space-y-4">
-      <div className={cn(insetPanelClass, "p-4")}>
-        <div className="grid h-44 grid-cols-12 items-end gap-2">
-          {points.map((point) => {
-            const hasScore = typeof point.avgScore === "number";
-            const height = hasScore ? Math.max(14, Math.round(point.avgScore ?? 0)) : 12;
-            return (
-              <div className="flex h-full flex-col justify-end gap-2" key={point.week}>
-                <div className="flex-1" />
-                <div
-                  className={cn(
-                    "rounded-t-full transition-transform duration-300",
-                    hasScore ? scoreBarTone(point.avgScore ?? null) : "bg-[var(--forge-surface-3)]",
-                  )}
-                  style={{ height: `${height}%`, opacity: hasScore ? 1 : 0.6 }}
-                  title={`${formatWeek(point.week)} · ${hasScore ? `${Math.round(point.avgScore ?? 0)} average` : "No score"} · ${point.callCount} calls`}
-                />
+        {reps.length ? <>
+          <div className="divide-y divide-[var(--forge-border)] md:hidden" data-team-mobile-roster="true">
+            {reps.map((rep) => <Link className="block min-w-0 space-y-3 p-4 hover:bg-[var(--forge-surface-2)]" href={`/team/${rep.id}`} key={rep.id}>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="min-w-0 break-words text-sm font-semibold text-[var(--forge-text)]">{formatRepName(rep)}</p>
+                <ForgeChip tone={rep.needsCoaching ? "ember" : "muted"}>{rep.needsCoaching ? "Needs coaching" : "Stable"}</ForgeChip>
               </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-4 gap-3 text-[11px] uppercase tracking-[0.18em] text-[var(--forge-muted)]">
-        {[0, 3, 7, 11].map((index) => (
-          <span key={points[index]?.week}>{points[index] ? formatWeek(points[index].week) : "—"}</span>
-        ))}
-      </div>
+              <dl className="grid grid-cols-3 gap-3 text-sm">
+                <Cell label="Avg score" value={formatScore(rep.compositeScore)} />
+                <Cell label="Calls" value={rep.callCount} />
+                <Cell label="Trend" value={formatDelta(rep.weekOverWeekDelta)} />
+              </dl>
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-[var(--forge-gold)]">Open profile <ForgeIcon name="arrow_forward" size={14} /></span>
+            </Link>)}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full min-w-[640px] border-collapse text-sm">
+              <thead><tr className="border-b border-[var(--forge-border)] text-left text-xs font-medium text-[var(--forge-muted)]">
+                {['Rep','Score','Calls','Trend','Status'].map((label) => <th className="px-4 py-3 font-medium" key={label} scope="col">{label}</th>)}
+                <th className="px-4 py-3 text-right font-medium" scope="col">Action</th>
+              </tr></thead>
+              <tbody className="divide-y divide-[var(--forge-border)]">
+                {reps.map((rep) => <tr className="hover:bg-[var(--forge-surface-2)]" key={rep.id}>
+                  <td className="px-4 py-3"><Link className="flex min-h-11 items-center gap-3 font-medium text-[var(--forge-text)] hover:underline" href={`/team/${rep.id}`}><RepAvatar rep={rep} /><span className="break-words">{formatRepName(rep)}</span></Link></td>
+                  <td className={cn("forge-tabular-nums px-4 py-3 font-semibold", scoreClass(rep.compositeScore))}>{formatScore(rep.compositeScore)}</td>
+                  <td className="forge-tabular-nums px-4 py-3 text-[var(--forge-text)]">{rep.callCount}</td>
+                  <td className="forge-tabular-nums px-4 py-3 text-[var(--forge-text)]">{formatDelta(rep.weekOverWeekDelta)}</td>
+                  <td className="px-4 py-3"><ForgeChip tone={rep.needsCoaching ? "ember" : "muted"}>{rep.needsCoaching ? "Needs coaching" : "Stable"}</ForgeChip></td>
+                  <td className="px-4 py-3 text-right"><Link className="inline-flex min-h-11 items-center gap-1 font-medium text-[var(--forge-gold)] hover:underline" href={`/team/${rep.id}`}>Open profile <ForgeIcon name="arrow_forward" size={15} /></Link></td>
+                </tr>)}
+              </tbody>
+            </table>
+          </div>
+        </> : <ForgeEmptyState className="p-6" description="Share the org slug with reps or upload more calls to populate the team roster." icon="group_off" title="No team members found" />}
+      </section>
     </div>
   );
 }
 
-function InlineSummary({
-  label,
-  value,
-}: {
-  label: string;
-  value: number | string;
-}) {
+export function TeamRepProfileView({ badges, rep, repDashboard }: TeamRepProfileViewProps) {
+  const totalTrendCalls = repDashboard.weeklyTrend.reduce((sum, point) => sum + point.callCount, 0);
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-[var(--forge-border-strong)]/10 pb-3 last:border-b-0 last:pb-0">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--forge-muted)]">{label}</span>
-      <span className="text-base font-semibold text-[var(--forge-text)]">{value}</span>
+    <div className="min-w-0 space-y-6" data-rep-profile-workbench="true">
+      <section className="min-w-0" data-rep-coaching-bench="true">
+        <div className="mb-3"><h2 className="text-base font-semibold text-[var(--forge-text)]">Focus areas</h2><p className="mt-1 max-w-[70ch] text-sm leading-6 text-[var(--forge-muted)]">{repDashboard.categoryAnalyticsContextLabel ?? "Lowest-scoring categories across recent calls."}</p></div>
+        {repDashboard.lowestCategories.length ? <dl className="divide-y divide-[var(--forge-border)] border-y border-[var(--forge-border)]">
+          {repDashboard.lowestCategories.map((category) => <div className="flex items-center justify-between gap-4 py-3 text-sm" key={category.category}><dt className="text-[var(--forge-text)]">{category.category}</dt><dd className={cn("forge-tabular-nums font-semibold", scoreClass(category.avgScore))}>{Math.round(category.avgScore)}</dd></div>)}
+        </dl> : <Empty description="No focus categories yet for this rep." />}
+      </section>
+      <section className={panelClass}>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--forge-border)] px-4 py-3"><h2 className="text-base font-semibold text-[var(--forge-text)]">Recent calls</h2><Link className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--forge-gold)] hover:underline" href="/calls">Open calls</Link></div>
+        {repDashboard.recentCalls.length ? <div className="divide-y divide-[var(--forge-border)]">
+          {repDashboard.recentCalls.map((call) => <Link className="flex min-w-0 flex-wrap items-center justify-between gap-4 px-4 py-4 hover:bg-[var(--forge-surface-2)]" href={`/calls/${call.id}`} key={call.id}>
+            <div className="min-w-0 flex-1 basis-48"><p className="break-words text-sm font-medium text-[var(--forge-text)]">{call.callTopic ?? "Untitled call"}</p><p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--forge-muted)]"><span>{formatDate(call.createdAt, true)}</span><span>{call.status}</span>{typeof call.durationSeconds === "number" ? <span>{Math.floor(call.durationSeconds / 60)}:{String(call.durationSeconds % 60).padStart(2,"0")}</span> : null}</p></div>
+            <div className="flex shrink-0 items-center gap-4"><div className="text-right"><p className={cn("forge-tabular-nums text-lg font-semibold", scoreClass(call.overallScore))}>{formatScore(call.overallScore)}</p><p className="text-xs text-[var(--forge-muted)]">Overall score</p></div><ForgeIcon name="arrow_forward" size={16} /></div>
+          </Link>)}
+        </div> : <Empty description="No recent calls for this rep yet." />}
+      </section>
+      <details className="border-y border-[var(--forge-border)]" data-rep-trend="disclosure">
+        <summary className="flex min-h-11 cursor-pointer flex-wrap items-center justify-between gap-2 py-3 text-sm font-medium text-[var(--forge-text)]"><span>Weekly trend</span><span className="forge-tabular-nums text-xs font-normal text-[var(--forge-muted)]">{totalTrendCalls} calls</span></summary>
+        <WeeklyTrend points={repDashboard.weeklyTrend} />
+      </details>
+      <details className="border-b border-[var(--forge-border)]" data-rep-milestones="disclosure">
+        <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium text-[var(--forge-text)]">Badges &amp; milestones <span className="ml-1 font-normal text-[var(--forge-muted)]">({badges?.badges.filter((badge) => badge.earned).length ?? 0} earned)</span></summary>
+        {badges?.badges.length ? <div className="divide-y divide-[var(--forge-border)]">{badges.badges.map((badge) => <div className="flex items-start gap-3 py-4" key={badge.id}>
+          <ForgeIcon className="mt-1 shrink-0 text-[var(--forge-muted)]" name={badgeIcons[badge.id] ?? "bookmark"} size={20} />
+          <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="text-sm font-medium text-[var(--forge-text)]">{badge.name}</h3><ForgeChip tone={badge.earned ? "success" : "muted"}>{badge.earned ? "Earned" : "In progress"}</ForgeChip></div><p className="mt-1 max-w-[70ch] text-sm leading-6 text-[var(--forge-muted)]">{badge.description}</p><p className="mt-1 text-xs text-[var(--forge-muted)]">{badge.earnedAt ? `Earned ${formatDate(badge.earnedAt)}` : "Not earned yet"}</p></div>
+        </div>)}</div> : <Empty description="No badges available yet." />}
+      </details>
     </div>
   );
 }
-
-function EmptyState({
-  body,
-  icon,
-  title,
-}: {
-  body: string;
-  icon: string;
-  title: string;
-}) {
-  return (
-    <ForgeEmptyState
-      className="px-6 py-12"
-      description={body}
-      icon={icon}
-      title={title}
-    />
-  );
+function WeeklyTrend({ points }: { points: WeeklyPoint[] }) {
+  return points.length ? <div className="pb-3"><table className="w-full text-left text-sm"><thead className="text-xs text-[var(--forge-muted)]"><tr><th className="py-2 font-medium" scope="col">Week of</th><th className="py-2 font-medium" scope="col">Avg score</th><th className="py-2 text-right font-medium" scope="col">Calls</th></tr></thead><tbody className="divide-y divide-[var(--forge-border)]">{points.map((point) => <tr key={point.week}><td className="py-2 text-[var(--forge-text)]"><WeekDate value={point.week} /></td><td className={cn("forge-tabular-nums py-2", scoreClass(point.avgScore))}>{typeof point.avgScore === "number" ? Math.round(point.avgScore) : "—"}</td><td className="forge-tabular-nums py-2 text-right text-[var(--forge-text)]">{point.callCount}</td></tr>)}</tbody></table></div> : <Empty description="No weekly trend available yet." />;
 }
-
-function EmptyInsetState({
-  body,
-  className,
-  icon,
-}: {
-  body: string;
-  className?: string;
-  icon: string;
-}) {
-  return (
-    <ForgeEmptyState
-      className={cn("px-5 py-8", className)}
-      description={body}
-      icon={icon}
-      title="No data yet"
-    />
-  );
+function Cell({ label, value }: { label: string; value: number | string }) { return <div><dt className="text-xs text-[var(--forge-muted)]">{label}</dt><dd className="forge-tabular-nums mt-1 font-medium text-[var(--forge-text)]">{value}</dd></div>; }
+function Empty({ description }: { description: string }) { return <ForgeEmptyState className="px-4 py-6" description={description} title="No data yet" />; }
+function RepAvatar({ rep }: { rep: RepCard }) { return rep.profileImageUrl ? <img alt="" className="h-9 w-9 shrink-0 rounded-lg object-cover" src={rep.profileImageUrl} /> : <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--forge-surface-2)] text-xs text-[var(--forge-text)]">{[rep.firstName,rep.lastName].filter(Boolean).map((name) => name?.[0]).join("") || "AR"}</span>; }
+function formatRepName(rep: RepCard) { return [rep.firstName, rep.lastName].filter(Boolean).join(" ") || "Unknown rep"; }
+function formatScore(value: number | null | undefined) { return value ?? "—"; }
+function formatDelta(value: number | null | undefined) { return value == null ? "—" : `${value > 0 ? "+" : ""}${value}`; }
+function scoreClass(value: number | null | undefined) { return typeof value !== "number" ? "text-[var(--forge-muted)]" : value >= 85 ? "text-[var(--forge-success)]" : value >= 70 ? "text-[var(--forge-text)]" : value >= 60 ? "text-[var(--forge-ember)]" : "text-[var(--forge-danger)]"; }
+function parseDate(value: string) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return null;
+  // Service week keys are YYYY-MM-DD; reject impossible dates rather than rolling into another month.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value) && date.toISOString().slice(0, 10) !== value) return null;
+  return date;
 }
-
-function RepAvatar({
-  rep,
-  size = "lg",
-}: {
-  rep: Pick<RepCard, "firstName" | "lastName" | "profileImageUrl">;
-  size?: "md" | "lg" | "xl";
-}) {
-  const sizeClass =
-    size === "xl" ? "h-[4.5rem] w-[4.5rem] text-xl" : size === "md" ? "h-11 w-11 text-sm" : "h-12 w-12 text-sm";
-
-  if (rep.profileImageUrl) {
-    return (
-      <img
-        alt={formatRepName(rep)}
-        className={cn("shrink-0 rounded-2xl border border-[var(--forge-border-strong)]/10 object-cover", sizeClass)}
-        src={rep.profileImageUrl}
-      />
-    );
-  }
-
-  return (
-    <div
-      className={cn(
-        "flex shrink-0 items-center justify-center rounded-2xl border border-[var(--forge-gold)]/20 bg-[var(--forge-gold)]/10 font-semibold text-[var(--forge-gold)]",
-        sizeClass,
-      )}
-    >
-      {initials(rep.firstName, rep.lastName)}
-    </div>
-  );
+function WeekDate({ value }: { value: string }) {
+  const date = parseDate(value);
+  return date ? <time dateTime={date.toISOString().slice(0, 10)}>{formatDate(value)}</time> : <>Date unavailable</>;
 }
-
-function StatusChip({
-  label,
-  tone,
-}: {
-  label: string;
-  tone: Tone;
-}) {
-  return (
-    <ForgeChip className="px-2.5 py-1 text-[10px] tracking-[0.18em]" tone={toForgeTone(tone)}>
-      {label}
-    </ForgeChip>
-  );
-}
-
-function SectionEyebrow({ children }: { children: string }) {
-  return <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-gold)]">{children}</p>;
-}
-
-function formatRepName(rep: Pick<RepCard, "firstName" | "lastName">) {
-  return [rep.firstName, rep.lastName].filter(Boolean).join(" ").trim() || "Unknown rep";
-}
-
-function formatScore(value: number | null | undefined) {
-  return typeof value === "number" ? value : "—";
-}
-
-function formatDelta(value: number | null | undefined) {
-  if (typeof value !== "number") return "—";
-  if (value > 0) return `+${value}`;
-  return `${value}`;
-}
-
-function formatTimestamp(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
-
-function formatShortDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(value));
-}
-
-function formatDuration(seconds: number) {
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
-}
-
-function formatWeek(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-  }).format(new Date(`${value}T00:00:00.000Z`));
-}
-
-function initials(firstName: string | null, lastName: string | null) {
-  const value = [firstName, lastName]
-    .filter(Boolean)
-    .map((part) => part?.[0]?.toUpperCase())
-    .join("");
-
-  return value || "AR";
-}
-
-function deltaTrackLeft(value: number | null | undefined) {
-  if (typeof value !== "number") return 50;
-  const clamped = Math.max(-20, Math.min(20, value));
-  return 50 + clamped * 2;
-}
-
-type Tone = ForgeTone | "red";
-
-function toForgeTone(tone: Tone): ForgeTone {
-  return tone === "red" ? "danger" : tone;
-}
-
-function scoreTone(value: number | null | undefined): Tone {
-  if (typeof value !== "number") return "muted";
-  if (value >= 85) return "success";
-  if (value >= 70) return "gold";
-  if (value >= 60) return "ember";
-  return "red";
-}
-
-function deltaTone(value: number | null | undefined): Tone {
-  if (typeof value !== "number" || value === 0) return "muted";
-  return value > 0 ? "success" : "ember";
-}
-
-function trendTextTone(value: number | null | undefined) {
-  if (typeof value !== "number") return "text-[var(--forge-muted)]";
-  if (value > 0) return "text-[var(--forge-success)]";
-  if (value < 0) return "text-[var(--forge-ember)]";
-  return "text-[var(--forge-text)]";
-}
-
-function toneTextClass(tone: Tone) {
-  if (tone === "success") return "text-[var(--forge-success)]";
-  if (tone === "ember") return "text-[var(--forge-ember)]";
-  if (tone === "red") return "text-[var(--forge-danger)]";
-  if (tone === "muted") return "text-[var(--forge-text)]";
-  if (tone === "cyan") return "text-[var(--forge-cyan)]";
-  return "text-[var(--forge-gold)]";
-}
-
-function scoreTextTone(value: number | null | undefined) {
-  return toneTextClass(scoreTone(value));
-}
-
-function scoreBarTone(value: number | null | undefined) {
-  const tone = scoreTone(value);
-
-  if (tone === "success") return "bg-[var(--forge-success)]";
-  if (tone === "ember") return "bg-[var(--forge-ember)]";
-  if (tone === "red") return "bg-[var(--forge-danger)]";
-  if (tone === "muted") return "bg-[color-mix(in_srgb,var(--forge-text)_18%,transparent)]";
-  if (tone === "cyan") return "bg-[var(--forge-cyan)]";
-  return "bg-[var(--forge-gold)]";
-}
-
-function deltaTrackTone(value: number | null | undefined) {
-  const tone = deltaTone(value);
-
-  if (tone === "success") return "bg-[var(--forge-success)]";
-  if (tone === "ember") return "bg-[var(--forge-ember)]";
-  if (tone === "red") return "bg-[var(--forge-danger)]";
-  if (tone === "muted") return "bg-[color-mix(in_srgb,var(--forge-text)_46%,transparent)]";
-  if (tone === "cyan") return "bg-[var(--forge-cyan)]";
-  return "bg-[var(--forge-gold)]";
+function formatDate(value: string, time = false) {
+  const date = parseDate(value);
+  return date
+    ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium", ...(time ? { timeStyle: "short" as const } : {}), timeZone: "UTC" }).format(date)
+    : "Date unavailable";
 }

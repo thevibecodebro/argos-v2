@@ -1,45 +1,7 @@
-import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
-import {
-  OperationalToolbar,
-  OperationalWorkspace,
-} from "@/components/operational-workspace";
-import { TrainingLearnerPanel } from "@/components/panel-loaders/training-learner-panel-loader";
+import { TrainingLearnerPageView } from "@/components/training/training-pages";
 import { loadTrainingPageData } from "./training-page-data";
 
 export default async function TrainingPage() {
-  const {
-    canManage,
-    modules,
-  } = await loadTrainingPageData();
-  const actions = canManage
-    ? [
-        { href: "/training/team", icon: "groups", label: "Team progress", variant: "secondary" as const },
-        { href: "/training/builder", icon: "edit_note", label: "Curriculum", variant: "secondary" as const },
-      ]
-    : [{ href: "/highlights", icon: "auto_awesome", label: "Open highlights", variant: "secondary" as const }];
-
-  return (
-    <AuthenticatedPageContainer>
-      <OperationalWorkspace data-training-route="operational-workspace">
-        <OperationalToolbar
-          actions={actions}
-          description="Review assigned modules and complete the next lesson."
-          eyebrow="Coach"
-          status={{
-            icon: "school",
-            label: "My training",
-            tone: "muted",
-          }}
-          title="Training"
-        />
-
-        <section
-          className="min-w-0"
-          data-training-workspace="module-progress"
-        >
-          <TrainingLearnerPanel initialModules={modules} />
-        </section>
-      </OperationalWorkspace>
-    </AuthenticatedPageContainer>
-  );
+  const { canManage, canViewHighlights, canViewManagerPages, modules } = await loadTrainingPageData();
+  return <TrainingLearnerPageView canManage={canManage} canViewHighlights={canViewHighlights} canViewManagerPages={canViewManagerPages} modules={modules} />;
 }

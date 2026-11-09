@@ -1,3 +1,4 @@
+import { loadSettingsRailItems } from "../settings-navigation-data";
 import { redirect } from "next/navigation";
 import { WorkspaceBrandingPanel } from "@/components/settings/workspace-branding-panel";
 import {
@@ -18,6 +19,7 @@ export default async function SettingsBrandingPage() {
 
   return (
     <SettingsOperationalLayout
+      railItems={await loadSettingsRailItems()}
       description="Control workspace colors for buttons, text, surfaces, status states, and focus indicators."
       route="branding"
       title="Branding"

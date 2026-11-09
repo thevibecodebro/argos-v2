@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
-import { navGroups } from "../components/app-navigation";
+import { getVisibleNavGroups } from "../components/app-navigation";
 
 const repoRoot = new URL("..", import.meta.url).pathname;
 const authenticatedRoot = join(repoRoot, "app/(authenticated)");
@@ -29,9 +29,9 @@ describe("authenticated backend readability scope", () => {
       new URL("../components/app-navigation.ts", import.meta.url),
       "utf8",
     );
-    const primaryNavigationEntries = navGroups.flatMap((group) =>
-      group.items.map(({ href, icon, label }) => ({ href, icon, label })),
-    );
+    const primaryNavigationEntries = getVisibleNavGroups("admin")
+      .flatMap((group) => group.items)
+      .map(({ href, label, icon }) => ({ href, label, icon }));
 
     expect(primaryNavigationEntries).toEqual([
       { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
