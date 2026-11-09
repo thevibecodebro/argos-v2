@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { cn } from "@argos-v2/ui";
 import { ArgosLogo } from "@/components/argos-logo";
 import { ForgeChip, ForgeIcon } from "@/components/forge";
+import { DEFAULT_WORKSPACE_THEME, workspaceThemeToForgeVars } from "@/lib/organizations/workspace-theme";
+import styles from "./platform-console.module.css";
 import { PlatformOrganizationSwitcher } from "./platform-organization-switcher";
 import type {
   PlatformConsoleActiveSession,
@@ -42,6 +44,9 @@ export function PlatformShell({
 }: PlatformShellProps) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [primaryRailCollapsed, setPrimaryRailCollapsed] = useState(false);
+  const drawerRef = useRef<HTMLElement>(null);
+  const mobileTriggerRef = useRef<HTMLButtonElement>(null);
+  const mobileCloseRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const saved = window.localStorage.getItem("argos.primaryRailCollapsed");
@@ -49,6 +54,74 @@ export function PlatformShell({
       setPrimaryRailCollapsed(saved === "true");
     }
   }, []);
+
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+    const drawer = drawerRef.current;
+    const trigger = mobileTriggerRef.current;
+    if (!drawer) return;
+    const previousOverflow = document.body.style.overflow;
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    document.body.style.overflow = "hidden";
+    mobileCloseRef.current?.focus({ preventScroll: true });
+
+    function focusableControls() {
+      return Array.from(drawer!.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      )).filter(element => element.tabIndex >= 0 &&
+        !element.closest('[hidden], [inert], [aria-hidden="true"]') &&
+        getComputedStyle(element).visibility !== "hidden" &&
+        Boolean(element.offsetWidth || element.offsetHeight || element.getClientRects().length));
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      const switcherIsOpen = drawer!.querySelector(
+        '[data-platform-organization-switcher-menu][data-state="open"]',
+      );
+      if (event.key === "Escape" && !event.defaultPrevented && !switcherIsOpen) {
+        event.preventDefault();
+        setMobileNavOpen(false);
+        return;
+      }
+      if (event.key !== "Tab" || event.defaultPrevented) return;
+      const controls = focusableControls();
+      const first = controls[0] ?? drawer!;
+      const last = controls.at(-1) ?? drawer!;
+      if (!drawer!.contains(document.activeElement) ||
+          (event.shiftKey && document.activeElement === first) ||
+          (!event.shiftKey && document.activeElement === last)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus({ preventScroll: true });
+      }
+    }
+
+    function containFocus(event: FocusEvent) {
+      if (event.target instanceof Node && !drawer!.contains(event.target)) {
+        (mobileCloseRef.current ?? drawer!).focus({ preventScroll: true });
+      }
+    }
+
+    function closeOnDesktop() {
+      if (desktop.matches) setMobileNavOpen(false);
+    }
+
+    closeOnDesktop();
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("focusin", containFocus);
+    desktop.addEventListener("change", closeOnDesktop);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("focusin", containFocus);
+      desktop.removeEventListener("change", closeOnDesktop);
+      document.body.style.overflow = previousOverflow;
+      const restoreTarget = desktop.matches
+        ? drawer!.querySelector<HTMLElement>('[aria-current="page"]')
+        : trigger;
+      if (restoreTarget && document.contains(restoreTarget)) {
+        restoreTarget.focus({ preventScroll: true });
+      }
+    };
+  }, [mobileNavOpen]);
 
   function togglePrimaryRail() {
     setPrimaryRailCollapsed((current) => {
@@ -60,46 +133,64 @@ export function PlatformShell({
 
   return (
     <div
-      className="forge-shell min-h-dvh text-[var(--forge-text)]"
+      className={`${styles.shell} forge-shell min-h-dvh text-[var(--forge-text)]`}
       data-platform-shell="true"
       data-primary-rail-collapsed={primaryRailCollapsed ? "true" : "false"}
       data-shell-theme="forge"
+      style={workspaceThemeToForgeVars(DEFAULT_WORKSPACE_THEME) as CSSProperties}
     >
       {mobileNavOpen ? (
         <button
           aria-label="Close navigation"
           className="fixed inset-0 z-40 bg-[var(--forge-overlay-bg)] lg:hidden"
+          data-platform-navigation-backdrop="true"
           onClick={() => setMobileNavOpen(false)}
+          tabIndex={-1}
           type="button"
         />
       ) : null}
 
       <aside
+        aria-label={mobileNavOpen ? "Platform navigation" : undefined}
+        aria-modal={mobileNavOpen ? true : undefined}
         className={cn(
-          "forge-sidebar fixed inset-y-0 left-0 z-50 flex h-dvh w-64 flex-col px-4 py-5 transition-[width,padding,transform] duration-[220ms] ease-[cubic-bezier(0.23,1,0.32,1)] lg:px-4",
+          "forge-sidebar fixed inset-y-0 left-0 z-50 flex h-dvh w-64 flex-col overflow-y-auto px-4 py-5 transition-[width,padding,transform] duration-[220ms] ease-[cubic-bezier(0.23,1,0.32,1)] has-[[data-platform-organization-switcher-menu][data-state=open]]:overflow-visible lg:px-4",
           primaryRailCollapsed && "lg:w-20 lg:px-3",
           mobileNavOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
         data-platform-sidebar="true"
         data-primary-rail-collapsed={primaryRailCollapsed ? "true" : "false"}
+        data-mobile-nav-open={mobileNavOpen ? "true" : "false"}
         id="platform-navigation"
+        ref={drawerRef}
+        role={mobileNavOpen ? "dialog" : undefined}
+        tabIndex={-1}
       >
-        <div className={cn("mb-7 px-1", primaryRailCollapsed && "lg:px-0")}>
+        <div className={cn("mb-5 px-1 lg:shrink-0", primaryRailCollapsed && "lg:px-0")}>
           <div className="flex items-center justify-between gap-3">
             <div className={cn(primaryRailCollapsed && "lg:sr-only")}>
               <ArgosLogo
-                className="block w-28"
+                className="block w-28 rounded-md bg-[#0A0A0A] px-2 py-2"
                 decorative
                 imageClassName="block h-auto w-full"
                 placement="primary-rail"
               />
-              <p className="mt-0.5 font-[var(--font-display)] text-[0.62rem] font-bold uppercase tracking-[0.24em] text-[var(--forge-gold)]">
+              <p className="mt-1 text-xs font-medium text-[var(--forge-muted)]">
                 Argos Admin Dashboard
               </p>
             </div>
             <button
+              aria-label="Close navigation"
+              className="forge-icon-button flex h-11 w-11 shrink-0 items-center justify-center rounded-lg lg:hidden"
+              onClick={() => setMobileNavOpen(false)}
+              ref={mobileCloseRef}
+              type="button"
+            >
+              <ForgeIcon name="close" size={20} />
+            </button>
+            <button
               aria-label={primaryRailCollapsed ? "Expand navigation" : "Collapse navigation"}
-              className="forge-icon-button hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl lg:flex"
+              className="forge-icon-button hidden h-11 w-11 shrink-0 items-center justify-center rounded-lg lg:flex"
               onClick={togglePrimaryRail}
               title={primaryRailCollapsed ? "Expand navigation" : "Collapse navigation"}
               type="button"
@@ -118,7 +209,7 @@ export function PlatformShell({
 
         <nav
           aria-label="Argos Admin Dashboard navigation"
-          className={cn("flex-1 space-y-1 overflow-y-auto pr-1", primaryRailCollapsed && "lg:pr-0")}
+          className={cn("flex-1 shrink-0 space-y-1 pr-1 lg:min-h-11 lg:shrink lg:overflow-y-auto", primaryRailCollapsed && "lg:pr-0")}
         >
           {platformNavItems.map((item) => (
             <PlatformNavLink
@@ -135,7 +226,7 @@ export function PlatformShell({
 
         <div
           className={cn(
-            "mt-4 border-t border-[var(--forge-border)] pt-3",
+            "mt-4 border-t border-[var(--forge-border)] pt-3 lg:shrink-0",
             primaryRailCollapsed && "lg:px-0",
           )}
         >
@@ -143,7 +234,7 @@ export function PlatformShell({
             <a
               aria-label="Open Organization"
               className={cn(
-                "forge-nav-link flex items-center gap-3 rounded-2xl px-3 py-2.5 font-[var(--font-display)] text-[0.7rem] font-bold uppercase tracking-[0.16em]",
+                `${styles.railLink} forge-nav-link flex items-center gap-3 px-3 py-2.5`,
                 primaryRailCollapsed && "lg:h-11 lg:justify-center lg:px-0",
               )}
               data-navigation-link="/dashboard"
@@ -160,7 +251,7 @@ export function PlatformShell({
             <div
               aria-label="Open Organization"
               className={cn(
-                "forge-nav-link flex items-center gap-3 rounded-2xl px-3 py-2.5 font-[var(--font-display)] text-[0.7rem] font-bold uppercase tracking-[0.16em] opacity-60",
+                `${styles.railLink} forge-nav-link flex items-center gap-3 px-3 py-2.5 opacity-60`,
                 primaryRailCollapsed && "lg:h-11 lg:justify-center lg:px-0",
               )}
               data-platform-organization-view-link="disabled"
@@ -181,25 +272,22 @@ export function PlatformShell({
           primaryRailCollapsed && "lg:pl-20",
         )}
         data-auth-shell-content="true"
+        inert={mobileNavOpen}
       >
-        <header
-          className={cn(
-            "forge-topbar fixed left-0 right-0 top-0 z-30 flex min-h-16 items-center justify-between gap-3 px-4 py-3 transition-[left] duration-300 lg:left-64 lg:px-7",
-            primaryRailCollapsed && "lg:left-20",
-          )}
-        >
+        <header className="forge-topbar sticky top-0 z-30 flex min-h-16 items-center justify-between gap-3 px-4 py-2 lg:px-7">
           <button
             aria-controls="platform-navigation"
             aria-expanded={mobileNavOpen}
             aria-label="Open navigation"
-            className="forge-icon-button flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl lg:hidden"
+            className="forge-icon-button flex h-11 w-11 shrink-0 items-center justify-center rounded-lg lg:hidden"
             onClick={() => setMobileNavOpen(true)}
+            ref={mobileTriggerRef}
             type="button"
           >
             <ForgeIcon name="filter_list" size={22} />
           </button>
 
-          <div className="ml-auto flex min-w-0 items-center gap-2 text-xs text-[var(--forge-muted)]">
+          <div className="ml-auto flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2 text-xs text-[var(--forge-muted)]">
             <ForgeChip icon="admin_panel_settings" tone="gold">
               {staffRole}
             </ForgeChip>
@@ -216,13 +304,13 @@ export function PlatformShell({
             <span className="hidden max-w-[240px] truncate sm:inline">
               {currentUserEmail}
             </span>
-            <span className="grid h-10 w-10 place-items-center rounded-full border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_4.5%,transparent)] font-[var(--font-display)] text-sm font-bold text-[var(--forge-gold)]">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_4.5%,transparent)] font-[var(--font-display)] text-sm font-bold text-[var(--forge-gold)]">
               {currentUserEmail.slice(0, 1).toUpperCase()}
             </span>
           </div>
         </header>
 
-        <main className="min-h-dvh pt-16">
+        <main className="min-w-0">
           {children}
         </main>
       </div>
@@ -250,7 +338,7 @@ function PlatformNavLink({
       aria-current={active ? "page" : undefined}
       aria-label={label}
       className={cn(
-        "forge-nav-link flex items-center gap-3 rounded-2xl px-3 py-2.5 font-[var(--font-display)] text-[0.7rem] font-bold uppercase tracking-[0.16em]",
+        `${styles.railLink} forge-nav-link flex items-center gap-3 px-3 py-2.5`,
         collapsed && "lg:h-11 lg:justify-center lg:px-0",
         active && "forge-nav-link--active",
       )}

@@ -56,7 +56,7 @@ describe("legal pages", () => {
     const html = renderToStaticMarkup(AuthErrorPage());
 
     expect(html).toContain("Auth Error");
-    expect(html).toContain("The sign-in callback did not complete.");
+    expect(html).toContain("Sign-in did not finish");
     expect(html).toContain("Return to login");
     expect(html).toContain('href="/login"');
     expect(html).toContain("forge-shell");

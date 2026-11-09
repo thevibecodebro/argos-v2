@@ -1,7 +1,9 @@
 "use client";
 
+import styles from "./platform-console.module.css";
+
 import { useState, type FormEvent } from "react";
-import { ForgeButton, ForgeSurface } from "@/components/forge";
+import { ForgeButton } from "@/components/forge";
 import {
   OperationalToolbar,
   OperationalWorkspace,
@@ -35,7 +37,7 @@ export function PlatformCreateOrganizationPage() {
 
   return (
     <OperationalWorkspace
-      className="mx-auto w-full max-w-[980px] px-4 py-5 sm:px-6 lg:px-8"
+      className={`${styles.workspace} ${styles.createWorkspace} mx-auto w-full max-w-[980px] px-4 py-5 sm:px-6 lg:px-8`}
       data-platform-create-page="true"
       data-platform-create-organization-page="true"
     >
@@ -52,16 +54,16 @@ export function PlatformCreateOrganizationPage() {
         title="Create Organization"
       />
 
-      <ForgeSurface className="p-4" variant="panel">
+      <section className={styles.section}>
         <form
-          className="grid gap-3"
+          className={styles.createForm}
           data-platform-create-endpoint={CREATE_ORGANIZATION_ENDPOINT}
           onSubmit={handleCreateOrganization}
         >
           <label className="grid gap-2 text-sm text-[var(--forge-muted)]">
             Organization name
             <input
-              className="min-h-10 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
+              className="min-h-11 rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface-2)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
               name="name"
               required
             />
@@ -69,7 +71,7 @@ export function PlatformCreateOrganizationPage() {
           <label className="grid gap-2 text-sm text-[var(--forge-muted)]">
             Slug
             <input
-              className="min-h-10 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
+              className="min-h-11 rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface-2)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
               name="slug"
               pattern="[a-z0-9-]+"
               required
@@ -78,7 +80,7 @@ export function PlatformCreateOrganizationPage() {
           <label className="grid gap-2 text-sm text-[var(--forge-muted)]">
             Plan
             <select
-              className="min-h-10 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
+              className="min-h-11 rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface-2)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
               defaultValue="trial"
               name="plan"
             >
@@ -90,7 +92,7 @@ export function PlatformCreateOrganizationPage() {
           <label className="grid gap-2 text-sm text-[var(--forge-muted)]">
             Initial admin email
             <input
-              className="min-h-10 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
+              className="min-h-11 rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface-2)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
               name="adminEmail"
               required
               type="email"
@@ -99,13 +101,13 @@ export function PlatformCreateOrganizationPage() {
           <label className="grid gap-2 text-sm text-[var(--forge-muted)]">
             Reason
             <textarea
-              className="min-h-24 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
+              className="min-h-24 rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
               name="reason"
               required
             />
           </label>
           {createStatus ? (
-            <p className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-muted)]">
+            <p role="status" className="rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-muted)]">
               {createStatus}
             </p>
           ) : null}
@@ -113,7 +115,7 @@ export function PlatformCreateOrganizationPage() {
             {isCreating ? "Creating" : "Create Organization"}
           </ForgeButton>
         </form>
-      </ForgeSurface>
+      </section>
     </OperationalWorkspace>
   );
 }

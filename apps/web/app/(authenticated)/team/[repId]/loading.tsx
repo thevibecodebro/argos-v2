@@ -5,6 +5,7 @@ export default function Loading() {
     <AuthenticatedRouteLoading
       description="Loading score trends, focus categories, badges, and recent calls for this rep."
       eyebrow="Coaching"
+      variant="detail"
       lines={5}
       size="standard"
       title="Rep profile"

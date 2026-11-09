@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { EntryBrand, EntryPage, entryStyles } from "@/components/auth/entry-surface";
 import { useRouter } from "next/navigation";
 import { ForgeErrorState, ForgeIcon, ForgeStatusPanel } from "@/components/forge";
 import type { OnboardingAccessMode } from "@/lib/onboarding/service";
@@ -38,18 +39,34 @@ function autoSlug(value: string) {
     .replace(/[^a-z0-9-]/g, "");
 }
 
-const panelClass =
-  "forge-surface rounded-xl border border-[var(--forge-border)] bg-[var(--forge-panel-bg)] p-4 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_4%,transparent)] sm:p-5";
-const labelClass = "text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[var(--forge-muted)]";
-const inputClass = "forge-form-control mt-2 min-h-11 rounded-lg px-3 py-2.5 text-sm outline-none";
+const panelClass = entryStyles.onboardingPanel;
+const labelClass = entryStyles.label;
+const inputClass = `${entryStyles.input} forge-form-control mt-2`;
 const primaryButtonClass =
-  "forge-button forge-button-primary forge-focus-ring min-h-11 justify-center rounded-lg px-4 py-2.5 text-sm disabled:opacity-50";
+  `${entryStyles.primary} forge-focus-ring`;
 const secondaryButtonClass =
-  "forge-button forge-button-secondary forge-focus-ring min-h-11 justify-center rounded-lg px-4 py-2.5 text-sm";
+  `${entryStyles.secondary} forge-focus-ring`;
 
 function roleCanBeAssignedToTeams(role: InviteRole) {
   return ONBOARDING_INVITE_ROLES.some(
     (inviteRole) => inviteRole.value === role && inviteRole.teamAssignable,
+  );
+}
+
+/** Presentation-only route body; account guards stay in the server page. */
+export function OnboardingEntryView(props: OnboardingPanelProps) {
+  return (
+    <EntryPage>
+      <header className={entryStyles.header}>
+        <EntryBrand placement="onboarding" />
+        <form action="/auth/signout" method="post">
+          <button className={`${entryStyles.secondary} forge-focus-ring`} type="submit">
+            Sign out
+          </button>
+        </form>
+      </header>
+      <OnboardingPanel {...props} />
+    </EntryPage>
   );
 }
 
@@ -147,14 +164,13 @@ export function OnboardingPanel({
   }
 
   return (
-    <div className="grid min-h-[calc(100dvh-3.5rem)] grid-cols-1 lg:grid-cols-[16rem_minmax(0,1fr)_20rem]">
-      <SetupRail currentStep={step} userEmail={userEmail} />
+    <main className={entryStyles.onboarding}>
 
-      <section className="min-w-0 px-4 py-6 sm:px-6 lg:px-10 lg:py-12">
-        <div className="mx-auto w-full max-w-2xl">
-          <div className="mb-5 text-left sm:text-center">
-            <p className="forge-page-eyebrow">Workspace access</p>
-            <h1 className="mt-3 text-2xl font-semibold text-[var(--forge-text)]">
+
+      <section className={entryStyles.onboardingBody}>
+        <div className={entryStyles.onboardingForm}>
+          <div className="mb-6 text-left">
+            <h1 className={entryStyles.title}>
               Welcome to Argos
             </h1>
             <p className="mt-2 text-sm leading-6 text-[var(--forge-muted)]">
@@ -299,8 +315,14 @@ export function OnboardingPanel({
         </div>
       </section>
 
-      <ReadinessDrawer accessMode={accessMode} currentStep={step} />
-    </div>
+      <div className={entryStyles.onboardingAside}>
+        <SetupRail currentStep={step} userEmail={userEmail} />
+        <details className="mt-6 border-t border-[var(--forge-border)] pt-3">
+          <summary className="forge-focus-ring min-h-11 cursor-pointer rounded-md py-3 text-sm font-medium">Workspace readiness</summary>
+          <ReadinessDrawer accessMode={accessMode} currentStep={step} />
+        </details>
+      </div>
+    </main>
   );
 }
 
@@ -338,9 +360,9 @@ function FlowTabs({
           <button
             aria-pressed={isActive}
             className={[
-              "forge-focus-ring min-h-11 rounded-md px-3 text-xs font-bold uppercase tracking-[0.08em] transition",
+              "forge-focus-ring min-h-11 rounded-md px-3 text-sm font-medium transition",
               isActive
-                ? "bg-[var(--forge-gold)] text-[#291800]"
+                ? "bg-[var(--forge-gold)] text-[var(--forge-on-accent)]"
                 : "text-[var(--forge-muted)] hover:bg-[color-mix(in_srgb,var(--forge-text)_4.5%,transparent)] hover:text-[var(--forge-text)]",
               tab.disabled ? "cursor-not-allowed opacity-45 hover:bg-transparent" : "",
             ].join(" ")}
@@ -357,7 +379,7 @@ function FlowTabs({
   );
 }
 
-function CreatePanel({
+export function CreatePanel({
   accessMode,
   error,
   isMutating,
@@ -380,10 +402,8 @@ function CreatePanel({
     <div className={panelClass}>
       <div className="flex flex-col gap-2 border-b border-[var(--forge-border)] pb-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className={labelClass}>Create workspace</p>
-          <h2 className="mt-1 text-base font-semibold text-[var(--forge-text)]">
-            Create Organization
-          </h2>
+          <h2 className="text-base font-semibold text-[var(--forge-text)]">Create Organization</h2>
+          <p className="mt-1 text-sm text-[var(--forge-muted)]">Create workspace</p>
         </div>
         <span className="inline-flex min-h-7 w-fit items-center rounded-md border border-[color-mix(in_srgb,var(--forge-gold)_26%,transparent)] bg-[color-mix(in_srgb,var(--forge-gold)_8%,transparent)] px-2 text-xs font-semibold text-[var(--forge-gold)]">
           {accessMode === "bootstrap-admin" ? "Bootstrap admin" : "Admin setup"}
@@ -404,12 +424,12 @@ function CreatePanel({
 
         <label className="block text-left">
           <span className={labelClass}>Organization Slug</span>
-          <span className="mt-2 flex min-w-0 overflow-hidden rounded-lg border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] focus-within:border-[var(--forge-gold)]/60">
+          <span className="mt-2 flex min-w-0 rounded-md border border-[var(--forge-border-strong)] bg-[var(--forge-field-bg)] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--forge-focus)]">
             <span className="flex min-h-11 shrink-0 items-center border-r border-[var(--forge-border)] px-3 text-xs text-[var(--forge-muted)]">
               argos.app/
             </span>
             <input
-              className="min-h-11 min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm text-[var(--forge-text)] outline-none placeholder:text-[color-mix(in_srgb,var(--forge-text)_34%,transparent)]"
+              className="min-h-11 min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm text-[var(--forge-text)] outline-none placeholder:text-[var(--forge-muted)]"
               onChange={(event) => onSlugChange(event.target.value)}
               placeholder="acme-corp"
               type="text"
@@ -449,7 +469,7 @@ function CreatePanel({
   );
 }
 
-function JoinPanel({
+export function JoinPanel({
   error,
   isMutating,
   joinSlug,
@@ -465,10 +485,8 @@ function JoinPanel({
   return (
     <div className={panelClass}>
       <div className="border-b border-[var(--forge-border)] pb-4">
-        <p className={labelClass}>Existing workspace</p>
-        <h2 className="mt-1 text-base font-semibold text-[var(--forge-text)]">
-          Join Organization
-        </h2>
+        <h2 className="text-base font-semibold text-[var(--forge-text)]">Join Organization</h2>
+        <p className="mt-1 text-sm text-[var(--forge-muted)]">Existing workspace</p>
       </div>
 
       <div className="mt-4">
@@ -506,7 +524,7 @@ function JoinPanel({
   );
 }
 
-function InvitePanel({
+export function InvitePanel({
   error,
   inviteEmail,
   inviteRole,
@@ -536,10 +554,8 @@ function InvitePanel({
   return (
     <div className={panelClass}>
       <div className="border-b border-[var(--forge-border)] pb-4">
-        <p className={labelClass}>Team launch</p>
-        <h2 className="mt-1 text-base font-semibold text-[var(--forge-text)]">
-          Invite Your Team
-        </h2>
+        <h2 className="text-base font-semibold text-[var(--forge-text)]">Invite Your Team</h2>
+        <p className="mt-1 text-sm text-[var(--forge-muted)]">Team launch</p>
       </div>
 
       <div className="mt-4 grid gap-4">
@@ -637,7 +653,7 @@ function InvitePanel({
   );
 }
 
-function InviteRequiredPanel({ userEmail }: { userEmail?: string | null }) {
+export function InviteRequiredPanel({ userEmail }: { userEmail?: string | null }) {
   const inviteEmailText = userEmail
     ? `Ask your admin to send an invite to ${userEmail}.`
     : "Ask your admin to send an invite to your work email.";
@@ -748,14 +764,14 @@ function SetupRail({
   const launchStatus = currentStep === "invite" ? "active" : "pending";
 
   return (
-    <aside className="border-b border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] px-4 py-5 lg:border-r lg:border-b-0 lg:px-5">
+    <aside aria-label="Setup progress">
       <div className="mb-5 min-w-0">
         <p className={labelClass}>Account</p>
-        <p className="mt-1 truncate text-sm text-[var(--forge-text)]">
+        <p className="mt-1 break-all text-sm text-[var(--forge-text)]">
           {userEmail ?? "Authenticated user"}
         </p>
       </div>
-      <ol className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
+      <ol className="grid gap-4">
         <SetupStep
           description="Authentication complete"
           status="complete"
@@ -852,8 +868,7 @@ function ReadinessDrawer({
       ];
 
   return (
-    <aside className="border-t border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] px-4 py-5 lg:border-t-0 lg:border-l lg:px-5">
-      <p className={labelClass}>Workspace readiness</p>
+    <div>
       <div className="mt-4 grid gap-2">
         {rows.map((row) => (
           <ReadinessRow
@@ -865,7 +880,7 @@ function ReadinessDrawer({
           />
         ))}
       </div>
-    </aside>
+    </div>
   );
 }
 
@@ -880,18 +895,10 @@ function ReadinessRow({
   status: "info" | "muted" | "success" | "warning";
   title: string;
 }) {
-  const toneClass =
-    status === "success"
-      ? "border-[color-mix(in_srgb,var(--forge-success)_28%,transparent)] bg-[color-mix(in_srgb,var(--forge-success)_8%,transparent)] text-[var(--forge-success)]"
-      : status === "warning"
-        ? "border-[color-mix(in_srgb,var(--forge-ember)_34%,transparent)] bg-[color-mix(in_srgb,var(--forge-ember)_8%,transparent)] text-[var(--forge-ember)]"
-        : status === "info"
-          ? "border-[color-mix(in_srgb,var(--forge-cyan)_30%,transparent)] bg-[color-mix(in_srgb,var(--forge-cyan)_8%,transparent)] text-[var(--forge-cyan)]"
-          : "border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-text)_3%,transparent)] text-[var(--forge-muted)]";
 
   return (
-    <div className={`flex min-h-14 items-start gap-3 rounded-lg border px-3 py-3 ${toneClass}`}>
-      <ForgeIcon className="mt-0.5" name={icon} size={18} />
+    <div className="flex min-h-14 items-start gap-3 border-b border-[var(--forge-border)] py-3">
+      <ForgeIcon className={`mt-0.5 ${status === "success" ? "text-[var(--forge-success)]" : "text-[var(--forge-muted)]"}`} name={icon} size={18} />
       <span className="min-w-0">
         <span className="block text-sm font-semibold text-[var(--forge-text)]">
           {title}

@@ -37,7 +37,7 @@ export type TrainingManagerAiToolsProps = {
 
 const TRAINING_AI_FIELD_FOCUS_CLASS =
   "outline-none transition focus-visible:border-[var(--forge-gold)] focus-visible:ring-2 focus-visible:ring-[var(--forge-gold)]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--forge-surface)]";
-const TRAINING_AI_TEXTAREA_CLASS = `min-h-28 w-full rounded-xl border border-[var(--forge-border-strong)]/15 bg-[var(--forge-surface)] px-4 py-3 text-sm text-[var(--forge-text)] ${TRAINING_AI_FIELD_FOCUS_CLASS}`;
+const TRAINING_AI_TEXTAREA_CLASS = `min-h-28 w-full rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface)] px-4 py-3 text-sm text-[var(--forge-text)] ${TRAINING_AI_FIELD_FOCUS_CLASS}`;
 
 function isQuizData(value: unknown): value is TrainingModuleRecord["quizData"] {
   if (!value || typeof value !== "object") {
@@ -172,10 +172,10 @@ export function TrainingManagerAiTools({
     "Add notes to ground the draft in this lesson.";
 
   return (
-    <section className="rounded-[1.15rem] border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-4">
+    <section className="min-w-0 border-t border-[var(--forge-border)] pt-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-2xl">
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--forge-muted)]">Lesson drafting</p>
+          <p className="text-xs font-medium text-[var(--forge-muted)]">Lesson drafting</p>
           <h3 className="mt-2 text-lg font-semibold text-[var(--forge-text)]">
             {selectedModule?.title ?? "Select a module to draft"}
           </h3>
@@ -185,15 +185,15 @@ export function TrainingManagerAiTools({
           </p>
         </div>
 
-        <div className="rounded-xl border border-[var(--forge-border-strong)]/10 bg-[var(--forge-surface-2)]/50 px-4 py-3">
-          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--forge-muted)]">Context source</p>
+        <div className="min-w-0 max-w-sm">
+          <p className="text-xs font-medium text-[var(--forge-muted)]">Context source</p>
           <p className="mt-1 max-w-xs text-sm leading-6 text-[var(--forge-text)]">{contextSummary}</p>
         </div>
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
         <label className="block space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-muted)]">Context notes</span>
+          <span className="text-sm font-medium text-[var(--forge-muted)]">Context notes</span>
           <textarea
             className={TRAINING_AI_TEXTAREA_CLASS}
             data-training-focus-hardened="true"
@@ -208,7 +208,7 @@ export function TrainingManagerAiTools({
 
         <div className="space-y-3">
           <button
-            className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/70 px-4 py-3 text-sm font-semibold text-[var(--forge-text)] transition hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/10 disabled:cursor-not-allowed disabled:opacity-50"
+            className="forge-button forge-button-secondary forge-focus-ring min-h-11 w-full px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
             disabled={actionsDisabled}
             onClick={() => onGenerate("content")}
             type="button"
@@ -216,7 +216,7 @@ export function TrainingManagerAiTools({
             Draft lesson content
           </button>
           <button
-            className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/70 px-4 py-3 text-sm font-semibold text-[var(--forge-text)] transition hover:border-[var(--forge-gold)]/30 hover:bg-[var(--forge-gold)]/10 disabled:cursor-not-allowed disabled:opacity-50"
+            className="forge-button forge-button-secondary forge-focus-ring min-h-11 w-full px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
             disabled={actionsDisabled}
             onClick={() => onGenerate("quiz")}
             type="button"

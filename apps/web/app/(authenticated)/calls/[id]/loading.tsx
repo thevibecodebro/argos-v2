@@ -5,6 +5,7 @@ export default function Loading() {
     <AuthenticatedRouteLoading
       description="Loading the transcript, scorecard, coaching moments, and call review tools."
       eyebrow="Review bench"
+      variant="detail"
       lines={6}
       size="wide"
       title="Call review"

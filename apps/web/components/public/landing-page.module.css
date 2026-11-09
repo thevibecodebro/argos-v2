@@ -685,10 +685,10 @@ html:has(.argos-3d-page) {
   gap: clamp(1.1rem, 2.4vw, 2.2rem);
   border-bottom: 1px solid var(--argos-hairline);
   margin-bottom: clamp(1.75rem, 4vh, 2.75rem);
+  padding: 4px;
   overflow-x: auto;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
-  mask-image: linear-gradient(90deg, transparent, #000 1.5rem, #000 calc(100% - 1.5rem), transparent);
 }
 
 .argos-product-showcase-rail::-webkit-scrollbar {
@@ -699,7 +699,8 @@ html:has(.argos-3d-page) {
   position: relative;
   display: flex;
   flex: none;
-  align-items: baseline;
+  align-items: center;
+  min-height: 2.75rem;
   gap: 0.55rem;
   border: 0;
   background: none;
@@ -824,16 +825,31 @@ html:has(.argos-3d-page) {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1.4rem;
+  flex-wrap: wrap;
+  gap: 1rem;
   margin-top: 1.6rem;
 }
+
+.argos-product-showcase-pause {
+  min-height: 2.75rem;
+  border: 0;
+  background: none;
+  color: var(--argos-bark);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.75rem;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.argos-product-showcase-pause:hover { color: var(--argos-alabaster); }
 
 .argos-product-showcase-arrow {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.6rem;
-  height: 2.6rem;
+  width: 2.75rem;
+  height: 2.75rem;
   border: 1px solid var(--argos-hairline-strong);
   border-radius: 999px;
   background: none;
@@ -1242,8 +1258,8 @@ html:has(.argos-3d-page) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.6rem;
-  height: 2.6rem;
+  width: 2.75rem;
+  height: 2.75rem;
   border: 1px solid var(--argos-hairline-strong);
   border-radius: 999px;
   color: var(--argos-bark);
@@ -1465,6 +1481,10 @@ html:has(.argos-3d-page) {
 }
 
 @media (max-width: 640px) {
+  .argos-nav { gap: 0.75rem; }
+  .argos-nav-actions { gap: 0.75rem; }
+  .argos-login-link, .argos-mini-cta { min-height: 2.75rem; display: inline-flex; align-items: center; }
+
   .argos-nav-links {
     display: none;
   }
@@ -1526,13 +1546,18 @@ html:has(.argos-3d-page) {
 }
 
 @media (max-width: 360px) {
+  .argos-nav { padding-inline: 1rem; }
+  .argos-wordmark-image { height: 1.35rem; }
+  .argos-login-link { letter-spacing: 0.08em; }
+
   .argos-hero-copy h1 {
     font-size: clamp(2.2rem, 12.5vw, 2.6rem);
   }
 
   .argos-mini-cta {
     padding: 0.5rem 0.75rem;
-    letter-spacing: 0.14em;
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
   }
 }
 

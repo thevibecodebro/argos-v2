@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArgosLogo } from "@/components/argos-logo";
 import { LegalFooterLinks } from "./legal-links";
+import styles from "./legal-page.module.css";
 
 type LegalPageSection = {
   title: string;
@@ -18,12 +19,12 @@ type LegalPageProps = {
 export function LegalPage({ eyebrow, intro, lastUpdated, sections, title }: LegalPageProps) {
   return (
     <main
-      className="forge-shell min-h-screen text-[var(--forge-text)]"
+      className={`forge-shell text-[var(--forge-text)] ${styles.shell}`}
       data-legal-shell="forge"
       data-shell-theme="forge"
     >
-      <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-6 py-8 sm:px-8 lg:px-10">
-        <header className="flex items-center justify-between gap-4 py-4">
+      <div className={styles.container}>
+        <header className={styles.header}>
           <Link
             aria-label="Argos homepage"
             className="forge-focus-ring block w-28 rounded-lg sm:w-32"
@@ -36,40 +37,22 @@ export function LegalPage({ eyebrow, intro, lastUpdated, sections, title }: Lega
               placement="legal-header"
             />
           </Link>
-          <Link className="forge-focus-ring rounded-lg text-sm text-[var(--forge-muted)] transition-colors duration-150 hover:text-[var(--forge-text)]" href="/">
+          <Link className={`forge-focus-ring rounded-lg text-sm text-[var(--forge-muted)] transition-colors duration-150 hover:text-[var(--forge-text)] ${styles.homeLink}`} href="/">
             Back to homepage
           </Link>
         </header>
 
-        <article className="forge-surface mt-10 rounded-[2rem] px-6 py-8 sm:px-8 sm:py-10">
-          <div className="max-w-3xl space-y-5">
-            <p className="forge-page-eyebrow">
-              {eyebrow}
-            </p>
-            <div className="space-y-3">
-              <p className="text-sm uppercase tracking-[0.18em] text-[var(--forge-muted)]">
-                Last updated {lastUpdated}
-              </p>
-              <h1
-                className="font-[var(--font-display)] text-[clamp(2.6rem,6vw,4.2rem)] font-bold text-[var(--forge-text)]"
-                style={{ fontFamily: "var(--font-display, 'Space Grotesk', sans-serif)", lineHeight: 0.96 }}
-              >
-                {title}
-              </h1>
-            </div>
-            <p className="max-w-[62ch] text-base leading-8 text-[var(--forge-muted)] sm:text-lg">
-              {intro}
-            </p>
-          </div>
+        <article className={styles.article}>
+          <p className={styles.eyebrow}>{eyebrow}</p>
+          <p className={styles.updated}>Last updated {lastUpdated}</p>
+          <h1 className={styles.title}>{title}</h1>
+          <p className={styles.intro}>{intro}</p>
 
-          <div className="mt-10 grid gap-5">
+          <div className={styles.sections}>
             {sections.map((section) => (
-              <section
-                className="forge-surface forge-surface--inset rounded-[1.5rem] px-5 py-5 sm:px-6"
-                key={section.title}
-              >
-                <h2 className="text-xl font-semibold text-[var(--forge-text)]">{section.title}</h2>
-                <div className="mt-3 space-y-3 text-sm leading-7 text-[var(--forge-muted)]">
+              <section className={styles.section} key={section.title}>
+                <h2>{section.title}</h2>
+                <div className={styles.body}>
                   {section.body.map((paragraph) => (
                     <p key={paragraph}>{paragraph}</p>
                   ))}
@@ -79,7 +62,7 @@ export function LegalPage({ eyebrow, intro, lastUpdated, sections, title }: Lega
           </div>
         </article>
 
-        <footer className="mt-auto flex flex-col gap-5 py-8 text-[var(--forge-muted)]">
+        <footer className={styles.footer}>
           <LegalFooterLinks />
           <p className="text-xs uppercase tracking-[0.2em]">2026 Argos Revenue Command. All rights reserved.</p>
         </footer>

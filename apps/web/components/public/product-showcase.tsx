@@ -11,7 +11,9 @@ const ADVANCE_INTERVAL_MS = 6000;
 export function LandingProductShowcase() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [autoAdvance, setAutoAdvance] = useState(false);
+  const [motionAllowed, setMotionAllowed] = useState(false);
   const isPausedRef = useRef(false);
+  const isStoppedRef = useRef(false);
   const railRef = useRef<HTMLDivElement | null>(null);
 
   // Auto-advance is a progressive enhancement: it only starts after mount,
@@ -19,22 +21,36 @@ export function LandingProductShowcase() {
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
-    if (prefersReducedMotion.matches) {
-      return;
-    }
+    let timer: number | undefined;
 
-    setAutoAdvance(true);
-    const timer = window.setInterval(() => {
-      if (!isPausedRef.current) {
-        setActiveIndex((index) => (index + 1) % slides.length);
+    const updateMotion = () => {
+      if (timer !== undefined) {
+        window.clearInterval(timer);
+        timer = undefined;
       }
-    }, ADVANCE_INTERVAL_MS);
 
-    return () => window.clearInterval(timer);
+      const allowed = !prefersReducedMotion.matches;
+      setMotionAllowed(allowed);
+      setAutoAdvance(allowed && !isStoppedRef.current);
+      if (allowed) {
+        timer = window.setInterval(() => {
+          if (!isPausedRef.current && !isStoppedRef.current) {
+            setActiveIndex((index) => (index + 1) % slides.length);
+          }
+        }, ADVANCE_INTERVAL_MS);
+      }
+    };
+
+    updateMotion();
+    prefersReducedMotion.addEventListener("change", updateMotion);
+    return () => {
+      prefersReducedMotion.removeEventListener("change", updateMotion);
+      if (timer !== undefined) window.clearInterval(timer);
+    };
   }, []);
 
   const selectSlide = useCallback((index: number) => {
-    isPausedRef.current = true;
+    isStoppedRef.current = true;
     setAutoAdvance(false);
     setActiveIndex(((index % slides.length) + slides.length) % slides.length);
   }, []);
@@ -48,7 +64,11 @@ export function LandingProductShowcase() {
       const buttonRect = activeButton.getBoundingClientRect();
 
       if (buttonRect.left < railRect.left || buttonRect.right > railRect.right) {
-        activeButton.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+        activeButton.scrollIntoView({
+          behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+          block: "nearest",
+          inline: "center",
+        });
       }
     }
   }, [activeIndex]);
@@ -106,6 +126,7 @@ export function LandingProductShowcase() {
           {slides.map((slide, index) => (
             <Image
               alt={slide.alt}
+              aria-hidden={index !== activeIndex}
               className={styles["argos-product-showcase-image"]}
               data-active={index === activeIndex ? "true" : "false"}
               height={800}
@@ -123,6 +144,18 @@ export function LandingProductShowcase() {
       </figure>
 
       <div className={styles["argos-product-showcase-controls"]}>
+        {motionAllowed && (
+          <button
+            className={styles["argos-product-showcase-pause"]}
+            onClick={() => {
+              isStoppedRef.current = autoAdvance;
+              setAutoAdvance(!autoAdvance);
+            }}
+            type="button"
+          >
+            {autoAdvance ? "Pause rotation" : "Resume rotation"}
+          </button>
+        )}
         <button
           aria-label="Previous product view"
           className={styles["argos-product-showcase-arrow"]}

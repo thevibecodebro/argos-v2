@@ -1,11 +1,13 @@
 "use client";
 
+import styles from "./platform-console.module.css";
+
 import { useState, type FormEvent } from "react";
 import {
   ForgeButton,
   ForgeChip,
   ForgeManagementTable,
-  ForgeSurface,
+  ForgeMobileTableCards,
 } from "@/components/forge";
 import {
   OperationalToolbar,
@@ -88,9 +90,36 @@ export function PlatformStaffPage({
     }
   }
 
+  function renderRevokeAction(member: PlatformConsoleStaffMember) {
+    if (staffRole !== "owner" || member.status !== "active" || member.userId === currentUserId) {
+      return null;
+    }
+
+    return (
+      <div className="grid min-w-0 max-w-xs gap-2">
+        <input
+          aria-label={`Revocation reason for ${member.email ?? member.userId}`}
+          className="min-h-11 min-w-0 rounded-md border border-[var(--forge-border)] bg-[var(--forge-field-bg)] px-3 text-xs text-[var(--forge-text)]"
+          onChange={(event) => setRevokeReasons((current) => ({ ...current, [member.userId]: event.target.value }))}
+          placeholder="Revocation reason"
+          value={revokeReasons[member.userId] ?? ""}
+        />
+        <button
+          aria-label={`Revoke access for ${member.email ?? member.userId}`}
+          className={`${styles.rowAction} ${styles.revokeAction} justify-self-start`}
+          disabled={revokingStaffId === member.userId}
+          onClick={() => handleRevokeStaff(member.userId)}
+          type="button"
+        >
+          {revokingStaffId === member.userId ? "Revoking" : "Revoke"}
+        </button>
+      </div>
+    );
+  }
+
   return (
     <OperationalWorkspace
-      className="mx-auto w-full max-w-[1500px] px-4 py-5 sm:px-6 lg:px-8"
+      className={`${styles.workspace} mx-auto w-full max-w-[1500px] px-4 py-5 sm:px-6 lg:px-8`}
       data-platform-staff-page="true"
     >
       <OperationalToolbar
@@ -103,24 +132,23 @@ export function PlatformStaffPage({
         title="Staff"
       />
 
-      <ForgeSurface className="p-4" variant="panel">
+      <section className={styles.section}>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="forge-page-eyebrow">Agency staff</p>
-            <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">Staff controls</h2>
+            <h2 className={styles.sectionTitle}>Agency staff</h2>
           </div>
         </div>
 
         {staffRole === "owner" ? (
           <form
-            className="mt-4 grid gap-3 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/45 p-3 lg:grid-cols-[minmax(0,1fr)_160px_minmax(0,1fr)_auto]"
+            className={styles.grantForm}
             data-platform-staff-endpoint={PLATFORM_STAFF_ENDPOINT}
             onSubmit={handleGrantStaff}
           >
             <label className="grid gap-2 text-sm text-[var(--forge-muted)]">
               Staff email
               <input
-                className="min-h-10 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
+                className="min-h-11 rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
                 name="email"
                 required
                 type="email"
@@ -129,7 +157,7 @@ export function PlatformStaffPage({
             <label className="grid gap-2 text-sm text-[var(--forge-muted)]">
               Role
               <select
-                className="min-h-10 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
+                className="min-h-11 rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
                 defaultValue="operator"
                 name="role"
               >
@@ -140,7 +168,7 @@ export function PlatformStaffPage({
             <label className="grid gap-2 text-sm text-[var(--forge-muted)]">
               Reason
               <input
-                className="min-h-10 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
+                className="min-h-11 rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
                 name="reason"
                 required
               />
@@ -163,29 +191,45 @@ export function PlatformStaffPage({
         )}
 
         {staffStatusMessage ? (
-          <p className="mt-4 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-muted)]">
+          <p role="status" className="mt-4 rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-muted)]">
             {staffStatusMessage}
           </p>
         ) : null}
 
-        <ForgeManagementTable className="mt-4">
-          <table className="w-full text-left text-sm">
-            <thead className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--forge-muted)]">
+        <ForgeManagementTable className="mt-4" mobileCards={
+          <ForgeMobileTableCards className={styles.mobileRows}>
+            {staffMembers.map((member) => (
+              <article key={member.userId}>
+                <p className="text-sm font-semibold">{member.email ?? member.userId}</p>
+                <p className="mt-1 text-xs text-[var(--forge-muted)]">{member.userId}</p>
+                <dl className={styles.recordDetails}>
+                  <div><dt>Role</dt><dd className="capitalize">{member.role}</dd></div>
+                  <div><dt>Status</dt><dd><ForgeChip tone={member.status === "active" ? "success" : "danger"}>{member.status}</ForgeChip></dd></div>
+                  <div><dt>Created</dt><dd>{formatDate(member.createdAt)}</dd></div>
+                </dl>
+                <div className="mt-3">{renderRevokeAction(member)}</div>
+              </article>
+            ))}
+          </ForgeMobileTableCards>
+        }>
+          <table className="w-full table-fixed text-left text-sm">
+            <thead className="text-[11px] font-semibold text-[var(--forge-muted)]">
               <tr>
                 <th className="px-4 py-3">Staff</th>
                 <th className="px-4 py-3">Role</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Created</th>
+                <th className="px-4 py-3">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--forge-border-strong)]/10">
               {staffMembers.map((member) => (
                 <tr key={member.userId}>
                   <td className="px-4 py-3">
-                    <p className="truncate font-semibold text-[var(--forge-text)]">
+                    <p className="break-words font-semibold text-[var(--forge-text)]">
                       {member.email ?? member.userId}
                     </p>
-                    <p className="mt-1 truncate text-xs text-[var(--forge-muted)]">{member.userId}</p>
+                    <p className="mt-1 break-words text-xs text-[var(--forge-muted)]">{member.userId}</p>
                   </td>
                   <td className="px-4 py-3 capitalize text-[var(--forge-text)]">{member.role}</td>
                   <td className="px-4 py-3">
@@ -194,40 +238,17 @@ export function PlatformStaffPage({
                     </ForgeChip>
                   </td>
                   <td className="px-4 py-3">
-                    {staffRole === "owner" && member.status === "active" && member.userId !== currentUserId ? (
-                      <div className="ml-auto grid max-w-xs gap-2">
-                        <input
-                          className="min-h-9 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 text-xs text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
-                          onChange={(event) =>
-                            setRevokeReasons((current) => ({
-                              ...current,
-                              [member.userId]: event.target.value,
-                            }))
-                          }
-                          placeholder="Revocation reason"
-                          value={revokeReasons[member.userId] ?? ""}
-                        />
-                        <button
-                          className="justify-self-start text-xs font-semibold uppercase tracking-[0.12em] text-[var(--forge-danger)] disabled:text-[var(--forge-muted)]"
-                          disabled={revokingStaffId === member.userId}
-                          onClick={() => handleRevokeStaff(member.userId)}
-                          type="button"
-                        >
-                          {revokingStaffId === member.userId ? "Revoking" : "Revoke"}
-                        </button>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-[var(--forge-muted)]">
-                        {formatDate(member.createdAt)}
-                      </span>
-                    )}
+                    <span className="text-xs text-[var(--forge-muted)]">{formatDate(member.createdAt)}</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {renderRevokeAction(member)}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </ForgeManagementTable>
-      </ForgeSurface>
+      </section>
     </OperationalWorkspace>
   );
 }

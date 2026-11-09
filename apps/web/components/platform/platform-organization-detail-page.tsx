@@ -1,15 +1,16 @@
 "use client";
 
+import styles from "./platform-console.module.css";
+
 import { useState } from "react";
 import {
   ForgeButton,
   ForgeChip,
   ForgeEmptyState,
   ForgeManagementTable,
-  ForgeSurface,
+  ForgeMobileTableCards,
 } from "@/components/forge";
 import {
-  OperationalMetricStrip,
   OperationalToolbar,
   OperationalWorkspace,
 } from "@/components/operational-workspace";
@@ -105,7 +106,7 @@ export function PlatformOrganizationDetailPage({
 
   return (
     <OperationalWorkspace
-      className="mx-auto w-full max-w-[1380px] px-4 py-5 sm:px-6 lg:px-8"
+      className={`${styles.workspace} mx-auto w-full max-w-[1380px] px-4 py-5 sm:px-6 lg:px-8`}
       data-platform-organization-detail-page="true"
     >
       <OperationalToolbar
@@ -124,7 +125,6 @@ export function PlatformOrganizationDetailPage({
           },
         ]}
         description={`${formatPlan(organization.organization.plan)} organization created ${formatDate(organization.organization.createdAt)}.`}
-        eyebrow="Organization"
         status={{
           icon: organization.alerts.length ? "warning" : "check_circle",
           label: alertStatus,
@@ -133,48 +133,17 @@ export function PlatformOrganizationDetailPage({
         title={organization.organization.name}
       />
 
-      <OperationalMetricStrip
-        metrics={[
-          {
-            icon: "group",
-            label: "Members",
-            tone: "muted",
-            value: organization.summary.members,
-          },
-          {
-            icon: "admin_panel_settings",
-            label: "Admins",
-            tone: organization.summary.admins ? "success" : "danger",
-            value: organization.summary.admins,
-          },
-          {
-            icon: "fact_check",
-            label: "Reviewed calls",
-            tone: "gold",
-            value: organization.callStats.reviewedCalls,
-          },
-          {
-            icon: "pending",
-            label: "Processing",
-            tone: organization.callStats.processingCalls ? "ember" : "muted",
-            value: organization.callStats.processingCalls,
-          },
-        ]}
-      />
-
       {organization.adminInviteResend ? (
-        <ForgeSurface
-          className="p-4"
+        <section
+          className={styles.section}
           data-platform-admin-invite-resend="true"
           data-platform-admin-invite-resend-endpoint={buildResendAdminInviteEndpoint(
             organization.organization.slug,
           )}
-          variant="panel"
         >
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0">
-              <p className="forge-page-eyebrow">Admin invite</p>
-              <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">
+              <h2 className={styles.sectionTitle}>
                 Initial admin has not accepted yet
               </h2>
               <p className="mt-2 text-sm leading-6 text-[var(--forge-muted)]">
@@ -198,17 +167,16 @@ export function PlatformOrganizationDetailPage({
               {resendMessage}
             </p>
           ) : null}
-        </ForgeSurface>
+        </section>
       ) : null}
 
       <CoachingAccessPanel organization={organization} />
 
-      <section className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <ForgeSurface className="min-w-0 p-4" data-platform-org-health="true" variant="panel">
+      <section className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <section className={styles.section} data-platform-org-health="true">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="forge-page-eyebrow">Health</p>
-              <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">
+              <h2 className={styles.sectionTitle}>
                 Agency alerts
               </h2>
             </div>
@@ -221,7 +189,7 @@ export function PlatformOrganizationDetailPage({
             <div className="mt-4 grid gap-2">
               {organization.alerts.map((alert) => (
                 <div
-                  className="flex items-center justify-between gap-3 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-surface-2)] px-3 py-2"
+                  className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--forge-border)] py-3"
                   key={alert.label}
                 >
                   <span className="text-sm text-[var(--forge-text)]">{alert.label}</span>
@@ -239,12 +207,15 @@ export function PlatformOrganizationDetailPage({
               title="No active alerts"
             />
           )}
-        </ForgeSurface>
+        </section>
 
-        <ForgeSurface className="p-4" data-platform-org-billing="true" variant="panel">
-          <p className="forge-page-eyebrow">Billing</p>
-          <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">Plan ops</h2>
-          <dl className="mt-4 grid gap-2 text-sm">
+        <section className={styles.section} data-platform-org-billing="true">
+          <h2 className={styles.sectionTitle}>Billing</h2>
+          <dl className="mt-4 grid gap-3 text-sm">
+            <DetailRow label="Members" value={String(organization.summary.members)} />
+            <DetailRow label="Admins" value={String(organization.summary.admins)} />
+            <DetailRow label="Reviewed calls" value={String(organization.callStats.reviewedCalls)} />
+            <DetailRow label="Processing" value={String(organization.callStats.processingCalls)} />
             <DetailRow label="Plan" value={formatPlan(organization.organization.plan)} />
             <DetailRow
               label="Active subscriptions"
@@ -260,15 +231,14 @@ export function PlatformOrganizationDetailPage({
               value={formatPercent(organization.summary.trainingCompletionRate)}
             />
           </dl>
-        </ForgeSurface>
+        </section>
       </section>
 
       <section className="grid min-w-0 gap-3 xl:grid-cols-2">
-        <ForgeSurface className="min-w-0 p-4" data-platform-org-access="true" variant="panel">
+        <section className={styles.section} data-platform-org-access="true">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="forge-page-eyebrow">Access</p>
-              <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">
+              <h2 className={styles.sectionTitle}>
                 Recent agency access
               </h2>
             </div>
@@ -278,9 +248,25 @@ export function PlatformOrganizationDetailPage({
           </div>
 
           {organization.access.recentSessions.length ? (
-            <ForgeManagementTable className="mt-4">
-              <table className="w-full text-left text-sm">
-                <thead className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--forge-muted)]">
+            <ForgeManagementTable className="mt-4" mobileCards={
+              <ForgeMobileTableCards className={styles.mobileRows}>
+                {organization.access.recentSessions.map((session) => {
+                  const status = formatAccessSessionStatus(session);
+                  return (
+                    <article key={session.id}>
+                      <p className="text-sm font-semibold">{session.staffEmailSnapshot}</p>
+                      <dl className={styles.recordDetails}>
+                        <div><dt>Reason</dt><dd>{session.reason}</dd></div>
+                        <div><dt>Status</dt><dd><ForgeChip tone={status === "active" ? "cyan" : "muted"}>{status}</ForgeChip></dd></div>
+                        <div><dt>Started</dt><dd>{formatDate(session.startedAt)}</dd></div>
+                      </dl>
+                    </article>
+                  );
+                })}
+              </ForgeMobileTableCards>
+            }>
+              <table className="w-full table-fixed text-left text-sm">
+                <thead className="text-[11px] font-semibold text-[var(--forge-muted)]">
                   <tr>
                     <th className="px-4 py-3">Staff</th>
                     <th className="px-4 py-3">Reason</th>
@@ -298,7 +284,7 @@ export function PlatformOrganizationDetailPage({
                           {session.staffEmailSnapshot}
                         </td>
                         <td className="max-w-xs px-4 py-3 text-[var(--forge-muted)]">
-                          <span className="line-clamp-2">{session.reason}</span>
+                          <span className="break-words">{session.reason}</span>
                         </td>
                         <td className="px-4 py-3">
                           <ForgeChip tone={status === "active" ? "cyan" : "muted"}>
@@ -322,18 +308,30 @@ export function PlatformOrganizationDetailPage({
               title="No recent agency access"
             />
           )}
-        </ForgeSurface>
+        </section>
 
-        <ForgeSurface className="min-w-0 p-4" data-platform-org-audit="true" variant="panel">
+        <section className={styles.section} data-platform-org-audit="true">
           <div>
-            <p className="forge-page-eyebrow">Audit</p>
-            <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">Audit events</h2>
+            <h2 className={styles.sectionTitle}>Audit events</h2>
           </div>
 
           {organization.auditEvents.length ? (
-            <ForgeManagementTable className="mt-4">
-              <table className="w-full text-left text-sm">
-                <thead className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--forge-muted)]">
+            <ForgeManagementTable className="mt-4" mobileCards={
+              <ForgeMobileTableCards className={styles.mobileRows}>
+                {organization.auditEvents.map((event) => (
+                  <article key={event.id}>
+                    <p className="text-sm font-semibold">{event.action}</p>
+                    <dl className={styles.recordDetails}>
+                      <div><dt>Staff</dt><dd>{event.staffEmailSnapshot ?? "System"}</dd></div>
+                      <div><dt>Reason</dt><dd>{event.reason}</dd></div>
+                      <div><dt>Created</dt><dd>{formatDate(event.createdAt)}</dd></div>
+                    </dl>
+                  </article>
+                ))}
+              </ForgeMobileTableCards>
+            }>
+              <table className="w-full table-fixed text-left text-sm">
+                <thead className="text-[11px] font-semibold text-[var(--forge-muted)]">
                   <tr>
                     <th className="px-4 py-3">Action</th>
                     <th className="px-4 py-3">Staff</th>
@@ -351,7 +349,7 @@ export function PlatformOrganizationDetailPage({
                         {event.staffEmailSnapshot ?? "System"}
                       </td>
                       <td className="max-w-xs px-4 py-3 text-[var(--forge-muted)]">
-                        <span className="line-clamp-2">{event.reason}</span>
+                        <span className="break-words">{event.reason}</span>
                       </td>
                       <td className="px-4 py-3 text-[var(--forge-muted)]">
                         {formatDate(event.createdAt)}
@@ -369,18 +367,16 @@ export function PlatformOrganizationDetailPage({
               title="No audit events"
             />
           )}
-        </ForgeSurface>
+        </section>
       </section>
 
-      <ForgeSurface
-        className="min-w-0 border-[color-mix(in_srgb,var(--forge-danger)_28%,var(--forge-border))] p-4"
+      <section
+        className={`${styles.section} ${styles.archive}`}
         data-platform-organization-archive={organization.organization.id}
-        variant="panel"
       >
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
-            <p className="forge-page-eyebrow">Danger zone</p>
-            <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">
+            <h2 className={styles.sectionTitle}>
               Archive organization
             </h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--forge-muted)]">
@@ -396,7 +392,7 @@ export function PlatformOrganizationDetailPage({
           <label className="grid gap-1 text-sm font-semibold text-[var(--forge-text)]">
             Reason
             <input
-              className="min-h-10 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
+              className="min-h-11 min-w-0 rounded-md border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
               disabled={isArchived || isArchiving}
               onChange={(event) => setReason(event.currentTarget.value)}
               placeholder="Duplicate workspace"
@@ -406,7 +402,7 @@ export function PlatformOrganizationDetailPage({
           <label className="grid gap-1 text-sm font-semibold text-[var(--forge-text)]">
             Type slug to confirm
             <input
-              className="min-h-10 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
+              className="min-h-11 min-w-0 rounded-md border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
               disabled={isArchived || isArchiving}
               onChange={(event) => setConfirmationSlug(event.currentTarget.value)}
               placeholder={organization.organization.slug}
@@ -414,7 +410,7 @@ export function PlatformOrganizationDetailPage({
             />
           </label>
           <button
-            className="forge-button forge-button-primary forge-focus-ring min-h-10 rounded-lg px-4 py-2 text-sm"
+            className="forge-button forge-button-primary forge-focus-ring min-h-11 min-w-0 rounded-md px-4 py-2 text-sm"
             disabled={
               isArchived ||
               isArchiving ||
@@ -432,7 +428,7 @@ export function PlatformOrganizationDetailPage({
             {archiveMessage}
           </p>
         ) : null}
-      </ForgeSurface>
+      </section>
     </OperationalWorkspace>
   );
 }
@@ -500,18 +496,17 @@ function CoachingAccessPanel({
   }
 
   return (
-    <ForgeSurface
-      className="p-4"
+    <section
+      className={styles.section}
       data-platform-coaching-access={grant?.status ?? "none"}
       data-platform-coaching-access-endpoint={buildCoachingAccessEndpoint(
         organization.organization.slug,
       )}
-      variant="panel"
+
     >
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="forge-page-eyebrow">Software access</p>
-          <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">
+          <h2 className={styles.sectionTitle}>
             Managed feature access
           </h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--forge-muted)]">
@@ -546,7 +541,7 @@ function CoachingAccessPanel({
         <label className="grid gap-1 text-sm font-semibold text-[var(--forge-text)]">
           Package
           <select
-            className="min-h-10 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
+            className="min-h-11 min-w-0 rounded-md border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
             disabled={isSaving}
             onChange={(event) => {
               const value = event.currentTarget.value as "solo" | "team";
@@ -562,7 +557,7 @@ function CoachingAccessPanel({
         <label className="grid gap-1 text-sm font-semibold text-[var(--forge-text)]">
           Contract seats
           <input
-            className="min-h-10 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
+            className="min-h-11 min-w-0 rounded-md border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
             disabled={isSaving || packageName === "solo"}
             min={packageName === "solo" ? 1 : 2}
             onChange={(event) => setSeatLimit(event.currentTarget.value)}
@@ -573,7 +568,7 @@ function CoachingAccessPanel({
         <label className="grid gap-1 text-sm font-semibold text-[var(--forge-text)]">
           Starts
           <input
-            className="min-h-10 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
+            className="min-h-11 min-w-0 rounded-md border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
             disabled={isSaving}
             onChange={(event) => setStartsAt(event.currentTarget.value)}
             type="date"
@@ -583,7 +578,7 @@ function CoachingAccessPanel({
         <label className="grid gap-1 text-sm font-semibold text-[var(--forge-text)]">
           Ends
           <input
-            className="min-h-10 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
+            className="min-h-11 min-w-0 rounded-md border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
             disabled={isSaving}
             onChange={(event) => setEndsAt(event.currentTarget.value)}
             type="date"
@@ -593,7 +588,7 @@ function CoachingAccessPanel({
         <label className="grid gap-1 text-sm font-semibold text-[var(--forge-text)] md:col-span-2">
           Contract reference
           <input
-            className="min-h-10 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
+            className="min-h-11 min-w-0 rounded-md border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
             disabled={isSaving}
             onChange={(event) => setContractReference(event.currentTarget.value)}
             placeholder="Coaching agreement or CRM reference"
@@ -603,7 +598,7 @@ function CoachingAccessPanel({
         <label className="grid gap-1 text-sm font-semibold text-[var(--forge-text)] md:col-span-2">
           Internal notes
           <input
-            className="min-h-10 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
+            className="min-h-11 min-w-0 rounded-md border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
             disabled={isSaving}
             onChange={(event) => setNotes(event.currentTarget.value)}
             placeholder="Optional"
@@ -612,7 +607,7 @@ function CoachingAccessPanel({
         </label>
       </div>
 
-      <div className="mt-4 rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface-2)] p-3">
+      <div className={styles.capabilities}>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-[var(--forge-text)]">Enabled features</p>
@@ -630,10 +625,10 @@ function CoachingAccessPanel({
             Apply Intero practice pilot
           </ForgeButton>
         </div>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-3 grid gap-x-6 sm:grid-cols-2 xl:grid-cols-3">
           {MANAGED_CAPABILITY_OPTIONS.map((option) => (
             <label
-              className="flex items-start gap-2 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] p-3"
+              className={styles.capability}
               key={option.key}
             >
               <input
@@ -668,7 +663,7 @@ function CoachingAccessPanel({
         <label className="grid gap-1 text-sm font-semibold text-[var(--forge-text)]">
           Audit reason
           <input
-            className="min-h-10 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
+            className="min-h-11 min-w-0 rounded-md border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
             disabled={isSaving}
             onChange={(event) => setReason(event.currentTarget.value)}
             placeholder="Intero pilot access approved"
@@ -736,7 +731,7 @@ function CoachingAccessPanel({
           {message}
         </p>
       ) : null}
-    </ForgeSurface>
+    </section>
   );
 }
 
@@ -744,7 +739,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-3">
       <dt className="text-[var(--forge-muted)]">{label}</dt>
-      <dd className="font-semibold text-[var(--forge-text)]">{value}</dd>
+      <dd className="forge-tabular-nums text-right font-semibold text-[var(--forge-text)]">{value}</dd>
     </div>
   );
 }

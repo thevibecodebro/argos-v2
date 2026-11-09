@@ -1,56 +1,32 @@
 "use client";
 
 import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
-import { ForgeButton, ForgeErrorState } from "@/components/forge";
-import { PageFrame } from "@/components/page-frame";
-
-type AuthenticatedRouteStateSize = "standard" | "wide";
+import { ForgeButton, ForgeIcon } from "@/components/forge";
+import styles from "./authenticated-route-state.module.css";
 
 type AuthenticatedRouteErrorProps = {
   description: string;
   error?: (Error & { digest?: string }) | null;
   eyebrow: string;
   reset: () => void;
-  size?: AuthenticatedRouteStateSize;
+  size?: "standard" | "wide";
   title: string;
 };
 
-export function AuthenticatedRouteError({
-  description,
-  error,
-  eyebrow,
-  reset,
-  size = "standard",
-  title,
-}: AuthenticatedRouteErrorProps) {
+export function AuthenticatedRouteError({ description, error, reset, size = "standard", title }: AuthenticatedRouteErrorProps) {
+  const heading = title === "Page error" ? "This page could not be loaded" : `${title} could not be loaded`;
   return (
     <AuthenticatedPageContainer data-authenticated-route-state="error" size={size}>
-      <PageFrame
-        description={description}
-        eyebrow={eyebrow}
-        statusChips={[{ icon: "warning", label: "Needs retry", tone: "danger" }]}
-        title={title}
-        tone="warning"
-      >
-        <ForgeErrorState
-          description="Something interrupted this view before the data finished loading. Try again, or return to the dashboard."
-          title={`${title} could not be loaded`}
-        >
-          {error?.digest ? (
-            <p className="text-xs leading-5 text-[var(--forge-muted)]">
-              Error reference: {error.digest}
-            </p>
-          ) : null}
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <ForgeButton icon="pending" onClick={reset} type="button" variant="primary">
-              Try again
-            </ForgeButton>
-            <ForgeButton href="/dashboard" icon="dashboard" variant="secondary">
-              Back to dashboard
-            </ForgeButton>
-          </div>
-        </ForgeErrorState>
-      </PageFrame>
+      <section className={styles.message} data-forge-error-state="true" role="alert">
+        <span className={`${styles.icon} ${styles.danger}`}><ForgeIcon name="warning" size={24} /></span>
+        <h1>{heading}</h1>
+        <p>{description}</p>
+        {error?.digest ? <p className={styles.reference}>Error reference: {error.digest}</p> : null}
+        <div className={styles.actions}>
+          <ForgeButton icon="pending" onClick={reset} type="button" variant="primary">Try again</ForgeButton>
+          <ForgeButton href="/dashboard" icon="dashboard" variant="secondary">Back to dashboard</ForgeButton>
+        </div>
+      </section>
     </AuthenticatedPageContainer>
   );
 }

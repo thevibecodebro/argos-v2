@@ -14,7 +14,7 @@ export function LegalFooterLinks({ className = "" }: { className?: string }) {
     >
       {LEGAL_LINKS.map((link) => (
         <Link
-          className="forge-focus-ring rounded transition-colors duration-150 hover:text-[var(--forge-text)]"
+          className="forge-focus-ring inline-flex min-h-11 items-center rounded transition-colors duration-150 hover:text-[var(--forge-text)]"
           href={link.href}
           key={link.href}
         >

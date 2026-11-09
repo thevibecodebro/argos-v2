@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EntryBrand, EntryPage, EntrySurface, entryStyles } from "@/components/auth/entry-surface";
 import { ArgosLogo } from "@/components/argos-logo";
 import { LegalFooterLinks } from "@/components/public/legal-links";
 import styles from "@/components/public/landing-page.module.css";
@@ -14,63 +15,18 @@ const homepageNavLinks = [
 
 export function AuthShell({ children }: AuthShellProps) {
   return (
-    <div
-      className={cx(
-        styles["argos-3d-page"],
-        "min-h-screen overflow-x-hidden text-[var(--forge-text)] selection:bg-[color-mix(in_srgb,var(--forge-gold)_24%,transparent)] selection:text-[var(--forge-text)]",
-      )}
-      data-auth-shell="forge"
-      data-shell-theme="forge"
-      style={{ fontFamily: "var(--font-body, 'Source Sans 3', sans-serif)" }}
-    >
-      <header className={styles["argos-nav-shell"]} aria-label="Login navigation">
-        <nav className={styles["argos-nav"]}>
-          <Link aria-label="Argos homepage" className={styles["argos-brand"]} href="/">
-            <ArgosLogo
-              className={styles["argos-wordmark"]}
-              decorative
-              imageClassName={styles["argos-wordmark-image"]}
-              placement="auth-header"
-            />
-          </Link>
-
-          <div className={styles["argos-nav-links"]} aria-label="Homepage sections">
-            {homepageNavLinks.map((link) => (
-              <Link href={link.href} key={link.href}>
-                {link.label}
-              </Link>
-            ))}
-          </div>
-
-          <div className={styles["argos-nav-actions"]}>
-            <Link className={styles["argos-login-link"]} href="/login">
-              Log in
-            </Link>
-            <Link aria-label="Book an Argos demo" className={styles["argos-mini-cta"]} href="/#access">
-              Book Demo
-            </Link>
-          </div>
+    <EntryPage>
+      <header className={entryStyles.header} aria-label="Login navigation">
+        <EntryBrand placement="auth-header" />
+        <nav className={entryStyles.nav} aria-label="Homepage sections">
+          {homepageNavLinks.map((link) => <Link className={entryStyles.navLink} href={link.href} key={link.href}>{link.label}</Link>)}
+          <Link className={entryStyles.navLink} href="/login">Log in</Link>
+          <Link aria-label="Book an Argos demo" className={`${entryStyles.secondary} forge-focus-ring`} href="/#access">Book Demo</Link>
         </nav>
       </header>
-
-      <main className="relative z-[2] flex min-h-screen items-center justify-center px-5 pb-16 pt-52 sm:px-8 sm:pt-48 md:pb-24 lg:px-14 lg:pt-36 xl:px-20">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-          <div className="absolute left-1/2 top-1/2 h-[34rem] w-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[color-mix(in_srgb,var(--forge-gold)_5.5%,transparent)] blur-3xl" />
-          <div className="absolute inset-x-[12%] top-[18%] h-px bg-[linear-gradient(90deg,transparent,color-mix(in_srgb,var(--forge-text)_13%,transparent),transparent)]" />
-          <div className="absolute inset-x-[18%] bottom-[20%] h-px bg-[linear-gradient(90deg,transparent,color-mix(in_srgb,var(--forge-text)_8%,transparent),transparent)]" />
-        </div>
-
-        <section className="flex w-full items-center justify-center">
-          <div className="w-full max-w-[32rem] space-y-10 rounded-[1.65rem] border border-[color-mix(in_srgb,var(--forge-text)_12%,transparent)] bg-[var(--forge-panel-bg)] p-6 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_8%,transparent),0_30px_90px_color-mix(in_srgb,var(--forge-bg)_26%,transparent)] sm:p-8">
-            {children}
-          </div>
-        </section>
-      </main>
-
-      <footer className="relative z-[3] flex w-full justify-center px-6 pb-6 md:fixed md:bottom-0 md:left-0 md:right-0 md:py-6">
-        <LegalFooterLinks className="justify-center text-[10px] text-[var(--forge-faint)]" />
-      </footer>
-    </div>
+      <EntrySurface><div className={entryStyles.stack}>{children}</div></EntrySurface>
+      <footer className={entryStyles.footer}><LegalFooterLinks className="justify-center" /></footer>
+    </EntryPage>
   );
 }
 

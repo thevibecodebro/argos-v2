@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { entryStyles } from "@/components/auth/entry-surface";
 
 export function InviteAcceptButton({
   autoAccept = false,
@@ -50,14 +51,14 @@ export function InviteAcceptButton({
       {showPassiveState ? (
         <p
           aria-live="polite"
-          className="rounded-lg border border-[rgba(241,191,123,0.24)] bg-[rgba(241,191,123,0.08)] px-4 py-3 text-sm font-semibold text-[var(--forge-gold)]"
+          className="text-sm font-medium text-[var(--forge-muted)]"
           role="status"
         >
           Joining your workspace...
         </p>
       ) : (
         <button
-          className="forge-button forge-button-primary forge-focus-ring px-6 py-3 text-sm disabled:opacity-50"
+          className={`${entryStyles.primary} forge-focus-ring`}
           disabled={loading}
           onClick={handleAccept}
           type="button"
@@ -65,7 +66,7 @@ export function InviteAcceptButton({
           {loading ? "Accepting..." : "Accept invite"}
         </button>
       )}
-      {error ? <p className="mt-3 text-sm text-[var(--forge-danger)]">{error}</p> : null}
+      {error ? <p className="mt-3 text-sm text-[var(--forge-danger)]" role="alert">{error}</p> : null}
     </div>
   );
 }

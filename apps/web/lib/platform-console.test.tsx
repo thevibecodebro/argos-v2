@@ -15,6 +15,7 @@ import type {
   PlatformConsoleStaffMember,
 } from "../components/platform/platform-types";
 import { parsePlatformDashboardFilters } from "./platform/dashboard";
+import { DEFAULT_WORKSPACE_THEME, workspaceThemeToForgeVars } from "./organizations/workspace-theme";
 
 const organizations: PlatformConsoleOrganization[] = [
   {
@@ -114,6 +115,14 @@ function makeOrganizationDetail(
 }
 
 describe("PlatformShell", () => {
+  it("uses the default workspace theme for staff who have no tenant theme", () => {
+    const html = renderToStaticMarkup(createElement(PlatformShell, shellProps, "Platform content"));
+    const variables = workspaceThemeToForgeVars(DEFAULT_WORKSPACE_THEME);
+    expect(html).toContain(`--forge-bg:${variables["--forge-bg"]}`);
+    expect(html).toContain(`--forge-text:${variables["--forge-text"]}`);
+    expect(html).toContain(`--forge-sidebar-bg:${variables["--forge-sidebar-bg"]}`);
+  });
+
   it("renders real platform routes in the left rail", () => {
     const html = renderToStaticMarkup(
       createElement(PlatformShell, shellProps, "Platform content"),
@@ -190,6 +199,99 @@ describe("PlatformShell", () => {
 });
 
 describe("platform page components", () => {
+  it("keeps organization details and created dates reachable in mobile rows", () => {
+    const html = renderToStaticMarkup(createElement(PlatformOrganizationsPage, {
+      activeSession: null,
+      organizations,
+      query: "health",
+      statusFilter: "all",
+    }));
+    const mobile = html.split('class="md:hidden"')[1] ?? "";
+
+    expect(mobile).toContain('href="/platform/organizations/acme-health"');
+    expect(mobile).toContain("Created");
+    expect(mobile).toContain('data-platform-open-organization="org-1"');
+    expect(html).toContain('aria-current="page"');
+    expect(html).not.toContain("Organization list");
+    expect(html.match(/<h[12]\b[^>]*>Organizations<\/h[12]>/g)).toHaveLength(1);
+  });
+
+  it("preserves staff permissions and labeled revocation controls on mobile", () => {
+    const props = { currentUserId: "other-staff", platformStaff, staffRole: "owner" as const };
+    const html = renderToStaticMarkup(createElement(PlatformStaffPage, props));
+    const mobile = html.split('class="md:hidden"')[1] ?? "";
+    expect(mobile).toContain("owner@argos.test");
+    expect(mobile).toContain("Created");
+    expect(mobile).toContain('aria-label="Revocation reason for owner@argos.test"');
+    expect(mobile).toContain(">Revoke<");
+
+    for (const restrictedProps of [
+      { ...props, currentUserId: "staff-1" },
+      { ...props, staffRole: "operator" as const },
+      { ...props, platformStaff: [{ ...platformStaff[0], status: "revoked" as const }] },
+    ]) {
+      const restricted = renderToStaticMarkup(createElement(PlatformStaffPage, restrictedProps));
+      expect(restricted).not.toContain('aria-label="Revocation reason');
+    }
+  });
+
+  it("retains every access and audit field in mobile history rows", () => {
+    const html = renderToStaticMarkup(createElement(PlatformSessionsPage, {
+      activeSession: null,
+      organizations,
+      recentSessions: [{
+        endedAt: null,
+        expiresAt: "2026-06-11T16:30:00.000Z",
+        id: "session-1",
+        reason: "Synthetic support reason",
+        staffEmailSnapshot: "staff@argos.test",
+        startedAt: "2026-06-11T15:30:00.000Z",
+        status: "active",
+        targetOrgName: "Acme Health",
+        targetOrgSlug: "acme-health",
+      }],
+      auditEvents: [{
+        action: "platform.session.create",
+        createdAt: "2026-06-11T15:30:00.000Z",
+        id: "audit-1",
+        reason: "Synthetic audit reason",
+        resourceType: "platform_access_session",
+        staffEmailSnapshot: "staff@argos.test",
+      }],
+    }));
+    const mobileSections = html.split('class="md:hidden"').slice(1);
+    expect(mobileSections).toHaveLength(2);
+    expect(mobileSections[0]).toContain("Synthetic support reason");
+    expect(mobileSections[0]).toContain("acme-health");
+    expect(mobileSections[0]).toContain("Started");
+    expect(mobileSections[1]).toContain("Synthetic audit reason");
+    expect(mobileSections[1]).toContain("platform_access_session");
+    expect(mobileSections[1]).toContain("Created");
+  });
+
+  it("provides mobile organization access and audit history without hiding reasons", () => {
+    const html = renderToStaticMarkup(createElement(PlatformOrganizationDetailPage, {
+      organization: makeOrganizationDetail({
+        access: { activeSessionCount: 0, recentSessions: [{
+          id: "session-1", staffEmailSnapshot: "staff@argos.test", reason: "Detail support reason",
+          status: "ended", startedAt: "2026-06-11T15:30:00.000Z", endedAt: "2026-06-11T15:45:00.000Z",
+          expiresAt: "2026-06-11T16:30:00.000Z",
+        }] },
+        auditEvents: [{
+          id: "audit-1", action: "platform.session.create", staffEmailSnapshot: "staff@argos.test",
+          reason: "Detail audit reason", createdAt: "2026-06-11T15:30:00.000Z", resourceType: "platform_access_session",
+        }],
+      }),
+    }));
+    const mobileSections = html.split('class="md:hidden"').slice(1);
+    expect(mobileSections).toHaveLength(2);
+    expect(mobileSections[0]).toContain("Detail support reason");
+    expect(mobileSections[0]).toContain("Started");
+    expect(mobileSections[1]).toContain("Detail audit reason");
+    expect(mobileSections[1]).toContain("Created");
+    expect(html).not.toContain("forge-page-eyebrow");
+  });
+
   it("renders the combined dashboard stats, filters, and risk queue", () => {
     const filters = parsePlatformDashboardFilters({}, new Date("2026-06-16T15:00:00.000Z"));
     const html = renderToStaticMarkup(

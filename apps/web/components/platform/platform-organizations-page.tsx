@@ -1,5 +1,7 @@
 "use client";
 
+import styles from "./platform-console.module.css";
+
 import { useState } from "react";
 import { cn } from "@argos-v2/ui";
 import {
@@ -8,7 +10,6 @@ import {
   ForgeEmptyState,
   ForgeManagementTable,
   ForgeMobileTableCards,
-  ForgeSurface,
 } from "@/components/forge";
 import {
   OperationalToolbar,
@@ -80,7 +81,7 @@ export function PlatformOrganizationsPage({
 
   return (
     <OperationalWorkspace
-      className="mx-auto w-full max-w-[1500px] px-4 py-5 sm:px-6 lg:px-8"
+      className={`${styles.workspace} mx-auto w-full max-w-[1500px] px-4 py-5 sm:px-6 lg:px-8`}
       data-platform-organizations-page="true"
     >
       <OperationalToolbar
@@ -104,10 +105,9 @@ export function PlatformOrganizationsPage({
       />
 
       {session ? (
-        <ForgeSurface
+        <section
           className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between"
           data-platform-active-session="true"
-          variant="panel"
         >
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -135,35 +135,31 @@ export function PlatformOrganizationsPage({
               {isEndingSession ? "Returning" : "Back to Agency"}
             </ForgeButton>
           </div>
-        </ForgeSurface>
+        </section>
       ) : null}
 
       {sessionStatus ? (
-        <p className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-muted)]">
+        <p role="status" className="rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-muted)]">
           {sessionStatus}
         </p>
       ) : null}
 
       <section className="grid min-w-0 gap-3">
-        <ForgeSurface
-          className="min-w-0 p-4"
+        <section
+          className={styles.section}
           data-platform-primary-table="organizations"
           data-platform-session-endpoint={PLATFORM_SESSION_ENDPOINT}
-          variant="panel"
         >
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="min-w-0">
-              <p className="forge-page-eyebrow">Organization list</p>
-              <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">Organizations</h2>
-            </div>
-            <div className="flex flex-wrap gap-2" data-platform-organization-status-filters="true">
+            <nav aria-label="Organization status" className="flex flex-wrap gap-2" data-platform-organization-status-filters="true">
               {(["active", "archived", "all"] as const).map((status) => (
                 <a
                   className={
                     statusFilter === status
-                      ? "forge-button forge-button-primary forge-focus-ring min-h-10 rounded-lg px-3 py-2 text-xs"
-                      : "forge-button forge-button-ghost forge-focus-ring min-h-10 rounded-lg px-3 py-2 text-xs"
+                      ? "forge-button forge-button-primary forge-focus-ring min-h-11 min-w-0 rounded-md px-3 py-2 text-xs"
+                      : "forge-button forge-button-ghost forge-focus-ring min-h-11 min-w-0 rounded-md px-3 py-2 text-xs"
                   }
+                  aria-current={statusFilter === status ? "page" : undefined}
                   data-platform-organization-status-filter={status}
                   href={buildStatusHref(status, query)}
                   key={status}
@@ -171,7 +167,7 @@ export function PlatformOrganizationsPage({
                   {status === "all" ? "All" : status === "archived" ? "Archived" : "Active"}
                 </a>
               ))}
-            </div>
+            </nav>
             <form
               action="/platform/organizations"
               className="flex min-w-0 flex-1 flex-col gap-2 sm:max-w-xl sm:flex-row lg:flex-initial"
@@ -181,13 +177,13 @@ export function PlatformOrganizationsPage({
               <input name="status" type="hidden" value={statusFilter} />
               <label className="sr-only" htmlFor="platform-org-search">Search organizations</label>
               <input
-                className="min-h-10 w-full rounded-lg border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
+                className="min-h-11 min-w-0 w-full rounded-lg border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60 sm:flex-1"
                 defaultValue={query}
                 id="platform-org-search"
                 name="q"
                 placeholder="Search organizations"
               />
-              <ForgeButton icon="search" size="sm" type="submit" variant="secondary">
+              <ForgeButton className="shrink-0" icon="search" size="sm" type="submit" variant="secondary">
                 Search
               </ForgeButton>
             </form>
@@ -197,17 +193,22 @@ export function PlatformOrganizationsPage({
             <ForgeManagementTable
               className="mt-4"
               mobileCards={
-                <ForgeMobileTableCards>
+                <ForgeMobileTableCards className={styles.mobileRows}>
                   {organizations.map((org) => (
                     <article
                       className={cn(
-                        "w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4 text-left transition hover:border-[color-mix(in_srgb,var(--forge-gold)_32%,transparent)]",
+                        "w-full text-left",
                         isActiveOrganization(session, org) && "border-[color-mix(in_srgb,var(--forge-cyan)_24%,transparent)] bg-[color-mix(in_srgb,var(--forge-cyan)_6%,transparent)]",
                       )}
                       key={`${org.id}:mobile`}
                     >
-                      <p className="truncate text-sm font-semibold text-[var(--forge-text)]">{org.name}</p>
-                      <p className="mt-1 truncate text-sm text-[var(--forge-muted)]">{org.slug}</p>
+                      <a className={styles.rowAction} href={`/platform/organizations/${encodeURIComponent(org.slug)}`}>
+                        {org.name}
+                      </a>
+                      <p className="mt-1 text-xs text-[var(--forge-muted)]">{org.slug}</p>
+                      <dl className={styles.recordDetails}>
+                        <div><dt>Created</dt><dd>{formatDate(org.createdAt)}</dd></div>
+                      </dl>
                       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                         <ForgeChip tone="gold">{formatPlan(org.plan)}</ForgeChip>
                         <OpenOrganizationAction
@@ -223,8 +224,8 @@ export function PlatformOrganizationsPage({
                 </ForgeMobileTableCards>
               }
             >
-              <table className="w-full text-left text-sm">
-                <thead className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--forge-muted)]">
+              <table className="w-full table-fixed text-left text-sm">
+                <thead className="text-[11px] font-semibold text-[var(--forge-muted)]">
                   <tr>
                     <th className="px-4 py-3">Organization</th>
                     <th className="px-4 py-3">Plan</th>
@@ -243,12 +244,12 @@ export function PlatformOrganizationsPage({
                     >
                       <td className="px-4 py-3">
                         <a
-                          className="block truncate font-semibold text-[var(--forge-text)] transition hover:text-[var(--forge-cyan)]"
+                          className="block break-words font-semibold text-[var(--forge-text)] transition hover:text-[var(--forge-cyan)]"
                           href={`/platform/organizations/${encodeURIComponent(org.slug)}`}
                         >
                           {org.name}
                         </a>
-                        <p className="mt-1 truncate text-xs text-[var(--forge-muted)]">{org.slug}</p>
+                        <p className="mt-1 break-words text-xs text-[var(--forge-muted)]">{org.slug}</p>
                       </td>
                       <td className="px-4 py-3">
                         <ForgeChip tone="gold">{formatPlan(org.plan)}</ForgeChip>
@@ -282,7 +283,7 @@ export function PlatformOrganizationsPage({
               title="No organizations found"
             />
           )}
-        </ForgeSurface>
+        </section>
       </section>
     </OperationalWorkspace>
   );
@@ -323,8 +324,7 @@ function OpenOrganizationAction({
   onOpen: () => void;
   organizationId: string;
 }) {
-  const className =
-    "text-xs font-semibold uppercase tracking-[0.12em] text-[var(--forge-cyan)] transition hover:text-[var(--forge-gold)] disabled:text-[var(--forge-muted)]";
+  const className = styles.rowAction;
 
   if (isActive) {
     return (
@@ -341,7 +341,7 @@ function OpenOrganizationAction({
   if (isArchived) {
     return (
       <span
-        className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--forge-muted)]"
+        className="text-xs font-semibold text-[var(--forge-muted)]"
         data-platform-open-organization={organizationId}
       >
         Archived

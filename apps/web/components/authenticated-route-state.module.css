@@ -1,0 +1,34 @@
+.contained { padding: 0; max-width: none; }
+.skeleton { margin-top: 1.5rem; min-width: 0; }
+.rows { overflow: hidden; border: 1px solid var(--forge-border); border-radius: 12px; background: var(--forge-surface); }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; padding: 1.25rem; }
+.row + .row { border-top: 1px solid var(--forge-border); }
+.subject { display: grid; gap: .625rem; min-width: 0; width: min(60%, 26rem); }
+.subject > span:first-child { height: .875rem; width: 85%; }
+.subject > span:last-child { height: .625rem; width: 60%; }
+.metadata { display: flex; gap: 1.5rem; width: 25%; }
+.metadata > span { width: 50%; height: .75rem; }
+.skeleton[data-skeleton-variant="form"] { max-width: 48rem; }
+.skeleton[data-skeleton-variant="form"] .subject { width: 100%; }
+.skeleton[data-skeleton-variant="form"] .subject > span:first-child { width: 7rem; }
+.skeleton[data-skeleton-variant="form"] .subject > span:last-child { height: 2.75rem; width: 100%; }
+.skeleton[data-skeleton-variant="detail"] .subject { width: 100%; }
+.skeleton[data-skeleton-variant="detail"] .subject > span:last-child { width: 95%; }
+.skeleton[data-skeleton-variant="practice"] .row { min-height: 6rem; }
+.practiceTabs { display: flex; gap: 1.5rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--forge-border); }
+.practiceTabs > span { width: 5rem; height: .875rem; }
+.message { max-width: 42rem; padding: 2rem 0; overflow-wrap: anywhere; }
+.icon { display: inline-flex; color: var(--forge-muted); margin-bottom: 1.25rem; }
+.danger { color: var(--forge-danger); }
+.message h1 { margin: 0; font-size: 1.5rem; font-weight: 560; line-height: 1.35; color: var(--forge-text); }
+.message p { margin: .75rem 0 0; max-width: 65ch; font-size: .875rem; line-height: 1.65; color: var(--forge-muted); }
+.message .reference { font-size: .75rem; }
+.actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.5rem; }
+.actions > :is(a, button) { min-height: 44px; }
+@media (max-width: 639px) {
+  .row { padding: 1rem; gap: 1rem; }
+  .metadata { flex-direction: column; gap: .75rem; }
+  .metadata > span { width: 100%; }
+  .message { padding: 1rem 0; }
+  .actions { flex-direction: column; align-items: stretch; }
+}

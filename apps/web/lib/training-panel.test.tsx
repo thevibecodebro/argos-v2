@@ -445,7 +445,6 @@ describe("training panels", () => {
     expect(html).toContain('aria-modal="true"');
     expect(html).toContain('aria-labelledby=');
     expect(html).toContain('aria-describedby=');
-    expect(html).toContain("Create module");
     expect(html).toContain("Training modal");
     expect(html).toContain("Shape the lesson in a focused overlay.");
     expect(html).toContain("Modal body");

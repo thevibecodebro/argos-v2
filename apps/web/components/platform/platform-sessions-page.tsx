@@ -1,12 +1,14 @@
 "use client";
 
+import styles from "./platform-console.module.css";
+
 import { useState } from "react";
 import {
   ForgeButton,
   ForgeChip,
   ForgeEmptyState,
   ForgeManagementTable,
-  ForgeSurface,
+  ForgeMobileTableCards,
 } from "@/components/forge";
 import {
   OperationalToolbar,
@@ -56,7 +58,7 @@ export function PlatformSessionsPage({
 
   return (
     <OperationalWorkspace
-      className="mx-auto w-full max-w-[1500px] px-4 py-5 sm:px-6 lg:px-8"
+      className={`${styles.workspace} mx-auto w-full max-w-[1500px] px-4 py-5 sm:px-6 lg:px-8`}
       data-platform-sessions-page="true"
     >
       <OperationalToolbar
@@ -78,10 +80,9 @@ export function PlatformSessionsPage({
       />
 
       {session ? (
-        <ForgeSurface
+        <section
           className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between"
           data-platform-active-session="true"
-          variant="panel"
         >
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -93,9 +94,6 @@ export function PlatformSessionsPage({
             <p className="mt-2 text-sm leading-5 text-[var(--forge-muted)]">
               Reason: {session.reason} · Expires {formatDate(session.expiresAt)}
             </p>
-            {sessionStatus ? (
-              <p className="mt-2 text-sm text-[var(--forge-muted)]">{sessionStatus}</p>
-            ) : null}
           </div>
           <div className="flex flex-wrap gap-2 lg:justify-end">
             <ForgeButton href="/dashboard" icon="open_in_new" size="sm" variant="primary">
@@ -112,16 +110,17 @@ export function PlatformSessionsPage({
               {isEndingSession ? "Returning" : "Back to Agency"}
             </ForgeButton>
           </div>
-        </ForgeSurface>
+        </section>
       ) : null}
 
-      <section className="grid min-w-0 gap-3">
-        <div className="grid min-w-0 gap-3">
-          <ForgeSurface className="p-4" variant="panel">
+      {sessionStatus ? <p className="text-sm text-[var(--forge-muted)]" role="status">{sessionStatus}</p> : null}
+
+      <section className="grid min-w-0 gap-6">
+        <div className="grid min-w-0 gap-6">
+          <section className={styles.section}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="forge-page-eyebrow">Access trail</p>
-                <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">Recent access</h2>
+                <h2 className={styles.sectionTitle}>Recent access</h2>
               </div>
               <ForgeChip icon="history" tone="muted">
                 {recentSessions.length} records
@@ -129,9 +128,27 @@ export function PlatformSessionsPage({
             </div>
 
             {recentSessions.length ? (
-              <ForgeManagementTable className="mt-4">
-                <table className="w-full text-left text-sm">
-                  <thead className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--forge-muted)]">
+              <ForgeManagementTable className="mt-4" mobileCards={
+                <ForgeMobileTableCards className={styles.mobileRows}>
+                  {recentSessions.map((record) => {
+                    const status = formatAccessSessionStatus(record);
+                    return (
+                      <article key={record.id}>
+                        <p className="text-sm font-semibold">{record.targetOrgName}</p>
+                        <p className="mt-1 text-xs text-[var(--forge-muted)]">{record.targetOrgSlug}</p>
+                        <dl className={styles.recordDetails}>
+                          <div><dt>Staff</dt><dd>{record.staffEmailSnapshot ?? "unknown"}</dd></div>
+                          <div><dt>Reason</dt><dd>{record.reason}</dd></div>
+                          <div><dt>Status</dt><dd><ForgeChip tone={status === "active" ? "cyan" : "muted"}>{status}</ForgeChip></dd></div>
+                          <div><dt>Started</dt><dd>{formatDate(record.startedAt)}</dd></div>
+                        </dl>
+                      </article>
+                    );
+                  })}
+                </ForgeMobileTableCards>
+              }>
+                <table className="w-full table-fixed text-left text-sm">
+                  <thead className="text-[11px] font-semibold text-[var(--forge-muted)]">
                     <tr>
                       <th className="px-4 py-3">Organization</th>
                       <th className="px-4 py-3">Staff</th>
@@ -147,14 +164,14 @@ export function PlatformSessionsPage({
                       return (
                         <tr key={record.id}>
                           <td className="px-4 py-3">
-                            <p className="truncate font-semibold text-[var(--forge-text)]">{record.targetOrgName}</p>
-                            <p className="mt-1 truncate text-xs text-[var(--forge-muted)]">{record.targetOrgSlug}</p>
+                            <p className="break-words font-semibold text-[var(--forge-text)]">{record.targetOrgName}</p>
+                            <p className="mt-1 break-words text-xs text-[var(--forge-muted)]">{record.targetOrgSlug}</p>
                           </td>
                           <td className="px-4 py-3 text-xs text-[var(--forge-muted)]">
                             {record.staffEmailSnapshot ?? "unknown"}
                           </td>
                           <td className="max-w-xs px-4 py-3 text-xs text-[var(--forge-muted)]">
-                            <span className="line-clamp-2">{record.reason}</span>
+                            <span className="break-words">{record.reason}</span>
                           </td>
                           <td className="px-4 py-3">
                             <ForgeChip tone={status === "active" ? "cyan" : "muted"}>
@@ -178,13 +195,12 @@ export function PlatformSessionsPage({
                 title="No recent access"
               />
             )}
-          </ForgeSurface>
+          </section>
 
-          <ForgeSurface className="p-4" data-platform-audit-events="true" variant="panel">
+          <section className={styles.section} data-platform-audit-events="true">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="forge-page-eyebrow">Agency audit</p>
-                <h2 className="mt-1 text-lg font-semibold text-[var(--forge-text)]">Audit events</h2>
+                <h2 className={styles.sectionTitle}>Audit events</h2>
               </div>
               <ForgeChip icon="history" tone="muted">
                 {auditEvents.length} events
@@ -192,7 +208,21 @@ export function PlatformSessionsPage({
             </div>
 
             {auditEvents.length ? (
-              <ForgeManagementTable className="mt-4">
+              <ForgeManagementTable className="mt-4" mobileCards={
+                <ForgeMobileTableCards className={styles.mobileRows}>
+                  {auditEvents.map((event) => (
+                    <article key={event.id}>
+                      <p className="text-sm font-semibold">{event.action}</p>
+                      <dl className={styles.recordDetails}>
+                        <div><dt>Staff</dt><dd>{event.staffEmailSnapshot ?? "unknown"}</dd></div>
+                        <div><dt>Reason</dt><dd>{event.reason}</dd></div>
+                        <div><dt>Resource</dt><dd>{event.resourceType}</dd></div>
+                        <div><dt>Created</dt><dd>{formatDate(event.createdAt)}</dd></div>
+                      </dl>
+                    </article>
+                  ))}
+                </ForgeMobileTableCards>
+              }>
                 <table className="w-full table-fixed text-left text-sm">
                   <colgroup>
                     <col className="w-[24%]" />
@@ -201,7 +231,7 @@ export function PlatformSessionsPage({
                     <col className="w-[15%]" />
                     <col className="w-[15%]" />
                   </colgroup>
-                  <thead className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--forge-muted)]">
+                  <thead className="text-[11px] font-semibold text-[var(--forge-muted)]">
                     <tr>
                       <th className="px-4 py-3">Action</th>
                       <th className="px-4 py-3">Staff</th>
@@ -214,13 +244,13 @@ export function PlatformSessionsPage({
                     {auditEvents.map((event) => (
                       <tr key={event.id}>
                         <td className="min-w-0 px-4 py-3">
-                          <p className="truncate font-semibold text-[var(--forge-text)]">{event.action}</p>
+                          <p className="break-words font-semibold text-[var(--forge-text)]">{event.action}</p>
                         </td>
                         <td className="px-4 py-3 text-xs text-[var(--forge-muted)]">
                           {event.staffEmailSnapshot ?? "unknown"}
                         </td>
                         <td className="max-w-xs px-4 py-3 text-xs text-[var(--forge-muted)]">
-                          <span className="line-clamp-2">{event.reason}</span>
+                          <span className="break-words">{event.reason}</span>
                         </td>
                         <td className="px-4 py-3">
                           <ForgeChip tone="muted">{event.resourceType}</ForgeChip>
@@ -241,7 +271,7 @@ export function PlatformSessionsPage({
                 title="No audit events"
               />
             )}
-          </ForgeSurface>
+          </section>
         </div>
       </section>
     </OperationalWorkspace>
