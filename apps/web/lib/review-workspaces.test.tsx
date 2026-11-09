@@ -1,14 +1,18 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { CallsWorkspace, type CallsWorkspaceProps } from "../components/calls-workspace";
 import { HighlightsWorkspace } from "../components/highlights-workspace";
 import { DashboardWorkspace } from "../components/dashboard-workspace";
 import { getCallsWorkspaceQuery } from "../components/calls-workspace-query";
 import type { CallHighlight, CallSummary } from "./calls/service";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn(), refresh: vi.fn() }),
+}));
+
 const call: CallSummary = { id: "call-fixture", status: "complete", overallScore: null, durationSeconds: 0, callTopic: "Long conversation with a skeptical buyer", repId: "rep", repFirstName: "Dana", repLastName: "Mercer", createdAt: "2026-11-09T12:00:00Z" };
-const props: CallsWorkspaceProps = { calls: [call], total: 1, canSeeRep: true, scoringEnabled: true, canUpload: true, hasActiveFilters: false, views: [{ href: "/calls", label: "All calls", active: true }], page: 0, totalPages: 1, previousHref: "/calls", nextHref: "/calls?offset=20" };
+const props: CallsWorkspaceProps = { calls: [call], total: 1, canSeeRep: true, scoringEnabled: true, canUpload: true, canDelete: true, hasActiveFilters: false, views: [{ href: "/calls", label: "All calls", active: true }], page: 0, totalPages: 1, previousHref: "/calls", nextHref: "/calls?offset=20" };
 
 describe("Review workspaces", () => {
   it("renders calls without selecting the first row or duplicating its details", () => {
@@ -20,6 +24,20 @@ describe("Review workspaces", () => {
     expect(html).toContain("—");
     expect(html).not.toContain("Selected row");
     expect(html).not.toContain("preview-drawer");
+  });
+
+  it("keeps review and authorized deletion available in both recording layouts", () => {
+    const html = renderToStaticMarkup(createElement(CallsWorkspace, props));
+    const desktop = html.split('<tbody>')[1]!.split('</tbody>')[0]!;
+    const mobile = html.split('data-mobile-call-card="true"')[1]!;
+    for (const layout of [desktop, mobile]) {
+      expect(layout).toContain('aria-label="Delete recording Long conversation with a skeptical buyer"');
+      expect(layout).toContain('aria-label="Review Long conversation with a skeptical buyer"');
+      expect(layout).toContain('href="/calls/call-fixture"');
+    }
+    const readOnly = renderToStaticMarkup(createElement(CallsWorkspace, { ...props, canDelete: false }));
+    expect(readOnly).not.toContain('aria-label="Delete recording');
+    expect(readOnly).toContain('href="/calls/call-fixture"');
   });
 
   it("removes forbidden upload, rep, and score affordances in recording-only mode", () => {
