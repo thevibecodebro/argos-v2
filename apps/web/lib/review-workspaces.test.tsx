@@ -1,4 +1,4 @@
-import { createElement } from "react";
+import { createElement, type ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { CallsWorkspace, type CallsWorkspaceProps } from "../components/calls-workspace";
@@ -6,6 +6,10 @@ import { HighlightsWorkspace } from "../components/highlights-workspace";
 import { DashboardWorkspace } from "../components/dashboard-workspace";
 import { getCallsWorkspaceQuery } from "../components/calls-workspace-query";
 import type { CallHighlight, CallSummary } from "./calls/service";
+
+vi.mock("next/link", () => ({
+  default: (props: ComponentProps<"a">) => createElement("a", { ...props, "data-test-next-link": "true" }),
+}));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn(), refresh: vi.fn() }),
@@ -26,18 +30,39 @@ describe("Review workspaces", () => {
     expect(html).not.toContain("preview-drawer");
   });
 
-  it("keeps review and authorized deletion available in both recording layouts", () => {
+  it("keeps Review primary and authorized deletion behind More actions in both recording layouts", () => {
     const html = renderToStaticMarkup(createElement(CallsWorkspace, props));
     const desktop = html.split('<tbody>')[1]!.split('</tbody>')[0]!;
     const mobile = html.split('data-mobile-call-card="true"')[1]!;
     for (const layout of [desktop, mobile]) {
-      expect(layout).toContain('aria-label="Delete recording Long conversation with a skeptical buyer"');
+      expect(layout).toContain('aria-label="More actions for Long conversation with a skeptical buyer"');
+      expect(layout).toContain('aria-haspopup="menu"');
+      expect(layout).not.toContain('aria-label="Delete recording');
+      expect(layout.indexOf('aria-label="Review ')).toBeLessThan(layout.indexOf('aria-label="More actions for '));
       expect(layout).toContain('aria-label="Review Long conversation with a skeptical buyer"');
       expect(layout).toContain('href="/calls/call-fixture"');
     }
     const readOnly = renderToStaticMarkup(createElement(CallsWorkspace, { ...props, canDelete: false }));
     expect(readOnly).not.toContain('aria-label="Delete recording');
+    expect(readOnly).not.toContain('aria-label="More actions for ');
     expect(readOnly).toContain('href="/calls/call-fixture"');
+  });
+
+  it.each([true, false])("uses native navigation only for saved views and Clear filters (recordings=%s)", (hasCalls) => {
+    const html = renderToStaticMarkup(createElement(CallsWorkspace, {
+      ...props, calls: hasCalls ? [call] : [], total: hasCalls ? 1 : 0,
+      hasActiveFilters: true, totalPages: 3,
+      views: [{ href: "/calls?search=budget&sort=createdAt%3Aasc", label: "All calls", active: true }],
+    }));
+    const anchors = [...html.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/g)];
+    const native = anchors.filter(([, , label]) => label === "All calls" || label === "Clear filters");
+    expect(native).toHaveLength(hasCalls ? 2 : 3);
+    for (const [, attributes] of native) expect(attributes).not.toContain("data-test-next-link");
+    expect(native[0]![1]).toContain('href="/calls?search=budget&amp;sort=createdAt%3Aasc"');
+    for (const [, attributes, label] of anchors) {
+      if (label !== "All calls" && label !== "Clear filters") expect(attributes).toContain('data-test-next-link="true"');
+    }
+    expect(html).toContain('data-test-next-link="true"');
   });
 
   it("removes forbidden upload, rep, and score affordances in recording-only mode", () => {
