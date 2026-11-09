@@ -1,8 +1,6 @@
 import Link from "next/link";
-import { ArgosLogo } from "@/components/argos-logo";
 import { LegalFooterLinks } from "@/components/public/legal-links";
-import { ArgosSceneLoader } from "@/components/public/argos-scene-loader";
-import landingStyles from "@/components/public/landing-page.module.css";
+import { EntryBrand, EntryPage, EntrySurface, entryStyles } from "@/components/auth/entry-surface";
 import styles from "./invite-access-shell.module.css";
 
 type InviteAccessShellProps = {
@@ -21,235 +19,44 @@ type InviteActionPanelProps = {
   tone?: "gold" | "danger" | "muted";
 };
 
-function cx(...classes: Array<string | false | null | undefined>) {
-  return classes.filter(Boolean).join(" ");
-}
-
 function formatRoleLabel(role?: string | null) {
   if (!role) return "Workspace access";
   return `${role.charAt(0).toUpperCase()}${role.slice(1)} access`;
 }
 
-export function InviteAccessShell({
-  children,
-  description,
-  heading,
-  note = "Invitation required - no public signup",
-  role,
-  showInviteChips = true,
-}: InviteAccessShellProps) {
-  return (
-    <div
-      className={cx(
-        landingStyles["argos-3d-page"],
-        styles.invitePage,
-        "min-h-screen overflow-x-hidden text-[var(--forge-text)]",
-      )}
-      data-auth-shell="forge"
-      data-shell-theme="forge"
-    >
-      <ArgosSceneLoader />
-      <header className={styles.inviteHeader} aria-label="Invite access navigation">
-        <nav className={styles.inviteNav}>
-          <Link aria-label="Argos homepage" className={styles.inviteNavBrand} href="/">
-            <ArgosLogo
-              className={styles.inviteNavLogo}
-              decorative
-              imageClassName={styles.inviteLogoImage}
-              placement="invite-nav"
-            />
-          </Link>
-
-          <div className={styles.inviteNavActions}>
-            <Link
-              className={cx(styles.inviteNavLink, "forge-focus-ring")}
-              href="/login"
-            >
-              Sign in
-            </Link>
-            <Link
-              className={cx(styles.inviteNavCta, "forge-focus-ring")}
-              href="/#access"
-            >
-              View plans
-            </Link>
-          </div>
-        </nav>
-      </header>
-
-      <main>
-        <section className={cx(landingStyles["argos-hero"], styles.inviteHero)}>
-          <div className={cx(landingStyles["argos-hero-copy"], styles.inviteCopy)} data-reveal>
-            <p className={landingStyles["argos-eyebrow"]}>Workspace invitation</p>
-            <div className={styles.inviteLogoLockup}>
-              <ArgosLogo
-                className={styles.inviteLogo}
-                imageClassName={styles.inviteLogoImage}
-                placement="invite-hero"
-              />
-            </div>
-            <h1 className={styles.inviteHeading}>{heading}</h1>
-            <p className={landingStyles["argos-hero-body"]}>{description}</p>
-            {showInviteChips ? (
-              <div className={styles.inviteChips}>
-                <InviteChip>Admin invite</InviteChip>
-                <InviteChip>{formatRoleLabel(role)}</InviteChip>
-                <InviteChip>Secure magic link</InviteChip>
-              </div>
-            ) : null}
-            <div className={styles.inviteActionSlot}>{children}</div>
-            <p className={styles.inviteNote}>{note}</p>
-          </div>
-
-          <div className={styles.inviteStack} data-reveal>
-            <InviteAudiencePanel />
-          </div>
-
-          <div className={landingStyles["argos-hero-meter"]} aria-hidden="true">
-            <span>Revenue Command</span>
-            <strong>secure workspace access</strong>
-          </div>
-        </section>
-      </main>
-
-      <footer className={landingStyles["argos-footer"]}>
-        <div className={styles.inviteFooterInner}>
-          <div>
-            <div aria-label="Argos" className={landingStyles["argos-footer-brand"]}>
-              <ArgosLogo
-                className={cx(landingStyles["argos-wordmark"], landingStyles["argos-footer-wordmark"])}
-                decorative
-                imageClassName={landingStyles["argos-wordmark-image"]}
-                placement="invite-footer"
-              />
-            </div>
-            <p>2026 Argos Revenue Command. All rights reserved.</p>
-          </div>
-          <LegalFooterLinks className="justify-center text-[10px] tracking-[0.12em] text-[var(--forge-faint)]" />
-        </div>
-      </footer>
-    </div>
-  );
+export function InviteAccessShell({ children, description, heading, note = "Invitation required - no public signup", role, showInviteChips = true }: InviteAccessShellProps) {
+  return <EntryPage>
+    <header className={entryStyles.header} aria-label="Invite access navigation">
+      <EntryBrand placement="invite-nav" />
+      <nav className={entryStyles.nav}><Link className={`${entryStyles.navLink} forge-focus-ring`} href="/login">Sign in</Link><Link className={`${entryStyles.secondary} forge-focus-ring`} href="/#access">View plans</Link></nav>
+    </header>
+    <EntrySurface><div className={entryStyles.stack}>
+      <header><h1 className={entryStyles.title}>{heading}</h1><p className={entryStyles.description}>{description}</p></header>
+      {showInviteChips ? <ul className={styles.details} aria-label="Invitation details"><li>Admin invite</li><li>{formatRoleLabel(role)}</li><li>Secure magic link</li></ul> : null}
+      {children}
+      <p className={styles.note}>{note}</p>
+      <aside className={styles.support} aria-label="Access options">
+        <h2>Which path is yours?</h2>
+        <div><h3>Invited teammate · Use the admin invite</h3><p>Join with the work email your manager or workspace admin invited.</p></div>
+        <div><h3>Starting Argos · Create an organization</h3><p>Owners and admins can choose a plan before creating a team workspace.</p><Link className={`${entryStyles.textLink} forge-focus-ring`} href="/#access">View plans</Link></div>
+      </aside>
+    </div></EntrySurface>
+    <footer className={entryStyles.footer}><p>2026 Argos Revenue Command. All rights reserved.</p><LegalFooterLinks className="justify-center" /></footer>
+  </EntryPage>;
 }
 
-function InviteAudiencePanel() {
-  return (
-    <aside className={styles.inviteAudiencePanel} aria-label="Access options">
-      <p className={styles.inviteAudienceKicker}>Which path is yours?</p>
-      <div className={styles.inviteAudienceRows}>
-        <div className={styles.inviteAudienceRow} data-state="primary">
-          <span>Invited teammate</span>
-          <h2>Use the admin invite</h2>
-          <p>Join with the work email your manager or workspace admin invited.</p>
-        </div>
-        <div className={styles.inviteAudienceRow}>
-          <span>Starting Argos</span>
-          <h2>Create an organization</h2>
-          <p>Owners and admins can choose a plan before creating a team workspace.</p>
-          <Link className={styles.inviteAudienceLink} href="/#access">
-            View plans
-          </Link>
-        </div>
-      </div>
-    </aside>
-  );
+export function InviteActionPanel({ children, description, title, tone = "gold" }: InviteActionPanelProps) {
+  return <section className={styles.panel} data-tone={tone}><h2>{title}</h2><p>{description}</p>{children ? <div className={`${entryStyles.actions} ${styles.actions}`}>{children}</div> : null}</section>;
 }
 
-export function InviteActionPanel({
-  children,
-  description,
-  title,
-  tone = "gold",
-}: InviteActionPanelProps) {
-  return (
-    <section className={styles.invitePanel}>
-      <div className={styles.invitePanelInner}>
-        <span className={styles.inviteIcon} data-tone={tone}>
-          <MailIcon className="h-5 w-5" />
-        </span>
-        <div className="min-w-0">
-          <h2>{title}</h2>
-          <p>{description}</p>
-        </div>
-      </div>
-      {children ? <div className={styles.inviteActions}>{children}</div> : null}
-    </section>
-  );
-}
-
-export function InvitePrimaryLink({
-  children,
-  href,
-}: {
-  children: React.ReactNode;
-  href: string;
-}) {
-  return (
-    <Link
-      className={cx(landingStyles["argos-primary-action"], "forge-focus-ring")}
-      href={href}
-    >
-      <span>{children}</span>
-      <span className={landingStyles["argos-action-disc"]} aria-hidden="true">
-        →
-      </span>
-    </Link>
-  );
+export function InvitePrimaryLink({ children, href }: { children: React.ReactNode; href: string }) {
+  return <Link className={`${entryStyles.primary} forge-focus-ring`} href={href}>{children}</Link>;
 }
 
 export function InvitePrimarySignOutButton({ children }: { children: React.ReactNode }) {
-  return (
-    <form action="/auth/signout" method="post">
-      <button
-        className={cx(landingStyles["argos-primary-action"], "forge-focus-ring cursor-pointer")}
-        type="submit"
-      >
-        <span>{children}</span>
-        <span className={landingStyles["argos-action-disc"]} aria-hidden="true">
-          →
-        </span>
-      </button>
-    </form>
-  );
+  return <form action="/auth/signout" method="post"><button className={`${entryStyles.primary} forge-focus-ring`} type="submit">{children}</button></form>;
 }
 
-export function InviteSecondaryLink({
-  children,
-  href,
-}: {
-  children: React.ReactNode;
-  href: string;
-}) {
-  return (
-    <Link
-      className={cx(landingStyles["argos-secondary-action"], "forge-focus-ring")}
-      href={href}
-    >
-      {children}
-    </Link>
-  );
-}
-
-function InviteChip({ children }: { children: React.ReactNode }) {
-  return <span className={styles.inviteChip}>{children}</span>;
-}
-
-function MailIcon({ className }: { className?: string }) {
-  return (
-    <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
-      <path
-        d="M4.75 7.75h14.5v10.5H4.75z"
-        stroke="currentColor"
-        strokeLinejoin="round"
-        strokeWidth="1.8"
-      />
-      <path
-        d="m5.25 8.25 6.75 5 6.75-5"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.8"
-      />
-    </svg>
-  );
+export function InviteSecondaryLink({ children, href }: { children: React.ReactNode; href: string }) {
+  return <Link className={`${entryStyles.secondary} forge-focus-ring`} href={href}>{children}</Link>;
 }

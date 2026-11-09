@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { entryStyles } from "./entry-surface";
 import { useState } from "react";
 import { ForgeErrorState, ForgeStatusPanel } from "@/components/forge";
 import { buildAuthRedirectUrl, getBrowserWebEnvConfigurationError } from "@/lib/env";
@@ -102,16 +103,11 @@ export function LoginForm({ googleOnly = false, nextPath }: LoginFormProps) {
   return (
     <>
       <div className="space-y-2">
-        <h1
-          className="font-[var(--font-display)] text-4xl font-bold tracking-tight text-[var(--forge-text)]"
-          style={{
-            fontFamily: "var(--font-display, 'Space Grotesk', sans-serif)",
-          }}
-        >
+        <h1 className={entryStyles.title}>
           Welcome back
         </h1>
         <p
-          className="text-sm uppercase tracking-[0.15em] text-[var(--forge-muted)]"
+          className={entryStyles.description}
           style={{ fontFamily: "var(--font-body, 'Source Sans 3', sans-serif)" }}
         >
           Continue to call review, scorecards, training, and roleplay.
@@ -123,7 +119,7 @@ export function LoginForm({ googleOnly = false, nextPath }: LoginFormProps) {
           {status === "submitting" ? "Sending sign-in link." : status === "sent" ? "Sign-in link sent." : ""}
         </div>
         <button
-          className="forge-focus-ring inline-flex min-h-16 w-full items-center justify-center gap-2.5 rounded-full border border-[color-mix(in_srgb,var(--forge-text)_18%,transparent)] bg-[color-mix(in_srgb,var(--forge-text)_4.5%,transparent)] px-5 text-sm font-bold text-[var(--forge-text)] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--forge-text)_6%,transparent)] transition duration-200 hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--forge-gold)_32%,transparent)] hover:bg-[color-mix(in_srgb,var(--forge-gold)_8%,transparent)] hover:text-[var(--forge-gold)] disabled:cursor-not-allowed disabled:opacity-55 sm:gap-3 sm:px-6 sm:text-base"
+          className={`${entryStyles.secondary} ${entryStyles.fullWidth} forge-focus-ring`}
           disabled={!authEnabled}
           onClick={handleGoogleSignIn}
           type="button"
@@ -147,20 +143,20 @@ export function LoginForm({ googleOnly = false, nextPath }: LoginFormProps) {
         ) : (
           <>
             <div className="flex items-center space-x-4">
-              <div className="h-px flex-1 bg-[linear-gradient(to_right,transparent,var(--forge-border))]" />
+              <div className="h-px flex-1 bg-[var(--forge-border)]" />
               <span
                 className="text-[10px] uppercase tracking-[0.2em] text-[var(--forge-muted)]"
                 style={{ fontFamily: "var(--font-body, 'Source Sans 3', sans-serif)" }}
               >
                 OR
               </span>
-              <div className="h-px flex-1 bg-[linear-gradient(to_left,transparent,var(--forge-border))]" />
+              <div className="h-px flex-1 bg-[var(--forge-border)]" />
             </div>
 
             <form className="space-y-6" onSubmit={handleEmailSignIn}>
               <div className="space-y-2">
                 <label
-                  className="block pl-1 text-[10px] uppercase tracking-[0.15em] text-[var(--forge-muted)]"
+                  className={entryStyles.label}
                   htmlFor="auth-email"
                   style={{ fontFamily: "var(--font-body, 'Source Sans 3', sans-serif)" }}
                 >
@@ -169,7 +165,7 @@ export function LoginForm({ googleOnly = false, nextPath }: LoginFormProps) {
                 <div className="relative group">
                   <input
                     autoComplete="email"
-                    className="forge-form-control min-h-16 rounded-[1.15rem] px-5 py-4 text-base outline-none"
+                    className={`${entryStyles.input} forge-form-control`}
                     id="auth-email"
                     name="email"
                     onChange={(event) => setEmail(event.target.value)}
@@ -183,7 +179,7 @@ export function LoginForm({ googleOnly = false, nextPath }: LoginFormProps) {
               </div>
 
               <button
-                className="forge-focus-ring inline-flex min-h-16 w-full items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--forge-text)_22%,transparent)] bg-[var(--forge-text)] px-5 text-sm font-black text-[#100b08] shadow-[inset_0_1px_0_rgba(255,255,255,0.42),0_24px_70px_color-mix(in_srgb,var(--forge-text)_12%,transparent)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#fff8ed] disabled:cursor-not-allowed disabled:opacity-50 sm:px-6 sm:text-base"
+                className={`${entryStyles.primary} ${entryStyles.fullWidth} forge-focus-ring`}
                 disabled={status === "submitting" || !authEnabled}
                 type="submit"
               >
@@ -199,15 +195,15 @@ export function LoginForm({ googleOnly = false, nextPath }: LoginFormProps) {
         style={{ fontFamily: "var(--font-body, 'Source Sans 3', sans-serif)" }}
       >
         By continuing, you agree to our{" "}
-        <Link className="forge-focus-ring rounded text-[var(--forge-gold)] underline-offset-4 hover:underline" href="/privacy-policy">
+        <Link className="forge-focus-ring inline-flex min-h-11 items-center rounded text-[var(--forge-gold)] underline underline-offset-4" href="/privacy-policy">
           Privacy Policy
         </Link>
         ,{" "}
-        <Link className="forge-focus-ring rounded text-[var(--forge-gold)] underline-offset-4 hover:underline" href="/terms-of-service">
+        <Link className="forge-focus-ring inline-flex min-h-11 items-center rounded text-[var(--forge-gold)] underline underline-offset-4" href="/terms-of-service">
           Terms of Service
         </Link>
         , and{" "}
-        <Link className="forge-focus-ring rounded text-[var(--forge-gold)] underline-offset-4 hover:underline" href="/security-policy">
+        <Link className="forge-focus-ring inline-flex min-h-11 items-center rounded text-[var(--forge-gold)] underline underline-offset-4" href="/security-policy">
           Security Policy
         </Link>
         .

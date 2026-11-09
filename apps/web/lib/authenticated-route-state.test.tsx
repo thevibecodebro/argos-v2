@@ -29,6 +29,8 @@ describe("authenticated route states", () => {
     expect(html).toContain('data-authenticated-route-loading-header="true"');
     expect(html).toContain('data-authenticated-route-skeletons="compact"');
     expect(html).toContain("Loading call review state.");
+    expect(html.match(/<h1\b/g)).toHaveLength(1);
+    expect(html).toContain('aria-hidden="true"');
   });
 
   it("renders route errors and not-found states with next actions", () => {
@@ -60,6 +62,18 @@ describe("authenticated route states", () => {
     expect(notFoundHtml).toContain('data-authenticated-route-state="not-found"');
     expect(notFoundHtml).toContain("Call review not found");
     expect(notFoundHtml).toContain('href="/calls"');
+    expect(errorHtml.match(/<h1\b/g)).toHaveLength(1);
+    expect(notFoundHtml.match(/<h1\b/g)).toHaveLength(1);
+    expect(notFoundHtml.match(/href="\/calls"/g)).toHaveLength(1);
+    expect(notFoundHtml.match(/This call is unavailable\./g)).toHaveLength(1);
+  });
+
+  it("does not repeat not-found wording when the route supplies a complete title", () => {
+    const html = renderToStaticMarkup(createElement(AuthenticatedRouteNotFound, {
+      description: "This page is unavailable.", eyebrow: "Argos", title: "Page not found",
+    }));
+    expect(html).toContain("Page not found");
+    expect(html).not.toContain("Page not found not found");
   });
 
   it("covers the core authenticated routes with loading or not-found files", () => {

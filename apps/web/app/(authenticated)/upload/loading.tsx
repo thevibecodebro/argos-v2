@@ -5,6 +5,7 @@ export default function Loading() {
     <AuthenticatedRouteLoading
       description="Loading the call upload flow and analysis setup."
       eyebrow="Capture"
+      variant="form"
       lines={3}
       size="standard"
       title="Upload call"

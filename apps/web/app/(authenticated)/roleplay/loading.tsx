@@ -5,6 +5,7 @@ export default function Loading() {
     <AuthenticatedRouteLoading
       description="Loading personas, practice sessions, transcripts, and scorecards."
       eyebrow="Roleplay"
+      variant="practice"
       lines={5}
       size="wide"
       title="Roleplay"

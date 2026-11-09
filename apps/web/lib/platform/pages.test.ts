@@ -81,7 +81,9 @@ describe("platform route pages", () => {
     expect(source).toContain("enrollPlatformTotp");
     expect(source).toContain("/platform/dashboard");
     expect(source).toContain("/platform/mfa/verify");
-    expect(source).toContain("Set up multi-factor authentication");
+    expect(source).toContain('<PlatformMfaEntryView mode="setup"');
+    expect(source).toContain("qrCode={enrollment.totp?.qr_code}");
+    expect(source).toContain("factorId={enrollment.id}");
   });
 
   it("provides a minimal MFA verification page using challengeAndVerify", () => {
@@ -91,6 +93,8 @@ describe("platform route pages", () => {
     expect(source).toContain('pathname: "/platform/mfa/verify"');
     expect(source).toContain("verifyPlatformTotpCode");
     expect(source).toContain("/platform/dashboard");
-    expect(source).toContain("Verify multi-factor authentication");
+    expect(source).toContain('<PlatformMfaEntryView mode="verify"');
+    expect(source).toContain("action={verifyExistingTotp}");
+    expect(source).toContain("factorId={factor.id}");
   });
 });

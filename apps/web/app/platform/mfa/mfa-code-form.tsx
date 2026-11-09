@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, type ReactNode } from "react";
+import { entryStyles } from "@/components/auth/entry-surface";
 import { useFormStatus } from "react-dom";
 
 export type PlatformMfaFormState = {
@@ -20,15 +21,29 @@ export function PlatformMfaCodeForm({ action, factorId }: PlatformMfaCodeFormPro
 
   return (
     <form action={formAction} className="flex flex-col gap-3">
+      <PlatformMfaCodeFields error={state.error} factorId={factorId}>
+        <SubmitButton />
+      </PlatformMfaCodeFields>
+    </form>
+  );
+}
+
+export function PlatformMfaCodeFields({ error, factorId, children }: {
+  error: string | null;
+  factorId: string;
+  children?: ReactNode;
+}) {
+  return (
+    <>
       <input name="factorId" type="hidden" value={factorId} />
       <label className="text-sm font-semibold" htmlFor="code">
         Authentication code
       </label>
       <input
-        aria-describedby={state.error ? "mfa-code-error" : undefined}
-        aria-invalid={state.error ? "true" : undefined}
+        aria-describedby={error ? "mfa-code-error" : undefined}
+        aria-invalid={error ? "true" : undefined}
         autoComplete="one-time-code"
-        className="rounded-md border border-[#444955] bg-[#080a0e] px-3 py-2 text-base text-[#f2f4f8]"
+        className={entryStyles.input}
         id="code"
         inputMode="numeric"
         name="code"
@@ -36,29 +51,28 @@ export function PlatformMfaCodeForm({ action, factorId }: PlatformMfaCodeFormPro
         required
         type="text"
       />
-      {state.error ? (
+      {error ? (
         <p
-          className="rounded-md border border-[#8f3333] bg-[#2a1111] px-3 py-2 text-sm font-semibold text-[#ffb4b4]"
+          className={entryStyles.error}
           id="mfa-code-error"
           role="alert"
         >
-          {state.error}
+          {error}
         </p>
       ) : null}
-      <SubmitButton />
-    </form>
+      {children ?? <PlatformMfaSubmitButton pending={false} />}
+    </>
   );
 }
 
 function SubmitButton() {
   const { pending } = useFormStatus();
+  return <PlatformMfaSubmitButton pending={pending} />;
+}
 
+export function PlatformMfaSubmitButton({ pending }: { pending: boolean }) {
   return (
-    <button
-      className="rounded-md bg-[#88d498] px-4 py-2 text-sm font-black text-[#0b0f0c] transition hover:bg-[#a5e7b1] disabled:cursor-not-allowed disabled:opacity-70"
-      disabled={pending}
-      type="submit"
-    >
+    <button className={`${entryStyles.primary} forge-focus-ring`} disabled={pending} type="submit">
       {pending ? "Verifying..." : "Verify and continue"}
     </button>
   );
