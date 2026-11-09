@@ -92,6 +92,21 @@ const connectedProps = {
 };
 
 describe("IntegrationsPanel disconnect feedback", () => {
+  it("renders only the provider props supplied by the tenant route", () => {
+    const html = renderToStaticMarkup(createElement(IntegrationsPanel, {
+      titleFilterEnforcementEnabled: false,
+      titleFilters: connectedProps.titleFilters,
+      zoom: connectedProps.zoom,
+    }));
+    expect(html).toContain("Zoom");
+    expect(html).not.toContain("Go High Level");
+    expect(html).not.toContain("Google Meet");
+    expect(html).not.toContain("North Team");
+    expect(html).not.toContain("organizer@example.com");
+    expect(html).toContain("Title filtering not enabled");
+    expect(html).not.toContain("Automatic recording import ready");
+  });
+
   it("uses service-specific disconnect confirmation copy", () => {
     expect(getDisconnectConfirmationCopy("zoom")).toBe("Disconnect Zoom from this workspace?");
     expect(getDisconnectConfirmationCopy("ghl")).toBe("Disconnect Go High Level from this workspace?");
@@ -330,11 +345,11 @@ describe("IntegrationsPanel disconnect feedback", () => {
     });
   });
 
-  it("renders the full-width title-rule editor before provider cards with preview copy", () => {
+  it("puts provider connections before the shared title-rule editor and keeps preview controls", () => {
     const html = renderToStaticMarkup(createElement(IntegrationsPanel, connectedProps));
 
     expect(html).toContain('data-ingestion-title-rules="true"');
-    expect(html.indexOf('data-ingestion-title-rules="true"')).toBeLessThan(
+    expect(html.indexOf('data-ingestion-title-rules="true"')).toBeGreaterThan(
       html.indexOf("Call Recording Ingest"),
     );
     expect(html).toContain("Auto-ingestion title rules");

@@ -1,3 +1,4 @@
+import { loadSettingsRailItems } from "../../settings-navigation-data";
 import { PermissionsPanel } from "@/components/panel-loaders/permissions-panel-loader";
 import { SettingsOperationalLayout } from "../../settings-operational-layout";
 import { loadAdminPermissionsSettings } from "../permissions-page-data";
@@ -7,6 +8,7 @@ export default async function SettingsPermissionsManagePage() {
 
   return (
     <SettingsOperationalLayout
+      railItems={await loadSettingsRailItems()}
       actions={[{ href: "/settings/permissions", icon: "arrow_back", label: "Overview", variant: "secondary" }]}
       description="Apply presets, review manager boundaries, and assign primary managers."
       route="permissions"

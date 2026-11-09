@@ -150,4 +150,26 @@ describe("TeamRepProfileView", () => {
     expect(html).not.toContain("📚");
     expect(html).not.toContain("🎭");
   });
+  it("renders service date-only weeks, ISO timestamp weeks, and unavailable dates without crashing", () => {
+    const html = renderToStaticMarkup(createElement(TeamRepProfileView, {
+      badges,
+      rep: dashboard.reps[0]!,
+      repDashboard: {
+        ...repDashboard,
+        weeklyTrend: [
+          { week: "2026-09-14", avgScore: 68, callCount: 2 },
+          { week: "2026-09-21T00:00:00.000Z", avgScore: 72, callCount: 3 },
+          { week: "not-a-date", avgScore: 75, callCount: 4 },
+          { week: "2026-02-30", avgScore: null, callCount: 0 },
+        ],
+      },
+    }));
+    expect(html).toContain("Sep 14, 2026");
+    expect(html).toContain("Sep 21, 2026");
+    expect(html.match(/Date unavailable/g)).toHaveLength(2);
+    expect(html).toMatch(/datetime="2026-09-14"/i);
+    expect(html).toMatch(/datetime="2026-09-21"/i);
+    expect(html).not.toContain("Invalid Date");
+  });
+
 });

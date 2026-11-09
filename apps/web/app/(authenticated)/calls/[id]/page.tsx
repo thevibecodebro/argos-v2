@@ -1,11 +1,8 @@
+import { DeleteRecordingButton } from "@/components/delete-recording-button";
 import { notFound } from "next/navigation";
 import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
 import { CallDetailPanel } from "@/components/panel-loaders/call-detail-panel-loader";
-import { DeleteRecordingButton } from "@/components/delete-recording-button";
-import {
-  OperationalToolbar,
-  OperationalWorkspace,
-} from "@/components/operational-workspace";
+import { CallReviewWorkspace } from "@/components/call-review-workspace";
 import {
   getCachedAuthenticatedSupabaseUser,
   getCachedCurrentUserProfile,
@@ -49,54 +46,15 @@ export default async function CallDetailPage({
   const call = canUseHighlights
     ? detailResult.data
     : redactCallHighlightFields(detailResult.data);
-  const topic = call.callTopic ?? "Untitled call";
   const canManage = canUseHighlights && (
     profile?.role === "admin" ||
     profile?.role === "manager" ||
     profile?.role === "executive");
 
-  return (
-    <AuthenticatedPageContainer
-      data-call-detail-shell="forge-review-bench"
-      size="wide"
-    >
-      <OperationalWorkspace data-call-detail-route="review-bench">
-        <OperationalToolbar
-          actions={[
-            { href: "/calls", icon: "arrow_back", label: "Recordings", variant: "secondary" },
-            ...(canUseHighlights
-              ? [{ href: "/highlights", icon: "insights", label: "Open Highlights", variant: "secondary" as const }]
-              : []),
-          ]}
-          eyebrow="Call detail"
-          status={{ icon: "query_stats", label: call.status, tone: statusTone(call.status) }}
-          title={topic}
-        />
-
-        <CallDetailPanel
-          annotations={annotationsResult.ok ? annotationsResult.data.annotations : []}
-          call={call}
-          canManage={canManage}
-          canGenerateRoleplay={canGenerateRoleplay}
-          canRetryProcessing={profile?.role === "admin"}
-          scoringEnabled={scoringEnabled}
-        />
-        {profile?.role === "admin" ? (
-          <div className="flex justify-end pt-4">
-            <DeleteRecordingButton callId={call.id} callTopic={topic} detailPage />
-          </div>
-        ) : null}
-      </OperationalWorkspace>
-    </AuthenticatedPageContainer>
-  );
-}
-
-function statusTone(status: string | null | undefined) {
-  const normalized = status?.toLowerCase();
-  if (normalized === "complete") return "success";
-  if (normalized === "failed") return "danger";
-  if (normalized === "uploaded" || normalized === "processing" || normalized === "transcribing" || normalized === "evaluating") {
-    return "ember";
-  }
-  return "muted";
+  return <AuthenticatedPageContainer data-call-detail-shell="forge-review-bench" size="wide">
+    <CallReviewWorkspace call={call} canUseHighlights={canUseHighlights}>
+      <CallDetailPanel annotations={annotationsResult.ok ? annotationsResult.data.annotations : []} call={call} canManage={canManage} canGenerateRoleplay={canGenerateRoleplay} canRetryProcessing={profile?.role === "admin"} scoringEnabled={scoringEnabled} />
+      {profile?.role === "admin" ? <div className="flex justify-end pt-4"><DeleteRecordingButton callId={call.id} callTopic={call.callTopic ?? "Untitled call"} detailPage /></div> : null}
+    </CallReviewWorkspace>
+  </AuthenticatedPageContainer>;
 }

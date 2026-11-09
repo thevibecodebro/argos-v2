@@ -37,6 +37,10 @@ vi.mock("@/lib/auth/request-user", () => ({
   getCachedCurrentUserDetails,
 }));
 
+vi.mock("@/lib/access/managed-capabilities-server", () => ({
+  getCachedOrganizationCapabilities: vi.fn(async () => ({ capabilities: [], mode: "legacy" })),
+}));
+
 vi.mock("@/lib/rubrics/create-repository", () => ({
   createRubricsRepository,
 }));

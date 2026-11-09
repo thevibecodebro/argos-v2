@@ -3,7 +3,7 @@ import { act, createElement, useEffect } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
 import { RoleplayPanel } from '@/components/roleplay-panel';
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }) }));
 vi.mock('@/components/billing/voice-balance-card', () => ({ VoiceBalanceCard: ({ onVoiceAvailabilityChange }: any) => { useEffect(() => { onVoiceAvailabilityChange(true); }, [onVoiceAvailabilityChange]); return null; } }));
 const persona = { id: 'buyer', name: 'Buyer', role: 'CFO', company: 'Acme', industry: 'SaaS', difficulty: 'intermediate', objectionType: 'Budget', description: 'Buyer', avatarInitials: 'B', voice: 'marin' };
 const session = { id: 's1', repId: 'r1', orgId: 'o1', persona: 'buyer', personaDetails: persona, industry: 'SaaS', difficulty: 'intermediate', status: 'active', createdAt: '2026-09-09T00:00:00Z', transcript: [], scorecard: null, overallScore: null, origin: 'manual', sourceCallId: null, rubricId: null, focusMode: 'all', focusCategorySlug: null, scenarioSummary: null, scenarioBrief: null };
@@ -63,7 +63,10 @@ it('changing simulations closes live media and ignores the old data channel', as
     await mount();
     await start();
     expect(peers).toHaveLength(1);
-    await act(async () => { (container.querySelector('[data-roleplay-primary-action="start-simulation"]') as HTMLButtonElement).click(); await new Promise(setImmediate); });
+    expect((container.querySelector('[data-roleplay-primary-action="start-simulation"]') as HTMLButtonElement).disabled).toBe(true);
+    await act(async () => root!.render(createElement(RoleplayPanel, {
+        initialPersonas: [persona], initialSessions: [session, { ...session, id: 's2' }], initialSessionId: 's2', voiceEnabled: true,
+    } as any)));
     expect(tracksStop).toHaveBeenCalled();
     expect(peers[0].close).toHaveBeenCalled();
     expect(peers[0].dc.close).toHaveBeenCalled();
@@ -83,23 +86,23 @@ it('late SDP cannot reattach a connection after unmount', async () => {
     expect(tracksStop).toHaveBeenCalled();
     expect(peers[0].close).toHaveBeenCalled();
 });
-it('keeps active practice compact and closes setup after changing scenarios', async () => {
+it('keeps next practice collapsed until requested and starts the selected buyer', async () => {
     await mount();
-    const setup = container.querySelector<HTMLDetailsElement>('#roleplay-scenario')!;
+    const setup = container.querySelector<HTMLDetailsElement>('#roleplay-scenario details')!;
     expect(setup.open).toBe(false);
-    expect(setup.querySelector('summary')?.textContent).toContain('Change scenario');
+    expect(setup.querySelector('summary')?.textContent).toContain('Start another simulation');
     setup.open = true;
     expect(setup.querySelector('[data-roleplay-scenario-list]')).toBeTruthy();
     await act(async () => {
         (setup.querySelector('[data-roleplay-primary-action="start-simulation"]') as HTMLButtonElement).click();
         await new Promise(setImmediate);
     });
-    expect(container.querySelector<HTMLDetailsElement>('#roleplay-scenario')!.open).toBe(false);
     expect(fetchMock).toHaveBeenCalledWith('/api/roleplay/sessions', expect.objectContaining({ method: 'POST' }));
 });
 it('opens scenario selection when there is no active session', async () => {
     await act(async () => root!.render(createElement(RoleplayPanel, {
         initialPersonas: [persona], initialSessions: [], voiceEnabled: false,
     } as any)));
-    expect(container.querySelector<HTMLDetailsElement>('#roleplay-scenario')!.open).toBe(true);
+    expect(container.querySelector('#roleplay-scenario [data-roleplay-scenario-list]')).toBeTruthy();
+    expect(container.querySelector('#roleplay-scenario [data-roleplay-primary-action="start-simulation"]')).toBeTruthy();
 });

@@ -14,7 +14,11 @@ import { MobileWorkspaceMenu } from "./mobile-workspace-menu";
 import { ArgosLogo } from "./argos-logo";
 import {
   getVisibleBottomTabs,
+  getBottomTabLayout,
   getVisibleNavGroups,
+  isBottomTabActive,
+  isNavigationRouteActive as isRouteActive,
+  type NavGroup,
   type BottomTabItem,
 } from "./app-navigation";
 import { CommandPalette } from "./command-palette";
@@ -112,6 +116,7 @@ export function AuthenticatedAppShell({
 
   const visibleGroups = getVisibleNavGroups(user.role, access);
   const visibleBottomTabs = getVisibleBottomTabs(access);
+  const bottomTabLayout = getBottomTabLayout(visibleBottomTabs);
   const canUploadCalls = !access || hasManagedCapability(access, "call_upload");
   const visibleItems = visibleGroups.flatMap((group) => group.items);
   const navigationDestinations: NavigationDestination[] = visibleItems.map(
@@ -223,6 +228,46 @@ export function AuthenticatedAppShell({
     setPendingHref(href);
   }
 
+  function renderBottomTab(tab: BottomTabItem) {
+    return (
+      <BottomTab
+        active={isBottomTabActive(currentPath, tab)}
+        key={tab.href}
+        onClick={(event) => handleRouteLinkClick(event, tab.href)}
+        tab={tab}
+      />
+    );
+  }
+
+  function renderNavGroup(group: NavGroup) {
+    return (
+      <div className="mb-1.5" key={group.label}>
+        <p
+          className={cn(
+            "forge-nav-section-label px-3 pb-1 pt-3",
+            primaryRailCollapsed ? "lg:hidden" : "hidden lg:block",
+            "md:hidden",
+          )}
+          data-primary-rail-section={group.label}
+        >
+          {group.label}
+        </p>
+        {group.items.map((item) => (
+          <NavLink
+            active={isRouteActive(currentPath, item.href)}
+            collapsed={primaryRailCollapsed}
+            href={item.href}
+            icon={item.icon}
+            key={item.href}
+            label={item.label}
+            onClick={(event) => handleRouteLinkClick(event, item.href)}
+            pending={navigationPendingState.pendingHref === item.href}
+          />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div
       aria-busy={navigationPendingState.isPending ? "true" : undefined}
@@ -267,7 +312,7 @@ export function AuthenticatedAppShell({
               {user.orgLogoUrl ? (
                 <img
                   alt={`${user.orgName ?? "Organization"} logo`}
-                  className="max-h-10 max-w-36 object-contain"
+                  className="max-h-12 max-w-36 rounded-md bg-[#0A0A0A] p-2 object-contain"
                   data-primary-rail-org-logo="true"
                   decoding="async"
                   height={40}
@@ -276,7 +321,7 @@ export function AuthenticatedAppShell({
                 />
               ) : (
                 <ArgosLogo
-                  className="block w-28"
+                  className="block w-28 rounded-md bg-[#0A0A0A] px-2 py-2"
                   decorative
                   imageClassName="block h-auto w-full"
                   placement="primary-rail"
@@ -317,35 +362,15 @@ export function AuthenticatedAppShell({
         ) : null}
 
         <nav
-          className="flex-1 space-y-0.5 overflow-y-auto pr-0 lg:pr-1"
+          className="flex min-h-0 flex-1 flex-col"
           aria-label="Primary navigation"
         >
-          {visibleGroups.map((group) => (
-            <div className="mb-1.5" key={group.label}>
-              <p
-                className={cn(
-                  "forge-nav-section-label px-3 pb-1 pt-3",
-                  primaryRailCollapsed ? "lg:hidden" : "hidden lg:block",
-                  "md:hidden",
-                )}
-                data-primary-rail-section={group.label}
-              >
-                {group.label}
-              </p>
-              {group.items.map((item) => (
-                <NavLink
-                  active={isRouteActive(currentPath, item.href)}
-                  collapsed={primaryRailCollapsed}
-                  href={item.href}
-                  icon={item.icon}
-                  key={item.href}
-                  label={item.label}
-                  onClick={(event) => handleRouteLinkClick(event, item.href)}
-                  pending={navigationPendingState.pendingHref === item.href}
-                />
-              ))}
-            </div>
-          ))}
+          <div className="min-h-0 flex-1 overflow-y-auto pr-0 lg:pr-1" data-primary-rail-scroll="true">
+            {visibleGroups.filter((group) => group.label !== "System").map(renderNavGroup)}
+          </div>
+          <div className="shrink-0 pt-3" data-primary-rail-footer="true">
+            {visibleGroups.filter((group) => group.label === "System").map(renderNavGroup)}
+          </div>
         </nav>
 
       </aside>
@@ -374,7 +399,7 @@ export function AuthenticatedAppShell({
             {/* Compact brand mark on phones, where the rail is hidden. */}
             <span className="md:hidden" data-topbar-brand="true">
               <ArgosLogo
-                className="block w-24"
+                className="block w-24 rounded-md bg-[#0A0A0A] px-2 py-2"
                 decorative
                 imageClassName="block h-auto w-full"
                 placement="topbar"
@@ -540,14 +565,17 @@ export function AuthenticatedAppShell({
         className="forge-bottom-bar fixed inset-x-0 bottom-0 z-40 flex items-stretch justify-around md:hidden"
         data-mobile-tabbar="true"
       >
-        {visibleBottomTabs.map((tab) => (
-          <BottomTab
-            active={isRouteActive(currentPath, tab.href)}
-            key={tab.href}
-            onClick={(event) => handleRouteLinkClick(event, tab.href)}
-            tab={tab}
-          />
-        ))}
+        {bottomTabLayout.centerTab ? <>
+          <div className="flex min-w-0 flex-1 items-stretch" data-mobile-tab-group="before">
+            {bottomTabLayout.before.map(renderBottomTab)}
+          </div>
+          <div className="flex w-16 shrink-0 items-stretch" data-mobile-tab-center="true">
+            {renderBottomTab(bottomTabLayout.centerTab)}
+          </div>
+          <div className="flex min-w-0 flex-1 items-stretch" data-mobile-tab-group="after">
+            {bottomTabLayout.after.map(renderBottomTab)}
+          </div>
+        </> : visibleBottomTabs.map(renderBottomTab)}
       </nav>
     </div>
   );
@@ -699,10 +727,6 @@ function PrimaryRailToggleIcon({
       )}
     </svg>
   );
-}
-
-function isRouteActive(currentPath: string, href: string) {
-  return currentPath === href || currentPath.startsWith(`${href}/`);
 }
 
 export function getNavigationPendingState({

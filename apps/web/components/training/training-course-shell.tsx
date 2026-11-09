@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import headerStyles from "../workspace-page-header.module.css";
 import { SecondaryRail } from "../secondary-rail";
 
 type TrainingCourseShellProps = {
@@ -19,7 +20,7 @@ export function TrainingCourseShell({
   if (isManager) {
     return (
       <div
-        className="grid min-w-0 gap-3"
+        className={`grid min-w-0 gap-3 xl:grid-cols-[auto_minmax(0,1fr)] ${headerStyles.touchTargets}`}
         data-training-builder-workbench=""
         data-training-course-shell={mode}
       >

@@ -10,7 +10,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("PeoplePanel", () => {
-  it("renders people management with a compact drawer and member table", () => {
+  it("renders people management with inline invite controls and a member table", () => {
     const html = renderToStaticMarkup(
       createElement(PeoplePanel, {
         currentUserId: "user-admin",
@@ -62,15 +62,27 @@ describe("PeoplePanel", () => {
     expect(html).not.toContain('data-forge-workspace-layout=');
     expect(html).not.toContain('data-forge-workspace-rail=');
     expect(html).toContain('data-forge-management-table="true"');
+    // Both workspace rails remain visible at tablet width. Keep complete member
+    // cards until xl so the table's role and removal controls cannot be clipped.
+    expect(html).toContain("[&amp;&gt;div:first-child]:hidden");
+    expect(html).toContain("[&amp;&gt;div:last-child]:block");
+    expect(html).toContain("xl:[&amp;&gt;div:first-child]:block");
+    expect(html).toContain("xl:[&amp;&gt;div:last-child]:hidden");
     expect(html).toContain('data-forge-mobile-table-cards="true"');
     expect(html).toContain("Search members");
     expect(html).toContain("Role filter");
-    expect(html).toContain("Member management");
-    expect(html).toContain("Invite rep");
-    expect(html).toContain("Invite manager");
+    expect(html).toContain("Members");
+    expect(html.match(/Invite user/g)).toHaveLength(1);
+    expect(html).not.toContain("Invite rep");
+    expect(html).not.toContain("Invite manager");
+    expect(html).not.toContain("Manage workspace access.");
     expect(html).not.toContain("Invite member");
     expect(html).not.toContain("Send invite");
-    expect(html).toContain("Pending invites");
+    expect(html).toContain("Pending invites (1)");
+    expect(html).toContain('data-people-pending-invites="true"');
+    expect(html).not.toContain('data-people-invite-form="true"');
+    expect(html).not.toContain("Role for Admin User");
+    expect(html).toContain("Role for Riley Stone");
     expect(html).toContain("rep@example.com");
     expect(html).toContain("Riley Stone");
     expect(html).toContain("Protected");
@@ -78,11 +90,11 @@ describe("PeoplePanel", () => {
     expect(html).not.toContain("Invite teammates from the rail to add the first member.");
   });
 
-  it("can render the invite form open for the page-level invite action", () => {
+  it.each(["rep", "manager", "executive", "admin"] as const)("preserves the %s invitation deep link and full role choices", (initialInviteRole) => {
     const html = renderToStaticMarkup(
       createElement(PeoplePanel, {
         currentUserId: "user-admin",
-        initialInviteRole: "rep",
+        initialInviteRole,
         initialMembers: [],
         initialPendingInvites: [],
         initialTeams: [{ id: "team-a", name: "Closers" }],
@@ -91,8 +103,19 @@ describe("PeoplePanel", () => {
 
     expect(html).toContain('id="people-invite"');
     expect(html).toContain('data-people-invite-form="true"');
-    expect(html).toContain('value="rep" selected=""');
-    expect(html).toContain("Invite rep");
+    expect(html).toContain(`value="${initialInviteRole}" selected=""`);
+    expect(html).toContain(`Invite ${initialInviteRole}`);
+    expect(html).not.toContain("Invite user");
+    expect(html).toContain("Rep — records and reviews own calls");
+    expect(html).toContain("Manager — coaches team calls");
+    expect(html).toContain("Executive — views all team data");
+    expect(html).toContain("Admin — full access");
+    if (initialInviteRole === "rep" || initialInviteRole === "manager") {
+      expect(html).toContain("Teams (optional)");
+      expect(html).toContain("Closers");
+    } else {
+      expect(html).not.toContain("Teams (optional)");
+    }
     expect(html).toContain("Email");
   });
 });

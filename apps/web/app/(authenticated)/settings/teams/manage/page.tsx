@@ -1,3 +1,4 @@
+import { loadSettingsRailItems } from "../../settings-navigation-data";
 import { TeamsPanel } from "@/components/panel-loaders/teams-panel-loader";
 import { SettingsOperationalLayout } from "../../settings-operational-layout";
 import { loadAdminTeamsSettings } from "../teams-page-data";
@@ -7,6 +8,7 @@ export default async function SettingsTeamsManagePage() {
 
   return (
     <SettingsOperationalLayout
+      railItems={await loadSettingsRailItems()}
       actions={[{ href: "/settings/teams", icon: "arrow_back", label: "Overview", variant: "secondary" }]}
       description="Create teams, edit metadata, and manage manager and rep assignments."
       route="teams"

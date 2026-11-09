@@ -98,7 +98,7 @@ describe("CallDetailPage forge treatment", () => {
     expect(html).not.toContain('data-operational-preview-drawer="true"');
     expect(html).toContain('href="/calls"');
     expect(html).toContain('href="/highlights"');
-    expect(html).toContain("Open Highlights");
+    expect(html).toContain(">Highlights</a>");
     expect(html).not.toContain("Share Insight");
     expect(html).toContain("Call detail panel marker");
     expect(html).toContain("Pricing review");
@@ -120,7 +120,7 @@ describe("CallDetailPage forge treatment", () => {
   });
 
   it("keeps the route wired to the review bench panel without metric strips", () => {
-    expect(callDetailPageSource).toContain('data-call-detail-route="review-bench"');
+    expect(callDetailPageSource).toContain("CallReviewWorkspace");
     expect(callDetailPageSource).toContain("CallDetailPanel");
     expect(callDetailPageSource).not.toContain("OperationalMetricStrip");
     expect(callDetailPageSource).not.toContain("OperationalPreviewDrawer");

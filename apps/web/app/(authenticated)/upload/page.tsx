@@ -1,8 +1,5 @@
 import { AuthenticatedPageContainer } from "@/components/authenticated-page-container";
-import {
-  OperationalToolbar,
-  OperationalWorkspace,
-} from "@/components/operational-workspace";
+import { UploadWorkspace } from "@/components/upload-workspace";
 import { UploadCallPanel } from "@/components/panel-loaders/upload-call-panel-loader";
 import { notFound } from "next/navigation";
 import { getCachedAuthenticatedSupabaseUser } from "@/lib/auth/request-user";
@@ -13,21 +10,5 @@ export default async function UploadPage() {
   if (!authUser) notFound();
   await requireManagedCapabilityForPage(authUser.id, "call_upload");
 
-  return (
-    <AuthenticatedPageContainer>
-      <OperationalWorkspace data-upload-route="capture-workflow">
-        <OperationalToolbar
-          actions={[{ href: "/calls", icon: "subject", label: "View recordings", variant: "secondary" }]}
-          description="Upload a recording or audio file to transcribe it and generate a buyer-personality roleplay."
-          eyebrow="Capture"
-          title="Upload Recording / Audio"
-        />
-        <section className="min-w-0">
-          <div className="min-w-0">
-            <UploadCallPanel />
-          </div>
-        </section>
-      </OperationalWorkspace>
-    </AuthenticatedPageContainer>
-  );
+  return <AuthenticatedPageContainer><UploadWorkspace><UploadCallPanel /></UploadWorkspace></AuthenticatedPageContainer>;
 }

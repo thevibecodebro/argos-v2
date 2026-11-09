@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import styles from "./review-workspace.module.css";
 import { useRouter } from "next/navigation";
 import { ForgeDialog } from "@/components/forge-dialog";
 import {
@@ -603,7 +604,7 @@ export function CallDetailPanel({
     return (
       <ForgeSurface className="p-3" variant="inset">
         <label
-          className="block font-[var(--font-display)] text-[0.65rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-muted)]"
+          className="block text-xs font-medium text-[var(--forge-muted)]"
           htmlFor="call-coaching-note"
         >
           Coaching note
@@ -681,6 +682,7 @@ export function CallDetailPanel({
         className="overflow-hidden rounded-lg border border-[var(--forge-border)] bg-[var(--forge-transcript-bg)]"
         data-call-transcript-primary="true"
         id="call-transcript"
+        tabIndex={-1}
         style={{ scrollMarginTop: "5rem" }}
       >
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--forge-border)] px-4 py-3">
@@ -693,7 +695,7 @@ export function CallDetailPanel({
           <ForgeChip tone="muted">{transcriptLines.length} lines</ForgeChip>
         </div>
         {transcriptLines.length ? (
-          <div className="max-h-[520px] divide-y divide-[var(--forge-border)] overflow-y-auto">
+          <div className={styles.transcriptTurns} aria-label="Call transcript turns" tabIndex={0}>
             {transcriptLines.map((line, index) => {
               const speakerLabel = formatSpeakerLabel(line.speaker);
               const speakerInitials = initials(speakerLabel);
@@ -713,7 +715,7 @@ export function CallDetailPanel({
                         {formatTimestamp(line.timestampSeconds)}
                       </span>
                     </div>
-                    <p className="mt-1 text-sm leading-6 text-[var(--forge-muted)]">{line.text}</p>
+                    <p className="mt-1 text-sm leading-6 text-[var(--forge-text)]">{line.text}</p>
                   </div>
                 </div>
               );
@@ -744,7 +746,7 @@ export function CallDetailPanel({
     const isNoteActionBusy = noteActionMomentId === moment.id;
 
     return (
-      <ForgeSurface className="p-4" key={moment.id} variant="inset">
+      <article className={styles.momentRow} key={moment.id}>
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <ForgeChip icon="history" tone="gold">
             {formatTimestamp(moment.timestampSeconds)}
@@ -766,7 +768,7 @@ export function CallDetailPanel({
         {canManage ? (
           <div className="mt-4 space-y-3">
             <label
-              className="block font-[var(--font-display)] text-[0.65rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-muted)]"
+              className="block text-xs font-medium text-[var(--forge-muted)]"
               htmlFor={`highlight-note-${moment.id}`}
             >
               Edit note
@@ -838,7 +840,7 @@ export function CallDetailPanel({
             </div>
           </div>
         ) : null}
-      </ForgeSurface>
+      </article>
     );
   }
 
@@ -847,6 +849,8 @@ export function CallDetailPanel({
       <section
         className="overflow-hidden rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)]"
         data-call-evidence-panel="true"
+        id="call-evidence"
+        tabIndex={-1}
       >
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--forge-border)] px-4 py-3">
           <div>
@@ -859,7 +863,7 @@ export function CallDetailPanel({
             {moments.length} moments
           </ForgeChip>
         </div>
-        <div className="space-y-3 p-4">
+        <div className="px-4 pb-4">
           {moments.length ? (
             moments.map((moment) => renderMomentCard(moment))
           ) : (
@@ -880,7 +884,7 @@ export function CallDetailPanel({
   function renderCoachingPane() {
     return (
       <aside
-        className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-3 xl:sticky xl:top-20 xl:self-start"
+        className={styles.coachingPane}
         data-call-coaching-pane="true"
         id="call-coaching"
         style={{ scrollMarginTop: "5rem" }}
@@ -908,16 +912,26 @@ export function CallDetailPanel({
       <div aria-live="polite" className="sr-only" role="status">
         {busyAnnouncement}
       </div>
-      <div className="space-y-3" data-call-detail-panel="forge-review-bench">
+      <div className={styles.detailRoot} data-call-detail-panel="forge-review-bench">
         <nav aria-label="Call review sections" className="flex gap-2 xl:hidden">
-          <a href="#call-transcript" className="forge-button forge-button-secondary px-4 py-2 text-sm">Transcript</a>
-          <a href="#call-coaching" className="forge-button forge-button-secondary px-4 py-2 text-sm">Coaching action</a>
+          {[
+            ["#call-coaching", "Coaching"],
+            ...(scoringEnabled ? [["#call-evidence", "Evidence"]] : []),
+            ["#call-transcript", "Transcript"],
+          ].map(([href, label]) => (
+            <a className="flex min-h-11 flex-1 items-center justify-center rounded-lg border border-[var(--forge-border)] px-3 text-sm font-medium text-[var(--forge-text)] hover:bg-[var(--forge-surface-2)] focus-visible:outline-2 focus-visible:outline-[var(--forge-gold)]" href={href} key={href}>{label}</a>
+          ))}
         </nav>
         <div
-          className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_340px]"
+          className={styles.detailLayout}
           data-call-detail-workbench="transcript-evidence"
         >
           <section className="min-w-0 space-y-3">
+            {scoringEnabled && <section className={styles.callScoreSummary} aria-label="Call score summary">
+              <div><span className={styles.muted}>Overall score</span><p className={styles.callScore}>{call.overallScore ?? "—"}<span>{call.overallScore != null ? " / 100" : " · Not scored"}</span></p></div>
+              <div className={styles.scoreContext}>{call.callStageReached && <p>Stage: {call.callStageReached.replaceAll("_", " ")}</p>}{call.confidence && <p>Confidence: {call.confidence}</p>}{call.rubric && <p className={styles.muted}>{call.rubric.name} · v{call.rubric.version}</p>}</div>
+              {call.categoryScores?.length > 0 && <details className={styles.categoryDisclosure}><summary>Category scores</summary><dl className={styles.callCategories}>{call.categoryScores.map((category) => <div key={category.slug}><dt>{category.name}</dt><dd>{category.score ?? "—"}</dd></div>)}</dl></details>}
+            </section>}
             {renderTranscriptSection()}
             <BuyerPersonalityPanel
               callId={call.id}
@@ -977,7 +991,7 @@ export function CallDetailPanel({
           ) : generatePreview ? (
             <>
               <ForgeSurface className="px-4 py-5" variant="inset">
-                <p className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-muted)]">
+                <p className="text-xs font-medium text-[var(--forge-muted)]">
                   Scenario
                 </p>
                 <p className="mt-3 text-sm leading-relaxed text-[var(--forge-text)]">
@@ -985,7 +999,7 @@ export function CallDetailPanel({
                 </p>
               </ForgeSurface>
               <label className="block">
-                <span className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-muted)]">
+                <span className="text-xs font-medium text-[var(--forge-muted)]">
                   Focus
                 </span>
                 <select
@@ -1001,7 +1015,7 @@ export function CallDetailPanel({
                 </select>
               </label>
               <fieldset className="space-y-2">
-                <legend className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-muted)]">
+                <legend className="text-xs font-medium text-[var(--forge-muted)]">
                   Buyer voice
                 </legend>
                 <div className="grid grid-cols-2 gap-2" data-generated-roleplay-buyer-voice="true">
@@ -1048,10 +1062,8 @@ function SummaryList({
   title: string;
 }) {
   return (
-    <div>
-      <p className="font-[var(--font-display)] text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[var(--forge-muted)]">
-        {title}
-      </p>
+    <details className="border-t border-[var(--forge-border)] pt-2">
+      <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium text-[var(--forge-text)] focus-visible:outline-2 focus-visible:outline-[var(--forge-gold)]">{title} <span className="text-[var(--forge-muted)]">({items.length})</span></summary>
       <ul className="mt-3 space-y-2 text-sm text-[var(--forge-muted)]">
         {items.length ? (
           items.map((item) => (
@@ -1071,6 +1083,6 @@ function SummaryList({
           </li>
         )}
       </ul>
-    </div>
+    </details>
   );
 }

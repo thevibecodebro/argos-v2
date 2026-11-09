@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 
 const routeContracts = [
   {
-    path: "../app/(authenticated)/calls/[id]/page.tsx",
-    primaryObjects: ["CallDetailPanel"],
+    path: "../components/call-review-workspace.tsx",
+    primaryObjects: ["{children}"],
     route: "call detail",
     routeMarker: 'data-call-detail-route="review-bench"',
   },
@@ -15,19 +15,19 @@ const routeContracts = [
     routeMarker: 'data-roleplay-route="operational-workspace"',
   },
   {
-    path: "../app/(authenticated)/roleplay/history/page.tsx",
-    primaryObjects: ["ForgeManagementTable"],
+    path: "../components/roleplay-history-panel.tsx",
+    primaryObjects: ["<table"],
     route: "roleplay history",
-    routeMarker: 'data-roleplay-route="history"',
+    routeMarker: 'aria-label="Completed roleplay sessions"',
   },
   {
-    path: "../app/(authenticated)/leaderboard/page.tsx",
+    path: "../components/leaderboard-page-view.tsx",
     primaryObjects: ['data-forge-table="true"'],
     route: "leaderboard",
     routeMarker: 'data-leaderboard-route="rank-table"',
   },
   {
-    path: "../app/(authenticated)/training/team/page.tsx",
+    path: "../components/training/training-pages.tsx",
     primaryObjects: ["ForgeTableShell"],
     route: "training team",
     routeMarker: 'data-training-route="team-progress"',
@@ -51,7 +51,7 @@ describe("remaining authenticated route readability", () => {
 
   it("leaderboard removes no-op view and filter chrome", () => {
     const source = readFileSync(
-      new URL("../app/(authenticated)/leaderboard/page.tsx", import.meta.url),
+      new URL("../components/leaderboard-page-view.tsx", import.meta.url),
       "utf8",
     );
 
@@ -65,25 +65,25 @@ describe("remaining authenticated route readability", () => {
     expect(source).not.toContain("Role: All roles");
   });
 
-  it("keeps table routes table-first with selected-object drawer semantics", () => {
+  it("keeps ledgers without automatically selecting the first record", () => {
     const leaderboard = readFileSync(
-      new URL("../app/(authenticated)/leaderboard/page.tsx", import.meta.url),
+      new URL("../components/leaderboard-page-view.tsx", import.meta.url),
       "utf8",
     );
     const history = readFileSync(
-      new URL("../app/(authenticated)/roleplay/history/page.tsx", import.meta.url),
+      new URL("../components/roleplay-history-panel.tsx", import.meta.url),
       "utf8",
     );
     const trainingTeam = readFileSync(
-      new URL("../app/(authenticated)/training/team/page.tsx", import.meta.url),
+      new URL("../components/training/training-pages.tsx", import.meta.url),
       "utf8",
     );
 
     expect(leaderboard).toContain('data-forge-table="true"');
-    expect(history).toContain('data-forge-table="true"');
+    expect(history).toContain('<table');
     expect(trainingTeam).toContain('data-forge-table="true"');
-    expect(leaderboard).toContain('data-selected-object-drawer="true"');
-    expect(history).toContain('data-selected-object-drawer="true"');
-    expect(trainingTeam).toContain('data-selected-object-drawer="true"');
+    expect(leaderboard).not.toContain('data-selected-object-drawer="true"');
+    expect(history).not.toContain('data-selected-object-drawer="true"');
+    expect(trainingTeam).not.toContain('data-selected-object-drawer="true"');
   });
 });

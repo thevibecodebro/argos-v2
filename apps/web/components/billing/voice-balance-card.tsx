@@ -134,9 +134,8 @@ export function VoiceBalanceCard({
       >
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="forge-page-eyebrow">Live voice minutes</p>
-            <h2 className="mt-1 text-base font-semibold text-[var(--forge-text)]">
-              {accessRequired ? "Choose a software plan to use live voice" : "Balance unavailable"}
+            <h2 className="text-base font-[540] text-[var(--forge-text)]">
+              {accessRequired ? "Choose a software plan to use live voice" : "Voice balance unavailable"}
             </h2>
             <p className="mt-1 text-sm leading-6 text-[var(--forge-muted)]">
               {accessRequired
@@ -205,7 +204,7 @@ export function VoiceBalanceSummary({
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="forge-page-eyebrow">Live voice minutes</p>
+              <h2 className="text-sm font-[540] text-[var(--forge-text)]">Voice minutes</h2>
               <ForgeChip tone={tone}>
                 {balance.isUnlimited
                   ? "Unlimited"

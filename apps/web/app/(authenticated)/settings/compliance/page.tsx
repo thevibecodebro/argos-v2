@@ -1,3 +1,4 @@
+import { loadSettingsRailItems } from "../settings-navigation-data";
 import { redirect } from "next/navigation";
 import { CompliancePanel } from "@/components/panel-loaders/compliance-panel-loader";
 import {
@@ -24,15 +25,8 @@ export default async function SettingsCompliancePage() {
 
   return (
     <SettingsOperationalLayout
-      description="Manage consent, retention, and coaching safeguards."
-      previewDescription="Consent and recording safeguard state."
-      previewRows={[
-        { label: "Consent", tone: compliance?.consentedAt ? "success" : "muted", value: compliance?.consentedAt ? "Acknowledged" : "Not acknowledged" },
-        { label: "Recording", tone: "muted", value: "Disabled" },
-        { label: "Acknowledged", value: compliance?.consentedAt ? formatDate(compliance.consentedAt) : "Not recorded" },
-        { label: "Scope", tone: "gold", value: "Workspace" },
-      ]}
-      previewTitle="Compliance status"
+      railItems={await loadSettingsRailItems()}
+      description="Review consent and recording safeguards."
       route="compliance"
       title="Compliance"
     >
@@ -44,10 +38,4 @@ export default async function SettingsCompliancePage() {
       />
     </SettingsOperationalLayout>
   );
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-  }).format(new Date(value));
 }

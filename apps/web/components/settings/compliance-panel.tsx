@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ForgeButton, ForgeIcon, ForgeSurface } from "@/components/forge";
-import { SettingsSectionHeader } from "./settings-readability";
+import { ForgeButton, ForgeIcon } from "@/components/forge";
+import styles from "./configuration-panels.module.css";
 
 function formatDate(value: string | null) {
   if (!value) return null;
@@ -63,146 +63,65 @@ export function CompliancePanel({
   }
 
   return (
-    <div className="space-y-5">
-      {/* Consent status card */}
-      <ForgeSurface
-        as="section"
-        className="overflow-hidden p-0"
-        variant="panel"
-      >
-        <SettingsSectionHeader
-          description="Acknowledge the call-recording consent requirement before auto-ingesting or reviewing recorded conversations. Recording without valid consent may violate applicable federal, state, or international wiretapping and privacy laws."
-          eyebrow="Compliance"
-          title="Recording consent"
-        />
-
-        <div className="p-4 sm:p-6">
-          {consentMode ? (
-            <div className="mt-4 flex items-center gap-3 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3">
-              <div>
-                <p className="text-xs font-medium text-[var(--forge-muted)]">
-                  Consent Mode
-                </p>
-                <p className="mt-1 text-sm font-medium capitalize text-[var(--forge-text)]">
-                  {consentMode}
-                </p>
-              </div>
-            </div>
-          ) : null}
-
-          {hasConsented ? (
-            <div className="mt-5 rounded-xl border border-[color-mix(in_srgb,var(--forge-success)_24%,transparent)] bg-[color-mix(in_srgb,var(--forge-success)_10%,transparent)] px-4 py-4">
-              <div className="flex items-start gap-3">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--forge-success)_36%,transparent)] bg-[color-mix(in_srgb,var(--forge-success)_18%,transparent)] text-[var(--forge-success)]">
-                  <ForgeIcon name="check_circle" size={14} />
-                </span>
-                <div>
-                  <p className="text-sm font-semibold text-[var(--forge-success)]">
-                    Recording consent acknowledged
-                  </p>
-                  <p className="mt-1.5 text-sm text-[color-mix(in_srgb,var(--forge-success)_82%,transparent)]">
-                    {acknowledgedByName
-                      ? `Acknowledged by ${acknowledgedByName} on ${formatDate(consentedAt) ?? "recently"}.`
-                      : `Last acknowledged ${formatDate(consentedAt) ?? "recently"}.`}
-                  </p>
-                  <p className="mt-1 text-xs text-[color-mix(in_srgb,var(--forge-success)_50%,transparent)]">
-                    Re-acknowledgment is required whenever your recording policy
-                    or applicable laws change.
-                  </p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="mt-5 rounded-xl border border-[color-mix(in_srgb,var(--forge-ember)_22%,transparent)] bg-[color-mix(in_srgb,var(--forge-ember)_6%,transparent)] px-4 py-4">
-              <div className="flex items-start gap-3">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--forge-ember)_36%,transparent)] bg-[color-mix(in_srgb,var(--forge-ember)_14%,transparent)] text-[var(--forge-ember)]">
-                  <ForgeIcon name="warning" size={14} />
-                </span>
-                <div>
-                  <p className="text-sm font-semibold text-[var(--forge-ember)]">
-                    Recording consent not yet acknowledged
-                  </p>
-                  <p className="mt-1.5 text-sm text-[var(--forge-ember)]/80">
-                    An org admin must acknowledge the recording policy before
-                    call auto-ingest is enabled. Without acknowledgment,
-                    recordings may be collected without valid participant
-                    consent.
-                  </p>
-                  <p className="mt-2 text-xs text-[var(--forge-muted)]">
-                    Recordings without valid consent may violate applicable
-                    laws. Consult your legal team before enabling call
-                    recording.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {error ? (
-            <p className="mt-4 text-sm text-[var(--forge-danger)]">{error}</p>
-          ) : null}
-
-          <div className="mt-5">
-            <ForgeButton
-              disabled={isUpdating}
-              onClick={() => void acknowledgeConsent()}
-              size="sm"
-              type="button"
-              variant="secondary"
-            >
-              {isUpdating
-                ? "Updating..."
-                : hasConsented
-                  ? "Re-acknowledge consent policy"
-                  : "Acknowledge consent policy"}
-            </ForgeButton>
+    <div className={styles.root} data-settings-compliance="true">
+      <section className={styles.section} aria-labelledby="recording-consent-title">
+        <h2 className={styles.heading} id="recording-consent-title">Recording consent</h2>
+        <p className={styles.description}>
+          Acknowledge the recording policy before importing calls. Your organization is responsible for obtaining valid participant consent.
+        </p>
+        {consentMode ? (
+          <dl className="mt-5 text-sm">
+            <dt className="text-[var(--forge-muted)]">Consent mode</dt>
+            <dd className="mt-1 capitalize">{consentMode}</dd>
+          </dl>
+        ) : null}
+        <div className={styles.notice}>
+          <ForgeIcon
+            className={hasConsented ? "mt-0.5 shrink-0 text-[var(--forge-success)]" : "mt-0.5 shrink-0 text-[var(--forge-ember)]"}
+            name={hasConsented ? "check_circle" : "warning"}
+            size={20}
+          />
+          <div>
+            <p className="text-sm font-medium text-[var(--forge-text)]">
+              {hasConsented ? "Recording consent acknowledged" : "Recording consent not yet acknowledged"}
+            </p>
+            <p className="mt-1 text-sm leading-6 text-[var(--forge-muted)]">
+              {hasConsented
+                ? acknowledgedByName
+                  ? `Acknowledged by ${acknowledgedByName} on ${formatDate(consentedAt) ?? "recently"}.`
+                  : `Last acknowledged ${formatDate(consentedAt) ?? "recently"}.`
+                : "An organization admin must acknowledge the policy before automatic call imports can run."}
+            </p>
+            {hasConsented ? <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">Re-acknowledge when your recording policy or applicable laws change.</p> : null}
           </div>
         </div>
-      </ForgeSurface>
-
-      {/* Recording status card */}
-      <ForgeSurface
-        as="section"
-        className="overflow-hidden p-0"
-        variant="panel"
-      >
-        <SettingsSectionHeader
-          description="Automatic call ingestion pulls recordings directly from your connected integrations, such as Zoom. It is only active when recording consent has been acknowledged."
-          eyebrow="Compliance"
-          title="Auto-ingest status"
-        />
-
-        <div className="p-4 sm:p-6">
-          <div className="mt-4 flex items-center gap-3 rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-4 py-3">
-            <span
-              className={[
-                "h-2 w-2 shrink-0 rounded-full",
-                recordingEnabled && hasConsented
-                  ? "bg-[var(--forge-success)]"
-                  : "bg-[color-mix(in_srgb,var(--forge-text)_46%,transparent)]",
-              ].join(" ")}
-            />
-            <div>
-              <p className="text-sm font-medium text-[var(--forge-text)]">
-                {recordingEnabled && hasConsented
-                  ? "Active — recordings are being ingested automatically"
-                  : "Inactive — auto-ingest is not running"}
-              </p>
-              {!hasConsented && (
-                <p className="mt-0.5 text-xs text-[var(--forge-muted)]">
-                  Acknowledge the consent policy above to activate auto-ingest.
-                </p>
-              )}
-            </div>
-          </div>
-
-          <p className="mt-4 text-xs text-[var(--forge-muted)]">
-            Auto-ingest requires both a connected integration and an
-            acknowledged consent policy. Disabling auto-ingest does not delete
-            existing recordings.
-          </p>
+        <p className="mb-5 text-xs leading-6 text-[var(--forge-muted)]">
+          Recording without valid consent may violate applicable wiretapping and privacy laws. Consult your legal team before enabling recording.
+        </p>
+        {error ? <p className="mb-4 text-sm text-[var(--forge-danger)]" role="alert">{error}</p> : null}
+        <ForgeButton disabled={isUpdating} onClick={() => void acknowledgeConsent()} size="sm" type="button" variant="secondary">
+          {isUpdating ? "Updating..." : hasConsented ? "Re-acknowledge consent policy" : "Acknowledge consent policy"}
+        </ForgeButton>
+        <p aria-live="polite" className="sr-only" role="status">{isUpdating ? "Updating recording consent." : hasConsented ? "Recording consent acknowledged." : ""}</p>
+      </section>
+      <section className={styles.section} aria-labelledby="auto-ingest-title">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className={styles.heading} id="auto-ingest-title">Auto-ingest status</h2>
+          <span className="inline-flex items-center gap-2 text-sm text-[var(--forge-text)]">
+            <span aria-hidden="true" className={`h-2 w-2 rounded-full ${recordingEnabled && hasConsented ? "bg-[var(--forge-success)]" : "bg-[var(--forge-muted)]"}`} />
+            {recordingEnabled && hasConsented ? "Active" : "Inactive"}
+          </span>
         </div>
-      </ForgeSurface>
+        <p className={styles.description}>
+          {recordingEnabled && hasConsented
+            ? "Recordings are being ingested automatically."
+            : "Automatic call imports are not running."}
+        </p>
+        <p className="mt-4 text-sm leading-6 text-[var(--forge-muted)]">
+          Auto-ingest requires a connected integration, recording sync, and an acknowledged consent policy. Acknowledging this policy alone does not enable imports.
+        </p>
+        <p className="mt-2 text-xs leading-6 text-[var(--forge-muted)]">Existing recordings are retained when automatic imports stop.</p>
+      </section>
     </div>
   );
 }

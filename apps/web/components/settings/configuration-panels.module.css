@@ -1,0 +1,73 @@
+.root { min-width: 0; color: var(--forge-text); }
+.root :is(button, input:not([type="file"]):not([type="checkbox"]), select, summary) { min-height: 44px; }
+.root :is(input, select, textarea) { accent-color: var(--forge-gold); caret-color: var(--forge-gold); }
+.root :is(input, select, textarea)::placeholder { color: var(--forge-muted); opacity: 1; }
+.root :is(button, input, select, textarea, summary):focus-visible { outline: 2px solid var(--forge-focus); outline-offset: 3px; }
+.root :is(h2,h3,h4) { font-weight: 540; letter-spacing: 0; }
+.root p { max-width: 72ch; }
+.root :is(input, select, textarea) { border-radius: 6px; }
+.root button { border-radius: 8px; }
+.root ::selection { background: var(--forge-gold); color: var(--forge-on-accent); }
+.section { padding: 24px 0; border-bottom: 1px solid var(--forge-border); min-width: 0; }
+.section:first-child { padding-top: 0; }
+.heading { margin: 0; font-size: 16px; font-weight: 540; color: var(--forge-text); }
+.description { margin-top: 6px; color: var(--forge-muted); font-size: 13px; line-height: 1.6; }
+.brandingLayout { display: grid; gap: 32px; align-items: start; }
+.brandingControls { min-width: 0; }
+.brandingControls > section, .brandingControls > details { padding: 24px 0; border: 0; border-bottom: 1px solid var(--forge-border); border-radius: 0; background: transparent; }
+.brandingControls > :first-child { padding-top: 0; }
+.brandingControls :global([data-branding-logo="true"]) > div { flex-wrap: wrap; }
+.modeBar { display: grid; gap: 24px; }
+.presetGrid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin-top: 16px; }
+.preset { min-width: 0; display: flex; gap: 10px; align-items: center; padding: 10px; text-align: left; border: 1px solid var(--forge-border); background: var(--forge-surface); }
+.preset:hover { border-color: var(--forge-gold); }
+.presetSwatch { display: flex; width: 36px; height: 32px; flex-shrink: 0; overflow: hidden; border: 1px solid var(--forge-border); border-radius: 4px; }
+.presetName { display: block; font-size: 12px; font-weight: 540; }
+.presetMode { display: block; margin-top: 2px; color: var(--forge-muted); font-size: 11px; text-transform: capitalize; }
+.colorGroup { min-width: 0; }
+.colorGroup + .colorGroup { margin-top: 24px; }
+.colorRow { display: grid; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--forge-border); }
+.colorRow:last-child { border-bottom: 0; }
+.previewRail { display: grid; gap: 24px; min-width: 0; }
+.preview { padding: 16px; background: var(--forge-bg); border: 1px solid var(--forge-border); border-radius: 12px; }
+.checks { padding: 0; }
+.checkRow { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--forge-border); font-size: 13px; }
+.saveBar { position: sticky; bottom: 0; z-index: 10; margin-top: 24px; padding: 16px 0; border-top: 1px solid var(--forge-border); background: var(--forge-bg); }
+@media (max-width: 767px) { .saveBar { bottom: calc(4rem + env(safe-area-inset-bottom, 0px)); } }
+.danger { margin-top: 24px; }
+.danger h2 { color: var(--forge-danger); }
+.danger button { color: var(--forge-danger); background: transparent; border-color: var(--forge-danger); }
+.integrationList { display: grid; min-width: 0; }
+.integration { min-width: 0; padding: 24px 0; border-bottom: 1px solid var(--forge-border); }
+.integration:first-child { padding-top: 0; }
+.integration > div:first-child { flex-wrap: wrap; }
+.integration :is(input,select) { max-width: 100%; background: var(--forge-surface); }
+.integration > p { line-height: 1.6; }
+.rules { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--forge-border); }
+.notice { display: flex; align-items: flex-start; gap: 12px; padding: 16px 0; }
+.statusRows { display: grid; gap: 12px 24px; padding: 16px 0; border-top: 1px solid var(--forge-border); border-bottom: 1px solid var(--forge-border); }
+.disclosure { min-width: 0; padding: 16px 0; border-top: 1px solid var(--forge-border); }
+.disclosure > summary { cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; font-weight: 540; }
+.disclosure > summary::after { content: "+"; color: var(--forge-muted); font-size: 18px; }
+.disclosure[open] > summary::after { content: "−"; }
+.sourceGrid { display: grid; gap: 24px; padding-top: 16px; }
+.sourceGroup { display: grid; gap: 8px; align-content: start; min-width: 0; }
+.sourceGroup label { min-width: 0; }
+.steps { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 0 24px; }
+.steps button { width: auto; padding: 8px 12px; font-size: 13px; }
+.rubricEditor { padding-top: 24px; }
+.rubricEditor > section { padding: 0; }
+.rubricEditor :global([data-rubric-category-row]) { border-radius: 0; border: 0; border-bottom: 1px solid var(--forge-border); background: transparent; }
+.rubricEditor :global([data-rubric-category-row]) summary { padding-left: 0; padding-right: 0; }
+.rubricEditor :global([data-rubric-category-row]) > div { padding-left: 0; padding-right: 0; }
+.publish { margin-top: 24px; border-top: 1px solid var(--forge-border); padding-top: 24px; }
+.publishActions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+.publishActions > button { width: auto; }
+@media (max-width: 599px) { .publishActions { flex-direction: column; } .publishActions > button { width: 100%; } }
+.versionRow { padding: 12px 0; border-bottom: 1px solid var(--forge-border); }
+.versionRow:last-child { border: 0; }
+.validation { padding: 16px 0; }
+.validation ul { margin-top: 8px; padding-left: 18px; list-style: disc; }
+@media (min-width: 600px) { .modeBar { grid-template-columns: repeat(2,minmax(0,1fr)); } .colorRow { grid-template-columns: minmax(0,1fr) 180px; } .statusRows { grid-template-columns: repeat(2,minmax(0,1fr)); } .sourceGrid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (min-width: 1280px) { .brandingLayout { grid-template-columns: minmax(0,1fr) 280px; } .previewRail { position: sticky; top: 24px; } }
+@media (max-width: 420px) { .presetGrid { grid-template-columns: minmax(0,1fr); } }

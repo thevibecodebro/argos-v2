@@ -128,7 +128,7 @@ function expectOutlineNoneClassesToUseForgeFocus(source: string) {
 }
 
 describe("RubricsPanel", () => {
-  it("renders the scoring builder drawer, compact category editor, and publish readiness panel", () => {
+  it("renders inline source and history disclosures, category rows, and publish checks", () => {
     const html = renderToStaticMarkup(
       createElement(RubricsPanel, {
         initialActiveRubric: activeRubric,
@@ -143,7 +143,7 @@ describe("RubricsPanel", () => {
     expect(html).toContain('data-settings-editor-workbench="rubrics"');
     expect(html).not.toContain('data-forge-workspace-layout=');
     expect(html).not.toContain('data-forge-workspace-rail=');
-    expect(html.indexOf('data-rubric-builder-drawer=""')).toBeGreaterThan(
+    expect(html.indexOf('data-rubric-builder-drawer=""')).toBeLessThan(
       html.indexOf('data-rubric-category-editor=""'),
     );
     expect(html.indexOf('data-rubric-category-editor=""')).toBeLessThan(
@@ -155,19 +155,17 @@ describe("RubricsPanel", () => {
     expect(html).not.toContain('xl:order-3');
     expect(html).toContain('aria-label="Rubric admin controls"');
     expect(html).toContain('data-settings-nav-theme="forge"');
-    expect(html).toContain("Source and versions");
-    expect(html).toContain("Active Rubric");
+    expect(html).toContain("Source options");
     expect(html).toContain("Revenue Scorecard v4");
-    expect(html).toContain("Category editor");
+    expect(html).toContain('data-rubric-category-editor=""');
     expect(html).toContain("Published scoring categories");
     expect(html).toContain('data-rubric-category-row=""');
     expect(html).toContain("Build Rapport");
     expect(html).toContain("Weight");
-    expect(html).toContain("Readiness panel");
+    expect(html).toContain("Review and publish");
     expect(html).toContain("Validation issues");
-    expect(html).toContain("Import warnings");
-    expect(html).toContain("Server draft");
-    expect(html).toContain("No draft started");
+    expect(html).toContain("save a server draft");
+    expect(html).toContain("Start a draft to review scoring rules.");
     expect(html).toContain("Choose Source");
     expect(html).toContain("Edit Draft");
     expect(html).toContain("Review &amp; Fix");
@@ -186,6 +184,10 @@ describe("RubricsPanel", () => {
     expect(html).toContain("Publish Draft");
     expect(html).not.toContain("Review Draft");
     expect(html).toContain("Version History");
+    expect(html).toContain('data-rubric-source-options="true"');
+    expect(html).not.toContain("Readiness panel");
+    expect(html).not.toContain("No draft started");
+    expect(html).not.toContain("Draft status");
     expect(html).not.toContain(">content_copy<");
     expect(html).not.toContain(">auto_fix<");
     expect(html).not.toContain(">publish<");

@@ -4,6 +4,7 @@ import { useMemo, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { ForgeIcon } from "@/components/forge";
 import { submitArchiveOrganization } from "@/components/platform/platform-console-actions";
+import styles from "./configuration-panels.module.css";
 import { OrgLogoUploader } from "@/components/settings/org-logo-uploader";
 import {
   DEFAULT_WORKSPACE_THEME,
@@ -297,24 +298,11 @@ export function WorkspaceBrandingPanel({
   }
 
   return (
-    <div className="min-w-0" data-workspace-branding-panel="true">
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <aside className="order-1 space-y-3 xl:sticky xl:top-20 xl:order-2 xl:self-start">
-          <ThemePreview
-            editingMode={editingMode}
-            organizationName={organizationName}
-            theme={previewTheme}
-            validationMessage={parsedTheme.ok ? null : parsedTheme.error}
-          />
-          <ValidationPanel
-            contrastFailures={contrastFailures}
-            validationMessage={parsedTheme.ok ? null : parsedTheme.error}
-          />
-        </aside>
-
-        <section className="order-2 min-w-0 space-y-3 xl:order-1">
-          <section className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-3">
-            <div className="grid gap-3 md:grid-cols-2">
+    <div className={styles.root} data-workspace-branding-panel="true">
+      <div className={styles.brandingLayout}>
+        <section className={styles.brandingControls} data-branding-controls="true">
+          <section className={styles.section}>
+            <div className={styles.modeBar}>
               <div>
                 <h2 className="text-sm font-semibold text-[var(--forge-text)]">
                   Edit mode
@@ -327,6 +315,7 @@ export function WorkspaceBrandingPanel({
                           ? "forge-button forge-button-primary forge-focus-ring min-h-10 rounded-lg px-3 py-2 text-sm"
                           : "forge-button forge-button-ghost forge-focus-ring min-h-10 rounded-lg px-3 py-2 text-sm"
                       }
+                      aria-pressed={editingMode === mode}
                       data-branding-mode-tab={mode}
                       key={mode}
                       onClick={() => setEditingMode(mode)}
@@ -349,6 +338,7 @@ export function WorkspaceBrandingPanel({
                           ? "forge-button forge-button-primary forge-focus-ring min-h-10 rounded-lg px-3 py-2 text-sm"
                           : "forge-button forge-button-ghost forge-focus-ring min-h-10 rounded-lg px-3 py-2 text-sm"
                       }
+                      aria-pressed={draftTheme.activeMode === mode}
                       key={mode}
                       onClick={() => setActiveMode(mode)}
                       type="button"
@@ -366,7 +356,7 @@ export function WorkspaceBrandingPanel({
             organizationName={organizationName}
           />
 
-          <section className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-3">
+          <section className={styles.section}>
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-sm font-semibold text-[var(--forge-text)]">
@@ -385,7 +375,7 @@ export function WorkspaceBrandingPanel({
                 Restore
               </button>
             </div>
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <div className={styles.presetGrid}>
               {(Object.keys(WORKSPACE_THEME_PRESETS) as Array<keyof typeof WORKSPACE_THEME_PRESETS>).map(
                 (presetKey) => {
                   const preset = WORKSPACE_THEME_PRESETS[presetKey];
@@ -396,34 +386,30 @@ export function WorkspaceBrandingPanel({
 
                   return (
                     <button
-                      className="forge-focus-ring rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-bg)] p-2 text-left transition hover:border-[color-mix(in_srgb,var(--forge-gold)_44%,transparent)]"
+                      className={`forge-focus-ring ${styles.preset}`}
                       data-branding-preset={preset.id}
                       key={preset.id}
                       onClick={() => selectPreset(presetKey)}
                       type="button"
                     >
-                      <span className="flex h-8 overflow-hidden rounded-md border border-[var(--forge-border)]">
+                      <span className={styles.presetSwatch}>
                         {[
                           swatchTheme.colors.background,
                           swatchTheme.navigation.leftBackground,
                           swatchTheme.colors.primary,
                           swatchTheme.navigation.topBackground,
-                        ].map((color) => (
+                        ].map((color, colorIndex) => (
                           <span
                             className="min-w-0 flex-1"
-                            key={color}
+                            key={`${preset.id}-${colorIndex}`}
                             style={{ backgroundColor: color }}
                           />
                         ))}
                       </span>
-                      <span className="mt-2 block text-xs font-semibold text-[var(--forge-text)]">
-                        {preset.name}
+                      <span>
+                        <span className={styles.presetName}>{preset.name}</span>
+                        {"mode" in preset ? <span className={styles.presetMode}>{preset.mode}</span> : null}
                       </span>
-                      {"mode" in preset ? (
-                        <span className="mt-1 block text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-[var(--forge-muted)]">
-                          {preset.mode}
-                        </span>
-                      ) : null}
                     </button>
                   );
                 },
@@ -435,7 +421,7 @@ export function WorkspaceBrandingPanel({
             controls={QUICK_COLORS}
             colors={currentModeTheme.colors}
             onChange={updateColor}
-            title="Simple controls"
+            title="Workspace colors"
           />
 
           <NavigationColorGroup
@@ -468,7 +454,7 @@ export function WorkspaceBrandingPanel({
 
           {organizationSlug ? (
             <section
-              className="rounded-lg border border-[color-mix(in_srgb,var(--forge-danger)_28%,var(--forge-border))] bg-[var(--forge-panel-muted-bg)] p-3"
+              className={styles.danger}
               data-organization-self-archive="true"
             >
               <div>
@@ -483,7 +469,7 @@ export function WorkspaceBrandingPanel({
                 <label className="grid gap-1 text-xs font-semibold text-[var(--forge-text)]">
                   Reason
                   <input
-                    className="min-h-10 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
+                    className="forge-focus-ring min-h-11 min-w-0 rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 text-sm text-[var(--forge-text)]"
                     disabled={isArchiving}
                     onChange={(event) => setArchiveReason(event.currentTarget.value)}
                     placeholder="Closing account"
@@ -493,7 +479,7 @@ export function WorkspaceBrandingPanel({
                 <label className="grid gap-1 text-xs font-semibold text-[var(--forge-text)]">
                   Type slug to confirm
                   <input
-                    className="min-h-10 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-control-bg)] px-3 text-sm text-[var(--forge-text)] outline-none"
+                    className="forge-focus-ring min-h-11 min-w-0 rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 text-sm text-[var(--forge-text)]"
                     disabled={isArchiving}
                     onChange={(event) => setArchiveSlug(event.currentTarget.value)}
                     placeholder={organizationSlug}
@@ -516,10 +502,22 @@ export function WorkspaceBrandingPanel({
             </section>
           ) : null}
         </section>
+        <aside className={styles.previewRail} aria-label="Theme preview and readability checks">
+          <ThemePreview
+            editingMode={editingMode}
+            organizationName={organizationName}
+            theme={previewTheme}
+            validationMessage={parsedTheme.ok ? null : parsedTheme.error}
+          />
+          <ValidationPanel
+            contrastFailures={contrastFailures}
+            validationMessage={parsedTheme.ok ? null : parsedTheme.error}
+          />
+        </aside>
       </div>
 
       <div
-        className="workspace-branding-save-bar sticky bottom-0 z-20 mt-3 border-t border-[var(--forge-border)] bg-[color-mix(in_srgb,var(--forge-bg)_92%,transparent)] px-3 py-3 backdrop-blur-xl"
+        className={styles.saveBar}
         data-workspace-branding-save-bar="true"
       >
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -597,12 +595,13 @@ function ColorGroup({
   return (
     <section
       aria-label={title}
-      className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-3"
+      className={styles.colorGroup}
     >
-      <div className="grid gap-2">
+      <h2 className="mb-3 text-sm font-semibold text-[var(--forge-text)]">{title}</h2>
+      <div>
         {controls.map((control) => (
           <label
-            className="grid gap-2 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-row-bg)] p-3 sm:grid-cols-[minmax(0,1fr)_150px]"
+            className={styles.colorRow}
             data-branding-color-row={control.field}
             key={control.field}
           >
@@ -617,7 +616,7 @@ function ColorGroup({
             <span className="flex items-center gap-2">
               <input
                 aria-label={`${control.label} color picker`}
-                className="h-10 w-12 rounded-md border border-[var(--forge-border)] bg-transparent"
+                className="forge-focus-ring h-11 w-12 shrink-0 rounded-md border border-[var(--forge-border)] bg-transparent"
                 onChange={(event) => onChange(control.field, event.target.value)}
                 type="color"
                 value={getColorInputValue(colors[control.field])}
@@ -652,7 +651,7 @@ function NavigationColorGroup({
   return (
     <section
       aria-label={title}
-      className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-muted-bg)] p-3"
+      className={styles.colorGroup}
     >
       <h2 className="mb-3 text-sm font-semibold text-[var(--forge-text)]">
         {title}
@@ -660,7 +659,7 @@ function NavigationColorGroup({
       <div className="grid gap-2">
         {controls.map((control) => (
           <label
-            className="grid gap-2 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-row-bg)] p-3 sm:grid-cols-[minmax(0,1fr)_150px]"
+            className={styles.colorRow}
             data-branding-nav-row={control.field}
             key={control.field}
           >
@@ -675,7 +674,7 @@ function NavigationColorGroup({
             <span className="flex items-center gap-2">
               <input
                 aria-label={`${control.label} color picker`}
-                className="h-10 w-12 rounded-md border border-[var(--forge-border)] bg-transparent"
+                className="forge-focus-ring h-11 w-12 shrink-0 rounded-md border border-[var(--forge-border)] bg-transparent"
                 onChange={(event) => onChange(control.field, event.target.value)}
                 type="color"
                 value={getColorInputValue(navigation[control.field])}
@@ -709,11 +708,11 @@ function ThemePreview({
 }) {
   return (
     <section
-      className="rounded-lg border border-[var(--forge-border)] p-3"
+      className={styles.preview}
       data-branding-preview="true"
       style={workspaceThemeToForgeVars(theme) as CSSProperties}
     >
-      <div className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-bg)] p-3 text-[var(--forge-text)]">
+      <div className="text-[var(--forge-text)]">
         <div className="mb-3 overflow-hidden rounded-lg border border-[var(--forge-sidebar-border)]">
           <div className="flex min-h-9 items-center justify-between border-b border-[var(--forge-topbar-border)] bg-[var(--forge-topbar-bg)] px-3 text-[var(--forge-topbar-text)]">
             <span className="text-xs font-bold">{editingMode === "dark" ? "Dark" : "Light"} mode</span>
@@ -736,28 +735,26 @@ function ThemePreview({
         </div>
         <div className="flex items-center justify-between gap-3 border-b border-[var(--forge-border)] pb-3">
           <div>
-            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-[var(--forge-muted)]">
-              Workspace preview
-            </p>
-            <h2 className="mt-1 text-base font-semibold">{organizationName}</h2>
+            <h2 className="text-base font-semibold">{organizationName}</h2>
+            <p className="mt-1 text-xs text-[var(--forge-muted)]">Workspace preview</p>
           </div>
           <span className="rounded-md bg-[var(--forge-gold)] px-2.5 py-1 text-xs font-bold text-[var(--forge-on-accent)]">
             Primary
           </span>
         </div>
         <div className="mt-3 grid gap-2">
-          <div className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-surface)] p-3">
+          <div className="border-b border-[var(--forge-border)] py-3">
             <p className="text-sm font-semibold">Review queue</p>
             <p className="mt-1 text-xs leading-5 text-[var(--forge-muted)]">
               Buttons, text, panels, dividers, and status colors update here before saving.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
-              <button className="forge-button forge-button-primary min-h-9 rounded-lg px-3 py-2 text-xs" type="button">
-                Approve
-              </button>
-              <button className="rounded-lg border border-[var(--forge-border)] px-3 py-2 text-xs text-[var(--forge-text)]" type="button">
+              <span className="inline-flex min-h-11 items-center rounded-lg bg-[var(--forge-gold)] px-3 py-2 text-xs text-[var(--forge-on-accent)]">
+                Primary action
+              </span>
+              <span className="inline-flex min-h-11 items-center rounded-lg border border-[var(--forge-border)] px-3 py-2 text-xs text-[var(--forge-text)]">
                 Secondary
-              </button>
+              </span>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-2 text-xs">
@@ -799,14 +796,14 @@ function ValidationPanel({
   ];
 
   return (
-    <section className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-panel-bg)] p-3">
+    <section className={styles.checks}>
       <h2 className="text-sm font-semibold text-[var(--forge-text)]">
         Safety checks
       </h2>
       <div className="mt-3 grid gap-2">
         {checks.map((check) => (
           <div
-            className="flex items-center justify-between gap-3 rounded-lg border border-[var(--forge-border)] px-3 py-2 text-sm"
+            className={styles.checkRow}
             key={check.label}
           >
             <span className="text-[var(--forge-muted)]">{check.label}</span>

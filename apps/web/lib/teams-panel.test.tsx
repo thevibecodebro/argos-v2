@@ -98,6 +98,9 @@ describe("TeamsPanel", () => {
     expect(html).not.toContain('data-forge-workspace-rail=');
     expect(html).toContain('data-selected-team-editor="team-a"');
     expect(html).toContain("Team name");
+    expect(html).toContain('data-teams-create-form="true"');
+    expect(html).toContain("Select team");
+    expect(html.indexOf('data-teams-control-drawer=""')).toBeLessThan(html.indexOf('data-teams-editor=""'));
     expect(html).toContain("Status");
     expect(html).toContain("Managers");
     expect(html).toContain("Reps");

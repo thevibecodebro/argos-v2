@@ -25,17 +25,15 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
-describe("UploadCallPanel upload form", () => {
-  it("puts file selection before optional context with disabled guidance", () => {
+describe("UploadCallPanel forge step flow", () => {
+  it("renders one upload form with optional context and disabled guidance", () => {
     const html = renderToStaticMarkup(createElement(UploadCallPanel));
 
-    expect(html).not.toContain("Add call context");
-    expect(html).not.toContain("Upload and process");
-    expect(html.indexOf('data-upload-dropzone="keyboard-accessible"')).toBeLessThan(
-      html.indexOf('placeholder='),
-    );
     expect(html).toContain("Choose recordings");
-    expect(html).not.toContain("Recordings required");
+    expect(html).toContain("Call context");
+    expect(html).toContain("(optional)");
+    expect(html).not.toContain("Upload and process");
+    expect(html).toContain("Choose one or more recordings before processing can start.");
     expect(html).toContain(`accept="${ACCEPTED_TYPES.join(",")}"`);
     expect(html).toMatch(/<input(?=[^>]*type="file")(?=[^>]*multiple="")/);
     expect(html).toContain(`Upload up to ${MAX_BULK_UPLOAD_FILES} recordings in one batch.`);
@@ -44,7 +42,7 @@ describe("UploadCallPanel upload form", () => {
     expect(html.toLowerCase()).not.toMatch(/scorecard|scored|scoring/);
     expect(html).toContain("disabled=\"\"");
     expect(html).toContain('data-upload-step-flow="forge"');
-    expect(html).not.toContain('data-forge-status-panel="muted"');
+    expect(html).toContain('data-upload-status="ready"');
     expect(html).not.toContain(">upload_file</span>");
     expect(html).not.toContain(">info</span>");
   });

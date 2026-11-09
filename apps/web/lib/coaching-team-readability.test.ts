@@ -3,25 +3,25 @@ import { describe, expect, it } from "vitest";
 
 const routeContracts = [
   {
-    path: "../app/(authenticated)/highlights/page.tsx",
-    primaryObject: 'data-forge-table="true"',
+    path: "../components/highlights-workspace.tsx",
+    primaryObject: 'data-highlights-library="evidence-list"',
     route: "highlights",
     routeMarker: 'data-highlights-layout="evidence-inbox"',
-    selectedDrawer: true,
+    selectedDrawer: false,
   },
   {
-    path: "../app/(authenticated)/team/page.tsx",
+    path: "../components/team/team-pages.tsx",
     primaryObject: "TeamRosterView",
     route: "team",
     routeMarker: 'data-team-route="roster-first"',
-    selectedDrawer: true,
+    selectedDrawer: false,
   },
   {
-    path: "../app/(authenticated)/team/[repId]/page.tsx",
+    path: "../components/team/team-pages.tsx",
     primaryObject: "TeamRepProfileView",
     route: "rep profile",
     routeMarker: 'data-rep-profile-route="coaching-detail"',
-    selectedDrawer: true,
+    selectedDrawer: false,
   },
 ];
 
@@ -44,7 +44,7 @@ describe("coaching and team route readability", () => {
 
   it("standardizes the highlights empty state copy", () => {
     const source = readFileSync(
-      new URL("../app/(authenticated)/highlights/page.tsx", import.meta.url),
+      new URL("../components/highlights-workspace.tsx", import.meta.url),
       "utf8",
     );
 

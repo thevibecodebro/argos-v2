@@ -1,3 +1,4 @@
+import { hasManagedCapability } from "@/lib/access/managed-capabilities";
 import { CALL_SCORING_CATEGORIES } from "@argos-v2/call-processing";
 import {
   getCachedAuthenticatedSupabaseUser,
@@ -27,6 +28,9 @@ export type TrainingPageData = {
   assignedCount: number;
   averageCompletion: number;
   canManage: boolean;
+  canViewHighlights: boolean;
+  canViewManagerPages: boolean;
+  canViewTeamProfiles: boolean;
   completedCount: number;
   modules: TrainingModuleSummary[];
   rubricCategories: Array<{ slug: string; name: string }>;
@@ -43,8 +47,8 @@ export async function loadTrainingPageData(
 ): Promise<TrainingPageData> {
   const authUser = await getCachedAuthenticatedSupabaseUser();
   const currentUserProfile = authUser ? await getCachedCurrentUserProfile(authUser.id) : null;
+  const trainingAccess = authUser ? await requireManagedCapabilityForPage(authUser.id, "training") : null;
   if (authUser) {
-    await requireManagedCapabilityForPage(authUser.id, "training");
     if (options.includeTeamProgress) {
       await requireManagedCapabilityForPage(authUser.id, "practice_reporting");
     }
@@ -89,6 +93,9 @@ export async function loadTrainingPageData(
     assignedCount,
     averageCompletion,
     canManage,
+    canViewHighlights: trainingAccess ? hasManagedCapability(trainingAccess.access, "highlights") : false,
+    canViewManagerPages: canManage && Boolean(trainingAccess && hasManagedCapability(trainingAccess.access, "practice_reporting")),
+    canViewTeamProfiles: canManage && Boolean(trainingAccess && hasManagedCapability(trainingAccess.access, "call_analytics")),
     completedCount,
     modules,
     rubricCategories,

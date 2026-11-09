@@ -608,7 +608,7 @@ describe("primary route hero removal", () => {
       renderRoute(TrainingPage()),
     ]);
 
-    expect(teamHtml).toContain("Open leaderboard");
+    expect(teamHtml).toContain('href="/leaderboard"');
     expect(teamHtml).toContain("Team roster marker");
     expect(teamHtml).not.toContain(
       "Review team performance with week-over-week trend, call volume, and coaching flags.",
@@ -618,7 +618,7 @@ describe("primary route hero removal", () => {
       "Review team performance, coaching focus, and rep-level score movement.",
     );
 
-    expect(leaderboardHtml).toContain("Open team view");
+    expect(leaderboardHtml).toContain('href="/team"');
     expect(leaderboardHtml).not.toContain(
       "Compare top-quality, top-volume, and most-improved slices across your team.",
     );
@@ -627,7 +627,7 @@ describe("primary route hero removal", () => {
       "Compare rank, score quality, call volume, and improvement across your team.",
     );
 
-    expect(trainingHtml).toContain("Open highlights");
+    expect(trainingHtml).toContain('href="/highlights"');
     expect(trainingHtml).toContain("Training learner panel marker");
     expect(trainingHtml).toContain(
       "Review assigned modules and complete the next lesson.",
@@ -673,7 +673,7 @@ describe("primary route hero removal", () => {
     );
     expect(leaderboardHtml).toContain("px-4 py-6 sm:px-6 lg:px-8");
     expect(leaderboardHtml).toContain("max-w-7xl");
-    expect(leaderboardHtml).toContain("Open team view");
+    expect(leaderboardHtml).toContain('href="/team"');
   });
 
   it("keeps visible heading behavior on top-level routes outside the feature scope", async () => {
@@ -683,13 +683,13 @@ describe("primary route hero removal", () => {
     ]);
 
     expect(uploadHtml).toContain("Upload call panel marker");
-    expect(uploadHtml).toContain(">Upload Recording / Audio<");
-    expect(uploadHtml).toContain("Upload a recording or audio file to transcribe it and generate a buyer-personality roleplay.");
+    expect(uploadHtml).toContain(">Upload recording<");
+    expect(uploadHtml).toContain("Add audio or video to prepare a transcript and buyer personality.");
 
     expect(notificationsHtml).toContain("Notifications panel marker");
     expect(notificationsHtml).toContain(">Notifications<");
-    expect(notificationsHtml).not.toContain(
-      "Review account activity and open the related record.",
+    expect(notificationsHtml).toContain(
+      "Your call reviews, coaching notes, and training updates.",
     );
   });
 
@@ -728,7 +728,7 @@ describe("primary route hero removal", () => {
     expect(peopleHtml).toContain(
       "Manage users, invitations, and account access.",
     );
-    expect(peopleHtml).toContain('href="/settings/people?invite=rep#people-invite"');
+    expect(peopleHtml).not.toContain('href="/settings/people?invite=rep#people-invite"');
 
     expect(teamsHtml).toContain('data-teams-route="overview"');
     expect(teamsHtml).toContain('href="/settings/teams/manage"');
@@ -767,7 +767,7 @@ describe("primary route hero removal", () => {
       "Configure call recording consent and review compliance acknowledgments.",
     );
     expect(complianceHtml).toContain(
-      "Manage consent, retention, and coaching safeguards.",
+      "Review consent and recording safeguards.",
     );
   });
 
@@ -806,8 +806,7 @@ describe("primary route hero removal", () => {
     expect(repHtml).toContain('href="/calls/call-1"');
     expect(repHtml).toContain('data-dashboard-route="dashboard"');
     expect(repHtml).toContain('data-dashboard-today-queue="true"');
-    expect(repHtml).toContain('data-dashboard-mobile-queue-cards="true"');
-    expect(repHtml).toContain('data-dashboard-desktop-queue-table="true"');
+    expect(repHtml).toContain('data-dashboard-queue-table="true"');
     expect(repHtml).toContain(">Dashboard<");
     expect(repHtml).toContain('data-operational-toolbar="true"');
     expect(repHtml).not.toContain('data-operational-metric-strip="true"');
@@ -824,8 +823,7 @@ describe("primary route hero removal", () => {
     expect(managerHtml).toContain("Morgan Lee");
     expect(managerHtml).toContain('data-dashboard-route="dashboard"');
     expect(managerHtml).toContain('data-dashboard-today-queue="true"');
-    expect(managerHtml).toContain('data-dashboard-mobile-queue-cards="true"');
-    expect(managerHtml).toContain('data-dashboard-desktop-queue-table="true"');
+    expect(managerHtml).toContain('data-dashboard-queue-table="true"');
     expect(managerHtml).toContain(">Dashboard<");
     expect(managerHtml).toContain('data-operational-toolbar="true"');
     expect(managerHtml).not.toContain('data-operational-metric-strip="true"');
@@ -841,8 +839,7 @@ describe("primary route hero removal", () => {
     expect(executiveHtml).toContain("Training completion");
     expect(executiveHtml).toContain('data-dashboard-route="dashboard"');
     expect(executiveHtml).toContain('data-dashboard-today-queue="true"');
-    expect(executiveHtml).toContain('data-dashboard-mobile-queue-cards="true"');
-    expect(executiveHtml).toContain('data-dashboard-desktop-queue-table="true"');
+    expect(executiveHtml).toContain('data-dashboard-queue-table="true"');
     expect(executiveHtml).toContain('data-operational-toolbar="true"');
     expect(executiveHtml).not.toContain('data-operational-metric-strip="true"');
     expect(executiveHtml).toContain("Needs attention");
@@ -857,13 +854,12 @@ describe("primary route hero removal", () => {
 
   it("keeps Dashboard route source copy focused on the attention queue", () => {
     const source = readFileSync(
-      new URL("../app/(authenticated)/dashboard/page.tsx", import.meta.url),
+      new URL("../components/dashboard-workspace.tsx", import.meta.url),
       "utf8",
     );
 
     expect(source).toContain('data-dashboard-route="dashboard"');
-    expect(source).toContain('data-dashboard-mobile-queue-cards="true"');
-    expect(source).toContain('data-dashboard-desktop-queue-table="true"');
+    expect(source).toContain('data-dashboard-queue-table="true"');
     expect(source).toContain("Needs attention");
     expect(source).not.toContain("product dashboards");
     expect(source).not.toContain("keeps the dashboard focused");
@@ -888,12 +884,11 @@ describe("primary route hero removal", () => {
     expect(callsHtml).toContain('data-mobile-call-card="true"');
     expect(callsHtml).toContain('data-operational-toolbar="true"');
     expect(callsHtml).not.toContain('data-operational-metric-strip="true"');
-    expect(callsHtml).toContain('data-operational-preview-drawer="true"');
-    expect(callsHtml).toContain('data-forge-table="true"');
+    expect(callsHtml).not.toContain('data-operational-preview-drawer="true"');
+    expect(callsHtml).toContain('<table');
     expect(callsHtml).toContain('data-forge-chip="success"');
     expect(callsHtml).not.toContain("Saved call views");
-    expect(callsHtml).toContain("Open detail");
-    expect(callsHtml).toContain("min-w-[720px]");
+    expect(callsHtml).toContain("Review call");
     expect(callsHtml).toContain(">Uploaded</th>");
     expect(callsHtml.indexOf('data-calls-table-controls="true"')).toBeLessThan(
       callsHtml.indexOf('data-calls-primary-table="true"'),
@@ -908,7 +903,7 @@ describe("primary route hero removal", () => {
     expect(callsHtml).not.toContain(">Intelligence archive<");
   });
 
-  it("uses the forge empty state for the calls library without changing upload flow", async () => {
+  it("uses an actionable empty state for the calls library without changing upload flow", async () => {
     listCallsMock.mockResolvedValueOnce({
       ok: true,
       data: {
@@ -925,8 +920,8 @@ describe("primary route hero removal", () => {
       CallsPage({ searchParams: Promise.resolve({}) }),
     );
 
-    expect(callsHtml).toContain('data-forge-empty-state="true"');
-    expect(callsHtml).toContain("No calls yet");
+    expect(callsHtml).toContain('<h2');
+    expect(callsHtml).toContain("No recordings yet");
     expect(callsHtml).toContain('href="/upload"');
     expect(callsHtml).not.toContain("#74b1ff");
     expect(callsHtml).not.toContain("backdrop-blur-md");
@@ -940,22 +935,22 @@ describe("primary route hero removal", () => {
       mostImproved: [{ ...rep, value: 8 }],
     });
     const html = await renderRoute(LeaderboardPage());
-    const mobile = html.slice(html.indexOf('data-forge-mobile-table-cards="true"')).split("</article>")[0];
+    const mobile = html.split('data-leaderboard-mobile-list="true"')[1]!.split('hidden overflow-x-auto md:block')[0]!;
     for (const text of ["Avery Manager", "#1", "62", "14", "+8", "Needs review", 'href="/team/rep-mobile"']) {
       expect(mobile).toContain(text);
     }
-    expect(html).toContain("hidden md:block");
-    expect(html).toContain("min-w-[860px]");
+    expect(html).toContain("hidden overflow-x-auto md:block");
+    expect(html).toContain("min-w-[640px]");
   });
 
   it("keeps full highlight evidence and source actions available in mobile rows", async () => {
     const html = await renderRoute(HighlightsPage());
-    const mobile = html.slice(html.indexOf('data-forge-mobile-table-cards="true"')).split("</article>")[0];
-    for (const text of ["Objection Handling", "High", "Handled pricing pushback", "Repeat the same framing", "Saved for Friday coaching.", "Source call", 'href="/calls/call-1"']) {
+    const mobile = html.split('data-highlights-library="evidence-list"')[1]!.split("</article>")[0];
+    for (const text of ["Objection Handling", "High", "Handled pricing pushback", "Repeat the same framing", "Saved for Friday coaching.", "Open source call", 'href="/calls/call-1"']) {
       expect(mobile).toContain(text);
     }
     expect(mobile).not.toContain("line-clamp");
-    expect(html).toContain("hidden md:block");
+    expect(mobile).not.toContain("<table");
   });
 
   it("removes the highlights hero while keeping the back-to-library action", async () => {
@@ -1001,11 +996,11 @@ describe("primary route hero removal", () => {
 
     expect(highlightsHtml).toContain('data-highlights-layout="evidence-inbox"');
     expect(highlightsHtml).toContain(
-      'data-highlight-selection-flow="explicit"',
+      'data-highlights-library="evidence-list"',
     );
     expect(highlightsHtml).not.toContain('data-operational-metric-strip="true"');
-    expect(highlightsHtml).toContain('data-operational-preview-drawer="true"');
-    expect(highlightsHtml).toContain('data-forge-table="true"');
+    expect(highlightsHtml).not.toContain('data-operational-preview-drawer="true"');
+    expect(highlightsHtml).toContain('aria-label="Saved coaching evidence"');
     expect(highlightsHtml).not.toContain("Weekly Coaching Insights");
     expect(highlightsHtml).not.toContain("Intelligence Health");
 
@@ -1046,7 +1041,7 @@ describe("primary route hero removal", () => {
     expect(leaderboardHtml).not.toContain(">Most Improved<");
 
     expect(settingsHtml).toContain('data-settings-route="settings"');
-    expect(settingsHtml).toContain('data-operational-preview-drawer="true"');
+    expect(settingsHtml).not.toContain('data-operational-preview-drawer="true"');
     // Navigation is the secondary rail only; the duplicate section list is gone.
     expect(settingsHtml).toContain('data-secondary-rail="settings"');
     expect(settingsHtml).toContain("Sections");
@@ -1114,10 +1109,10 @@ describe("primary route hero removal", () => {
 
     expect(teamProgressHtml).toContain('data-training-route="team-progress"');
     expect(teamProgressHtml).toContain('data-forge-table="true"');
-    expect(teamProgressHtml).toContain('data-selected-object-drawer="true"');
+    expect(teamProgressHtml).not.toContain('data-selected-object-drawer="true"');
     expect(teamProgressHtml).toContain("Morgan Lee");
     expect(teamProgressHtml).toContain("50%");
-    expect(teamProgressHtml).toContain(
+    expect(teamProgressHtml).not.toContain(
       'data-operational-preview-drawer="true"',
     );
 
@@ -1184,16 +1179,16 @@ describe("primary route hero removal", () => {
     expect(roleplayHtml).toContain('href="/roleplay/history"');
     expect(historyHtml).toContain('data-roleplay-route="history"');
     expect(historyHtml).toContain('data-forge-table="true"');
-    expect(historyHtml).toContain('data-operational-preview-drawer="true"');
-    expect(historyHtml).toContain('data-selected-object-drawer="true"');
+    expect(historyHtml).toContain('aria-label="Completed roleplay sessions"');
+    expect(historyHtml).not.toContain('data-selected-object-drawer="true"');
     expect(historyHtml).toContain("ROI &amp; Budget");
     expect(historyHtml).toContain("87");
     expect(historyHtml).toContain('href="/roleplay?sessionId=session-1"');
-    const mobile = historyHtml.slice(historyHtml.indexOf('data-forge-mobile-table-cards="true"')).split("</article>")[0];
+    const mobile = historyHtml.split('data-roleplay-history-mobile="true"')[1]!.split("</li>")[0];
     for (const text of ["ROI &amp; Budget", "Dana Mercer", "87", "00:00", new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date("2026-04-03T00:00:00.000Z")), 'href="/roleplay?sessionId=session-1"']) {
       expect(mobile).toContain(text);
     }
-    expect(historyHtml).toContain("hidden md:block");
+    expect(mobile).not.toContain("<table");
   });
 
   it("translates generated Stitch patterns onto deeper drill-down workflows", async () => {
@@ -1256,8 +1251,8 @@ describe("primary route hero removal", () => {
       'data-rep-profile-route="coaching-detail"',
     );
     expect(repProfileHtml).not.toContain('data-operational-metric-strip="true"');
-    expect(repProfileHtml).toContain('data-operational-preview-drawer="true"');
-    expect(repProfileHtml).toContain('data-selected-object-drawer="true"');
+    expect(repProfileHtml).not.toContain('data-operational-preview-drawer="true"');
+    expect(repProfileHtml).not.toContain('data-selected-object-drawer="true"');
     expect(repProfileHtml).toContain("Rep profile marker");
     expect(repProfileHtml).not.toContain(">Rep Profile<");
   });
@@ -1315,7 +1310,7 @@ describe("primary route hero removal", () => {
       rubricHtml,
       complianceHtml,
     ]) {
-      expect(html).toContain('data-operational-preview-drawer="true"');
+      expect(html).not.toContain('data-operational-preview-drawer="true"');
     }
 
     expect(peopleHtml).toContain('data-settings-detail-route="people"');
@@ -1324,7 +1319,7 @@ describe("primary route hero removal", () => {
     expect(peopleHtml).not.toContain('data-operational-preview-drawer="true"');
     expect(teamsHtml).toContain('data-settings-detail-route="teams"');
     expect(teamsHtml).toContain('data-teams-route="overview"');
-    expect(teamsHtml).toContain('data-forge-table="true"');
+    expect(teamsHtml).toContain("Teams appear here after the first team is created.");
     expect(teamsHtml).toContain('href="/settings/teams/manage"');
     expect(teamsHtml).not.toContain("Teams panel marker");
     expect(teamsManageHtml).toContain('data-settings-detail-route="teams"');
@@ -1339,7 +1334,7 @@ describe("primary route hero removal", () => {
       'data-settings-detail-route="permissions"',
     );
     expect(permissionsHtml).toContain('data-permissions-route="overview"');
-    expect(permissionsHtml).toContain('data-forge-table="true"');
+    expect(permissionsHtml).toContain("Team access appears here after teams and memberships are created.");
     expect(permissionsHtml).toContain('href="/settings/permissions/manage"');
     expect(permissionsHtml).not.toContain("Permissions panel marker");
     expect(permissionsManageHtml).toContain(
@@ -1362,7 +1357,7 @@ describe("primary route hero removal", () => {
     expect(integrationsHtml).toContain("Integrations panel marker");
     expect(rubricHtml).toContain('data-settings-detail-route="rubrics"');
     expect(rubricHtml).toContain('data-rubric-route="overview"');
-    expect(rubricHtml).toContain('data-forge-table="true"');
+    expect(rubricHtml).toContain("Published rubric versions appear here after the first custom rubric is activated.");
     expect(rubricHtml).toContain('href="/settings/rubric/builder"');
     expect(rubricHtml).not.toContain("Rubrics panel marker");
     expect(rubricBuilderHtml).toContain('data-settings-detail-route="rubrics"');

@@ -9,8 +9,6 @@ import {
   ForgeStatusPanel,
 } from "../forge";
 import {
-  SettingsDrawerButton,
-  SettingsDrawerGroup,
   SettingsEditorDrawer,
   SettingsEditorPanel,
   SettingsEditorWorkbench,
@@ -464,7 +462,7 @@ export function TeamsPanel({
               ) : (
                 selectedMembers.map((membership) => (
                   <div
-                    className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4"
+                    className="rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface)] p-4"
                     key={`${membership.teamId}:${membership.userId}:${membership.membershipType}:card`}
                   >
                     <p className="text-sm font-semibold text-[var(--forge-text)]">
@@ -502,7 +500,7 @@ export function TeamsPanel({
                 <th className="px-4 py-3 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--forge-border-strong)]/10">
+            <tbody className="divide-y divide-[var(--forge-border)]">
               {selectedMembers.length === 0 ? (
                 <tr>
                   <td
@@ -522,7 +520,7 @@ export function TeamsPanel({
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button
-                        className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--forge-muted)] transition hover:text-[var(--forge-danger)] disabled:opacity-50"
+                        className="px-3 text-sm font-medium text-[var(--forge-muted)] transition hover:text-[var(--forge-danger)] disabled:opacity-50"
                         disabled={
                           pendingKey ===
                           `remove:${membershipType}:${selectedTeam.id}:${membership.userId}`
@@ -563,93 +561,72 @@ export function TeamsPanel({
 
   const teamControls = (
     <SettingsEditorDrawer data-teams-control-drawer="">
-      <div className="space-y-5">
-        <SettingsDrawerGroup label="Create team">
-          <div className="space-y-3 rounded-2xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 p-4">
-            <label className="space-y-2 text-sm text-[var(--forge-muted)]">
-              <span>Team name</span>
-              <input
-                className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
-                onChange={(event) =>
-                  setNewTeam((current) => ({
-                    ...current,
-                    name: event.target.value,
-                  }))
-                }
-                value={newTeam.name}
-              />
-            </label>
-            <label className="space-y-2 text-sm text-[var(--forge-muted)]">
-              <span>Description</span>
-              <input
-                className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
-                onChange={(event) =>
-                  setNewTeam((current) => ({
-                    ...current,
-                    description: event.target.value,
-                  }))
-                }
-                value={newTeam.description}
-              />
-            </label>
-            <ForgeButton
-              className="w-full"
-              disabled={pendingKey === "create-team"}
-              icon="add"
-              onClick={() => {
-                void handleCreateTeam();
-              }}
-              type="button"
-              variant="primary"
-            >
-              {pendingKey === "create-team" ? "Creating..." : "Create team"}
-            </ForgeButton>
-          </div>
-        </SettingsDrawerGroup>
-
-        <SettingsDrawerGroup label="Select team">
-          <label className="block px-3 pb-2 text-sm text-[var(--forge-muted)]">
-            <span className="sr-only">Search teams</span>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="grid gap-2 text-sm text-[var(--forge-muted)]">
+          <span>Search teams</span>
+          <input
+            className="w-full border px-3 py-2"
+            onChange={(event) => setTeamSearch(event.target.value)}
+            placeholder="Name, description, or status"
+            value={teamSearch}
+          />
+        </label>
+        <label className="grid gap-2 text-sm text-[var(--forge-muted)]">
+          <span>Select team</span>
+          <select
+            className="w-full border px-3 py-2"
+            value={filteredTeams.some((team) => team.id === selectedTeam?.id) ? selectedTeam?.id : ""}
+            onChange={(event) => setSelectedTeamId(event.target.value)}
+          >
+            <option value="" disabled>
+              {filteredTeams.length ? "Select team" : "No matching teams"}
+            </option>
+            {filteredTeams.map((team) => {
+              const managerCount = localMemberships.filter(
+                (membership) => membership.teamId === team.id && membership.membershipType === "manager",
+              ).length;
+              const repCount = localMemberships.filter(
+                (membership) => membership.teamId === team.id && membership.membershipType === "rep",
+              ).length;
+              return (
+                <option key={team.id} value={team.id}>
+                  {team.name} · {managerCount} managers · {repCount} reps
+                </option>
+              );
+            })}
+          </select>
+        </label>
+      </div>
+      <details className="mt-4" data-teams-create-form="true">
+        <summary>Create team</summary>
+        <div className="mt-3 grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+          <label className="grid gap-2 text-sm text-[var(--forge-muted)]">
+            <span>Team name</span>
             <input
-              className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
-              onChange={(event) => setTeamSearch(event.target.value)}
-              placeholder="Search teams"
-              value={teamSearch}
+              className="w-full border px-3 py-2"
+              onChange={(event) => setNewTeam((current) => ({ ...current, name: event.target.value }))}
+              value={newTeam.name}
             />
           </label>
-          {filteredTeams.length === 0 ? (
-            <p className="px-3 text-sm text-[var(--forge-muted)]">
-              No matching teams. Clear search or create one.
-            </p>
-          ) : (
-            filteredTeams.map((team) => {
-              const teamManagers = localMemberships.filter(
-                (membership) =>
-                  membership.teamId === team.id &&
-                  membership.membershipType === "manager",
-              );
-              const teamReps = localMemberships.filter(
-                (membership) =>
-                  membership.teamId === team.id &&
-                  membership.membershipType === "rep",
-              );
-
-              return (
-                <SettingsDrawerButton
-                  active={selectedTeam?.id === team.id}
-                  icon="groups"
-                  key={team.id}
-                  onClick={() => setSelectedTeamId(team.id)}
-                  type="button"
-                >
-                  {team.name} · {teamManagers.length} managers ·{" "}
-                  {teamReps.length} reps
-                </SettingsDrawerButton>
-              );
-            })
-          )}
-        </SettingsDrawerGroup>
-      </div>
+          <label className="grid gap-2 text-sm text-[var(--forge-muted)]">
+            <span>Description</span>
+            <input
+              className="w-full border px-3 py-2"
+              onChange={(event) => setNewTeam((current) => ({ ...current, description: event.target.value }))}
+              value={newTeam.description}
+            />
+          </label>
+          <ForgeButton
+            disabled={pendingKey === "create-team"}
+            icon="add"
+            onClick={() => { void handleCreateTeam(); }}
+            type="button"
+            variant="primary"
+          >
+            {pendingKey === "create-team" ? "Creating..." : "Create team"}
+          </ForgeButton>
+        </div>
+      </details>
     </SettingsEditorDrawer>
   );
 
@@ -663,23 +640,9 @@ export function TeamsPanel({
         data-selected-team-editor={selectedTeam?.id ?? "none"}
         data-teams-editor=""
       >
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-xs font-medium text-[var(--forge-muted)]">
-              Selected team editor
-            </p>
-            <h3 className="mt-2 text-xl font-semibold text-[var(--forge-text)]">
-              {selectedTeam ? selectedTeam.name : "Create or select a team"}
-            </h3>
-            <p className="mt-2 text-sm text-[var(--forge-muted)]">
-              Edit one team at a time, then manage its manager and rep
-              membership below.
-            </p>
-          </div>
-          <span className="rounded-full border border-[var(--forge-border-strong)]/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forge-muted)]">
-            {localTeams.length} {localTeams.length === 1 ? "team" : "teams"}
-          </span>
-        </div>
+        <h3 className="text-base font-semibold text-[var(--forge-text)]">
+          {selectedTeam ? selectedTeam.name : "Create or select a team"}
+        </h3>
 
         <div aria-live="polite" className="sr-only" role="status">
           {pendingStatusMessage}
@@ -709,17 +672,17 @@ export function TeamsPanel({
         {!selectedTeam || !selectedDraft ? (
           <ForgeStatusPanel
             className="mt-6"
-            description="Create a team in the drawer or select an existing team to edit metadata and membership."
+            description="Create a team above or select an existing team to edit its details and membership."
             icon="groups"
             title="No team selected"
           />
         ) : (
           <div className="mt-6 space-y-6">
-            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_180px_auto]">
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
               <label className="space-y-2 text-sm text-[var(--forge-muted)]">
                 <span>Team name</span>
                 <input
-                  className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
+                  className="w-full rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-focus)]"
                   onChange={(event) =>
                     updateDraft(selectedTeam.id, { name: event.target.value })
                   }
@@ -729,7 +692,7 @@ export function TeamsPanel({
               <label className="space-y-2 text-sm text-[var(--forge-muted)]">
                 <span>Description</span>
                 <input
-                  className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
+                  className="w-full rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-focus)]"
                   onChange={(event) =>
                     updateDraft(selectedTeam.id, {
                       description: event.target.value,
@@ -741,7 +704,7 @@ export function TeamsPanel({
               <label className="space-y-2 text-sm text-[var(--forge-muted)]">
                 <span>Status</span>
                 <select
-                  className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
+                  className="w-full rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-focus)]"
                   onChange={(event) =>
                     updateDraft(selectedTeam.id, { status: event.target.value })
                   }
@@ -768,29 +731,26 @@ export function TeamsPanel({
             </div>
 
             <p className="text-xs text-[var(--forge-muted)]">
-              Team membership is managed here. Rep-level primary manager
-              assignments stay on{" "}
+              Set each rep’s primary manager in{" "}
               <a
                 className="underline hover:text-[var(--forge-text)]"
                 href="/settings/permissions"
               >
-                /settings/permissions
+                Permissions
               </a>
               .
             </p>
 
-            <div className="grid gap-4 xl:grid-cols-2">
-              <section className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)]/60 p-4">
+            <div className="grid gap-8">
+              <section className="min-w-0 border-t border-[var(--forge-border)] pt-5">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-medium text-[var(--forge-muted)]">
-                      Managers
-                    </p>
+                    <h4 className="text-sm font-semibold text-[var(--forge-text)]">Managers</h4>
                     <p className="mt-1 text-sm text-[var(--forge-muted)]">
-                      Team-level coaching and management membership.
+                      Manage coaching access for this team.
                     </p>
                   </div>
-                  <span className="text-xs uppercase tracking-[0.18em] text-[var(--forge-muted)]">
+                  <span className="text-xs text-[var(--forge-muted)]">
                     {selectedTeamManagers.length}
                   </span>
                 </div>
@@ -798,7 +758,7 @@ export function TeamsPanel({
                   <label className="min-w-0 flex-1">
                     <span className="sr-only">Add manager</span>
                     <select
-                      className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
+                      className="w-full rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-focus)]"
                       onChange={(event) =>
                         setManagerSelectionByTeamId((current) => ({
                           ...current,
@@ -836,17 +796,15 @@ export function TeamsPanel({
                 </div>
               </section>
 
-              <section className="rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface)]/60 p-4">
+              <section className="min-w-0 border-t border-[var(--forge-border)] pt-5">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-medium text-[var(--forge-muted)]">
-                      Reps
-                    </p>
+                    <h4 className="text-sm font-semibold text-[var(--forge-text)]">Reps</h4>
                     <p className="mt-1 text-sm text-[var(--forge-muted)]">
                       Sales reps assigned to this team.
                     </p>
                   </div>
-                  <span className="text-xs uppercase tracking-[0.18em] text-[var(--forge-muted)]">
+                  <span className="text-xs text-[var(--forge-muted)]">
                     {selectedTeamReps.length}
                   </span>
                 </div>
@@ -854,7 +812,7 @@ export function TeamsPanel({
                   <label className="min-w-0 flex-1">
                     <span className="sr-only">Add rep</span>
                     <select
-                      className="w-full rounded-xl border border-[var(--forge-border-strong)]/20 bg-[var(--forge-surface-2)]/50 px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-gold)]/60"
+                      className="w-full rounded-md border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2 text-sm text-[var(--forge-text)] outline-none transition focus:border-[var(--forge-focus)]"
                       onChange={(event) =>
                         setRepSelectionByTeamId((current) => ({
                           ...current,

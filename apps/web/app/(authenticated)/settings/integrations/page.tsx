@@ -1,3 +1,4 @@
+import { loadSettingsRailItems } from "../settings-navigation-data";
 import { redirect } from "next/navigation";
 import { IntegrationsPanel } from "@/components/panel-loaders/integrations-panel-loader";
 import {
@@ -63,11 +64,6 @@ export default async function SettingsIntegrationsPage() {
         role: member.role,
       }))
     : [];
-  const connectedCount = [
-    canUseZoom && integrations?.zoom.connected,
-    canUseGoogleMeet && integrations?.googleMeet.connected,
-    canUseGhl && integrations?.ghl.connected,
-  ].filter(Boolean).length;
   const titleFilters = titleFiltersResult.ok
     ? titleFiltersResult.data
     : {
@@ -75,61 +71,11 @@ export default async function SettingsIntegrationsPage() {
         excludePhrases: [],
         includePhrases: [],
       };
-  const providerPreviewRows: Array<{
-    label: string;
-    tone?: "muted" | "success";
-    value: number | string;
-  }> = [
-    { label: "Connected", value: connectedCount },
-    ...(canUseZoom
-      ? [
-          {
-            label: "Zoom",
-            tone: integrations?.zoom.connected
-              ? ("success" as const)
-              : ("muted" as const),
-            value: integrations?.zoom.connected ? "Connected" : "Not connected",
-          },
-        ]
-      : []),
-    ...(canUseGoogleMeet
-      ? [
-          {
-            label: "Google Meet",
-            tone: integrations?.googleMeet.connected
-              ? ("success" as const)
-              : ("muted" as const),
-            value: integrations?.googleMeet.connected ? "Connected" : "Not connected",
-          },
-        ]
-      : []),
-    ...(canUseGhl
-      ? [
-          {
-            label: "GoHighLevel",
-            tone: integrations?.ghl.connected
-              ? ("success" as const)
-              : ("muted" as const),
-            value: integrations?.ghl.connected ? "Connected" : "Not connected",
-          },
-        ]
-      : []),
-    {
-      label: "Available",
-      value: [
-        canUseZoom && integrations?.zoom.available,
-        canUseGoogleMeet && integrations?.googleMeet.available,
-        canUseGhl && integrations?.ghl.available,
-      ].filter(Boolean).length,
-    },
-  ];
 
   return (
     <SettingsOperationalLayout
+      railItems={await loadSettingsRailItems()}
       description="Connect and monitor supported providers."
-      previewDescription="Provider availability and connection state."
-      previewRows={providerPreviewRows}
-      previewTitle="Integration status"
       route="integrations"
       title="Integrations"
     >
