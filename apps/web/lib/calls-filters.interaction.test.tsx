@@ -347,6 +347,50 @@ describe("Calls filter navigation", () => {
     expect(input().value).toBe("old");
   });
 
+  it.each(["saved view", "matching saved view", "Clear link", "matching Clear link", "history", "matching history", "Clear button"]
+    .flatMap((kind) => [50, 200].map((delay) => [kind, delay] as const)))(
+    "preserves typing after %s intent when its navigation commits after %sms", async (kind, delay) => {
+      await navigate("/calls?status=processing&search=old");
+      commitImmediately = false;
+      routing.deferLinks = true;
+      if (kind === "matching saved view" || kind === "matching history") await select("status", "all");
+      if (kind === "matching Clear link") await clear();
+      await fill("pre-navigation draft");
+      let href: string;
+      if (kind.endsWith("history")) {
+        href = "/calls?search=old";
+        await act(async () => {
+          window.history.replaceState(null, "", href);
+          window.dispatchEvent(new PopStateEvent("popstate"));
+        });
+      } else if (kind === "Clear button") {
+        await clear();
+        href = routing.replace.mock.calls.at(-1)![0] as string;
+      } else {
+        if (kind.endsWith("Clear link")) {
+          const link = [...container.querySelectorAll<HTMLAnchorElement>("a")]
+            .find((element) => element.textContent === "Clear filters")!;
+          await act(async () => link.click());
+        } else {
+          await clickView("All calls");
+        }
+        href = routing.linkHref;
+      }
+      expect(input().value).toBe(kind.includes("Clear") ? "" : "old");
+      await fill("pricing");
+      await advance(delay);
+      await navigate(href);
+      expect(input().value).toBe("pricing");
+      await advance(Math.max(0, 180 - delay));
+      const latestHref = routing.replace.mock.calls.at(-1)![0] as string;
+      const params = new URL(latestHref, "http://synthetic.invalid").searchParams;
+      expect(params.get("search")).toBe("pricing");
+      expect(params.has("status")).toBe(false);
+      await navigate(latestHref);
+      expect(input().value).toBe("pricing");
+    },
+  );
+
   it.each([
     { metaKey: true }, { ctrlKey: true }, { shiftKey: true }, { altKey: true }, { button: 1 },
   ])("keeps the current search for a modified link click: %j", async (options) => {

@@ -51,21 +51,26 @@ export function CallsFilters({ initialSearch, scoringEnabled = true }: Props) {
 
   useLayoutEffect(() => {
     committedQueryRef.current = query;
-    const ownNavigation = pendingQueriesRef.current.indexOf(query);
-    if (ownNavigation !== -1) {
-      pendingQueriesRef.current.splice(0, ownNavigation + 1);
+    const requestedNavigation = pendingQueriesRef.current.indexOf(query);
+    if (requestedNavigation !== -1) {
+      pendingQueriesRef.current.splice(0, requestedNavigation + 1);
       if (pendingQueriesRef.current.length === 0) intendedQueryRef.current = query;
-      // An earlier replace may commit after the user has typed again. Keep
-      // that newer draft and its timer when acknowledging our own navigation.
+      // A requested URL may commit after the user has typed again. Keep
+      // that newer draft and its timer when acknowledging the destination.
       return;
     }
-    // Saved views and back/forward navigation own the canonical URL. Discard
-    // an uncommitted search rather than letting it restore the previous view.
+    // A URL change without a captured intent owns the canonical search.
     followNavigation(query);
   }, [query, followNavigation]);
 
   useEffect(() => {
     const workspace = filterBarRef.current?.closest('[data-calls-layout="table-first"]');
+    function requestNavigation(nextQuery: string) {
+      followNavigation(nextQuery);
+      // Cancel the pre-navigation draft now, then recognize this destination's
+      // eventual commit so it cannot discard typing that follows the intent.
+      if (nextQuery !== committedQueryRef.current) pendingQueriesRef.current.push(nextQuery);
+    }
     function handleNavigationClick(event: Event) {
       if (!(event instanceof MouseEvent) || event.defaultPrevented || event.button !== 0 ||
         event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -76,10 +81,10 @@ export function CallsFilters({ initialSearch, scoringEnabled = true }: Props) {
       if (destination.origin !== window.location.origin) return;
       // Explicit links can share a target with an unacknowledged replace.
       // Cancel on intent, before Next commits the destination URL.
-      followNavigation(destination.searchParams.toString());
+      requestNavigation(destination.searchParams.toString());
     }
     function handleHistoryNavigation() {
-      followNavigation(new URLSearchParams(window.location.search).toString());
+      requestNavigation(new URLSearchParams(window.location.search).toString());
     }
     workspace?.addEventListener("click", handleNavigationClick, true);
     window.addEventListener("popstate", handleHistoryNavigation);
