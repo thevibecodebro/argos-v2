@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ForgeButton, ForgeIcon } from "@/components/forge";
 
@@ -29,7 +29,72 @@ export function CallsFilters({ initialSearch, scoringEnabled = true }: Props) {
   const [search, setSearch] = useState(initialSearch);
   const [isPending, startTransition] = useTransition();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isFirstRender = useRef(true);
+  const filterBarRef = useRef<HTMLDivElement>(null);
+  const query = searchParams.toString();
+  const committedQueryRef = useRef(query);
+  const intendedQueryRef = useRef(query);
+  const pendingQueriesRef = useRef<string[]>([]);
+
+  const cancelSearch = useCallback(() => {
+    if (debounceRef.current !== null) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+  }, []);
+
+  const followNavigation = useCallback((nextQuery: string) => {
+    pendingQueriesRef.current = [];
+    intendedQueryRef.current = nextQuery;
+    cancelSearch();
+    setSearch(new URLSearchParams(nextQuery).get("search") ?? "");
+  }, [cancelSearch]);
+
+  useLayoutEffect(() => {
+    committedQueryRef.current = query;
+    const requestedNavigation = pendingQueriesRef.current.indexOf(query);
+    if (requestedNavigation !== -1) {
+      pendingQueriesRef.current.splice(0, requestedNavigation + 1);
+      if (pendingQueriesRef.current.length === 0) intendedQueryRef.current = query;
+      // A requested URL may commit after the user has typed again. Keep
+      // that newer draft and its timer when acknowledging the destination.
+      return;
+    }
+    // A URL change without a captured intent owns the canonical search.
+    followNavigation(query);
+  }, [query, followNavigation]);
+
+  useEffect(() => {
+    const workspace = filterBarRef.current?.closest('[data-calls-layout="table-first"]');
+    function requestNavigation(nextQuery: string) {
+      followNavigation(nextQuery);
+      // Cancel the pre-navigation draft now, then recognize this destination's
+      // eventual commit so it cannot discard typing that follows the intent.
+      if (nextQuery !== committedQueryRef.current) pendingQueriesRef.current.push(nextQuery);
+    }
+    function handleNavigationClick(event: Event) {
+      if (!(event instanceof MouseEvent) || event.defaultPrevented || event.button !== 0 ||
+        event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
+      if (!(anchor instanceof HTMLAnchorElement) || anchor.hasAttribute("download") ||
+        (anchor.target && anchor.target !== "_self") || anchor.getAttribute("href")?.includes("#")) return;
+      const destination = new URL(anchor.href);
+      if (destination.origin !== window.location.origin) return;
+      // Explicit links can share a target with an unacknowledged replace.
+      // Cancel on intent, before Next commits the destination URL.
+      requestNavigation(destination.searchParams.toString());
+    }
+    function handleHistoryNavigation() {
+      requestNavigation(new URLSearchParams(window.location.search).toString());
+    }
+    workspace?.addEventListener("click", handleNavigationClick, true);
+    window.addEventListener("popstate", handleHistoryNavigation);
+    return () => {
+      workspace?.removeEventListener("click", handleNavigationClick, true);
+      window.removeEventListener("popstate", handleHistoryNavigation);
+    };
+  }, [followNavigation]);
+
+  useEffect(() => cancelSearch, [cancelSearch]);
 
   const currentStatus = searchParams.get("status") ?? "all";
   const currentSort = searchParams.get("sort") ?? "createdAt:desc";
@@ -48,7 +113,7 @@ export function CallsFilters({ initialSearch, scoringEnabled = true }: Props) {
 
   const buildUrl = useCallback(
     (patch: Record<string, string>) => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(intendedQueryRef.current);
       for (const [key, value] of Object.entries(patch)) {
         if (value !== "") {
           params.set(key, value);
@@ -64,11 +129,18 @@ export function CallsFilters({ initialSearch, scoringEnabled = true }: Props) {
       const query = params.toString();
       return query ? `/calls?${query}` : "/calls";
     },
-    [searchParams],
+    [],
   );
 
   const replaceUrl = useCallback(
     (href: string) => {
+      const nextQuery = href.split("?")[1] ?? "";
+      intendedQueryRef.current = nextQuery;
+      if (nextQuery === committedQueryRef.current) {
+        pendingQueriesRef.current = [];
+      } else {
+        pendingQueriesRef.current.push(nextQuery);
+      }
       startTransition(() => {
         router.replace(href, { scroll: false });
       });
@@ -76,25 +148,21 @@ export function CallsFilters({ initialSearch, scoringEnabled = true }: Props) {
     [router],
   );
 
-  // Debounced search — skip firing on initial mount
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
-    if (debounceRef.current) clearTimeout(debounceRef.current);
+  function handleSearchChange(value: string) {
+    setSearch(value);
+    cancelSearch();
     debounceRef.current = setTimeout(() => {
-      replaceUrl(buildUrl({ search }));
+      debounceRef.current = null;
+      replaceUrl(buildUrl({ search: value }));
     }, 180);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [search]); // eslint-disable-line react-hooks/exhaustive-deps
+  }
 
   function handleMinScoreChange(newMin: string) {
     const patch: Record<string, string> = { minScore: newMin };
-    // Auto-clear max if it would be less than the new min
-    if (newMin && currentMaxScore && Number(newMin) > Number(currentMaxScore)) {
+    // Validate against the same intended query used to build the URL; another
+    // score selection may still be waiting for its navigation to commit.
+    const intendedMax = new URLSearchParams(intendedQueryRef.current).get("maxScore");
+    if (newMin && intendedMax && Number(newMin) > Number(intendedMax)) {
       patch.maxScore = "";
     }
     replaceUrl(buildUrl(patch));
@@ -102,25 +170,22 @@ export function CallsFilters({ initialSearch, scoringEnabled = true }: Props) {
 
   function handleMaxScoreChange(newMax: string) {
     const patch: Record<string, string> = { maxScore: newMax };
-    // Auto-clear min if it would be greater than the new max
-    if (newMax && currentMinScore && Number(currentMinScore) > Number(newMax)) {
+    const intendedMin = new URLSearchParams(intendedQueryRef.current).get("minScore");
+    if (newMax && intendedMin && Number(intendedMin) > Number(newMax)) {
       patch.minScore = "";
     }
     replaceUrl(buildUrl(patch));
   }
 
   function clearFilters() {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-      debounceRef.current = null;
-    }
-    isFirstRender.current = true;
+    cancelSearch();
     setSearch("");
     replaceUrl("/calls");
   }
 
   return (
     <div
+      ref={filterBarRef}
       className="grid items-stretch gap-2"
       data-calls-filter-bar="operational"
       data-calls-filter-surface="inline"
@@ -141,7 +206,7 @@ export function CallsFilters({ initialSearch, scoringEnabled = true }: Props) {
         <input
           className="w-full border-none bg-transparent px-0 py-2 text-sm font-medium text-[var(--forge-text)] outline-none placeholder:text-[color-mix(in_srgb,var(--forge-text)_42%,transparent)] focus:ring-0"
           id="search"
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => handleSearchChange(e.target.value)}
           placeholder={scoringEnabled ? "Search calls, reps, topics..." : "Search recordings, reps, topics..."}
           type="text"
           value={search}
