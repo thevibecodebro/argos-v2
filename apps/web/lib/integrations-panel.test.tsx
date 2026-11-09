@@ -1,4 +1,7 @@
-import { createElement } from "react";
+// @vitest-environment jsdom
+import { act, createElement } from "react";
+import { hydrateRoot, type Root } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -92,6 +95,44 @@ const connectedProps = {
 };
 
 describe("IntegrationsPanel disconnect feedback", () => {
+  it("hydrates connected and sync timestamps across timezones, then uses browser-local dates", async () => {
+    const NativeDateTimeFormat = Intl.DateTimeFormat;
+    let zone = "UTC";
+    const formatter = vi.spyOn(Intl, "DateTimeFormat").mockImplementation((locales, options) =>
+      new NativeDateTimeFormat(locales, { timeZone: zone, ...options }));
+    vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+    const connectedAt = "2026-11-06T03:30:00.000Z";
+    const element = createElement(IntegrationsPanel, {
+      ...connectedProps,
+      zoom: { ...connectedProps.zoom, connectedAt },
+      ghl: { ...connectedProps.ghl, connectedAt, lastSyncCompletedAt: null, lastSyncStartedAt: "2026-11-06T03:40:00.000Z" },
+      googleMeet: { ...connectedProps.googleMeet, connectedAt, lastSyncCompletedAt: "2026-11-06T03:45:00.000Z" },
+    });
+    let root: Root | undefined;
+    const container = document.createElement("div");
+    const errors = vi.fn();
+    try {
+      const server = renderToString(element);
+      zone = "America/Chicago";
+      expect(renderToString(element)).toBe(server);
+      expect(server.match(/Nov 6, 2026, 3:30 AM/g)).toHaveLength(3);
+      expect(server).toContain("Started Nov 6, 2026, 3:40 AM");
+      expect(server).toContain("Nov 6, 2026, 3:45 AM");
+      container.innerHTML = server;
+      document.body.append(container);
+      await act(async () => { root = hydrateRoot(container, element, { onRecoverableError: errors }); });
+      expect(errors).not.toHaveBeenCalled();
+      expect(container.textContent?.match(/Nov 5, 2026, 9:30 PM/g)).toHaveLength(3);
+      expect(container.textContent).toContain("Started Nov 5, 2026, 9:40 PM");
+      expect(container.textContent).toContain("Nov 5, 2026, 9:45 PM");
+    } finally {
+      if (root) await act(async () => root!.unmount());
+      container.remove();
+      formatter.mockRestore();
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("renders only the provider props supplied by the tenant route", () => {
     const html = renderToStaticMarkup(createElement(IntegrationsPanel, {
       titleFilterEnforcementEnabled: false,

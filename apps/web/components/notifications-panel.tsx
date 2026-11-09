@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ForgeButton,
@@ -22,9 +22,15 @@ export async function requestNotificationRead(url: string) {
   }
 }
 
-function timeAgo(value: string) {
+function timeAgo(value: string, useLocalTime: boolean) {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return "Date unavailable";
+  // Avoid server/browser timezone and clock drift before hydration completes.
+  if (!useLocalTime) {
+    return new Intl.DateTimeFormat("en-US", {
+      dateStyle: "medium", timeStyle: "short", timeZone: "UTC",
+    }).format(date);
+  }
   const diff = Date.now() - date.getTime();
   const minutes = Math.floor(diff / 60_000);
 
@@ -44,6 +50,8 @@ export function NotificationsPanel({
   initialUnreadCount,
 }: NotificationsPanelProps) {
   const router = useRouter();
+  const [useLocalTime, setUseLocalTime] = useState(false);
+  useEffect(() => setUseLocalTime(true), []);
   const [notifications, setNotifications] = useState(initialNotifications);
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
   const [isMutating, setIsMutating] = useState(false);
@@ -69,7 +77,7 @@ export function NotificationsPanel({
     for (const notification of filteredNotifications) {
       const date = new Date(notification.createdAt);
       const key = Number.isFinite(date.getTime())
-        ? new Intl.DateTimeFormat("en-US", { dateStyle: "full" }).format(date)
+        ? new Intl.DateTimeFormat("en-US", { dateStyle: "full", ...(!useLocalTime ? { timeZone: "UTC" } : {}) }).format(date)
         : "Date unavailable";
       const current = groups.get(key) ?? [];
       current.push(notification);
@@ -77,7 +85,7 @@ export function NotificationsPanel({
     }
 
     return [...groups.entries()];
-  }, [filteredNotifications]);
+  }, [filteredNotifications, useLocalTime]);
 
   async function markOne(notification: NotificationItem) {
     if (mutationInFlight.current) return;
@@ -218,7 +226,7 @@ export function NotificationsPanel({
                         <p className="mt-2 max-w-[72ch] break-words text-sm leading-6 text-[var(--forge-muted)]">{notification.body}</p>
                       </div>
                       <span className="shrink-0 text-xs uppercase tracking-[0.22em] text-[var(--forge-muted)]">
-                        {timeAgo(notification.createdAt)}
+                        {timeAgo(notification.createdAt, useLocalTime)}
                       </span>
                     </div>
                   </button>
